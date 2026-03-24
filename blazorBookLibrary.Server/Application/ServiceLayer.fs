@@ -293,7 +293,7 @@ module ServiceLayer =
                         return result
                     }
 
-            member this.GetBookDetailAsync (bookId: BookId, ?ct: CancellationToken) = 
+            member this.GetRefreshableBookDetails2Async(bookId: BookId, ?ct:CancellationToken) =
                 let detailsBuilder =
                     fun (ct: Option<CancellationToken>) ->
                         let refresher =
@@ -304,7 +304,6 @@ module ServiceLayer =
                                         this.GetBookAsync (bookId, ct)
                                         |> Async.AwaitTask
                                         |> Async.RunSynchronously
-
                                     let! currentLoan = 
                                         match book.CurrentLoan with
                                         | Some loanId -> 
@@ -321,25 +320,36 @@ module ServiceLayer =
                                         this.GetReservationsAsync book.CurrentReservations
                                         |> Async.AwaitTask
                                         |> Async.RunSynchronously
-                                    return book, currentLoan, futureReservations
+                                    return 
+                                        { 
+                                            Book = book
+                                            CurrentLoan = currentLoan
+                                            FutureReservations = futureReservations
+                                        } 
                                 }
                         result {
-                            let! book, currentLoan, futureReservations = refresher ()
-                            return
-                                {
-                                    Book = book
-                                    CurrentLoan = currentLoan
-                                    FutureReservations = futureReservations
+                            let! bookDetails = refresher ()
+                            return 
+                                { 
+                                    BookDetails = bookDetails
                                     Refresher = refresher
-                                } :> Refreshable<BookDetails>
+                                } :> Refreshable<RefreshableBookDetails2>
                                 ,
                                 bookId.Value :: 
-                                (if currentLoan.IsSome then [currentLoan.Value.LoanId.Value] else []) @ 
-                                (futureReservations |> List.map _.ReservationId.Value)
+                                (if bookDetails.CurrentLoan.IsSome then [bookDetails.CurrentLoan.Value.LoanId.Value] else []) @ 
+                                (bookDetails.FutureReservations |> List.map _.ReservationId.Value)
                         }
-                let key = DetailsCacheKey.OfType typeof<BookDetails> bookId.Value
+                let key = DetailsCacheKey.OfType typeof<RefreshableBookDetails2> bookId.Value
                 task {
-                    return StateView.getRefreshableDetailsAsync<BookDetails> (fun ct -> detailsBuilder ct) key ct
+                    return StateView.getRefreshableDetailsAsync<RefreshableBookDetails2> (fun ct -> detailsBuilder ct) key ct
+                }
+
+            member this.GetBookDetails2Async(bookId: BookId, ?ct: CancellationToken): TaskResult<BookDetails2, string> = 
+                taskResult {
+                    let ct = defaultArg ct CancellationToken.None
+                    let! refreshableBookDetails =
+                        this.GetRefreshableBookDetails2Async(bookId, ct)
+                    return refreshableBookDetails.BookDetails
                 }
 
             member this.GetLoanAsync (id: LoanId, ?ct: CancellationToken): TaskResult<Loan, string> = 

@@ -4,9 +4,10 @@ open System
 open Expecto
 open DotNetEnv
 open Sharpino.PgStorage
-open BookLibrary.Shared.Domain
+open BookLibrary.Domain
 open Sharpino.Cache
 open Sharpino.Core
+open BookLibrary.Shared.Commons
 open Sharpino.CommandHandler
 open Sharpino.EventBroker
 open BookLibrary.Application.ServiceLayer
@@ -752,12 +753,12 @@ let tests =
         Expect.isTrue (bookRetrieved.CurrentLoan |> Option.isNone) "should not contain the loan"
 
         let bookDetail = 
-            bookServiceLayer.GetBookDetailAsync book.BookId
+            bookServiceLayer.GetBookDetails2Async book.BookId
             |> Async.AwaitTask
             |> Async.RunSynchronously
         Expect.isOk bookDetail "should be ok"
 
-        let (bookDetail: BookDetails) = bookDetail |> Result.get
+        let (bookDetail: BookDetails2) = bookDetail |> Result.get
         Expect.isTrue (bookDetail.Book.CurrentLoan |> Option.isSome) "should contain the loan"
         Expect.isTrue (bookDetail.CurrentLoan |> Option.isSome) "should contain the loan"
         Expect.isTrue (bookDetail.CurrentLoan.Value.LoanId = loan.LoanId) "should contain the loan"
@@ -792,12 +793,12 @@ let tests =
         Expect.isTrue (bookRetrieved.CurrentLoan |> Option.isNone) "should not contain the loan"
 
         let bookDetail = 
-            bookServiceLayer.GetBookDetailAsync (book.BookId)
+            bookServiceLayer.GetBookDetails2Async (book.BookId)
             |> Async.AwaitTask
             |> Async.RunSynchronously
         Expect.isOk bookDetail "should be ok"
 
-        let (bookDetail: BookDetails) = bookDetail |> Result.get
+        let (bookDetail: BookDetails2) = bookDetail |> Result.get
         Expect.isTrue (bookDetail.Book.CurrentLoan |> Option.isSome) "should contain the loan"
         Expect.isTrue (bookDetail.CurrentLoan |> Option.isSome) "should contain the loan"
         Expect.isTrue (bookDetail.CurrentLoan.Value.LoanId = loan.LoanId) "should contain the loan"
@@ -838,11 +839,11 @@ let tests =
             |> Async.RunSynchronously
         Expect.isError addOverlappingReservation "should be an error"
         let bookDetail = 
-            bookServiceLayer.GetBookDetailAsync book.BookId
+            bookServiceLayer.GetBookDetails2Async book.BookId
             |> Async.AwaitTask
             |> Async.RunSynchronously
         Expect.isOk bookDetail "should be ok"
-        let (bookDetail: BookDetails) = bookDetail |> Result.get
+        let (bookDetail: BookDetails2) = bookDetail |> Result.get
         Expect.equal bookDetail.FutureReservations.Length 1 "should contain one reservation"
 
     testCase "add a non overlapping reservation and verify it will be ok, expect then two reservation on that book - Ok" <| fun _ ->
@@ -881,12 +882,12 @@ let tests =
         Expect.isOk addNonOverlappingReservation "should be ok"
 
         let bookDetail = 
-            bookServiceLayer.GetBookDetailAsync book.BookId
+            bookServiceLayer.GetBookDetails2Async book.BookId
             |> Async.AwaitTask
             |> Async.RunSynchronously
         Expect.isOk bookDetail "should be ok"
 
-        let (bookDetail: BookDetails) = bookDetail |> Result.get
+        let (bookDetail: BookDetails2) = bookDetail |> Result.get
         Expect.isTrue (bookDetail.Book.CurrentLoan |> Option.isNone) "should not contain the loan"
         Expect.isTrue (bookDetail.CurrentLoan |> Option.isNone) "should not contain the loan"
         Expect.equal bookDetail.FutureReservations.Length 2 "should contain two reservations"
@@ -972,12 +973,12 @@ let tests =
         Expect.isOk addLoan "should be ok"
 
         let bookDetail = 
-            bookServiceLayer.GetBookDetailAsync book.BookId
+            bookServiceLayer.GetBookDetails2Async book.BookId
             |> Async.AwaitTask
             |> Async.RunSynchronously
         Expect.isOk bookDetail "should be ok"
 
-        let (bookDetail: BookDetails) = bookDetail |> Result.get
+        let (bookDetail: BookDetails2) = bookDetail |> Result.get
         Expect.isTrue (bookDetail.Book.CurrentLoan |> Option.isSome) "should contain the loan"
         Expect.isTrue (bookDetail.CurrentLoan |> Option.isSome) "should contain the loan"
         Expect.isTrue (bookDetail.CurrentLoan.Value.LoanId = loan.LoanId) "should contain the loan"
@@ -990,12 +991,68 @@ let tests =
         Expect.isOk releaseLoan "should be ok"
 
         let bookDetail2 = 
-            bookServiceLayer.GetBookDetailAsync book.BookId
+            bookServiceLayer.GetBookDetails2Async book.BookId
             |> Async.AwaitTask
             |> Async.RunSynchronously
         Expect.isOk bookDetail2 "should be ok"
 
-        let (bookDetail2: BookDetails) = bookDetail2 |> Result.get
+        let (bookDetail2: BookDetails2) = bookDetail2 |> Result.get
+        Expect.isTrue (bookDetail2.Book.CurrentLoan |> Option.isNone) "should not contain the loan"
+        Expect.isTrue (bookDetail2.CurrentLoan |> Option.isNone) "should not contain the loan"
+        Expect.isTrue (bookDetail2.FutureReservations |> List.isEmpty) "should not contain reservations"
+
+    testCase "verify that when the loan is released then the details are always in sync 2 - Ok" <| fun _ ->
+        setUp ()
+        let bookServiceLayer = getBookServiceLayer()
+        let book = Book.New (Title.New "the constitution") [] [] [] None (Year.New 1924) (Isbn.NewEmpty())
+        let addBook = 
+            bookServiceLayer.AddBookAsync book
+            |> Async.AwaitTask
+            |> Async.RunSynchronously
+
+        Expect.isOk addBook "should be ok"
+
+        let retrieveBook = 
+            bookServiceLayer.GetBookAsync book.BookId
+            |> Async.AwaitTask
+            |> Async.RunSynchronously
+
+        Expect.isOk retrieveBook "should be ok"
+
+        let timeSlot = TimeSlot.New (System.DateTime.Now) (System.DateTime.Now.AddDays(timeSlotDurationInDays))
+        let loan = Loan.New book.BookId (UserId.New ()) System.DateTime.Now timeSlot
+
+        let addLoan = 
+            bookServiceLayer.AddLoanAsync (loan, System.DateTime.Now)
+            |> Async.AwaitTask
+            |> Async.RunSynchronously
+        Expect.isOk addLoan "should be ok"
+
+        let bookDetail = 
+            bookServiceLayer.GetBookDetails2Async book.BookId
+            |> Async.AwaitTask
+            |> Async.RunSynchronously
+        Expect.isOk bookDetail "should be ok"
+
+        let (bookDetail: BookDetails2) = bookDetail |> Result.get
+        Expect.isTrue (bookDetail.Book.CurrentLoan |> Option.isSome) "should contain the loan"
+        Expect.isTrue (bookDetail.CurrentLoan |> Option.isSome) "should contain the loan"
+        Expect.isTrue (bookDetail.CurrentLoan.Value.LoanId = loan.LoanId) "should contain the loan"
+        Expect.isTrue (bookDetail.FutureReservations |> List.isEmpty) "should not contain reservations"
+
+        let releaseLoan = 
+            bookServiceLayer.ReleaseLoanAsync (loan.LoanId, System.DateTime.Now)
+            |> Async.AwaitTask
+            |> Async.RunSynchronously
+        Expect.isOk releaseLoan "should be ok"
+
+        let bookDetail2 = 
+            bookServiceLayer.GetBookDetails2Async book.BookId
+            |> Async.AwaitTask
+            |> Async.RunSynchronously
+        Expect.isOk bookDetail2 "should be ok"
+
+        let (bookDetail2: BookDetails2) = bookDetail2 |> Result.get
         Expect.isTrue (bookDetail2.Book.CurrentLoan |> Option.isNone) "should not contain the loan"
         Expect.isTrue (bookDetail2.CurrentLoan |> Option.isNone) "should not contain the loan"
         Expect.isTrue (bookDetail2.FutureReservations |> List.isEmpty) "should not contain reservations"
@@ -1029,13 +1086,13 @@ let tests =
         Expect.isOk addLoan "should be ok"
 
         let bookDetail = 
-            bookServiceLayer.GetBookDetailAsync book.BookId 
+            bookServiceLayer.GetBookDetails2Async book.BookId 
             |> Async.AwaitTask
             |> Async.RunSynchronously
 
         Expect.isOk bookDetail "should be ok"
 
-        let (bookDetail: BookDetails) = bookDetail |> Result.get
+        let (bookDetail: BookDetails2) = bookDetail |> Result.get
         Expect.isTrue (bookDetail.Book.CurrentLoan |> Option.isSome) "should contain the loan"
         Expect.isTrue (bookDetail.CurrentLoan |> Option.isSome) "should contain the loan"
         Expect.isTrue (bookDetail.CurrentLoan.Value.LoanId = loan.LoanId) "should contain the loan"
@@ -1050,13 +1107,74 @@ let tests =
         Expect.isOk releaseLoan "should be ok"
 
         let bookDetail2 = 
-            bookServiceLayer.GetBookDetailAsync book.BookId 
+            bookServiceLayer.GetBookDetails2Async book.BookId 
             |> Async.AwaitTask
             |> Async.RunSynchronously
             
         Expect.isOk bookDetail2 "should be ok"
 
-        let (bookDetail2: BookDetails) = bookDetail2 |> Result.get
+        let (bookDetail2: BookDetails2) = bookDetail2 |> Result.get
+        Expect.isTrue (bookDetail2.Book.CurrentLoan |> Option.isNone) "should not contain the loan"
+        Expect.isTrue (bookDetail2.CurrentLoan |> Option.isNone) "should not contain the loan"
+        Expect.isTrue (bookDetail2.FutureReservations |> List.isEmpty) "should not contain reservations"
+
+    testCase "verify that when the loan is released then the details are always in sync 2 - async Ok" <| fun _ ->
+        setUp ()
+        let bookServiceLayer = getBookServiceLayer()
+        let book = Book.New (Title.New "the constitution") [] [] [] None (Year.New 1924) (Isbn.NewEmpty())
+        let addBook = 
+            bookServiceLayer.AddBookAsync book
+            |> Async.AwaitTask
+            |> Async.RunSynchronously
+        Expect.isOk addBook "should be ok"
+
+        let retrieveBook = 
+            bookServiceLayer.GetBookAsync (book.BookId)
+            |> Async.AwaitTask
+            |> Async.RunSynchronously
+
+        Expect.isOk retrieveBook "should be ok"
+
+        let timeSlot = TimeSlot.New (System.DateTime.Now) (System.DateTime.Now.AddDays(timeSlotDurationInDays))
+        let loan = Loan.New book.BookId (UserId.New ()) System.DateTime.Now timeSlot
+
+        // let addLoan = bookServiceLayer.AddLoan loan System.DateTime.Now
+        let addLoan = 
+            bookServiceLayer.AddLoanAsync (loan, System.DateTime.Now)
+            |> Async.AwaitTask
+            |> Async.RunSynchronously
+
+        Expect.isOk addLoan "should be ok"
+
+        let bookDetail = 
+            bookServiceLayer.GetBookDetails2Async book.BookId 
+            |> Async.AwaitTask
+            |> Async.RunSynchronously
+
+        Expect.isOk bookDetail "should be ok"
+
+        let (bookDetail: BookDetails2) = bookDetail |> Result.get
+        Expect.isTrue (bookDetail.Book.CurrentLoan |> Option.isSome) "should contain the loan"
+        Expect.isTrue (bookDetail.CurrentLoan |> Option.isSome) "should contain the loan"
+        Expect.isTrue (bookDetail.CurrentLoan.Value.LoanId = loan.LoanId) "should contain the loan"
+        Expect.isTrue (bookDetail.FutureReservations |> List.isEmpty) "should not contain reservations"
+
+        // let releaseLoan = bookServiceLayer.ReleaseLoan loan.LoanId System.DateTime.Now
+        // Expect.isOk releaseLoan "should be ok"
+        let releaseLoan = 
+            bookServiceLayer.ReleaseLoanAsync (loan.LoanId, System.DateTime.Now)
+            |> Async.AwaitTask
+            |> Async.RunSynchronously
+        Expect.isOk releaseLoan "should be ok"
+
+        let bookDetail2 = 
+            bookServiceLayer.GetBookDetails2Async book.BookId 
+            |> Async.AwaitTask
+            |> Async.RunSynchronously
+            
+        Expect.isOk bookDetail2 "should be ok"
+
+        let (bookDetail2: BookDetails2) = bookDetail2 |> Result.get
         Expect.isTrue (bookDetail2.Book.CurrentLoan |> Option.isNone) "should not contain the loan"
         Expect.isTrue (bookDetail2.CurrentLoan |> Option.isNone) "should not contain the loan"
         Expect.isTrue (bookDetail2.FutureReservations |> List.isEmpty) "should not contain reservations"
@@ -1087,12 +1205,12 @@ let tests =
         Expect.isOk addLoan "should be ok"
 
         let bookDetail = 
-            bookServiceLayer.GetBookDetailAsync book.BookId 
+            bookServiceLayer.GetBookDetails2Async book.BookId 
             |> Async.AwaitTask
             |> Async.RunSynchronously
         Expect.isOk bookDetail "should be ok"
 
-        let (bookDetail: BookDetails) = bookDetail |> Result.get
+        let (bookDetail: BookDetails2) = bookDetail |> Result.get
         Expect.isTrue (bookDetail.Book.CurrentLoan |> Option.isSome) "should contain the loan"
         Expect.isTrue (bookDetail.CurrentLoan |> Option.isSome) "should contain the loan"
         Expect.isTrue (bookDetail.CurrentLoan.Value.LoanId = loan.LoanId) "should contain the loan"
@@ -1105,12 +1223,12 @@ let tests =
         Expect.isOk releaseLoan "should be ok"
 
         let bookDetail2 = 
-            bookServiceLayer.GetBookDetailAsync book.BookId
+            bookServiceLayer.GetBookDetails2Async book.BookId
             |> Async.AwaitTask
             |> Async.RunSynchronously
         Expect.isOk bookDetail2 "should be ok"
 
-        let (bookDetail2: BookDetails) = bookDetail2 |> Result.get
+        let (bookDetail2: BookDetails2) = bookDetail2 |> Result.get
         Expect.isTrue (bookDetail2.Book.CurrentLoan |> Option.isNone) "should not contain the loan"
         Expect.isTrue (bookDetail2.CurrentLoan |> Option.isNone) "should not contain the loan"
         Expect.isTrue (bookDetail2.FutureReservations |> List.isEmpty) "should not contain reservations"
@@ -1125,12 +1243,86 @@ let tests =
         Expect.isOk addReservation "should be ok"
 
         let bookDetail3 = 
-            bookServiceLayer.GetBookDetailAsync book.BookId
+            bookServiceLayer.GetBookDetails2Async book.BookId
             |> Async.AwaitTask
             |> Async.RunSynchronously
         Expect.isOk bookDetail3 "should be ok"
 
-        let (bookDetail3: BookDetails) = bookDetail3 |> Result.get
+        let (bookDetail3: BookDetails2) = bookDetail3 |> Result.get
+        Expect.isTrue (bookDetail3.Book.CurrentLoan |> Option.isNone) "should not contain the loan"
+        Expect.isTrue (bookDetail3.CurrentLoan |> Option.isNone) "should not contain the loan"
+        Expect.isTrue (bookDetail3.FutureReservations |> List.length = 1) "should contain the reservation"
+
+    testCase "should be able to add a reservation to a book and then retrieve the bookdetails containing the reservation 2" <| fun _ ->
+        setUp ()
+        let bookServiceLayer = getBookServiceLayer()
+        let book = Book.New (Title.New "the constitution") [] [] [] None (Year.New 1924) (Isbn.NewEmpty())
+        let addBook = 
+            bookServiceLayer.AddBookAsync book
+            |> Async.AwaitTask
+            |> Async.RunSynchronously
+        Expect.isOk addBook "should be ok"
+
+        let retrieveBook = 
+            bookServiceLayer.GetBookAsync book.BookId
+            |> Async.AwaitTask
+            |> Async.RunSynchronously
+        Expect.isOk retrieveBook "should be ok"
+
+        let timeSlot = TimeSlot.New (System.DateTime.Now) (System.DateTime.Now.AddDays(timeSlotDurationInDays))
+        let loan = Loan.New book.BookId (UserId.New ()) System.DateTime.Now timeSlot
+
+        let addLoan = 
+            bookServiceLayer.AddLoanAsync (loan, System.DateTime.Now)
+            |> Async.AwaitTask
+            |> Async.RunSynchronously
+        Expect.isOk addLoan "should be ok"
+
+        let bookDetail = 
+            bookServiceLayer.GetBookDetails2Async book.BookId 
+            |> Async.AwaitTask
+            |> Async.RunSynchronously
+        Expect.isOk bookDetail "should be ok"
+
+        let (bookDetail: BookDetails2) = bookDetail |> Result.get
+        Expect.isTrue (bookDetail.Book.CurrentLoan |> Option.isSome) "should contain the loan"
+        Expect.isTrue (bookDetail.CurrentLoan |> Option.isSome) "should contain the loan"
+        Expect.isTrue (bookDetail.CurrentLoan.Value.LoanId = loan.LoanId) "should contain the loan"
+        Expect.isTrue (bookDetail.FutureReservations |> List.isEmpty) "should not contain reservations"
+
+        let releaseLoan = 
+            bookServiceLayer.ReleaseLoanAsync(loan.LoanId, System.DateTime.Now)
+            |> Async.AwaitTask
+            |> Async.RunSynchronously
+        Expect.isOk releaseLoan "should be ok"
+
+        let bookDetail2 = 
+            bookServiceLayer.GetBookDetails2Async book.BookId
+            |> Async.AwaitTask
+            |> Async.RunSynchronously
+        Expect.isOk bookDetail2 "should be ok"
+
+        let (bookDetail2: BookDetails2) = bookDetail2 |> Result.get
+        Expect.isTrue (bookDetail2.Book.CurrentLoan |> Option.isNone) "should not contain the loan"
+        Expect.isTrue (bookDetail2.CurrentLoan |> Option.isNone) "should not contain the loan"
+        Expect.isTrue (bookDetail2.FutureReservations |> List.isEmpty) "should not contain reservations"
+
+        let futureTimeSlot = TimeSlot.New (System.DateTime.Now.AddMonths(1)) (System.DateTime.Now.AddMonths(2))
+        let reservation = Reservation.New book.BookId (UserId.New ()) futureTimeSlot (System.DateTime.Now)
+
+        let addReservation = 
+            bookServiceLayer.AddReservationAsync (reservation, System.DateTime.Now)
+            |> Async.AwaitTask
+            |> Async.RunSynchronously
+        Expect.isOk addReservation "should be ok"
+
+        let bookDetail3 = 
+            bookServiceLayer.GetBookDetails2Async book.BookId
+            |> Async.AwaitTask
+            |> Async.RunSynchronously
+        Expect.isOk bookDetail3 "should be ok"
+
+        let (bookDetail3: BookDetails2) = bookDetail3 |> Result.get
         Expect.isTrue (bookDetail3.Book.CurrentLoan |> Option.isNone) "should not contain the loan"
         Expect.isTrue (bookDetail3.CurrentLoan |> Option.isNone) "should not contain the loan"
         Expect.isTrue (bookDetail3.FutureReservations |> List.length = 1) "should contain the reservation"
@@ -1161,12 +1353,12 @@ let tests =
         Expect.isOk addLoan "should be ok"
 
         let bookDetail = 
-            bookServiceLayer.GetBookDetailAsync book.BookId
+            bookServiceLayer.GetBookDetails2Async book.BookId
             |> Async.AwaitTask
             |> Async.RunSynchronously
         Expect.isOk bookDetail "should be ok"
 
-        let (bookDetail: BookDetails) = bookDetail |> Result.get
+        let (bookDetail: BookDetails2) = bookDetail |> Result.get
         Expect.isTrue (bookDetail.Book.CurrentLoan |> Option.isSome) "should contain the loan"
         Expect.isTrue (bookDetail.CurrentLoan |> Option.isSome) "should contain the loan"
         Expect.isTrue (bookDetail.CurrentLoan.Value.LoanId = loan.LoanId) "should contain the loan"
@@ -1180,12 +1372,12 @@ let tests =
         Expect.isOk releaseLoan "should be ok"
 
         let bookDetail2 = 
-            bookServiceLayer.GetBookDetailAsync book.BookId
+            bookServiceLayer.GetBookDetails2Async book.BookId
             |> Async.AwaitTask
             |> Async.RunSynchronously
         Expect.isOk bookDetail2 "should be ok"
 
-        let (bookDetail2: BookDetails) = bookDetail2 |> Result.get
+        let (bookDetail2: BookDetails2) = bookDetail2 |> Result.get
         Expect.isTrue (bookDetail2.Book.CurrentLoan |> Option.isNone) "should not contain the loan"
         Expect.isTrue (bookDetail2.CurrentLoan |> Option.isNone) "should not contain the loan"
         Expect.isTrue (bookDetail2.FutureReservations |> List.isEmpty) "should not contain reservations"
@@ -1200,13 +1392,13 @@ let tests =
         Expect.isOk addReservation "should be ok"
 
         let bookDetail3 = 
-            bookServiceLayer.GetBookDetailAsync book.BookId
+            bookServiceLayer.GetBookDetails2Async book.BookId
             |> Async.AwaitTask
             |> Async.RunSynchronously
 
         Expect.isOk bookDetail3 "should be ok"
 
-        let (bookDetail3: BookDetails) = bookDetail3 |> Result.get
+        let (bookDetail3: BookDetails2) = bookDetail3 |> Result.get
         Expect.isTrue (bookDetail3.Book.CurrentLoan |> Option.isNone) "should not contain the loan"
         Expect.isTrue (bookDetail3.CurrentLoan |> Option.isNone) "should not contain the loan"
         Expect.isTrue (bookDetail3.FutureReservations |> List.length = 1) "should contain the reservation"
@@ -1237,12 +1429,12 @@ let tests =
         Expect.isOk addLoan "should be ok"
 
         let bookDetail = 
-            bookServiceLayer.GetBookDetailAsync book.BookId
+            bookServiceLayer.GetBookDetails2Async book.BookId
             |> Async.AwaitTask
             |> Async.RunSynchronously
         Expect.isOk bookDetail "should be ok"
 
-        let (bookDetail: BookDetails) = bookDetail |> Result.get
+        let (bookDetail: BookDetails2) = bookDetail |> Result.get
         Expect.isTrue (bookDetail.Book.CurrentLoan |> Option.isSome) "should contain the loan"
         Expect.isTrue (bookDetail.CurrentLoan |> Option.isSome) "should contain the loan"
         Expect.isTrue (bookDetail.CurrentLoan.Value.LoanId = loan.LoanId) "should contain the loan"
@@ -1255,12 +1447,12 @@ let tests =
         Expect.isOk releaseLoan "should be ok"
 
         let bookDetail2 = 
-            bookServiceLayer.GetBookDetailAsync book.BookId
+            bookServiceLayer.GetBookDetails2Async book.BookId
             |> Async.AwaitTask
             |> Async.RunSynchronously
         Expect.isOk bookDetail2 "should be ok"
 
-        let (bookDetail2: BookDetails) = bookDetail2 |> Result.get
+        let (bookDetail2: BookDetails2) = bookDetail2 |> Result.get
         Expect.isTrue (bookDetail2.Book.CurrentLoan |> Option.isNone) "should not contain the loan"
         Expect.isTrue (bookDetail2.CurrentLoan |> Option.isNone) "should not contain the loan"
         Expect.isTrue (bookDetail2.FutureReservations |> List.isEmpty) "should not contain reservations"
@@ -1276,12 +1468,12 @@ let tests =
         Expect.isOk addReservation "should be ok"
 
         let bookDetail3 = 
-            bookServiceLayer.GetBookDetailAsync book.BookId
+            bookServiceLayer.GetBookDetails2Async book.BookId
             |> Async.AwaitTask
             |> Async.RunSynchronously
         Expect.isOk bookDetail3 "should be ok"
 
-        let (bookDetail3: BookDetails) = bookDetail3 |> Result.get
+        let (bookDetail3: BookDetails2) = bookDetail3 |> Result.get
         Expect.isTrue (bookDetail3.Book.CurrentLoan |> Option.isNone) "should not contain the loan"
         Expect.isTrue (bookDetail3.CurrentLoan |> Option.isNone) "should not contain the loan"
         Expect.isTrue (bookDetail3.FutureReservations |> List.length = 1) "should contain the reservation"
@@ -1296,12 +1488,12 @@ let tests =
         Expect.isOk addSecondReservation "should be ok"
 
         let bookDetail4 = 
-            bookServiceLayer.GetBookDetailAsync book.BookId
+            bookServiceLayer.GetBookDetails2Async book.BookId
             |> Async.AwaitTask
             |> Async.RunSynchronously
         Expect.isOk bookDetail4 "should be ok"
 
-        let (bookDetail4: BookDetails) = bookDetail4 |> Result.get
+        let (bookDetail4: BookDetails2) = bookDetail4 |> Result.get
         Expect.isTrue (bookDetail4.Book.CurrentLoan |> Option.isNone) "should not contain the loan"
         Expect.isTrue (bookDetail4.CurrentLoan |> Option.isNone) "should not contain the loan"
         Expect.isTrue (bookDetail4.FutureReservations |> List.length = 2) "should contain the reservation"
@@ -1334,12 +1526,12 @@ let tests =
 
 
         let bookDetail = 
-            bookServiceLayer.GetBookDetailAsync book.BookId
+            bookServiceLayer.GetBookDetails2Async book.BookId
             |> Async.AwaitTask
             |> Async.RunSynchronously
         Expect.isOk bookDetail "should be ok"
 
-        let (bookDetail: BookDetails) = bookDetail |> Result.get
+        let (bookDetail: BookDetails2) = bookDetail |> Result.get
         Expect.isTrue (bookDetail.Book.CurrentLoan |> Option.isSome) "should contain the loan"
         Expect.isTrue (bookDetail.CurrentLoan |> Option.isSome) "should contain the loan"
         Expect.isTrue (bookDetail.CurrentLoan.Value.LoanId = loan.LoanId) "should contain the loan"
@@ -1352,12 +1544,12 @@ let tests =
         Expect.isOk releaseLoan "should be ok"
 
         let bookDetail2 = 
-            bookServiceLayer.GetBookDetailAsync book.BookId
+            bookServiceLayer.GetBookDetails2Async book.BookId
             |> Async.AwaitTask
             |> Async.RunSynchronously
         Expect.isOk bookDetail2 "should be ok"
 
-        let (bookDetail2: BookDetails) = bookDetail2 |> Result.get
+        let (bookDetail2: BookDetails2) = bookDetail2 |> Result.get
         Expect.isTrue (bookDetail2.Book.CurrentLoan |> Option.isNone) "should not contain the loan"
         Expect.isTrue (bookDetail2.CurrentLoan |> Option.isNone) "should not contain the loan"
         Expect.isTrue (bookDetail2.FutureReservations |> List.isEmpty) "should not contain reservations"
@@ -1372,12 +1564,12 @@ let tests =
         Expect.isOk addReservation "should be ok"
 
         let bookDetail3 = 
-            bookServiceLayer.GetBookDetailAsync book.BookId
+            bookServiceLayer.GetBookDetails2Async book.BookId
             |> Async.AwaitTask
             |> Async.RunSynchronously
         Expect.isOk bookDetail3 "should be ok"
 
-        let (bookDetail3: BookDetails) = bookDetail3 |> Result.get
+        let (bookDetail3: BookDetails2) = bookDetail3 |> Result.get
         Expect.isTrue (bookDetail3.Book.CurrentLoan |> Option.isNone) "should not contain the loan"
         Expect.isTrue (bookDetail3.CurrentLoan |> Option.isNone) "should not contain the loan"
         Expect.isTrue (bookDetail3.FutureReservations |> List.length = 1) "should contain the reservation"
@@ -1392,12 +1584,12 @@ let tests =
         Expect.isOk addSecondReservation "should be ok"
 
         let bookDetail4 = 
-            bookServiceLayer.GetBookDetailAsync book.BookId
+            bookServiceLayer.GetBookDetails2Async book.BookId
             |> Async.AwaitTask
             |> Async.RunSynchronously
         Expect.isOk bookDetail4 "should be ok"
 
-        let (bookDetail4: BookDetails) = bookDetail4 |> Result.get
+        let (bookDetail4: BookDetails2) = bookDetail4 |> Result.get
         Expect.isTrue (bookDetail4.Book.CurrentLoan |> Option.isNone) "should not contain the loan"
         Expect.isTrue (bookDetail4.CurrentLoan |> Option.isNone) "should not contain the loan"
         Expect.isTrue (bookDetail4.FutureReservations |> List.length = 2) "should contain the reservation"
@@ -1422,12 +1614,12 @@ let tests =
         Expect.isOk addReservation "should be ok"
 
         let bookDetail3 = 
-            bookServiceLayer.GetBookDetailAsync book.BookId
+            bookServiceLayer.GetBookDetails2Async book.BookId
             |> Async.AwaitTask
             |> Async.RunSynchronously
         Expect.isOk bookDetail3 "should be ok"
 
-        let (bookDetail3: BookDetails) = bookDetail3 |> Result.get
+        let (bookDetail3: BookDetails2) = bookDetail3 |> Result.get
         Expect.isTrue (bookDetail3.Book.CurrentLoan |> Option.isNone) "should not contain the loan"
         Expect.isTrue (bookDetail3.CurrentLoan |> Option.isNone) "should not contain the loan"
         Expect.isTrue (bookDetail3.FutureReservations |> List.length = 1) "should contain the reservation"
@@ -1452,12 +1644,12 @@ let tests =
         Expect.isOk addBook "should be ok"
 
         let bookDetail = 
-            bookServiceLayer.GetBookDetailAsync book.BookId
+            bookServiceLayer.GetBookDetails2Async book.BookId
             |> Async.AwaitTask
             |> Async.RunSynchronously
         Expect.isOk bookDetail "should be ok"
 
-        let (bookDetail: BookDetails) = bookDetail |> Result.get
+        let (bookDetail: BookDetails2) = bookDetail |> Result.get
         Expect.isTrue (bookDetail.Book.CurrentLoan |> Option.isNone) "should not contain the loan"
         Expect.isTrue (bookDetail.CurrentLoan |> Option.isNone) "should not contain the loan"
         Expect.isTrue (bookDetail.FutureReservations |> List.isEmpty) "should not contain reservations"

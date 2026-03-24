@@ -12,24 +12,22 @@
   <!-- <ItemGroup>
     <ProjectReference Include="..\..\..\realsharpino\Sharpino\Sharpino.Lib\Sharpino.Lib.fsproj" />
   </ItemGroup> -->
+  <ItemGroup>
+    <ProjectReference Include="../blazorBookLibrary.Shared/blazorBookLibrary.Shared.fsproj" />
+  </ItemGroup>
 
   <ItemGroup>
-    <Compile Include="Domain/Book/Book.fs" />
     <Compile Include="Domain/Book/Events.fs" />
     <Compile Include="Domain/Book/Commands.fs" />
-    <Compile Include="Domain/Author/Author.fs" />
     <Compile Include="Domain/Author/Events.fs" />
     <Compile Include="Domain/Author/Commands.fs" />
-    <Compile Include="Domain/Editor/Editor.fs" />
     <Compile Include="Domain/Editor/Events.fs" />
     <Compile Include="Domain/Editor/Commands.fs" />
-    <Compile Include="Domain/Reservation/Reservation.fs" />
     <Compile Include="Domain/Reservation/Events.fs" />
     <Compile Include="Domain/Reservation/Commands.fs" />
-    <Compile Include="Domain/Loan/Loan.fs" />
     <Compile Include="Domain/Loan/Events.fs" />
     <Compile Include="Domain/Loan/Commands.fs" />
-    <Compile Include="Details/Details.fs" />
+    <Compile Include="Details.fs" />
     <Compile Include="Application/ServiceLayer.fs" />
   </ItemGroup>
 
@@ -40,10 +38,6 @@
     <PackageReference Include="Microsoft.Extensions.Configuration" Version="10.0.5" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.0.5" />
     <PackageReference Include="Sharpino" Version="4.8.7" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\blazorBookLibrary.Shared\blazorBookLibrary.Shared.fsproj" />
   </ItemGroup>
 
 </Project>

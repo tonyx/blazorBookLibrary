@@ -7,14 +7,20 @@
 
   <ItemGroup>
     <Compile Include="Library.fs" />
-    <Compile Include="Infrastructure/Commons.fs" />
+    <Compile Include="Commons.fs" />
+    <Compile Include="Domain/Book.fs" />
+    <Compile Include="Domain/Author.fs" />
+    <Compile Include="Domain/Editor.fs" />
+    <Compile Include="Domain/Reservation.fs" />
+    <Compile Include="Domain/Loan.fs" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="FSharp.SystemTextJson" Version="1.4.36" />
+    <PackageReference Include="FsToolkit.ErrorHandling" Version="5.2.0" />
     <PackageReference Include="Microsoft.Extensions.Configuration" Version="10.0.5" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.0.5" />
+    <PackageReference Include="Sharpino.Core" Version="4.8.8" />
   </ItemGroup>
-
 
 </Project>

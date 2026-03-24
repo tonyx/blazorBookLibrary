@@ -1,4 +1,3 @@
-
 namespace BookLibrary.Domain
 open Sharpino.Core
 open Sharpino
