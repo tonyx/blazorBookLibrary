@@ -6,18 +6,19 @@ open Sharpino
 open Sharpino.Cache
 open FSharpPlus.Operators
 open Sharpino.CommandHandler
+open Sharpino.EventBroker
 open Sharpino.Definitions
 open Sharpino.Core
 open Sharpino.EventBroker
 open Sharpino.Storage
 open BookLibrary.Domain
-open BookLibrary.Details.Details
 open FsToolkit.ErrorHandling
 open System.Threading.Tasks
 
 module ServiceLayer =
     type AggregateViewerAsync<'A> = Option<CancellationToken> -> AggregateId -> Task<Result<EventId * 'A,string>>
-    open BookLibrary.Commons
+    open BookLibrary.Shared.Commons
+    open BookLibrary.Details.Details
     type BookLibraryServiceLayer
         (
             eventStore: IEventStore<string>,
@@ -27,8 +28,48 @@ module ServiceLayer =
             editorViewerAsync: AggregateViewerAsync<Editor>,
             reservationViewerAsync: AggregateViewerAsync<Reservation>,
             loanViewerAsync: AggregateViewerAsync<Loan>
-        ) 
-        =
+        ) =
+
+        new (eventStore: IEventStore<string>)
+            =
+            let messageSenders = MessageSenders.NoSender
+            let bookViewerAsync = getAggregateStorageFreshStateViewerAsync<Book, BookEvent, string> eventStore
+            let authorViewerAsync = getAggregateStorageFreshStateViewerAsync<Author, AuthorEvent, string> eventStore
+            let editorViewerAsync = getAggregateStorageFreshStateViewerAsync<Editor, EditorEvent, string> eventStore
+            let reservationViewerAsync = getAggregateStorageFreshStateViewerAsync<Reservation, ReservationEvent, string> eventStore
+            let loanViewerAsync = getAggregateStorageFreshStateViewerAsync<Loan, LoanEvent, string> eventStore
+            BookLibraryServiceLayer (
+                eventStore,
+                messageSenders,
+                bookViewerAsync,
+                authorViewerAsync,
+                editorViewerAsync,
+                reservationViewerAsync,
+                loanViewerAsync
+            )
+        new (connectionString: string)
+            =
+            let eventStore = PgStorage.PgEventStore connectionString
+            let messageSenders = MessageSenders.NoSender
+            let bookViewerAsync = getAggregateStorageFreshStateViewerAsync<Book, BookEvent, string> eventStore
+            let authorViewerAsync = getAggregateStorageFreshStateViewerAsync<Author, AuthorEvent, string> eventStore
+            let editorViewerAsync = getAggregateStorageFreshStateViewerAsync<Editor, EditorEvent, string> eventStore
+            let reservationViewerAsync = getAggregateStorageFreshStateViewerAsync<Reservation, ReservationEvent, string> eventStore
+            let loanViewerAsync = getAggregateStorageFreshStateViewerAsync<Loan, LoanEvent, string> eventStore
+            BookLibraryServiceLayer (
+                eventStore,
+                messageSenders,
+                bookViewerAsync,
+                authorViewerAsync,
+                editorViewerAsync,
+                reservationViewerAsync,
+                loanViewerAsync
+            )    
+        new (configuration: Microsoft.Extensions.Configuration.IConfiguration) 
+            =
+            let connectionString = configuration.Item("ConnectionStrings::BookLibraryDbConnection")
+            BookLibraryServiceLayer(connectionString)
+
             member this.AddBookAsync (book: Book, ?ct: CancellationToken) =
                 let ct = defaultArg ct CancellationToken.None
                 taskResult

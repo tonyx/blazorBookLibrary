@@ -14,7 +14,6 @@
   </ItemGroup> -->
 
   <ItemGroup>
-    <Compile Include="Commons.fs" />
     <Compile Include="Domain/Book/Book.fs" />
     <Compile Include="Domain/Book/Events.fs" />
     <Compile Include="Domain/Book/Commands.fs" />
@@ -41,6 +40,10 @@
     <PackageReference Include="Microsoft.Extensions.Configuration" Version="10.0.5" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.0.5" />
     <PackageReference Include="Sharpino" Version="4.8.7" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\blazorBookLibrary.Shared\blazorBookLibrary.Shared.fsproj" />
   </ItemGroup>
 
 </Project>

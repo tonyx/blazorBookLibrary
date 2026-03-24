@@ -3,7 +3,7 @@ namespace BookLibrary.Domain
 
 open System
 open Sharpino.Core
-open BookLibrary.Commons
+open BookLibrary.Shared.Commons
 
 type ReservationCommand =
     | CancelByUser of Cancellation * DateTime * UserId

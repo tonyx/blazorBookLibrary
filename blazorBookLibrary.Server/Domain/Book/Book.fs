@@ -1,9 +1,10 @@
+
 namespace BookLibrary.Domain
 open Sharpino.Core
 open Sharpino
 open System.Text.Json
 open FsToolkit.ErrorHandling
-open BookLibrary.Commons
+open BookLibrary.Shared.Commons
 open System
 open System.Globalization
 

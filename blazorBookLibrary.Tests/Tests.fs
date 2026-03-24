@@ -4,12 +4,11 @@ open System
 open Expecto
 open DotNetEnv
 open Sharpino.PgStorage
-open BookLibrary.Domain
+open BookLibrary.Shared.Domain
 open Sharpino.Cache
 open Sharpino.Core
 open Sharpino.CommandHandler
 open Sharpino.EventBroker
-open BookLibrary.Commons
 open BookLibrary.Application.ServiceLayer
 open BookLibrary.Details.Details
 open Microsoft.Extensions.Configuration
@@ -20,7 +19,7 @@ let password = Environment.GetEnvironmentVariable("password")
 
 let connection =
     "Server=127.0.0.1;"+
-    "Database=sharpino_booklibrary;" +
+    "Database=sharpino_booklibrary_test;" +
     "User Id=safe;"+
     $"Password={password}"
 

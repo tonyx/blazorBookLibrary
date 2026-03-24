@@ -8,7 +8,7 @@ open System
 
 module Details = 
     open BookLibrary.Domain
-    open BookLibrary.Commons
+    open BookLibrary.Shared.Commons
     type UserDetails = 
         { 
             Book: Book

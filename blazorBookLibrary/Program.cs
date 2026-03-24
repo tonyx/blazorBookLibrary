@@ -5,6 +5,7 @@ using blazorBookLibrary.Client.Pages;
 using blazorBookLibrary.Components;
 using blazorBookLibrary.Components.Account;
 using blazorBookLibrary.Data;
+using static BookLibrary.Application.ServiceLayer;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -25,11 +26,14 @@ builder.Services.AddAuthentication(options =>
     })
     .AddIdentityCookies();
 
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
+var usersDbConnection = builder.Configuration.GetConnectionString("UsersDbConnection") ?? throw new InvalidOperationException("Connection string 'UsersDbConnection' not found.");
+
+var bookLibraryDbConnection = builder.Configuration.GetConnectionString("BookLibraryDbConnection") ?? throw new InvalidOperationException("Connection string 'BookLibraryDbConnection' not found.");
+
 // builder.Services.AddDbContext<ApplicationDbContext>(options =>
 //     options.UseSqlite(connectionString));
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseNpgsql(connectionString));
+    options.UseNpgsql(usersDbConnection));
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
 builder.Services.AddIdentityCore<ApplicationUser>(options =>
@@ -40,6 +44,15 @@ builder.Services.AddIdentityCore<ApplicationUser>(options =>
     .AddEntityFrameworkStores<ApplicationDbContext>()
     .AddSignInManager()
     .AddDefaultTokenProviders();
+
+builder.Services.AddSingleton<BookLibraryServiceLayer>();
+
+// Optional: Configure Passkey options for ASP.NET Core 10 Identity WebAuthn support
+builder.Services.Configure<IdentityPasskeyOptions>(options =>
+{
+    // Configure WebAuthn options here if needed, for instance customizing the relying party or challenge
+    // options.ServerDomain = "localhost"; // Example configuration
+});
 
 builder.Services.AddSingleton<IEmailSender<ApplicationUser>, IdentityNoOpEmailSender>();
 

@@ -3,7 +3,7 @@ namespace BookLibrary.Domain
 
 open System
 open Sharpino.Core
-open BookLibrary.Commons
+open BookLibrary.Shared.Commons
 open System.Text.Json
 open System.Globalization
 
@@ -27,7 +27,7 @@ type BookEvent =
     | ReservationAdded of ReservationId * DateTime
     | ReservationRemoved of ReservationId * DateTime
 
-    interface Event<Book> with
+    interface Event<BookLibrary.Domain.Book> with
         member this.Process (book: Book) : Result<Book, string> =
             match this with
             | TitleUpdated (title, dateTime) ->

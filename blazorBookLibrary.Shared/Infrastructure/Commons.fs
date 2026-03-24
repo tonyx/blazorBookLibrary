@@ -1,5 +1,5 @@
 
-module BookLibrary.Commons
+module BookLibrary.Shared.Commons
 open System
 open System.Text.Json.Serialization
 open Microsoft.Extensions.Configuration
