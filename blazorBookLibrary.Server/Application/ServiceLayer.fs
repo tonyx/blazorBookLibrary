@@ -12,22 +12,22 @@ open Sharpino.Core
 open Sharpino.EventBroker
 open Sharpino.Storage
 open BookLibrary.Domain
+open BookLibrary.Shared.Commons
+open BookLibrary.Shared.Details
 open FsToolkit.ErrorHandling
 open System.Threading.Tasks
 
 module ServiceLayer =
-    type AggregateViewerAsync<'A> = Option<CancellationToken> -> AggregateId -> Task<Result<EventId * 'A,string>>
-    open BookLibrary.Shared.Commons
     open BookLibrary.Details.Details
-    type BookLibraryServiceLayer
+    type BookLibraryService
         (
             eventStore: IEventStore<string>,
             messageSenders: MessageSenders,
-            bookViewerAsync: AggregateViewerAsync<Book>,
-            authorViewerAsync: AggregateViewerAsync<Author>,
-            editorViewerAsync: AggregateViewerAsync<Editor>,
-            reservationViewerAsync: AggregateViewerAsync<Reservation>,
-            loanViewerAsync: AggregateViewerAsync<Loan>
+            bookViewerAsync: AggregateViewerAsync2<Book>,
+            authorViewerAsync: AggregateViewerAsync2<Author>,
+            editorViewerAsync: AggregateViewerAsync2<Editor>,
+            reservationViewerAsync: AggregateViewerAsync2<Reservation>,
+            loanViewerAsync: AggregateViewerAsync2<Loan>
         ) =
 
         new (eventStore: IEventStore<string>)
@@ -38,7 +38,7 @@ module ServiceLayer =
             let editorViewerAsync = getAggregateStorageFreshStateViewerAsync<Editor, EditorEvent, string> eventStore
             let reservationViewerAsync = getAggregateStorageFreshStateViewerAsync<Reservation, ReservationEvent, string> eventStore
             let loanViewerAsync = getAggregateStorageFreshStateViewerAsync<Loan, LoanEvent, string> eventStore
-            BookLibraryServiceLayer (
+            BookLibraryService (
                 eventStore,
                 messageSenders,
                 bookViewerAsync,
@@ -56,7 +56,7 @@ module ServiceLayer =
             let editorViewerAsync = getAggregateStorageFreshStateViewerAsync<Editor, EditorEvent, string> eventStore
             let reservationViewerAsync = getAggregateStorageFreshStateViewerAsync<Reservation, ReservationEvent, string> eventStore
             let loanViewerAsync = getAggregateStorageFreshStateViewerAsync<Loan, LoanEvent, string> eventStore
-            BookLibraryServiceLayer (
+            BookLibraryService (
                 eventStore,
                 messageSenders,
                 bookViewerAsync,
@@ -68,7 +68,7 @@ module ServiceLayer =
         new (configuration: Microsoft.Extensions.Configuration.IConfiguration) 
             =
             let connectionString = configuration.Item("ConnectionStrings::BookLibraryDbConnection")
-            BookLibraryServiceLayer(connectionString)
+            BookLibraryService(connectionString)
 
             member this.AddBookAsync (book: Book, ?ct: CancellationToken) =
                 let ct = defaultArg ct CancellationToken.None
@@ -293,7 +293,7 @@ module ServiceLayer =
                         return result
                     }
 
-            member this.GetRefreshableBookDetails2Async(bookId: BookId, ?ct:CancellationToken) =
+            member private this.GetRefreshableBookDetailsAsync(bookId: BookId, ?ct:CancellationToken) =
                 let detailsBuilder =
                     fun (ct: Option<CancellationToken>) ->
                         let refresher =
@@ -333,22 +333,22 @@ module ServiceLayer =
                                 { 
                                     BookDetails = bookDetails
                                     Refresher = refresher
-                                } :> Refreshable<RefreshableBookDetails2>
+                                } :> Refreshable<RefreshableBookDetails>
                                 ,
                                 bookId.Value :: 
                                 (if bookDetails.CurrentLoan.IsSome then [bookDetails.CurrentLoan.Value.LoanId.Value] else []) @ 
                                 (bookDetails.FutureReservations |> List.map _.ReservationId.Value)
                         }
-                let key = DetailsCacheKey.OfType typeof<RefreshableBookDetails2> bookId.Value
+                let key = DetailsCacheKey.OfType typeof<RefreshableBookDetails> bookId.Value
                 task {
-                    return StateView.getRefreshableDetailsAsync<RefreshableBookDetails2> (fun ct -> detailsBuilder ct) key ct
+                    return StateView.getRefreshableDetailsAsync<RefreshableBookDetails> (fun ct -> detailsBuilder ct) key ct
                 }
 
-            member this.GetBookDetails2Async(bookId: BookId, ?ct: CancellationToken): TaskResult<BookDetails2, string> = 
+            member this.GetBookDetailsAsync(bookId: BookId, ?ct: CancellationToken): TaskResult<BookDetails, string> = 
                 taskResult {
                     let ct = defaultArg ct CancellationToken.None
                     let! refreshableBookDetails =
-                        this.GetRefreshableBookDetails2Async(bookId, ct)
+                        this.GetRefreshableBookDetailsAsync(bookId, ct)
                     return refreshableBookDetails.BookDetails
                 }
 

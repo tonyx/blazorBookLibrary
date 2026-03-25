@@ -6,7 +6,7 @@ open Sharpino.Core
 open BookLibrary.Shared.Commons
 
 type AuthorCommand =
-    | UpdateName of Name * DateTime
+    | Rename of Name * DateTime
     | UpdateIsni of Isni * DateTime
     | AddBook of BookId
     | RemoveBook of BookId
@@ -15,9 +15,9 @@ type AuthorCommand =
     interface AggregateCommand<Author, AuthorEvent> with
         member this.Execute (author: Author) =
             match this with
-            | UpdateName (name, dateTime) ->
-                author.UpdateName name dateTime
-                |> Result.map (fun a -> (a, [NameUpdated(name, dateTime)]))
+            | Rename (name, dateTime) ->
+                author.Rename name dateTime
+                |> Result.map (fun a -> (a, [Renamed(name, dateTime)]))
             | UpdateIsni (isni, dateTime) ->
                 author.UpdateIsni isni dateTime
                 |> Result.map (fun a -> (a, [IsniUpdated(isni, dateTime)]))
@@ -29,9 +29,9 @@ type AuthorCommand =
                 |> Result.map (fun a -> (a, [BookRemoved(bookId)]))
             | Seal dateTime ->
                 author.Seal dateTime
-                |> Result.map (fun a -> (a, [AuthorSealed(dateTime)]))
+                |> Result.map (fun a -> (a, [Sealed(dateTime)]))
             | Unseal dateTime ->
                 author.Unseal dateTime
-                |> Result.map (fun a -> (a, [AuthorUnsealed(dateTime)]))
+                |> Result.map (fun a -> (a, [Unsealed(dateTime)]))
 
         member this.Undoer = None

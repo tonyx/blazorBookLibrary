@@ -3,6 +3,13 @@ module BookLibrary.Shared.Commons
 open System
 open System.Text.Json.Serialization
 open Microsoft.Extensions.Configuration
+open System.Threading
+open System.Threading.Tasks
+
+
+// Guid must be the AggregateId and int the EventId
+// this conflicts with the one in the libary ouch
+type AggregateViewerAsync2<'A> = Option<CancellationToken> -> Guid -> Task<Result<int * 'A,string>>     
 
 let sealTimeoutInMinutes =
     let config = 

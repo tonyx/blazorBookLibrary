@@ -13,6 +13,12 @@
     <Compile Include="Domain/Editor.fs" />
     <Compile Include="Domain/Reservation.fs" />
     <Compile Include="Domain/Loan.fs" />
+    <Compile Include="Details/Details.fs" />
+    <Compile Include="Services/IAuthorService.fs" />
+    <Compile Include="Services/IBookService.fs" />
+    <Compile Include="Services/IEditorService.fs" />
+    <Compile Include="Services/ILoanService.fs" />
+    <Compile Include="Services/IReservationService.fs" />
   </ItemGroup>
 
   <ItemGroup>

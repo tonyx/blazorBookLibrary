@@ -66,6 +66,7 @@ type Reservation =
                         Sealed = this.Sealed.Unseal(dateTime) 
             } 
             |> Ok
+
         member this.Id = this.ReservationId.Value
         static member SnapshotsInterval = 50
         static member StorageName = "_Reservation"

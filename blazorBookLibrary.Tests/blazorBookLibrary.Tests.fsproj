@@ -8,6 +8,10 @@
 
   <ItemGroup>
     <Compile Include="Tests.fs" />
+    <Compile Include="AuthorsServiceTests.fs" />
+    <Compile Include="BookServiceTests.fs" />
+    <Compile Include="LoanServiceTests.fs" />
+    <Compile Include="ReservationsTests.fs" />
     <Compile Include="Main.fs" />
   </ItemGroup>
 
@@ -18,7 +22,7 @@
 
   <ItemGroup>
     <ProjectReference Include="../blazorBookLibrary.Server/blazorBookLibrary.Server.fsproj" />
-    <ProjectReference Include="..\blazorBookLibrary.Shared\blazorBookLibrary.Shared.fsproj" />
+    <ProjectReference Include="../blazorBookLibrary.Shared/blazorBookLibrary.Shared.fsproj" />
   </ItemGroup>
 
 </Project>

@@ -29,6 +29,10 @@
     <Compile Include="Domain/Loan/Commands.fs" />
     <Compile Include="Details.fs" />
     <Compile Include="Application/ServiceLayer.fs" />
+    <Compile Include="Services/BookService.fs" />
+    <Compile Include="Services/AuthorService.fs" />
+    <Compile Include="Services/ReservationService.fs" />
+    <Compile Include="Services/LoanService.fs" />
   </ItemGroup>
 
   <ItemGroup>

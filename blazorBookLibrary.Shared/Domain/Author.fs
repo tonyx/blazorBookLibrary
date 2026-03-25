@@ -30,7 +30,7 @@ type Author = {
             Books = []
         }
 
-    member this.UpdateName (name: Name) (dateTime: DateTime)= 
+    member this.Rename (name: Name) (dateTime: DateTime)= 
         result
             {
                 do! 
