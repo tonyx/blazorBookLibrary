@@ -16,6 +16,8 @@ type Book = {
     CurrentReservations: List<ReservationId>
     CurrentLoan: Option<LoanId>
     Editor: Option<EditorId>
+    MainCategory: Category
+    AdditionalCategories: List<Category>
     Year: Year
     Isbn: Isbn
     Sealed: Sealed
@@ -38,10 +40,63 @@ with
             CurrentReservations = [];
             CurrentLoan = None;
             Editor = editor; 
+            MainCategory = Category.Other;
+            AdditionalCategories = [];
             Year = year; 
             Isbn = isbn
-            Sealed = Sealed.New(DateTime.UtcNow)
+            Sealed = Sealed.New(DateTime.Now)
         }
+    static member NewWithMainCategory  
+        (title: Title) 
+        (authors: list<AuthorId>) 
+        (translators: list<AuthorId>) 
+        (languages: list<CultureInfo>) 
+        (editor: Option<EditorId>) 
+        (mainCategory: Category) 
+        (year: Year) 
+        (isbn: Isbn) = 
+        {   
+            BookId = BookId.New(); 
+            Title = title; 
+            Authors = authors; 
+            Translators = translators;
+            Languages = languages;
+            CurrentReservations = [];
+            CurrentLoan = None;
+            Editor = editor; 
+            MainCategory = mainCategory;
+            AdditionalCategories = [];
+            Year = year; 
+            Isbn = isbn
+            Sealed = Sealed.New(DateTime.Now)
+        }
+
+    static member NewWithMainCategoryAndAdditionalCategories
+        (title: Title) 
+        (authors: list<AuthorId>) 
+        (translators: list<AuthorId>) 
+        (languages: list<CultureInfo>) 
+        (editor: Option<EditorId>) 
+        (mainCategory: Category) 
+        (additionalCategories: list<Category>) 
+        (year: Year) 
+        (isbn: Isbn) = 
+        {   
+            BookId = BookId.New(); 
+            Title = title; 
+            Authors = authors; 
+            Translators = translators;
+            Languages = languages;
+            CurrentReservations = [];
+            CurrentLoan = None;
+            Editor = editor; 
+            MainCategory = mainCategory;
+            AdditionalCategories = additionalCategories;
+            Year = year; 
+            Isbn = isbn
+            Sealed = Sealed.New(DateTime.Now)
+        } 
+
     member this.UpdateTitle 
         (title: Title) 
         (dateTime: DateTime)=
@@ -163,10 +218,6 @@ with
         (dateTime: DateTime) = 
         result
             {
-                do! 
-                    this.Sealed.IsSealed(dateTime)
-                    |> not
-                    |> Result.ofBool "Book is sealed"
                 do!
                     this.CurrentLoan
                     |> Option.isSome
@@ -177,10 +228,6 @@ with
     member this.ReleaseLoan (loanId: LoanId) (dateTime: DateTime) = 
         result
             {
-                do! 
-                    this.Sealed.IsSealed(dateTime)
-                    |> not
-                    |> Result.ofBool "Book is sealed"
                 let! currentLoan =
                     this.CurrentLoan
                     |> Result.ofOption "Book is not on loan"
@@ -245,6 +292,57 @@ with
                     |> Result.ofBool "Book is sealed"
                 return { this with Editor = Some editor } 
             }
+    member this.ChangeMainCategory 
+        (mainCategory: Category) 
+        (dateTime: DateTime) = 
+        result
+            {
+                do! 
+                    this.Sealed.IsSealed(dateTime)
+                    |> not
+                    |> Result.ofBool "Book is sealed"
+                do! 
+                    this.AdditionalCategories
+                    |> List.contains mainCategory
+                    |> not
+                    |> Result.ofBool "Main category already in additional categories"
+                return { this with MainCategory = mainCategory } 
+            }
+    member this.AddAdditionalCategory 
+        (category: Category) 
+        (dateTime: DateTime) = 
+        result
+            {
+                do! 
+                    this.Sealed.IsSealed(dateTime)
+                    |> not
+                    |> Result.ofBool "Book is sealed"
+                do! 
+                    this.AdditionalCategories
+                    |> List.contains category
+                    |> not
+                    |> Result.ofBool "Category already in additional categories"
+                do! 
+                    this.MainCategory
+                    |> fun c -> c <> category
+                    |> Result.ofBool "Category already in additional categories"
+                return { this with AdditionalCategories = this.AdditionalCategories @ [category] } 
+            }
+    member this.RemoveAdditionalCategory 
+        (category: Category) 
+        (dateTime: DateTime) = 
+        result
+            {
+                do! 
+                    this.Sealed.IsSealed(dateTime)
+                    |> not
+                    |> Result.ofBool "Book is sealed"
+                do! 
+                    this.AdditionalCategories
+                    |> List.contains category
+                    |> Result.ofBool "Category not in additional categories"
+                return { this with AdditionalCategories = this.AdditionalCategories |> List.filter (fun x -> x <> category) } 
+            }
     member this.RemoveEditor (dateTime: DateTime) = 
         result
             {
@@ -291,6 +389,10 @@ with
                     Sealed = this.Sealed.Unseal(dateTime) 
         } 
         |> Ok
+
+    member this.Available = 
+        this.CurrentLoan
+        |> Option.isNone
 
     member this.Id = this.BookId.Value
     static member SnapshotsInterval = 50

@@ -3,10 +3,6 @@ namespace BookLibrary.Shared.Services
 
 open System.Threading
 open System.Threading.Tasks
-open FsToolkit.ErrorHandling
-open Sharpino
-open Sharpino.Definitions
-open Sharpino.Core
 open BookLibrary.Domain
 open BookLibrary.Shared.Commons
 open BookLibrary.Shared.Details

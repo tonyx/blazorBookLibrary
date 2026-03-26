@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -12,17 +12,25 @@
     <Compile Include="BookServiceTests.fs" />
     <Compile Include="LoanServiceTests.fs" />
     <Compile Include="ReservationsTests.fs" />
+    <Compile Include="GoogleBooksTests.fs" />
+    <Compile Include="AuthorsSearchTests.fs" />
     <Compile Include="Main.fs" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="DotNetEnv" Version="3.1.1" />
     <PackageReference Include="YoloDev.Expecto.TestSdk" Version="0.15.*" />
+    <PackageReference Include="Microsoft.Extensions.Configuration" Version="10.0.5" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.0.5" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="../blazorBookLibrary.Server/blazorBookLibrary.Server.fsproj" />
     <ProjectReference Include="../blazorBookLibrary.Shared/blazorBookLibrary.Shared.fsproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="appSettings.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

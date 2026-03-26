@@ -13,7 +13,7 @@ open Sharpino.Core
 open BookLibrary.Shared.Commons
 open Sharpino.CommandHandler
 open Sharpino.EventBroker
-open BookLibrary.Application.ServiceLayer
+// open BookLibrary.Application.ServiceLayer
 open BookLibrary.Details.Details
 open Microsoft.Extensions.Configuration
 open System.Threading
@@ -60,9 +60,31 @@ let getAuthorService =
             reservationViewerAsync, 
             loanViewerAsync)
 
+
 let getBookService = 
     fun _ -> 
-        BookLibraryService
+        BookService
+            (pgEventStore, 
+            MessageSenders.NoSender, 
+            bookViewerAsync, 
+            authorViewerAsync, 
+            editorViewerAsync, 
+            reservationViewerAsync, 
+            loanViewerAsync)
+let getReservationService =
+    fun _ ->
+        ReservationService
+            (pgEventStore, 
+            MessageSenders.NoSender, 
+            bookViewerAsync, 
+            authorViewerAsync, 
+            editorViewerAsync, 
+            reservationViewerAsync, 
+            loanViewerAsync)
+
+let getLoanService =
+    fun _ ->
+        LoanService
             (pgEventStore, 
             MessageSenders.NoSender, 
             bookViewerAsync, 
@@ -363,6 +385,46 @@ let tests =
             let filtered = (authorService :> IAuthorService).SearchByIsniAndNameAsync (isni, name) |> Async.AwaitTask |> Async.RunSynchronously |> Result.get
             Expect.equal filtered.Length 1 "should have 1 author"
             Expect.equal filtered.[0].AuthorId author1.AuthorId "should be author 1"
+
+        testCase "add an author and then remove it - Ok" <| fun _ ->
+            setUp ()
+            let authorService = getAuthorService()
+            let author = Author.NewWithoutIsni (Name.New "John Doe")
+            
+            authorService.AddAuthorAsync author |> Async.AwaitTask |> Async.RunSynchronously |> ignore
+            
+            let removeResult = 
+                (authorService :> IAuthorService).RemoveAsync author.AuthorId
+
+                |> Async.AwaitTask
+                |> Async.RunSynchronously
+            
+            Expect.isOk removeResult "should be ok"
+            
+            let getResult = 
+                authorService.GetAuthorAsync author.AuthorId
+                |> Async.AwaitTask
+                |> Async.RunSynchronously
+            
+            Expect.isError getResult "should be error as it's removed"
+
+        testCase "cannot remove an author that has books - Error" <| fun _ ->
+            setUp ()
+            let authorService = getAuthorService()
+            let bookService = getBookService()
+            let author = Author.NewWithoutIsni (Name.New "John Doe")
+            
+            authorService.AddAuthorAsync author |> Async.AwaitTask |> Async.RunSynchronously |> ignore
+            
+            let book = Book.New (Title.New "The Great Gatsby") [author.AuthorId] [] [] None (Year.New 1924) (Isbn.NewEmpty())
+            bookService.AddBookAsync book |> Async.AwaitTask |> Async.RunSynchronously |> ignore
+            
+            let removeResult = 
+                (authorService :> IAuthorService).RemoveAsync author.AuthorId
+                |> Async.AwaitTask
+                |> Async.RunSynchronously
+            
+            Expect.isError removeResult "should be error as author has books"
     ]
 
     |> testSequenced

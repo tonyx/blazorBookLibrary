@@ -26,6 +26,10 @@ type BookEvent =
     | ReturnedFromLoan of DateTime
     | ReservationAdded of ReservationId * DateTime
     | ReservationRemoved of ReservationId * DateTime
+    | MainCategoryChanged of Category * DateTime
+    | AdditionalCategoryAdded of Category * DateTime
+    | AdditionalCategoryRemoved of Category * DateTime
+
 
     interface Event<BookLibrary.Domain.Book> with
         member this.Process (book: Book) : Result<Book, string> =
@@ -66,6 +70,13 @@ type BookEvent =
                 book.AddReservation reservationId dateTime
             | ReservationRemoved (reservationId, dateTime) ->
                 book.RemoveReservation reservationId dateTime
+            | MainCategoryChanged (category, dateTime) ->
+                book.ChangeMainCategory category dateTime
+            | AdditionalCategoryAdded (category, dateTime) ->
+                book.AddAdditionalCategory category dateTime
+            | AdditionalCategoryRemoved (category, dateTime) ->
+                book.RemoveAdditionalCategory category dateTime
+
 
     static member Deserialize (x: string): Result<BookEvent, string> =
         try

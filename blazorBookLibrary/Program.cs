@@ -9,7 +9,7 @@ using blazorBookLibrary.Components.Account;
 using blazorBookLibrary.Data;
 using BookLibrary.Shared.Services;
 using BookLibrary.Services;
-using static BookLibrary.Application.ServiceLayer;
+// using static BookLibrary.Application.ServiceLayer;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -55,6 +55,9 @@ builder.Services.AddScoped<IBookService, BookService>();
 builder.Services.AddScoped<IAuthorService, AuthorService>();
 builder.Services.AddScoped<IReservationService, ReservationService>();
 builder.Services.AddScoped<ILoanService, LoanService>();
+builder.Services.AddScoped<IGoogleBooksService, GoogleBooksService>();
+builder.Services.AddScoped<IAuthorsSearchService, AuthorsSearchService>();
+builder.Services.AddHttpClient();
 
 // Optional: Configure Passkey options for ASP.NET Core 10 Identity WebAuthn support
 builder.Services.Configure<IdentityPasskeyOptions>(options =>

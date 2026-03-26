@@ -100,6 +100,16 @@ type AuthorService
                 return! authorViewerAsync ct authorId.Value |> TaskResult.map snd
             }
 
+    member this.GetAuthorsAsync(ids: List<AuthorId>, ?ct: CancellationToken) =
+        taskResult
+            {
+                let ct = defaultArg ct CancellationToken.None
+                let authors =
+                    ids
+                    |> List.traverseTaskResultM (fun id -> this.GetAuthorAsync(id, ct))
+                return! authors
+            }
+
     member this.RenameAsync (authorId: AuthorId, newName: Name, ?ct: CancellationToken) = 
         taskResult
             {
@@ -160,6 +170,20 @@ type AuthorService
                 return! result
             }
 
+    member this.RemoveAuthorAsync(authorId: AuthorId, ?ct: CancellationToken) = 
+        taskResult
+            {
+                let! author = authorViewerAsync ct authorId.Value |> TaskResult.map snd
+                return!
+                    runDeleteAsync<Author, AuthorEvent, string>
+                    eventStore
+                    messageSenders
+                    authorId.Value
+                    (fun _ -> author.Books.Length = 0)
+                    ct
+            }
+
+
     member this.GetAllAuthorsAsync(?ct: CancellationToken) = 
         taskResult
             {
@@ -204,8 +228,15 @@ type AuthorService
 
         member this.GetAuthorAsync (authorId: AuthorId, ?ct: CancellationToken) = 
             this.GetAuthorAsync(authorId, ct |> Option.defaultValue CancellationToken.None)
+
+        member this.GetAuthorsAsync(ids: List<AuthorId>, ?ct: CancellationToken) = 
+            this.GetAuthorsAsync(ids, ct |> Option.defaultValue CancellationToken.None)
+
         member this.RenameAsync (authorId: AuthorId, newName: Name, ?ct: CancellationToken) = 
             this.RenameAsync(authorId, newName, ct |> Option.defaultValue CancellationToken.None)        
+        member this.RemoveAsync (authorId: AuthorId, ?ct: CancellationToken) = 
+            this.RemoveAuthorAsync(authorId, ct |> Option.defaultValue CancellationToken.None)
+
         member this.UpdateIsniAsync(authorId: AuthorId, isni: Isni, ?ct: CancellationToken) = 
             this.UpdateIsniAsync(authorId, isni, ct |> Option.defaultValue CancellationToken.None)
         member this.SealAsync(authorId: AuthorId, ?ct: CancellationToken) = 

@@ -12,7 +12,7 @@ open Sharpino.Core
 open BookLibrary.Shared.Commons
 open Sharpino.CommandHandler
 open Sharpino.EventBroker
-open BookLibrary.Application.ServiceLayer
+// open BookLibrary.Application.ServiceLayer
 open BookLibrary.Details.Details
 open Microsoft.Extensions.Configuration
 open System.Threading
@@ -54,16 +54,16 @@ let editorViewerAsync = getAggregateStorageFreshStateViewerAsync<Editor, EditorE
 let reservationViewerAsync = getAggregateStorageFreshStateViewerAsync<Reservation, ReservationEvent, string> pgEventStore
 let loanViewerAsync = getAggregateStorageFreshStateViewerAsync<Loan, LoanEvent, string> pgEventStore
 
-let getBookServiceLayer = 
-    fun _ -> 
-        BookLibraryService
-            (pgEventStore, 
-            MessageSenders.NoSender, 
-            bookViewerAsync, 
-            authorViewerAsync, 
-            editorViewerAsync, 
-            reservationViewerAsync, 
-            loanViewerAsync)
+// let getBookServiceLayer = 
+//     fun _ -> 
+//         BookLibraryService
+//             (pgEventStore, 
+//             MessageSenders.NoSender, 
+//             bookViewerAsync, 
+//             authorViewerAsync, 
+//             editorViewerAsync, 
+//             reservationViewerAsync, 
+//             loanViewerAsync)
 
 
 let getBookService = 

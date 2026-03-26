@@ -225,7 +225,7 @@ type Sealed =
             }
         member 
             this.IsSealed (dateNow: DateTime) = 
-                this.Sealed  || (dateNow - this.DateTime).TotalMinutes < sealTimeoutInMinutes
+                this.Sealed  || (dateNow - this.DateTime).TotalMinutes > sealTimeoutInMinutes
         member this.Unseal(dateTime: DateTime) =
             { this with DateTime = dateTime; Sealed = false } 
         member this.Seal(dateTime: DateTime) =
@@ -255,3 +255,313 @@ type TimeSlot =
 let jsonOptions =
     JsonFSharpOptions.Default()
         .ToJsonSerializerOptions()
+
+type Locale = 
+    | Locale of string
+    with 
+        static member New (locale: string) = 
+            match locale.ToLower() with
+            | "en-us" | "en-gb" | "en" -> Ok (Locale "en")
+            | "it-it" | "it" -> Ok (Locale "it")
+            | _ -> Error $"Locale {locale} is not supported"
+        member this.Value = 
+            match this with
+            | Locale v -> v
+
+type YearSearch =
+    | Before of int
+    | After of int
+    | Exact of int
+    | Range of int * int
+    with
+        static member New (year: int) = 
+            Exact year
+        // member this.Value = 
+        //     match this with
+        //     | Before y -> y
+        //     | After y -> y
+        //     | Exact y -> y
+        //     | Range (y1, y2) -> y1
+
+type Category = 
+    | Fiction
+    | NonFiction
+    | ScienceFiction
+    | Fantasy
+    | Mystery
+    | Thriller
+    | Romance
+    | HistoricalFiction
+    | Biography
+    | Autobiography
+    | Memoir
+    | Poetry
+    | Drama
+    | Science
+    | Technology
+    | History
+    | Geography
+    | Philosophy
+    | Psychology
+    | Sociology
+    | PoliticalScience
+    | Economics
+    | Business
+    | Law
+    | Education
+    | Health
+    | Sports
+    | Travel
+    | Cooking
+    | Art
+    | Music
+    | Film
+    | Photography
+    | Fashion
+    | Gaming
+    | Other
+    with
+        static member New (category: string) = 
+            match category.ToLower() with
+            | "fiction" -> Fiction
+            | "nonfiction" -> NonFiction
+            | "sciencefiction" -> ScienceFiction
+            | "fantasy" -> Fantasy
+            | "mystery" -> Mystery
+            | "thriller" -> Thriller
+            | "romance" -> Romance
+            | "historicalfiction" -> HistoricalFiction
+            | "biography" -> Biography
+            | "autobiography" -> Autobiography
+            | "memoir" -> Memoir
+            | "poetry" -> Poetry
+            | "drama" -> Drama
+            | "science" -> Science
+            | "technology" -> Technology
+            | "history" -> History
+            | "geography" -> Geography
+            | "philosophy" -> Philosophy
+            | "psychology" -> Psychology
+            | "sociology" -> Sociology
+            | "politicalscience" -> PoliticalScience
+            | "economics" -> Economics
+            | "business" -> Business
+            | "law" -> Law
+            | "education" -> Education
+            | "health" -> Health
+            | "sports" -> Sports
+            | "travel" -> Travel
+            | "cooking" -> Cooking
+            | "art" -> Art
+            | "music" -> Music
+            | "film" -> Film
+            | "photography" -> Photography
+            | "fashion" -> Fashion
+            | "gaming" -> Gaming
+            | _ -> Other
+
+        static member New (locale: Locale, category: string) = 
+            match locale.Value with
+            | "en" -> 
+                Category.New category
+            | "it" -> 
+                match category.ToLower() with
+                | "narrativa" -> Fiction
+                | "saggistica" -> NonFiction
+                | "fantascienza" -> ScienceFiction
+                | "fantasy" -> Fantasy
+                | "giallo" -> Mystery
+                | "thriller" -> Thriller
+                | "rosa" -> Romance
+                | "narrativa storica" -> HistoricalFiction
+                | "biografia" -> Biography
+                | "autobiografia" -> Autobiography
+                | "memorie" -> Memoir
+                | "poesia" -> Poetry
+                | "dramma" -> Drama
+                | "scienza" -> Science
+                | "tecnologia" -> Technology
+                | "storia" -> History
+                | "geografia" -> Geography
+                | "filosofia" -> Philosophy
+                | "psicologia" -> Psychology
+                | "sociologia" -> Sociology
+                | "scienze politiche" -> PoliticalScience
+                | "economia" -> Economics
+                | "affari" -> Business
+                | "legge" -> Law
+                | "educazione" -> Education
+                | "salute" -> Health
+                | "sport" -> Sports
+                | "viaggi" -> Travel
+                | "cucina" -> Cooking
+                | "arte" -> Art
+                | "musica" -> Music
+                | "cinema" -> Film
+                | "fotografia" -> Photography
+                | "moda" -> Fashion
+                | "giochi" -> Gaming
+                | _ -> Other
+            | _ -> failwith $"Locale {locale.Value} is not supported"
+
+        member this.Value () = 
+            match this with
+            | Fiction -> "Fiction"
+            | NonFiction -> "NonFiction"
+            | ScienceFiction -> "ScienceFiction"
+            | Fantasy -> "Fantasy"
+            | Mystery -> "Mystery"
+            | Thriller -> "Thriller"
+            | Romance -> "Romance"
+            | HistoricalFiction -> "HistoricalFiction"
+            | Biography -> "Biography"
+            | Autobiography -> "Autobiography"
+            | Memoir -> "Memoir"
+            | Poetry -> "Poetry"
+            | Drama -> "Drama"
+            | Science -> "Science"
+            | Technology -> "Technology"
+            | History -> "History"
+            | Geography -> "Geography"
+            | Philosophy -> "Philosophy"
+            | Psychology -> "Psychology"
+            | Sociology -> "Sociology"
+            | PoliticalScience -> "PoliticalScience"
+            | Economics -> "Economics"
+            | Business -> "Business"
+            | Law -> "Law"
+            | Education -> "Education"
+            | Health -> "Health"
+            | Sports -> "Sports"
+            | Travel -> "Travel"
+            | Cooking -> "Cooking"
+            | Art -> "Art"
+            | Music -> "Music"
+            | Film -> "Film"
+            | Photography -> "Photography"
+            | Fashion -> "Fashion"
+            | Gaming -> "Gaming"
+            | Other -> "Other"
+        member this.Value (locale: string) = 
+            match locale.ToLower() with
+            | "en-us" | "en-gb" | "en" -> this.Value ()
+            | "it-it" | "it" -> 
+                match this with
+                | Fiction -> "Narrativa"
+                | NonFiction -> "Saggistica"
+                | ScienceFiction -> "Fantascienza"
+                | Fantasy -> "Fantasy"
+                | Mystery -> "Giallo"
+                | Thriller -> "Thriller"
+                | Romance -> "Rosa"
+                | HistoricalFiction -> "Narrativa Storica"
+                | Biography -> "Biografia"
+                | Autobiography -> "Autobiografia"
+                | Memoir -> "Memorie"
+                | Poetry -> "Poesia"
+                | Drama -> "Dramma"
+                | Science -> "Scienza"
+                | Technology -> "Tecnologia"
+                | History -> "Storia"
+                | Geography -> "Geografia"
+                | Philosophy -> "Filosofia"
+                | Psychology -> "Psicologia"
+                | Sociology -> "Sociologia"
+                | PoliticalScience -> "Scienze Politiche"
+                | Economics -> "Economia"
+                | Business -> "Affari"
+                | Law -> "Legge"
+                | Education -> "Educazione"
+                | Health -> "Salute"
+                | Sports -> "Sport"
+                | Travel -> "Viaggi"
+                | Cooking -> "Cucina"
+                | Art -> "Arte"
+                | Music -> "Musica"
+                | Film -> "Cinema"
+                | Photography -> "Fotografia"
+                | Fashion -> "Moda"
+                | Gaming -> "Giochi"
+                | Other -> "Altro"
+            | _ -> failwith $"Locale {locale} is not supported"
+
+        member this.Value (locale: Locale) = 
+            this.Value (locale.Value)
+
+        static member FromString (category: string) = 
+            match category.ToLower() with
+            | "fiction" -> Fiction
+            | "nonfiction" -> NonFiction
+            | "sciencefiction" -> ScienceFiction
+            | "fantasy" -> Fantasy
+            | "mystery" -> Mystery
+            | "thriller" -> Thriller
+            | "romance" -> Romance
+            | "historicalfiction" -> HistoricalFiction
+            | "biography" -> Biography
+            | "autobiography" -> Autobiography
+            | "memoir" -> Memoir
+            | "poetry" -> Poetry
+            | "drama" -> Drama
+            | "science" -> Science
+            | "technology" -> Technology
+            | "history" -> History
+            | "geography" -> Geography
+            | "philosophy" -> Philosophy
+            | "psychology" -> Psychology
+            | "sociology" -> Sociology
+            | "politicalscience" -> PoliticalScience
+            | "economics" -> Economics
+            | "business" -> Business
+            | "law" -> Law
+            | "education" -> Education
+            | "health" -> Health
+            | "sports" -> Sports
+            | "travel" -> Travel
+            | "cooking" -> Cooking
+            | "art" -> Art
+            | "music" -> Music
+            | "film" -> Film
+            | "photography" -> Photography
+            | "fashion" -> Fashion
+            | "gaming" -> Gaming
+            | _ -> Other
+
+        static member AllCases () = 
+            [ Fiction; 
+            NonFiction; 
+            ScienceFiction; 
+            Fantasy; 
+            Mystery; 
+            Thriller; 
+            Romance; 
+            HistoricalFiction; 
+            Biography; 
+            Autobiography; 
+            Memoir; 
+            Poetry; 
+            Drama; 
+            Science; 
+            Technology; 
+            History; 
+            Geography; 
+            Philosophy; 
+            Psychology; 
+            Sociology; 
+            PoliticalScience; 
+            Economics; 
+            Business; 
+            Law; 
+            Education; 
+            Health; 
+            Sports; 
+            Travel; 
+            Cooking; 
+            Art; 
+            Music; 
+            Film; 
+            Photography; 
+            Fashion; 
+            Gaming; 
+            Other ]
+

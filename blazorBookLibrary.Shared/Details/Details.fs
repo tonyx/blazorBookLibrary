@@ -11,6 +11,7 @@ module Details =
     open Commons
     type BookDetails =
         { 
+            Authors: List<Author>
             Book: Book
             CurrentLoan: Option<Loan>
             FutureReservations: List<Reservation>

@@ -10,6 +10,7 @@
 
 @attribute [Authorize(Roles = "Admin, Manager")]
 @inject IAuthorService AuthorService
+@inject IJSRuntime JSRuntime
 @rendermode InteractiveServer
 
 <PageTitle>Authors Manager</PageTitle>
@@ -125,6 +126,15 @@
                             {
                                 <span class="badge bg-success"><i class="bi bi-unlock-fill me-1"></i>Active</span>
                             }
+                        </TemplateColumn>
+
+                        <TemplateColumn Title="Actions" Align="Align.Center">
+                            <button class="btn btn-sm btn-outline-danger border-0" 
+                                    title="Delete Author" 
+                                    disabled="@(context.Books.Length > 0)" 
+                                    @onclick="() => HandleDeleteAuthor(context)">
+                                <i class="bi bi-trash3-fill fs-5"></i>
+                            </button>
                         </TemplateColumn>
                     </QuickGrid>
                 </div>
@@ -268,6 +278,24 @@
         else
         {
             statusMessage = $"Error adding author: {result.ErrorValue}";
+        }
+    }
+
+    private async Task HandleDeleteAuthor(Author author)
+    {
+        bool confirmed = await JSRuntime.InvokeAsync<bool>("confirm", $"Are you sure you want to delete author '{author.Name.Value}'?");
+        if (confirmed)
+        {
+            var result = await AuthorService.RemoveAsync(author.AuthorId, FSharpOption<CancellationToken>.None);
+            if (result.IsOk)
+            {
+                statusMessage = $"Author '{author.Name.Value}' has been deleted.";
+                await LoadAuthors();
+            }
+            else
+            {
+                statusMessage = $"Error deleting author: {result.ErrorValue}";
+            }
         }
     }
 }

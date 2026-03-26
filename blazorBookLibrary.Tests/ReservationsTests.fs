@@ -13,8 +13,6 @@ open Sharpino.Core
 open BookLibrary.Shared.Commons
 open Sharpino.CommandHandler
 open Sharpino.EventBroker
-open BookLibrary.Application.ServiceLayer
-open BookLibrary.Details.Details
 open Microsoft.Extensions.Configuration
 open System.Threading
 open BookLibrary.Services

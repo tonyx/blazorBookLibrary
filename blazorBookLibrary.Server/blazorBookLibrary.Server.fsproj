@@ -12,6 +12,7 @@
   <!-- <ItemGroup>
     <ProjectReference Include="..\..\..\realsharpino\Sharpino\Sharpino.Lib\Sharpino.Lib.fsproj" />
   </ItemGroup> -->
+
   <ItemGroup>
     <ProjectReference Include="../blazorBookLibrary.Shared/blazorBookLibrary.Shared.fsproj" />
   </ItemGroup>
@@ -28,11 +29,15 @@
     <Compile Include="Domain/Loan/Events.fs" />
     <Compile Include="Domain/Loan/Commands.fs" />
     <Compile Include="Details.fs" />
-    <Compile Include="Application/ServiceLayer.fs" />
+
+    <!-- <Compile Include="Application/ServiceLayer.fs" /> -->
+
     <Compile Include="Services/BookService.fs" />
     <Compile Include="Services/AuthorService.fs" />
     <Compile Include="Services/ReservationService.fs" />
     <Compile Include="Services/LoanService.fs" />
+    <Compile Include="Services/GoogleBooksService.fs" />
+    <Compile Include="Services/AuthorsSearchService.fs" />
   </ItemGroup>
 
   <ItemGroup>
@@ -41,7 +46,7 @@
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="8.0.*" />
     <PackageReference Include="Microsoft.Extensions.Configuration" Version="10.0.5" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.0.5" />
-    <PackageReference Include="Sharpino" Version="4.8.8" />
+    <PackageReference Include="Sharpino" Version="4.9.0" />
   </ItemGroup>
 
 </Project>
