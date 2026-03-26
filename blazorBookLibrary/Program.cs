@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.DependencyInjection;
+
 using Microsoft.EntityFrameworkCore;
 using blazorBookLibrary.Client.Pages;
 using blazorBookLibrary.Components;
@@ -43,9 +45,11 @@ builder.Services.AddIdentityCore<ApplicationUser>(options =>
         options.SignIn.RequireConfirmedAccount = true;
         options.Stores.SchemaVersion = IdentitySchemaVersions.Version3;
     })
+    .AddRoles<IdentityRole>()
     .AddEntityFrameworkStores<ApplicationDbContext>()
     .AddSignInManager()
     .AddDefaultTokenProviders();
+
 
 builder.Services.AddScoped<IBookService, BookService>();
 builder.Services.AddScoped<IAuthorService, AuthorService>();
@@ -89,4 +93,23 @@ app.MapRazorComponents<App>()
 // Add additional endpoints required by the Identity /Account Razor components.
 app.MapAdditionalIdentityEndpoints();
 
+// Seed Admin role to a specified user from appsettings if they exist
+using (var scope = app.Services.CreateScope())
+{
+    var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+    var adminUsername = app.Configuration["AdminUsername"];
+    if (!string.IsNullOrWhiteSpace(adminUsername))
+    {
+        var adminUser = await userManager.FindByEmailAsync(adminUsername) ?? await userManager.FindByNameAsync(adminUsername);
+        if (adminUser != null)
+        {
+            if (!await userManager.IsInRoleAsync(adminUser, "Admin"))
+            {
+                await userManager.AddToRoleAsync(adminUser, "Admin");
+            }
+        }
+    }
+}
+
 app.Run();
+

@@ -17,6 +17,8 @@ open BookLibrary.Application.ServiceLayer
 open BookLibrary.Details.Details
 open Microsoft.Extensions.Configuration
 open System.Threading
+open BookLibrary.Shared.Services
+
 
 Env.Load() |> ignore
 let password = Environment.GetEnvironmentVariable("password")
@@ -72,8 +74,9 @@ let getBookService =
 let timeSlotDurationInDays =
     let config = 
         ConfigurationBuilder()
-            .AddJsonFile("appSettings.json")
+            .AddJsonFile("appsettings.json", true)
             .Build()
+
     config.GetValue<int>("TimeSlotLoanDurationInDays", 30)
 
 
@@ -260,5 +263,106 @@ let tests =
 
             let (bookRetrieved: Book) = retrieveBook |> Result.get
             Expect.isTrue (bookRetrieved.Authors |> List.contains author.AuthorId) "should contain the author"
+
+        testCase "add two authors and retrieve them all - Ok" <| fun _ ->
+            setUp ()
+            let authorService = getAuthorService()
+            let author1 = Author.NewWithoutIsni (Name.New "Author One")
+            let author2 = Author.NewWithoutIsni (Name.New "Author Two")
+            
+            let addAuthor1 = 
+                authorService.AddAuthorAsync author1
+                |> Async.AwaitTask
+                |> Async.RunSynchronously
+            Expect.isOk addAuthor1 "should be ok"
+            
+            let addAuthor2 = 
+                authorService.AddAuthorAsync author2
+                |> Async.AwaitTask
+                |> Async.RunSynchronously
+            Expect.isOk addAuthor2 "should be ok"
+            
+            let getAllResult = 
+                (authorService :> IAuthorService).GetAllAsync()
+                |> Async.AwaitTask
+                |> Async.RunSynchronously
+
+            
+            Expect.isOk getAllResult "should be ok"
+            let allAuthors = getAllResult |> Result.get
+            Expect.equal allAuthors.Length 2 "should have 2 authors"
+            Expect.isTrue (allAuthors |> List.exists (fun a -> a.AuthorId = author1.AuthorId)) "should contain author 1"
+            Expect.isTrue (allAuthors |> List.exists (fun a -> a.AuthorId = author2.AuthorId)) "should contain author 2"
+
+        testCase "add multiple authors - Ok" <| fun _ ->
+            setUp ()
+            let authorService = getAuthorService()
+            let authors = 
+                [
+                    Author.NewWithoutIsni (Name.New "Author A")
+                    Author.NewWithoutIsni (Name.New "Author B")
+                    Author.NewWithoutIsni (Name.New "Author C")
+                ]
+            
+            let addAuthorsResult = 
+                (authorService :> IAuthorService).AddAuthorsAsync (authors)
+                |> Async.AwaitTask
+                |> Async.RunSynchronously
+            
+            Expect.isOk addAuthorsResult "should be ok"
+            
+            let getAllResult = 
+                (authorService :> IAuthorService).GetAllAsync()
+                |> Async.AwaitTask
+                |> Async.RunSynchronously
+            
+            Expect.isOk getAllResult "should be ok"
+            let all = getAllResult |> Result.get
+            Expect.equal all.Length 3 "should have 3 authors"
+
+        testCase "filtering authors by name - Ok" <| fun _ ->
+            setUp ()
+            let authorService = getAuthorService()
+            let name1 = Name.New "John Smith"
+            let name2 = Name.New "Jane Doe"
+            let author1 = Author.NewWithoutIsni name1
+            let author2 = Author.NewWithoutIsni name2
+            
+            (authorService :> IAuthorService).AddAuthorsAsync [author1; author2] |> Async.AwaitTask |> Async.RunSynchronously |> ignore
+            
+            let filtered = (authorService :> IAuthorService).SearchByNameAsync name1 |> Async.AwaitTask |> Async.RunSynchronously |> Result.get
+
+            Expect.equal filtered.Length 1 "should have 1 author"
+            Expect.equal filtered.[0].AuthorId author1.AuthorId "should be author 1"
+
+        testCase "filtering authors by isni - Ok" <| fun _ ->
+            setUp ()
+            let authorService = getAuthorService()
+            let isni1 = Isni.New "0000 0001 2103 2683" |> Result.get
+            let isni2 = Isni.New "0000 0001 2103 2691" |> Result.get
+            let author1 = Author.New (Name.New "Austen") isni1
+            let author2 = Author.New (Name.New "Shakespeare") isni2
+            
+            (authorService :> IAuthorService).AddAuthorsAsync [author1; author2] |> Async.AwaitTask |> Async.RunSynchronously |> ignore
+            
+            let filtered = (authorService :> IAuthorService).SearchByIsniAsync isni1 |> Async.AwaitTask |> Async.RunSynchronously |> Result.get
+            Expect.equal filtered.Length 1 "should have 1 author"
+            Expect.equal filtered.[0].Isni isni1 "should have correct isni"
+
+        testCase "filtering authors by isni and name - Ok" <| fun _ ->
+            setUp ()
+            let authorService = getAuthorService()
+            let name = Name.New "John Smith"
+            let name2 = Name.New "John Doe"
+            let isni = Isni.New "0000 0001 2103 2683" |> Result.get
+            let author1 = Author.New name isni
+            let author2 = Author.New name2 (Isni.New "0000 0001 2103 2691" |> Result.get)
+            
+            (authorService :> IAuthorService).AddAuthorsAsync [author1; author2] |> Async.AwaitTask |> Async.RunSynchronously |> ignore
+            
+            let filtered = (authorService :> IAuthorService).SearchByIsniAndNameAsync (isni, name) |> Async.AwaitTask |> Async.RunSynchronously |> Result.get
+            Expect.equal filtered.Length 1 "should have 1 author"
+            Expect.equal filtered.[0].AuthorId author1.AuthorId "should be author 1"
     ]
+
     |> testSequenced

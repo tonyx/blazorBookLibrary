@@ -41,7 +41,7 @@
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="8.0.*" />
     <PackageReference Include="Microsoft.Extensions.Configuration" Version="10.0.5" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.0.5" />
-    <PackageReference Include="Sharpino" Version="4.8.7" />
+    <PackageReference Include="Sharpino" Version="4.8.8" />
   </ItemGroup>
 
 </Project>

@@ -14,16 +14,20 @@ type AggregateViewerAsync2<'A> = Option<CancellationToken> -> Guid -> Task<Resul
 let sealTimeoutInMinutes =
     let config = 
         ConfigurationBuilder()
-            .AddJsonFile("appSettings.json")
+            .AddJsonFile("appsettings.json", true)
             .Build()
-    config.["SealTimeoutInMinutes"] |> int
+    let v = config.["SealTimeoutInMinutes"]
+    if String.IsNullOrWhiteSpace v then 60 else int v
+
 
 let timeSlotDurationInDays =
     let config = 
         ConfigurationBuilder()
-            .AddJsonFile("appSettings.json")
+            .AddJsonFile("appsettings.json", true)
             .Build()
-    config.["TimeSlotLoanDurationInDays"] |> int
+    let v = config.["TimeSlotLoanDurationInDays"]
+    if String.IsNullOrWhiteSpace v then 30 else int v
+
 
 type BookId =
     | BookId of Guid
