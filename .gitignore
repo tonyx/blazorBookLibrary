@@ -78,10 +78,8 @@ Migrations/
 # If you want to commit migrations, comment the line above.
 
 # App settings artifacts (secrets)
-appsettings.json
-!appsettings.json
-appsettings.Development.json
-!appsettings.Development.json
+[Aa]pp[Ss]ettings.json
+[Aa]pp[Ss]ettings.*.json
 
 # Backup & temp files from process of editing
 # (e.g. Vim, Emacs, etc.)
