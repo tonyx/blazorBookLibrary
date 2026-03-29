@@ -5,6 +5,8 @@
 @using static BookLibrary.Shared.Commons
 @using Microsoft.FSharp.Core
 @using Microsoft.FSharp.Collections
+@using BookLibrary.Shared.Services
+@using static  BookLibrary.Shared.SearchCriteria
 @using System.Threading
 @using static BookLibrary.Shared.Details
 @inject IBookService BookService
@@ -95,7 +97,7 @@
                                             <div class="input-group">
                                                 <span class="input-group-text bg-light text-primary"><i class="bi bi-calendar-event"></i></span>
                                                 <InputNumber class="form-control" @bind-Value="searchBookYear" 
-                                                              placeholder='@(yearSearchMode == "between" ? "Starting year" : "Year value")' />
+                                                               placeholder='@(yearSearchMode == "between" ? "Starting year" : "Year value")' />
                                             </div>
                                         </div>
                                         @if (yearSearchMode == "between")
@@ -111,9 +113,17 @@
                                 </fieldset>
                             </div>
                         </div>
-                        <div class="col-md-2 d-flex align-items-end justify-content-center">
-                            <button type="submit" class="btn btn-primary btn-lg w-100 shadow-sm transition-hover mb-1 py-1 h-50 d-flex align-items-center justify-content-center">
-                                <i class="bi bi-search me-2 fs-5"></i><span>Search Books</span>
+                        <div class="col-md-2 d-flex flex-column justify-content-center align-items-center">
+                            <div class="form-check form-switch mb-3 p-0 ps-5 d-flex align-items-center">
+                                <InputCheckbox class="form-check-input me-3" @bind-Value="onlyImmediatelyAvailable" id="availToggle" 
+                                               style="width: 3.2em; height: 1.6em; cursor: pointer;" />
+                                <label class="form-check-label fw-bold text-success small text-uppercase" for="availToggle" 
+                                       style="cursor: pointer; letter-spacing: 0.5px;">
+                                    <i class="bi bi-check-circle-fill me-1"></i>Available Only
+                                </label>
+                            </div>
+                            <button type="submit" class="btn btn-primary btn-lg w-100 shadow-sm transition-hover py-2 d-flex align-items-center justify-content-center h-50">
+                                <i class="bi bi-search me-2 fs-5"></i><span>Search</span>
                             </button>
                         </div>
                     </div>
@@ -323,6 +333,9 @@
 
     private FSharpList<Category> allCategories = Category.AllCases();
 
+    private bool onlyImmediatelyAvailable = false;
+    private BookSearchCriteria searchCriteria => onlyImmediatelyAvailable ? searchImmediatelyAvailable : searchAllBooks;
+
     private async Task SearchAuthorsForFilter()
     {
         if (string.IsNullOrWhiteSpace(authorSearchNameFilter)) return;
@@ -391,11 +404,11 @@
             var isbn = Isbn.NewInvalid(searchBookIsbn);
             if (hasTitle)
             {
-                result = await BookService.SearchByIsbnOrTitleAsync(isbn, Title.New(searchBookTitle));
+                result = await BookService.SearchByIsbnOrTitleAsync(isbn, Title.New(searchBookTitle), searchCriteria);
             }
             else
             {
-                result = await BookService.SearchByIsbnAsync(isbn);
+                result = await BookService.SearchByIsbnAsync(isbn, searchCriteria);
             }
         }
         else 
@@ -425,38 +438,38 @@
                 {
                     if (hasTitle && hasEffectiveYear)
                     {
-                        result = await BookService.SearchByTitleAndAuthorsAndYearAndCategoriesAsync(Title.New(searchBookTitle), authorIds, yearSearch, categories);
+                        result = await BookService.SearchByTitleAndAuthorsAndYearAndCategoriesAsync(Title.New(searchBookTitle), authorIds, yearSearch, categories, searchCriteria);
                     }
                     else if (hasTitle)
                     {
-                        result = await BookService.SearchByTitleAndAuthorsAndCategoriesAsync(Title.New(searchBookTitle), authorIds, categories);
+                        result = await BookService.SearchByTitleAndAuthorsAndCategoriesAsync(Title.New(searchBookTitle), authorIds, categories, searchCriteria);
                     }
                     else if (hasEffectiveYear)
                     {
-                        result = await BookService.SearchByAuthorsAndYearAndCategoriesAsync(authorIds, yearSearch, categories);
+                        result = await BookService.SearchByAuthorsAndYearAndCategoriesAsync(authorIds, yearSearch, categories, searchCriteria);
                     }
                     else
                     {
-                        result = await BookService.SearchByAuthorsAndCategoriesAsync(authorIds, categories);
+                        result = await BookService.SearchByAuthorsAndCategoriesAsync(authorIds, categories, searchCriteria);
                     }
                 }
                 else
                 {
                     if (hasTitle && hasEffectiveYear)
                     {
-                        result = await BookService.SearchByTitleAndYearAndCategoriesAsync(Title.New(searchBookTitle), yearSearch, categories);
+                        result = await BookService.SearchByTitleAndYearAndCategoriesAsync(Title.New(searchBookTitle), yearSearch, categories, searchCriteria);
                     }
                     else if (hasTitle)
                     {
-                        result = await BookService.SearchByTitleAndCategoriesAsync(Title.New(searchBookTitle), categories);
+                        result = await BookService.SearchByTitleAndCategoriesAsync(Title.New(searchBookTitle), categories, searchCriteria);
                     }
                     else if (hasEffectiveYear)
                     {
-                        result = await BookService.SearchByYearAndCategoriesAsync(yearSearch, categories); 
+                        result = await BookService.SearchByYearAndCategoriesAsync(yearSearch, categories, searchCriteria); 
                     }
                     else
                     {
-                        result = await BookService.SearchByCategoriesAsync(categories); 
+                        result = await BookService.SearchByCategoriesAsync(categories, searchCriteria); 
                     }
                 }
             }
@@ -465,37 +478,37 @@
                 var authorIds = ListModule.OfSeq(searchAuthorsCriteria.Select(a => a.AuthorId));
                 if (hasTitle && hasEffectiveYear)
                 {
-                    result = await BookService.SearchByTitleAndAuthorsAndYearAsync(Title.New(searchBookTitle), authorIds, GetYearSearch());
+                    result = await BookService.SearchByTitleAndAuthorsAndYearAsync(Title.New(searchBookTitle), authorIds, GetYearSearch(), searchCriteria);
                 }
                 else if (hasTitle)
                 {
-                    result = await BookService.SearchByTitleAndAuthorsAsync(Title.New(searchBookTitle), authorIds);
+                    result = await BookService.SearchByTitleAndAuthorsAsync(Title.New(searchBookTitle), authorIds, searchCriteria);
                 }
                 else if (hasEffectiveYear)
                 {
-                    result = await BookService.SearchByAuthorsAndYearAsync(authorIds, GetYearSearch());
+                    result = await BookService.SearchByAuthorsAndYearAsync(authorIds, GetYearSearch(), searchCriteria);
                 }
                 else
                 {
-                    result = await BookService.SearchByAuthorsAsync(authorIds);
+                    result = await BookService.SearchByAuthorsAsync(authorIds, searchCriteria);
                 }
             }
             else if (hasTitle && hasEffectiveYear)
             {
-                result = await BookService.SearchByTitleAndYearAsync(Title.New(searchBookTitle), GetYearSearch());
+                result = await BookService.SearchByTitleAndYearAsync(Title.New(searchBookTitle), GetYearSearch(), searchCriteria);
             }
             else if (hasTitle)
             {
-                result = await BookService.SearchByTitleAsync(Title.New(searchBookTitle));
+                result = await BookService.SearchByTitleAsync(Title.New(searchBookTitle), searchCriteria);
             }
             else if (hasEffectiveYear)
             {
 
-                result = await BookService.SearchByYearAsync(GetYearSearch());
+                result = await BookService.SearchByYearAsync(GetYearSearch(), searchCriteria);
             }
             else
             {
-                result = await BookService.GetAllAsync();
+                result = await BookService.GetAllAsync(searchCriteria);
             }
         }
 

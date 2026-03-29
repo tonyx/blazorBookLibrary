@@ -260,41 +260,46 @@ type BookService
                     }
 
             member this.GetAllBooksAsync(?criteria: BookSearchCriteria, ?ct: CancellationToken) = 
-                // skip crieteria at the moment
+                let criteria = defaultArg criteria SearchCriteria.searchAllBooks
                 taskResult
                     {
-                        let! booksWithId = StateView.getAllAggregateStatesAsync<Book, BookEvent, string> eventStore ct 
+                        let! booksWithId = StateView.getAllFilteredAggregateStatesAsync<Book, BookEvent, string> (fun b -> criteria.Invoke b) eventStore ct 
                         return booksWithId |> List.ofSeq |> List.map snd
                     }
 
-            member this.SearchBooksByTitleAsync(title: Title, ?ct: CancellationToken) = 
+            member this.SearchBooksByTitleAsync(title: Title, ?criteria: BookSearchCriteria, ?ct: CancellationToken) = 
+                let criteria = defaultArg criteria SearchCriteria.searchAllBooks
                 taskResult
                     {
-                        let filter (book: Book) = book.Title.Value.Contains(title.Value, StringComparison.OrdinalIgnoreCase)
+                        let filter (book: Book) = book.Title.Value.Contains(title.Value, StringComparison.OrdinalIgnoreCase) && criteria.Invoke book
                         let! booksWithId = StateView.getAllFilteredAggregateStatesAsync<Book, BookEvent, string> filter eventStore ct 
                         return booksWithId |> List.ofSeq |> List.map snd
                     }
 
-            member this.SearchBooksByIsbnAsync(isbn: Isbn, ?ct: CancellationToken) = 
+            member this.SearchBooksByIsbnAsync(isbn: Isbn, ?criteria: BookSearchCriteria, ?ct: CancellationToken) = 
+                let criteria = defaultArg criteria SearchCriteria.searchAllBooks
                 taskResult
                     {
-                        let filter (book: Book) = book.Isbn.Value.Contains(isbn.Value, StringComparison.OrdinalIgnoreCase)
+                        let filter (book: Book) = book.Isbn.Value.Contains(isbn.Value, StringComparison.OrdinalIgnoreCase) && criteria.Invoke book
                         let! booksWithId = StateView.getAllFilteredAggregateStatesAsync<Book, BookEvent, string> filter eventStore ct 
                         return booksWithId |> List.ofSeq |> List.map snd
                     }
 
-            member this.SearchBooksByTitleAndIsbnAsync(title: Title, isbn: Isbn, ?ct: CancellationToken) = 
+            member this.SearchBooksByTitleAndIsbnAsync(title: Title, isbn: Isbn, ?criteria: BookSearchCriteria, ?ct: CancellationToken) = 
+                let criteria = defaultArg criteria SearchCriteria.searchAllBooks
                 taskResult
                     {
                         let filter (book: Book) = 
-                            (String.IsNullOrWhiteSpace(book.Title.Value) |> not && String.IsNullOrWhiteSpace(title.Value) |> not && book.Title.Value.Contains(title.Value, StringComparison.OrdinalIgnoreCase)) || 
-                            (String.IsNullOrWhiteSpace(book.Isbn.Value) |> not && String.IsNullOrWhiteSpace(isbn.Value) |> not && book.Isbn.Value.Contains(isbn.Value, StringComparison.OrdinalIgnoreCase))
+                            ((String.IsNullOrWhiteSpace(book.Title.Value) |> not && String.IsNullOrWhiteSpace(title.Value) |> not && book.Title.Value.Contains(title.Value, StringComparison.OrdinalIgnoreCase)) || 
+                            (String.IsNullOrWhiteSpace(book.Isbn.Value) |> not && String.IsNullOrWhiteSpace(isbn.Value) |> not && book.Isbn.Value.Contains(isbn.Value, StringComparison.OrdinalIgnoreCase)))
+                            && criteria.Invoke book
 
                         let! booksWithId = StateView.getAllFilteredAggregateStatesAsync<Book, BookEvent, string> filter eventStore ct 
                         return booksWithId |> List.ofSeq |> List.map snd
                     }
 
-            member this.SearchBooksByYearAsync(year: YearSearch, ?ct: CancellationToken) = 
+            member this.SearchBooksByYearAsync(year: YearSearch, ?criteria: BookSearchCriteria, ?ct: CancellationToken) = 
+                let criteria = defaultArg criteria SearchCriteria.searchAllBooks
                 taskResult
                     {
                         let filter (book: Book) = 
@@ -304,11 +309,15 @@ type BookService
                             | Exact y -> book.Year.Value = y
                             | Range (y1, y2) -> book.Year.Value >= y1 && book.Year.Value <= y2
 
-                        let! booksWithId = StateView.getAllFilteredAggregateStatesAsync<Book, BookEvent, string> filter eventStore ct 
+                        let compoundFilter = fun (book: Book) -> 
+                            filter book && criteria.Invoke book
+
+                        let! booksWithId = StateView.getAllFilteredAggregateStatesAsync<Book, BookEvent, string> compoundFilter eventStore ct 
                         return booksWithId |> List.ofSeq |> List.map snd
                     }
 
-            member this.SearchBooksByTitleAndYearAsync(title: Title, year: YearSearch, ?ct: CancellationToken) = 
+            member this.SearchBooksByTitleAndYearAsync(title: Title, year: YearSearch, ?criteria: BookSearchCriteria, ?ct: CancellationToken) = 
+                let criteria = defaultArg criteria SearchCriteria.searchAllBooks
                 taskResult
                     {
                         let filter (book: Book) = 
@@ -319,13 +328,14 @@ type BookService
                                 | After y -> book.Year.Value > y
                                 | Exact y -> book.Year.Value = y
                                 | Range (y1, y2) -> book.Year.Value >= y1 && book.Year.Value <= y2
-                            titleMatch && yearMatch
+                            titleMatch && yearMatch && criteria.Invoke book
                         
                         let! booksWithId = StateView.getAllFilteredAggregateStatesAsync<Book, BookEvent, string> filter eventStore ct 
                         return booksWithId |> List.ofSeq |> List.map snd
                     }
 
-            member this.SearchBooksByIsbnAndYearAsync(isbn: Isbn, year: YearSearch, ?ct: CancellationToken) = 
+            member this.SearchBooksByIsbnAndYearAsync(isbn: Isbn, year: YearSearch, ?criteria: BookSearchCriteria, ?ct: CancellationToken) = 
+                let criteria = defaultArg criteria SearchCriteria.searchAllBooks
                 taskResult
                     {
                         let filter (book: Book) = 
@@ -336,13 +346,14 @@ type BookService
                                 | After y -> book.Year.Value > y
                                 | Exact y -> book.Year.Value = y
                                 | Range (y1, y2) -> book.Year.Value >= y1 && book.Year.Value <= y2
-                            isbnMatch && yearMatch
+                            isbnMatch && yearMatch && criteria.Invoke book
                         
                         let! booksWithId = StateView.getAllFilteredAggregateStatesAsync<Book, BookEvent, string> filter eventStore ct 
                         return booksWithId |> List.ofSeq |> List.map snd
                     }
 
-            member this.SearchBooksByTitleAndIsbnAndYearAsync(title: Title, isbn: Isbn, year: YearSearch, ?ct: CancellationToken) = 
+            member this.SearchBooksByTitleAndIsbnAndYearAsync(title: Title, isbn: Isbn, year: YearSearch, ?criteria: BookSearchCriteria, ?ct: CancellationToken) = 
+                let criteria = defaultArg criteria SearchCriteria.searchAllBooks
                 taskResult
                     {
                         let filter (book: Book) = 
@@ -354,36 +365,41 @@ type BookService
                                 | After y -> book.Year.Value > y
                                 | Exact y -> book.Year.Value = y
                                 | Range (y1, y2) -> book.Year.Value >= y1 && book.Year.Value <= y2
-                            titleMatch && isbnMatch && yearMatch
+                            titleMatch && isbnMatch && yearMatch && criteria.Invoke book
                         
                         let! booksWithId = StateView.getAllFilteredAggregateStatesAsync<Book, BookEvent, string> filter eventStore ct 
                         return booksWithId |> List.ofSeq |> List.map snd
                     }
 
-            member this.SearchBooksByCategoriesAsync(categories: List<Category>, ?ct: CancellationToken) = 
+            member this.SearchBooksByCategoriesAsync(categories: List<Category>, ?criteria: BookSearchCriteria, ?ct: CancellationToken) = 
+                let criteria = defaultArg criteria SearchCriteria.searchAllBooks
                 taskResult
                     {
                         let filter (book: Book) = 
-                            categories |> Seq.exists (fun c -> 
-                                book.MainCategory = c || (book.AdditionalCategories |> List.contains c))
+                            (categories |> Seq.exists (fun c -> 
+                                book.MainCategory = c || (book.AdditionalCategories |> List.contains c)))
+                            && criteria.Invoke book
                         
                         let! booksWithId = StateView.getAllFilteredAggregateStatesAsync<Book, BookEvent, string> filter eventStore ct 
                         return booksWithId |> List.ofSeq |> List.map snd
                     }
 
-            member this.SearchBooksByTitleAndCategoriesAsync(title: Title, categories: List<Category>, ?ct: CancellationToken) = 
+            member this.SearchBooksByTitleAndCategoriesAsync(title: Title, categories: List<Category>, ?criteria: BookSearchCriteria, ?ct: CancellationToken) = 
+                let criteria = defaultArg criteria SearchCriteria.searchAllBooks
                 taskResult
                     {
                         let filter (book: Book) = 
                             book.Title.Value.Contains(title.Value, StringComparison.OrdinalIgnoreCase) &&
-                            categories |> Seq.exists (fun c -> 
-                                book.MainCategory = c || (book.AdditionalCategories |> List.contains c))
+                            (categories |> Seq.exists (fun c -> 
+                                book.MainCategory = c || (book.AdditionalCategories |> List.contains c)))
+                            && criteria.Invoke book
                         
                         let! booksWithId = StateView.getAllFilteredAggregateStatesAsync<Book, BookEvent, string> filter eventStore ct 
                         return booksWithId |> List.ofSeq |> List.map snd
                     }
 
-            member this.SearchBooksByYearAndCategoriesAsync(year: YearSearch, categories: List<Category>, ?ct: CancellationToken) = 
+            member this.SearchBooksByYearAndCategoriesAsync(year: YearSearch, categories: List<Category>, ?criteria: BookSearchCriteria, ?ct: CancellationToken) = 
+                let criteria = defaultArg criteria SearchCriteria.searchAllBooks
                 taskResult
                     {
                         let filter (book: Book) = 
@@ -396,13 +412,14 @@ type BookService
                             let categoryMatch = 
                                 categories |> Seq.exists (fun c -> 
                                     book.MainCategory = c || (book.AdditionalCategories |> List.contains c))
-                            yearMatch && categoryMatch
+                            yearMatch && categoryMatch && criteria.Invoke book
                         
                         let! booksWithId = StateView.getAllFilteredAggregateStatesAsync<Book, BookEvent, string> filter eventStore ct 
                         return booksWithId |> List.ofSeq |> List.map snd
                     }
 
-            member this.SearchBooksByTitleAndYearAndCategoriesAsync(title: Title, year: YearSearch, categories: List<Category>, ?ct: CancellationToken) = 
+            member this.SearchBooksByTitleAndYearAndCategoriesAsync(title: Title, year: YearSearch, categories: List<Category>, ?criteria: BookSearchCriteria, ?ct: CancellationToken) = 
+                let criteria = defaultArg criteria SearchCriteria.searchAllBooks
                 taskResult
                     {
                         let filter (book: Book) = 
@@ -416,18 +433,20 @@ type BookService
                             let categoryMatch = 
                                 categories |> Seq.exists (fun c -> 
                                     book.MainCategory = c || (book.AdditionalCategories |> List.contains c))
-                            titleMatch && yearMatch && categoryMatch
+                            titleMatch && yearMatch && categoryMatch && criteria.Invoke book
                         
                         let! booksWithId = StateView.getAllFilteredAggregateStatesAsync<Book, BookEvent, string> filter eventStore ct 
                         return booksWithId |> List.ofSeq |> List.map snd
                     }
 
-            member this.SearchBooksByIsbnOrTitleAsync(isbn: Isbn, title: Title, ?ct: CancellationToken) = 
+            member this.SearchBooksByIsbnOrTitleAsync(isbn: Isbn, title: Title, ?criteria: BookSearchCriteria, ?ct: CancellationToken) = 
+                let criteria = defaultArg criteria SearchCriteria.searchAllBooks
                 taskResult
                     {
                         let filter (book: Book) = 
-                            book.Isbn.Value.Contains(isbn.Value, StringComparison.OrdinalIgnoreCase) ||
-                            book.Title.Value.Contains(title.Value, StringComparison.OrdinalIgnoreCase)
+                            (book.Isbn.Value.Contains(isbn.Value, StringComparison.OrdinalIgnoreCase) ||
+                            book.Title.Value.Contains(title.Value, StringComparison.OrdinalIgnoreCase))
+                            && criteria.Invoke book
                         
                         let! booksWithId = StateView.getAllFilteredAggregateStatesAsync<Book, BookEvent, string> filter eventStore ct 
                         return booksWithId |> List.ofSeq |> List.map snd
@@ -517,38 +536,42 @@ type BookService
                                 ct
                     }
 
-            member this.SearchBooksByAuthorAsync(authorId: AuthorId, ?ct: CancellationToken) = 
+            member this.SearchBooksByAuthorAsync(authorId: AuthorId, ?criteria: BookSearchCriteria, ?ct: CancellationToken) = 
+                let criteria = defaultArg criteria SearchCriteria.searchAllBooks
                 taskResult
                     {
                         let filter (book: Book) = 
-                            book.Authors |> List.contains authorId
+                            book.Authors |> List.contains authorId && criteria.Invoke book
                         
                         let! booksWithId = StateView.getAllFilteredAggregateStatesAsync<Book, BookEvent, string> filter eventStore ct 
                         return booksWithId |> List.ofSeq |> List.map snd
                     }
 
-            member this.SearchBooksByAuthorsAsync(authors: List<AuthorId>, ?ct: CancellationToken) = 
+            member this.SearchBooksByAuthorsAsync(authors: List<AuthorId>, ?criteria: BookSearchCriteria, ?ct: CancellationToken) = 
+                let criteria = defaultArg criteria SearchCriteria.searchAllBooks
                 taskResult
                     {
                         let filter (book: Book) = 
-                            book.Authors |> List.exists (fun a -> authors |> List.contains a)
+                            book.Authors |> List.exists (fun a -> authors |> List.contains a) && criteria.Invoke book
                         
                         let! booksWithId = StateView.getAllFilteredAggregateStatesAsync<Book, BookEvent, string> filter eventStore ct 
                         return booksWithId |> List.ofSeq |> List.map snd
                     }
 
-            member this.SearchBooksByTitleAndAuthorsAsync(title: Title, authors: List<AuthorId>, ?ct: CancellationToken) = 
+            member this.SearchBooksByTitleAndAuthorsAsync(title: Title, authors: List<AuthorId>, ?criteria: BookSearchCriteria, ?ct: CancellationToken) = 
+                let criteria = defaultArg criteria SearchCriteria.searchAllBooks
                 taskResult
                     {
                         let filter (book: Book) = 
                             book.Title.Value.Contains(title.Value, StringComparison.OrdinalIgnoreCase) &&
-                            book.Authors |> List.exists (fun a -> authors |> List.contains a)
+                            (book.Authors |> List.exists (fun a -> authors |> List.contains a)) && criteria.Invoke book
                         
                         let! booksWithId = StateView.getAllFilteredAggregateStatesAsync<Book, BookEvent, string> filter eventStore ct 
                         return booksWithId |> List.ofSeq |> List.map snd
                     }
 
-            member this.SearchBooksByTitleAndAuthorsAndYearAsync(title: Title, authors: List<AuthorId>, year: YearSearch, ?ct: CancellationToken) = 
+            member this.SearchBooksByTitleAndAuthorsAndYearAsync(title: Title, authors: List<AuthorId>, year: YearSearch, ?criteria: BookSearchCriteria, ?ct: CancellationToken) = 
+                let criteria = defaultArg criteria SearchCriteria.searchAllBooks
                 taskResult
                     {
                         let filter (book: Book) = 
@@ -560,13 +583,14 @@ type BookService
                                 | Range (y1, y2) -> book.Year.Value >= y1 && book.Year.Value <= y2
                             book.Title.Value.Contains(title.Value, StringComparison.OrdinalIgnoreCase) &&
                             (book.Authors |> List.exists (fun a -> authors |> List.contains a)) &&
-                            yearMatch
+                            yearMatch && criteria.Invoke book
                         
                         let! booksWithId = StateView.getAllFilteredAggregateStatesAsync<Book, BookEvent, string> filter eventStore ct 
                         return booksWithId |> List.ofSeq |> List.map snd
                     }
 
-            member this.SearchBooksByAuthorsAndYearAsync(authors: List<AuthorId>, year: YearSearch, ?ct: CancellationToken) = 
+            member this.SearchBooksByAuthorsAndYearAsync(authors: List<AuthorId>, year: YearSearch, ?criteria: BookSearchCriteria, ?ct: CancellationToken) = 
+                let criteria = defaultArg criteria SearchCriteria.searchAllBooks
                 taskResult
                     {
                         let filter (book: Book) = 
@@ -577,13 +601,14 @@ type BookService
                                 | Exact y -> book.Year.Value = y
                                 | Range (y1, y2) -> book.Year.Value >= y1 && book.Year.Value <= y2
                             (book.Authors |> List.exists (fun a -> authors |> List.contains a)) &&
-                            yearMatch
+                            yearMatch && criteria.Invoke book
                         
                         let! booksWithId = StateView.getAllFilteredAggregateStatesAsync<Book, BookEvent, string> filter eventStore ct 
                         return booksWithId |> List.ofSeq |> List.map snd
                     }
 
-            member this.SearchBooksByAuthorsAndCategoriesAsync(authors: List<AuthorId>, categories: List<Category>, ?ct: CancellationToken) = 
+            member this.SearchBooksByAuthorsAndCategoriesAsync(authors: List<AuthorId>, categories: List<Category>, ?criteria: BookSearchCriteria, ?ct: CancellationToken) = 
+                let criteria = defaultArg criteria SearchCriteria.searchAllBooks
                 taskResult
                     {
                         let filter (book: Book) = 
@@ -591,13 +616,14 @@ type BookService
                             let categoryMatch = 
                                 categories |> Seq.exists (fun c -> 
                                     book.MainCategory = c || (book.AdditionalCategories |> List.contains c))
-                            authorMatch && categoryMatch
+                            authorMatch && categoryMatch && criteria.Invoke book
                         
                         let! booksWithId = StateView.getAllFilteredAggregateStatesAsync<Book, BookEvent, string> filter eventStore ct 
                         return booksWithId |> List.ofSeq |> List.map snd
                     }
 
-            member this.SearchBooksByTitleAndAuthorsAndCategoriesAsync(title: Title, authors: List<AuthorId>, categories: List<Category>, ?ct: CancellationToken) = 
+            member this.SearchBooksByTitleAndAuthorsAndCategoriesAsync(title: Title, authors: List<AuthorId>, categories: List<Category>, ?criteria: BookSearchCriteria, ?ct: CancellationToken) = 
+                let criteria = defaultArg criteria SearchCriteria.searchAllBooks
                 taskResult
                     {
                         let filter (book: Book) = 
@@ -606,13 +632,14 @@ type BookService
                             let categoryMatch = 
                                 categories |> Seq.exists (fun c -> 
                                     book.MainCategory = c || (book.AdditionalCategories |> List.contains c))
-                            titleMatch && authorMatch && categoryMatch
+                            titleMatch && authorMatch && categoryMatch && criteria.Invoke book
                         
                         let! booksWithId = StateView.getAllFilteredAggregateStatesAsync<Book, BookEvent, string> filter eventStore ct 
                         return booksWithId |> List.ofSeq |> List.map snd
                     }
 
-            member this.SearchBooksByAuthorsAndYearAndCategoriesAsync(authors: List<AuthorId>, year: YearSearch, categories: List<Category>, ?ct: CancellationToken) = 
+            member this.SearchBooksByAuthorsAndYearAndCategoriesAsync(authors: List<AuthorId>, year: YearSearch, categories: List<Category>, ?criteria: BookSearchCriteria, ?ct: CancellationToken) = 
+                let criteria = defaultArg criteria SearchCriteria.searchAllBooks
                 taskResult
                     {
                         let filter (book: Book) = 
@@ -626,13 +653,14 @@ type BookService
                             let categoryMatch = 
                                 categories |> Seq.exists (fun c -> 
                                     book.MainCategory = c || (book.AdditionalCategories |> List.contains c))
-                            yearMatch && authorMatch && categoryMatch
+                            yearMatch && authorMatch && categoryMatch && criteria.Invoke book
                         
                         let! booksWithId = StateView.getAllFilteredAggregateStatesAsync<Book, BookEvent, string> filter eventStore ct 
                         return booksWithId |> List.ofSeq |> List.map snd
                     }
 
-            member this.SearchBooksByTitleAndAuthorsAndYearAndCategoriesAsync(title: Title, authors: List<AuthorId>, year: YearSearch, categories: List<Category>, ?ct: CancellationToken) = 
+            member this.SearchBooksByTitleAndAuthorsAndYearAndCategoriesAsync(title: Title, authors: List<AuthorId>, year: YearSearch, categories: List<Category>, ?criteria: BookSearchCriteria, ?ct: CancellationToken) = 
+                let criteria = defaultArg criteria SearchCriteria.searchAllBooks
                 taskResult
                     {
                         let filter (book: Book) = 
@@ -647,7 +675,7 @@ type BookService
                             let categoryMatch = 
                                 categories |> Seq.exists (fun c -> 
                                     book.MainCategory = c || (book.AdditionalCategories |> List.contains c))
-                            titleMatch && yearMatch && authorMatch && categoryMatch
+                            titleMatch && yearMatch && authorMatch && categoryMatch && criteria.Invoke book
                         
                         let! booksWithId = StateView.getAllFilteredAggregateStatesAsync<Book, BookEvent, string> filter eventStore ct 
                         return booksWithId |> List.ofSeq |> List.map snd
@@ -678,15 +706,18 @@ type BookService
                 let ct = defaultArg ct CancellationToken.None
                 let dateTime = System.DateTime.Now
                 this.RemoveAuthorFromBookAsync(authorId, bookId, dateTime, ct)
-            member this.SearchByTitleAsync(title: Title, ?ct: CancellationToken) = 
+            member this.SearchByTitleAsync(title: Title, ?criteria: BookSearchCriteria, ?ct: CancellationToken) = 
+                let criteria = defaultArg criteria SearchCriteria.searchAllBooks
                 let ct = defaultArg ct CancellationToken.None
-                this.SearchBooksByTitleAsync(title, ct)
-            member this.SearchByIsbnAsync(isbn: Isbn, ?ct: CancellationToken) = 
+                this.SearchBooksByTitleAsync(title, criteria, ct)
+            member this.SearchByIsbnAsync(isbn: Isbn, ?criteria: BookSearchCriteria, ?ct: CancellationToken) = 
+                let criteria = defaultArg criteria SearchCriteria.searchAllBooks
                 let ct = defaultArg ct CancellationToken.None
-                this.SearchBooksByIsbnAsync(isbn, ct)
-            member this.SearchByTitleAndIsbnAsync(title: Title, isbn: Isbn, ?ct: CancellationToken) = 
+                this.SearchBooksByIsbnAsync(isbn, criteria, ct)
+            member this.SearchByTitleAndIsbnAsync(title: Title, isbn: Isbn, ?criteria: BookSearchCriteria, ?ct: CancellationToken) = 
+                let criteria = defaultArg criteria SearchCriteria.searchAllBooks
                 let ct = defaultArg ct CancellationToken.None
-                this.SearchBooksByTitleAndIsbnAsync(title, isbn, ct)
+                this.SearchBooksByTitleAndIsbnAsync(title, isbn, criteria, ct)
             member this.ChangeMainCategoryAsync(category: Category, bookId: BookId, ?ct: CancellationToken) = 
                 let ct = defaultArg ct CancellationToken.None
                 this.ChangeMainCategoryAsync(category, bookId, ct)
@@ -708,57 +739,75 @@ type BookService
             member this.UpdateTitleAsync(title: Title, bookId: BookId, ?ct: CancellationToken) = 
                 let ct = defaultArg ct CancellationToken.None
                 this.UpdateTitleAsync(title, bookId, ct)
-            member this.SearchByYearAsync(year: YearSearch, ?ct: CancellationToken) = 
+            member this.SearchByYearAsync(year: YearSearch, ?criteria: BookSearchCriteria, ?ct: CancellationToken) = 
+                let criteria = defaultArg criteria SearchCriteria.searchAllBooks
                 let ct = defaultArg ct CancellationToken.None
-                this.SearchBooksByYearAsync(year, ct)
-            member this.SearchByTitleAndYearAsync(title: Title, year: YearSearch, ?ct: CancellationToken) = 
+                this.SearchBooksByYearAsync(year, criteria, ct)
+            member this.SearchByTitleAndYearAsync(title: Title, year: YearSearch, ?criteria: BookSearchCriteria, ?ct: CancellationToken) = 
+                let criteria = defaultArg criteria SearchCriteria.searchAllBooks
                 let ct = defaultArg ct CancellationToken.None
-                this.SearchBooksByTitleAndYearAsync(title, year, ct)
-            member this.SearchByIsbnAndYearAsync(isbn: Isbn, year: YearSearch, ?ct: CancellationToken) = 
+                this.SearchBooksByTitleAndYearAsync(title, year, criteria, ct)
+            member this.SearchByIsbnAndYearAsync(isbn: Isbn, year: YearSearch, ?criteria: BookSearchCriteria, ?ct: CancellationToken) = 
+                let criteria = defaultArg criteria SearchCriteria.searchAllBooks
                 let ct = defaultArg ct CancellationToken.None
-                this.SearchBooksByIsbnAndYearAsync(isbn, year, ct)
-            member this.SearchByTitleAndIsbnAndYearAsync(title: Title, isbn: Isbn, year: YearSearch, ?ct: CancellationToken) = 
+                this.SearchBooksByIsbnAndYearAsync(isbn, year, criteria, ct)
+            member this.SearchByTitleAndIsbnAndYearAsync(title: Title, isbn: Isbn, year: YearSearch, ?criteria: BookSearchCriteria, ?ct: CancellationToken) = 
+                let criteria = defaultArg criteria SearchCriteria.searchAllBooks
                 let ct = defaultArg ct CancellationToken.None
-                this.SearchBooksByTitleAndIsbnAndYearAsync(title, isbn, year, ct)
-            member this.SearchByCategoriesAsync(categories: List<Category>, ?ct: CancellationToken) = 
+                this.SearchBooksByTitleAndIsbnAndYearAsync(title, isbn, year, criteria, ct)
+            member this.SearchByCategoriesAsync(categories: List<Category>, ?criteria: BookSearchCriteria, ?ct: CancellationToken) = 
+                let criteria = defaultArg criteria SearchCriteria.searchAllBooks
                 let ct = defaultArg ct CancellationToken.None
-                this.SearchBooksByCategoriesAsync(categories, ct)
-            member this.SearchByTitleAndCategoriesAsync(title: Title, categories: List<Category>, ?ct: CancellationToken) = 
+                this.SearchBooksByCategoriesAsync(categories, criteria, ct)
+            member this.SearchByTitleAndCategoriesAsync(title: Title, categories: List<Category>, ?criteria: BookSearchCriteria, ?ct: CancellationToken) = 
+                let criteria = defaultArg criteria SearchCriteria.searchAllBooks
                 let ct = defaultArg ct CancellationToken.None
-                this.SearchBooksByTitleAndCategoriesAsync(title, categories, ct)
-            member this.SearchByYearAndCategoriesAsync(year: YearSearch, categories: List<Category>, ?ct: CancellationToken) = 
+                this.SearchBooksByTitleAndCategoriesAsync(title, categories, criteria, ct)
+            member this.SearchByYearAndCategoriesAsync(year: YearSearch, categories: List<Category>, ?criteria: BookSearchCriteria, ?ct: CancellationToken) = 
+                let criteria = defaultArg criteria SearchCriteria.searchAllBooks
                 let ct = defaultArg ct CancellationToken.None
-                this.SearchBooksByYearAndCategoriesAsync(year, categories, ct)
-            member this.SearchByTitleAndYearAndCategoriesAsync(title: Title, year: YearSearch, categories: List<Category>, ?ct: CancellationToken) = 
+                this.SearchBooksByYearAndCategoriesAsync(year, categories, criteria, ct)
+            member this.SearchByTitleAndYearAndCategoriesAsync(title: Title, year: YearSearch, categories: List<Category>, ?criteria: BookSearchCriteria, ?ct: CancellationToken) = 
+                let criteria = defaultArg criteria SearchCriteria.searchAllBooks
                 let ct = defaultArg ct CancellationToken.None
-                this.SearchBooksByTitleAndYearAndCategoriesAsync(title, year, categories, ct)
-            member this.SearchByIsbnOrTitleAsync(isbn: Isbn, title: Title, ?ct: CancellationToken) = 
+                this.SearchBooksByTitleAndYearAndCategoriesAsync(title, year, categories, criteria, ct)
+            member this.SearchByIsbnOrTitleAsync(isbn: Isbn, title: Title, ?criteria: BookSearchCriteria, ?ct: CancellationToken) = 
+                let criteria = defaultArg criteria SearchCriteria.searchAllBooks
                 let ct = defaultArg ct CancellationToken.None
-                this.SearchBooksByIsbnOrTitleAsync(isbn, title, ct)
-            member this.SearchByAuthorAsync(authorId: AuthorId, ?ct: CancellationToken) = 
+                this.SearchBooksByIsbnOrTitleAsync(isbn, title, criteria, ct)
+            member this.SearchByAuthorAsync(authorId: AuthorId, ?criteria: BookSearchCriteria, ?ct: CancellationToken) = 
+                let criteria = defaultArg criteria SearchCriteria.searchAllBooks
                 let ct = defaultArg ct CancellationToken.None
-                this.SearchBooksByAuthorAsync(authorId, ct)
-            member this.SearchByAuthorsAsync(authors: List<AuthorId>, ?ct: CancellationToken) = 
+                this.SearchBooksByAuthorAsync(authorId, criteria, ct)
+            member this.SearchByAuthorsAsync(authors: List<AuthorId>, ?criteria: BookSearchCriteria, ?ct: CancellationToken) = 
+                let criteria = defaultArg criteria SearchCriteria.searchAllBooks
                 let ct = defaultArg ct CancellationToken.None
-                this.SearchBooksByAuthorsAsync(authors, ct)
-            member this.SearchByAuthorsAndYearAsync(authors: List<AuthorId>, year: YearSearch, ?ct: CancellationToken) = 
+                this.SearchBooksByAuthorsAsync(authors, criteria, ct)
+            member this.SearchByAuthorsAndYearAsync(authors: List<AuthorId>, year: YearSearch, ?criteria: BookSearchCriteria, ?ct: CancellationToken) = 
+                let criteria = defaultArg criteria SearchCriteria.searchAllBooks
                 let ct = defaultArg ct CancellationToken.None
-                this.SearchBooksByAuthorsAndYearAsync(authors, year, ct)
-            member this.SearchByTitleAndAuthorsAsync(title: Title, authors: List<AuthorId>, ?ct: CancellationToken) = 
+                this.SearchBooksByAuthorsAndYearAsync(authors, year, criteria, ct)
+            member this.SearchByTitleAndAuthorsAsync(title: Title, authors: List<AuthorId>, ?criteria: BookSearchCriteria, ?ct: CancellationToken) = 
+                let criteria = defaultArg criteria SearchCriteria.searchAllBooks
                 let ct = defaultArg ct CancellationToken.None
-                this.SearchBooksByTitleAndAuthorsAsync(title, authors, ct)
-            member this.SearchByTitleAndAuthorsAndYearAsync(title: Title, authors: List<AuthorId>, year: YearSearch, ?ct: CancellationToken) = 
+                this.SearchBooksByTitleAndAuthorsAsync(title, authors, criteria, ct)
+            member this.SearchByTitleAndAuthorsAndYearAsync(title: Title, authors: List<AuthorId>, year: YearSearch, ?criteria: BookSearchCriteria, ?ct: CancellationToken) = 
+                let criteria = defaultArg criteria SearchCriteria.searchAllBooks
                 let ct = defaultArg ct CancellationToken.None
-                this.SearchBooksByTitleAndAuthorsAndYearAsync(title, authors, year, ct)
-            member this.SearchByAuthorsAndCategoriesAsync(authors: List<AuthorId>, categories: List<Category>, ?ct: CancellationToken) = 
+                this.SearchBooksByTitleAndAuthorsAndYearAsync(title, authors, year, criteria, ct)
+            member this.SearchByAuthorsAndCategoriesAsync(authors: List<AuthorId>, categories: List<Category>, ?criteria: BookSearchCriteria, ?ct: CancellationToken) = 
+                let criteria = defaultArg criteria SearchCriteria.searchAllBooks
                 let ct = defaultArg ct CancellationToken.None
-                this.SearchBooksByAuthorsAndCategoriesAsync(authors, categories, ct)
-            member this.SearchByTitleAndAuthorsAndCategoriesAsync(title: Title, authors: List<AuthorId>, categories: List<Category>, ?ct: CancellationToken) = 
+                this.SearchBooksByAuthorsAndCategoriesAsync(authors, categories, criteria, ct)
+            member this.SearchByTitleAndAuthorsAndCategoriesAsync(title: Title, authors: List<AuthorId>, categories: List<Category>, ?criteria: BookSearchCriteria, ?ct: CancellationToken) = 
+                let criteria = defaultArg criteria SearchCriteria.searchAllBooks
                 let ct = defaultArg ct CancellationToken.None
-                this.SearchBooksByTitleAndAuthorsAndCategoriesAsync(title, authors, categories, ct)
-            member this.SearchByAuthorsAndYearAndCategoriesAsync(authors: List<AuthorId>, year: YearSearch, categories: List<Category>, ?ct: CancellationToken) = 
+                this.SearchBooksByTitleAndAuthorsAndCategoriesAsync(title, authors, categories, criteria, ct)
+            member this.SearchByAuthorsAndYearAndCategoriesAsync(authors: List<AuthorId>, year: YearSearch, categories: List<Category>, ?criteria: BookSearchCriteria, ?ct: CancellationToken) = 
+                let criteria = defaultArg criteria SearchCriteria.searchAllBooks
                 let ct = defaultArg ct CancellationToken.None
-                this.SearchBooksByAuthorsAndYearAndCategoriesAsync(authors, year, categories, ct)
-            member this.SearchByTitleAndAuthorsAndYearAndCategoriesAsync(title: Title, authors: List<AuthorId>, year: YearSearch, categories: List<Category>, ?ct: CancellationToken) = 
+                this.SearchBooksByAuthorsAndYearAndCategoriesAsync(authors, year, categories, criteria, ct)
+            member this.SearchByTitleAndAuthorsAndYearAndCategoriesAsync(title: Title, authors: List<AuthorId>, year: YearSearch, categories: List<Category>, ?criteria: BookSearchCriteria, ?ct: CancellationToken) = 
+                let criteria = defaultArg criteria SearchCriteria.searchAllBooks
                 let ct = defaultArg ct CancellationToken.None
-                this.SearchBooksByTitleAndAuthorsAndYearAndCategoriesAsync(title, authors, year, categories, ct)
+                this.SearchBooksByTitleAndAuthorsAndYearAndCategoriesAsync(title, authors, year, categories, criteria, ct)
