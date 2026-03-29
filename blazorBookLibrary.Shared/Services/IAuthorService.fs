@@ -7,6 +7,7 @@ open FsToolkit.ErrorHandling
 open BookLibrary.Domain
 open BookLibrary.Shared.Commons
 open BookLibrary.Shared.Details
+open System
 
 type IAuthorService =
     abstract member AddAuthorAsync : author: Author * ?ct: CancellationToken -> TaskResult<unit, string>
@@ -15,6 +16,9 @@ type IAuthorService =
     abstract member GetAuthorsAsync : ids: List<AuthorId> * ?ct: CancellationToken -> Task<Result<List<Author>, string>>
     abstract member RenameAsync : authorId: AuthorId * name: Name * ?ct: CancellationToken -> TaskResult<unit, string>
     abstract member RemoveAsync : authorId: AuthorId * ?ct: CancellationToken -> TaskResult<unit, string>
+    abstract member GetAuthorDetailsAsync : id: AuthorId * ?ct: CancellationToken -> Task<Result<AuthorDetails, string>>
+    abstract member UpdateImageUrlAsync : authorId: AuthorId * imageUrl: Uri * ?ct: CancellationToken -> TaskResult<unit, string>
+    abstract member RemoveImageUrlAsync : authorId: AuthorId * ?ct: CancellationToken -> TaskResult<unit, string>
 
     abstract member UpdateIsniAsync : authorId: AuthorId * isni: Isni * ?ct: CancellationToken -> TaskResult<unit, string>
     abstract member SealAsync : authorId: AuthorId * ?ct: CancellationToken -> TaskResult<unit, string>

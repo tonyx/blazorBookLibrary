@@ -5,6 +5,8 @@ open System.Net.Http.Json
 open System.Threading.Tasks
 open BookLibrary.Shared.Services
 open System.Text.Json.Serialization
+open Microsoft.FSharp.Core
+open FsToolkit.ErrorHandling
 
 type OpenLibraryAuthorSearchDoc = {
     [<JsonPropertyName("key")>] Key: string
@@ -52,6 +54,45 @@ type AuthorsSearchService(httpClient: HttpClient) =
                         | _ -> () // ignore if details can't be fetched or parsing fails
 
                         return Ok { Name = doc.Name; Isni = isniOpt }
+                with
+                | ex -> return Error ex.Message
+            }
+
+        member this.LookupImageUrlByNameAndThumbSizeAsync(name: string, ?pitThumbSize: int) =
+            task {
+                let thumbSize = defaultArg pitThumbSize 100
+                try
+                    // URL encode the name
+                    let encodedName = System.Web.HttpUtility.UrlEncode(name)
+                    // Using Italian Wikipedia as per the example provided
+                    let url = $"https://it.wikipedia.org/w/api.php?action=query&titles={encodedName}&prop=pageimages&format=json&pithumbsize={thumbSize}"
+                    
+                    let! jsonDoc = httpClient.GetFromJsonAsync<System.Text.Json.JsonDocument>(url)
+                    
+                    let root = jsonDoc.RootElement
+                    match root.TryGetProperty("query") with
+                    | false, _ -> return Error "Query property not found"
+                    | true, queryElement ->
+                        match queryElement.TryGetProperty("pages") with
+                        | false, _ -> return Error "Pages property not found"
+                        | true, pagesElement ->
+                            // Get the first property of pages
+                            let firstPage = pagesElement.EnumerateObject() |> Seq.tryHead
+                            
+                            match firstPage with
+                            | Some page ->
+                                let pageValue = page.Value
+                                match pageValue.TryGetProperty("thumbnail") with
+                                | true, thumbnailElement ->
+                                    match thumbnailElement.TryGetProperty("source") with
+                                    | true, sourceElement ->
+                                        return Ok (sourceElement.GetString())
+                                    | false, _ ->
+                                        return Error "Source property not found in thumbnail"
+                                | false, _ ->
+                                    return Error "Thumbnail property not found in page"
+                            | None ->
+                                return Error "No pages found in Wikipedia response"
                 with
                 | ex -> return Error ex.Message
             }

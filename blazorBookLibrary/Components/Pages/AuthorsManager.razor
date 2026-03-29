@@ -10,6 +10,7 @@
 
 @attribute [Authorize(Roles = "Admin, Manager")]
 @inject IAuthorService AuthorService
+@inject IAuthorsSearchService AuthorsSearchService
 @inject IJSRuntime JSRuntime
 @rendermode InteractiveServer
 
@@ -65,13 +66,29 @@
                 <div class="card-body bg-light">
                     <EditForm Model="@this" OnValidSubmit="HandleAddAuthor" FormName="AddAuthorForm">
                         <div class="row g-3">
-                            <div class="col-md-5">
+                            <div class="col-md-4">
                                 <label class="form-label fw-bold">Name</label>
                                 <InputText class="form-control" @bind-Value="newAuthorName" placeholder="e.g. Stephen King" />
                             </div>
-                            <div class="col-md-5">
+                            <div class="col-md-3">
                                 <label class="form-label fw-bold">ISNI (Optional)</label>
                                 <InputText class="form-control" @bind-Value="newAuthorIsni" placeholder="e.g. 0000 0001 2140 1961" />
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label fw-bold">Image URL (Optional)</label>
+                                <div class="input-group">
+                                    <InputText class="form-control" @bind-Value="newAuthorImageUrl" placeholder="https://..." />
+                                    <button type="button" class="btn btn-outline-secondary" @onclick="LookupAuthorImage" disabled="@(string.IsNullOrWhiteSpace(newAuthorName) || isSearchingImage)" title="Lookup image from Wikipedia">
+                                        @if (isSearchingImage)
+                                        {
+                                            <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                                        }
+                                        else
+                                        {
+                                            <i class="bi bi-image"></i>
+                                        }
+                                    </button>
+                                </div>
                             </div>
                             <div class="col-md-2 d-flex align-items-end">
                                 <button type="submit" class="btn btn-success w-100">
@@ -79,6 +96,15 @@
                                 </button>
                             </div>
                         </div>
+                        @if (!string.IsNullOrWhiteSpace(newAuthorImageUrl))
+                        {
+                            <div class="mt-3">
+                                <label class="form-label fw-bold d-block text-muted small uppercase mb-1">Image Preview</label>
+                                <div class="preview-container d-inline-block p-1 bg-white border rounded shadow-sm">
+                                    <img src="@newAuthorImageUrl" class="img-fluid rounded" style="max-height: 120px; min-width: 80px; object-fit: contain;" alt="Author Preview" @onerror='() => { statusMessage = "Preview image could not be loaded."; newAuthorImageUrl = ""; }' />
+                                </div>
+                            </div>
+                        }
                     </EditForm>
                 </div>
             </div>
@@ -111,7 +137,11 @@
 
                 <div class="table-responsive">
                     <QuickGrid Items="@FilteredAuthors" Pagination="@pagination" Class="table table-hover align-middle">
-                        <PropertyColumn Property="@(a => a.Name.Value)" Sortable="true" Title="Author Name" Class="fw-bold" />
+                        <TemplateColumn Title="Author Name" SortBy="@sortName" Class="fw-bold">
+                            <a href="/author-details/@context.Id" class="text-decoration-none text-primary" title="View details for '@context.Name.Value'">
+                                <i class="bi bi-person-circle me-2 opacity-75"></i>@context.Name.Value
+                            </a>
+                        </TemplateColumn>
                         <PropertyColumn Property="@(a => a.Isni.Value)" Sortable="true" Title="ISNI Number" />
                         <TemplateColumn Title="Books Count" Align="Align.Center">
                             <span class="badge rounded-pill bg-info text-dark">@context.Books.Length</span>
@@ -126,15 +156,6 @@
                             {
                                 <span class="badge bg-success"><i class="bi bi-unlock-fill me-1"></i>Active</span>
                             }
-                        </TemplateColumn>
-
-                        <TemplateColumn Title="Actions" Align="Align.Center">
-                            <button class="btn btn-sm btn-outline-danger border-0" 
-                                    title="Delete Author" 
-                                    disabled="@(context.Books.Length > 0)" 
-                                    @onclick="() => HandleDeleteAuthor(context)">
-                                <i class="bi bi-trash3-fill fs-5"></i>
-                            </button>
                         </TemplateColumn>
                     </QuickGrid>
                 </div>
@@ -164,12 +185,15 @@
 @code {
     private List<Author> authors = new();
     private PaginationState pagination = new() { ItemsPerPage = 10 };
+    private GridSort<Author> sortName = GridSort<Author>.ByAscending(a => a.Name.Value);
     
     private string nameFilter = "";
     private string isniFilter = "";
     
     private string newAuthorName = "";
     private string newAuthorIsni = "";
+    private string newAuthorImageUrl = "";
+    private bool isSearchingImage = false;
 
     private string statusMessage = "";
 
@@ -246,12 +270,8 @@
             return;
         }
 
-        Isni isni;
-        if (string.IsNullOrWhiteSpace(newAuthorIsni))
-        {
-            isni = Isni.EmptyIsni;
-        }
-        else
+        FSharpOption<Isni> isniOpt = FSharpOption<Isni>.None;
+        if (!string.IsNullOrWhiteSpace(newAuthorIsni))
         {
             var isniResult = Isni.New(newAuthorIsni);
             if (isniResult.IsError)
@@ -259,20 +279,34 @@
                 statusMessage = $"Invalid ISNI: {isniResult.ErrorValue}";
                 return;
             }
-            isni = isniResult.ResultValue;
+            isniOpt = FSharpOption<Isni>.Some(isniResult.ResultValue);
+        }
+
+        FSharpOption<Uri> imageUrlOpt = FSharpOption<Uri>.None;
+        if (!string.IsNullOrWhiteSpace(newAuthorImageUrl))
+        {
+            if (Uri.TryCreate(newAuthorImageUrl, UriKind.Absolute, out var uri))
+            {
+                imageUrlOpt = FSharpOption<Uri>.Some(uri);
+            }
+            else
+            {
+                statusMessage = "Invalid Image URL.";
+                return;
+            }
         }
 
         var name = Name.New(newAuthorName);
-        var author = Author.New(name, isni);
+        var author = Author.NewWithOptionalIsniAndImageUrl(name, isniOpt, imageUrlOpt);
 
         var result = await AuthorService.AddAuthorAsync(author, FSharpOption<CancellationToken>.None);
-
 
         if (result.IsOk)
         {
             statusMessage = $"Author '{newAuthorName}' has been added.";
             newAuthorName = "";
             newAuthorIsni = "";
+            newAuthorImageUrl = "";
             await LoadAuthors();
         }
         else
@@ -281,21 +315,31 @@
         }
     }
 
-    private async Task HandleDeleteAuthor(Author author)
+    private async Task LookupAuthorImage()
     {
-        bool confirmed = await JSRuntime.InvokeAsync<bool>("confirm", $"Are you sure you want to delete author '{author.Name.Value}'?");
-        if (confirmed)
+        if (string.IsNullOrWhiteSpace(newAuthorName)) return;
+
+        isSearchingImage = true;
+        try
         {
-            var result = await AuthorService.RemoveAsync(author.AuthorId, FSharpOption<CancellationToken>.None);
+            var result = await AuthorsSearchService.LookupImageUrlByNameAndThumbSizeAsync(newAuthorName, FSharpOption<int>.Some(200));
             if (result.IsOk)
             {
-                statusMessage = $"Author '{author.Name.Value}' has been deleted.";
-                await LoadAuthors();
+                newAuthorImageUrl = result.ResultValue;
+                statusMessage = "Image found via Wikipedia!";
             }
             else
             {
-                statusMessage = $"Error deleting author: {result.ErrorValue}";
+                statusMessage = $"Wikipedia image not found: {result.ErrorValue}";
             }
+        }
+        catch (Exception ex)
+        {
+            statusMessage = $"Error searching image: {ex.Message}";
+        }
+        finally
+        {
+            isSearchingImage = false;
         }
     }
 }

@@ -16,6 +16,26 @@
 @inject IAuthorsSearchService AuthorsSearchService
 @rendermode InteractiveServer
 
+<style>
+    .book-grid {
+        table-layout: fixed;
+        width: 100%;
+    }
+    .col-title { width: auto; min-width: 200px; }
+    .col-year { width: 100px; }
+    .col-category { width: 180px; }
+    .col-available { width: 140px; }
+    .col-isbn { width: 170px; }
+    .col-actions { width: 120px; }
+    
+    /* Ensure text truncation for the title if it's too long */
+    .title-cell {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+</style>
+
 <PageTitle>Books Manager</PageTitle>
 
 <div class="container-fluid py-4">
@@ -223,8 +243,8 @@
                 </div>
                 <div class="card-body p-0">
                     <div class="table-responsive">
-                        <QuickGrid Items="@FilteredBooks" Pagination="@bookPagination" Class="table table-hover align-middle mb-0">
-                            <PropertyColumn Property="@(b => b.Title.Value)" Title="Title" Sortable="true" Class="fw-bold text-dark">
+                        <QuickGrid Items="@FilteredBooks" Pagination="@bookPagination" Class="table table-hover align-middle mb-0 book-grid">
+                            <TemplateColumn Title="Title" SortBy="@sortTitle" Class="fw-bold text-dark col-title title-cell">
                                 <ColumnOptions>
                                     <div class="p-3 shadow-sm border rounded bg-white" style="min-width: 250px;">
                                         <div class="input-group">
@@ -233,10 +253,15 @@
                                         </div>
                                     </div>
                                 </ColumnOptions>
-                            </PropertyColumn>
-                            <PropertyColumn Property="@(b => b.Year.Value)" Title="Year" Sortable="true" />
-                            <PropertyColumn Property="@(b => b.MainCategory.Value())" Title="Category" Sortable="true" />
-                            <TemplateColumn Title="Available" Sortable="true" Align="Align.Center">
+                                <ChildContent>
+                                    <a href="/book-details/@context.Id" class="text-decoration-none text-primary-emphasis transition-hover d-block w-100 h-100 py-1" title="View details for '@context.Title.Value'">
+                                        <i class="bi bi-book-fill me-2 small opacity-75"></i>@context.Title.Value
+                                    </a>
+                                </ChildContent>
+                            </TemplateColumn>
+                            <PropertyColumn Property="@(b => b.Year.Value)" Title="Year" Sortable="true" Class="col-year" />
+                            <PropertyColumn Property="@(b => b.MainCategory.Value())" Title="Category" Sortable="true" Class="col-category" />
+                            <TemplateColumn Title="Available" Sortable="true" Align="Align.Center" Class="col-available">
                                 @if (context.Available)
                                 {
                                     <span class="text-success small fw-bold"><i class="bi bi-check-circle-fill me-1"></i>Available</span>
@@ -246,12 +271,7 @@
                                     <span class="text-danger small fw-bold"><i class="bi bi-dash-circle-fill me-1"></i>On Loan</span>
                                 }
                             </TemplateColumn>
-                            <PropertyColumn Property="@(b => b.Isbn.Value)" Title="ISBN" />
-                            <TemplateColumn Title="Actions" Align="Align.Center">
-                                <a href="/book-details/@context.Id" class="btn btn-sm btn-outline-info shadow-sm" title="View Details">
-                                    <i class="bi bi-info-circle me-1"></i>Details
-                                </a>
-                            </TemplateColumn>
+                            <PropertyColumn Property="@(b => b.Isbn.Value)" Title="ISBN" Class="col-isbn" />
                         </QuickGrid>
                     </div>
                     @if (foundBooks.Count > 0)
@@ -273,7 +293,23 @@
     </div>
 }
 
-    <div class="row g-4">
+<div class="row mb-4">
+    <div class="col-12 text-center">
+        <div class="d-inline-flex align-items-center bg-white p-2 rounded-pill shadow-sm border border-primary-subtle px-4 animate-fade-in">
+            <label class="form-check-label me-3 fw-bold text-primary" for="showAddSectionToggle">
+                <i class="bi bi-plus-circle me-1"></i> Add New Book Entry
+            </label>
+            <div class="form-check form-switch mb-0">
+                <input class="form-check-input" type="checkbox" role="switch" id="showAddSectionToggle" @bind="showAddSection" style="width: 2.5em; height: 1.25em; cursor: pointer;">
+            </div>
+            <span class="ms-2 badge @(showAddSection ? "bg-success" : "bg-secondary") rounded-pill">@(showAddSection ? "Visible" : "Hidden")</span>
+        </div>
+    </div>
+</div>
+
+@if (showAddSection)
+{
+    <div class="row g-4 mb-5 animate-fade-in">
         <!-- Add New Book Form (Left Side) -->
         <div class="col-lg-7">
             <div class="card shadow-sm border-0 h-100">
@@ -284,15 +320,39 @@
                     <EditForm Model="@this" OnValidSubmit="HandleAddBook" FormName="AddBookForm">
                         <div class="row g-3">
                             <div class="col-12">
-                                <label class="form-label fw-bold">Book Title</label>
+                                <label class="form-label fw-bold">Book Title / Search API</label>
                                 <div class="input-group">
-                                    <InputText class="form-control form-control-lg" @bind-Value="newBookTitle" placeholder="Enter book title..." />
-                                    <button type="button" class="btn btn-outline-primary" @onclick="AutofillBookInfo" disabled="@isAutofilling">
+                                    <InputText class="form-control form-control-lg" @bind-Value="newBookTitle" placeholder="Enter book title to search..." />
+                                    <button type="button" class="btn btn-outline-secondary px-4" @onclick="PerformGoogleLookup" disabled="@isAutofilling">
                                         @if (isAutofilling) { <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> }
-                                        <i class="bi bi-magic me-1"></i> Autofill
+                                        <i class="bi bi-search me-1"></i> Search API
                                     </button>
                                 </div>
                             </div>
+
+                            @if (lookupResults.Any())
+                            {
+                                <div class="col-12 animate-fade-in">
+                                    <div class="p-3 bg-white border border-primary rounded shadow-sm">
+                                        <label class="form-label small fw-bold text-primary mb-2">Select from results to populate form</label>
+                                        <div class="input-group">
+                                            <select class="form-select border-primary" @bind="selectedLookupIndex">
+                                                <option value="-1">-- Select a book --</option>
+                                                @for (int i = 0; i < lookupResults.Count; i++)
+                                                {
+                                                    var book = lookupResults[i];
+                                                    var yearText = FSharpOption<int>.get_IsSome(book.Year) ? $" ({book.Year.Value})" : "";
+                                                    var authorsText = book.Authors.Any() ? $" by {string.Join(", ", book.Authors)}" : "";
+                                                    <option value="@i">@book.Title @yearText@authorsText</option>
+                                                }
+                                            </select>
+                                            <button type="button" class="btn btn-primary px-4" @onclick="AutofillFromSelected" disabled="@(selectedLookupIndex < 0)">
+                                                <i class="bi bi-magic me-1"></i> Autofill fields
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
 
                             <div class="col-md-8">
                                 <label class="form-label fw-bold">ISBN</label>
@@ -441,16 +501,20 @@
             </div>
         </div>
     </div>
+}
 </div>
 
 @code {
 
+    private bool showAddSection = false;
     private string newBookTitle = "";
     private string newBookIsbn = "";
     private bool allowInvalidIsbn = false;
     private int? newBookYear = DateTime.Now.Year;
     private List<Author> selectedAuthors = new();
     private bool isAutofilling = false;
+    private List<GoogleBookMetadata> lookupResults = new();
+    private int selectedLookupIndex = -1;
 
     private string searchAuthorName = "";
     private string searchAuthorIsni = "";
@@ -482,6 +546,7 @@
 
     private bool searchBooksPerformed = false;
     private PaginationState bookPagination = new() { ItemsPerPage = 5 };
+    private GridSort<Book> sortTitle = GridSort<Book>.ByAscending(b => b.Title.Value);
 
     private string statusMessage = "";
     private string statusClass = "alert-info";
@@ -829,100 +894,131 @@
         additionalCategories.Clear();
     }
 
-    private async Task AutofillBookInfo()
+    private async Task PerformGoogleLookup()
     {
-        if (string.IsNullOrWhiteSpace(newBookIsbn) && string.IsNullOrWhiteSpace(newBookTitle))
+        if (string.IsNullOrWhiteSpace(newBookTitle))
         {
-            ShowStatus("Please enter an ISBN or Title to autofill.", "alert-warning");
+            ShowStatus("Please enter a Title to search.", "alert-warning");
             return;
         }
 
         isAutofilling = true;
+        lookupResults.Clear();
+        selectedLookupIndex = -1;
         StateHasChanged();
 
         try
         {
-            // Prefer ISBN search if provided, else Title search
-            var result = !string.IsNullOrWhiteSpace(newBookIsbn) 
-                ? await GoogleBooksService.LookupByIsbnAsync(newBookIsbn)
-                : await GoogleBooksService.LookupByTitleAsync(newBookTitle);
+            var result = await GoogleBooksService.LookupMultipleByTitleAsync(newBookTitle);
 
-            if (result.IsOk && FSharpOption<GoogleBookMetadata>.get_IsSome(result.ResultValue))
+            if (result.IsOk)
             {
-                var metadata = result.ResultValue.Value;
-                
-                newBookTitle = metadata.Title;
-                if (FSharpOption<string>.get_IsSome(metadata.Isbn) && !string.IsNullOrWhiteSpace(metadata.Isbn.Value))
+                lookupResults = result.ResultValue.ToList();
+                if (!lookupResults.Any())
                 {
-                    newBookIsbn = metadata.Isbn.Value;
+                    ShowStatus("No books found matching that title.", "alert-warning");
                 }
-                
-                if (FSharpOption<int>.get_IsSome(metadata.Year))
+                else
                 {
-                    newBookYear = metadata.Year.Value;
+                    ShowStatus($"Found {lookupResults.Count} results from API. Select one from the list below.", "alert-info");
                 }
-                
-                // Categories
-                if (metadata.Categories != null && metadata.Categories.Any())
-                {
-                    var firstCatStr = metadata.Categories.First();
-                    try 
-                    {
-                        var domainCat = Category.FromString(firstCatStr);
-                        mainCategory = domainCat;
-                    } 
-                    catch 
-                    {
-                        ShowStatus($"Could not accurately map external category '{firstCatStr}' to local categories. You'll need to manually select one.", "alert-warning");
-                    }
-                }
-
-                // Authors
-                if (metadata.Authors != null && metadata.Authors.Any())
-                {
-                    selectedAuthors.Clear();
-                    foreach (var authorName in metadata.Authors)
-                    {
-                        var nameCriteria = Name.New(authorName);
-                        var authorResult = await AuthorService.SearchByNameAsync(nameCriteria, FSharpOption<CancellationToken>.None);
-                        if (authorResult.IsOk && authorResult.ResultValue.Any())
-                        {
-                            selectedAuthors.Add(authorResult.ResultValue.First());
-                        }
-                        else
-                        {
-                            bool create = await JSRuntime.InvokeAsync<bool>("confirm", $"Author '{authorName}' not found in local database. Do you want to create and assign it for this book?");
-                            if (create)
-                            {
-                                var newAuthor = Author.NewWithoutIsni(nameCriteria);
-                                var addResult = await AuthorService.AddAuthorAsync(newAuthor, FSharpOption<CancellationToken>.None);
-                                if (addResult.IsOk)
-                                {
-                                    selectedAuthors.Add(newAuthor);
-                                }
-                                else 
-                                {
-                                    ShowStatus($"Failed to create author '{authorName}'.", "alert-danger");
-                                }
-                            }
-                        }
-                    }
-                }
-                
-                ShowStatus("Autofilled book info from search. Please review and save.", "alert-success");
             }
             else
             {
-                ShowStatus("Book not found in external API.", "alert-warning");
+                ShowStatus($"Error searching API: {result.ErrorValue}", "alert-danger");
             }
         }
         catch (Exception ex)
         {
-            ShowStatus($"Error autofilling: {ex.Message}", "alert-danger");
+            ShowStatus($"Error during lookup: {ex.Message}", "alert-danger");
         }
         finally
         {
             isAutofilling = false;
         }
     }
+
+    private async Task AutofillFromSelected()
+    {
+        if (selectedLookupIndex < 0 || selectedLookupIndex >= lookupResults.Count) return;
+
+        var metadata = lookupResults[selectedLookupIndex];
+        isAutofilling = true;
+        StateHasChanged();
+
+        try
+        {
+            newBookTitle = metadata.Title;
+            if (FSharpOption<string>.get_IsSome(metadata.Isbn) && !string.IsNullOrWhiteSpace(metadata.Isbn.Value))
+            {
+                newBookIsbn = metadata.Isbn.Value;
+            }
+            
+            if (FSharpOption<int>.get_IsSome(metadata.Year))
+            {
+                newBookYear = metadata.Year.Value;
+            }
+            
+            // Categories
+            if (metadata.Categories != null && metadata.Categories.Any())
+            {
+                var firstCatStr = metadata.Categories.First();
+                try 
+                {
+                    var domainCat = Category.FromString(firstCatStr);
+                    mainCategory = domainCat;
+                } 
+                catch 
+                {
+                    ShowStatus($"Could not accurately map external category '{firstCatStr}' to local categories. You'll need to manually select one.", "alert-warning");
+                }
+            }
+
+            // Authors
+            if (metadata.Authors != null && metadata.Authors.Any())
+            {
+                selectedAuthors.Clear();
+                foreach (var authorName in metadata.Authors)
+                {
+                    var nameCriteria = Name.New(authorName);
+                    var authorResult = await AuthorService.SearchByNameAsync(nameCriteria, FSharpOption<CancellationToken>.None);
+                    if (authorResult.IsOk && authorResult.ResultValue.Any())
+                    {
+                        selectedAuthors.Add(authorResult.ResultValue.First());
+                    }
+                    else
+                    {
+                        bool create = await JSRuntime.InvokeAsync<bool>("confirm", $"Author '{authorName}' not found in local database. Do you want to create and assign it for this book?");
+                        if (create)
+                        {
+                            var newAuthor = Author.NewWithoutIsni(nameCriteria);
+                            var addResult = await AuthorService.AddAuthorAsync(newAuthor, FSharpOption<CancellationToken>.None);
+                            if (addResult.IsOk)
+                            {
+                                selectedAuthors.Add(newAuthor);
+                            }
+                            else 
+                            {
+                                ShowStatus($"Failed to create author '{authorName}'.", "alert-danger");
+                            }
+                        }
+                    }
+                }
+            }
+            
+            ShowStatus("Fields populated from selected book. Please review and save.", "alert-success");
+            lookupResults.Clear();
+            selectedLookupIndex = -1;
+        }
+        catch (Exception ex)
+        {
+            ShowStatus($"Error autofilling fields: {ex.Message}", "alert-danger");
+        }
+        finally
+        {
+            isAutofilling = false;
+        }
+    }
+
+    private async Task AutofillBookInfo() => await PerformGoogleLookup();
 }

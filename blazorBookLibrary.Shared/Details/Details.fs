@@ -26,3 +26,23 @@ module Details =
                     currentTimeSlots
                     |> List.maxBy (fun timeSlot -> timeSlot.End)
                 TimeSlot.New (maximumTimeSlot.End) (maximumTimeSlot.End + TimeSpan.FromDays(float timeSlotLoanDurationInDays))   
+
+    type UserDetails =
+        {
+            User: User
+            FutureReservations: List<Reservation>
+            CurrentLoans: List<Loan> 
+        }
+
+    type AuthorDetails = {
+            Author: Author
+            Books: List<Book>
+        }
+        with 
+            member 
+                this.Editable = 
+                    this.Author.Editable &&
+                    this.Books |> List.forall (fun book -> book.NoLoan && book.NoReservations)
+            member this.UnSealable = 
+                this.Books |> List.forall (fun book -> book.NoLoan && book.NoReservations)
+

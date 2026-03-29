@@ -13,6 +13,8 @@ type AuthorEvent =
     | BookRemoved of BookId
     | Sealed of DateTime
     | Unsealed of DateTime
+    | ImageUrlUpdated of Uri * DateTime
+    | ImageUrlRemoved of DateTime
     interface Event<Author> with
         member this.Process (author: Author) : Result<Author, string> =
             match this with
@@ -20,6 +22,10 @@ type AuthorEvent =
                 author.Rename name dateTime
             | IsniUpdated (isni, dateTime) ->
                 author.UpdateIsni isni dateTime
+            | ImageUrlUpdated (imageUrl, dateTime) ->
+                author.UpdateImageUrl imageUrl dateTime
+            | ImageUrlRemoved dateTime ->
+                author.RemoveImageUrl dateTime
             | BookAdded bookId ->
                 author.AddBook bookId
             | BookRemoved bookId ->

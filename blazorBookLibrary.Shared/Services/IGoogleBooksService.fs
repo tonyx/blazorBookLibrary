@@ -14,3 +14,4 @@ type GoogleBookMetadata = {
 type IGoogleBooksService =
     abstract member LookupByIsbnAsync : isbn: string -> Task<Result<GoogleBookMetadata option, string>>
     abstract member LookupByTitleAsync : title: string -> Task<Result<GoogleBookMetadata option, string>>
+    abstract member LookupMultipleByTitleAsync : title: string -> Task<Result<GoogleBookMetadata list, string>>

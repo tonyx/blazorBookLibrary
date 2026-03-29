@@ -1,4 +1,4 @@
-﻿@page "/Account/Register"
+@page "/Account/Register"
 
 @using System.ComponentModel.DataAnnotations
 @using System.Text
@@ -6,6 +6,9 @@
 @using Microsoft.AspNetCore.Identity
 @using Microsoft.AspNetCore.WebUtilities
 @using blazorBookLibrary.Data
+@using BookLibrary.Shared.Services
+@using BookLibrary.Domain
+@using static BookLibrary.Shared.Commons
 
 @inject UserManager<ApplicationUser> UserManager
 @inject IUserStore<ApplicationUser> UserStore
@@ -14,6 +17,7 @@
 @inject ILogger<Register> Logger
 @inject NavigationManager NavigationManager
 @inject IdentityRedirectManager RedirectManager
+@inject IUserService UserService
 
 <PageTitle>Register</PageTitle>
 
@@ -86,6 +90,22 @@
         }
 
         Logger.LogInformation("User created a new account with password.");
+
+        // Synchronize with Sharpino
+        if (Guid.TryParse(user.Id, out var userGuid))
+        {
+            var sharpinoUserId = UserId.NewUserId(userGuid);
+            var sharpinoUser = User.New(sharpinoUserId);
+            var sharpinoResult = await UserService.CreateUserAsync(sharpinoUser, CancellationToken.None);
+
+            if (sharpinoResult.IsError)
+            {
+                Logger.LogError("Failed to create Sharpino user for {email}: {error}", Input.Email, sharpinoResult.ErrorValue);
+                await UserManager.DeleteAsync(user);
+                identityErrors = new List<IdentityError> { new IdentityError { Description = "An error occurred while finalizing your account registration. Please try again." } };
+                return;
+            }
+        }
 
         var userId = await UserManager.GetUserIdAsync(user);
         var code = await UserManager.GenerateEmailConfirmationTokenAsync(user);

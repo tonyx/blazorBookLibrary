@@ -18,6 +18,9 @@ open BookLibrary.Details
 open FsToolkit.ErrorHandling
 open System.Threading.Tasks
 
+open BookLibrary.Shared.Details
+open BookLibrary.Details.Details
+
 open BookLibrary.Shared.Services
 open BookLibrary.Shared.Commons
 open BookLibrary.Shared.Details
@@ -100,6 +103,52 @@ type AuthorService
                 return! authorViewerAsync ct authorId.Value |> TaskResult.map snd
             }
 
+    member private
+        this.GetRefreshableAuthorDetailsAsync(id: AuthorId, ?ct: CancellationToken) =
+            let detailsBuilder =
+                fun (ct: Option<CancellationToken>) ->
+                    let refresher =
+                        fun () ->
+                            result {
+                                // let ct = defaultArg ct CancellationToken.None
+                                let! author = 
+                                    authorViewerAsync ct id.Value |> TaskResult.map snd
+                                    |> Async.AwaitTask
+                                    |> Async.RunSynchronously
+                                let! books = 
+                                    author.Books
+                                    |> List.traverseTaskResultM (fun bookId -> bookViewerAsync ct bookId.Value |> TaskResult.map snd)
+                                    |> Async.AwaitTask
+                                    |> Async.RunSynchronously
+                                return
+                                    {
+                                        Author = author
+                                        Books = books
+                                    }
+                            }
+                    result {
+                        let! authorDetails = refresher()
+                        return
+                            {
+                                AuthorDetails = authorDetails
+                                Refresher = refresher
+                            } :> Refreshable<RefreshableAuthorDetails>
+                            ,
+                            id.Value :: (authorDetails.Author.Books |> List.map _.Value)
+                    }
+            let key = DetailsCacheKey.OfType typeof<RefreshableAuthorDetails> id.Value
+            task
+                {
+                    return StateView.getRefreshableDetailsAsync<RefreshableAuthorDetails> (fun ct -> detailsBuilder ct) key ct
+                }
+    member this.GetAuthorDetailsAsync (authorId: AuthorId, ?ct: CancellationToken) = 
+        taskResult
+            {
+                let ct = defaultArg ct CancellationToken.None
+                let! refreshableAuthorDetails = this.GetRefreshableAuthorDetailsAsync(authorId, ct)
+                return refreshableAuthorDetails.AuthorDetails
+            }
+
     member this.GetAuthorsAsync(ids: List<AuthorId>, ?ct: CancellationToken) =
         taskResult
             {
@@ -136,6 +185,36 @@ type AuthorService
                         messageSenders
                         ""
                         updateIsniCommand
+                        ct
+                return! result
+            }
+
+    member this.UpdateImageUrlAsync (authorId: AuthorId, imageUrl: Uri, ?ct: CancellationToken) = 
+        taskResult
+            {
+                let updateImageUrlCommand = AuthorCommand.UpdateImageUrl (imageUrl, DateTime.UtcNow)
+                let result = 
+                    runAggregateCommandMdAsync<Author, AuthorEvent, string>
+                        authorId.Value
+                        eventStore
+                        messageSenders
+                        ""
+                        updateImageUrlCommand
+                        ct
+                return! result
+            }
+
+    member this.RemoveImageUrlAsync (authorId: AuthorId, ?ct: CancellationToken) = 
+        taskResult
+            {
+                let removeImageUrlCommand = AuthorCommand.RemoveImageUrl (DateTime.UtcNow)
+                let result = 
+                    runAggregateCommandMdAsync<Author, AuthorEvent, string>
+                        authorId.Value
+                        eventStore
+                        messageSenders
+                        ""
+                        removeImageUrlCommand
                         ct
                 return! result
             }
@@ -225,20 +304,22 @@ type AuthorService
             this.AddAuthorAsync(author, ct |> Option.defaultValue CancellationToken.None)
         member this.AddAuthorsAsync(authors: list<Author>, ?ct: CancellationToken) = 
             this.AddAuthorsAsync(authors, ct |> Option.defaultValue CancellationToken.None)
-
         member this.GetAuthorAsync (authorId: AuthorId, ?ct: CancellationToken) = 
             this.GetAuthorAsync(authorId, ct |> Option.defaultValue CancellationToken.None)
-
+        member this.GetAuthorDetailsAsync (authorId: AuthorId, ?ct: CancellationToken) = 
+            this.GetAuthorDetailsAsync(authorId, ct |> Option.defaultValue CancellationToken.None)
         member this.GetAuthorsAsync(ids: List<AuthorId>, ?ct: CancellationToken) = 
             this.GetAuthorsAsync(ids, ct |> Option.defaultValue CancellationToken.None)
-
         member this.RenameAsync (authorId: AuthorId, newName: Name, ?ct: CancellationToken) = 
             this.RenameAsync(authorId, newName, ct |> Option.defaultValue CancellationToken.None)        
         member this.RemoveAsync (authorId: AuthorId, ?ct: CancellationToken) = 
             this.RemoveAuthorAsync(authorId, ct |> Option.defaultValue CancellationToken.None)
-
         member this.UpdateIsniAsync(authorId: AuthorId, isni: Isni, ?ct: CancellationToken) = 
             this.UpdateIsniAsync(authorId, isni, ct |> Option.defaultValue CancellationToken.None)
+        member this.UpdateImageUrlAsync(authorId: AuthorId, imageUrl: Uri, ?ct: CancellationToken) = 
+            this.UpdateImageUrlAsync(authorId, imageUrl, ct |> Option.defaultValue CancellationToken.None)
+        member this.RemoveImageUrlAsync(authorId: AuthorId, ?ct: CancellationToken) = 
+            this.RemoveImageUrlAsync(authorId, ct |> Option.defaultValue CancellationToken.None)
         member this.SealAsync(authorId: AuthorId, ?ct: CancellationToken) = 
             this.SealAsync(authorId, ct |> Option.defaultValue CancellationToken.None)
         member this.UnsealAsync(authorId: AuthorId, ?ct: CancellationToken) = 
@@ -251,8 +332,4 @@ type AuthorService
             this.GetAllAuthorsFilteredByIsni(isni, ct |> Option.defaultValue CancellationToken.None)
         member this.SearchByIsniAndNameAsync(isni: Isni, name: Name, ?ct: CancellationToken) = 
             this.GetAllAuthorsFilteredByIsniAndName(isni, name, ct |> Option.defaultValue CancellationToken.None)
-
-
-
-
 

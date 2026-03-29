@@ -1,0 +1,713 @@
+@page "/author-details/{AuthorIdStr}"
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using BookLibrary.Shared.Services
+@using BookLibrary.Domain
+@* @using static BookLibrary.Shared.Details *@
+@using static BookLibrary.Shared.Commons
+@using BookLibrary.Shared
+@using Microsoft.FSharp.Core
+
+@attribute [Authorize(Roles = "Admin, Manager")]
+@inject IAuthorService AuthorService
+@inject NavigationManager NavigationManager
+@inject IJSRuntime JSRuntime
+@rendermode InteractiveServer
+
+<PageTitle>Author Details</PageTitle>
+
+<style>
+    .book-grid {
+        table-layout: fixed;
+        width: 100%;
+    }
+    .col-title { width: auto; min-width: 250px; }
+    .col-year { width: 100px; }
+    .col-category { width: 180px; }
+    .col-available { width: 140px; }
+    .col-isbn { width: 170px; }
+    
+    .title-cell {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .row-clickable:hover {
+        background-color: rgba(13, 110, 253, 0.05);
+    }
+    .editable-title {
+        cursor: pointer;
+        padding: 4px 8px;
+        border-radius: 4px;
+        transition: all 0.2s ease;
+        display: inline-block;
+        border: 1px solid transparent;
+    }
+    .editable-title:hover {
+        background-color: #f8f9fa;
+        border-color: #dee2e6;
+        color: #0d6efd;
+    }
+    .profile-image-container {
+        position: relative;
+        display: inline-block;
+    }
+    .image-edit-overlay {
+        position: absolute;
+        bottom: 0;
+        right: 0;
+        background-color: #0d6efd;
+        color: white;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        border: 3px solid white;
+        transition: transform 0.2s ease;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    }
+    .image-edit-overlay:hover {
+        transform: scale(1.1);
+        background-color: #0b5ed7;
+    }
+</style>
+
+<div class="container-fluid py-4" @onclick="CancelAllEdits">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="text-primary mb-0"><i class="bi bi-person-badge-fill me-2"></i>Author Profile</h1>
+        <a href="/books-manager" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i>Back to Library
+        </a>
+    </div>
+
+    @if (!string.IsNullOrEmpty(statusMessage))
+    {
+        <div class="alert @statusClass alert-dismissible fade show mb-4 shadow-sm" role="alert">
+            <i class="bi @(statusClass == "alert-danger" ? "bi-exclamation-triangle-fill" : "bi-info-circle-fill") me-2"></i>
+            @statusMessage
+            <button type="button" class="btn-close" @onclick='() => statusMessage = ""'></button>
+        </div>
+    }
+
+    @if (isLoading)
+    {
+        <div class="d-flex justify-content-center my-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+    }
+    else if (authorDetails != null)
+    {
+        <!-- Author Top Header Info -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card shadow-sm border-0 bg-white">
+                    <div class="card-header bg-primary text-white py-3 d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0"><i class="bi bi-info-circle me-2"></i>General Information</h5>
+                        @if (authorDetails.UnSealable)
+                        {
+                            <div class="form-check form-switch mb-0">
+                                <input class="form-check-input" type="checkbox" id="sealSwitch" 
+                                       checked="@(!isAuthorSealed)" 
+                                       @onchange="ToggleSeal"
+                                       style="cursor: pointer" />
+                                <label class="form-check-label text-white ms-2" for="sealSwitch">
+                                    @(isAuthorSealed ? "Locked (Sealed)" : "Editable (Unsealed)")
+                                </label>
+                            </div>
+                        }
+                    </div>
+                    <div class="card-body p-4">
+                        <div class="row align-items-center">
+                            <div class="col-md-auto mb-3 mb-md-0 text-center">
+                                <div class="profile-image-container">
+                                    @if (authorDetails.Author.ImageUri != null && FSharpOption<Uri>.get_IsSome(authorDetails.Author.ImageUri))
+                                    {
+                                        <img src="@authorDetails.Author.ImageUri.Value.ToString()" 
+                                             class="rounded-circle shadow-sm border border-4 border-white" 
+                                             style="width: 150px; height: 150px; object-fit: cover; background-color: #f8f9fa;" 
+                                             alt="@authorDetails.Author.Name.Value Profile Image" />
+                                    }
+                                    else
+                                    {
+                                        <div class="bg-primary-subtle text-primary p-3 rounded-circle d-flex align-items-center justify-content-center mx-auto" style="width: 150px; height: 150px;">
+                                            <i class="bi bi-person fs-1" style="font-size: 4rem !important;"></i>
+                                        </div>
+                                    }
+                                    
+                                    @if (authorDetails.Author.Editable)
+                                    {
+                                        <div class="image-edit-overlay" @onclick="StartEditImageUrl" @onclick:stopPropagation title="Change profile image">
+                                            <i class="bi bi-camera-fill"></i>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                            <div class="col-md ms-md-4">
+                                <div class="row align-items-center mb-3 pb-3 border-bottom">
+                                    <div class="col-sm-3 text-muted">Author Name / Photo</div>
+                                    <div class="col-sm-9 fw-bold fs-3">
+                                        @if (isEditingName)
+                                        {
+                                            <div class="input-group" @onclick:stopPropagation>
+                                                <input type="text" class="form-control fs-4 fw-bold" @bind="editedName" @onkeyup="HandleKeyUp" autofocus />
+                                                <button class="btn btn-primary" @onclick="UpdateName">
+                                                    <i class="bi bi-check-lg me-1"></i>Confirm
+                                                </button>
+                                                <button class="btn btn-outline-secondary" @onclick="CancelEditName">
+                                                    <i class="bi bi-x-lg"></i>
+                                                </button>
+                                            </div>
+                                        }
+                                        else if (isEditingImageUrl)
+                                        {
+                                            <div class="card bg-light border p-2" @onclick:stopPropagation>
+                                                <label class="form-label small text-muted mb-1 text-uppercase fw-bold">Update Profile Image URL</label>
+                                                <div class="input-group">
+                                                    <input type="text" class="form-control" placeholder="https://example.com/author.jpg" @bind="editedImageUrl" />
+                                                    <button class="btn btn-primary" @onclick="UpdateImageUrl">
+                                                        <i class="bi bi-check-lg me-1"></i>Apply
+                                                    </button>
+                                                    <button class="btn btn-outline-secondary" @onclick="CancelEditImageUrl">
+                                                        <i class="bi bi-x-lg"></i>
+                                                    </button>
+                                                </div>
+                                                <div class="mt-2 text-end">
+                                                    @if (authorDetails.Author.ImageUri != null && FSharpOption<Uri>.get_IsSome(authorDetails.Author.ImageUri))
+                                                    {
+                                                        <button class="btn btn-sm btn-link text-danger text-decoration-none" @onclick="RemoveImageUrl">
+                                                            <i class="bi bi-trash me-1"></i>Remove Current Image
+                                                        </button>
+                                                    }
+                                                </div>
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <div class="@(authorDetails.Author.Editable ? "editable-title" : "")" @onclick="StartEditName" @onclick:stopPropagation title="@(authorDetails.Author.Editable ? "Click to rename author" : "")">
+                                                @authorDetails.Author.Name.Value
+                                                @if (authorDetails.Author.Editable)
+                                                {
+                                                    <i class="bi bi-pencil-square text-muted ms-2 small"></i>
+                                                }
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+
+                                <div class="row align-items-center mb-3 pb-3 border-bottom">
+                                    <div class="col-sm-3 text-muted">ISNI Number</div>
+                                    <div class="col-sm-9 fs-5 font-monospace">
+                                        @if (isEditingIsni)
+                                        {
+                                            <div class="edit-isni-container" @onclick:stopPropagation>
+                                                <div class="input-group mb-2">
+                                                    <input type="text" class="form-control font-monospace" @bind="editedIsni" placeholder="e.g. 0000 0001 2140 1961" />
+                                                    <button class="btn btn-primary" @onclick="UpdateIsni">
+                                                        <i class="bi bi-check-lg me-1"></i>Confirm
+                                                    </button>
+                                                    <button class="btn btn-outline-secondary" @onclick="CancelEditIsni">
+                                                        <i class="bi bi-x-lg"></i>
+                                                    </button>
+                                                </div>
+                                                <div class="form-check form-switch small">
+                                                    <input class="form-check-input" type="checkbox" id="invalidIsniSwitch" @bind="acceptInvalidIsni" />
+                                                    <label class="form-check-label text-muted" for="invalidIsniSwitch">Accept invalid ISNI format</label>
+                                                </div>
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <div class="@(authorDetails.Author.Editable ? "editable-title" : "") d-flex align-items-center" @onclick="StartEditIsni" @onclick:stopPropagation>
+                                                @if (string.IsNullOrEmpty(authorDetails.Author.Isni.Value))
+                                                {
+                                                    <span class="text-muted small fst-italic me-2">
+                                                        <i class="bi bi-plus-circle me-1"></i>None / Not Set
+                                                    </span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge @(authorDetails.Author.Isni.IsInvalidIsni ? "bg-warning-subtle text-warning-emphasis border-warning" : "bg-light text-dark border") p-2 shadow-sm">
+                                                        @authorDetails.Author.Isni.Value
+                                                    </span>
+                                                }
+                                                
+                                                @if (authorDetails.Author.Editable)
+                                                {
+                                                    <i class="bi bi-pencil-square text-muted ms-2 small"></i>
+                                                }
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+
+                                <div class="row align-items-center">
+                                    <div class="col-sm-3 text-muted">Works Count</div>
+                                    <div class="col-sm-9">
+                                        <span class="badge rounded-pill bg-info text-dark">@authorDetails.Books.Length Registered Titles</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Author Books Grid -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card shadow-sm border-0">
+                    <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center py-3">
+                        <h5 class="card-title mb-0"><i class="bi bi-journals me-2"></i>Works Published</h5>
+                        <span class="badge bg-primary text-white">@authorDetails.Books.Length Books in Library</span>
+                    </div>
+                    <div class="card-body p-0">
+                        @if (authorDetails.Books.Any())
+                        {
+                            <div class="table-responsive">
+                                <QuickGrid Items="@authorDetails.Books.AsQueryable()" Pagination="@bookPagination" Class="table table-hover align-middle mb-0 book-grid">
+                                    <TemplateColumn Title="Title" SortBy="@sortTitle" Class="fw-bold text-dark col-title title-cell">
+                                        <ChildContent>
+                                            <a href="/book-details/@context.Id" class="text-decoration-none text-primary-emphasis d-block w-100 py-2 h-100" title="View details for '@context.Title.Value'">
+                                                <i class="bi bi-book-fill me-2 text-primary opacity-50"></i>@context.Title.Value
+                                            </a>
+                                        </ChildContent>
+                                    </TemplateColumn>
+                                    
+                                    <PropertyColumn Property="@(b => b.Year.Value)" Title="Year" Sortable="true" Class="col-year text-muted" />
+                                    
+                                    <TemplateColumn Title="Category" Sortable="true" Class="col-category">
+                                        <span class="badge bg-secondary-subtle text-secondary-emphasis border">@context.MainCategory.Value()</span>
+                                    </TemplateColumn>
+                                    
+                                    <TemplateColumn Title="Availability" Sortable="true" Align="Align.Center" Class="col-available">
+                                        @if (context.Available)
+                                        {
+                                            <span class="text-success small fw-bold"><i class="bi bi-check-circle-fill me-1"></i>Available</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-danger small fw-bold"><i class="bi bi-dash-circle-fill me-1"></i>On Loan</span>
+                                        }
+                                    </TemplateColumn>
+                                    
+                                    <PropertyColumn Property="@(b => b.Isbn.Value)" Title="ISBN-13" Class="col-isbn font-monospace small" />
+                                </QuickGrid>
+                            </div>
+                            <div class="p-3 border-top bg-light">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div class="small text-muted">Showing @Math.Min(bookPagination.ItemsPerPage, authorDetails.Books.Length) of @authorDetails.Books.Length records</div>
+                                    <Paginator State="@bookPagination" />
+                                </div>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="p-5 text-center text-muted">
+                                <i class="bi bi-journal-x fs-1 mb-3 d-block opacity-25"></i>
+                                <p class="mb-0">No books found for this author in the current library database.</p>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        @if (authorDetails.Books.Length == 0 && authorDetails.Author.Editable)
+        {
+            <!-- Danger Zone Section -->
+            <div class="row g-4 mt-2 mb-5">
+                <div class="col-12">
+                    <div class="card border-danger shadow-sm border-2 overflow-hidden">
+                        <div class="card-header bg-danger text-white py-3">
+                            <h5 class="card-title mb-0"><i class="bi bi-exclamation-octagon me-2"></i>Danger Zone</h5>
+                        </div>
+                        <div class="card-body d-flex flex-column flex-md-row justify-content-between align-items-md-center p-4">
+                            <div class="me-md-4 mb-3 mb-md-0">
+                                <h6 class="fw-bold mb-1 text-danger">Permanently Remove Author</h6>
+                                <p class="text-muted small mb-0">
+                                    This will wipe the author and all their profile data from the library database. 
+                                    <span>This action is only available for unsealed profiles with no associated books.</span>
+                                </p>
+                            </div>
+                            <button class="btn btn-danger btn-lg px-4 flex-shrink-0" 
+                                    @onclick="DeleteAuthor">
+                                <i class="bi bi-trash me-2"></i>Delete Author Profile
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    }
+    else if (!isLoading && authorDetails == null)
+    {
+        <div class="alert alert-danger" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>Author not found or an error occurred while loading the profile.
+            <div class="mt-3">
+                <a href="/books-manager" class="btn btn-outline-danger">Return to Manager</a>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public string AuthorIdStr { get; set; } = "";
+
+    private bool isLoading = true;
+    private Details.AuthorDetails? authorDetails;
+    private PaginationState bookPagination = new() { ItemsPerPage = 10 };
+    private GridSort<Book> sortTitle = GridSort<Book>.ByAscending(b => b.Title.Value);
+    
+    private string statusMessage = "";
+    private string statusClass = "alert-info";
+
+    private bool isEditingName = false;
+    private string editedName = "";
+    
+    private bool isEditingIsni = false;
+    private string editedIsni = "";
+    private bool acceptInvalidIsni = false;
+
+    private bool isEditingImageUrl = false;
+    private string editedImageUrl = "";
+
+    private bool isAuthorSealed => authorDetails != null && authorDetails.Author.Sealed.IsSealed(DateTime.UtcNow);
+
+    private void StartEditImageUrl()
+    {
+        if (authorDetails != null && authorDetails.Author.Editable)
+        {
+            CancelAllEdits();
+            isEditingImageUrl = true;
+            editedImageUrl = authorDetails.Author.ImageUri != null && FSharpOption<Uri>.get_IsSome(authorDetails.Author.ImageUri) 
+                ? authorDetails.Author.ImageUri.Value.ToString() 
+                : "";
+        }
+    }
+
+    private void CancelEditImageUrl()
+    {
+        isEditingImageUrl = false;
+    }
+
+    private void CancelAllEdits()
+    {
+        isEditingName = false;
+        isEditingIsni = false;
+        isEditingImageUrl = false;
+    }
+
+    private async Task UpdateImageUrl()
+    {
+        if (authorDetails == null) return;
+        
+        if (string.IsNullOrWhiteSpace(editedImageUrl))
+        {
+            await RemoveImageUrl();
+            return;
+        }
+
+        if (!Uri.TryCreate(editedImageUrl, UriKind.Absolute, out var newUri))
+        {
+            statusMessage = "Please enter a valid absolute URL (starting with http:// or https://).";
+            statusClass = "alert-danger";
+            return;
+        }
+
+        try
+        {
+            statusMessage = "Validating image link...";
+            statusClass = "alert-info";
+            StateHasChanged();
+
+            // Perform broken link check
+            using var client = new HttpClient();
+            client.Timeout = TimeSpan.FromSeconds(5);
+            // Wikipedia and some sites require a User-Agent
+            client.DefaultRequestHeaders.UserAgent.ParseAdd("BlazorBookLibrary/1.0");
+            
+            using var response = await client.GetAsync(newUri, HttpCompletionOption.ResponseHeadersRead);
+            if (!response.IsSuccessStatusCode)
+            {
+                statusMessage = $"The provided link appears to be broken (Status code: {response.StatusCode}). Update failed.";
+                statusClass = "alert-danger";
+                return;
+            }
+
+            var result = await AuthorService.UpdateImageUrlAsync(authorDetails.Author.AuthorId, newUri, FSharpOption<CancellationToken>.None);
+            if (result.IsOk)
+            {
+                await LoadAuthorDetails();
+                isEditingImageUrl = false;
+                statusMessage = "Author photo updated successfully.";
+                statusClass = "alert-success";
+            }
+            else
+            {
+                statusMessage = $"Failed to update image URL: {result.ErrorValue}";
+                statusClass = "alert-danger";
+            }
+        }
+        catch (Exception ex)
+        {
+            statusMessage = $"Error validating or updating image: {ex.Message}";
+            statusClass = "alert-danger";
+        }
+    }
+
+    private async Task RemoveImageUrl()
+    {
+        if (authorDetails == null) return;
+
+        try
+        {
+            var result = await AuthorService.RemoveImageUrlAsync(authorDetails.Author.AuthorId, FSharpOption<CancellationToken>.None);
+            if (result.IsOk)
+            {
+                await LoadAuthorDetails();
+                isEditingImageUrl = false;
+                statusMessage = "Author photo removed.";
+                statusClass = "alert-success";
+            }
+            else
+            {
+                statusMessage = $"Failed to remove image: {result.ErrorValue}";
+                statusClass = "alert-danger";
+            }
+        }
+        catch (Exception ex)
+        {
+            statusMessage = $"Error removing image: {ex.Message}";
+            statusClass = "alert-danger";
+        }
+    }
+
+    private void StartEditName()
+    {
+        if (authorDetails != null && authorDetails.Author.Editable)
+        {
+            isEditingName = true;
+            editedName = authorDetails.Author.Name.Value;
+        }
+        else if (isAuthorSealed)
+        {
+            statusMessage = "This author is currently locked. Please unlock (unseal) to edit.";
+            statusClass = "alert-warning";
+        }
+    }
+
+    private void CancelEditName()
+    {
+        isEditingName = false;
+    }
+
+    private async Task UpdateName()
+    {
+        if (authorDetails == null || string.IsNullOrWhiteSpace(editedName) || editedName == authorDetails.Author.Name.Value)
+        {
+            isEditingName = false;
+            return;
+        }
+
+        try
+        {
+            var newName = Name.New(editedName);
+            var result = await AuthorService.RenameAsync(authorDetails.Author.AuthorId, newName, FSharpOption<CancellationToken>.None);
+            if (result.IsOk)
+            {
+                await LoadAuthorDetails();
+                isEditingName = false;
+                statusMessage = "Author name updated successfully.";
+                statusClass = "alert-success";
+            }
+            else
+            {
+                statusMessage = $"Failed to rename author: {result.ErrorValue}";
+                statusClass = "alert-danger";
+            }
+        }
+        catch (Exception ex)
+        {
+            statusMessage = $"Error updating name: {ex.Message}";
+            statusClass = "alert-danger";
+        }
+    }
+
+    private void StartEditIsni()
+    {
+        if (authorDetails != null && authorDetails.Author.Editable)
+        {
+            isEditingIsni = true;
+            editedIsni = authorDetails.Author.Isni.Value;
+            acceptInvalidIsni = authorDetails.Author.Isni.IsInvalidIsni;
+        }
+        else if (isAuthorSealed)
+        {
+            statusMessage = "This author is currently locked. Please unlock (unseal) to edit.";
+            statusClass = "alert-warning";
+        }
+    }
+
+    private void CancelEditIsni()
+    {
+        isEditingIsni = false;
+    }
+
+    private async Task UpdateIsni()
+    {
+        if (authorDetails == null) return;
+
+        Isni newIsni;
+        if (string.IsNullOrWhiteSpace(editedIsni))
+        {
+            newIsni = Isni.NewEmpty();
+        }
+        else
+        {
+            var result = Isni.New(editedIsni);
+            if (result.IsOk)
+            {
+                newIsni = result.ResultValue;
+            }
+            else if (acceptInvalidIsni)
+            {
+                newIsni = Isni.NewInvalid(editedIsni);
+            }
+            else
+            {
+                statusMessage = $"Invalid ISNI format: {result.ErrorValue}. To save it anyway, toggle 'Accept invalid' switch.";
+                statusClass = "alert-danger";
+                return;
+            }
+        }
+
+        try
+        {
+            var result = await AuthorService.UpdateIsniAsync(authorDetails.Author.AuthorId, newIsni, FSharpOption<CancellationToken>.None);
+            if (result.IsOk)
+            {
+                await LoadAuthorDetails();
+                isEditingIsni = false;
+                statusMessage = "ISNI updated successfully.";
+                statusClass = "alert-success";
+            }
+            else
+            {
+                statusMessage = $"Failed to update ISNI: {result.ErrorValue}";
+                statusClass = "alert-danger";
+            }
+        }
+        catch (Exception ex)
+        {
+            statusMessage = $"Error updating ISNI: {ex.Message}";
+            statusClass = "alert-danger";
+        }
+    }
+
+    private async Task HandleKeyUp(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await UpdateName();
+        }
+        else if (e.Key == "Escape")
+        {
+            CancelEditName();
+        }
+    }
+
+
+    private async Task DeleteAuthor()
+    {
+        if (authorDetails == null) return;
+        
+        bool confirmed = await JSRuntime.InvokeAsync<bool>("confirm", $"Are you sure you want to permanently delete author '{authorDetails.Author.Name.Value}'? This action cannot be undone.");
+        if (!confirmed) return;
+        
+        try 
+        {
+            var result = await AuthorService.RemoveAsync(authorDetails.Author.AuthorId, FSharpOption<CancellationToken>.None);
+            if (result.IsOk)
+            {
+                NavigationManager.NavigateTo("/books-manager");
+            }
+            else
+            {
+                statusMessage = $"Failed to delete author: {result.ErrorValue}";
+                statusClass = "alert-danger";
+            }
+        }
+        catch (Exception ex)
+        {
+            statusMessage = $"Error during deletion: {ex.Message}";
+            statusClass = "alert-danger";
+        }
+    }
+
+    private async Task ToggleSeal()
+    {
+        if (authorDetails == null) return;
+        
+        try
+        {
+            var result = isAuthorSealed 
+                ? await AuthorService.UnsealAsync(authorDetails.Author.AuthorId, FSharpOption<CancellationToken>.None)
+                : await AuthorService.SealAsync(authorDetails.Author.AuthorId, FSharpOption<CancellationToken>.None);
+                
+            if (result.IsOk)
+            {
+                await LoadAuthorDetails();
+                statusMessage = isAuthorSealed ? "Author profile has been locked." : "Author profile is now editable.";
+                statusClass = "alert-success";
+            }
+            else
+            {
+                statusMessage = $"Failed to change seal state: {result.ErrorValue}";
+                statusClass = "alert-danger";
+            }
+        }
+        catch (Exception ex)
+        {
+            statusMessage = $"Error toggling seal state: {ex.Message}";
+            statusClass = "alert-danger";
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAuthorDetails();
+    }
+
+    private async Task LoadAuthorDetails()
+    {
+        isLoading = true;
+        try
+        {
+            if (Guid.TryParse(AuthorIdStr, out var guid))
+            {
+                var authorId = AuthorId.NewAuthorId(guid);
+                var result = await AuthorService.GetAuthorDetailsAsync(authorId, FSharpOption<CancellationToken>.None);
+
+                if (result.IsOk)
+                {
+                    authorDetails = result.ResultValue;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            // Error handling can be expanded here
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+}

@@ -6,10 +6,28 @@ open FsToolkit.ErrorHandling
 open BookLibrary.Shared.Commons
 open System
 
-type Author = {
+type Author001 = {
     AuthorId: AuthorId
     Name: Name
     Isni: Isni
+    Sealed: Sealed
+    Books: List<BookId>
+}
+with member this.Upcast (): Author = 
+            {
+                AuthorId = this.AuthorId
+                Name = this.Name
+                Isni = this.Isni
+                ImageUri = None
+                Sealed = this.Sealed
+                Books = this.Books
+            }
+
+and Author = {
+    AuthorId: AuthorId
+    Name: Name
+    Isni: Isni
+    ImageUri: Option<Uri>
     Sealed: Sealed
     Books: List<BookId>
 } with 
@@ -18,6 +36,7 @@ type Author = {
             AuthorId = AuthorId.New(); 
             Name = name;
             Isni = isni;
+            ImageUri = None;
             Sealed = Sealed.New(DateTime.UtcNow)
             Books = []
         }
@@ -26,6 +45,16 @@ type Author = {
             AuthorId = AuthorId.New(); 
             Name = name;
             Isni = Isni.EmptyIsni
+            ImageUri = None;
+            Sealed = Sealed.New(DateTime.UtcNow)
+            Books = []
+        }
+    static member NewWithOptionalIsniAndImageUrl(name: Name, ?isni: Isni, ?imageUrl: Uri) = 
+        {   
+            AuthorId = AuthorId.New(); 
+            Name = name;
+            Isni = isni |> Option.defaultValue Isni.EmptyIsni
+            ImageUri = imageUrl
             Sealed = Sealed.New(DateTime.UtcNow)
             Books = []
         }
@@ -38,6 +67,26 @@ type Author = {
                     |> not
                     |> Result.ofBool "Author is sealed"
                 return { this with Name = name }
+            }
+
+    member this.UpdateImageUrl (imageUrl: Uri) (dateTime: DateTime) = 
+        result
+            {
+                do! 
+                    this.Sealed.IsSealed(dateTime)
+                    |> not
+                    |> Result.ofBool "Author is sealed"
+                return { this with ImageUri = imageUrl |> Some } 
+            }
+
+    member this.RemoveImageUrl (dateTime: DateTime) = 
+        result
+            {
+                do! 
+                    this.Sealed.IsSealed(dateTime)
+                    |> not
+                    |> Result.ofBool "Author is sealed"
+                return { this with ImageUri = None } 
             }
 
     member this.UpdateIsni (isni: Isni) (dateTime: DateTime) = 
@@ -87,6 +136,8 @@ type Author = {
                     Sealed = this.Sealed.Unseal(dateTime) 
         } 
         |> Ok
+    member this.Editable =
+        not (this.Sealed.IsSealed(DateTime.UtcNow))
 
     member this.Id = this.AuthorId.Value
     static member SnapshotsInterval = 50
@@ -99,4 +150,6 @@ type Author = {
             let author = JsonSerializer.Deserialize<Author> (data, jsonOptions)
             Ok author
         with
-            | ex -> Error ex.Message
+            | ex -> 
+                let author001 = JsonSerializer.Deserialize<Author001> (data, jsonOptions)
+                Ok (author001.Upcast ())

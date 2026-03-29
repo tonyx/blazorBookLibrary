@@ -12,6 +12,7 @@
     <Compile Include="Domain/Author.fs" />
     <Compile Include="Domain/Editor.fs" />
     <Compile Include="Domain/Reservation.fs" />
+    <Compile Include="Domain/User.fs" />
     <Compile Include="Domain/Loan.fs" />
     <Compile Include="Details/Details.fs" />
     <Compile Include="Services/IAuthorService.fs" />
@@ -21,6 +22,8 @@
     <Compile Include="Services/IReservationService.fs" />
     <Compile Include="Services/IGoogleBooksService.fs" />
     <Compile Include="Services/IAuthorsSearchService.fs" />
+    <Compile Include="Services/IUserService.fs" />
+
   </ItemGroup>
 
   <ItemGroup>

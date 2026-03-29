@@ -1,4 +1,4 @@
-﻿@page "/Account/Manage"
+@page "/Account/Manage"
 
 @using System.ComponentModel.DataAnnotations
 @using Microsoft.AspNetCore.Identity
@@ -18,15 +18,52 @@
         <EditForm Model="Input" FormName="profile" OnValidSubmit="OnValidSubmitAsync" method="post">
             <DataAnnotationsValidator />
             <ValidationSummary class="text-danger" role="alert" />
+            <div class="mb-4">
+                <label class="form-label d-block text-muted small text-uppercase fw-bold mb-2">Account Verification Status</label>
+                @if (isIdentified)
+                {
+                    <span class="badge bg-success py-2 px-3 fs-6 rounded-pill shadow-sm">
+                        <i class="bi bi-patch-check-fill me-2"></i>Physically Identified & Verified
+                    </span>
+                    <p class="text-muted small mt-2 mb-0">Your identity was verified by a librarian. Your essential identification details are now locked for security.</p>
+                }
+                else
+                {
+                    <span class="badge bg-secondary py-2 px-3 fs-6 rounded-pill">
+                        <i class="bi bi-person-exclamation me-2"></i>Pending Physical Identification
+                    </span>
+                    <p class="text-muted small mt-2 mb-0">Visit the library with a valid ID document to verify your account and unlock more features.</p>
+                }
+            </div>
+
             <div class="form-floating mb-3">
                 <input type="text" value="@username" id="username" class="form-control" placeholder="Choose your username." disabled />
                 <label for="username" class="form-label">Username</label>
             </div>
             <div class="form-floating mb-3">
                 <InputText @bind-Value="Input.PhoneNumber" id="Input.PhoneNumber" class="form-control" placeholder="Enter your phone number" />
-                <label for="Input.PhoneNumber" class="form-label">Phone number</label>
+                <label for="Input.PhoneNumber" class="form-label">Phone number (optional)</label>
                 <ValidationMessage For="() => Input.PhoneNumber" class="text-danger" />
             </div>
+            
+            <div class="form-floating mb-3">
+@if (isIdentified)
+                {
+                    <input type="text" value="@Input.CodiceFiscale" class="form-control" id="Input.CodiceFiscale" readonly disabled />
+                    <label for="Input.CodiceFiscale" class="form-label">Fiscal Code (Verified)</label>
+                    <div class="form-text text-success small mt-1">
+                        <i class="bi bi-patch-check-fill me-1"></i>Locked: Identity has been verified physically.
+                    </div>
+                }
+                else
+                {
+                    <InputText @bind-Value="Input.CodiceFiscale" id="Input.CodiceFiscale" class="form-control text-uppercase" placeholder="RSSMRA80A01H501U" />
+                    <label for="Input.CodiceFiscale" class="form-label">Fiscal Code</label>
+                    <ValidationMessage For="() => Input.CodiceFiscale" class="text-danger" />
+                    <div class="form-text small mt-1">Provided Fiscal Code is subject to verification.</div>
+                }
+            </div>
+
             <button type="submit" class="w-100 btn btn-lg btn-primary">Save</button>
         </EditForm>
     </div>
@@ -36,6 +73,8 @@
     private ApplicationUser? user;
     private string? username;
     private string? phoneNumber;
+    private string? codiceFiscale;
+    private bool isIdentified;
 
     [CascadingParameter]
     private HttpContext HttpContext { get; set; } = default!;
@@ -56,8 +95,11 @@
 
         username = await UserManager.GetUserNameAsync(user);
         phoneNumber = await UserManager.GetPhoneNumberAsync(user);
+        codiceFiscale = user.CodiceFiscale;
+        isIdentified = user.IsIdentifiedPhysically;
 
         Input.PhoneNumber ??= phoneNumber;
+        Input.CodiceFiscale ??= codiceFiscale;
     }
 
     private async Task OnValidSubmitAsync()
@@ -68,7 +110,20 @@
             return;
         }
 
-        if (Input.PhoneNumber != phoneNumber)
+        // Manual validation for phone number if provided
+        if (!string.IsNullOrWhiteSpace(Input.PhoneNumber))
+        {
+            var phoneAttr = new PhoneAttribute();
+            if (!phoneAttr.IsValid(Input.PhoneNumber))
+            {
+                RedirectManager.RedirectToCurrentPageWithStatus("Error: The phone number provided is not valid.", HttpContext);
+                return;
+            }
+        }
+
+        bool changed = false;
+
+        if ((Input.PhoneNumber ?? "") != (phoneNumber ?? ""))
         {
             var setPhoneResult = await UserManager.SetPhoneNumberAsync(user, Input.PhoneNumber);
             if (!setPhoneResult.Succeeded)
@@ -76,16 +131,35 @@
                 RedirectManager.RedirectToCurrentPageWithStatus("Error: Failed to set phone number.", HttpContext);
                 return;
             }
+            changed = true;
         }
 
-        await SignInManager.RefreshSignInAsync(user);
-        RedirectManager.RedirectToCurrentPageWithStatus("Your profile has been updated", HttpContext);
+        if (!isIdentified && (Input.CodiceFiscale ?? "") != (codiceFiscale ?? ""))
+        {
+            user.CodiceFiscale = Input.CodiceFiscale?.ToUpper() ?? string.Empty;
+            var updateResult = await UserManager.UpdateAsync(user);
+            if (!updateResult.Succeeded)
+            {
+                RedirectManager.RedirectToCurrentPageWithStatus("Error: Failed to set fiscal code.", HttpContext);
+                return;
+            }
+            changed = true;
+        }
+
+        if (changed)
+        {
+            await SignInManager.RefreshSignInAsync(user);
+            RedirectManager.RedirectToCurrentPageWithStatus("Your profile has been updated", HttpContext);
+        }
     }
 
     private sealed class InputModel
     {
-        [Phone]
         [Display(Name = "Phone number")]
         public string? PhoneNumber { get; set; }
+
+        [MaxLength(16)]
+        [Display(Name = "Fiscal Code")]
+        public string? CodiceFiscale { get; set; }
     }
 }

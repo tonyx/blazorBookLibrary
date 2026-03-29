@@ -71,7 +71,9 @@ type BookService
         =
         let connectionString = configuration.GetConnectionString("BookLibraryDbConnection")
         BookService(connectionString)
-    member private this.GetRefreshableBookDetailsAsync(bookId: BookId, ?ct:CancellationToken): TaskResult<RefreshableBookDetails, string> =
+
+    member private 
+        this.GetRefreshableBookDetailsAsync(bookId: BookId, ?ct:CancellationToken): TaskResult<RefreshableBookDetails, string> =
             let detailsBuilder =
                 fun (ct: Option<CancellationToken>) ->
                     let refresher =
@@ -156,6 +158,23 @@ type BookService
                             (Some ct)
                     }
 
+            member this.RemoveBookAsync (bookId: BookId, ?ct: CancellationToken) = 
+                taskResult
+                    {
+                        let ct = defaultArg ct CancellationToken.None
+                        let! book = 
+                            bookViewerAsync (Some ct) bookId.Value |> TaskResult.map snd
+
+                        let! result = 
+                            runDeleteAsync<Book, BookEvent, string>
+                                eventStore
+                                messageSenders
+                                bookId.Value
+                                (fun Book -> Book.CurrentLoan.IsNone && Book.CurrentReservations.Length = 0)
+                                (Some ct)
+                        return result
+                    }
+
             member this.AddAuthorToBookAsync (authorId: AuthorId, bookId: BookId, dateTime: System.DateTime, ?ct: CancellationToken) = 
                 taskResult
                     {
@@ -180,6 +199,26 @@ type BookService
                                 ""
                                 [bookAddAuthorCommand]
                                 [authorAddBookCommand]
+                                (Some ct)
+                        return result
+                    }
+
+            member this.UpdateTitleAsync (title: Title, bookId: BookId, ?ct: CancellationToken) = 
+                taskResult
+                    {
+                        let ct = defaultArg ct CancellationToken.None
+                        let! book = 
+                            bookViewerAsync (Some ct) bookId.Value |> TaskResult.map snd
+                        let dateTime = System.DateTime.UtcNow
+                        let bookUpdateTitleCommand = 
+                            BookCommand.UpdateTitle (title, dateTime)
+                        let! result = 
+                            runAggregateCommandMdAsync<Book, BookEvent, string>
+                                book.Id
+                                eventStore
+                                messageSenders
+                                ""
+                                bookUpdateTitleCommand
                                 (Some ct)
                         return result
                     }
@@ -390,7 +429,7 @@ type BookService
                         
                         let! booksWithId = StateView.getAllFilteredAggregateStatesAsync<Book, BookEvent, string> filter eventStore ct 
                         return booksWithId |> List.ofSeq |> List.map snd
-                    }
+                }
 
             member this.GetBookDetailsAsync(bookId: BookId, ?ct: CancellationToken): TaskResult<BookDetails, string> = 
                 taskResult {
@@ -645,6 +684,10 @@ type BookService
                 this.SealAsync(bookId, ct |> Option.defaultValue CancellationToken.None)
             member this.UnsealAsync(bookId: BookId, ?ct: CancellationToken) = 
                 this.UnsealAsync(bookId, ct |> Option.defaultValue CancellationToken.None)
+            member this.RemoveBookAsync(bookId: BookId, ?ct: CancellationToken) = 
+                this.RemoveBookAsync(bookId, ct |> Option.defaultValue CancellationToken.None)
+            member this.UpdateTitleAsync(title: Title, bookId: BookId, ?ct: CancellationToken) = 
+                this.UpdateTitleAsync(title, bookId, ct |> Option.defaultValue CancellationToken.None)
             member this.SearchByYearAsync(year: YearSearch, ?ct: CancellationToken) = 
                 this.SearchBooksByYearAsync(year, ct |> Option.defaultValue CancellationToken.None)
             member this.SearchByTitleAndYearAsync(title: Title, year: YearSearch, ?ct: CancellationToken) = 

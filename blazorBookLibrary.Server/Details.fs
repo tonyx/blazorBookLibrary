@@ -12,13 +12,6 @@ module Details =
     open BookLibrary.Domain
     open BookLibrary.Shared.Commons
 
-    type UserDetails =
-        {
-            UserId: UserId
-            FutureReservations: List<Reservation>
-            CurrentLoans: List<Loan> 
-        }
-
     type RefeshableUserDetails =
         {
             UserDetails: UserDetails
@@ -52,5 +45,23 @@ module Details =
                     }
             }
         interface Refreshable<RefreshableBookDetails> with
+            member this.Refresh () =
+                this.Refresh ()
+
+    type RefreshableAuthorDetails =
+        {
+            AuthorDetails: AuthorDetails
+            Refresher: unit -> Result<AuthorDetails, string>
+        }
+        member this.Refresh () =
+            result {
+                let! authorDetails = this.Refresher ()
+                return 
+                    { 
+                        this with
+                            AuthorDetails = authorDetails 
+                    }
+            }
+        interface Refreshable<RefreshableAuthorDetails> with
             member this.Refresh () =
                 this.Refresh ()

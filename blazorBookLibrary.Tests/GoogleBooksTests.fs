@@ -48,4 +48,14 @@ module GoogleBooksTests =
                 | Error e ->
                     failwith e
             }
+            testCaseAsync "can lookup multiple books by Title" <| async {
+                let title = "The Lord of the Rings"
+                let! result = googleService.LookupMultipleByTitleAsync(title) |> Async.AwaitTask
+                match result with
+                | Ok list ->
+                    Expect.isTrue (list.Length > 0) "Should find at least one book"
+                    list |> List.iter (fun m -> printfn "Found: %s" m.Title)
+                | Error e ->
+                    failwith e
+            }
         ]

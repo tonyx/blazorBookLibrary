@@ -44,7 +44,7 @@ with
             AdditionalCategories = [];
             Year = year; 
             Isbn = isbn
-            Sealed = Sealed.New(DateTime.Now)
+            Sealed = Sealed.New(DateTime.UtcNow)
         }
     static member NewWithMainCategory  
         (title: Title) 
@@ -68,7 +68,7 @@ with
             AdditionalCategories = [];
             Year = year; 
             Isbn = isbn
-            Sealed = Sealed.New(DateTime.Now)
+            Sealed = Sealed.New(DateTime.UtcNow)
         }
 
     static member NewWithMainCategoryAndAdditionalCategories
@@ -94,7 +94,7 @@ with
             AdditionalCategories = additionalCategories;
             Year = year; 
             Isbn = isbn
-            Sealed = Sealed.New(DateTime.Now)
+            Sealed = Sealed.New(DateTime.UtcNow)
         } 
 
     member this.UpdateTitle 
@@ -389,6 +389,17 @@ with
                     Sealed = this.Sealed.Unseal(dateTime) 
         } 
         |> Ok
+    member this.Editable =
+        not (this.Sealed.IsSealed(DateTime.UtcNow)) &&
+        this.NoLoan &&
+        this.NoReservations
+
+    member this.NoLoan = 
+        this.CurrentLoan
+        |> Option.isNone
+    member this.NoReservations = 
+        this.CurrentReservations
+        |> List.isEmpty
 
     member this.Available = 
         this.CurrentLoan

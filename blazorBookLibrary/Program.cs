@@ -9,6 +9,8 @@ using blazorBookLibrary.Components.Account;
 using blazorBookLibrary.Data;
 using BookLibrary.Shared.Services;
 using BookLibrary.Services;
+using BookLibrary.Domain;
+using static BookLibrary.Shared.Commons;
 // using static BookLibrary.Application.ServiceLayer;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -51,12 +53,16 @@ builder.Services.AddIdentityCore<ApplicationUser>(options =>
     .AddDefaultTokenProviders();
 
 
-builder.Services.AddScoped<IBookService, BookService>();
 builder.Services.AddScoped<IAuthorService, AuthorService>();
+builder.Services.AddScoped<IBookService, BookService>();
 builder.Services.AddScoped<IReservationService, ReservationService>();
 builder.Services.AddScoped<ILoanService, LoanService>();
 builder.Services.AddScoped<IGoogleBooksService, GoogleBooksService>();
-builder.Services.AddScoped<IAuthorsSearchService, AuthorsSearchService>();
+builder.Services.AddScoped<IUserService>(sp => new UserService(bookLibraryDbConnection));
+builder.Services.AddHttpClient<IAuthorsSearchService, AuthorsSearchService>(client =>
+{
+    client.DefaultRequestHeaders.Add("User-Agent", "BlazorBookLibrary/1.0");
+});
 builder.Services.AddHttpClient();
 
 // Optional: Configure Passkey options for ASP.NET Core 10 Identity WebAuthn support
@@ -109,6 +115,39 @@ using (var scope = app.Services.CreateScope())
             if (!await userManager.IsInRoleAsync(adminUser, "Admin"))
             {
                 await userManager.AddToRoleAsync(adminUser, "Admin");
+            }
+        }
+    }
+
+    // Synchronize ASP.NET Identity users with Sharpino Domain users
+    if (app.Configuration.GetValue<bool>("SyncUsersOnStartup", false))
+    {
+        var userService = scope.ServiceProvider.GetRequiredService<BookLibrary.Shared.Services.IUserService>();
+        var allIdentityUsers = await userManager.Users.ToListAsync();
+
+        foreach (var identityUser in allIdentityUsers)
+        {
+            if (Guid.TryParse(identityUser.Id, out var userGuid))
+            {
+                var sharpinoUserId = BookLibrary.Shared.Commons.UserId.NewUserId(userGuid);
+                var sharpinoUserResult = await userService.GetUserAsync(sharpinoUserId, Microsoft.FSharp.Core.FSharpOption<System.Threading.CancellationToken>.None);
+
+                if (sharpinoUserResult.IsError) // User not found in event store
+                {
+                    var newSharpinoUser = BookLibrary.Domain.User.New(sharpinoUserId);
+                    Console.WriteLine("XXXXX 100: creating user");
+                    var createResult = await userService.CreateUserAsync(newSharpinoUser, Microsoft.FSharp.Core.FSharpOption<System.Threading.CancellationToken>.None);
+                    Console.WriteLine("XXXXX 150: creating user");
+                    
+                    if (createResult.IsError)
+                    {
+                        Console.WriteLine($"[Sync] Failed to create Sharpino user for {identityUser.UserName}: {createResult.ErrorValue}");
+                    }
+                    else
+                    {
+                        Console.WriteLine($"[Sync] Created Sharpino user record for {identityUser.UserName}");
+                    }
+                }
             }
         }
     }

@@ -9,9 +9,9 @@
     <GenerateTestingPlatformEntryPoint>false</GenerateTestingPlatformEntryPoint>
   </PropertyGroup>
 
-  <!-- <ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\..\..\realsharpino\Sharpino\Sharpino.Lib\Sharpino.Lib.fsproj" />
-  </ItemGroup> -->
+  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="../blazorBookLibrary.Shared/blazorBookLibrary.Shared.fsproj" />
@@ -28,6 +28,8 @@
     <Compile Include="Domain/Reservation/Commands.fs" />
     <Compile Include="Domain/Loan/Events.fs" />
     <Compile Include="Domain/Loan/Commands.fs" />
+    <Compile Include="Domain/User/Events.fs" />
+    <Compile Include="Domain/User/Commands.fs" />
     <Compile Include="Details.fs" />
 
     <!-- <Compile Include="Application/ServiceLayer.fs" /> -->
@@ -38,6 +40,7 @@
     <Compile Include="Services/LoanService.fs" />
     <Compile Include="Services/GoogleBooksService.fs" />
     <Compile Include="Services/AuthorsSearchService.fs" />
+    <Compile Include="Services/UserService.fs" />
   </ItemGroup>
 
   <ItemGroup>
@@ -46,7 +49,7 @@
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="8.0.*" />
     <PackageReference Include="Microsoft.Extensions.Configuration" Version="10.0.5" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.0.5" />
-    <PackageReference Include="Sharpino" Version="4.9.0" />
+    <PackageReference Include="Sharpino" Version="4.9.1" />
   </ItemGroup>
 
 </Project>

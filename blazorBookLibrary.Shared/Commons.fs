@@ -225,11 +225,11 @@ type Sealed =
             }
         member 
             this.IsSealed (dateNow: DateTime) = 
-                this.Sealed  || (dateNow - this.DateTime).TotalMinutes > sealTimeoutInMinutes
+                this.Sealed  || (dateNow.ToUniversalTime() - this.DateTime.ToUniversalTime()).TotalMinutes > (float sealTimeoutInMinutes)
         member this.Unseal(dateTime: DateTime) =
-            { this with DateTime = dateTime; Sealed = false } 
+            { this with DateTime = dateTime.ToUniversalTime(); Sealed = false } 
         member this.Seal(dateTime: DateTime) =
-            { this with DateTime = dateTime; Sealed = true }
+            { this with DateTime = dateTime.ToUniversalTime(); Sealed = true }
 
 type Cancellation =
     {
@@ -276,12 +276,6 @@ type YearSearch =
     with
         static member New (year: int) = 
             Exact year
-        // member this.Value = 
-        //     match this with
-        //     | Before y -> y
-        //     | After y -> y
-        //     | Exact y -> y
-        //     | Range (y1, y2) -> y1
 
 type Category = 
     | Fiction

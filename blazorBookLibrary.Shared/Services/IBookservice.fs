@@ -10,6 +10,7 @@ type IBookService =
     abstract member AddBookAsync : book: Book * ?ct: CancellationToken -> Task<Result<unit, string>>
     abstract member AddAuthorToBookAsync : authorId: AuthorId * bookId: BookId * ?ct: CancellationToken -> Task<Result<unit, string>>
     abstract member RemoveAuthorFromBookAsync : authorId: AuthorId * bookId: BookId * ?ct: CancellationToken -> Task<Result<unit, string>>
+    abstract member RemoveBookAsync : bookId: BookId * ?ct: CancellationToken -> Task<Result<unit, string>>
     abstract member GetBookAsync : id: BookId * ?ct: CancellationToken -> Task<Result<Book, string>>
     abstract member GetBookDetailsAsync : bookId: BookId * ?ct: CancellationToken -> Task<Result<BookDetails, string>>
     abstract member GetBooksDetailsAsync: List<BookId> * ?ct: CancellationToken -> Task<Result<List<BookDetails>, string>>
@@ -20,6 +21,7 @@ type IBookService =
     abstract member ChangeMainCategoryAsync : category: Category * bookId: BookId * ?ct: CancellationToken -> Task<Result<unit, string>>
     abstract member AddAdditionalCategoryAsync : category: Category * bookId: BookId * ?ct: CancellationToken -> Task<Result<unit, string>>
     abstract member RemoveAdditionalCategoryAsync : category: Category * bookId: BookId * ?ct: CancellationToken -> Task<Result<unit, string>>
+    abstract member UpdateTitleAsync: title: Title * bookId: BookId * ?ct: CancellationToken -> Task<Result<unit, string>>
 
     abstract member UnsealAsync : bookId: BookId * ?ct: CancellationToken -> Task<Result<unit, string>>
     abstract member SealAsync : bookId: BookId * ?ct: CancellationToken -> Task<Result<unit, string>>

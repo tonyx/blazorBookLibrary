@@ -8,9 +8,35 @@
 
 @attribute [Authorize(Roles = "Admin, Manager")]
 @inject IBookService BookService
+@inject IAuthorService AuthorService
+@inject IJSRuntime JSRuntime
+@inject NavigationManager NavigationManager
 @rendermode InteractiveServer
 
 <PageTitle>Book Details</PageTitle>
+
+<style>
+    .editable-title {
+        cursor: pointer;
+        padding: 4px 8px;
+        border-radius: 4px;
+        transition: all 0.2s ease;
+        display: inline-block;
+        border: 1px solid transparent;
+    }
+    .editable-title:hover {
+        background-color: #f8f9fa;
+        border-color: #dee2e6;
+        color: #0d6efd;
+    }
+    .editable-category {
+        transition: all 0.2s ease;
+    }
+    .editable-category:hover {
+        opacity: 0.8;
+        transform: scale(1.05);
+    }
+</style>
 
 <div class="container-fluid py-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
@@ -42,13 +68,45 @@
             <!-- Book Info Section -->
             <div class="col-lg-8">
                 <div class="card shadow-sm border-0 h-100">
-                    <div class="card-header bg-primary text-white py-3">
+                    <div class="card-header bg-primary text-white py-3 d-flex justify-content-between align-items-center">
                         <h5 class="card-title mb-0"><i class="bi bi-book me-2"></i>General Information</h5>
+                        <div class="form-check form-switch mb-0">
+                            <input class="form-check-input" type="checkbox" id="sealSwitch" 
+                                   checked="@(!isBookSealed)" 
+                                   @onchange="ToggleSeal"
+                                   style="cursor: pointer" />
+                            <label class="form-check-label text-white ms-2" for="sealSwitch">
+                                @(isBookSealed ? "Locked (Sealed)" : "Editable (Unsealed)")
+                            </label>
+                        </div>
                     </div>
                     <div class="card-body">
                         <dl class="row mb-0">
-                            <dt class="col-sm-3 text-muted">Title</dt>
-                            <dd class="col-sm-9 fw-bold fs-5">@bookDetails.Book.Title.Value</dd>
+                            <dt class="col-sm-3 text-muted" @onclick="CancelEdit" style="cursor: pointer" title="Click to cancel editing">Title</dt>
+                            <dd class="col-sm-9 fw-bold fs-5">
+                                @if (isEditingTitle)
+                                {
+                                    <div class="input-group">
+                                        <input type="text" class="form-control fw-bold" @bind="editedTitle" @onkeyup="HandleKeyUp" autofocus />
+                                        <button class="btn btn-primary" @onclick="UpdateTitle" title="Confirm changes">
+                                            <i class="bi bi-check-lg"></i> Confirm
+                                        </button>
+                                        <button class="btn btn-outline-secondary" @onclick="CancelEdit" title="Cancel">
+                                            <i class="bi bi-x-lg"></i>
+                                        </button>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="@((bookDetails?.Book.Editable ?? false) ? "editable-title" : "")" @onclick="StartEdit">
+                                        @bookDetails.Book.Title.Value
+                                        @if (bookDetails.Book.Editable)
+                                        {
+                                            <i class="bi bi-pencil-square text-muted ms-2 small"></i>
+                                        }
+                                    </div>
+                                }
+                            </dd>
 
                             <dt class="col-sm-3 text-muted">ISBN</dt>
                             <dd class="col-sm-9">@bookDetails.Book.Isbn.Value</dd>
@@ -57,31 +115,165 @@
                             <dd class="col-sm-9">@bookDetails.Book.Year.Value</dd>
 
                             <dt class="col-sm-3 text-muted">Main Category</dt>
-                            <dd class="col-sm-9"><span class="badge bg-secondary">@bookDetails.Book.MainCategory.Value()</span></dd>
+                            <dd class="col-sm-9">
+                                @if (isEditingCategory)
+                                {
+                                    <div class="input-group input-group-sm" style="max-width: 300px;">
+                                        <select class="form-select" @bind="editedCategory">
+                                            @foreach (var cat in Category.AllCases())
+                                            {
+                                                <option value="@cat.Value()" selected="@(cat.Value() == bookDetails.Book.MainCategory.Value())">@cat.Value()</option>
+                                            }
+                                        </select>
+                                        <button class="btn btn-primary" @onclick="UpdateCategory">
+                                            <i class="bi bi-check-lg"></i>
+                                        </button>
+                                        <button class="btn btn-outline-secondary" @onclick="() => isEditingCategory = false">
+                                            <i class="bi bi-x-lg"></i>
+                                        </button>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary @((bookDetails?.Book.Editable ?? false) ? "editable-category" : "")" 
+                                          @onclick="StartEditCategory" 
+                                          style="@((bookDetails?.Book.Editable ?? false) ? "cursor: pointer;" : "")" 
+                                          title="@((bookDetails?.Book.Editable ?? false) ? "Click to change category" : "")">
+                                        @bookDetails.Book.MainCategory.Value()
+                                        @if (bookDetails.Book.Editable)
+                                        {
+                                            <i class="bi bi-pencil-fill ms-2 small"></i>
+                                        }
+                                    </span>
+                                }
+                            </dd>
                             
-                            @if (bookDetails.Book.AdditionalCategories.Any())
-                            {
-                                <dt class="col-sm-3 text-muted">Additional Categories</dt>
-                                <dd class="col-sm-9">
+                            <dt class="col-sm-3 text-muted">Additional Categories</dt>
+                            <dd class="col-sm-9">
+                                <div class="d-flex flex-wrap align-items-center gap-2">
                                     @foreach (var cat in bookDetails.Book.AdditionalCategories)
                                     {
-                                        <span class="badge rounded-pill bg-light text-dark border me-1">@cat.Value()</span>
+                                        <span class="badge rounded-pill bg-light text-dark border d-flex align-items-center">
+                                            @cat.Value()
+                                            @if (bookDetails.Book.Editable)
+                                            {
+                                                <span class="badge rounded-circle bg-danger ms-2 p-1 d-flex align-items-center justify-content-center hover-shadow" 
+                                                      style="cursor: pointer; width: 18px; height: 18px;"
+                                                      @onclick="() => RemoveAdditionalCategory(cat)"
+                                                      title="Remove category">
+                                                    <i class="bi bi-x text-white" style="font-size: 0.75rem;"></i>
+                                                </span>
+                                            }
+                                        </span>
                                     }
-                                </dd>
-                            }
+                                    
+                                    @if (bookDetails.Book.Editable)
+                                    {
+                                        <div class="position-relative d-inline-block">
+                                            <button class="btn btn-sm btn-outline-primary rounded-pill" type="button" @onclick="() => showAddDropdown = !showAddDropdown">
+                                                <i class="bi bi-plus-lg me-1"></i> Add
+                                            </button>
+                                            
+                                            @if (showAddDropdown)
+                                            {
+                                                <div class="position-absolute shadow border rounded bg-white p-2" style="z-index: 1000; min-width: 200px; max-height: 300px; overflow-y: auto; top: 100%; left: 0;">
+                                                    <div class="d-flex justify-content-between align-items-center mb-2 px-2 border-bottom pb-1">
+                                                        <span class="small fw-bold">Select Category</span>
+                                                        <button class="btn btn-sm p-0 border-0" @onclick="() => showAddDropdown = false"><i class="bi bi-x"></i></button>
+                                                    </div>
+                                                    @foreach (var cat in Category.AllCases())
+                                                    {
+                                                        var mainCat = bookDetails.Book.MainCategory;
+                                                        if (cat != mainCat && !bookDetails.Book.AdditionalCategories.Contains(cat))
+                                                        {
+                                                            <div class="dropdown-item py-1 px-2 small rounded" style="cursor: pointer;" @onclick="() => AddAdditionalCategoryWrapper(cat)">
+                                                                @cat.Value()
+                                                            </div>
+                                                        }
+                                                    }
+                                                </div>
+                                            }
+                                        </div>
+                                    }
+                                    else if (!bookDetails.Book.AdditionalCategories.Any())
+                                    {
+                                        <span class="text-muted fst-italic small">No additional categories</span>
+                                    }
+                                </div>
+                            </dd>
 
                             <dt class="col-sm-3 text-muted">Authors</dt>
                             <dd class="col-sm-9">
                                 @if (bookDetails.Authors.Any())
                                 {
-                                    <ul class="list-inline mb-0">
+                                    <div class="d-flex flex-wrap gap-2 mb-2">
                                         @foreach (var author in bookDetails.Authors)
                                         {
-                                            <li class="list-inline-item"><span class="badge bg-info text-dark"><i class="bi bi-person me-1"></i>@author.Name.Value</span></li>
+                                            <span class="badge bg-info text-dark d-flex align-items-center p-2 mb-1">
+                                                <i class="bi bi-person me-1"></i>
+                                                <a href="/author-details/@author.AuthorId.Value" class="text-dark text-decoration-none">@author.Name.Value</a>
+                                                @if (bookDetails.Book.Editable)
+                                                {
+                                                    <span class="badge rounded-circle bg-danger ms-2 p-1 d-flex align-items-center justify-content-center hover-shadow" 
+                                                          style="cursor: pointer; width: 18px; height: 18px;"
+                                                          @onclick="() => RemoveAuthorFromBook(author)"
+                                                          title="Remove author">
+                                                        <i class="bi bi-x text-white" style="font-size: 0.75rem;"></i>
+                                                    </span>
+                                                }
+                                            </span>
                                         }
-                                    </ul>
+                                    </div>
                                 }
-                                else
+                                
+                                @if (bookDetails.Book.Editable)
+                                {
+                                    <div class="mt-3 position-relative" style="max-width: 450px;">
+                                        <label class="form-label small fw-bold text-muted text-uppercase mb-1">Associate New Author</label>
+                                        <div class="input-group shadow-sm">
+                                            <span class="input-group-text bg-white border-end-0"><i class="bi bi-person-plus text-primary"></i></span>
+                                            <input type="text" 
+                                                   class="form-control border-start-0" 
+                                                   placeholder="Search author name to add..." 
+                                                   @bind="authorSearchInput" 
+                                                   @oninput="HandleAuthorSearchInput"
+                                                   @onfocus="() => { if(authorSearchResults.Any()) showAuthorSearchResults = true; }" />
+                                            <button class="btn btn-primary px-3" 
+                                                    type="button" 
+                                                    @onclick="AddAuthorToBook" 
+                                                    disabled="@(selectedAuthorForAdd == null || selectedAuthorForAdd.Name.Value != authorSearchInput)">
+                                                <i class="bi bi-plus-lg me-1"></i>Add
+                                            </button>
+                                        </div>
+                                        
+                                        @if (showAuthorSearchResults)
+                                        {
+                                            <div class="list-group position-absolute w-100 shadow mt-1 border-primary-subtle" style="z-index: 1100; max-height: 250px; overflow-y: auto;">
+                                                @foreach (var author in authorSearchResults)
+                                                {
+                                                    <button type="button" 
+                                                            class="list-group-item list-group-item-action text-start py-2 animate-fade-in" 
+                                                            @onclick="() => SelectAuthorForAdd(author)">
+                                                        <div class="d-flex justify-content-between align-items-center">
+                                                            <div class="fw-bold text-primary">@author.Name.Value</div>
+                                                            @if (!string.IsNullOrEmpty(author.Isni.Value))
+                                                            {
+                                                                <span class="badge bg-light text-muted border small font-monospace">@author.Isni.Value</span>
+                                                            }
+                                                        </div>
+                                                    </button>
+                                                }
+                                            </div>
+                                        }
+                                        @if (!string.IsNullOrEmpty(authorSearchInput) && authorSearchInput.Length >= 2 && !authorSearchResults.Any() && !isLoadingAuthors)
+                                        {
+                                            <div class="alert alert-light border small mt-1 py-1 px-2 text-muted shadow-sm">
+                                                <i class="bi bi-info-circle me-1"></i>No authors found matching "@authorSearchInput"
+                                            </div>
+                                        }
+                                    </div>
+                                }
+                                else if (!bookDetails.Authors.Any())
                                 {
                                     <span class="text-muted fst-italic">No authors associated</span>
                                 }
@@ -145,6 +337,29 @@
                 </div>
             </div>
         </div>
+
+        @if (bookDetails.Book.Editable)
+        {
+            <!-- Danger Zone Section -->
+            <div class="row g-4 mt-4 mb-5">
+                <div class="col-12">
+                    <div class="card border-danger shadow-sm border-2">
+                        <div class="card-header bg-danger text-white py-3">
+                            <h5 class="card-title mb-0"><i class="bi bi-exclamation-octagon me-2"></i>Danger Zone</h5>
+                        </div>
+                        <div class="card-body d-flex justify-content-between align-items-center">
+                            <div class="me-4">
+                                <h6 class="fw-bold mb-1 text-danger">Permanently Remove Book</h6>
+                                <p class="text-muted small mb-0">This entry will be wiped from the database. This action is only available for unsealed books without active loans or reservations.</p>
+                            </div>
+                            <button class="btn btn-danger btn-lg px-4 flex-shrink-0" @onclick="DeleteBook" disabled="@(!bookDetails.Book.Editable)">
+                                <i class="bi bi-trash me-2"></i>Delete Book
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
     }
 </div>
 
@@ -156,6 +371,310 @@
     private Details.BookDetails? bookDetails;
     private string statusMessage = "";
     private string statusClass = "alert-info";
+
+    private string authorSearchInput = "";
+    private List<Author> authorSearchResults = new();
+    private bool showAuthorSearchResults = false;
+    private Author? selectedAuthorForAdd = null;
+    private bool isLoadingAuthors = false;
+
+    private async Task HandleAuthorSearchInput(ChangeEventArgs e)
+    {
+        authorSearchInput = e.Value?.ToString() ?? "";
+        if (authorSearchInput.Length >= 2)
+        {
+            isLoadingAuthors = true;
+            try
+            {
+                var result = await AuthorService.SearchByNameAsync(Name.New(authorSearchInput), FSharpOption<CancellationToken>.None);
+                if (result.IsOk)
+                {
+                    authorSearchResults = result.ResultValue.ToList();
+                    showAuthorSearchResults = authorSearchResults.Any();
+                }
+                else
+                {
+                    authorSearchResults.Clear();
+                    showAuthorSearchResults = false;
+                }
+            }
+            finally
+            {
+                isLoadingAuthors = false;
+            }
+        }
+        else
+        {
+            authorSearchResults.Clear();
+            showAuthorSearchResults = false;
+            selectedAuthorForAdd = null;
+        }
+    }
+
+    private void SelectAuthorForAdd(Author author)
+    {
+        selectedAuthorForAdd = author;
+        authorSearchInput = author.Name.Value;
+        showAuthorSearchResults = false;
+    }
+
+    private async Task AddAuthorToBook()
+    {
+        if (selectedAuthorForAdd == null || bookDetails == null) return;
+        
+        try
+        {
+            var result = await BookService.AddAuthorToBookAsync(selectedAuthorForAdd.AuthorId, bookDetails.Book.BookId, FSharpOption<CancellationToken>.None);
+            if (result.IsOk)
+            {
+                var addedName = selectedAuthorForAdd.Name.Value;
+                await LoadBookDetails();
+                authorSearchInput = "";
+                selectedAuthorForAdd = null;
+                ShowStatus($"Author '{addedName}' added successfully.", "alert-success");
+            }
+            else
+            {
+                ShowStatus($"Failed to add author: {result.ErrorValue}", "alert-danger");
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowStatus($"Error adding author: {ex.Message}", "alert-danger");
+        }
+    }
+
+    private async Task RemoveAuthorFromBook(Author author)
+    {
+        if (bookDetails == null) return;
+
+        bool confirmed = await JSRuntime.InvokeAsync<bool>("confirm", $"Remove author '{author.Name.Value}' from this book?");
+        if (!confirmed) return;
+
+        try
+        {
+            var result = await BookService.RemoveAuthorFromBookAsync(author.AuthorId, bookDetails.Book.BookId, FSharpOption<CancellationToken>.None);
+            if (result.IsOk)
+            {
+                await LoadBookDetails();
+                ShowStatus($"Author '{author.Name.Value}' removed.", "alert-success");
+            }
+            else
+            {
+                ShowStatus($"Failed to remove author: {result.ErrorValue}", "alert-danger");
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowStatus($"Error removing author: {ex.Message}", "alert-danger");
+        }
+    }
+
+    private bool showAddDropdown = false;
+    private bool isEditingTitle = false;
+    private string editedTitle = "";
+    private bool isEditingCategory = false;
+    private string editedCategory = "";
+    private bool isBookSealed => bookDetails != null && bookDetails.Book.Sealed.IsSealed(DateTime.UtcNow);
+
+    private async Task AddAdditionalCategoryWrapper(Category category)
+    {
+        showAddDropdown = false;
+        await AddAdditionalCategory(category);
+    }
+
+    private async Task AddAdditionalCategory(Category category)
+    {
+        if (bookDetails == null) return;
+        
+        try 
+        {
+            var result = await BookService.AddAdditionalCategoryAsync(category, bookDetails.Book.BookId, FSharpOption<CancellationToken>.None);
+            if (result.IsOk)
+            {
+                await LoadBookDetails();
+                ShowStatus($"Category '{category.Value()}' added", "alert-success");
+            }
+            else
+            {
+                ShowStatus($"Failed to add category: {result.ErrorValue}", "alert-danger");
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowStatus($"Error adding category: {ex.Message}", "alert-danger");
+        }
+    }
+
+    private async Task RemoveAdditionalCategory(Category category)
+    {
+        if (bookDetails == null) return;
+        
+        try 
+        {
+            var result = await BookService.RemoveAdditionalCategoryAsync(category, bookDetails.Book.BookId, FSharpOption<CancellationToken>.None);
+            if (result.IsOk)
+            {
+                await LoadBookDetails();
+                ShowStatus($"Category '{category.Value()}' removed", "alert-success");
+            }
+            else
+            {
+                ShowStatus($"Failed to remove category: {result.ErrorValue}", "alert-danger");
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowStatus($"Error removing category: {ex.Message}", "alert-danger");
+        }
+    }
+
+    private void StartEdit()
+    {
+        if (bookDetails?.Book.Editable ?? false)
+        {
+            isEditingTitle = true;
+            editedTitle = bookDetails!.Book.Title.Value;
+        }
+        else if (isBookSealed)
+        {
+            ShowStatus("This book is currently sealed (locked). Please unseal it to edit.", "alert-warning");
+        }
+    }
+
+    private async Task ToggleSeal()
+    {
+        if (bookDetails == null) return;
+        
+        var result = isBookSealed 
+            ? await BookService.UnsealAsync(bookDetails.Book.BookId, FSharpOption<CancellationToken>.None)
+            : await BookService.SealAsync(bookDetails.Book.BookId, FSharpOption<CancellationToken>.None);
+            
+        if (result.IsOk)
+        {
+            await LoadBookDetails();
+            isEditingTitle = false;
+        }
+        else
+        {
+            ShowStatus($"Failed to change seal state: {result.ErrorValue}", "alert-danger");
+        }
+    }
+
+    private void CancelEdit()
+    {
+        isEditingTitle = false;
+    }
+
+    private void StartEditCategory()
+    {
+        if (bookDetails?.Book.Editable ?? false)
+        {
+            isEditingCategory = true;
+            editedCategory = bookDetails!.Book.MainCategory.Value();
+        }
+        else if (isBookSealed)
+        {
+            ShowStatus("This book is currently sealed. Please unseal it to change its category.", "alert-warning");
+        }
+    }
+
+    private async Task UpdateCategory()
+    {
+        if (bookDetails == null || string.IsNullOrWhiteSpace(editedCategory) || editedCategory == bookDetails.Book.MainCategory.Value())
+        {
+            isEditingCategory = false;
+            return;
+        }
+        
+        try 
+        {
+            var category = Category.New(editedCategory);
+            var result = await BookService.ChangeMainCategoryAsync(category, bookDetails.Book.BookId, FSharpOption<CancellationToken>.None);
+            
+            if (result.IsOk)
+            {
+                await LoadBookDetails();
+                isEditingCategory = false;
+                ShowStatus("Main category updated successfully", "alert-success");
+            }
+            else
+            {
+                ShowStatus($"Failed to update category: {result.ErrorValue}", "alert-danger");
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowStatus($"Error updating category: {ex.Message}", "alert-danger");
+        }
+    }
+
+    private async Task HandleKeyUp(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await UpdateTitle();
+        }
+        else if (e.Key == "Escape")
+        {
+            CancelEdit();
+        }
+    }
+
+    private async Task DeleteBook()
+    {
+        if (bookDetails == null) return;
+        
+        bool confirmed = await JSRuntime.InvokeAsync<bool>("confirm", $"Are you sure you want to permanently delete '{bookDetails.Book.Title.Value}'?");
+        if (!confirmed) return;
+        
+        try 
+        {
+            var result = await BookService.RemoveBookAsync(bookDetails.Book.BookId, FSharpOption<CancellationToken>.None);
+            if (result.IsOk)
+            {
+                NavigationManager.NavigateTo("/books-manager");
+            }
+            else
+            {
+                ShowStatus($"Failed to delete book: {result.ErrorValue}", "alert-danger");
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowStatus($"Error during deletion: {ex.Message}", "alert-danger");
+        }
+    }
+
+    private async Task UpdateTitle()
+    {
+        if (bookDetails == null || string.IsNullOrWhiteSpace(editedTitle) || editedTitle == bookDetails.Book.Title.Value)
+        {
+            isEditingTitle = false;
+            return;
+        }
+        
+        try 
+        {
+            var title = Title.New(editedTitle);
+            var result = await BookService.UpdateTitleAsync(title, bookDetails.Book.BookId, FSharpOption<CancellationToken>.None);
+            
+            if (result.IsOk)
+            {
+                await LoadBookDetails();
+                isEditingTitle = false;
+                ShowStatus("Title updated successfully", "alert-success");
+            }
+            else
+            {
+                ShowStatus($"Failed to update title: {result.ErrorValue}", "alert-danger");
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowStatus($"Error updating title: {ex.Message}", "alert-danger");
+        }
+    }
 
     protected override async Task OnInitializedAsync()
     {

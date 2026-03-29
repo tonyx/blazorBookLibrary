@@ -12,6 +12,8 @@ type AuthorCommand =
     | RemoveBook of BookId
     | Seal of DateTime
     | Unseal of DateTime
+    | UpdateImageUrl of Uri * DateTime
+    | RemoveImageUrl of DateTime
     interface AggregateCommand<Author, AuthorEvent> with
         member this.Execute (author: Author) =
             match this with
@@ -21,6 +23,12 @@ type AuthorCommand =
             | UpdateIsni (isni, dateTime) ->
                 author.UpdateIsni isni dateTime
                 |> Result.map (fun a -> (a, [IsniUpdated(isni, dateTime)]))
+            | UpdateImageUrl (imageUrl, dateTime) ->
+                author.UpdateImageUrl imageUrl dateTime
+                |> Result.map (fun a -> (a, [ImageUrlUpdated(imageUrl, dateTime)]))
+            | RemoveImageUrl dateTime ->
+                author.RemoveImageUrl dateTime
+                |> Result.map (fun a -> (a, [ImageUrlRemoved(dateTime)]))
             | AddBook bookId ->
                 author.AddBook bookId
                 |> Result.map (fun a -> (a, [BookAdded(bookId)]))
