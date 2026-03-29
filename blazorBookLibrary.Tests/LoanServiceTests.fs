@@ -38,6 +38,8 @@ let setUp () =
     pgEventStore.ResetAggregateStream Reservation.Version Reservation.StorageName
     pgEventStore.Reset Loan.Version Loan.StorageName
     pgEventStore.ResetAggregateStream Loan.Version Loan.StorageName
+    pgEventStore.Reset User.Version User.StorageName
+    pgEventStore.ResetAggregateStream User.Version User.StorageName
     AggregateCache3.Instance.Clear()            
 
 let timeSlotDurationInDays =
@@ -52,6 +54,8 @@ let authorViewerAsync = getAggregateStorageFreshStateViewerAsync<Author, AuthorE
 let editorViewerAsync = getAggregateStorageFreshStateViewerAsync<Editor, EditorEvent, string> pgEventStore
 let reservationViewerAsync = getAggregateStorageFreshStateViewerAsync<Reservation, ReservationEvent, string> pgEventStore
 let loanViewerAsync = getAggregateStorageFreshStateViewerAsync<Loan, LoanEvent, string> pgEventStore
+let userViewerAsync = getAggregateStorageFreshStateViewerAsync<User, UserEvent, string> pgEventStore
+
 let getAuthorService = 
     fun () -> 
         AuthorService(
@@ -93,7 +97,19 @@ let getLoanService =
             authorViewerAsync, 
             editorViewerAsync, 
             reservationViewerAsync, 
-            loanViewerAsync)
+            loanViewerAsync,
+            userViewerAsync)
+let getUserService =
+    fun _ ->
+        UserService(
+            pgEventStore,
+            MessageSenders.NoSender,
+            bookViewerAsync,
+            authorViewerAsync,
+            editorViewerAsync,
+            reservationViewerAsync,
+            loanViewerAsync,
+            userViewerAsync)
 
 [<Tests>]
 let tests =
@@ -102,15 +118,23 @@ let tests =
             setUp ()
             let loanService = getLoanService()
             let bookService = getBookService()
+            let userService = getUserService()
             let book = Book.New (Title.New "the constitution") [] [] [] None (Year.New 1924) (Isbn.NewEmpty())
             let addBook = 
                 bookService.AddBookAsync book
                 |> Async.AwaitTask
                 |> Async.RunSynchronously
             Expect.isOk addBook "should be ok"
+            let userId = UserId.New ()
+            let user = User.New userId
+            let addUser = 
+                userService.CreateUserAsync user
+                |> Async.AwaitTask
+                |> Async.RunSynchronously
+            Expect.isOk addUser "should be ok"
 
             let timeSlot = TimeSlot.New (System.DateTime.Now) (System.DateTime.Now.AddDays(timeSlotDurationInDays))
-            let loan = Loan.New book.BookId (UserId.New ()) (System.DateTime.Now) timeSlot
+            let loan = Loan.New book.BookId userId (System.DateTime.Now) timeSlot
 
             let addLoan = 
                 loanService.AddLoanAsync (loan, System.DateTime.Now)
@@ -155,9 +179,105 @@ let tests =
                 |> Async.RunSynchronously
             Expect.isOk bookRetrieved "should be ok"
 
+            let userRetrieved = 
+                userService.GetUserAsync userId
+                |> Async.AwaitTask
+                |> Async.RunSynchronously
+            Expect.isOk userRetrieved "should be ok"
+
             let (bookRetrieved: Book) = bookRetrieved |> Result.get
             Expect.isTrue (bookRetrieved.CurrentLoan |> Option.isNone) "should not contain the loan"
 
             let (loanRetrieved: Loan) = retrieveLoan |> Result.get
             Expect.isTrue (loanRetrieved.BookId = book.BookId) "should contain the book"
+
+        testCase "loan a book and verify that the user has that loan - Ok" <| fun _ ->
+            setUp ()
+            let loanService = getLoanService()
+            let userService = getUserService()
+            let bookService = getBookService()
+            let book = Book.New (Title.New "the constitution") [] [] [] None (Year.New 1924) (Isbn.NewEmpty())
+            let addBook = 
+                bookService.AddBookAsync book
+                |> Async.AwaitTask
+                |> Async.RunSynchronously
+            Expect.isOk addBook "should be ok"
+            let userId = UserId.New ()
+            let user = User.New userId
+            let addUser = 
+                userService.CreateUserAsync user
+                |> Async.AwaitTask
+                |> Async.RunSynchronously
+            Expect.isOk addUser "should be ok"
+
+            let timeSlot = TimeSlot.New (System.DateTime.Now) (System.DateTime.Now.AddDays(timeSlotDurationInDays))
+            let loan = Loan.New book.BookId userId (System.DateTime.Now) timeSlot
+
+            let addLoan = 
+                loanService.AddLoanAsync (loan, System.DateTime.Now)
+                |> Async.AwaitTask
+                |> Async.RunSynchronously
+            Expect.isOk addLoan "should be ok"
+
+            let userRetrieved = 
+                userService.GetUserAsync userId
+                |> Async.AwaitTask
+                |> Async.RunSynchronously
+            Expect.isOk userRetrieved "should be ok"
+
+            let (userRetrieved: User) = userRetrieved |> Result.get
+            Expect.isTrue (userRetrieved.CurrentLoans |> List.contains loan.LoanId) "should contain the loan"
+
+        testCase "loan a book and then release it. Verify that the book and the user don't relate to the loan anymore - Ok" <| fun _ ->
+            setUp ()
+            let loanService = getLoanService()
+            let userService = getUserService()
+            let bookService = getBookService()
+            let book = Book.New (Title.New "the constitution") [] [] [] None (Year.New 1924) (Isbn.NewEmpty())
+            let addBook = 
+                bookService.AddBookAsync book
+                |> Async.AwaitTask
+                |> Async.RunSynchronously
+            Expect.isOk addBook "should be ok"
+            let userId = UserId.New ()
+            let user = User.New userId
+            let addUser = 
+                userService.CreateUserAsync user
+                |> Async.AwaitTask
+                |> Async.RunSynchronously
+            Expect.isOk addUser "should be ok"
+
+            let timeSlot = TimeSlot.New (System.DateTime.Now) (System.DateTime.Now.AddDays(timeSlotDurationInDays))
+            let loan = Loan.New book.BookId userId (System.DateTime.Now) timeSlot
+
+            let addLoan = 
+                loanService.AddLoanAsync (loan, System.DateTime.Now)
+                |> Async.AwaitTask
+                |> Async.RunSynchronously
+            Expect.isOk addLoan "should be ok"
+
+            let releaseLoan = 
+                loanService.ReleaseLoanAsync (loan.LoanId, System.DateTime.Now)
+                |> Async.AwaitTask
+                |> Async.RunSynchronously
+            Expect.isOk releaseLoan "should be ok"
+
+            let bookRetrieved = 
+                bookService.GetBookAsync book.BookId
+                |> Async.AwaitTask
+                |> Async.RunSynchronously
+            Expect.isOk bookRetrieved "should be ok"
+
+            let userRetrieved = 
+                userService.GetUserAsync userId
+                |> Async.AwaitTask
+                |> Async.RunSynchronously
+            Expect.isOk userRetrieved "should be ok"
+
+            let (bookRetrieved: Book) = bookRetrieved |> Result.get
+            Expect.isTrue (bookRetrieved.CurrentLoan |> Option.isNone) "should not contain the loan"
+
+            let (userRetrieved: User) = userRetrieved |> Result.get
+            Expect.isFalse (userRetrieved.CurrentLoans |> List.contains loan.LoanId) "should not contain the loan"
+            
     ]

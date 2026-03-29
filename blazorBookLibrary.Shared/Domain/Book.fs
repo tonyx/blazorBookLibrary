@@ -397,6 +397,7 @@ with
     member this.NoLoan = 
         this.CurrentLoan
         |> Option.isNone
+
     member this.NoReservations = 
         this.CurrentReservations
         |> List.isEmpty
@@ -404,6 +405,11 @@ with
     member this.Available = 
         this.CurrentLoan
         |> Option.isNone
+
+    member this.ImmediatelyAvailable =
+        this.Available &&
+        this.CurrentReservations
+        |> List.isEmpty
 
     member this.Id = this.BookId.Value
     static member SnapshotsInterval = 50

@@ -152,15 +152,15 @@ type ReservationService
 
     interface IReservationService with
         member this.AddReservationAsync (reservation: Reservation, ?ct: CancellationToken)= 
-            let ct = Option.defaultValue CancellationToken.None ct
+            let ct = defaultArg ct CancellationToken.None
             this.AddReservationAsync (reservation, DateTime.UtcNow, ct)
         member this.GetReservationAsync (id: ReservationId, ?ct: CancellationToken) = 
-            let ct = Option.defaultValue CancellationToken.None ct
+            let ct = defaultArg ct CancellationToken.None
             this.GetReservationAsync (id, ct)
         member this.RemoveReservationAsync (reservationId: ReservationId, ?ct:CancellationToken)= 
-            let ct = Option.defaultValue CancellationToken.None ct
+            let ct = defaultArg ct CancellationToken.None
             this.RemoveReservationAsync (reservationId, DateTime.UtcNow, ct)            
         member this.GetReservationsAsync(ids: List<ReservationId>, ?ct: CancellationToken)= 
-            let ct = Option.defaultValue CancellationToken.None ct
+            let ct = defaultArg ct CancellationToken.None
             this.GetReservationsAsync (ids, ct)
             

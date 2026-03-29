@@ -23,7 +23,6 @@ type BookEvent =
     | LanguageAdded of CultureInfo * DateTime
     | LanguageRemoved of CultureInfo * DateTime
     | CurrentLoanSet of LoanId * DateTime
-    | ReturnedFromLoan of DateTime
     | ReservationAdded of ReservationId * DateTime
     | ReservationRemoved of ReservationId * DateTime
     | MainCategoryChanged of Category * DateTime
@@ -62,8 +61,6 @@ type BookEvent =
                 book.RemoveLanguage language dateTime
             | CurrentLoanSet (loanId, dateTime) ->
                 book.SetCurrentLoan loanId dateTime
-            | ReturnedFromLoan dateTime ->
-                book.ReturnFromLoan dateTime
             | LoanReleased (loanId, dateTime) ->
                 book.ReleaseLoan loanId dateTime
             | ReservationAdded (reservationId, dateTime) ->

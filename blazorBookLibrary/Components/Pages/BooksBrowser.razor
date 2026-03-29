@@ -1,5 +1,4 @@
-@page "/books-manager"
-@using Microsoft.AspNetCore.Authorization
+@page "/books-browser"
 @using Microsoft.AspNetCore.Components.QuickGrid
 @using BookLibrary.Shared.Services
 @using BookLibrary.Domain
@@ -7,13 +6,10 @@
 @using Microsoft.FSharp.Core
 @using Microsoft.FSharp.Collections
 @using System.Threading
-
-@attribute [Authorize(Roles = "Admin, Manager")]
+@using static BookLibrary.Shared.Details
 @inject IBookService BookService
 @inject IAuthorService AuthorService
 @inject IJSRuntime JSRuntime
-@inject IGoogleBooksService GoogleBooksService
-@inject IAuthorsSearchService AuthorsSearchService
 @rendermode InteractiveServer
 
 <style>
@@ -26,7 +22,6 @@
     .col-category { width: 180px; }
     .col-available { width: 140px; }
     .col-isbn { width: 170px; }
-    .col-actions { width: 120px; }
     
     /* Ensure text truncation for the title if it's too long */
     .title-cell {
@@ -36,11 +31,11 @@
     }
 </style>
 
-<PageTitle>Books Manager</PageTitle>
+<PageTitle>Books Browser</PageTitle>
 
 <div class="container-fluid py-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1 class="text-primary mb-0"><i class="bi bi-book-half me-2"></i>Books Manager</h1>
+        <h1 class="text-primary mb-0"><i class="bi bi-book-half me-2"></i>Books Browser</h1>
         @if (!string.IsNullOrEmpty(statusMessage))
         {
             <div class="alert @(statusClass) alert-dismissible fade show mb-0" role="alert">
@@ -49,6 +44,7 @@
             </div>
         }
     </div>
+
 <div class="row mb-4">
     <div class="col-12">
         <div class="card shadow-sm border-0">
@@ -56,7 +52,7 @@
                 <h5 class="card-title mb-0"><i class="bi bi-search me-2"></i>Search Books</h5>
             </div>
             <div class="card-body bg-light">
-                <EditForm Model="@this" OnValidSubmit="HandleBookSearch" FormName="SearchBookForm">
+                <EditForm Model="@this" OnValidSubmit="HandleBookSearch" FormName="SearchBookBrowserForm">
                     <div class="row g-3">
                         <div class="col-md-3">
                             <label class="form-label fw-bold small text-muted text-uppercase mb-2">Title Search</label>
@@ -99,7 +95,7 @@
                                             <div class="input-group">
                                                 <span class="input-group-text bg-light text-primary"><i class="bi bi-calendar-event"></i></span>
                                                 <InputNumber class="form-control" @bind-Value="searchBookYear" 
-                                                             placeholder='@(yearSearchMode == "between" ? "Starting year" : "Year value")' />
+                                                              placeholder='@(yearSearchMode == "between" ? "Starting year" : "Year value")' />
                                             </div>
                                         </div>
                                         @if (yearSearchMode == "between")
@@ -292,235 +288,9 @@
         </div>
     </div>
 }
-
-<div class="row mb-4">
-    <div class="col-12 text-center">
-        <div class="d-inline-flex align-items-center bg-white p-2 rounded-pill shadow-sm border border-primary-subtle px-4 animate-fade-in">
-            <label class="form-check-label me-3 fw-bold text-primary" for="showAddSectionToggle">
-                <i class="bi bi-plus-circle me-1"></i> Add New Book Entry
-            </label>
-            <div class="form-check form-switch mb-0">
-                <input class="form-check-input" type="checkbox" role="switch" id="showAddSectionToggle" @bind="showAddSection" style="width: 2.5em; height: 1.25em; cursor: pointer;">
-            </div>
-            <span class="ms-2 badge @(showAddSection ? "bg-success" : "bg-secondary") rounded-pill">@(showAddSection ? "Visible" : "Hidden")</span>
-        </div>
-    </div>
-</div>
-
-@if (showAddSection)
-{
-    <div class="row g-4 mb-5 animate-fade-in">
-        <!-- Add New Book Form (Left Side) -->
-        <div class="col-lg-7">
-            <div class="card shadow-sm border-0 h-100">
-                <div class="card-header bg-primary text-white py-3">
-                    <h5 class="card-title mb-0"><i class="bi bi-plus-circle-fill me-2"></i>Add New Book</h5>
-                </div>
-                <div class="card-body p-4 bg-light">
-                    <EditForm Model="@this" OnValidSubmit="HandleAddBook" FormName="AddBookForm">
-                        <div class="row g-3">
-                            <div class="col-12">
-                                <label class="form-label fw-bold">Book Title / Search API</label>
-                                <div class="input-group">
-                                    <InputText class="form-control form-control-lg" @bind-Value="newBookTitle" placeholder="Enter book title to search..." />
-                                    <button type="button" class="btn btn-outline-secondary px-4" @onclick="PerformGoogleLookup" disabled="@isAutofilling">
-                                        @if (isAutofilling) { <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> }
-                                        <i class="bi bi-search me-1"></i> Search API
-                                    </button>
-                                </div>
-                            </div>
-
-                            @if (lookupResults.Any())
-                            {
-                                <div class="col-12 animate-fade-in">
-                                    <div class="p-3 bg-white border border-primary rounded shadow-sm">
-                                        <label class="form-label small fw-bold text-primary mb-2">Select from results to populate form</label>
-                                        <div class="input-group">
-                                            <select class="form-select border-primary" @bind="selectedLookupIndex">
-                                                <option value="-1">-- Select a book --</option>
-                                                @for (int i = 0; i < lookupResults.Count; i++)
-                                                {
-                                                    var book = lookupResults[i];
-                                                    var yearText = FSharpOption<int>.get_IsSome(book.Year) ? $" ({book.Year.Value})" : "";
-                                                    var authorsText = book.Authors.Any() ? $" by {string.Join(", ", book.Authors)}" : "";
-                                                    <option value="@i">@book.Title @yearText@authorsText</option>
-                                                }
-                                            </select>
-                                            <button type="button" class="btn btn-primary px-4" @onclick="AutofillFromSelected" disabled="@(selectedLookupIndex < 0)">
-                                                <i class="bi bi-magic me-1"></i> Autofill fields
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            }
-
-                            <div class="col-md-8">
-                                <label class="form-label fw-bold">ISBN</label>
-                                <div class="input-group">
-                                    <span class="input-group-text"><i class="bi bi-upc-scan"></i></span>
-                                    <InputText class="form-control" @bind-Value="newBookIsbn" placeholder="e.g. 978-3-16-148410-0" />
-                                </div>
-                            </div>
-
-                            <div class="col-md-4">
-                                <label class="form-label fw-bold text-transparent">.</label>
-                                <div class="form-check form-switch pt-2">
-                                    <InputCheckbox class="form-check-input" @bind-Value="allowInvalidIsbn" id="invalidIsbnSwitch" />
-                                    <label class="form-check-label text-muted small" for="invalidIsbnSwitch">Accept invalid ISBN</label>
-                                </div>
-                            </div>
-
-                            <div class="col-md-4">
-                                <label class="form-label fw-bold">Publication Year</label>
-                                <InputNumber class="form-control" @bind-Value="newBookYear" placeholder="YYYY" />
-                            </div>
-
-                            <div class="col-md-12 mt-3">
-                                <label class="form-label fw-bold">Main Category</label>
-                                <select class="form-select" @bind="mainCategoryString">
-                                    @foreach (var cat in allCategories)
-                                    {
-                                        <option value="@cat.Value()">@cat.Value()</option>
-                                    }
-                                </select>
-                            </div>
-
-                            <div class="col-12 mt-3">
-                                <label class="form-label fw-bold">Additional Categories</label>
-                                <div class="input-group mb-2">
-                                    <select class="form-select" @bind="categoryToAddString">
-                                        @foreach (var cat in allCategories)
-                                        {
-                                            <option value="@cat.Value()">@cat.Value()</option>
-                                        }
-                                    </select>
-                                    <button type="button" class="btn btn-outline-secondary" @onclick="AddAdditionalCategory">
-                                        <i class="bi bi-plus-lg"></i> Add
-                                    </button>
-                                </div>
-                                <div class="d-flex flex-wrap gap-2">
-                                    @if (additionalCategories.Count == 0)
-                                    {
-                                        <span class="text-muted small italic">No additional categories added.</span>
-                                    }
-                                    else
-                                    {
-                                        @foreach (var cat in additionalCategories)
-                                        {
-                                            <div class="badge bg-secondary p-2 d-flex align-items-center gap-2">
-                                                @cat.Value()
-                                                <button type="button" class="btn-close btn-close-white" style="font-size: 0.5rem" @onclick="() => additionalCategories.Remove(cat)"></button>
-                                            </div>
-                                        }
-                                    }
-                                </div>
-                            </div>
-
-                            <div class="col-12 mt-4">
-                                <label class="form-label fw-bold d-flex justify-content-between">
-                                    Authors 
-                                    <span class="badge bg-secondary">@selectedAuthors.Count selected</span>
-                                </label>
-                                <div class="selected-authors-container p-3 border rounded bg-white" style="min-height: 100px;">
-                                    @if (selectedAuthors.Count == 0)
-                                    {
-                                        <p class="text-muted text-center mb-0 mt-3 small italic">No authors associated. Use the search form on the right to find and add authors.</p>
-                                    }
-                                    else
-                                    {
-                                        <div class="d-flex flex-wrap gap-2">
-                                            @foreach (var author in selectedAuthors)
-                                            {
-                                                <div class="badge bg-info text-dark p-2 d-flex align-items-center gap-2 shadow-sm font-monospace">
-                                                    @author.Name.Value
-                                                    <button type="button" class="btn-close btn-close-white" style="font-size: 0.5rem" @onclick="() => RemoveAuthor(author)"></button>
-                                                </div>
-                                            }
-                                        </div>
-                                    }
-                                </div>
-                            </div>
-
-                            <div class="col-12 mt-5">
-                                <button type="submit" class="btn btn-success btn-lg w-100 shadow">
-                                    <i class="bi bi-cloud-arrow-up-fill me-2"></i>Create Book Entry
-                                </button>
-                            </div>
-                        </div>
-                    </EditForm>
-                </div>
-            </div>
-        </div>
-
-        <!-- Author Search (Right Side) -->
-        <div class="col-lg-5">
-            <div class="card shadow-sm border-0 h-100">
-                <div class="card-header bg-dark text-white py-3">
-                    <h5 class="card-title mb-0"><i class="bi bi-person-search me-2"></i>Find Authors</h5>
-                </div>
-                <div class="card-body p-4">
-                    <EditForm Model="@this" OnValidSubmit="HandleAuthorSearch" FormName="AuthorSearchForm">
-                        <div class="row g-3 mb-4">
-                            <div class="col-12">
-                                <label class="form-label small fw-bold">Name</label>
-                                <InputText class="form-control" @bind-Value="searchAuthorName" placeholder="Search by name..." />
-                            </div>
-                            <div class="col-12">
-                                <label class="form-label small fw-bold">ISNI</label>
-                                <InputText class="form-control" @bind-Value="searchAuthorIsni" placeholder="Search by ISNI..." />
-                            </div>
-                            <div class="col-12">
-                                <button type="submit" class="btn btn-outline-primary w-100">
-                                    <i class="bi bi-search me-2"></i>Search Authors
-                                </button>
-                            </div>
-                        </div>
-                    </EditForm>
-
-                    <div class="author-results table-responsive border rounded">
-                        <QuickGrid Items="@foundAuthors.AsQueryable()" Pagination="@pagination" Class="table table-sm table-hover mb-0">
-                            <PropertyColumn Property="@(a => a.Name.Value)" Title="Name" Class="small fw-bold" />
-                            <TemplateColumn Title="Action" Align="Align.Center">
-                                @if (selectedAuthors.Any(sa => sa.AuthorId == context.AuthorId))
-                                {
-                                    <span class="text-success"><i class="bi bi-check-circle-fill"></i></span>
-                                }
-                                else
-                                {
-                                    <button type="button" class="btn btn-sm btn-outline-primary shadow-sm" @onclick="() => AddAuthor(context)" title="Add Author">
-                                        <i class="bi bi-plus-circle-fill me-1"></i> Add
-                                    </button>
-                                }
-                            </TemplateColumn>
-                        </QuickGrid>
-                    </div>
-                    <div class="mt-3 d-flex justify-content-center">
-                        <Paginator State="@pagination" />
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-}
 </div>
 
 @code {
-
-    private bool showAddSection = false;
-    private string newBookTitle = "";
-    private string newBookIsbn = "";
-    private bool allowInvalidIsbn = false;
-    private int? newBookYear = DateTime.Now.Year;
-    private List<Author> selectedAuthors = new();
-    private bool isAutofilling = false;
-    private List<GoogleBookMetadata> lookupResults = new();
-    private int selectedLookupIndex = -1;
-
-    private string searchAuthorName = "";
-    private string searchAuthorIsni = "";
-    private List<Author> foundAuthors = new();
-    private PaginationState pagination = new() { ItemsPerPage = 5 };
-
     private string searchBookTitle = "";
     private string searchBookIsbn = "";
     private int? searchBookYear = null;
@@ -545,82 +315,20 @@
                         b.Title.Value.Contains(titleRefinementFilter, StringComparison.OrdinalIgnoreCase));
 
     private bool searchBooksPerformed = false;
-    private PaginationState bookPagination = new() { ItemsPerPage = 5 };
+    private PaginationState bookPagination = new() { ItemsPerPage = 10 };
     private GridSort<Book> sortTitle = GridSort<Book>.ByAscending(b => b.Title.Value);
 
     private string statusMessage = "";
     private string statusClass = "alert-info";
 
-    private Category mainCategory = Category.Other;
-    private List<Category> additionalCategories = new();
-    private Category categoryToAdd = Category.Other;
-
     private FSharpList<Category> allCategories = Category.AllCases();
-
-    private string mainCategoryString 
-    {
-        get => mainCategory.Value();
-        set => mainCategory = Category.FromString(value);
-    }
-
-    private string categoryToAddString
-    {
-        get => categoryToAdd.Value();
-        set => categoryToAdd = Category.FromString(value);
-    }
-
-    private void AddAdditionalCategory()
-    {
-        if (categoryToAdd != null && !additionalCategories.Contains(categoryToAdd) && categoryToAdd != mainCategory)
-        {
-            additionalCategories.Add(categoryToAdd);
-        }
-    }
-
-    private async Task HandleAuthorSearch()
-    {
-        bool hasName = !string.IsNullOrWhiteSpace(searchAuthorName);
-        bool hasIsni = !string.IsNullOrWhiteSpace(searchAuthorIsni);
-
-        FSharpResult<FSharpList<Author>, string> result;
-
-        if (hasName && hasIsni)
-        {
-            var name = Name.New(searchAuthorName);
-            var isni = Isni.NewInvalid(searchAuthorIsni);
-            result = await AuthorService.SearchByIsniAndNameAsync(isni, name);
-        }
-        else if (hasName)
-        {
-            var name = Name.New(searchAuthorName);
-            result = await AuthorService.SearchByNameAsync(name);
-        }
-        else if (hasIsni)
-        {
-            var isni = Isni.NewInvalid(searchAuthorIsni);
-            result = await AuthorService.SearchByIsniAsync(isni);
-        }
-        else
-        {
-            result = await AuthorService.GetAllAsync();
-        }
-
-        if (result.IsOk)
-        {
-            foundAuthors = result.ResultValue.ToList();
-        }
-        else
-        {
-            ShowStatus($"Error searching authors: {result.ErrorValue}", "alert-danger");
-        }
-    }
 
     private async Task SearchAuthorsForFilter()
     {
         if (string.IsNullOrWhiteSpace(authorSearchNameFilter)) return;
         
         var name = Name.New(authorSearchNameFilter);
-        var result = await AuthorService.SearchByNameAsync(name);
+        var result = await AuthorService.SearchByNameAsync(name); 
         
         if (result.IsOk)
         {
@@ -729,7 +437,7 @@
                     }
                     else
                     {
-                        result = await BookService.SearchByAuthorsAndCategoriesAsync(authorIds, categories); 
+                        result = await BookService.SearchByAuthorsAndCategoriesAsync(authorIds, categories);
                     }
                 }
                 else
@@ -744,11 +452,11 @@
                     }
                     else if (hasEffectiveYear)
                     {
-                        result = await BookService.SearchByYearAndCategoriesAsync(yearSearch, categories);
+                        result = await BookService.SearchByYearAndCategoriesAsync(yearSearch, categories); 
                     }
                     else
                     {
-                        result = await BookService.SearchByCategoriesAsync(categories);
+                        result = await BookService.SearchByCategoriesAsync(categories); 
                     }
                 }
             }
@@ -782,6 +490,7 @@
             }
             else if (hasEffectiveYear)
             {
+
                 result = await BookService.SearchByYearAsync(GetYearSearch());
             }
             else
@@ -800,225 +509,9 @@
         }
     }
 
-    private void AddAuthor(Author author)
-    {
-        if (!selectedAuthors.Any(a => a.AuthorId == author.AuthorId))
-        {
-            selectedAuthors.Add(author);
-        }
-    }
-
-    private void RemoveAuthor(Author author)
-    {
-        selectedAuthors.RemoveAll(a => a.AuthorId == author.AuthorId);
-    }
-
-    private async Task HandleAddBook()
-    {
-        if (string.IsNullOrWhiteSpace(newBookTitle))
-        {
-            ShowStatus("Title is required.", "alert-warning");
-            return;
-        }
-
-        if (!newBookYear.HasValue)
-        {
-            ShowStatus("Year is required.", "alert-warning");
-            return;
-        }
-
-        Isbn isbn;
-        if (string.IsNullOrWhiteSpace(newBookIsbn))
-        {
-            isbn = Isbn.EmptyIsbn;
-        }
-        else if (allowInvalidIsbn)
-        {
-            isbn = Isbn.NewInvalid(newBookIsbn);
-        }
-        else
-        {
-            var isbnResult = Isbn.New(newBookIsbn);
-            if (isbnResult.IsError)
-            {
-                ShowStatus($"Invalid ISBN: {isbnResult.ErrorValue}", "alert-danger");
-                return;
-            }
-            isbn = isbnResult.ResultValue;
-        }
-
-        var title = Title.New(newBookTitle);
-        var year = Year.New(newBookYear.Value);
-        var authorIds = selectedAuthors.Select(a => a.AuthorId).ToList();
-
-        // Construct the book aggregate using the new constructor with categories.
-        var book = Book.NewWithMainCategoryAndAdditionalCategories(
-            title, 
-            ListModule.OfSeq(authorIds),
-            ListModule.OfSeq(Enumerable.Empty<AuthorId>()),
-            ListModule.OfSeq(Enumerable.Empty<System.Globalization.CultureInfo>()),
-            FSharpOption<EditorId>.None,
-            mainCategory,
-            ListModule.OfSeq(additionalCategories),
-            year,
-            isbn
-        );
-
-        var result = await BookService.AddBookAsync(book);
-
-        if (result.IsOk)
-        {
-            ShowStatus($"Book '{newBookTitle}' has been created successfully!", "alert-success");
-            ResetForm();
-        }
-        else
-        {
-            ShowStatus($"Error creating book: {result.ErrorValue}", "alert-danger");
-        }
-    }
-
     private void ShowStatus(string message, string cssClass)
     {
         statusMessage = message;
         statusClass = cssClass;
     }
-
-    private void ResetForm()
-    {
-        newBookTitle = "";
-        newBookIsbn = "";
-        allowInvalidIsbn = false;
-        newBookYear = DateTime.Now.Year;
-        selectedAuthors.Clear();
-        mainCategory = Category.Other;
-        additionalCategories.Clear();
-    }
-
-    private async Task PerformGoogleLookup()
-    {
-        if (string.IsNullOrWhiteSpace(newBookTitle))
-        {
-            ShowStatus("Please enter a Title to search.", "alert-warning");
-            return;
-        }
-
-        isAutofilling = true;
-        lookupResults.Clear();
-        selectedLookupIndex = -1;
-        StateHasChanged();
-
-        try
-        {
-            var result = await GoogleBooksService.LookupMultipleByTitleAsync(newBookTitle);
-
-            if (result.IsOk)
-            {
-                lookupResults = result.ResultValue.ToList();
-                if (!lookupResults.Any())
-                {
-                    ShowStatus("No books found matching that title.", "alert-warning");
-                }
-                else
-                {
-                    ShowStatus($"Found {lookupResults.Count} results from API. Select one from the list below.", "alert-info");
-                }
-            }
-            else
-            {
-                ShowStatus($"Error searching API: {result.ErrorValue}", "alert-danger");
-            }
-        }
-        catch (Exception ex)
-        {
-            ShowStatus($"Error during lookup: {ex.Message}", "alert-danger");
-        }
-        finally
-        {
-            isAutofilling = false;
-        }
-    }
-
-    private async Task AutofillFromSelected()
-    {
-        if (selectedLookupIndex < 0 || selectedLookupIndex >= lookupResults.Count) return;
-
-        var metadata = lookupResults[selectedLookupIndex];
-        isAutofilling = true;
-        StateHasChanged();
-
-        try
-        {
-            newBookTitle = metadata.Title;
-            if (FSharpOption<string>.get_IsSome(metadata.Isbn) && !string.IsNullOrWhiteSpace(metadata.Isbn.Value))
-            {
-                newBookIsbn = metadata.Isbn.Value;
-            }
-            
-            if (FSharpOption<int>.get_IsSome(metadata.Year))
-            {
-                newBookYear = metadata.Year.Value;
-            }
-            
-            // Categories
-            if (metadata.Categories != null && metadata.Categories.Any())
-            {
-                var firstCatStr = metadata.Categories.First();
-                try 
-                {
-                    var domainCat = Category.FromString(firstCatStr);
-                    mainCategory = domainCat;
-                } 
-                catch 
-                {
-                    ShowStatus($"Could not accurately map external category '{firstCatStr}' to local categories. You'll need to manually select one.", "alert-warning");
-                }
-            }
-
-            // Authors
-            if (metadata.Authors != null && metadata.Authors.Any())
-            {
-                selectedAuthors.Clear();
-                foreach (var authorName in metadata.Authors)
-                {
-                    var nameCriteria = Name.New(authorName);
-                    var authorResult = await AuthorService.SearchByNameAsync(nameCriteria);
-                    if (authorResult.IsOk && authorResult.ResultValue.Any())
-                    {
-                        selectedAuthors.Add(authorResult.ResultValue.First());
-                    }
-                    else
-                    {
-                        bool create = await JSRuntime.InvokeAsync<bool>("confirm", $"Author '{authorName}' not found in local database. Do you want to create and assign it for this book?");
-                        if (create)
-                        {
-                            var newAuthor = Author.NewWithoutIsni(nameCriteria);
-                            var addResult = await AuthorService.AddAuthorAsync(newAuthor);
-                            if (addResult.IsOk)
-                            {
-                                selectedAuthors.Add(newAuthor);
-                            }
-                            else 
-                            {
-                                ShowStatus($"Failed to create author '{authorName}'.", "alert-danger");
-                            }
-                        }
-                    }
-                }
-            }
-            
-            ShowStatus("Fields populated from selected book. Please review and save.", "alert-success");
-            lookupResults.Clear();
-            selectedLookupIndex = -1;
-        }
-        catch (Exception ex)
-        {
-            ShowStatus($"Error autofilling fields: {ex.Message}", "alert-danger");
-        }
-        finally
-        {
-            isAutofilling = false;
-        }
-    }
-
-    private async Task AutofillBookInfo() => await PerformGoogleLookup();
 }

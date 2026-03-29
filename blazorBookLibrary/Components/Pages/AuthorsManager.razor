@@ -223,27 +223,27 @@
         {
             var name = Name.New(searchName);
             var isni = Isni.NewInvalid(searchIsni);
-            result = await AuthorService.SearchByIsniAndNameAsync(isni, name, FSharpOption<CancellationToken>.None);
+            result = await AuthorService.SearchByIsniAndNameAsync(isni, name);
 
         }
 
         else if (hasName)
         {
             var name = Name.New(searchName);
-            result = await AuthorService.SearchByNameAsync(name, FSharpOption<CancellationToken>.None);
+            result = await AuthorService.SearchByNameAsync(name);
 
 
         }
         else if (hasIsni)
         {
             var isni = Isni.NewInvalid(searchIsni);
-            result = await AuthorService.SearchByIsniAsync(isni, FSharpOption<CancellationToken>.None);
+            result = await AuthorService.SearchByIsniAsync(isni); 
 
         }
 
         else
         {
-            result = await AuthorService.GetAllAsync(FSharpOption<CancellationToken>.None);
+            result = await AuthorService.GetAllAsync();
         }
 
         if (result.IsOk)
@@ -299,7 +299,7 @@
         var name = Name.New(newAuthorName);
         var author = Author.NewWithOptionalIsniAndImageUrl(name, isniOpt, imageUrlOpt);
 
-        var result = await AuthorService.AddAuthorAsync(author, FSharpOption<CancellationToken>.None);
+        var result = await AuthorService.AddAuthorAsync(author);
 
         if (result.IsOk)
         {

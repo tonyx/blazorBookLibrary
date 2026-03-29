@@ -46,3 +46,5 @@ module Details =
             member this.UnSealable = 
                 this.Books |> List.forall (fun book -> book.NoLoan && book.NoReservations)
 
+
+    type AdditionalBookSearchFilter = Book -> bool

@@ -58,6 +58,7 @@ type User =
 
         member this.Id = this.UserId.Value
         static member StorageName = "_User"
+        static member SnapshotsInterval = 100
         static member Version = "_01"
         member this.Serialize = 
             (this, jsonOptions) |> JsonSerializer.Serialize

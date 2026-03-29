@@ -28,7 +28,8 @@ type LoanService
         authorViewerAsync: AggregateViewerAsync2<Author>,
         editorViewerAsync: AggregateViewerAsync2<Editor>,
         reservationViewerAsync: AggregateViewerAsync2<Reservation>,
-        loanViewerAsync: AggregateViewerAsync2<Loan>
+        loanViewerAsync: AggregateViewerAsync2<Loan>,
+        userViewerAsync: AggregateViewerAsync2<User>
     ) =
     new (eventStore: IEventStore<string>)
         =
@@ -38,6 +39,7 @@ type LoanService
         let editorViewerAsync = getAggregateStorageFreshStateViewerAsync<Editor, EditorEvent, string> eventStore
         let reservationViewerAsync = getAggregateStorageFreshStateViewerAsync<Reservation, ReservationEvent, string> eventStore
         let loanViewerAsync = getAggregateStorageFreshStateViewerAsync<Loan, LoanEvent, string> eventStore
+        let userViewerAsync = getAggregateStorageFreshStateViewerAsync<User, UserEvent, string> eventStore
         LoanService (
             eventStore,
             messageSenders,
@@ -45,7 +47,8 @@ type LoanService
             authorViewerAsync,
             editorViewerAsync,
             reservationViewerAsync,
-            loanViewerAsync
+            loanViewerAsync,
+            userViewerAsync
         )    
     new (configuration: Microsoft.Extensions.Configuration.IConfiguration) 
         =
@@ -65,18 +68,26 @@ type LoanService
                 let! book = 
                     bookViewerAsync (Some ct) loan.BookId.Value 
                     |> TaskResult.map snd
+
+                let! user =
+                    userViewerAsync (Some ct) loan.UserId.Value
+                    |> TaskResult.map snd
+                
                 let setCurrentLoanCommand = 
                     BookCommand.SetCurrentLoan (loan.LoanId, dateTime)
 
+                let addLoanToUser =     
+                    UserCommand.AddLoan (loan.LoanId)
+
                 let! result = 
-                    runInitAndNAggregateCommandsMdAsync<Book, BookEvent, Loan, string>
-                        [book.Id]
+                    runInitAndTwoAggregateCommands<Book, BookEvent, User, UserEvent, string, Loan>
+                        book.Id
+                        user.Id
                         eventStore
                         messageSenders
                         loan
-                        ""
-                        [setCurrentLoanCommand]
-                        (Some ct)
+                        setCurrentLoanCommand
+                        addLoanToUser
                 return result
             }
     member this.GetLoanAsync (id: LoanId, ?ct: CancellationToken): TaskResult<Loan, string> = 
@@ -97,30 +108,35 @@ type LoanService
                 let! book = 
                     bookViewerAsync (Some ct) loan.BookId.Value
                     |> TaskResult.map snd
+                let! user =
+                    userViewerAsync (Some ct) loan.UserId.Value
+                    |> TaskResult.map snd
                 let releaseLoanCommand = 
                     BookCommand.ReleaseLoan (loanId, dateTime)
                 let releaseBookCommand =
                     LoanCommand.Return dateTime
-
-                let result = 
-                    runTwoNAggregateCommandsMdAsync<Book, BookEvent, Loan, LoanEvent, string>
+                let userReleaseLoanCommandr = 
+                    UserCommand.ReleaseLoan (loanId)
+                let! result = 
+                    runThreeNAggregateCommands<Book, BookEvent, Loan, LoanEvent, User, UserEvent, string>
                         [book.Id]
                         [loan.Id]
+                        [user.Id]
                         eventStore
                         messageSenders
-                        ""
                         [releaseLoanCommand]
                         [releaseBookCommand]
-                        (Some ct)
-                return! result
+                        [userReleaseLoanCommandr]
+                return result
             }
+
     interface ILoanService with
-        member this.AddLoanAsync (loan: Loan, ?ct: CancellationToken) : Task<Result<unit,string>> =
+        member this.AddLoanAsync (loan: Loan, ?ct: CancellationToken) =
             let ct = defaultArg ct CancellationToken.None
             this.AddLoanAsync (loan, System.DateTime.Now, ct)
-        member this.GetLoanAsync (id: LoanId, ?ct: CancellationToken) : Task<Result<Loan,string>> =
+        member this.GetLoanAsync (id: LoanId, ?ct: CancellationToken) =  
             let ct = defaultArg ct CancellationToken.None
             this.GetLoanAsync (id, ct)
-        member this.ReleaseLoanAsync (loanId: LoanId, ?ct: CancellationToken) : Task<Result<unit,string>> =
+        member this.ReleaseLoanAsync (loanId: LoanId, ?ct: CancellationToken) =
             let ct = defaultArg ct CancellationToken.None
             this.ReleaseLoanAsync (loanId, System.DateTime.Now, ct)

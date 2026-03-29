@@ -20,6 +20,7 @@ open BookLibrary.Shared.Commons
 open BookLibrary.Shared.Details
 open BookLibrary.Details.Details
 open Microsoft.Extensions.Configuration
+open BookLibrary.Shared
 
 type BookService
     (
@@ -135,9 +136,9 @@ type BookService
             }
                 
             member this.AddBookAsync (book: Book, ?ct: CancellationToken) =
-                let ct = defaultArg ct CancellationToken.None
                 taskResult
                     {
+                        let ct = defaultArg ct CancellationToken.None
                         let! authors: List<Author> = 
                             book.Authors
                             |> List.traverseTaskResultM 
@@ -258,7 +259,8 @@ type BookService
                         return result |> snd
                     }
 
-            member this.GetAllBooksAsync(?ct: CancellationToken) = 
+            member this.GetAllBooksAsync(?criteria: BookSearchCriteria, ?ct: CancellationToken) = 
+                // skip crieteria at the moment
                 taskResult
                     {
                         let! booksWithId = StateView.getAllAggregateStatesAsync<Book, BookEvent, string> eventStore ct 
@@ -301,7 +303,7 @@ type BookService
                             | After y -> book.Year.Value > y
                             | Exact y -> book.Year.Value = y
                             | Range (y1, y2) -> book.Year.Value >= y1 && book.Year.Value <= y2
-                        
+
                         let! booksWithId = StateView.getAllFilteredAggregateStatesAsync<Book, BookEvent, string> filter eventStore ct 
                         return booksWithId |> List.ofSeq |> List.map snd
                     }
@@ -652,75 +654,111 @@ type BookService
                     }
 
         interface IBookService with                
-            member this.AddAuthorToBookAsync(authorId: AuthorId, bookId: BookId, ?ct: CancellationToken) =
+            member this.AddAuthorToBookAsync(authorId: AuthorId, bookId: BookId, ?ct: CancellationToken ) =
+                let ct = defaultArg ct CancellationToken.None
                 let dateTime = System.DateTime.Now
-                this.AddAuthorToBookAsync(authorId, bookId, dateTime, ct |> Option.defaultValue CancellationToken.None)
+                this.AddAuthorToBookAsync(authorId, bookId, dateTime, ct)
             member this.AddBookAsync(book: Book, ?ct: CancellationToken ) =
-                this.AddBookAsync(book, ct |> Option.defaultValue CancellationToken.None)
+                let ct = defaultArg ct CancellationToken.None
+                this.AddBookAsync(book, ct)
             member this.GetBookAsync(id: BookId, ?ct: CancellationToken) =
-                this.GetBookAsync(id, ct |> Option.defaultValue CancellationToken.None)
+                let ct = defaultArg ct CancellationToken.None
+                this.GetBookAsync(id, ct)
             member this.GetBookDetailsAsync(bookId: BookId, ?ct: CancellationToken) = 
-                this.GetBookDetailsAsync(bookId, ct |> Option.defaultValue CancellationToken.None)
+                let ct = defaultArg ct CancellationToken.None
+                this.GetBookDetailsAsync(bookId, ct)
             member this.GetBooksDetailsAsync(bookIds: List<BookId>, ?ct: CancellationToken) = 
-                this.GetBooksDetailsAsync(bookIds, ct |> Option.defaultValue CancellationToken.None)
-            member this.GetAllAsync(?ct: CancellationToken) = 
-                this.GetAllBooksAsync(ct |> Option.defaultValue CancellationToken.None)
+                let ct = defaultArg ct CancellationToken.None
+                this.GetBooksDetailsAsync(bookIds, ct)
+            member this.GetAllAsync(?criteria: BookSearchCriteria, ?ct: CancellationToken) = 
+                let criteria = defaultArg criteria SearchCriteria.searchAllBooks
+                let ct = defaultArg ct CancellationToken.None
+                this.GetAllBooksAsync(criteria, ct)
             member this.RemoveAuthorFromBookAsync(authorId: AuthorId, bookId: BookId, ?ct: CancellationToken) = 
+                let ct = defaultArg ct CancellationToken.None
                 let dateTime = System.DateTime.Now
-                this.RemoveAuthorFromBookAsync(authorId, bookId, dateTime, ct |> Option.defaultValue CancellationToken.None)
+                this.RemoveAuthorFromBookAsync(authorId, bookId, dateTime, ct)
             member this.SearchByTitleAsync(title: Title, ?ct: CancellationToken) = 
-                this.SearchBooksByTitleAsync(title, ct |> Option.defaultValue CancellationToken.None)
+                let ct = defaultArg ct CancellationToken.None
+                this.SearchBooksByTitleAsync(title, ct)
             member this.SearchByIsbnAsync(isbn: Isbn, ?ct: CancellationToken) = 
-                this.SearchBooksByIsbnAsync(isbn, ct |> Option.defaultValue CancellationToken.None)
+                let ct = defaultArg ct CancellationToken.None
+                this.SearchBooksByIsbnAsync(isbn, ct)
             member this.SearchByTitleAndIsbnAsync(title: Title, isbn: Isbn, ?ct: CancellationToken) = 
-                this.SearchBooksByTitleAndIsbnAsync(title, isbn, ct |> Option.defaultValue CancellationToken.None)
+                let ct = defaultArg ct CancellationToken.None
+                this.SearchBooksByTitleAndIsbnAsync(title, isbn, ct)
             member this.ChangeMainCategoryAsync(category: Category, bookId: BookId, ?ct: CancellationToken) = 
-                this.ChangeMainCategoryAsync(category, bookId, ct |> Option.defaultValue CancellationToken.None)
+                let ct = defaultArg ct CancellationToken.None
+                this.ChangeMainCategoryAsync(category, bookId, ct)
             member this.AddAdditionalCategoryAsync(category: Category, bookId: BookId, ?ct: CancellationToken) = 
-                this.AddAdditionalCategoryAsync(category, bookId, ct |> Option.defaultValue CancellationToken.None)
+                let ct = defaultArg ct CancellationToken.None
+                this.AddAdditionalCategoryAsync(category, bookId, ct)
             member this.RemoveAdditionalCategoryAsync(category: Category, bookId: BookId, ?ct: CancellationToken) = 
-                this.RemoveAdditionalCategoryAsync(category, bookId, ct |> Option.defaultValue CancellationToken.None)
+                let ct = defaultArg ct CancellationToken.None
+                this.RemoveAdditionalCategoryAsync(category, bookId, ct)
             member this.SealAsync(bookId: BookId, ?ct: CancellationToken) = 
-                this.SealAsync(bookId, ct |> Option.defaultValue CancellationToken.None)
+                let ct = defaultArg ct CancellationToken.None
+                this.SealAsync(bookId, ct)
             member this.UnsealAsync(bookId: BookId, ?ct: CancellationToken) = 
-                this.UnsealAsync(bookId, ct |> Option.defaultValue CancellationToken.None)
+                let ct = defaultArg ct CancellationToken.None
+                this.UnsealAsync(bookId, ct)
             member this.RemoveBookAsync(bookId: BookId, ?ct: CancellationToken) = 
-                this.RemoveBookAsync(bookId, ct |> Option.defaultValue CancellationToken.None)
+                let ct = defaultArg ct CancellationToken.None
+                this.RemoveBookAsync(bookId, ct)
             member this.UpdateTitleAsync(title: Title, bookId: BookId, ?ct: CancellationToken) = 
-                this.UpdateTitleAsync(title, bookId, ct |> Option.defaultValue CancellationToken.None)
+                let ct = defaultArg ct CancellationToken.None
+                this.UpdateTitleAsync(title, bookId, ct)
             member this.SearchByYearAsync(year: YearSearch, ?ct: CancellationToken) = 
-                this.SearchBooksByYearAsync(year, ct |> Option.defaultValue CancellationToken.None)
+                let ct = defaultArg ct CancellationToken.None
+                this.SearchBooksByYearAsync(year, ct)
             member this.SearchByTitleAndYearAsync(title: Title, year: YearSearch, ?ct: CancellationToken) = 
-                this.SearchBooksByTitleAndYearAsync(title, year, ct |> Option.defaultValue CancellationToken.None)
+                let ct = defaultArg ct CancellationToken.None
+                this.SearchBooksByTitleAndYearAsync(title, year, ct)
             member this.SearchByIsbnAndYearAsync(isbn: Isbn, year: YearSearch, ?ct: CancellationToken) = 
-                this.SearchBooksByIsbnAndYearAsync(isbn, year, ct |> Option.defaultValue CancellationToken.None)
+                let ct = defaultArg ct CancellationToken.None
+                this.SearchBooksByIsbnAndYearAsync(isbn, year, ct)
             member this.SearchByTitleAndIsbnAndYearAsync(title: Title, isbn: Isbn, year: YearSearch, ?ct: CancellationToken) = 
-                this.SearchBooksByTitleAndIsbnAndYearAsync(title, isbn, year, ct |> Option.defaultValue CancellationToken.None)
+                let ct = defaultArg ct CancellationToken.None
+                this.SearchBooksByTitleAndIsbnAndYearAsync(title, isbn, year, ct)
             member this.SearchByCategoriesAsync(categories: List<Category>, ?ct: CancellationToken) = 
-                this.SearchBooksByCategoriesAsync(categories, ct |> Option.defaultValue CancellationToken.None)
+                let ct = defaultArg ct CancellationToken.None
+                this.SearchBooksByCategoriesAsync(categories, ct)
             member this.SearchByTitleAndCategoriesAsync(title: Title, categories: List<Category>, ?ct: CancellationToken) = 
-                this.SearchBooksByTitleAndCategoriesAsync(title, categories, ct |> Option.defaultValue CancellationToken.None)
+                let ct = defaultArg ct CancellationToken.None
+                this.SearchBooksByTitleAndCategoriesAsync(title, categories, ct)
             member this.SearchByYearAndCategoriesAsync(year: YearSearch, categories: List<Category>, ?ct: CancellationToken) = 
-                this.SearchBooksByYearAndCategoriesAsync(year, categories, ct |> Option.defaultValue CancellationToken.None)
+                let ct = defaultArg ct CancellationToken.None
+                this.SearchBooksByYearAndCategoriesAsync(year, categories, ct)
             member this.SearchByTitleAndYearAndCategoriesAsync(title: Title, year: YearSearch, categories: List<Category>, ?ct: CancellationToken) = 
-                this.SearchBooksByTitleAndYearAndCategoriesAsync(title, year, categories, ct |> Option.defaultValue CancellationToken.None)
+                let ct = defaultArg ct CancellationToken.None
+                this.SearchBooksByTitleAndYearAndCategoriesAsync(title, year, categories, ct)
             member this.SearchByIsbnOrTitleAsync(isbn: Isbn, title: Title, ?ct: CancellationToken) = 
-                this.SearchBooksByIsbnOrTitleAsync(isbn, title, ct |> Option.defaultValue CancellationToken.None)
+                let ct = defaultArg ct CancellationToken.None
+                this.SearchBooksByIsbnOrTitleAsync(isbn, title, ct)
             member this.SearchByAuthorAsync(authorId: AuthorId, ?ct: CancellationToken) = 
-                this.SearchBooksByAuthorAsync(authorId, ct |> Option.defaultValue CancellationToken.None)
+                let ct = defaultArg ct CancellationToken.None
+                this.SearchBooksByAuthorAsync(authorId, ct)
             member this.SearchByAuthorsAsync(authors: List<AuthorId>, ?ct: CancellationToken) = 
-                this.SearchBooksByAuthorsAsync(authors, ct |> Option.defaultValue CancellationToken.None)
+                let ct = defaultArg ct CancellationToken.None
+                this.SearchBooksByAuthorsAsync(authors, ct)
             member this.SearchByAuthorsAndYearAsync(authors: List<AuthorId>, year: YearSearch, ?ct: CancellationToken) = 
-                this.SearchBooksByAuthorsAndYearAsync(authors, year, ct |> Option.defaultValue CancellationToken.None)
+                let ct = defaultArg ct CancellationToken.None
+                this.SearchBooksByAuthorsAndYearAsync(authors, year, ct)
             member this.SearchByTitleAndAuthorsAsync(title: Title, authors: List<AuthorId>, ?ct: CancellationToken) = 
-                this.SearchBooksByTitleAndAuthorsAsync(title, authors, ct |> Option.defaultValue CancellationToken.None)
+                let ct = defaultArg ct CancellationToken.None
+                this.SearchBooksByTitleAndAuthorsAsync(title, authors, ct)
             member this.SearchByTitleAndAuthorsAndYearAsync(title: Title, authors: List<AuthorId>, year: YearSearch, ?ct: CancellationToken) = 
-                this.SearchBooksByTitleAndAuthorsAndYearAsync(title, authors, year, ct |> Option.defaultValue CancellationToken.None)
+                let ct = defaultArg ct CancellationToken.None
+                this.SearchBooksByTitleAndAuthorsAndYearAsync(title, authors, year, ct)
             member this.SearchByAuthorsAndCategoriesAsync(authors: List<AuthorId>, categories: List<Category>, ?ct: CancellationToken) = 
-                this.SearchBooksByAuthorsAndCategoriesAsync(authors, categories, ct |> Option.defaultValue CancellationToken.None)
+                let ct = defaultArg ct CancellationToken.None
+                this.SearchBooksByAuthorsAndCategoriesAsync(authors, categories, ct)
             member this.SearchByTitleAndAuthorsAndCategoriesAsync(title: Title, authors: List<AuthorId>, categories: List<Category>, ?ct: CancellationToken) = 
-                this.SearchBooksByTitleAndAuthorsAndCategoriesAsync(title, authors, categories, ct |> Option.defaultValue CancellationToken.None)
+                let ct = defaultArg ct CancellationToken.None
+                this.SearchBooksByTitleAndAuthorsAndCategoriesAsync(title, authors, categories, ct)
             member this.SearchByAuthorsAndYearAndCategoriesAsync(authors: List<AuthorId>, year: YearSearch, categories: List<Category>, ?ct: CancellationToken) = 
-                this.SearchBooksByAuthorsAndYearAndCategoriesAsync(authors, year, categories, ct |> Option.defaultValue CancellationToken.None)
+                let ct = defaultArg ct CancellationToken.None
+                this.SearchBooksByAuthorsAndYearAndCategoriesAsync(authors, year, categories, ct)
             member this.SearchByTitleAndAuthorsAndYearAndCategoriesAsync(title: Title, authors: List<AuthorId>, year: YearSearch, categories: List<Category>, ?ct: CancellationToken) = 
-                this.SearchBooksByTitleAndAuthorsAndYearAndCategoriesAsync(title, authors, year, categories, ct |> Option.defaultValue CancellationToken.None)
+                let ct = defaultArg ct CancellationToken.None
+                this.SearchBooksByTitleAndAuthorsAndYearAndCategoriesAsync(title, authors, year, categories, ct)

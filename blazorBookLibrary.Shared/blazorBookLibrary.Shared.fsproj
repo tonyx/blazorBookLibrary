@@ -23,6 +23,7 @@
     <Compile Include="Services/IGoogleBooksService.fs" />
     <Compile Include="Services/IAuthorsSearchService.fs" />
     <Compile Include="Services/IUserService.fs" />
+    <Compile Include="SearchCriteria.fs" />
 
   </ItemGroup>
 

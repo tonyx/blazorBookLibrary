@@ -48,6 +48,7 @@ let authorViewerAsync = getAggregateStorageFreshStateViewerAsync<Author, AuthorE
 let editorViewerAsync = getAggregateStorageFreshStateViewerAsync<Editor, EditorEvent, string> pgEventStore
 let reservationViewerAsync = getAggregateStorageFreshStateViewerAsync<Reservation, ReservationEvent, string> pgEventStore
 let loanViewerAsync = getAggregateStorageFreshStateViewerAsync<Loan, LoanEvent, string> pgEventStore
+let userViewerAsync = getAggregateStorageFreshStateViewerAsync<User, UserEvent, string> pgEventStore
 
 let getAuthorService = 
     fun () -> 
@@ -91,7 +92,8 @@ let getLoanService =
             authorViewerAsync, 
             editorViewerAsync, 
             reservationViewerAsync, 
-            loanViewerAsync)
+            loanViewerAsync,
+            userViewerAsync)
 
 let timeSlotDurationInDays =
     let config = 

@@ -262,7 +262,6 @@ type AuthorService
                     ct
             }
 
-
     member this.GetAllAuthorsAsync(?ct: CancellationToken) = 
         taskResult
             {
@@ -287,7 +286,6 @@ type AuthorService
                 return authorsWithId |> List.ofSeq |> List.map snd
             }
 
-
     member this.GetAllAuthorsFilteredByIsniAndName(isni: Isni, name: Name, ?ct: CancellationToken) = 
         taskResult
             {
@@ -299,37 +297,52 @@ type AuthorService
             }
                     
     interface IAuthorService with
-
         member this.AddAuthorAsync(author: Author, ?ct: CancellationToken) = 
-            this.AddAuthorAsync(author, ct |> Option.defaultValue CancellationToken.None)
+            let ct = defaultArg ct CancellationToken.None
+            this.AddAuthorAsync(author, ct)
         member this.AddAuthorsAsync(authors: list<Author>, ?ct: CancellationToken) = 
-            this.AddAuthorsAsync(authors, ct |> Option.defaultValue CancellationToken.None)
+            let ct = defaultArg ct CancellationToken.None
+            this.AddAuthorsAsync(authors, ct)
         member this.GetAuthorAsync (authorId: AuthorId, ?ct: CancellationToken) = 
-            this.GetAuthorAsync(authorId, ct |> Option.defaultValue CancellationToken.None)
+            let ct = defaultArg ct CancellationToken.None
+            this.GetAuthorAsync(authorId, ct)
         member this.GetAuthorDetailsAsync (authorId: AuthorId, ?ct: CancellationToken) = 
-            this.GetAuthorDetailsAsync(authorId, ct |> Option.defaultValue CancellationToken.None)
+            let ct = defaultArg ct CancellationToken.None
+            this.GetAuthorDetailsAsync(authorId, ct)
         member this.GetAuthorsAsync(ids: List<AuthorId>, ?ct: CancellationToken) = 
-            this.GetAuthorsAsync(ids, ct |> Option.defaultValue CancellationToken.None)
+            let ct = defaultArg ct CancellationToken.None
+            this.GetAuthorsAsync(ids, ct)
         member this.RenameAsync (authorId: AuthorId, newName: Name, ?ct: CancellationToken) = 
-            this.RenameAsync(authorId, newName, ct |> Option.defaultValue CancellationToken.None)        
+            let ct = defaultArg ct CancellationToken.None
+            this.RenameAsync(authorId, newName, ct)
         member this.RemoveAsync (authorId: AuthorId, ?ct: CancellationToken) = 
-            this.RemoveAuthorAsync(authorId, ct |> Option.defaultValue CancellationToken.None)
+            let ct = defaultArg ct CancellationToken.None
+            this.RemoveAuthorAsync(authorId, ct)
         member this.UpdateIsniAsync(authorId: AuthorId, isni: Isni, ?ct: CancellationToken) = 
-            this.UpdateIsniAsync(authorId, isni, ct |> Option.defaultValue CancellationToken.None)
+            let ct = defaultArg ct CancellationToken.None
+            this.UpdateIsniAsync(authorId, isni, ct)
         member this.UpdateImageUrlAsync(authorId: AuthorId, imageUrl: Uri, ?ct: CancellationToken) = 
-            this.UpdateImageUrlAsync(authorId, imageUrl, ct |> Option.defaultValue CancellationToken.None)
+            let ct = defaultArg ct CancellationToken.None
+            this.UpdateImageUrlAsync(authorId, imageUrl, ct)
         member this.RemoveImageUrlAsync(authorId: AuthorId, ?ct: CancellationToken) = 
-            this.RemoveImageUrlAsync(authorId, ct |> Option.defaultValue CancellationToken.None)
+            let ct = defaultArg ct CancellationToken.None
+            this.RemoveImageUrlAsync(authorId, ct)
         member this.SealAsync(authorId: AuthorId, ?ct: CancellationToken) = 
-            this.SealAsync(authorId, ct |> Option.defaultValue CancellationToken.None)
+            let ct = defaultArg ct CancellationToken.None
+            this.SealAsync(authorId, ct)
         member this.UnsealAsync(authorId: AuthorId, ?ct: CancellationToken) = 
-            this.UnsealAsync(authorId, ct |> Option.defaultValue CancellationToken.None)
+            let ct = defaultArg ct CancellationToken.None
+            this.UnsealAsync(authorId, ct)
         member this.GetAllAsync(?ct: CancellationToken) = 
-            this.GetAllAuthorsAsync(ct |> Option.defaultValue CancellationToken.None)
+            let ct = defaultArg ct CancellationToken.None
+            this.GetAllAuthorsAsync(ct)
         member this.SearchByNameAsync(name: Name, ?ct: CancellationToken) = 
-            this.GetAllAuthorsFilteredByName(name, ct |> Option.defaultValue CancellationToken.None)
+            let ct = defaultArg ct CancellationToken.None
+            this.GetAllAuthorsFilteredByName(name, ct)
         member this.SearchByIsniAsync(isni: Isni, ?ct: CancellationToken) = 
-            this.GetAllAuthorsFilteredByIsni(isni, ct |> Option.defaultValue CancellationToken.None)
+            let ct = defaultArg ct CancellationToken.None
+            this.GetAllAuthorsFilteredByIsni(isni, ct)
         member this.SearchByIsniAndNameAsync(isni: Isni, name: Name, ?ct: CancellationToken) = 
-            this.GetAllAuthorsFilteredByIsniAndName(isni, name, ct |> Option.defaultValue CancellationToken.None)
+            let ct = defaultArg ct CancellationToken.None
+            this.GetAllAuthorsFilteredByIsniAndName(isni, name, ct)
 

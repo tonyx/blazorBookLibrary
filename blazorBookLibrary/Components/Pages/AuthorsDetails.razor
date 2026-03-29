@@ -441,7 +441,7 @@
                 return;
             }
 
-            var result = await AuthorService.UpdateImageUrlAsync(authorDetails.Author.AuthorId, newUri, FSharpOption<CancellationToken>.None);
+            var result = await AuthorService.UpdateImageUrlAsync(authorDetails.Author.AuthorId, newUri);
             if (result.IsOk)
             {
                 await LoadAuthorDetails();
@@ -468,7 +468,7 @@
 
         try
         {
-            var result = await AuthorService.RemoveImageUrlAsync(authorDetails.Author.AuthorId, FSharpOption<CancellationToken>.None);
+            var result = await AuthorService.RemoveImageUrlAsync(authorDetails.Author.AuthorId);
             if (result.IsOk)
             {
                 await LoadAuthorDetails();
@@ -519,7 +519,7 @@
         try
         {
             var newName = Name.New(editedName);
-            var result = await AuthorService.RenameAsync(authorDetails.Author.AuthorId, newName, FSharpOption<CancellationToken>.None);
+            var result = await AuthorService.RenameAsync(authorDetails.Author.AuthorId, newName);
             if (result.IsOk)
             {
                 await LoadAuthorDetails();
@@ -590,7 +590,7 @@
 
         try
         {
-            var result = await AuthorService.UpdateIsniAsync(authorDetails.Author.AuthorId, newIsni, FSharpOption<CancellationToken>.None);
+            var result = await AuthorService.UpdateIsniAsync(authorDetails.Author.AuthorId, newIsni);
             if (result.IsOk)
             {
                 await LoadAuthorDetails();
@@ -633,7 +633,7 @@
         
         try 
         {
-            var result = await AuthorService.RemoveAsync(authorDetails.Author.AuthorId, FSharpOption<CancellationToken>.None);
+            var result = await AuthorService.RemoveAsync(authorDetails.Author.AuthorId);
             if (result.IsOk)
             {
                 NavigationManager.NavigateTo("/books-manager");
@@ -658,8 +658,8 @@
         try
         {
             var result = isAuthorSealed 
-                ? await AuthorService.UnsealAsync(authorDetails.Author.AuthorId, FSharpOption<CancellationToken>.None)
-                : await AuthorService.SealAsync(authorDetails.Author.AuthorId, FSharpOption<CancellationToken>.None);
+                ? await AuthorService.UnsealAsync(authorDetails.Author.AuthorId)
+                : await AuthorService.SealAsync(authorDetails.Author.AuthorId);
                 
             if (result.IsOk)
             {
@@ -693,7 +693,7 @@
             if (Guid.TryParse(AuthorIdStr, out var guid))
             {
                 var authorId = AuthorId.NewAuthorId(guid);
-                var result = await AuthorService.GetAuthorDetailsAsync(authorId, FSharpOption<CancellationToken>.None);
+                var result = await AuthorService.GetAuthorDetailsAsync(authorId);
 
                 if (result.IsOk)
                 {

@@ -53,17 +53,7 @@ let authorViewerAsync = getAggregateStorageFreshStateViewerAsync<Author, AuthorE
 let editorViewerAsync = getAggregateStorageFreshStateViewerAsync<Editor, EditorEvent, string> pgEventStore
 let reservationViewerAsync = getAggregateStorageFreshStateViewerAsync<Reservation, ReservationEvent, string> pgEventStore
 let loanViewerAsync = getAggregateStorageFreshStateViewerAsync<Loan, LoanEvent, string> pgEventStore
-
-// let getBookServiceLayer = 
-//     fun _ -> 
-//         BookLibraryService
-//             (pgEventStore, 
-//             MessageSenders.NoSender, 
-//             bookViewerAsync, 
-//             authorViewerAsync, 
-//             editorViewerAsync, 
-//             reservationViewerAsync, 
-//             loanViewerAsync)
+let userViewerAsync = getAggregateStorageFreshStateViewerAsync<User, UserEvent, string> pgEventStore
 
 
 let getBookService = 
@@ -86,7 +76,8 @@ let getLoanService =
             authorViewerAsync, 
             editorViewerAsync, 
             reservationViewerAsync, 
-            loanViewerAsync)
+            loanViewerAsync,
+            userViewerAsync    )
 
 let getReservationService = 
     fun () -> 
