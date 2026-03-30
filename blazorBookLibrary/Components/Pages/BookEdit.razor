@@ -1,4 +1,4 @@
-@page "/book-details/{BookIdStr}"
+@page "/book-edit/{BookIdStr}"
 @using Microsoft.AspNetCore.Authorization
 @using BookLibrary.Shared.Services
 @using BookLibrary.Domain
@@ -11,6 +11,7 @@
 @inject IAuthorService AuthorService
 @inject IJSRuntime JSRuntime
 @inject NavigationManager NavigationManager
+@inject IGoogleBooksService GoogleBooksService
 @rendermode InteractiveServer
 
 <PageTitle>Book Details</PageTitle>
@@ -81,38 +82,173 @@
                         </div>
                     </div>
                     <div class="card-body">
-                        <dl class="row mb-0">
-                            <dt class="col-sm-3 text-muted" @onclick="CancelEdit" style="cursor: pointer" title="Click to cancel editing">Title</dt>
-                            <dd class="col-sm-9 fw-bold fs-5">
-                                @if (isEditingTitle)
+                        <div class="row">
+                            <!-- Image Column -->
+                            <div class="col-md-3 mb-4 mb-md-0">
+                                <div class="book-cover-container shadow-sm border rounded p-2 bg-white d-flex align-items-center justify-content-center" style="min-height: 200px; max-height: 350px; overflow: hidden;">
+                                    @if (FSharpOption<Uri>.get_IsSome(bookDetails.Book.ImageUrl))
+                                    {
+                                        <img src="@bookDetails.Book.ImageUrl.Value.ToString()" 
+                                             class="img-fluid rounded shadow-sm" 
+                                             alt="Book Cover" 
+                                             style="max-height: 100%; max-width: 100%; object-fit: contain;" />
+                                    }
+                                    else
+                                    {
+                                        <div class="text-center text-muted opacity-50 p-4">
+                                            <i class="bi bi-book h1 d-block mb-2"></i>
+                                            <span class="small d-block">No Cover Available</span>
+                                        </div>
+                                    }
+                                </div>
+
+                                @if (bookDetails.Book.Editable)
                                 {
-                                    <div class="input-group">
-                                        <input type="text" class="form-control fw-bold" @bind="editedTitle" @onkeyup="HandleKeyUp" autofocus />
-                                        <button class="btn btn-primary" @onclick="UpdateTitle" title="Confirm changes">
-                                            <i class="bi bi-check-lg"></i> Confirm
-                                        </button>
-                                        <button class="btn btn-outline-secondary" @onclick="CancelEdit" title="Cancel">
-                                            <i class="bi bi-x-lg"></i>
-                                        </button>
-                                    </div>
-                                }
-                                else
-                                {
-                                    <div class="@((bookDetails?.Book.Editable ?? false) ? "editable-title" : "")" @onclick="StartEdit">
-                                        @bookDetails.Book.Title.Value
-                                        @if (bookDetails.Book.Editable)
+                                    <div class="mt-3">
+                                        @if (isEditingImageUrl)
                                         {
-                                            <i class="bi bi-pencil-square text-muted ms-2 small"></i>
+                                            <div class="p-3 border rounded bg-light shadow-sm animate-fade-in">
+                                                <label class="form-label small fw-bold text-muted text-uppercase mb-2">Image URL</label>
+                                                <div class="input-group input-group-sm mb-3">
+                                                    <span class="input-group-text bg-white border-primary"><i class="bi bi-link-45deg"></i></span>
+                                                    <input type="text" class="form-control border-primary" @bind="editedImageUrl" placeholder="Paste image URL..." />
+                                                    <button class="btn btn-primary d-flex align-items-center" @onclick="UpdateImageUrl" title="Save URL">
+                                                        <i class="bi bi-check-lg me-1"></i><span>Save</span>
+                                                    </button>
+                                                    <button class="btn btn-outline-secondary" @onclick="() => isEditingImageUrl = false">
+                                                        <i class="bi bi-x-lg"></i><span>Cancel</span>
+                                                    </button>
+                                                </div>
+
+                                                <label class="form-label small fw-bold text-muted text-uppercase mb-2">Lookup Cover</label>
+                                                <div class="d-flex gap-2">
+                                                    <select class="form-select form-select-sm border-info" @bind="coverSizeLookup">
+                                                        <option value="Small">Small</option>
+                                                        <option value="Medium">Medium</option>
+                                                        <option value="Large">Large</option>
+                                                    </select>
+                                                    <button class="btn btn-info btn-sm text-white flex-grow-1" @onclick="LookupCover" disabled="@isLookingUpCover">
+                                                        @if (isLookingUpCover) { <span class="spinner-border spinner-border-sm me-1" role="status"></span> }
+                                                        <i class="bi bi-search me-1"></i> Lookup
+                                                    </button>
+                                                </div>
+                                                <div class="form-text x-small mt-1 px-1 text-muted">
+                                                    <i class="bi bi-info-circle me-1"></i>
+                                                    @(isBookIsbnValid() ? "Searching by ISBN" : "Searching by title & author")
+                                                </div>
+
+                                                @if (coverPreviewUrl != null)
+                                                {
+                                                    <div class="mt-3 p-3 bg-white border border-info rounded shadow-sm animate-fade-in">
+                                                        <div class="d-flex align-items-center gap-3">
+                                                            <div class="flex-shrink-0" style="width: 80px; height: 110px; overflow: hidden; border: 1px solid #dee2e6; border-radius: 4px;">
+                                                                <img src="@coverPreviewUrl" alt="Cover Preview" style="width: 100%; height: 100%; object-fit: contain;" />
+                                                            </div>
+                                                            <div class="flex-grow-1">
+                                                                <h6 class="text-info fw-bold mb-1 small">New Cover Found!</h6>
+                                                                <p class="x-small text-muted mb-2">Use this image for the book cover?</p>
+                                                                <div class="d-flex gap-2">
+                                                                    <button type="button" class="btn btn-info text-white btn-sm px-3 py-1" @onclick="AcceptLookup">
+                                                                        <i class="bi bi-check2 me-1"></i>Accept
+                                                                    </button>
+                                                                    <button type="button" class="btn btn-outline-secondary btn-sm px-3 py-1" @onclick="DiscardLookup">
+                                                                        Discard
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                }
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <div class="d-grid gap-2">
+                                                <button class="btn btn-sm btn-outline-primary" @onclick="StartEditingImageUrl">
+                                                    @if (FSharpOption<Uri>.get_IsSome(bookDetails.Book.ImageUrl))
+                                                    {
+                                                        <i class="bi bi-pencil-square me-1"></i><span>Change Image</span>
+                                                    }
+                                                    else
+                                                    {
+                                                        <i class="bi bi-plus-lg me-1"></i><span>Add Image</span>
+                                                    }
+                                                </button>
+                                                @if (FSharpOption<Uri>.get_IsSome(bookDetails.Book.ImageUrl))
+                                                {
+                                                    <button class="btn btn-sm btn-outline-danger" @onclick="RemoveImageUrl">
+                                                        <i class="bi bi-image-fill me-1"></i> Remove Image
+                                                    </button>
+                                                }
+                                            </div>
                                         }
                                     </div>
                                 }
-                            </dd>
+                            </div>
 
-                            <dt class="col-sm-3 text-muted">ISBN</dt>
-                            <dd class="col-sm-9">@bookDetails.Book.Isbn.Value</dd>
+                            <!-- Details Column -->
+                            <div class="col-md-9">
+                                <dl class="row mb-0">
+                                    <dt class="col-sm-3 text-muted" @onclick="CancelEdit" style="cursor: pointer" title="Click to cancel editing">Title</dt>
+                                    <dd class="col-sm-9 fw-bold fs-5">
+                                        @if (isEditingTitle)
+                                        {
+                                            <div class="input-group">
+                                                <input type="text" class="form-control fw-bold" @bind="editedTitle" @onkeyup="HandleKeyUp" autofocus />
+                                                <button class="btn btn-primary" @onclick="UpdateTitle" title="Confirm changes">
+                                                    <i class="bi bi-check-lg"></i> Confirm
+                                                </button>
+                                                <button class="btn btn-outline-secondary" @onclick="CancelEdit" title="Cancel">
+                                                    <i class="bi bi-x-lg"></i>
+                                                </button>
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <div class="@((bookDetails?.Book.Editable ?? false) ? "editable-title" : "")" @onclick="StartEdit">
+                                                @bookDetails.Book.Title.Value
+                                                @if (bookDetails.Book.Editable)
+                                                {
+                                                    <i class="bi bi-pencil-square text-muted ms-2 small"></i>
+                                                }
+                                            </div>
+                                        }
+                                    </dd>
 
-                            <dt class="col-sm-3 text-muted">Publication Year</dt>
-                            <dd class="col-sm-9">@bookDetails.Book.Year.Value</dd>
+                                    <dt class="col-sm-3 text-muted mt-2">ISBN</dt>
+                                    <dd class="col-sm-9 mt-2">
+                                        @if (isEditingIsbn)
+                                        {
+                                            <div class="p-2 border rounded bg-light shadow-sm">
+                                                <div class="input-group input-group-sm mb-2">
+                                                    <input type="text" class="form-control" @bind="editedIsbn" placeholder="Enter ISBN..." autofocus />
+                                                    <button class="btn btn-primary" @onclick="UpdateIsbn">
+                                                        <i class="bi bi-check-lg"></i> Confirm
+                                                    </button>
+                                                    <button class="btn btn-outline-secondary" @onclick="CancelEditIsbn">
+                                                        <i class="bi bi-x-lg"></i>
+                                                    </button>
+                                                </div>
+                                                <div class="form-check form-switch">
+                                                    <input class="form-check-input" type="checkbox" id="invalidIsbnSwitch" @bind="acceptInvalidIsbn" />
+                                                    <label class="form-check-label x-small text-muted" for="invalidIsbnSwitch">Accept Invalid ISBN</label>
+                                                </div>
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <div class="@((bookDetails?.Book.Editable ?? false) ? "editable-title" : "")" @onclick="StartEditIsbn">
+                                                @bookDetails.Book.Isbn.Value
+                                                @if (bookDetails.Book.Editable)
+                                                {
+                                                    <i class="bi bi-pencil-square text-muted ms-2 small"></i>
+                                                }
+                                            </div>
+                                        }
+                                    </dd>
+
+                                    <dt class="col-sm-3 text-muted mt-2">Publication Year</dt>
+                                    <dd class="col-sm-9 mt-2">@bookDetails.Book.Year.Value</dd>
 
                             <dt class="col-sm-3 text-muted">Main Category</dt>
                             <dd class="col-sm-9">
@@ -279,7 +415,9 @@
                                 }
                             </dd>
 
-                        </dl>
+                                </dl>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -377,6 +515,36 @@
     private bool showAuthorSearchResults = false;
     private Author? selectedAuthorForAdd = null;
     private bool isLoadingAuthors = false;
+
+    private bool isEditingImageUrl = false;
+    private string editedImageUrl = "";
+    private string? coverPreviewUrl = null;
+    private bool isLookingUpCover = false;
+    private string coverSizeLookup = "Medium";
+
+    private bool isEditingIsbn = false;
+    private string editedIsbn = "";
+    private bool acceptInvalidIsbn = false;
+
+    private bool isBookIsbnEmpty()
+    {
+        return bookDetails?.Book.Isbn.IsNoneIsbn ?? true;
+    }
+
+    private bool isBookIsbnValid()
+    {
+        return bookDetails?.Book.Isbn.IsValidIsbn ?? false;
+    }
+
+    private void StartEditingImageUrl()
+    {
+        isEditingImageUrl = true;
+        coverPreviewUrl = null;
+        if (bookDetails == null) return;
+        editedImageUrl = FSharpOption<Uri>.get_IsSome(bookDetails.Book.ImageUrl) 
+            ? bookDetails.Book.ImageUrl.Value.ToString() 
+            : "";
+    }
 
     private async Task HandleAuthorSearchInput(ChangeEventArgs e)
     {
@@ -673,6 +841,206 @@
         catch (Exception ex)
         {
             ShowStatus($"Error updating title: {ex.Message}", "alert-danger");
+        }
+    }
+
+    private async Task UpdateImageUrl()
+    {
+        if (bookDetails == null) return;
+        
+        try 
+        {
+            if (string.IsNullOrWhiteSpace(editedImageUrl))
+            {
+                await RemoveImageUrl();
+                return;
+            }
+
+            if (Uri.TryCreate(editedImageUrl, UriKind.Absolute, out var uri))
+            {
+                var result = await BookService.SetImageUrlAsync(bookDetails.Book.BookId, uri);
+                if (result.IsOk)
+                {
+                    ShowStatus("Image URL updated successfully.", "alert-success");
+                    isEditingImageUrl = false;
+                    await LoadBookDetails();
+                }
+                else
+                {
+                    ShowStatus($"Error updating image: {result.ErrorValue}", "alert-danger");
+                }
+            }
+            else
+            {
+                ShowStatus("Invalid URL format. Please provide a full absolute URL.", "alert-warning");
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowStatus($"Exception updating image: {ex.Message}", "alert-danger");
+        }
+    }
+
+    private async Task RemoveImageUrl()
+    {
+        if (bookDetails == null) return;
+        
+        bool confirm = await JSRuntime.InvokeAsync<bool>("confirm", "Are you sure you want to remove the book image cover?");
+        if (!confirm) return;
+
+        try
+        {
+            var result = await BookService.RemoveImageUrlAsync(bookDetails.Book.BookId);
+            if (result.IsOk)
+            {
+                ShowStatus("Image cover removed.", "alert-info");
+                isEditingImageUrl = false;
+                await LoadBookDetails();
+            }
+            else
+            {
+                ShowStatus($"Error removing image: {result.ErrorValue}", "alert-danger");
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowStatus($"Exception removing image: {ex.Message}", "alert-danger");
+        }
+    }
+
+    private async Task LookupCover()
+    {
+        if (bookDetails == null) return;
+
+        isLookingUpCover = true;
+        StateHasChanged();
+
+        try
+        {
+            FSharpResult<FSharpOption<string>, string> result;
+            string searchMode = "";
+
+            if (isBookIsbnValid())
+            {
+                searchMode = "ISBN";
+                var size = ThumbRoughSize.Medium;
+                if (coverSizeLookup == "Small") size = ThumbRoughSize.Small;
+                else if (coverSizeLookup == "Large") size = ThumbRoughSize.Large;
+
+                result = await GoogleBooksService.LookupCoverImageByIsbnWithOpenApiAndThenGoogleAsync(bookDetails.Book.Isbn, FSharpOption<ThumbRoughSize>.Some(size));
+            }
+            else
+            {
+                searchMode = "Title/Author";
+                var title = bookDetails.Book.Title.Value;
+                var firstAuthor = bookDetails.Authors.FirstOrDefault();
+                var authorName = firstAuthor != null ? FSharpOption<string>.Some(firstAuthor.Name.Value) : FSharpOption<string>.None;
+                
+                result = await GoogleBooksService.LookupGoogleApiCoverImageByTitleAndOptionalAuthorAsync(title, authorName);
+            }
+
+            if (result.IsOk && FSharpOption<string>.get_IsSome(result.ResultValue))
+            {
+                coverPreviewUrl = result.ResultValue.Value;
+                ShowStatus($"Cover image found via {searchMode}! See preview below.", "alert-success");
+            }
+            else if (result.IsOk)
+            {
+                ShowStatus($"No cover found using {searchMode}.", "alert-warning");
+            }
+            else
+            {
+                ShowStatus($"Lookup error: {result.ErrorValue}", "alert-danger");
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowStatus($"Exception during lookup: {ex.Message}", "alert-danger");
+        }
+        finally
+        {
+            isLookingUpCover = false;
+        }
+    }
+
+    private void AcceptLookup()
+    {
+        if (coverPreviewUrl != null)
+        {
+            editedImageUrl = coverPreviewUrl;
+            coverPreviewUrl = null;
+            ShowStatus("New image URL applied. Click 'Save' to confirm.", "alert-info");
+        }
+    }
+
+    private void DiscardLookup()
+    {
+        coverPreviewUrl = null;
+        ShowStatus("Cover lookup discarded.", "alert-info");
+    }
+
+    private void StartEditIsbn()
+    {
+        if (bookDetails?.Book.Editable ?? false)
+        {
+            isEditingIsbn = true;
+            editedIsbn = bookDetails.Book.Isbn.Value;
+            acceptInvalidIsbn = false;
+        }
+        else if (isBookSealed)
+        {
+            ShowStatus("This book is currently sealed. Please unseal it to edit the ISBN.", "alert-warning");
+        }
+    }
+
+    private void CancelEditIsbn()
+    {
+        isEditingIsbn = false;
+    }
+
+    private async Task UpdateIsbn()
+    {
+        if (bookDetails == null) return;
+        if (string.IsNullOrWhiteSpace(editedIsbn))
+        {
+            ShowStatus("ISBN cannot be empty.", "alert-warning");
+            return;
+        }
+
+        try
+        {
+            Isbn isbn;
+            var validResult = Isbn.New(editedIsbn);
+            
+            if (validResult.IsOk)
+            {
+                isbn = validResult.ResultValue;
+            }
+            else if (acceptInvalidIsbn)
+            {
+                isbn = Isbn.NewInvalid(editedIsbn);
+            }
+            else
+            {
+                ShowStatus("Invalid ISBN format. If you need to save it anyway, use the 'Accept Invalid' switch.", "alert-warning");
+                return;
+            }
+
+            var result = await BookService.UpdateIsbnAsync(isbn, bookDetails.Book.BookId, FSharpOption<CancellationToken>.None);
+            if (result.IsOk)
+            {
+                await LoadBookDetails();
+                isEditingIsbn = false;
+                ShowStatus("ISBN updated successfully.", "alert-success");
+            }
+            else
+            {
+                ShowStatus($"Failed to update ISBN: {result.ErrorValue}", "alert-danger");
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowStatus($"Error updating ISBN: {ex.Message}", "alert-danger");
         }
     }
 

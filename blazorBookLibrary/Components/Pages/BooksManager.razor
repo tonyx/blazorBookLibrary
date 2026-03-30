@@ -254,7 +254,7 @@
                                     </div>
                                 </ColumnOptions>
                                 <ChildContent>
-                                    <a href="/book-details/@context.Id" class="text-decoration-none text-primary-emphasis transition-hover d-block w-100 h-100 py-1" title="View details for '@context.Title.Value'">
+                                    <a href="/book-edit/@context.Id" class="text-decoration-none text-primary-emphasis transition-hover d-block w-100 h-100 py-1" title="View details for '@context.Title.Value'">
                                         <i class="bi bi-book-fill me-2 small opacity-75"></i>@context.Title.Value
                                     </a>
                                 </ChildContent>
@@ -354,13 +354,67 @@
                                 </div>
                             }
 
-                            <div class="col-md-8">
+                            <div class="col-md-5">
                                 <label class="form-label fw-bold">ISBN</label>
                                 <div class="input-group">
                                     <span class="input-group-text"><i class="bi bi-upc-scan"></i></span>
                                     <InputText class="form-control" @bind-Value="newBookIsbn" placeholder="e.g. 978-3-16-148410-0" />
                                 </div>
                             </div>
+
+                            <div class="col-md-3">
+                                <label class="form-label fw-bold">Cover Lookup</label>
+                                <button type="button" class="btn btn-outline-info w-100" @onclick="LookupCoverImage" disabled="@(!IsNewBookIsbnValid || isLookingUpCover)">
+                                    @if (isLookingUpCover) { <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> }
+                                    <i class="bi bi-image me-1"></i> Lookup Cover
+                                </button>
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold text-transparent">.</label>
+                                <div class="form-check form-switch pt-2">
+                                    <InputCheckbox class="form-check-input" @bind-Value="allowInvalidIsbn" id="invalidIsbnSwitch" />
+                                    <label class="form-check-label text-muted small" for="invalidIsbnSwitch">Accept invalid ISBN</label>
+                                </div>
+                            </div>
+
+                            <div class="col-12 mt-3">
+                                <label class="form-label fw-bold">Image URL</label>
+                                <div class="input-group shadow-sm">
+                                    <span class="input-group-text bg-white text-info border-info"><i class="bi bi-link-45deg"></i></span>
+                                    <InputText class="form-control border-info" @bind-Value="newBookImageUrl" placeholder="Paste image URL here..." />
+                                    @if (!string.IsNullOrWhiteSpace(newBookImageUrl))
+                                    {
+                                        <button type="button" class="btn btn-outline-danger border-info" @onclick='() => newBookImageUrl = ""'>
+                                            <i class="bi bi-x-lg"></i>
+                                        </button>
+                                    }
+                                </div>
+                                <div class="form-text small italic text-muted">Use the Cover Lookup with an ISBN to find one automatically.</div>
+                            </div>
+
+                            @if (coverPreviewUrl != null)
+                            {
+                                <div class="col-12 mt-3 animate-fade-in">
+                                    <div class="p-3 bg-white border border-info rounded shadow-sm d-flex align-items-center gap-4">
+                                        <div class="flex-shrink-0" style="width: 100px; height: 140px; overflow: hidden; border: 1px solid #dee2e6; border-radius: 4px;">
+                                            <img src="@coverPreviewUrl" alt="Cover Preview" style="width: 100%; height: 100%; object-fit: contain;" />
+                                        </div>
+                                        <div class="flex-grow-1">
+                                            <h6 class="text-info fw-bold mb-1">Cover Found!</h6>
+                                            <p class="small text-muted mb-3">Would you like to use this image URL for the book?</p>
+                                            <div class="d-flex gap-2">
+                                                <button type="button" class="btn btn-info text-white btn-sm px-4" @onclick="AcceptCoverUrl">
+                                                    <i class="bi bi-check2-circle me-1"></i> Accept & Use
+                                                </button>
+                                                <button type="button" class="btn btn-outline-secondary btn-sm" @onclick='() => coverPreviewUrl = null'>
+                                                    Discard
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
 
                             <div class="col-md-4">
                                 <label class="form-label fw-bold text-transparent">.</label>
@@ -515,6 +569,9 @@
     private bool isAutofilling = false;
     private List<GoogleBookMetadata> lookupResults = new();
     private int selectedLookupIndex = -1;
+    private string newBookImageUrl = "";
+    private string? coverPreviewUrl = null;
+    private bool isLookingUpCover = false;
 
     private string searchAuthorName = "";
     private string searchAuthorIsni = "";
@@ -536,6 +593,14 @@
     private List<Category> searchCategoriesCriteria = new();
 
     private bool IsIsbnSearchActive => !string.IsNullOrWhiteSpace(searchBookIsbn);
+    private bool IsNewBookIsbnValid 
+    {
+        get 
+        {
+            if (string.IsNullOrWhiteSpace(newBookIsbn)) return false;
+            return Isbn.IsValid(newBookIsbn);
+        }
+    }
 
     private List<Book> foundBooks = new();
     private string titleRefinementFilter = "";
@@ -851,6 +916,15 @@
         var year = Year.New(newBookYear.Value);
         var authorIds = selectedAuthors.Select(a => a.AuthorId).ToList();
 
+        FSharpOption<Uri> resolvedImageUrl = FSharpOption<Uri>.None;
+        if (!string.IsNullOrWhiteSpace(newBookImageUrl))
+        {
+            if (Uri.TryCreate(newBookImageUrl, UriKind.Absolute, out var uri))
+            {
+                resolvedImageUrl = FSharpOption<Uri>.Some(uri);
+            }
+        }
+
         // Construct the book aggregate using the new constructor with categories.
         var book = Book.NewWithMainCategoryAndAdditionalCategories(
             title, 
@@ -861,7 +935,8 @@
             mainCategory,
             ListModule.OfSeq(additionalCategories),
             year,
-            isbn
+            isbn,
+            resolvedImageUrl
         );
 
         var result = await BookService.AddBookAsync(book);
@@ -892,6 +967,8 @@
         selectedAuthors.Clear();
         mainCategory = Category.Other;
         additionalCategories.Clear();
+        newBookImageUrl = "";
+        coverPreviewUrl = null;
     }
 
     private async Task PerformGoogleLookup()
@@ -1021,4 +1098,49 @@
     }
 
     private async Task AutofillBookInfo() => await PerformGoogleLookup();
+
+    private async Task LookupCoverImage()
+    {
+        if (!IsNewBookIsbnValid) return;
+
+        isLookingUpCover = true;
+        coverPreviewUrl = null;
+        StateHasChanged();
+
+        try
+        {
+            var isbnResult = Isbn.New(newBookIsbn);
+            if (isbnResult.IsOk)
+            {
+                var result = await GoogleBooksService.LookupCoverImageByIsbnWithOpenApiAndThenGoogleAsync(isbnResult.ResultValue, FSharpOption<ThumbRoughSize>.Some(ThumbRoughSize.Medium));
+                if (result.IsOk && FSharpOption<string>.get_IsSome(result.ResultValue))
+                {
+                    coverPreviewUrl = result.ResultValue.Value;
+                    ShowStatus("Cover image found in our catalogs! See preview below.", "alert-info");
+                }
+                else
+                {
+                    ShowStatus("No cover image found for this ISBN in any of our connected libraries.", "alert-warning");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowStatus($"Error looking up cover: {ex.Message}", "alert-danger");
+        }
+        finally
+        {
+            isLookingUpCover = false;
+        }
+    }
+
+    private void AcceptCoverUrl()
+    {
+        if (!string.IsNullOrEmpty(coverPreviewUrl))
+        {
+            newBookImageUrl = coverPreviewUrl;
+            coverPreviewUrl = null;
+            ShowStatus("Cover URL applied to book image field.", "alert-success");
+        }
+    }
 }

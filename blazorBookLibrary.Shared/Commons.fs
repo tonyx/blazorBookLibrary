@@ -131,6 +131,28 @@ type Isbn =
             | InvalidIsbn v -> v
             | EmptyIsbn -> ""
 
+        member this.IsValidIsbn = 
+            match this with
+            | Isbn _ -> true
+            | _ -> false
+
+        member this.IsNoneIsbn = 
+            match this with
+            | EmptyIsbn -> true
+            | _ -> false
+
+type ThumbRoughSize =
+    | Small
+    | Medium
+    | Large
+    with
+        member this.ShortPrint = 
+            match this with
+            | Small -> "S"
+            | Medium -> "M"
+            | Large -> "L"
+    
+
 type AuthorId =
     | AuthorId of Guid
     with

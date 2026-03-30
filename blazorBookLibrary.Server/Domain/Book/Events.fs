@@ -28,6 +28,8 @@ type BookEvent =
     | MainCategoryChanged of Category * DateTime
     | AdditionalCategoryAdded of Category * DateTime
     | AdditionalCategoryRemoved of Category * DateTime
+    | ImageUrlSet of Uri * DateTime
+    | ImageUrlRemoved of DateTime
 
 
     interface Event<BookLibrary.Domain.Book> with
@@ -73,6 +75,10 @@ type BookEvent =
                 book.AddAdditionalCategory category dateTime
             | AdditionalCategoryRemoved (category, dateTime) ->
                 book.RemoveAdditionalCategory category dateTime
+            | ImageUrlSet (imageUrl, dateTime) ->
+                book.SetImageUrl imageUrl dateTime
+            | ImageUrlRemoved dateTime ->
+                book.RemoveImageUrl dateTime
 
 
     static member Deserialize (x: string): Result<BookEvent, string> =

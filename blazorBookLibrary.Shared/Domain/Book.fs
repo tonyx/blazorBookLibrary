@@ -7,9 +7,48 @@ open BookLibrary.Shared.Commons
 open System
 open System.Globalization
 
-type Book = {
+
+
+type Book001 = {
     BookId: BookId
     Title: Title
+    Authors: List<AuthorId>
+    Translators: List<AuthorId>
+    Languages: List<CultureInfo>
+    CurrentReservations: List<ReservationId>
+    CurrentLoan: Option<LoanId>
+    Editor: Option<EditorId>
+    MainCategory: Category
+    AdditionalCategories: List<Category>
+    Year: Year
+    Isbn: Isbn
+    Sealed: Sealed
+}
+with
+    member 
+        this.Upcast (): Book =
+        {
+            BookId = this.BookId;
+            Title = this.Title;
+            ImageUrl = None;
+            Authors = this.Authors;
+            Translators = this.Translators;
+            Languages = this.Languages;
+            CurrentReservations = this.CurrentReservations;
+            CurrentLoan = this.CurrentLoan;
+            Editor = this.Editor;
+            MainCategory = this.MainCategory;
+            AdditionalCategories = this.AdditionalCategories;
+            Year = this.Year;
+            Isbn = this.Isbn;
+            Sealed = this.Sealed
+        }
+
+
+and Book = {
+    BookId: BookId
+    Title: Title
+    ImageUrl: Option<Uri>   
     Authors: List<AuthorId>
     Translators: List<AuthorId>
     Languages: List<CultureInfo>
@@ -30,10 +69,12 @@ with
         (languages: list<CultureInfo>) 
         (editor: Option<EditorId>) 
         (year: Year) 
-        (isbn: Isbn) = 
-        {   
+        (isbn: Isbn) 
+        = 
+        {
             BookId = BookId.New(); 
             Title = title; 
+            ImageUrl = None;
             Authors = authors; 
             Translators = translators;
             Languages = languages;
@@ -58,6 +99,7 @@ with
         {   
             BookId = BookId.New(); 
             Title = title; 
+            ImageUrl = None;
             Authors = authors; 
             Translators = translators;
             Languages = languages;
@@ -80,10 +122,13 @@ with
         (mainCategory: Category) 
         (additionalCategories: list<Category>) 
         (year: Year) 
-        (isbn: Isbn) = 
+        (isbn: Isbn) 
+        (imageUrl: Option<Uri>)
+        = 
         {   
             BookId = BookId.New(); 
             Title = title; 
+            ImageUrl = imageUrl;
             Authors = authors; 
             Translators = translators;
             Languages = languages;
@@ -213,6 +258,29 @@ with
                     |> Result.ofBool "Author not in book"
                 return { this with Authors = this.Authors |> List.filter (fun x -> x <> author) } 
             }
+
+    member this.SetImageUrl 
+        (imageUrl: Uri) 
+        (dateTime: DateTime) = 
+        result
+            {
+                do! 
+                    this.Sealed.IsSealed(dateTime)
+                    |> not
+                    |> Result.ofBool "Book is sealed"
+                return { this with ImageUrl = Some imageUrl } 
+            }
+    member this.RemoveImageUrl 
+        (dateTime: DateTime) = 
+        result
+            {
+                do! 
+                    this.Sealed.IsSealed(dateTime)
+                    |> not
+                    |> Result.ofBool "Book is sealed"
+                return { this with ImageUrl = None } 
+            }
+
     member this.SetCurrentLoan 
         (loanId: LoanId) 
         (dateTime: DateTime) = 
@@ -422,4 +490,9 @@ with
             let book = JsonSerializer.Deserialize<Book> (data, jsonOptions)
             Ok book
         with
-            | ex -> Error ex.Message
+            | ex -> 
+                try
+                    let book001 = JsonSerializer.Deserialize<Book001> (data, jsonOptions)
+                    Ok (book001.Upcast())
+                with
+                    | ex2 -> Error (ex.Message + " " + ex2.Message)

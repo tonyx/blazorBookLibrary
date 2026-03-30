@@ -27,6 +27,8 @@ type BookCommand =
     | ChangeMainCategory of Category * DateTime
     | AddAdditionalCategory of Category * DateTime
     | RemoveAdditionalCategory of Category * DateTime
+    | SetImageUrl of Uri * DateTime
+    | RemoveImageUrl of DateTime
 
     interface AggregateCommand<Book, BookEvent> with
         member this.Execute (book: Book) =
@@ -91,6 +93,12 @@ type BookCommand =
             | RemoveAdditionalCategory (category, dateTime) ->
                 book.RemoveAdditionalCategory category dateTime
                 |> Result.map (fun b -> (b, [AdditionalCategoryRemoved(category, dateTime)]))
+            | SetImageUrl (imageUrl, dateTime) ->
+                book.SetImageUrl imageUrl dateTime
+                |> Result.map (fun b -> (b, [ImageUrlSet(imageUrl, dateTime)]))
+            | RemoveImageUrl dateTime ->
+                book.RemoveImageUrl dateTime
+                |> Result.map (fun b -> (b, [ImageUrlRemoved(dateTime)]))
 
 
         member this.Undoer = None

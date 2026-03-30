@@ -10,6 +10,7 @@
 
 @attribute [Authorize(Roles = "Admin, Manager")]
 @inject IAuthorService AuthorService
+@inject IAuthorsSearchService AuthorsSearchService
 @inject NavigationManager NavigationManager
 @inject IJSRuntime JSRuntime
 @rendermode InteractiveServer
@@ -168,7 +169,17 @@
                                             <div class="card bg-light border p-2" @onclick:stopPropagation>
                                                 <label class="form-label small text-muted mb-1 text-uppercase fw-bold">Update Profile Image URL</label>
                                                 <div class="input-group">
-                                                    <input type="text" class="form-control" placeholder="https://example.com/author.jpg" @bind="editedImageUrl" />
+                                                    <input type="text" class="form-control" placeholder="https://example.com/author.jpg" @bind="editedImageUrl" @bind:event="oninput" />
+                                                    <button class="btn btn-outline-primary" type="button" @onclick="LookupImage" title="Auto-find image from external API" disabled="@isLookingUpImage">
+                                                        @if (isLookingUpImage)
+                                                        {
+                                                            <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                                                        }
+                                                        else
+                                                        {
+                                                            <i class="bi bi-search me-1"></i><span>Lookup</span>
+                                                        }
+                                                    </button>
                                                     <button class="btn btn-primary" @onclick="UpdateImageUrl">
                                                         <i class="bi bi-check-lg me-1"></i>Apply
                                                     </button>
@@ -176,6 +187,16 @@
                                                         <i class="bi bi-x-lg"></i>
                                                     </button>
                                                 </div>
+                                                
+                                                @if (!string.IsNullOrWhiteSpace(editedImageUrl) && Uri.TryCreate(editedImageUrl, UriKind.Absolute, out _))
+                                                {
+                                                    <div class="mt-3 text-center animate-fade-in">
+                                                        <label class="form-label small text-muted d-block mb-2 text-uppercase fw-semibold">Preview New Image</label>
+                                                        <div class="d-inline-block p-1 border rounded bg-white shadow-sm">
+                                                            <img src="@editedImageUrl" class="rounded" style="max-width: 120px; max-height: 120px; object-fit: cover;" alt="Preview" />
+                                                        </div>
+                                                    </div>
+                                                }
                                                 <div class="mt-2 text-end">
                                                     @if (authorDetails.Author.ImageUri != null && FSharpOption<Uri>.get_IsSome(authorDetails.Author.ImageUri))
                                                     {
@@ -273,7 +294,7 @@
                                 <QuickGrid Items="@authorDetails.Books.AsQueryable()" Pagination="@bookPagination" Class="table table-hover align-middle mb-0 book-grid">
                                     <TemplateColumn Title="Title" SortBy="@sortTitle" Class="fw-bold text-dark col-title title-cell">
                                         <ChildContent>
-                                            <a href="/book-details/@context.Id" class="text-decoration-none text-primary-emphasis d-block w-100 py-2 h-100" title="View details for '@context.Title.Value'">
+                                            <a href="/book-view/@context.Id" class="text-decoration-none text-primary-emphasis d-block w-100 py-2 h-100" title="View details for '@context.Title.Value'">
                                                 <i class="bi bi-book-fill me-2 text-primary opacity-50"></i>@context.Title.Value
                                             </a>
                                         </ChildContent>
@@ -377,6 +398,42 @@
 
     private bool isEditingImageUrl = false;
     private string editedImageUrl = "";
+    private bool isLookingUpImage = false;
+
+    private async Task LookupImage()
+    {
+        if (authorDetails == null) return;
+        
+        isLookingUpImage = true;
+        statusMessage = "Looking up author image...";
+        statusClass = "alert-info";
+        StateHasChanged();
+
+        try
+        {
+            var result = await AuthorsSearchService.LookupImageUrlByNameAndThumbSizeAsync(authorDetails.Author.Name.Value, FSharpOption<int>.None);
+            if (result.IsOk)
+            {
+                editedImageUrl = result.ResultValue;
+                statusMessage = "Image URL found. Please click 'Apply' to save.";
+                statusClass = "alert-info";
+            }
+            else
+            {
+                statusMessage = $"Image lookup failed: {result.ErrorValue}";
+                statusClass = "alert-warning";
+            }
+        }
+        catch (Exception ex)
+        {
+            statusMessage = $"Error during lookup: {ex.Message}";
+            statusClass = "alert-danger";
+        }
+        finally
+        {
+            isLookingUpImage = false;
+        }
+    }
 
     private bool isAuthorSealed => authorDetails != null && authorDetails.Author.Sealed.IsSealed(DateTime.UtcNow);
 

@@ -18,6 +18,7 @@ open Microsoft.Extensions.Configuration
 open System.Threading
 open BookLibrary.Services
 open BookLibrary.Shared.Services
+open System.Globalization
 
 Env.Load() |> ignore
 let password = Environment.GetEnvironmentVariable("password")
@@ -839,10 +840,10 @@ let tests =
             // Main category "Other" by default
             
             let book2 = Book.NewWithMainCategoryAndAdditionalCategories 
-                            (Title.New "Book 2") [] [] [] None Category.Photography [] (Year.New 2001) (Isbn.NewEmpty())
+                            (Title.New "Book 2") [] [] [] None Category.Photography [] (Year.New 2001) (Isbn.NewEmpty()) None
             
             let book3 = Book.NewWithMainCategoryAndAdditionalCategories 
-                            (Title.New "Book 3") [] [] [] None Category.Science [Category.Photography] (Year.New 2002) (Isbn.NewEmpty())
+                            (Title.New "Book 3") [] [] [] None Category.Science [Category.Photography] (Year.New 2002) (Isbn.NewEmpty()) None
             
             (bookService :> IBookService).AddBookAsync book1 |> Async.AwaitTask |> Async.RunSynchronously |> ignore
             (bookService :> IBookService).AddBookAsync book2 |> Async.AwaitTask |> Async.RunSynchronously |> ignore
@@ -858,9 +859,9 @@ let tests =
             let bookService = getBookService()
             let title = Title.New "Star Wars"
             let book1 = Book.NewWithMainCategoryAndAdditionalCategories 
-                            title [] [] [] None Category.ScienceFiction [] (Year.New 1977) (Isbn.NewEmpty())
+                            title [] [] [] None Category.ScienceFiction [] (Year.New 1977) (Isbn.NewEmpty()) None
             let book2 = Book.NewWithMainCategoryAndAdditionalCategories 
-                            title [] [] [] None Category.Fiction [] (Year.New 1977) (Isbn.NewEmpty())
+                            title [] [] [] None Category.Fiction [] (Year.New 1977) (Isbn.NewEmpty()) None
             
             (bookService :> IBookService).AddBookAsync book1 |> Async.AwaitTask |> Async.RunSynchronously |> ignore
             (bookService :> IBookService).AddBookAsync book2 |> Async.AwaitTask |> Async.RunSynchronously |> ignore
@@ -873,9 +874,9 @@ let tests =
             setUp ()
             let bookService = getBookService()
             let book1 = Book.NewWithMainCategoryAndAdditionalCategories 
-                            (Title.New "Star Wars") [] [] [] None Category.ScienceFiction [] (Year.New 1977) (Isbn.NewEmpty())
+                            (Title.New "Star Wars") [] [] [] None Category.ScienceFiction [] (Year.New 1977) (Isbn.NewEmpty()) None
             let book2 = Book.NewWithMainCategoryAndAdditionalCategories 
-                            (Title.New "Star Wars 2") [] [] [] None Category.ScienceFiction [] (Year.New 1980) (Isbn.NewEmpty())
+                            (Title.New "Star Wars 2") [] [] [] None Category.ScienceFiction [] (Year.New 1980) (Isbn.NewEmpty()) None
             
             (bookService :> IBookService).AddBookAsync book1 |> Async.AwaitTask |> Async.RunSynchronously |> ignore
             (bookService :> IBookService).AddBookAsync book2 |> Async.AwaitTask |> Async.RunSynchronously |> ignore
@@ -889,7 +890,7 @@ let tests =
             let bookService = getBookService()
             let title = Title.New "Star Wars"
             let book1 = Book.NewWithMainCategoryAndAdditionalCategories 
-                            title [] [] [] None Category.ScienceFiction [] (Year.New 1977) (Isbn.NewEmpty())
+                            title [] [] [] None Category.ScienceFiction [] (Year.New 1977) (Isbn.NewEmpty()) None
             
             (bookService :> IBookService).AddBookAsync book1 |> Async.AwaitTask |> Async.RunSynchronously |> ignore
             
@@ -1124,6 +1125,39 @@ let tests =
                 |> Async.RunSynchronously
             let bookRetrieved = retrieveBook |> Result.get
             Expect.isFalse (bookRetrieved.Sealed.IsSealed(DateTime.UtcNow)) "book should be unsealed"
+
+        testCase "update/remove book image URL - Ok" <| fun _ ->
+            setUp ()
+            let bookService = getBookService()
+            let book = Book.New (Title.New "The Image Book") [] [] [] None (Year.New 2024) (Isbn.NewEmpty())
+            (bookService :> IBookService).AddBookAsync book |> Async.AwaitTask |> Async.RunSynchronously |> ignore
+
+            let imageUrl = Uri "https://example.com/cover.jpg"
+            let setImageUrl = 
+                (bookService :> IBookService).SetImageUrlAsync(book.BookId, imageUrl)
+                |> Async.AwaitTask
+                |> Async.RunSynchronously
+            Expect.isOk setImageUrl "should set image URL ok"
+
+            let bookAfterSet = 
+                (bookService :> IBookService).GetBookAsync(book.BookId)
+                |> Async.AwaitTask
+                |> Async.RunSynchronously
+                |> Result.get
+            Expect.equal bookAfterSet.ImageUrl (Some imageUrl) "image URL should be set"
+
+            let removeImageUrl = 
+                (bookService :> IBookService).RemoveImageUrlAsync(book.BookId)
+                |> Async.AwaitTask
+                |> Async.RunSynchronously
+            Expect.isOk removeImageUrl "should remove image URL ok"
+
+            let bookAfterRemove = 
+                (bookService :> IBookService).GetBookAsync(book.BookId)
+                |> Async.AwaitTask
+                |> Async.RunSynchronously
+                |> Result.get
+            Expect.equal bookAfterRemove.ImageUrl None "image URL should be removed"
     ]
 
     |> testSequenced

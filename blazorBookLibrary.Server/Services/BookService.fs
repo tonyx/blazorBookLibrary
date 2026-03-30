@@ -224,6 +224,66 @@ type BookService
                         return result
                     }
 
+            member this.UpdateIsbnAsync (isbn: Isbn, bookId: BookId, ?ct: CancellationToken) = 
+                taskResult
+                    {
+                        let ct = defaultArg ct CancellationToken.None
+                        let! book = 
+                            bookViewerAsync (Some ct) bookId.Value |> TaskResult.map snd
+                        let dateTime = System.DateTime.UtcNow
+                        let bookUpdateIsbnCommand = 
+                            BookCommand.UpdateIsbn (isbn, dateTime)
+                        let! result = 
+                            runAggregateCommandMdAsync<Book, BookEvent, string>
+                                book.Id
+                                eventStore
+                                messageSenders
+                                ""
+                                bookUpdateIsbnCommand
+                                (Some ct)
+                        return result
+                    }
+
+            member this.RemoveImageUrlAsync (bookId: BookId, ?ct: CancellationToken) = 
+                taskResult
+                    {
+                        let ct = defaultArg ct CancellationToken.None
+                        let! book = 
+                            bookViewerAsync (Some ct) bookId.Value |> TaskResult.map snd
+                        let dateTime = System.DateTime.UtcNow
+                        let bookRemoveImageUrlCommand = 
+                            BookCommand.RemoveImageUrl (dateTime)
+                        let! result = 
+                            runAggregateCommandMdAsync<Book, BookEvent, string>
+                                book.Id
+                                eventStore
+                                messageSenders
+                                ""
+                                bookRemoveImageUrlCommand
+                                (Some ct)
+                        return result
+                    }
+
+            member this.SetImageUrlAsync (bookId: BookId, imageUrl: Uri, ?ct: CancellationToken) = 
+                taskResult
+                    {
+                        let ct = defaultArg ct CancellationToken.None
+                        let! book = 
+                            bookViewerAsync (Some ct) bookId.Value |> TaskResult.map snd
+                        let dateTime = System.DateTime.UtcNow
+                        let bookSetImageUrlCommand = 
+                            BookCommand.SetImageUrl (imageUrl, dateTime)
+                        let! result = 
+                            runAggregateCommandMdAsync<Book, BookEvent, string>
+                                book.Id
+                                eventStore
+                                messageSenders
+                                ""
+                                bookSetImageUrlCommand
+                                (Some ct)
+                        return result
+                    }
+
             member this.RemoveAuthorFromBookAsync (authorId: AuthorId, bookId: BookId, dateTime: System.DateTime, ?ct: CancellationToken) = 
                 taskResult
                     {
@@ -739,6 +799,9 @@ type BookService
             member this.UpdateTitleAsync(title: Title, bookId: BookId, ?ct: CancellationToken) = 
                 let ct = defaultArg ct CancellationToken.None
                 this.UpdateTitleAsync(title, bookId, ct)
+            member this.UpdateIsbnAsync(isbn: Isbn, bookId: BookId, ?ct: CancellationToken) = 
+                let ct = defaultArg ct CancellationToken.None
+                this.UpdateIsbnAsync(isbn, bookId, ct)
             member this.SearchByYearAsync(year: YearSearch, ?criteria: BookSearchCriteria, ?ct: CancellationToken) = 
                 let criteria = defaultArg criteria SearchCriteria.searchAllBooks
                 let ct = defaultArg ct CancellationToken.None
@@ -811,3 +874,9 @@ type BookService
                 let criteria = defaultArg criteria SearchCriteria.searchAllBooks
                 let ct = defaultArg ct CancellationToken.None
                 this.SearchBooksByTitleAndAuthorsAndYearAndCategoriesAsync(title, authors, year, categories, criteria, ct)
+            member this.RemoveImageUrlAsync(bookId: BookId, ?ct: CancellationToken) = 
+                let ct = defaultArg ct CancellationToken.None
+                this.RemoveImageUrlAsync(bookId, ct)
+            member this.SetImageUrlAsync(bookId: BookId, imageUrl: Uri, ?ct: CancellationToken) = 
+                let ct = defaultArg ct CancellationToken.None
+                this.SetImageUrlAsync(bookId, imageUrl, ct)
