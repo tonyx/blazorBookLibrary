@@ -5,18 +5,18 @@
 @attribute [Authorize(Roles = "Admin")]
 @inject UserManager<ApplicationUser> UserManager
 @inject RoleManager<IdentityRole> RoleManager
-
+@inject IStringLocalizer<SharedResources> L
 @rendermode InteractiveServer
 
-<PageTitle>Users Manager</PageTitle>
+<PageTitle>@L["UsersManager"]</PageTitle>
 
-<h3>Users Manager</h3>
+<h3>@L["UsersManager"]</h3>
 
 <div class="mb-4">
-    <h4>Search User</h4>
+    <h4>@L["Search"]</h4>
     <div class="input-group mb-3" style="max-width: 500px;">
-        <input type="text" class="form-control" placeholder="Search by email or name..." @bind="searchQuery" @bind:event="oninput" />
-        <button class="btn btn-primary" type="button" @onclick="SearchUsers">Search</button>
+        <input type="text" class="form-control" placeholder="@L["SearchByEmailOrNamePlaceholder"]" @bind="searchQuery" @bind:event="oninput" />
+        <button class="btn btn-primary" type="button" @onclick="SearchUsers">@L["Search"]</button>
     </div>
 
     @if (searchResults != null)
@@ -26,10 +26,10 @@
             <table class="table table-hover mt-3">
                 <thead class="table-light">
                     <tr>
-                        <th>Email</th>
-                        <th>Name</th>
-                        <th>Current Roles</th>
-                        <th>Actions</th>
+                        <th>@L["Email"]</th>
+                        <th>@L["Name"]</th>
+                        <th>@L["CurrentRoles"]</th>
+                        <th>@L["Actions"]</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -47,11 +47,11 @@
                             <td>
                                 @if (IsManager(user.Id))
                                 {
-                                    <button class="btn btn-warning btn-sm" @onclick="() => ToggleManagerRole(user, false)">Revoke Manager</button>
+                                    <button class="btn btn-warning btn-sm" @onclick="() => ToggleManagerRole(user, false)">@L["RevokeManager"]</button>
                                 }
                                 else
                                 {
-                                    <button class="btn btn-success btn-sm" @onclick="() => ToggleManagerRole(user, true)">Assign Manager</button>
+                                    <button class="btn btn-success btn-sm" @onclick="() => ToggleManagerRole(user, true)">@L["AssignManager"]</button>
                                 }
                             </td>
                         </tr>
@@ -61,7 +61,7 @@
         }
         else
         {
-            <p class="text-muted">No users found.</p>
+            <p class="text-muted">@L["NoUsersFound"]</p>
         }
     }
 </div>
@@ -69,23 +69,23 @@
 <hr />
 
 <div class="mt-4">
-    <h4>Existing Managers</h4>
+    <h4>@L["ExistingManagers"]</h4>
     @if (managers == null)
     {
-        <p><em>Loading...</em></p>
+        <p><em>@L["Loading"]...</em></p>
     }
     else if (!managers.Any())
     {
-        <p>No managers found.</p>
+        <p>@L["NoManagersFound"]</p>
     }
     else
     {
         <table class="table table-striped mt-3">
             <thead class="table-dark">
                 <tr>
-                    <th>Email</th>
-                    <th>Name</th>
-                    <th>Actions</th>
+                    <th>@L["Email"]</th>
+                    <th>@L["Name"]</th>
+                    <th>@L["Actions"]</th>
                 </tr>
             </thead>
             <tbody>
@@ -95,7 +95,7 @@
                         <td>@manager.Email</td>
                         <td>@manager.Nome @manager.Cognome</td>
                         <td>
-                            <button class="btn btn-danger btn-sm" @onclick="() => ToggleManagerRole(manager, false)">Revoke Role</button>
+                            <button class="btn btn-danger btn-sm" @onclick="() => ToggleManagerRole(manager, false)">@L["RevokeRole"]</button>
                         </td>
                     </tr>
                 }
@@ -183,12 +183,12 @@
         if (assign)
         {
             result = await UserManager.AddToRoleAsync(user, "Manager");
-            statusMessage = result.Succeeded ? $"Assigned Manager role to {user.Email}" : $"Error: {string.Join(", ", result.Errors.Select(e => e.Description))}";
+            statusMessage = result.Succeeded ? L["AssignedManagerRoleTo", user.Email].Value : $"{L["Error"]}: {string.Join(", ", result.Errors.Select(e => e.Description))}";
         }
         else
         {
             result = await UserManager.RemoveFromRoleAsync(user, "Manager");
-            statusMessage = result.Succeeded ? $"Revoked Manager role from {user.Email}" : $"Error: {string.Join(", ", result.Errors.Select(e => e.Description))}";
+            statusMessage = result.Succeeded ? L["RevokedManagerRoleFrom", user.Email].Value : $"{L["Error"]}: {string.Join(", ", result.Errors.Select(e => e.Description))}";
         }
 
         if (result.Succeeded)

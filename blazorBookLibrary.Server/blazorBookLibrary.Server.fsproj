@@ -31,8 +31,7 @@
     <Compile Include="Domain/User/Events.fs" />
     <Compile Include="Domain/User/Commands.fs" />
     <Compile Include="Details.fs" />
-
-    <!-- <Compile Include="Application/ServiceLayer.fs" /> -->
+    <Compile Include="CleanServices/CleanUpService.fs" />
 
     <Compile Include="Services/BookService.fs" />
     <Compile Include="Services/AuthorService.fs" />

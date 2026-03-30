@@ -1,9 +1,10 @@
-﻿@page "/weather"
+@page "/weather"
 @attribute [StreamRendering]
+@inject IStringLocalizer<SharedResources> L
 
-<PageTitle>Weather</PageTitle>
+<PageTitle>@L["Weather"]</PageTitle>
 
-<h1>Weather</h1>
+<h1>@L["Weather"]</h1>
 
 <p>This component demonstrates showing data.</p>
 

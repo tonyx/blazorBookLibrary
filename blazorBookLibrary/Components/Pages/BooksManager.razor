@@ -2,6 +2,8 @@
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.QuickGrid
 @using BookLibrary.Shared.Services
+@using Microsoft.Extensions.Localization
+@using blazorBookLibrary.Shared.Resources
 @using BookLibrary.Domain
 @using static BookLibrary.Shared.Commons
 @using Microsoft.FSharp.Core
@@ -14,6 +16,7 @@
 @inject IJSRuntime JSRuntime
 @inject IGoogleBooksService GoogleBooksService
 @inject IAuthorsSearchService AuthorsSearchService
+@inject IStringLocalizer<SharedResources> L
 @rendermode InteractiveServer
 
 <style>
@@ -36,11 +39,11 @@
     }
 </style>
 
-<PageTitle>Books Manager</PageTitle>
+<PageTitle>@L["BooksManager"]</PageTitle>
 
 <div class="container-fluid py-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1 class="text-primary mb-0"><i class="bi bi-book-half me-2"></i>Books Manager</h1>
+        <h1 class="text-primary mb-0"><i class="bi bi-book-half me-2"></i>@L["BooksManager"]</h1>
         @if (!string.IsNullOrEmpty(statusMessage))
         {
             <div class="alert @(statusClass) alert-dismissible fade show mb-0" role="alert">
@@ -53,22 +56,22 @@
     <div class="col-12">
         <div class="card shadow-sm border-0">
             <div class="card-header bg-secondary text-white py-3">
-                <h5 class="card-title mb-0"><i class="bi bi-search me-2"></i>Search Books</h5>
+                <h5 class="card-title mb-0"><i class="bi bi-search me-2"></i>@L["SearchBooksForm"]</h5>
             </div>
             <div class="card-body bg-light">
                 <EditForm Model="@this" OnValidSubmit="HandleBookSearch" FormName="SearchBookForm">
                     <div class="row g-3">
                         <div class="col-md-3">
-                            <label class="form-label fw-bold small text-muted text-uppercase mb-2">Title Search</label>
-                            <InputText class="form-control border-primary shadow-sm" @bind-Value="searchBookTitle" placeholder="Search by title..." />
+                            <label class="form-label fw-bold small text-muted text-uppercase mb-2">@L["TitleSearch"]</label>
+                            <InputText class="form-control border-primary shadow-sm" @bind-Value="searchBookTitle" placeholder="@L["SearchByTitlePlaceholder"]" />
                         </div>
                         <div class="col-md-3">
-                            <label class="form-label fw-bold small text-muted text-uppercase mb-2">Isbn Search</label>
-                            <InputText class="form-control border-primary shadow-sm" @bind-Value="searchBookIsbn" placeholder="Partial isbn..." />
+                            <label class="form-label fw-bold small text-muted text-uppercase mb-2">@L["IsbnSearch"]</label>
+                            <InputText class="form-control border-primary shadow-sm" @bind-Value="searchBookIsbn" placeholder="@L["PartialIsbnPlaceholder"]" />
                         </div>
                         <div class="col-md-4 @(IsIsbnSearchActive ? "opacity-50" : "") transition-opacity" style="transition: opacity 0.3s ease;">
                             <label class="form-label fw-bold small text-muted text-uppercase mb-2 @(IsIsbnSearchActive ? "text-decoration-line-through" : "")">
-                                <i class="bi bi-calendar-range me-1"></i>Publication Year
+                                <i class="bi bi-calendar-range me-1"></i>@L["PublicationYear"]
                             </label>
                             <div class="year-search-container bg-white p-3 rounded shadow-sm border @(IsIsbnSearchActive ? "bg-light border-secondary-subtle" : "border-primary-subtle")">
                                 <fieldset disabled="@IsIsbnSearchActive">
@@ -76,22 +79,22 @@
                                         <div class="form-check">
                                             <input class="form-check-input" type="radio" name="yearSearchOption" id="exactYear" value="exact" 
                                                    checked='@(yearSearchMode == "exact")' @onclick='() => yearSearchMode = "exact"' />
-                                            <label class="form-check-label small" for="exactYear">Exact</label>
+                                            <label class="form-check-label small" for="exactYear">@L["Exact"]</label>
                                         </div>
                                         <div class="form-check">
                                             <input class="form-check-input" type="radio" name="yearSearchOption" id="afterYear" value="after" 
                                                    checked='@(yearSearchMode == "after")' @onclick='() => yearSearchMode = "after"' />
-                                            <label class="form-check-label small" for="afterYear">From Year</label>
+                                            <label class="form-check-label small" for="afterYear">@L["FromYear"]</label>
                                         </div>
                                         <div class="form-check">
                                             <input class="form-check-input" type="radio" name="yearSearchOption" id="beforeYear" value="before" 
                                                    checked='@(yearSearchMode == "before")' @onclick='() => yearSearchMode = "before"' />
-                                            <label class="form-check-label small" for="beforeYear">To Year</label>
+                                            <label class="form-check-label small" for="beforeYear">@L["ToYear"]</label>
                                         </div>
                                         <div class="form-check">
                                             <input class="form-check-input" type="radio" name="yearSearchOption" id="betweenYear" value="between" 
                                                    checked='@(yearSearchMode == "between")' @onclick='() => yearSearchMode = "between"' />
-                                            <label class="form-check-label small" for="betweenYear">Between</label>
+                                            <label class="form-check-label small" for="betweenYear">@L["Between"]</label>
                                         </div>
                                     </div>
                                     <div class="row g-2">
@@ -99,7 +102,7 @@
                                             <div class="input-group">
                                                 <span class="input-group-text bg-light text-primary"><i class="bi bi-calendar-event"></i></span>
                                                 <InputNumber class="form-control" @bind-Value="searchBookYear" 
-                                                             placeholder='@(yearSearchMode == "between" ? "Starting year" : "Year value")' />
+                                                             placeholder='@(yearSearchMode == "between" ? L["StartingYear"] : L["YearValue"])' />
                                             </div>
                                         </div>
                                         @if (yearSearchMode == "between")
@@ -107,7 +110,7 @@
                                             <div class="col-6">
                                                 <div class="input-group">
                                                     <span class="input-group-text bg-light text-primary"><i class="bi bi-calendar-check"></i></span>
-                                                    <InputNumber class="form-control" @bind-Value="searchBookYearTo" placeholder="Ending year" />
+                                                    <InputNumber class="form-control" @bind-Value="searchBookYearTo" placeholder="@L["EndingYear"]" />
                                                 </div>
                                             </div>
                                         }
@@ -117,7 +120,7 @@
                         </div>
                         <div class="col-md-2 d-flex align-items-end justify-content-center">
                             <button type="submit" class="btn btn-primary btn-lg w-100 shadow-sm transition-hover mb-1 py-1 h-50 d-flex align-items-center justify-content-center">
-                                <i class="bi bi-search me-2 fs-5"></i><span>Search Books</span>
+                                <i class="bi bi-search me-2 fs-5"></i><span>@L["SearchBooks"]</span>
                             </button>
                         </div>
                     </div>
@@ -125,12 +128,12 @@
                     <div class="row g-3 mt-4 border-top pt-4 @(IsIsbnSearchActive ? "opacity-50" : "") transition-opacity" style="transition: opacity 0.3s ease;">
                         <div class="col-md-5">
                             <label class="form-label fw-bold small text-muted text-uppercase mb-2 @(IsIsbnSearchActive ? "text-decoration-line-through" : "")">
-                                <i class="bi bi-person-lines-fill me-1"></i>Refine by Author(s)
+                                <i class="bi bi-person-lines-fill me-1"></i>@L["RefineByAuthors"]
                             </label>
                             <fieldset disabled="@IsIsbnSearchActive">
                                 <div class="input-group shadow-sm">
                                     <span class="input-group-text bg-white text-primary border-primary"><i class="bi bi-person-search"></i></span>
-                                    <input type="text" class="form-control border-primary border-end-0" @bind="authorSearchNameFilter" placeholder="Search author name..." @onkeyup='(e) => { if (e.Key == "Enter") SearchAuthorsForFilter(); }' />
+                                    <input type="text" class="form-control border-primary border-end-0" @bind="authorSearchNameFilter" placeholder="@L["SearchAuthorNamePlaceholder"]" @onkeyup='(e) => { if (e.Key == "Enter") SearchAuthorsForFilter(); }' />
                                     <button type="button" class="btn btn-outline-primary border-primary px-3 transition-hover" @onclick="SearchAuthorsForFilter">
                                         <i class="bi bi-search"></i>
                                     </button>
@@ -139,17 +142,17 @@
                                 @if (foundAuthorsForFilter.Any())
                                 {
                                     <div class="mt-3 p-3 border-start border-4 border-primary bg-white shadow-sm rounded-end animate-fade-in">
-                                        <label class="form-label small text-muted text-uppercase d-block mb-2 fw-semibold">Click to add author</label>
+                                        <label class="form-label small text-muted text-uppercase d-block mb-2 fw-semibold">@L["ClickToAddAuthor"]</label>
                                         <div class="d-flex gap-2">
                                             <select class="form-select border-primary shadow-sm" @bind="selectedAuthorIdForFilter">
-                                                <option value="">-- Choose from results --</option>
+                                                <option value="">@L["ChooseFromResults"]</option>
                                                 @foreach (var author in foundAuthorsForFilter)
                                                 {
                                                     <option value="@author.AuthorId.Value.ToString()">@author.Name.Value</option>
                                                 }
                                             </select>
                                             <button type="button" class="btn btn-success shadow-sm transition-hover d-flex align-items-center" @onclick="AddAuthorToSearchCriteria" disabled="@(string.IsNullOrEmpty(selectedAuthorIdForFilter))">
-                                                <i class="bi bi-plus-lg me-1"></i>Add
+                                                <i class="bi bi-plus-lg me-1"></i>@L["Add"]
                                             </button>
                                         </div>
                                     </div>
@@ -158,12 +161,12 @@
                         </div>
                         
                         <div class="col-md-7">
-                            <label class="form-label fw-bold small text-muted text-uppercase mb-2">Active Author Criteria</label>
+                            <label class="form-label fw-bold small text-muted text-uppercase mb-2">@L["ActiveAuthorCriteria"]</label>
                             <div class="d-flex flex-wrap gap-2 p-3 border border-dashed rounded bg-white shadow-inner min-vh-10" style="min-height: 80px;">
                                 @if (!searchAuthorsCriteria.Any())
                                 {
                                     <div class="w-100 d-flex align-items-center justify-content-center text-muted small italic">
-                                        <i class="bi bi-info-circle me-2"></i>No authors selected
+                                        <i class="bi bi-info-circle me-2"></i>@L["NoAuthorsSelected"]
                                     </div>
                                 }
                                 else
@@ -173,7 +176,7 @@
                                         <div class="badge bg-primary text-white d-flex align-items-center py-2 px-3 rounded-pill shadow-sm animate-pop-in">
                                             <i class="bi bi-person-fill me-2 border-end pe-2 border-white-50"></i>
                                             <span class="me-2 fw-normal">@author.Name.Value</span>
-                                            <button type="button" class="btn-close btn-close-white ms-1 small" style="transform: scale(0.7);" title="Remove" @onclick="() => { if (!IsIsbnSearchActive) RemoveAuthorFromSearchCriteria(author); }"></button>
+                                            <button type="button" class="btn-close btn-close-white ms-1 small" style="transform: scale(0.7);" title="@L["Remove"]" @onclick="() => { if (!IsIsbnSearchActive) RemoveAuthorFromSearchCriteria(author); }"></button>
                                         </div>
                                     }
                                 }
@@ -185,31 +188,31 @@
                     <div class="row g-3 mt-4 border-top pt-4 @(IsIsbnSearchActive ? "opacity-50" : "") transition-opacity" style="transition: opacity 0.3s ease;">
                         <div class="col-md-5">
                             <label class="form-label fw-bold small text-muted text-uppercase mb-2 @(IsIsbnSearchActive ? "text-decoration-line-through" : "")">
-                                <i class="bi bi-tags-fill me-1"></i>Refine by Category
+                                <i class="bi bi-tags-fill me-1"></i>@L["RefineByCategory"]
                             </label>
                             <fieldset disabled="@IsIsbnSearchActive">
                                 <div class="d-flex gap-2">
                                     <select class="form-select border-primary shadow-sm" @bind="selectedCategoryForFilter">
-                                        <option value="">-- Select Category --</option>
+                                        <option value="">@L["SelectCategoryPlaceholder"]</option>
                                         @foreach (var category in allCategories)
                                         {
                                             <option value="@category.Value()">@category.Value()</option>
                                         }
                                     </select>
                                     <button type="button" class="btn btn-info text-white shadow-sm transition-hover d-flex align-items-center" @onclick="AddCategoryToSearchCriteria" disabled="@(string.IsNullOrEmpty(selectedCategoryForFilter))">
-                                        <i class="bi bi-bookmark-plus-fill me-1"></i>Add
+                                        <i class="bi bi-bookmark-plus-fill me-1"></i>@L["Add"]
                                     </button>
                                 </div>
                             </fieldset>
                         </div>
                         
                         <div class="col-md-7">
-                            <label class="form-label fw-bold small text-muted text-uppercase mb-2">Active Category Criteria</label>
+                            <label class="form-label fw-bold small text-muted text-uppercase mb-2">@L["ActiveCategoryCriteria"]</label>
                             <div class="d-flex flex-wrap gap-2 p-3 border border-dashed rounded bg-white shadow-inner" style="min-height: 80px;">
                                 @if (!searchCategoriesCriteria.Any())
                                 {
                                     <div class="w-100 d-flex align-items-center justify-content-center text-muted small italic">
-                                        <i class="bi bi-info-circle me-2"></i>No categories selected
+                                        <i class="bi bi-info-circle me-2"></i>@L["NoCategoriesSelected"]
                                     </div>
                                 }
                                 else
@@ -219,7 +222,7 @@
                                         <div class="badge bg-info text-white d-flex align-items-center py-2 px-3 rounded shadow-sm animate-pop-in">
                                             <i class="bi bi-tag-fill me-2 border-end pe-2 border-white-50"></i>
                                             <span class="me-2 fw-normal">@category.Value()</span>
-                                            <button type="button" class="btn-close btn-close-white ms-1 small" style="transform: scale(0.7);" title="Remove" @onclick="() => { if (!IsIsbnSearchActive) RemoveCategoryFromSearchCriteria(category); }"></button>
+                                            <button type="button" class="btn-close btn-close-white ms-1 small" style="transform: scale(0.7);" title="@L["Remove"]" @onclick="() => { if (!IsIsbnSearchActive) RemoveCategoryFromSearchCriteria(category); }"></button>
                                         </div>
                                     }
                                 }
@@ -238,18 +241,18 @@
         <div class="col-12">
             <div class="card shadow-sm border-0 overflow-hidden">
                 <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center py-3">
-                    <h5 class="card-title mb-0"><i class="bi bi-list-stars me-2"></i>Search Results</h5>
-                    <span class="badge bg-primary text-white">@foundBooks.Count books found</span>
+                    <h5 class="card-title mb-0"><i class="bi bi-list-stars me-2"></i>@L["SearchResults"]</h5>
+                    <span class="badge bg-primary text-white">@foundBooks.Count @L["BooksFound"]</span>
                 </div>
                 <div class="card-body p-0">
                     <div class="table-responsive">
                         <QuickGrid Items="@FilteredBooks" Pagination="@bookPagination" Class="table table-hover align-middle mb-0 book-grid">
-                            <TemplateColumn Title="Title" SortBy="@sortTitle" Class="fw-bold text-dark col-title title-cell">
+                            <TemplateColumn Title="@L["Title"]" SortBy="@sortTitle" Class="fw-bold text-dark col-title title-cell">
                                 <ColumnOptions>
                                     <div class="p-3 shadow-sm border rounded bg-white" style="min-width: 250px;">
                                         <div class="input-group">
                                             <span class="input-group-text bg-primary text-white border-0"><i class="bi bi-filter"></i></span>
-                                            <input type="search" autofocus @bind="titleRefinementFilter" @bind:event="oninput" placeholder="Refine results by title..." class="form-control border-primary shadow-none" />
+                                            <input type="search" autofocus @bind="titleRefinementFilter" @bind:event="oninput" placeholder="@L["RefineResultsByTitlePlaceholder"]" class="form-control border-primary shadow-none" />
                                         </div>
                                     </div>
                                 </ColumnOptions>
@@ -259,19 +262,19 @@
                                     </a>
                                 </ChildContent>
                             </TemplateColumn>
-                            <PropertyColumn Property="@(b => b.Year.Value)" Title="Year" Sortable="true" Class="col-year" />
-                            <PropertyColumn Property="@(b => b.MainCategory.Value())" Title="Category" Sortable="true" Class="col-category" />
-                            <TemplateColumn Title="Available" Sortable="true" Align="Align.Center" Class="col-available">
+                            <PropertyColumn Property="@(b => b.Year.Value)" Title="@L["Year"]" Sortable="true" Class="col-year" />
+                            <PropertyColumn Property="@(b => b.MainCategory.Value())" Title="@L["Category"]" Sortable="true" Class="col-category" />
+                            <TemplateColumn Title="@L["Availability"]" Sortable="true" Align="Align.Center" Class="col-available">
                                 @if (context.Available)
                                 {
-                                    <span class="text-success small fw-bold"><i class="bi bi-check-circle-fill me-1"></i>Available</span>
+                                    <span class="text-success small fw-bold"><i class="bi bi-check-circle-fill me-1"></i>@L["Available"]</span>
                                 }
                                 else
                                 {
-                                    <span class="text-danger small fw-bold"><i class="bi bi-dash-circle-fill me-1"></i>On Loan</span>
+                                    <span class="text-danger small fw-bold"><i class="bi bi-dash-circle-fill me-1"></i>@L["OnLoan"]</span>
                                 }
                             </TemplateColumn>
-                            <PropertyColumn Property="@(b => b.Isbn.Value)" Title="ISBN" Class="col-isbn" />
+                            <PropertyColumn Property="@(b => b.Isbn.Value)" Title="@L["IsbnSearch"]" Class="col-isbn" />
                         </QuickGrid>
                     </div>
                     @if (foundBooks.Count > 0)
@@ -284,7 +287,7 @@
                     {
                         <div class="p-5 text-center text-muted">
                             <i class="bi bi-search fs-1 mb-3 d-block opacity-25"></i>
-                            <p class="mb-0">No books found matching your criteria.</p>
+                            <p class="mb-0">@L["NoBooksFoundCriteria"]</p>
                         </div>
                     }
                 </div>
@@ -297,12 +300,12 @@
     <div class="col-12 text-center">
         <div class="d-inline-flex align-items-center bg-white p-2 rounded-pill shadow-sm border border-primary-subtle px-4 animate-fade-in">
             <label class="form-check-label me-3 fw-bold text-primary" for="showAddSectionToggle">
-                <i class="bi bi-plus-circle me-1"></i> Add New Book Entry
+                <i class="bi bi-plus-circle me-1"></i> @L["AddNewBookEntry"]
             </label>
             <div class="form-check form-switch mb-0">
                 <input class="form-check-input" type="checkbox" role="switch" id="showAddSectionToggle" @bind="showAddSection" style="width: 2.5em; height: 1.25em; cursor: pointer;">
             </div>
-            <span class="ms-2 badge @(showAddSection ? "bg-success" : "bg-secondary") rounded-pill">@(showAddSection ? "Visible" : "Hidden")</span>
+            <span class="ms-2 badge @(showAddSection ? "bg-success" : "bg-secondary") rounded-pill">@(showAddSection ? L["Visible"] : L["Hidden"])</span>
         </div>
     </div>
 </div>
@@ -314,18 +317,18 @@
         <div class="col-lg-7">
             <div class="card shadow-sm border-0 h-100">
                 <div class="card-header bg-primary text-white py-3">
-                    <h5 class="card-title mb-0"><i class="bi bi-plus-circle-fill me-2"></i>Add New Book</h5>
+                    <h5 class="card-title mb-0"><i class="bi bi-plus-circle-fill me-2"></i>@L["AddNewBook"]</h5>
                 </div>
                 <div class="card-body p-4 bg-light">
                     <EditForm Model="@this" OnValidSubmit="HandleAddBook" FormName="AddBookForm">
                         <div class="row g-3">
                             <div class="col-12">
-                                <label class="form-label fw-bold">Book Title / Search API</label>
+                                <label class="form-label fw-bold">@L["BookTitleSearchApi"]</label>
                                 <div class="input-group">
-                                    <InputText class="form-control form-control-lg" @bind-Value="newBookTitle" placeholder="Enter book title to search..." />
+                                    <InputText class="form-control form-control-lg" @bind-Value="newBookTitle" placeholder="@L["EnterTitleToSearchPlaceholder"]" />
                                     <button type="button" class="btn btn-outline-secondary px-4" @onclick="PerformGoogleLookup" disabled="@isAutofilling">
                                         @if (isAutofilling) { <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> }
-                                        <i class="bi bi-search me-1"></i> Search API
+                                        <i class="bi bi-search me-1"></i> @L["SearchApi"]
                                     </button>
                                 </div>
                             </div>
@@ -334,10 +337,10 @@
                             {
                                 <div class="col-12 animate-fade-in">
                                     <div class="p-3 bg-white border border-primary rounded shadow-sm">
-                                        <label class="form-label small fw-bold text-primary mb-2">Select from results to populate form</label>
+                                        <label class="form-label small fw-bold text-primary mb-2">@L["SelectFromResultToPopulate"]</label>
                                         <div class="input-group">
                                             <select class="form-select border-primary" @bind="selectedLookupIndex">
-                                                <option value="-1">-- Select a book --</option>
+                                                <option value="-1">@L["SelectABook"]</option>
                                                 @for (int i = 0; i < lookupResults.Count; i++)
                                                 {
                                                     var book = lookupResults[i];
@@ -347,7 +350,7 @@
                                                 }
                                             </select>
                                             <button type="button" class="btn btn-primary px-4" @onclick="AutofillFromSelected" disabled="@(selectedLookupIndex < 0)">
-                                                <i class="bi bi-magic me-1"></i> Autofill fields
+                                                <i class="bi bi-magic me-1"></i> @L["AutofillFields"]
                                             </button>
                                         </div>
                                     </div>
@@ -355,18 +358,18 @@
                             }
 
                             <div class="col-md-5">
-                                <label class="form-label fw-bold">ISBN</label>
+                                <label class="form-label fw-bold">@L["IsbnSearch"]</label>
                                 <div class="input-group">
                                     <span class="input-group-text"><i class="bi bi-upc-scan"></i></span>
-                                    <InputText class="form-control" @bind-Value="newBookIsbn" placeholder="e.g. 978-3-16-148410-0" />
+                                    <InputText class="form-control" @bind-Value="newBookIsbn" placeholder="@L["IsbnExamplePlaceholder"]" />
                                 </div>
                             </div>
 
                             <div class="col-md-3">
-                                <label class="form-label fw-bold">Cover Lookup</label>
+                                <label class="form-label fw-bold">@L["LookupCover"]</label>
                                 <button type="button" class="btn btn-outline-info w-100" @onclick="LookupCoverImage" disabled="@(!IsNewBookIsbnValid || isLookingUpCover)">
                                     @if (isLookingUpCover) { <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> }
-                                    <i class="bi bi-image me-1"></i> Lookup Cover
+                                    <i class="bi bi-image me-1"></i> @L["LookupCover"]
                                 </button>
                             </div>
 
@@ -374,15 +377,15 @@
                                 <label class="form-label fw-bold text-transparent">.</label>
                                 <div class="form-check form-switch pt-2">
                                     <InputCheckbox class="form-check-input" @bind-Value="allowInvalidIsbn" id="invalidIsbnSwitch" />
-                                    <label class="form-check-label text-muted small" for="invalidIsbnSwitch">Accept invalid ISBN</label>
+                                    <label class="form-check-label text-muted small" for="invalidIsbnSwitch">@L["AcceptInvalidIsbn"]</label>
                                 </div>
                             </div>
 
                             <div class="col-12 mt-3">
-                                <label class="form-label fw-bold">Image URL</label>
+                                <label class="form-label fw-bold">@L["ImageURL"]</label>
                                 <div class="input-group shadow-sm">
                                     <span class="input-group-text bg-white text-info border-info"><i class="bi bi-link-45deg"></i></span>
-                                    <InputText class="form-control border-info" @bind-Value="newBookImageUrl" placeholder="Paste image URL here..." />
+                                    <InputText class="form-control border-info" @bind-Value="newBookImageUrl" placeholder="@L["PasteImageUrlPlaceholder"]" />
                                     @if (!string.IsNullOrWhiteSpace(newBookImageUrl))
                                     {
                                         <button type="button" class="btn btn-outline-danger border-info" @onclick='() => newBookImageUrl = ""'>
@@ -390,7 +393,7 @@
                                         </button>
                                     }
                                 </div>
-                                <div class="form-text small italic text-muted">Use the Cover Lookup with an ISBN to find one automatically.</div>
+                                <div class="form-text small italic text-muted">@L["UseCoverLookupInfo"]</div>
                             </div>
 
                             @if (coverPreviewUrl != null)
@@ -401,14 +404,14 @@
                                             <img src="@coverPreviewUrl" alt="Cover Preview" style="width: 100%; height: 100%; object-fit: contain;" />
                                         </div>
                                         <div class="flex-grow-1">
-                                            <h6 class="text-info fw-bold mb-1">Cover Found!</h6>
-                                            <p class="small text-muted mb-3">Would you like to use this image URL for the book?</p>
+                                            <h6 class="text-info fw-bold mb-1">@L["CoverFound"]</h6>
+                                            <p class="small text-muted mb-3">@L["UseThisImageUrl"]</p>
                                             <div class="d-flex gap-2">
                                                 <button type="button" class="btn btn-info text-white btn-sm px-4" @onclick="AcceptCoverUrl">
-                                                    <i class="bi bi-check2-circle me-1"></i> Accept & Use
+                                                    <i class="bi bi-check2-circle me-1"></i> @L["AcceptAndUse"]
                                                 </button>
                                                 <button type="button" class="btn btn-outline-secondary btn-sm" @onclick='() => coverPreviewUrl = null'>
-                                                    Discard
+                                                    @L["Discard"]
                                                 </button>
                                             </div>
                                         </div>
@@ -425,12 +428,12 @@
                             </div>
 
                             <div class="col-md-4">
-                                <label class="form-label fw-bold">Publication Year</label>
+                                <label class="form-label fw-bold">@L["PublicationYear"]</label>
                                 <InputNumber class="form-control" @bind-Value="newBookYear" placeholder="YYYY" />
                             </div>
 
                             <div class="col-md-12 mt-3">
-                                <label class="form-label fw-bold">Main Category</label>
+                                <label class="form-label fw-bold">@L["MainCategory"]</label>
                                 <select class="form-select" @bind="mainCategoryString">
                                     @foreach (var cat in allCategories)
                                     {
@@ -440,7 +443,7 @@
                             </div>
 
                             <div class="col-12 mt-3">
-                                <label class="form-label fw-bold">Additional Categories</label>
+                                <label class="form-label fw-bold">@L["AdditionalCategories"]</label>
                                 <div class="input-group mb-2">
                                     <select class="form-select" @bind="categoryToAddString">
                                         @foreach (var cat in allCategories)
@@ -449,13 +452,13 @@
                                         }
                                     </select>
                                     <button type="button" class="btn btn-outline-secondary" @onclick="AddAdditionalCategory">
-                                        <i class="bi bi-plus-lg"></i> Add
+                                        <i class="bi bi-plus-lg"></i> @L["Add"]
                                     </button>
                                 </div>
                                 <div class="d-flex flex-wrap gap-2">
                                     @if (additionalCategories.Count == 0)
                                     {
-                                        <span class="text-muted small italic">No additional categories added.</span>
+                                        <span class="text-muted small italic">@L["NoAdditionalCategories"]</span>
                                     }
                                     else
                                     {
@@ -472,13 +475,13 @@
 
                             <div class="col-12 mt-4">
                                 <label class="form-label fw-bold d-flex justify-content-between">
-                                    Authors 
-                                    <span class="badge bg-secondary">@selectedAuthors.Count selected</span>
+                                    @L["Authors"] 
+                                    <span class="badge bg-secondary">@selectedAuthors.Count @L["Selected"]</span>
                                 </label>
                                 <div class="selected-authors-container p-3 border rounded bg-white" style="min-height: 100px;">
                                     @if (selectedAuthors.Count == 0)
                                     {
-                                        <p class="text-muted text-center mb-0 mt-3 small italic">No authors associated. Use the search form on the right to find and add authors.</p>
+                                        <p class="text-muted text-center mb-0 mt-3 small italic">@L["NoAuthorsAssociatedDescription"]</p>
                                     }
                                     else
                                     {
@@ -497,7 +500,7 @@
 
                             <div class="col-12 mt-5">
                                 <button type="submit" class="btn btn-success btn-lg w-100 shadow">
-                                    <i class="bi bi-cloud-arrow-up-fill me-2"></i>Create Book Entry
+                                    <i class="bi bi-cloud-arrow-up-fill me-2"></i>@L["CreateBookEntry"]
                                 </button>
                             </div>
                         </div>
@@ -510,22 +513,22 @@
         <div class="col-lg-5">
             <div class="card shadow-sm border-0 h-100">
                 <div class="card-header bg-dark text-white py-3">
-                    <h5 class="card-title mb-0"><i class="bi bi-person-search me-2"></i>Find Authors</h5>
+                    <h5 class="card-title mb-0"><i class="bi bi-person-search me-2"></i>@L["FindAuthors"]</h5>
                 </div>
                 <div class="card-body p-4">
                     <EditForm Model="@this" OnValidSubmit="HandleAuthorSearch" FormName="AuthorSearchForm">
                         <div class="row g-3 mb-4">
                             <div class="col-12">
-                                <label class="form-label small fw-bold">Name</label>
-                                <InputText class="form-control" @bind-Value="searchAuthorName" placeholder="Search by name..." />
+                                <label class="form-label small fw-bold">@L["Name"]</label>
+                                <InputText class="form-control" @bind-Value="searchAuthorName" placeholder="@L["SearchByName"]" />
                             </div>
                             <div class="col-12">
-                                <label class="form-label small fw-bold">ISNI</label>
-                                <InputText class="form-control" @bind-Value="searchAuthorIsni" placeholder="Search by ISNI..." />
+                                <label class="form-label small fw-bold">@L["IsniNumber"]</label>
+                                <InputText class="form-control" @bind-Value="searchAuthorIsni" placeholder="@L["SearchByIsni"]" />
                             </div>
                             <div class="col-12">
                                 <button type="submit" class="btn btn-outline-primary w-100">
-                                    <i class="bi bi-search me-2"></i>Search Authors
+                                    <i class="bi bi-search me-2"></i>@L["SearchAuthors"]
                                 </button>
                             </div>
                         </div>
@@ -533,16 +536,16 @@
 
                     <div class="author-results table-responsive border rounded">
                         <QuickGrid Items="@foundAuthors.AsQueryable()" Pagination="@pagination" Class="table table-sm table-hover mb-0">
-                            <PropertyColumn Property="@(a => a.Name.Value)" Title="Name" Class="small fw-bold" />
-                            <TemplateColumn Title="Action" Align="Align.Center">
+                            <PropertyColumn Property="@(a => a.Name.Value)" Title="@L["Name"]" Class="small fw-bold" />
+                            <TemplateColumn Title="@L["Actions"]" Align="Align.Center">
                                 @if (selectedAuthors.Any(sa => sa.AuthorId == context.AuthorId))
                                 {
                                     <span class="text-success"><i class="bi bi-check-circle-fill"></i></span>
                                 }
                                 else
                                 {
-                                    <button type="button" class="btn btn-sm btn-outline-primary shadow-sm" @onclick="() => AddAuthor(context)" title="Add Author">
-                                        <i class="bi bi-plus-circle-fill me-1"></i> Add
+                                    <button type="button" class="btn btn-sm btn-outline-primary shadow-sm" @onclick="() => AddAuthor(context)" title="@L["AddAuthor"]">
+                                        <i class="bi bi-plus-circle-fill me-1"></i> @L["Add"]
                                     </button>
                                 }
                             </TemplateColumn>
@@ -676,7 +679,7 @@
         }
         else
         {
-            ShowStatus($"Error searching authors: {result.ErrorValue}", "alert-danger");
+            ShowStatus(L["ErrorSearchingAuthors", result.ErrorValue], "alert-danger");
         }
     }
 
@@ -692,12 +695,12 @@
             foundAuthorsForFilter = result.ResultValue.ToList();
             if (!foundAuthorsForFilter.Any())
             {
-                ShowStatus("No authors found matching that name.", "alert-warning");
+                ShowStatus(L["NoAuthorsFoundMatchingName"], "alert-warning");
             }
         }
         else
         {
-            ShowStatus($"Error searching authors: {result.ErrorValue}", "alert-danger");
+            ShowStatus(L["ErrorSearchingAuthors", result.ErrorValue], "alert-danger");
         }
     }
 
@@ -861,7 +864,7 @@
         }
         else
         {
-            ShowStatus($"Error searching books: {result.ErrorValue}", "alert-danger");
+            ShowStatus(L["ErrorSearchingBooks", result.ErrorValue], "alert-danger");
         }
     }
 
@@ -882,13 +885,13 @@
     {
         if (string.IsNullOrWhiteSpace(newBookTitle))
         {
-            ShowStatus("Title is required.", "alert-warning");
+            ShowStatus(L["TitleIsRequired"], "alert-warning");
             return;
         }
 
         if (!newBookYear.HasValue)
         {
-            ShowStatus("Year is required.", "alert-warning");
+            ShowStatus(L["YearIsRequired"], "alert-warning");
             return;
         }
 
@@ -906,7 +909,7 @@
             var isbnResult = Isbn.New(newBookIsbn);
             if (isbnResult.IsError)
             {
-                ShowStatus($"Invalid ISBN: {isbnResult.ErrorValue}", "alert-danger");
+                ShowStatus(L["InvalidIsniValue", isbnResult.ErrorValue], "alert-danger");
                 return;
             }
             isbn = isbnResult.ResultValue;
@@ -943,12 +946,12 @@
 
         if (result.IsOk)
         {
-            ShowStatus($"Book '{newBookTitle}' has been created successfully!", "alert-success");
+            ShowStatus(L["BookCreatedSuccessfully", newBookTitle], "alert-success");
             ResetForm();
         }
         else
         {
-            ShowStatus($"Error creating book: {result.ErrorValue}", "alert-danger");
+            ShowStatus(L["ErrorCreatingBook", result.ErrorValue], "alert-danger");
         }
     }
 
@@ -975,7 +978,7 @@
     {
         if (string.IsNullOrWhiteSpace(newBookTitle))
         {
-            ShowStatus("Please enter a Title to search.", "alert-warning");
+            ShowStatus(L["EnterTitleToSearch"], "alert-warning");
             return;
         }
 
@@ -993,21 +996,21 @@
                 lookupResults = result.ResultValue.ToList();
                 if (!lookupResults.Any())
                 {
-                    ShowStatus("No books found matching that title.", "alert-warning");
+                    ShowStatus(L["NoBooksFoundTitle"], "alert-warning");
                 }
                 else
                 {
-                    ShowStatus($"Found {lookupResults.Count} results from API. Select one from the list below.", "alert-info");
+                    ShowStatus(L["FoundResultsFromApi", lookupResults.Count], "alert-info");
                 }
             }
             else
             {
-                ShowStatus($"Error searching API: {result.ErrorValue}", "alert-danger");
+                ShowStatus(L["ErrorSearchingApi", result.ErrorValue], "alert-danger");
             }
         }
         catch (Exception ex)
         {
-            ShowStatus($"Error during lookup: {ex.Message}", "alert-danger");
+            ShowStatus(L["ErrorDuringLookup", ex.Message], "alert-danger");
         }
         finally
         {
@@ -1047,7 +1050,7 @@
                 } 
                 catch 
                 {
-                    ShowStatus($"Could not accurately map external category '{firstCatStr}' to local categories. You'll need to manually select one.", "alert-warning");
+                    ShowStatus(L["MappingCategoryWarning", firstCatStr], "alert-warning");
                 }
             }
 
@@ -1065,7 +1068,7 @@
                     }
                     else
                     {
-                        bool create = await JSRuntime.InvokeAsync<bool>("confirm", $"Author '{authorName}' not found in local database. Do you want to create and assign it for this book?");
+                        bool create = await JSRuntime.InvokeAsync<bool>("confirm", L["AuthorNotFoundCreateAssign", authorName].Value);
                         if (create)
                         {
                             var newAuthor = Author.NewWithoutIsni(nameCriteria);
@@ -1076,20 +1079,20 @@
                             }
                             else 
                             {
-                                ShowStatus($"Failed to create author '{authorName}'.", "alert-danger");
+                                ShowStatus(L["FailedToCreateAuthor", authorName], "alert-danger");
                             }
                         }
                     }
                 }
             }
             
-            ShowStatus("Fields populated from selected book. Please review and save.", "alert-success");
+            ShowStatus(L["FieldsPopulatedReview"], "alert-success");
             lookupResults.Clear();
             selectedLookupIndex = -1;
         }
         catch (Exception ex)
         {
-            ShowStatus($"Error autofilling fields: {ex.Message}", "alert-danger");
+            ShowStatus(L["ErrorAutofillingFields", ex.Message], "alert-danger");
         }
         finally
         {
@@ -1116,17 +1119,17 @@
                 if (result.IsOk && FSharpOption<string>.get_IsSome(result.ResultValue))
                 {
                     coverPreviewUrl = result.ResultValue.Value;
-                    ShowStatus("Cover image found in our catalogs! See preview below.", "alert-info");
+                    ShowStatus(L["CoverImageFoundCatalogs"], "alert-info");
                 }
                 else
                 {
-                    ShowStatus("No cover image found for this ISBN in any of our connected libraries.", "alert-warning");
+                    ShowStatus(L["NoCoverImageFoundIsbn"], "alert-warning");
                 }
             }
         }
         catch (Exception ex)
         {
-            ShowStatus($"Error looking up cover: {ex.Message}", "alert-danger");
+            ShowStatus(L["ErrorLookingUpCover", ex.Message], "alert-danger");
         }
         finally
         {
@@ -1140,7 +1143,7 @@
         {
             newBookImageUrl = coverPreviewUrl;
             coverPreviewUrl = null;
-            ShowStatus("Cover URL applied to book image field.", "alert-success");
+            ShowStatus(L["CoverUrlApplied"], "alert-success");
         }
     }
 }

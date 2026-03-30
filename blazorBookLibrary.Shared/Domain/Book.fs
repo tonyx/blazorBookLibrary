@@ -1,4 +1,3 @@
-
 namespace BookLibrary.Domain
 open System.Text.Json
 open FsToolkit.ErrorHandling
@@ -6,8 +5,6 @@ open Sharpino
 open BookLibrary.Shared.Commons
 open System
 open System.Globalization
-
-
 
 type Book001 = {
     BookId: BookId

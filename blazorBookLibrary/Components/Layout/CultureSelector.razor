@@ -1,0 +1,47 @@
+@using System.Globalization
+@inject IJSRuntime JSRuntime
+
+<div class="d-flex align-items-center">
+    <div class="dropdown me-2" id="cultureDropdownContainer">
+        <button class="btn btn-sm btn-link text-dark text-decoration-none dropdown-toggle d-flex align-items-center gap-2" 
+                type="button" 
+                id="cultureDropdownButton"
+                data-bs-toggle="dropdown" 
+                aria-expanded="false">
+            <span class="fs-5">🌐</span>
+            <span class="fw-semibold">@(CultureInfo.CurrentCulture.Name.StartsWith("it") ? "Italiano" : "English")</span>
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end shadow border-0" aria-labelledby="cultureDropdownButton">
+            <li>
+                <form action="/Culture/SetCulture" method="get">
+                    <input type="hidden" name="culture" value="it-IT" />
+                    <input type="hidden" name="returnUrl" value="@currentUrl" />
+                    <button type="submit" class="dropdown-item d-flex align-items-center justify-content-between @(CultureInfo.CurrentCulture.Name.StartsWith("it") ? "active" : "")">
+                        <span>Italiano</span>
+                        @if (CultureInfo.CurrentCulture.Name.StartsWith("it")) { <i class="bi bi-check-lg ms-2"></i> }
+                    </button>
+                </form>
+            </li>
+            <li>
+                <form action="/Culture/SetCulture" method="get">
+                    <input type="hidden" name="culture" value="en-US" />
+                    <input type="hidden" name="returnUrl" value="@currentUrl" />
+                    <button type="submit" class="dropdown-item d-flex align-items-center justify-content-between @(CultureInfo.CurrentCulture.Name.StartsWith("en") ? "active" : "")">
+                        <span>English</span>
+                        @if (CultureInfo.CurrentCulture.Name.StartsWith("en")) { <i class="bi bi-check-lg ms-2"></i> }
+                    </button>
+                </form>
+            </li>
+        </ul>
+    </div>
+</div>
+
+@code {
+    [Parameter] public string? currentUrl { get; set; }
+
+    private async Task ToggleDropdown()
+    {
+        var dropdown = await JSRuntime.InvokeAsync<IJSObjectReference>("bootstrap.Dropdown.getOrCreateInstance", "#cultureDropdownButton");
+        await dropdown.InvokeVoidAsync("toggle");
+    }
+}

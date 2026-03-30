@@ -1,3 +1,4 @@
+@page "/"
 @page "/books-browser"
 @using Microsoft.AspNetCore.Components.QuickGrid
 @using BookLibrary.Shared.Services
@@ -12,6 +13,7 @@
 @inject IBookService BookService
 @inject IAuthorService AuthorService
 @inject IJSRuntime JSRuntime
+@inject IStringLocalizer<SharedResources> L
 @rendermode InteractiveServer
 
 <style>
@@ -33,11 +35,11 @@
     }
 </style>
 
-<PageTitle>Books Browser</PageTitle>
+<PageTitle>@L["BooksBrowser"]</PageTitle>
 
 <div class="container-fluid py-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1 class="text-primary mb-0"><i class="bi bi-book-half me-2"></i>Books Browser</h1>
+        <h1 class="text-primary mb-0"><i class="bi bi-book-half me-2"></i>@L["BooksBrowser"]</h1>
         @if (!string.IsNullOrEmpty(statusMessage))
         {
             <div class="alert @(statusClass) alert-dismissible fade show mb-0" role="alert">
@@ -51,22 +53,22 @@
     <div class="col-12">
         <div class="card shadow-sm border-0">
             <div class="card-header bg-secondary text-white py-3">
-                <h5 class="card-title mb-0"><i class="bi bi-search me-2"></i>Search Books</h5>
+                <h5 class="card-title mb-0"><i class="bi bi-search me-2"></i>@L["SearchBooks"]</h5>
             </div>
             <div class="card-body bg-light">
                 <EditForm Model="@this" OnValidSubmit="HandleBookSearch" FormName="SearchBookBrowserForm">
                     <div class="row g-3">
                         <div class="col-md-3">
-                            <label class="form-label fw-bold small text-muted text-uppercase mb-2">Title Search</label>
-                            <InputText class="form-control border-primary shadow-sm" @bind-Value="searchBookTitle" placeholder="Search by title..." />
+                            <label class="form-label fw-bold small text-muted text-uppercase mb-2">@L["TitleSearch"]</label>
+                            <InputText class="form-control border-primary shadow-sm" @bind-Value="searchBookTitle" placeholder="@L["SearchByTitlePlaceholder"]" />
                         </div>
                         <div class="col-md-3">
-                            <label class="form-label fw-bold small text-muted text-uppercase mb-2">Isbn Search</label>
-                            <InputText class="form-control border-primary shadow-sm" @bind-Value="searchBookIsbn" placeholder="Partial isbn..." />
+                            <label class="form-label fw-bold small text-muted text-uppercase mb-2">@L["IsbnSearch"]</label>
+                            <InputText class="form-control border-primary shadow-sm" @bind-Value="searchBookIsbn" placeholder="@L["PartialIsbnPlaceholder"]" />
                         </div>
                         <div class="col-md-4 @(IsIsbnSearchActive ? "opacity-50" : "") transition-opacity" style="transition: opacity 0.3s ease;">
                             <label class="form-label fw-bold small text-muted text-uppercase mb-2 @(IsIsbnSearchActive ? "text-decoration-line-through" : "")">
-                                <i class="bi bi-calendar-range me-1"></i>Publication Year
+                                <i class="bi bi-calendar-range me-1"></i>@L["PublicationYear"]
                             </label>
                             <div class="year-search-container bg-white p-3 rounded shadow-sm border @(IsIsbnSearchActive ? "bg-light border-secondary-subtle" : "border-primary-subtle")">
                                 <fieldset disabled="@IsIsbnSearchActive">
@@ -74,22 +76,22 @@
                                         <div class="form-check">
                                             <input class="form-check-input" type="radio" name="yearSearchOption" id="exactYear" value="exact" 
                                                    checked='@(yearSearchMode == "exact")' @onclick='() => yearSearchMode = "exact"' />
-                                            <label class="form-check-label small" for="exactYear">Exact</label>
+                                            <label class="form-check-label small" for="exactYear">@L["Exact"]</label>
                                         </div>
                                         <div class="form-check">
                                             <input class="form-check-input" type="radio" name="yearSearchOption" id="afterYear" value="after" 
                                                    checked='@(yearSearchMode == "after")' @onclick='() => yearSearchMode = "after"' />
-                                            <label class="form-check-label small" for="afterYear">From Year</label>
+                                            <label class="form-check-label small" for="afterYear">@L["FromYear"]</label>
                                         </div>
                                         <div class="form-check">
                                             <input class="form-check-input" type="radio" name="yearSearchOption" id="beforeYear" value="before" 
                                                    checked='@(yearSearchMode == "before")' @onclick='() => yearSearchMode = "before"' />
-                                            <label class="form-check-label small" for="beforeYear">To Year</label>
+                                            <label class="form-check-label small" for="beforeYear">@L["ToYear"]</label>
                                         </div>
                                         <div class="form-check">
                                             <input class="form-check-input" type="radio" name="yearSearchOption" id="betweenYear" value="between" 
                                                    checked='@(yearSearchMode == "between")' @onclick='() => yearSearchMode = "between"' />
-                                            <label class="form-check-label small" for="betweenYear">Between</label>
+                                            <label class="form-check-label small" for="betweenYear">@L["Between"]</label>
                                         </div>
                                     </div>
                                     <div class="row g-2">
@@ -97,7 +99,7 @@
                                             <div class="input-group">
                                                 <span class="input-group-text bg-light text-primary"><i class="bi bi-calendar-event"></i></span>
                                                 <InputNumber class="form-control" @bind-Value="searchBookYear" 
-                                                               placeholder='@(yearSearchMode == "between" ? "Starting year" : "Year value")' />
+                                                               placeholder='@(yearSearchMode == "between" ? L["StartingYear"] : L["YearValue"])' />
                                             </div>
                                         </div>
                                         @if (yearSearchMode == "between")
@@ -105,7 +107,7 @@
                                             <div class="col-6">
                                                 <div class="input-group">
                                                     <span class="input-group-text bg-light text-primary"><i class="bi bi-calendar-check"></i></span>
-                                                    <InputNumber class="form-control" @bind-Value="searchBookYearTo" placeholder="Ending year" />
+                                                    <InputNumber class="form-control" @bind-Value="searchBookYearTo" placeholder="@L["EndingYear"]" />
                                                 </div>
                                             </div>
                                         }
@@ -119,11 +121,11 @@
                                                style="width: 3.2em; height: 1.6em; cursor: pointer;" />
                                 <label class="form-check-label fw-bold text-success small text-uppercase" for="availToggle" 
                                        style="cursor: pointer; letter-spacing: 0.5px;">
-                                    <i class="bi bi-check-circle-fill me-1"></i>Available Only
+                                    <i class="bi bi-check-circle-fill me-1"></i>@L["AvailableOnly"]
                                 </label>
                             </div>
                             <button type="submit" class="btn btn-primary btn-lg w-100 shadow-sm transition-hover py-2 d-flex align-items-center justify-content-center h-50">
-                                <i class="bi bi-search me-2 fs-5"></i><span>Search</span>
+                                <i class="bi bi-search me-2 fs-5"></i><span>@L["Search"]</span>
                             </button>
                         </div>
                     </div>
@@ -131,12 +133,12 @@
                     <div class="row g-3 mt-4 border-top pt-4 @(IsIsbnSearchActive ? "opacity-50" : "") transition-opacity" style="transition: opacity 0.3s ease;">
                         <div class="col-md-5">
                             <label class="form-label fw-bold small text-muted text-uppercase mb-2 @(IsIsbnSearchActive ? "text-decoration-line-through" : "")">
-                                <i class="bi bi-person-lines-fill me-1"></i>Refine by Author(s)
+                                <i class="bi bi-person-lines-fill me-1"></i>@L["RefineByAuthors"]
                             </label>
                             <fieldset disabled="@IsIsbnSearchActive">
                                 <div class="input-group shadow-sm">
                                     <span class="input-group-text bg-white text-primary border-primary"><i class="bi bi-person-search"></i></span>
-                                    <input type="text" class="form-control border-primary border-end-0" @bind="authorSearchNameFilter" placeholder="Search author name..." @onkeyup='(e) => { if (e.Key == "Enter") SearchAuthorsForFilter(); }' />
+                                    <input type="text" class="form-control border-primary border-end-0" @bind="authorSearchNameFilter" placeholder="@L["SearchAuthorNamePlaceholder"]" @onkeyup='async (e) => { if (e.Key == "Enter") await SearchAuthorsForFilter(); }' />
                                     <button type="button" class="btn btn-outline-primary border-primary px-3 transition-hover" @onclick="SearchAuthorsForFilter">
                                         <i class="bi bi-search"></i>
                                     </button>
@@ -145,17 +147,17 @@
                                 @if (foundAuthorsForFilter.Any())
                                 {
                                     <div class="mt-3 p-3 border-start border-4 border-primary bg-white shadow-sm rounded-end animate-fade-in">
-                                        <label class="form-label small text-muted text-uppercase d-block mb-2 fw-semibold">Click to add author</label>
+                                        <label class="form-label small text-muted text-uppercase d-block mb-2 fw-semibold">@L["ClickToAddAuthor"]</label>
                                         <div class="d-flex gap-2">
                                             <select class="form-select border-primary shadow-sm" @bind="selectedAuthorIdForFilter">
-                                                <option value="">-- Choose from results --</option>
+                                                <option value="">@L["ChooseFromResults"]</option>
                                                 @foreach (var author in foundAuthorsForFilter)
                                                 {
                                                     <option value="@author.AuthorId.Value.ToString()">@author.Name.Value</option>
                                                 }
                                             </select>
                                             <button type="button" class="btn btn-success shadow-sm transition-hover d-flex align-items-center" @onclick="AddAuthorToSearchCriteria" disabled="@(string.IsNullOrEmpty(selectedAuthorIdForFilter))">
-                                                <i class="bi bi-plus-lg me-1"></i>Add
+                                                <i class="bi bi-plus-lg me-1"></i>@L["Add"]
                                             </button>
                                         </div>
                                     </div>
@@ -164,12 +166,12 @@
                         </div>
                         
                         <div class="col-md-7">
-                            <label class="form-label fw-bold small text-muted text-uppercase mb-2">Active Author Criteria</label>
+                            <label class="form-label fw-bold small text-muted text-uppercase mb-2">@L["ActiveAuthorCriteria"]</label>
                             <div class="d-flex flex-wrap gap-2 p-3 border border-dashed rounded bg-white shadow-inner min-vh-10" style="min-height: 80px;">
                                 @if (!searchAuthorsCriteria.Any())
                                 {
                                     <div class="w-100 d-flex align-items-center justify-content-center text-muted small italic">
-                                        <i class="bi bi-info-circle me-2"></i>No authors selected
+                                        <i class="bi bi-info-circle me-2"></i>@L["NoAuthorsSelected"]
                                     </div>
                                 }
                                 else
@@ -179,7 +181,7 @@
                                         <div class="badge bg-primary text-white d-flex align-items-center py-2 px-3 rounded-pill shadow-sm animate-pop-in">
                                             <i class="bi bi-person-fill me-2 border-end pe-2 border-white-50"></i>
                                             <span class="me-2 fw-normal">@author.Name.Value</span>
-                                            <button type="button" class="btn-close btn-close-white ms-1 small" style="transform: scale(0.7);" title="Remove" @onclick="() => { if (!IsIsbnSearchActive) RemoveAuthorFromSearchCriteria(author); }"></button>
+                                            <button type="button" class="btn-close btn-close-white ms-1 small" style="transform: scale(0.7);" title="@L["Remove"]" @onclick="() => { if (!IsIsbnSearchActive) RemoveAuthorFromSearchCriteria(author); }"></button>
                                         </div>
                                     }
                                 }
@@ -191,31 +193,31 @@
                     <div class="row g-3 mt-4 border-top pt-4 @(IsIsbnSearchActive ? "opacity-50" : "") transition-opacity" style="transition: opacity 0.3s ease;">
                         <div class="col-md-5">
                             <label class="form-label fw-bold small text-muted text-uppercase mb-2 @(IsIsbnSearchActive ? "text-decoration-line-through" : "")">
-                                <i class="bi bi-tags-fill me-1"></i>Refine by Category
+                                <i class="bi bi-tags-fill me-1"></i>@L["RefineByCategory"]
                             </label>
                             <fieldset disabled="@IsIsbnSearchActive">
                                 <div class="d-flex gap-2">
                                     <select class="form-select border-primary shadow-sm" @bind="selectedCategoryForFilter">
-                                        <option value="">-- Select Category --</option>
+                                        <option value="">@L["SelectCategoryPlaceholder"]</option>
                                         @foreach (var category in allCategories)
                                         {
                                             <option value="@category.Value()">@category.Value()</option>
                                         }
                                     </select>
                                     <button type="button" class="btn btn-info text-white shadow-sm transition-hover d-flex align-items-center" @onclick="AddCategoryToSearchCriteria" disabled="@(string.IsNullOrEmpty(selectedCategoryForFilter))">
-                                        <i class="bi bi-bookmark-plus-fill me-1"></i>Add
+                                        <i class="bi bi-bookmark-plus-fill me-1"></i>@L["Add"]
                                     </button>
                                 </div>
                             </fieldset>
                         </div>
                         
                         <div class="col-md-7">
-                            <label class="form-label fw-bold small text-muted text-uppercase mb-2">Active Category Criteria</label>
+                            <label class="form-label fw-bold small text-muted text-uppercase mb-2">@L["ActiveCategoryCriteria"]</label>
                             <div class="d-flex flex-wrap gap-2 p-3 border border-dashed rounded bg-white shadow-inner" style="min-height: 80px;">
                                 @if (!searchCategoriesCriteria.Any())
                                 {
                                     <div class="w-100 d-flex align-items-center justify-content-center text-muted small italic">
-                                        <i class="bi bi-info-circle me-2"></i>No categories selected
+                                        <i class="bi bi-info-circle me-2"></i>@L["NoCategoriesSelected"]
                                     </div>
                                 }
                                 else
@@ -225,7 +227,7 @@
                                         <div class="badge bg-info text-white d-flex align-items-center py-2 px-3 rounded shadow-sm animate-pop-in">
                                             <i class="bi bi-tag-fill me-2 border-end pe-2 border-white-50"></i>
                                             <span class="me-2 fw-normal">@category.Value()</span>
-                                            <button type="button" class="btn-close btn-close-white ms-1 small" style="transform: scale(0.7);" title="Remove" @onclick="() => { if (!IsIsbnSearchActive) RemoveCategoryFromSearchCriteria(category); }"></button>
+                                            <button type="button" class="btn-close btn-close-white ms-1 small" style="transform: scale(0.7);" title="@L["Remove"]" @onclick="() => { if (!IsIsbnSearchActive) RemoveCategoryFromSearchCriteria(category); }"></button>
                                         </div>
                                     }
                                 }
@@ -244,40 +246,40 @@
         <div class="col-12">
             <div class="card shadow-sm border-0 overflow-hidden">
                 <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center py-3">
-                    <h5 class="card-title mb-0"><i class="bi bi-list-stars me-2"></i>Search Results</h5>
-                    <span class="badge bg-primary text-white">@foundBooks.Count books found</span>
+                    <h5 class="card-title mb-0"><i class="bi bi-list-stars me-2"></i>@L["SearchResults"]</h5>
+                    <span class="badge bg-primary text-white">@foundBooks.Count @L["BooksFound"]</span>
                 </div>
                 <div class="card-body p-0">
                     <div class="table-responsive">
                         <QuickGrid Items="@FilteredBooks" Pagination="@bookPagination" Class="table table-hover align-middle mb-0 book-grid">
-                            <TemplateColumn Title="Title" SortBy="@sortTitle" Class="fw-bold text-dark col-title title-cell">
+                            <TemplateColumn Title="@L["Title"]" SortBy="@sortTitle" Class="fw-bold text-dark col-title title-cell">
                                 <ColumnOptions>
                                     <div class="p-3 shadow-sm border rounded bg-white" style="min-width: 250px;">
                                         <div class="input-group">
                                             <span class="input-group-text bg-primary text-white border-0"><i class="bi bi-filter"></i></span>
-                                            <input type="search" autofocus @bind="titleRefinementFilter" @bind:event="oninput" placeholder="Refine results by title..." class="form-control border-primary shadow-none" />
+                                            <input type="search" autofocus @bind="titleRefinementFilter" @bind:event="oninput" placeholder="@L["RefineResultsByTitlePlaceholder"]" class="form-control border-primary shadow-none" />
                                         </div>
                                     </div>
                                 </ColumnOptions>
                                 <ChildContent>
-                                    <a href="/book-view/@context.Id" class="text-decoration-none text-primary-emphasis transition-hover d-block w-100 h-100 py-1" title="View details for '@context.Title.Value'">
+                                    <a href="/book-view/@context.Id" class="text-decoration-none text-primary-emphasis transition-hover d-block w-100 h-100 py-1" title="@L["ViewDetailsFor", context.Title.Value]">
                                         <i class="bi bi-book-fill me-2 small opacity-75"></i>@context.Title.Value
                                     </a>
                                 </ChildContent>
                             </TemplateColumn>
-                            <PropertyColumn Property="@(b => b.Year.Value)" Title="Year" Sortable="true" Class="col-year" />
-                            <PropertyColumn Property="@(b => b.MainCategory.Value())" Title="Category" Sortable="true" Class="col-category" />
-                            <TemplateColumn Title="Available" Sortable="true" Align="Align.Center" Class="col-available">
+                            <PropertyColumn Property="@(b => b.Year.Value)" Title="@L["Year"]" Sortable="true" Class="col-year" />
+                            <PropertyColumn Property="@(b => b.MainCategory.Value())" Title="@L["Category"]" Sortable="true" Class="col-category" />
+                            <TemplateColumn Title="@L["Availability"]" Sortable="true" Align="Align.Center" Class="col-available">
                                 @if (context.Available)
                                 {
-                                    <span class="text-success small fw-bold"><i class="bi bi-check-circle-fill me-1"></i>Available</span>
+                                    <span class="text-success small fw-bold"><i class="bi bi-check-circle-fill me-1"></i>@L["Available"]</span>
                                 }
                                 else
                                 {
-                                    <span class="text-danger small fw-bold"><i class="bi bi-dash-circle-fill me-1"></i>On Loan</span>
+                                    <span class="text-danger small fw-bold"><i class="bi bi-dash-circle-fill me-1"></i>@L["OnLoan"]</span>
                                 }
                             </TemplateColumn>
-                            <PropertyColumn Property="@(b => b.Isbn.Value)" Title="ISBN" Class="col-isbn" />
+                            <PropertyColumn Property="@(b => b.Isbn.Value)" Title="@L["IsbnSearch"]" Class="col-isbn" />
                         </QuickGrid>
                     </div>
                     @if (foundBooks.Count > 0)
@@ -290,7 +292,7 @@
                     {
                         <div class="p-5 text-center text-muted">
                             <i class="bi bi-search fs-1 mb-3 d-block opacity-25"></i>
-                            <p class="mb-0">No books found matching your criteria.</p>
+                            <p class="mb-0">@L["NoBooksFoundCriteria"]</p>
                         </div>
                     }
                 </div>
@@ -348,12 +350,12 @@
             foundAuthorsForFilter = result.ResultValue.ToList();
             if (!foundAuthorsForFilter.Any())
             {
-                ShowStatus("No authors found matching that name.", "alert-warning");
+                ShowStatus(L["NoAuthorsFoundMatchingName"], "alert-warning");
             }
         }
         else
         {
-            ShowStatus($"Error searching authors: {result.ErrorValue}", "alert-danger");
+            ShowStatus(L["ErrorSearchingAuthors", result.ErrorValue], "alert-danger");
         }
     }
 
@@ -518,7 +520,7 @@
         }
         else
         {
-            ShowStatus($"Error searching books: {result.ErrorValue}", "alert-danger");
+            ShowStatus(L["ErrorSearchingBooks", result.ErrorValue], "alert-danger");
         }
     }
 

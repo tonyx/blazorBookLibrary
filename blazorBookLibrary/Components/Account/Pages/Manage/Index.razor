@@ -3,14 +3,17 @@
 @using System.ComponentModel.DataAnnotations
 @using Microsoft.AspNetCore.Identity
 @using blazorBookLibrary.Data
+@using BookLibrary.Shared.Services
+@using blazorBookLibrary.Shared.Resources
 
 @inject UserManager<ApplicationUser> UserManager
 @inject SignInManager<ApplicationUser> SignInManager
+@inject IStringLocalizer<SharedResources> L
 @inject IdentityRedirectManager RedirectManager
 
-<PageTitle>Profile</PageTitle>
+<PageTitle>@L["Profile"]</PageTitle>
 
-<h3>Profile</h3>
+<h3>@L["Profile"]</h3>
 <StatusMessage />
 
 <div class="row">
@@ -19,30 +22,30 @@
             <DataAnnotationsValidator />
             <ValidationSummary class="text-danger" role="alert" />
             <div class="mb-4">
-                <label class="form-label d-block text-muted small text-uppercase fw-bold mb-2">Account Verification Status</label>
+                <label class="form-label d-block text-muted small text-uppercase fw-bold mb-2">@L["AccountVerificationStatus"]</label>
                 @if (isIdentified)
                 {
                     <span class="badge bg-success py-2 px-3 fs-6 rounded-pill shadow-sm">
-                        <i class="bi bi-patch-check-fill me-2"></i>Physically Identified & Verified
+                        <i class="bi bi-patch-check-fill me-2"></i>@L["PhysicallyIdentifiedVerified"]
                     </span>
-                    <p class="text-muted small mt-2 mb-0">Your identity was verified by a librarian. Your essential identification details are now locked for security.</p>
+                    <p class="text-muted small mt-2 mb-0">@L["IdentityVerifiedLibrarianLocked"]</p>
                 }
                 else
                 {
                     <span class="badge bg-secondary py-2 px-3 fs-6 rounded-pill">
-                        <i class="bi bi-person-exclamation me-2"></i>Pending Physical Identification
+                        <i class="bi bi-person-exclamation me-2"></i>@L["PendingPhysicalIdentification"]
                     </span>
-                    <p class="text-muted small mt-2 mb-0">Visit the library with a valid ID document to verify your account and unlock more features.</p>
+                    <p class="text-muted small mt-2 mb-0">@L["VisitLibraryToVerify"]</p>
                 }
             </div>
 
             <div class="form-floating mb-3">
-                <input type="text" value="@username" id="username" class="form-control" placeholder="Choose your username." disabled />
-                <label for="username" class="form-label">Username</label>
+                <input type="text" value="@username" id="username" class="form-control" placeholder="@username" disabled />
+                <label for="username" class="form-label">@L["Username"]</label>
             </div>
             <div class="form-floating mb-3">
-                <InputText @bind-Value="Input.PhoneNumber" id="Input.PhoneNumber" class="form-control" placeholder="Enter your phone number" />
-                <label for="Input.PhoneNumber" class="form-label">Phone number (optional)</label>
+                <InputText @bind-Value="Input.PhoneNumber" id="Input.PhoneNumber" class="form-control" placeholder="@L["PhoneNumber"]" />
+                <label for="Input.PhoneNumber" class="form-label">@L["PhoneNumber"]</label>
                 <ValidationMessage For="() => Input.PhoneNumber" class="text-danger" />
             </div>
             
@@ -50,21 +53,21 @@
 @if (isIdentified)
                 {
                     <input type="text" value="@Input.CodiceFiscale" class="form-control" id="Input.CodiceFiscale" readonly disabled />
-                    <label for="Input.CodiceFiscale" class="form-label">Fiscal Code (Verified)</label>
+                    <label for="Input.CodiceFiscale" class="form-label">@L["FiscalCodeVerified"]</label>
                     <div class="form-text text-success small mt-1">
-                        <i class="bi bi-patch-check-fill me-1"></i>Locked: Identity has been verified physically.
+                        <i class="bi bi-patch-check-fill me-1"></i>@L["IdentityVerifiedLocked"]
                     </div>
                 }
                 else
                 {
                     <InputText @bind-Value="Input.CodiceFiscale" id="Input.CodiceFiscale" class="form-control text-uppercase" placeholder="RSSMRA80A01H501U" />
-                    <label for="Input.CodiceFiscale" class="form-label">Fiscal Code</label>
+                    <label for="Input.CodiceFiscale" class="form-label">@L["FiscalCode"]</label>
                     <ValidationMessage For="() => Input.CodiceFiscale" class="text-danger" />
-                    <div class="form-text small mt-1">Provided Fiscal Code is subject to verification.</div>
+                    <div class="form-text small mt-1">@L["FiscalCodeVerificationSubject"]</div>
                 }
             </div>
 
-            <button type="submit" class="w-100 btn btn-lg btn-primary">Save</button>
+            <button type="submit" class="w-100 btn btn-lg btn-primary">@L["Save"]</button>
         </EditForm>
     </div>
 </div>
@@ -116,7 +119,7 @@
             var phoneAttr = new PhoneAttribute();
             if (!phoneAttr.IsValid(Input.PhoneNumber))
             {
-                RedirectManager.RedirectToCurrentPageWithStatus("Error: The phone number provided is not valid.", HttpContext);
+                RedirectManager.RedirectToCurrentPageWithStatus($"{L["Error"]}: {L["InvalidPhoneNumber"]}", HttpContext);
                 return;
             }
         }
@@ -149,7 +152,7 @@
         if (changed)
         {
             await SignInManager.RefreshSignInAsync(user);
-            RedirectManager.RedirectToCurrentPageWithStatus("Your profile has been updated", HttpContext);
+            RedirectManager.RedirectToCurrentPageWithStatus(L["ProfileUpdated"].Value, HttpContext);
         }
     }
 
