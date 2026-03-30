@@ -150,9 +150,7 @@ using (var scope = app.Services.CreateScope())
                 if (sharpinoUserResult.IsError) // User not found in event store
                 {
                     var newSharpinoUser = BookLibrary.Domain.User.New(sharpinoUserId);
-                    Console.WriteLine("XXXXX 100: creating user");
                     var createResult = await userService.CreateUserAsync(newSharpinoUser, Microsoft.FSharp.Core.FSharpOption<System.Threading.CancellationToken>.None);
-                    Console.WriteLine("XXXXX 150: creating user");
                     
                     if (createResult.IsError)
                     {

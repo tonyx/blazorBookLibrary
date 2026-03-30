@@ -6,58 +6,26 @@ open BookLibrary.Shared.Commons
 open System
 open System.Globalization
 
-type Book001 = {
-    BookId: BookId
-    Title: Title
-    Authors: List<AuthorId>
-    Translators: List<AuthorId>
-    Languages: List<CultureInfo>
-    CurrentReservations: List<ReservationId>
-    CurrentLoan: Option<LoanId>
-    Editor: Option<EditorId>
-    MainCategory: Category
-    AdditionalCategories: List<Category>
-    Year: Year
-    Isbn: Isbn
-    Sealed: Sealed
-}
-with
-    member 
-        this.Upcast (): Book =
-        {
-            BookId = this.BookId;
-            Title = this.Title;
-            ImageUrl = None;
-            Authors = this.Authors;
-            Translators = this.Translators;
-            Languages = this.Languages;
-            CurrentReservations = this.CurrentReservations;
-            CurrentLoan = this.CurrentLoan;
-            Editor = this.Editor;
-            MainCategory = this.MainCategory;
-            AdditionalCategories = this.AdditionalCategories;
-            Year = this.Year;
-            Isbn = this.Isbn;
-            Sealed = this.Sealed
-        }
+type Book =
+    {   
+        BookId: BookId
+        Title: Title
+        ImageUrl: Option<Uri>   
+        Description: Option<string>
+        Authors: List<AuthorId>
+        Translators: List<AuthorId>
+        Languages: List<CultureInfo>
+        CurrentReservations: List<ReservationId>
+        CurrentLoan: Option<LoanId>
+        Editor: Option<EditorId>
+        MainCategory: Category
+        AdditionalCategories: List<Category>
+        Year: Year
+        Isbn: Isbn
+        Sealed: Sealed
+    }
+            
 
-
-and Book = {
-    BookId: BookId
-    Title: Title
-    ImageUrl: Option<Uri>   
-    Authors: List<AuthorId>
-    Translators: List<AuthorId>
-    Languages: List<CultureInfo>
-    CurrentReservations: List<ReservationId>
-    CurrentLoan: Option<LoanId>
-    Editor: Option<EditorId>
-    MainCategory: Category
-    AdditionalCategories: List<Category>
-    Year: Year
-    Isbn: Isbn
-    Sealed: Sealed
-}
 with 
     static member New 
         (title: Title) 
@@ -71,6 +39,7 @@ with
         {
             BookId = BookId.New(); 
             Title = title; 
+            Description = None;
             ImageUrl = None;
             Authors = authors; 
             Translators = translators;
@@ -96,6 +65,7 @@ with
         {   
             BookId = BookId.New(); 
             Title = title; 
+            Description = None;
             ImageUrl = None;
             Authors = authors; 
             Translators = translators;
@@ -125,6 +95,7 @@ with
         {   
             BookId = BookId.New(); 
             Title = title; 
+            Description = None;
             ImageUrl = imageUrl;
             Authors = authors; 
             Translators = translators;
@@ -488,8 +459,4 @@ with
             Ok book
         with
             | ex -> 
-                try
-                    let book001 = JsonSerializer.Deserialize<Book001> (data, jsonOptions)
-                    Ok (book001.Upcast())
-                with
-                    | ex2 -> Error (ex.Message + " " + ex2.Message)
+                Error (ex.Message + " " + ex.InnerException.Message)
