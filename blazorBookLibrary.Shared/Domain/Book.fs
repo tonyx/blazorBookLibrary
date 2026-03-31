@@ -47,7 +47,7 @@ type Book001 =
                 }
 and
     Book =
-    {   
+    {
         BookId: BookId
         Title: Title
         ImageUrl: Option<Uri>   
@@ -465,6 +465,7 @@ with
         |> Option.isNone
 
     member this.ImmediatelyAvailable =
+        this.Availability = Availability.Circulating &&
         this.Available &&
         this.CurrentReservations
         |> List.isEmpty

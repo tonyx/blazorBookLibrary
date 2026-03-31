@@ -1,0 +1,155 @@
+@page "/"
+@page "/book-search"
+@page "/books-browser"
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using BookLibrary.Shared.Services
+@using BookLibrary.Domain
+@using static BookLibrary.Shared.Commons
+@using Microsoft.FSharp.Core
+@using Microsoft.FSharp.Collections
+@using BookLibrary.Shared.Services
+@using static  BookLibrary.Shared.SearchCriteria
+@using System.Threading
+@using static BookLibrary.Shared.Details
+@inject IBookService BookService
+@inject IAuthorService AuthorService
+@inject IJSRuntime JSRuntime
+@inject IStringLocalizer<SharedResources> L
+@rendermode InteractiveServer
+
+<style>
+    .book-grid {
+        table-layout: fixed;
+        width: 100%;
+    }
+    .col-title { width: auto; min-width: 200px; }
+    .col-year { width: 100px; }
+    .col-category { width: 180px; }
+    .col-available { width: 140px; }
+    .col-isbn { width: 170px; }
+    
+    .title-cell {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+</style>
+
+<PageTitle>@L["BookSearch"]</PageTitle>
+
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="text-primary mb-0"><i class="bi bi-search me-2"></i>@L["BookSearch"]</h1>
+        @if (!string.IsNullOrEmpty(statusMessage))
+        {
+            <div class="alert @(statusClass) alert-dismissible fade show mb-0" role="alert">
+                @statusMessage
+                <button type="button" class="btn-close" @onclick='() => statusMessage = ""'></button>
+            </div>
+        }
+    </div>
+
+    <BookSearchToolbar OnSearchResultsFound="HandleSearchResultsFound" OnError="ShowSearchError" OnSearchStarted="HandleSearchStarted" />
+
+    @if (searchBooksPerformed)
+    {
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card shadow-sm border-0 overflow-hidden">
+                    <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center py-3">
+                        <h5 class="card-title mb-0"><i class="bi bi-list-stars me-2"></i>@L["SearchResults"]</h5>
+                        <span class="badge bg-primary text-white">@foundBooks.Count @L["BooksFound"]</span>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <QuickGrid Items="@FilteredBooks" Pagination="@bookPagination" Class="table table-hover align-middle mb-0 book-grid">
+                                <TemplateColumn Title="@L["Title"]" SortBy="@sortTitle" Class="fw-bold text-dark col-title title-cell">
+                                    <ColumnOptions>
+                                        <div class="p-3 shadow-sm border rounded bg-white" style="min-width: 250px;">
+                                            <div class="input-group">
+                                                <span class="input-group-text bg-primary text-white border-0"><i class="bi bi-filter"></i></span>
+                                                <input type="search" autofocus @bind="titleRefinementFilter" @bind:event="oninput" placeholder="@L["RefineResultsByTitlePlaceholder"]" class="form-control border-primary shadow-none" />
+                                            </div>
+                                        </div>
+                                    </ColumnOptions>
+                                    <ChildContent>
+                                        <a href="/book-view/@context.Id" class="text-decoration-none text-primary-emphasis transition-hover d-block w-100 h-100 py-1" title="@L["ViewDetailsFor", context.Title.Value]">
+                                            <i class="bi bi-book-fill me-2 small opacity-75"></i>@context.Title.Value
+                                        </a>
+                                    </ChildContent>
+                                </TemplateColumn>
+                                <PropertyColumn Property="@(b => b.Year.Value)" Title="@L["Year"]" Sortable="true" Class="col-year" />
+                                <PropertyColumn Property="@(b => b.MainCategory.Value())" Title="@L["Category"]" Sortable="true" Class="col-category" />
+                                <TemplateColumn Title="@L["AvailabilityType"]" Align="Align.Center" Class="col-availability-type" Sortable="true">
+                                    @{
+                                        var label = context.Availability.ToString();
+                                        var localizedLabel = L[label].Value;
+                                        var contraction = localizedLabel.Length >= 3 ? localizedLabel.Substring(0, 3).ToUpper() : localizedLabel.ToUpper();
+                                    }
+                                    <span class="badge bg-light text-dark border p-1" style="font-size: 0.7rem;" title="@localizedLabel">@contraction</span>
+                                </TemplateColumn>
+                                <TemplateColumn Title="@L["Availability"]" Sortable="true" Align="Align.Center" Class="col-available">
+                                    @if (context.ImmediatelyAvailable)
+                                    {
+                                        <span class="text-success small fw-bold"><i class="bi bi-check-circle-fill me-1"></i>@L["Available"]</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-danger small fw-bold"><i class="bi bi-dash-circle-fill me-1"></i>@L["OnLoan"]</span>
+                                    }
+                                </TemplateColumn>
+                                <PropertyColumn Property="@(b => b.Isbn.Value)" Title="@L["IsbnSearch"]" Class="col-isbn" />
+                            </QuickGrid>
+                        </div>
+                        @if (foundBooks.Count > 0)
+                        {
+                            <div class="p-3 border-top bg-light">
+                                <Paginator State="@bookPagination" />
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="p-5 text-center text-muted">
+                                <i class="bi bi-search fs-1 mb-3 d-block opacity-25"></i>
+                                <p class="mb-0">@L["NoBooksFoundCriteria"]</p>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private List<Book> foundBooks = new();
+    private string titleRefinementFilter = "";
+    private IQueryable<Book> FilteredBooks => 
+        foundBooks.AsQueryable()
+            .Where(b => string.IsNullOrEmpty(titleRefinementFilter) || 
+                        b.Title.Value.Contains(titleRefinementFilter, StringComparison.OrdinalIgnoreCase));
+
+    private bool searchBooksPerformed = false;
+    private PaginationState bookPagination = new() { ItemsPerPage = 10 };
+    private GridSort<Book> sortTitle = GridSort<Book>.ByAscending(b => b.Title.Value);
+
+    private string statusMessage = "";
+    private string statusClass = "alert-info";
+
+    private void HandleSearchStarted(bool started)
+    {
+        searchBooksPerformed = true;
+        statusMessage = "";
+    }
+
+    private void HandleSearchResultsFound(List<Book> books)
+    {
+        foundBooks = books;
+    }
+
+    private void ShowSearchError(string error)
+    {
+        statusMessage = error;
+        statusClass = "alert-danger";
+    }
+}

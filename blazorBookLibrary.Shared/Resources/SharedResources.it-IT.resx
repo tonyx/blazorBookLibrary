@@ -370,4 +370,37 @@
   <data name="All" xml:space="preserve">
     <value>Tutti</value>
   </data>
+  <data name="AvailabilityFilters" xml:space="preserve">
+    <value>Filtri Disponibilità</value>
+  </data>
+  <data name="AllBooks" xml:space="preserve">
+    <value>Tutti i libri</value>
+  </data>
+  <data name="CirculatingRule" xml:space="preserve">
+    <value>Prestabile</value>
+  </data>
+  <data name="ReferenceOnlyRule" xml:space="preserve">
+    <value>Consultazione</value>
+  </data>
+  <data name="UnspecifiedRule" xml:space="preserve">
+    <value>N.D.</value>
+  </data>
+  <data name="ImmediatelyAvailableOnly" xml:space="preserve">
+    <value>Libero subito</value>
+  </data>
+  <data name="NotAvailableForLoan" xml:space="preserve">
+    <value>Non disponibile per il prestito</value>
+  </data>
+  <data name="HasBeenUpdated" xml:space="preserve">
+    <value>è stato aggiornato</value>
+  </data>
+  <data name="ChangeAvailability" xml:space="preserve">
+    <value>Cambia Disponibilità</value>
+  </data>
+  <data name="StatusAvailability" xml:space="preserve">
+    <value>Stato e Disponibilità</value>
+  </data>
+  <data name="NotAvailable" xml:space="preserve">
+    <value>Non disponibile</value>
+  </data>
 </root>

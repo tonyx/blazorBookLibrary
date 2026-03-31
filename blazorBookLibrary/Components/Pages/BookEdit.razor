@@ -235,7 +235,7 @@
                                                 </div>
                                                 <div class="form-check form-switch">
                                                     <input class="form-check-input" type="checkbox" id="invalidIsbnSwitch" @bind="acceptInvalidIsbn" />
-                                                    <label class="form-check-label x-small text-muted" for="invalidIsbnSwitch">@L["AcceptInvalidIsbnCheckbox"]</label>
+                                                    <label class="form-check-label x-small text-muted" for="invalidIsbnSwitch">@L["AcceptInvalidIsbn"]</label>
                                                 </div>
                                             </div>
                                         }
@@ -285,6 +285,44 @@
                                             <i class="bi bi-pencil-fill ms-2 small"></i>
                                         }
                                     </span>
+                                }
+                            </dd>
+
+                            <dt class="col-sm-4 text-muted mt-2">@L["Availability"]</dt>
+                            <dd class="col-sm-8 mt-2">
+                                @if (isEditingAvailability)
+                                {
+                                    <div class="input-group input-group-sm" style="max-width: 300px;">
+                                        <select class="form-select" @bind="editedAvailability">
+                                            @foreach (var avail in Availability.AllCases())
+                                            {
+                                                <option value="@avail.ToString()" selected="@(avail.ToString() == bookDetails.Book.Availability.ToString())">
+                                                    @GetAvailabilityLocalName(avail)
+                                                </option>
+                                            }
+                                        </select>
+                                        <button class="btn btn-primary" @onclick="UpdateAvailability">
+                                            <i class="bi bi-check-lg"></i>
+                                        </button>
+                                        <button class="btn btn-outline-secondary" @onclick="() => isEditingAvailability = false">
+                                            <i class="bi bi-x-lg"></i>
+                                        </button>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="@((bookDetails?.Book.Editable ?? false) ? "editable-title" : "")" 
+                                          @onclick="StartEditAvailability" 
+                                          style="@((bookDetails?.Book.Editable ?? false) ? "cursor: pointer;" : "")" 
+                                          title="@((bookDetails?.Book.Editable ?? false) ? L["ChangeAvailability"] : "")">
+                                        <span class="badge @(bookDetails.Book.Availability.IsCirculating ? "bg-success" : bookDetails.Book.Availability.IsReferenceOnly ? "bg-warning text-dark" : "bg-secondary")">
+                                            @GetAvailabilityLocalName(bookDetails.Book.Availability)
+                                        </span>
+                                        @if (bookDetails.Book.Editable)
+                                        {
+                                            <i class="bi bi-pencil-square text-muted ms-2 small"></i>
+                                        }
+                                    </div>
                                 }
                             </dd>
                             
@@ -481,10 +519,16 @@
                                 </ul>
                             </div>
                         }
-                        else
+                        else if (bookDetails.Book.ImmediatelyAvailable)
                         {
                             <div class="alert alert-success mb-4">
                                 <i class="bi bi-check-circle me-2"></i><strong>@L["AvailableForLoan"]</strong>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="alert alert-warning mb-4">
+                                <i class="bi bi-exclamation-triangle me-2"></i><strong>@L["NotAvailable"]</strong>
                             </div>
                         }
 
@@ -684,6 +728,8 @@
     private string editedCategory = "";
     private bool isEditingDescription = false;
     private string editedDescription = "";
+    private bool isEditingAvailability = false;
+    private string editedAvailability = "";
     private bool isBookSealed => bookDetails != null && bookDetails.Book.Sealed.IsSealed(DateTime.UtcNow);
 
     private async Task AddAdditionalCategoryWrapper(Category category)
@@ -795,17 +841,16 @@
             isEditingCategory = false;
             return;
         }
-        
-        try 
+
+        try
         {
-            var category = Category.New(editedCategory);
+            var category = Category.FromString(editedCategory);
             var result = await BookService.ChangeMainCategoryAsync(category, bookDetails.Book.BookId, FSharpOption<CancellationToken>.None);
-            
             if (result.IsOk)
             {
                 await LoadBookDetails();
                 isEditingCategory = false;
-                ShowStatus(L["CategoryUpdated"], "alert-success");
+                ShowStatus($"{L["Category"]} {L["HasBeenUpdated"]}.", "alert-success");
             }
             else
             {
@@ -816,6 +861,55 @@
         {
             ShowStatus($"Error updating category: {ex.Message}", "alert-danger");
         }
+    }
+
+    private void StartEditAvailability()
+    {
+        if (bookDetails?.Book.Editable ?? false)
+        {
+            isEditingAvailability = true;
+            editedAvailability = bookDetails!.Book.Availability.ToString();
+        }
+        else if (isBookSealed)
+        {
+            ShowStatus("This book is currently sealed. Please unseal it to change its availability status.", "alert-warning");
+        }
+    }
+
+    private async Task UpdateAvailability()
+    {
+        if (bookDetails == null || string.IsNullOrWhiteSpace(editedAvailability) || editedAvailability == bookDetails.Book.Availability.ToString())
+        {
+            isEditingAvailability = false;
+            return;
+        }
+
+        try
+        {
+            var availability = Availability.FromString(editedAvailability);
+            var result = await BookService.SetAvailabilityAsync(availability, bookDetails.Book.BookId, FSharpOption<CancellationToken>.None);
+            if (result.IsOk)
+            {
+                await LoadBookDetails();
+                isEditingAvailability = false;
+                ShowStatus($"{L["Availability"]} {L["HasBeenUpdated"]}.", "alert-success");
+            }
+            else
+            {
+                ShowStatus($"Failed to update availability: {result.ErrorValue}", "alert-danger");
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowStatus($"Error updating availability: {ex.Message}", "alert-danger");
+        }
+    }
+
+    private string GetAvailabilityLocalName(Availability availability)
+    {
+        if (availability.IsCirculating) return L["CirculatingRule"];
+        if (availability.IsReferenceOnly) return L["ReferenceOnlyRule"];
+        return L["UnspecifiedRule"];
     }
 
     private async Task HandleKeyUp(KeyboardEventArgs e)

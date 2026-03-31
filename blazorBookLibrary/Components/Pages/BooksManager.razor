@@ -1,11 +1,9 @@
 @page "/books-manager"
 @using Microsoft.AspNetCore.Authorization
-@using Microsoft.AspNetCore.Components.QuickGrid
-@using BookLibrary.Shared.Services
 @using Microsoft.Extensions.Localization
 @using blazorBookLibrary.Shared.Resources
 @using BookLibrary.Domain
-@using static BookLibrary.Shared.Commons
+@using blazorBookLibrary.Components.Shared
 @using Microsoft.FSharp.Core
 @using Microsoft.FSharp.Collections
 @using System.Threading
@@ -55,206 +53,7 @@
     </div>
 <div class="row mb-4">
     <div class="col-12">
-        <div class="card shadow-sm border-0">
-            <div class="card-header bg-secondary text-white py-3">
-                <h5 class="card-title mb-0"><i class="bi bi-search me-2"></i>@L["SearchBooksForm"]</h5>
-            </div>
-            <div class="card-body bg-light">
-                <EditForm Model="@this" OnValidSubmit="HandleBookSearch" FormName="SearchBookForm">
-                    <div class="row g-3">
-                        <div class="col-md-2">
-                            <label class="form-label fw-bold small text-muted text-uppercase mb-2">@L["TitleSearch"]</label>
-                            <InputText class="form-control border-primary shadow-sm" @bind-Value="searchBookTitle" placeholder="@L["SearchByTitlePlaceholder"]" />
-                        </div>
-                        <div class="col-md-2">
-                            <label class="form-label fw-bold small text-muted text-uppercase mb-2">@L["IsbnSearch"]</label>
-                            <InputText class="form-control border-primary shadow-sm" @bind-Value="searchBookIsbn" placeholder="@L["PartialIsbnPlaceholder"]" />
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label fw-bold small text-muted text-uppercase mb-2"><i class="bi bi-funnel-fill me-1"></i>@L["Availability"]</label>
-                            <div class="btn-group w-100 shadow-sm" role="group">
-                                <input type="radio" class="btn-check" name="availSearch" id="availAll" checked="@(searchBookAvailability == "All")" @onclick='() => searchBookAvailability = "All"' autocomplete="off">
-                                <label class="btn btn-outline-primary btn-sm py-2" for="availAll">@L["All"]</label>
-
-                                <input type="radio" class="btn-check" name="availSearch" id="availCirc" checked="@(searchBookAvailability == "Circulating")" @onclick='() => searchBookAvailability = "Circulating"' autocomplete="off">
-                                <label class="btn btn-outline-primary btn-sm py-2" for="availCirc" title="@L["Circulating"]">
-                                    <i class="bi bi-journal-text me-1"></i><span class="d-none d-xl-inline">@L["Circulating"]</span>
-                                </label>
-
-                                <input type="radio" class="btn-check" name="availSearch" id="availRef" checked="@(searchBookAvailability == "ReferenceOnly")" @onclick='() => searchBookAvailability = "ReferenceOnly"' autocomplete="off">
-                                <label class="btn btn-outline-primary btn-sm py-2" for="availRef" title="@L["ReferenceOnly"]">
-                                    <i class="bi bi-lock-fill me-1"></i><span class="d-none d-xl-inline">@L["ReferenceOnly"]</span>
-                                </label>
-
-                                <input type="radio" class="btn-check" name="availSearch" id="availUnsp" checked="@(searchBookAvailability == "Unspecified")" @onclick='() => searchBookAvailability = "Unspecified"' autocomplete="off">
-                                <label class="btn btn-outline-primary btn-sm py-2" for="availUnsp" title="@L["Unspecified"]">
-                                    <i class="bi bi-question-circle me-1"></i><span class="d-none d-xl-inline">@L["Unspecified"]</span>
-                                </label>
-                            </div>
-                        </div>
-                        <div class="col-md-2 @(IsIsbnSearchActive ? "opacity-50" : "") transition-opacity" style="transition: opacity 0.3s ease;">
-                            <label class="form-label fw-bold small text-muted text-uppercase mb-2 @(IsIsbnSearchActive ? "text-decoration-line-through" : "")">
-                                <i class="bi bi-calendar-range me-1"></i>@L["PublicationYear"]
-                            </label>
-                            <div class="year-search-container bg-white p-3 rounded shadow-sm border @(IsIsbnSearchActive ? "bg-light border-secondary-subtle" : "border-primary-subtle")">
-                                <fieldset disabled="@IsIsbnSearchActive">
-                                    <div class="d-flex flex-wrap gap-2 mb-2">
-                                        <div class="form-check">
-                                            <input class="form-check-input" type="radio" name="yearSearchOption" id="exactYear" value="exact" 
-                                                   checked='@(yearSearchMode == "exact")' @onclick='() => yearSearchMode = "exact"' />
-                                            <label class="form-check-label small" for="exactYear">@L["Exact"]</label>
-                                        </div>
-                                        <div class="form-check">
-                                            <input class="form-check-input" type="radio" name="yearSearchOption" id="afterYear" value="after" 
-                                                   checked='@(yearSearchMode == "after")' @onclick='() => yearSearchMode = "after"' />
-                                            <label class="form-check-label small" for="afterYear">@L["From"]</label>
-                                        </div>
-                                        <div class="form-check">
-                                            <input class="form-check-input" type="radio" name="yearSearchOption" id="beforeYear" value="before" 
-                                                   checked='@(yearSearchMode == "before")' @onclick='() => yearSearchMode = "before"' />
-                                            <label class="form-check-label small" for="beforeYear">@L["ToYear"]</label>
-                                        </div>
-                                        <div class="form-check">
-                                            <input class="form-check-input" type="radio" name="yearSearchOption" id="betweenYear" value="between" 
-                                                   checked='@(yearSearchMode == "between")' @onclick='() => yearSearchMode = "between"' />
-                                            <label class="form-check-label small" for="betweenYear">@L["Between"]</label>
-                                        </div>
-                                    </div>
-                                    <div class="row g-2">
-                                        <div class="@(yearSearchMode == "between" ? "col-6" : "col-12")">
-                                            <div class="input-group">
-                                                <span class="input-group-text bg-light text-primary"><i class="bi bi-calendar-event"></i></span>
-                                                <InputNumber class="form-control" @bind-Value="searchBookYear" 
-                                                             placeholder='@(yearSearchMode == "between" ? L["StartingYear"] : L["YearValue"])' />
-                                            </div>
-                                        </div>
-                                        @if (yearSearchMode == "between")
-                                        {
-                                            <div class="col-6">
-                                                <div class="input-group">
-                                                    <span class="input-group-text bg-light text-primary"><i class="bi bi-calendar-check"></i></span>
-                                                    <InputNumber class="form-control" @bind-Value="searchBookYearTo" placeholder="@L["EndingYear"]" />
-                                                </div>
-                                            </div>
-                                        }
-                                    </div>
-                                </fieldset>
-                            </div>
-                        </div>
-                        <div class="col-md-2 d-flex align-items-end justify-content-center">
-                            <button type="submit" class="btn btn-primary btn-lg w-100 shadow-sm transition-hover mb-1 py-1 h-50 d-flex align-items-center justify-content-center">
-                                <i class="bi bi-search me-2 fs-5"></i><span>@L["SearchBooks"]</span>
-                            </button>
-                        </div>
-                    </div>
-
-                    <div class="row g-3 mt-4 border-top pt-4 @(IsIsbnSearchActive ? "opacity-50" : "") transition-opacity" style="transition: opacity 0.3s ease;">
-                        <div class="col-md-5">
-                            <label class="form-label fw-bold small text-muted text-uppercase mb-2 @(IsIsbnSearchActive ? "text-decoration-line-through" : "")">
-                                <i class="bi bi-person-lines-fill me-1"></i>@L["RefineByAuthors"]
-                            </label>
-                            <fieldset disabled="@IsIsbnSearchActive">
-                                <div class="input-group shadow-sm">
-                                    <span class="input-group-text bg-white text-primary border-primary"><i class="bi bi-person-search"></i></span>
-                                    <input type="text" class="form-control border-primary border-end-0" @bind="authorSearchNameFilter" placeholder="@L["SearchAuthorNamePlaceholder"]" @onkeyup='(e) => { if (e.Key == "Enter") SearchAuthorsForFilter(); }' />
-                                    <button type="button" class="btn btn-outline-primary border-primary px-3 transition-hover" @onclick="SearchAuthorsForFilter">
-                                        <i class="bi bi-search"></i>
-                                    </button>
-                                </div>
-                                
-                                @if (foundAuthorsForFilter.Any())
-                                {
-                                    <div class="mt-3 p-3 border-start border-4 border-primary bg-white shadow-sm rounded-end animate-fade-in">
-                                        <label class="form-label small text-muted text-uppercase d-block mb-2 fw-semibold">@L["ClickToAddAuthor"]</label>
-                                        <div class="d-flex gap-2">
-                                            <select class="form-select border-primary shadow-sm" @bind="selectedAuthorIdForFilter">
-                                                <option value="">@L["ChooseFromResults"]</option>
-                                                @foreach (var author in foundAuthorsForFilter)
-                                                {
-                                                    <option value="@author.AuthorId.Value.ToString()">@author.Name.Value</option>
-                                                }
-                                            </select>
-                                            <button type="button" class="btn btn-success shadow-sm transition-hover d-flex align-items-center" @onclick="AddAuthorToSearchCriteria" disabled="@(string.IsNullOrEmpty(selectedAuthorIdForFilter))">
-                                                <i class="bi bi-plus-lg me-1"></i>@L["Add"]
-                                            </button>
-                                        </div>
-                                    </div>
-                                }
-                            </fieldset>
-                        </div>
-                        
-                        <div class="col-md-7">
-                            <label class="form-label fw-bold small text-muted text-uppercase mb-2">@L["ActiveAuthorCriteria"]</label>
-                            <div class="d-flex flex-wrap gap-2 p-3 border border-dashed rounded bg-white shadow-inner min-vh-10" style="min-height: 80px;">
-                                @if (!searchAuthorsCriteria.Any())
-                                {
-                                    <div class="w-100 d-flex align-items-center justify-content-center text-muted small italic">
-                                        <i class="bi bi-info-circle me-2"></i>@L["NoAuthorsSelected"]
-                                    </div>
-                                }
-                                else
-                                {
-                                    @foreach (var author in searchAuthorsCriteria)
-                                    {
-                                        <div class="badge bg-primary text-white d-flex align-items-center py-2 px-3 rounded-pill shadow-sm animate-pop-in">
-                                            <i class="bi bi-person-fill me-2 border-end pe-2 border-white-50"></i>
-                                            <span class="me-2 fw-normal">@author.Name.Value</span>
-                                            <button type="button" class="btn-close btn-close-white ms-1 small" style="transform: scale(0.7);" title="@L["Remove"]" @onclick="() => { if (!IsIsbnSearchActive) RemoveAuthorFromSearchCriteria(author); }"></button>
-                                        </div>
-                                    }
-                                }
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Category Selection Section -->
-                    <div class="row g-3 mt-4 border-top pt-4 @(IsIsbnSearchActive ? "opacity-50" : "") transition-opacity" style="transition: opacity 0.3s ease;">
-                        <div class="col-md-5">
-                            <label class="form-label fw-bold small text-muted text-uppercase mb-2 @(IsIsbnSearchActive ? "text-decoration-line-through" : "")">
-                                <i class="bi bi-tags-fill me-1"></i>@L["RefineByCategory"]
-                            </label>
-                            <fieldset disabled="@IsIsbnSearchActive">
-                                <div class="d-flex gap-2">
-                                    <select class="form-select border-primary shadow-sm" @bind="selectedCategoryForFilter">
-                                        <option value="">@L["SelectCategoryPlaceholder"]</option>
-                                        @foreach (var category in allCategories)
-                                        {
-                                            <option value="@category.Value()">@category.Value()</option>
-                                        }
-                                    </select>
-                                    <button type="button" class="btn btn-info text-white shadow-sm transition-hover d-flex align-items-center" @onclick="AddCategoryToSearchCriteria" disabled="@(string.IsNullOrEmpty(selectedCategoryForFilter))">
-                                        <i class="bi bi-bookmark-plus-fill me-1"></i>@L["Add"]
-                                    </button>
-                                </div>
-                            </fieldset>
-                        </div>
-                        
-                        <div class="col-md-7">
-                            <label class="form-label fw-bold small text-muted text-uppercase mb-2">@L["ActiveCategoryCriteria"]</label>
-                            <div class="d-flex flex-wrap gap-2 p-3 border border-dashed rounded bg-white shadow-inner" style="min-height: 80px;">
-                                @if (!searchCategoriesCriteria.Any())
-                                {
-                                    <div class="w-100 d-flex align-items-center justify-content-center text-muted small italic">
-                                        <i class="bi bi-info-circle me-2"></i>@L["NoCategoriesSelected"]
-                                    </div>
-                                }
-                                else
-                                {
-                                    @foreach (var category in searchCategoriesCriteria)
-                                    {
-                                        <div class="badge bg-info text-white d-flex align-items-center py-2 px-3 rounded shadow-sm animate-pop-in">
-                                            <i class="bi bi-tag-fill me-2 border-end pe-2 border-white-50"></i>
-                                            <span class="me-2 fw-normal">@category.Value()</span>
-                                            <button type="button" class="btn-close btn-close-white ms-1 small" style="transform: scale(0.7);" title="@L["Remove"]" @onclick="() => { if (!IsIsbnSearchActive) RemoveCategoryFromSearchCriteria(category); }"></button>
-                                        </div>
-                                    }
-                                }
-                            </div>
-                        </div>
-                    </div>
-                </EditForm>
-            </div>
-        </div>
+    <BookSearchToolbar OnSearchResultsFound="HandleSearchResultsFound" OnError="ShowSearchError" OnSearchStarted="HandleSearchStarted" />
     </div>
 </div>
 
@@ -306,7 +105,7 @@
                                 <span class="badge bg-light text-dark border p-1" style="font-size: 0.7rem;" title="@localizedLabel">@contraction</span>
                             </TemplateColumn>
                             <TemplateColumn Title="@L["Availability"]" Sortable="true" Align="Align.Center" Class="col-available">
-                                @if (context.Available)
+                                @if (context.ImmediatelyAvailable)
                                 {
                                     <span class="text-success small fw-bold"><i class="bi bi-check-circle-fill me-1"></i>@L["Available"]</span>
                                 }
@@ -629,22 +428,21 @@
     private List<Author> foundAuthors = new();
     private PaginationState pagination = new() { ItemsPerPage = 5 };
 
-    private string searchBookTitle = "";
-    private string searchBookIsbn = "";
-    private int? searchBookYear = null;
-    private int? searchBookYearTo = null;
-    private string yearSearchMode = "exact"; // exact, after, before, between
-    
-    private string authorSearchNameFilter ="";
-    private List<Author> foundAuthorsForFilter = new();
-    private string selectedAuthorIdForFilter = "";
-    private List<Author> searchAuthorsCriteria = new();
+    private void HandleSearchStarted(bool started)
+    {
+        searchBooksPerformed = true;
+        statusMessage = "";
+    }
 
-    private string selectedCategoryForFilter = "";
-    private List<Category> searchCategoriesCriteria = new();
+    private void HandleSearchResultsFound(List<Book> books)
+    {
+        foundBooks = books;
+    }
 
-    private string searchBookAvailability = "All"; // All, Circulating, ReferenceOnly
-    private BookSearchCriteria searchCriteria = null;
+    private void ShowSearchError(string error)
+    {
+        ShowStatus(error, "alert-danger");
+    }
 
     private string newBookAvailability = "Circulating";
 
@@ -657,7 +455,7 @@
         }
     }
 
-    private bool IsIsbnSearchActive => !string.IsNullOrWhiteSpace(searchBookIsbn);
+    private bool IsIsbnSearchActive => false; // Or remove if not used anymore in this page for UI disabling
     private bool IsNewBookIsbnValid 
     {
         get 
@@ -746,202 +544,12 @@
         }
     }
 
-    private async Task SearchAuthorsForFilter()
-    {
-        if (string.IsNullOrWhiteSpace(authorSearchNameFilter)) return;
-        
-        var name = Name.New(authorSearchNameFilter);
-        var result = await AuthorService.SearchByNameAsync(name);
-        
-        if (result.IsOk)
-        {
-            foundAuthorsForFilter = result.ResultValue.ToList();
-            if (!foundAuthorsForFilter.Any())
-            {
-                ShowStatus(L["NoAuthorsFoundMatchingName"], "alert-warning");
-            }
-        }
-        else
-        {
-            ShowStatus(L["ErrorSearchingAuthors", result.ErrorValue], "alert-danger");
-        }
-    }
-
-    private void AddAuthorToSearchCriteria()
-    {
-        if (string.IsNullOrEmpty(selectedAuthorIdForFilter)) return;
-        
-        var author = foundAuthorsForFilter.FirstOrDefault(a => a.AuthorId.Value.ToString() == selectedAuthorIdForFilter);
-        if (author != null && !searchAuthorsCriteria.Any(a => a.AuthorId == author.AuthorId))
-        {
-            searchAuthorsCriteria.Add(author);
-        }
-    }
-
-    private void RemoveAuthorFromSearchCriteria(Author author)
-    {
-        searchAuthorsCriteria.Remove(author);
-    }
-
-    private void AddCategoryToSearchCriteria()
-    {
-        if (string.IsNullOrEmpty(selectedCategoryForFilter)) return;
-        var category = Category.FromString(selectedCategoryForFilter);
-        if (!searchCategoriesCriteria.Contains(category))
-        {
-            searchCategoriesCriteria.Add(category);
-        }
-    }
-
     private void RemoveCategoryFromSearchCriteria(Category category)
     {
-        searchCategoriesCriteria.Remove(category);
+        // searchCategoriesCriteria.Remove(category); // Handled by component now
     }
 
-    private async Task HandleBookSearch()
-    {
-        searchBooksPerformed = true;
-        
-        bool hasTitle = !string.IsNullOrWhiteSpace(searchBookTitle);
-        bool hasIsbn = !string.IsNullOrWhiteSpace(searchBookIsbn);
-        bool hasYear = searchBookYear.HasValue;
-        bool hasBetweenYear = yearSearchMode == "between" && searchBookYear.HasValue && searchBookYearTo.HasValue;
 
-        if (string.IsNullOrEmpty(searchBookAvailability) || searchBookAvailability == "All")
-        {
-            searchCriteria = null;
-        }
-        else
-        {
-            searchCriteria = book => 
-                (searchBookAvailability == "Circulating" && book.Availability.IsCirculating) || 
-                (searchBookAvailability == "ReferenceOnly" && book.Availability.IsReferenceOnly) ||
-                (searchBookAvailability == "Unspecified" && book.Availability.IsUnspecified);
-        }
-
-        FSharpResult<FSharpList<Book>, string> result;
-
-        if (hasIsbn)
-        {
-            var isbn = Isbn.NewInvalid(searchBookIsbn);
-            if (hasTitle)
-            {
-                result = await BookService.SearchByIsbnOrTitleAsync(isbn, Title.New(searchBookTitle), criteria: searchCriteria);
-            }
-            else
-            {
-                result = await BookService.SearchByIsbnAsync(isbn, criteria: searchCriteria);
-            }
-        }
-        else 
-        {
-            YearSearch GetYearSearch() {
-                var year = searchBookYear ?? 0;
-                var yearTo = searchBookYearTo ?? 0;
-                return yearSearchMode switch
-                {
-                    "after" => YearSearch.NewAfter(year),
-                    "before" => YearSearch.NewBefore(year),
-                    "between" => YearSearch.NewRange(year, yearTo),
-                    _ => YearSearch.NewExact(year)
-                };
-            }
-            
-            bool hasEffectiveYear = hasYear || hasBetweenYear;
-            
-            if (searchCategoriesCriteria.Any())
-            {
-                var authorIds = ListModule.OfSeq(searchAuthorsCriteria.Select(a => a.AuthorId));
-                var categories = ListModule.OfSeq(searchCategoriesCriteria);
-                var yearSearch = GetYearSearch();
-                bool hasAuthors = searchAuthorsCriteria.Any();
-                
-                if (hasAuthors)
-                {
-                    if (hasTitle && hasEffectiveYear)
-                    {
-                        result = await BookService.SearchByTitleAndAuthorsAndYearAndCategoriesAsync(Title.New(searchBookTitle), authorIds, yearSearch, categories, criteria: searchCriteria);
-                    }
-                    else if (hasTitle)
-                    {
-                        result = await BookService.SearchByTitleAndAuthorsAndCategoriesAsync(Title.New(searchBookTitle), authorIds, categories, criteria: searchCriteria);
-                    }
-                    else if (hasEffectiveYear)
-                    {
-                        result = await BookService.SearchByAuthorsAndYearAndCategoriesAsync(authorIds, yearSearch, categories, criteria: searchCriteria);
-                    }
-                    else
-                    {
-                        result = await BookService.SearchByAuthorsAndCategoriesAsync(authorIds, categories, criteria: searchCriteria); 
-                    }
-                }
-                else
-                {
-                    if (hasTitle && hasEffectiveYear)
-                    {
-                        result = await BookService.SearchByTitleAndYearAndCategoriesAsync(Title.New(searchBookTitle), yearSearch, categories, criteria: searchCriteria);
-                    }
-                    else if (hasTitle)
-                    {
-                        result = await BookService.SearchByTitleAndCategoriesAsync(Title.New(searchBookTitle), categories, criteria: searchCriteria);
-                    }
-                    else if (hasEffectiveYear)
-                    {
-                        result = await BookService.SearchByYearAndCategoriesAsync(yearSearch, categories, criteria: searchCriteria);
-                    }
-                    else
-                    {
-                        result = await BookService.SearchByCategoriesAsync(categories, criteria: searchCriteria);
-                    }
-                }
-            }
-            else if (searchAuthorsCriteria.Any())
-            {
-                var authorIds = ListModule.OfSeq(searchAuthorsCriteria.Select(a => a.AuthorId));
-                if (hasTitle && hasEffectiveYear)
-                {
-                    result = await BookService.SearchByTitleAndAuthorsAndYearAsync(Title.New(searchBookTitle), authorIds, GetYearSearch(), criteria: searchCriteria);
-                }
-                else if (hasTitle)
-                {
-                    result = await BookService.SearchByTitleAndAuthorsAsync(Title.New(searchBookTitle), authorIds, criteria: searchCriteria);
-                }
-                else if (hasEffectiveYear)
-                {
-                    result = await BookService.SearchByAuthorsAndYearAsync(authorIds, GetYearSearch(), criteria: searchCriteria);
-                }
-                else
-                {
-                    result = await BookService.SearchByAuthorsAsync(authorIds, criteria: searchCriteria);
-                }
-            }
-            else if (hasTitle && hasEffectiveYear)
-            {
-                result = await BookService.SearchByTitleAndYearAsync(Title.New(searchBookTitle), GetYearSearch(), criteria: searchCriteria);
-            }
-            else if (hasTitle)
-            {
-                result = await BookService.SearchByTitleAsync(Title.New(searchBookTitle), criteria: searchCriteria);
-            }
-            else if (hasEffectiveYear)
-            {
-                result = await BookService.SearchByYearAsync(GetYearSearch(), criteria: searchCriteria);
-            }
-            else
-            {
-                result = await BookService.GetAllAsync(criteria: searchCriteria);
-            }
-        }
-
-        if (result.IsOk)
-        {
-            foundBooks = result.ResultValue.ToList();
-        }
-        else
-        {
-            ShowStatus(L["ErrorSearchingBooks", result.ErrorValue], "alert-danger");
-        }
-    }
 
     private void AddAuthor(Author author)
     {

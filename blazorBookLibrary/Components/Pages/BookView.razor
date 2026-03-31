@@ -158,48 +158,28 @@
                         <div class="row">
                             <div class="col-md-6 border-end">
                                 <h6 class="text-uppercase text-muted fw-bold mb-3 small border-bottom pb-2">@L["CurrentLoan"]</h6>
-                                @if (FSharpOption<BookLibrary.Domain.Loan>.get_IsSome(bookDetails.CurrentLoan))
-                                {
-                                    var loan = bookDetails.CurrentLoan.Value;
-                                    <div class="alert alert-warning mb-0">
-                                        <p class="mb-1"><i class="bi bi-exclamation-triangle me-2"></i><strong>@L["CurrentlyLoanedOut"]</strong></p>
-                                        <ul class="list-unstyled mb-0 small mt-2">
-                                            <li><strong>@L["Start"]:</strong> @loan.TimeSlot.Start.ToShortDateString()</li>
-                                            <li><strong>@L["ExpectedReturn"]:</strong> @loan.TimeSlot.End.ToShortDateString()</li>
-                                            <li><strong>@L["BorrowerUserId"]:</strong> @loan.UserId</li>
-                                        </ul>
-                                    </div>
-                                }
-                                else
+                                @if (bookDetails.Book.ImmediatelyAvailable)
                                 {
                                     <div class="alert alert-success mb-0">
                                         <i class="bi bi-check-circle me-2"></i><strong>@L["AvailableForLoan"]</strong>
                                     </div>
-                                }
-                            </div>
-                            <div class="col-md-6">
-                                <h6 class="text-uppercase text-muted fw-bold mb-3 small border-bottom pb-2">@L["FutureReservations"]</h6>
-                                @if (bookDetails.FutureReservations.Any())
-                                {
-                                    <ul class="list-group list-group-flush mb-0">
-                                        @foreach (var res in bookDetails.FutureReservations)
-                                        {
-                                            <li class="list-group-item px-0 py-2 border-0 border-bottom">
-                                                <div class="d-flex align-items-center">
-                                                    <i class="bi bi-calendar-event me-2 text-primary"></i>
-                                                    <div>
-                                                        <div class="small fw-bold">@res.TimeSlot.Start.ToShortDateString() - @res.TimeSlot.End.ToShortDateString()</div>
-                                                        <div class="small text-muted">User: @res.UserId</div>
-                                                    </div>
-                                                </div>
-                                            </li>
-                                        }
-                                    </ul>
-                                }
+                                } 
                                 else
                                 {
-                                    <p class="text-muted fst-italic small mb-0">@L["NoFutureReservations"].</p>
+                                    <div class="alert alert-warning mb-0">
+                                        <i class="bi bi-exclamation-triangle me-2"></i><strong>@L["NotAvailable"]</strong>
+                                    </div>
                                 }
+                            </div>
+
+                            <div class="col-md-6 px-4">
+                                <h6 class="text-uppercase text-muted fw-bold mb-3 small border-bottom pb-2">@L["Availability"]</h6>
+                                <div class="d-flex align-items-center">
+                                    <span class="badge @(bookDetails.Book.Availability.IsCirculating ? "bg-success" : bookDetails.Book.Availability.IsReferenceOnly ? "bg-warning text-dark" : "bg-secondary") fs-6 shadow-sm p-2">
+                                        <i class="bi @(bookDetails.Book.Availability.IsCirculating ? "bi-journal-check" : bookDetails.Book.Availability.IsReferenceOnly ? "bi-journals" : "bi-journal-x") me-2"></i>
+                                        @GetAvailabilityLocalName(bookDetails.Book.Availability)
+                                    </span>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -268,5 +248,12 @@
     {
         statusMessage = message;
         statusClass = cssClass;
+    }
+
+    private string GetAvailabilityLocalName(Availability availability)
+    {
+        if (availability.IsCirculating) return L["CirculatingRule"];
+        if (availability.IsReferenceOnly) return L["ReferenceOnlyRule"];
+        return L["UnspecifiedRule"];
     }
 }

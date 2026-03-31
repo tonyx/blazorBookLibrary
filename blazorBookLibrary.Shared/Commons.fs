@@ -305,6 +305,8 @@ type Availability =
             | "circulating" -> Circulating
             | "referenceonly" -> ReferenceOnly
             | _ -> Unspecified
+        static member AllCases () = 
+            [ Circulating; ReferenceOnly; Unspecified ]
 
 type YearSearch =
     | Before of int

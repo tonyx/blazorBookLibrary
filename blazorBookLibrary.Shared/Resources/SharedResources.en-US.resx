@@ -361,4 +361,37 @@
   <data name="Unspecified" xml:space="preserve">
     <value>Unspecified</value>
   </data>
+  <data name="AvailabilityFilters" xml:space="preserve">
+    <value>Availability Filters</value>
+  </data>
+  <data name="AllBooks" xml:space="preserve">
+    <value>All Books</value>
+  </data>
+  <data name="CirculatingRule" xml:space="preserve">
+    <value>Circulating</value>
+  </data>
+  <data name="ReferenceOnlyRule" xml:space="preserve">
+    <value>Reference</value>
+  </data>
+  <data name="UnspecifiedRule" xml:space="preserve">
+    <value>N.S.</value>
+  </data>
+  <data name="ImmediatelyAvailableOnly" xml:space="preserve">
+    <value>Available Now</value>
+  </data>
+  <data name="NotAvailableForLoan" xml:space="preserve">
+    <value>Not available for loan</value>
+  </data>
+  <data name="HasBeenUpdated" xml:space="preserve">
+    <value>has been updated</value>
+  </data>
+  <data name="ChangeAvailability" xml:space="preserve">
+    <value>Change Availability</value>
+  </data>
+  <data name="StatusAvailability" xml:space="preserve">
+    <value>Status &amp; Availability</value>
+  </data>
+  <data name="NotAvailable" xml:space="preserve">
+    <value>Not Available</value>
+  </data>
 </root>
