@@ -187,7 +187,6 @@
   <data name="Total" xml:space="preserve"><value>Totale</value></data>
   <data name="FilterByName" xml:space="preserve"><value>Filtra risultati per nome...</value></data>
   <data name="FilterByIsni" xml:space="preserve"><value>Filtra risultati per ISNI...</value></data>
-  <data name="AuthorName" xml:space="preserve"><value>Nome Autore</value></data>
   <data name="Status" xml:space="preserve"><value>Stato</value></data>
   <data name="Sealed" xml:space="preserve"><value>Sigillato</value></data>
   <data name="Active" xml:space="preserve"><value>Attivo</value></data>
@@ -221,15 +220,11 @@
   <data name="ActiveCategoryCriteria" xml:space="preserve"><value>Criteri Categoria Attivi</value></data>
   <data name="NoCategoriesSelected" xml:space="preserve"><value>Nessuna categoria selezionata</value></data>
   <data name="SearchResults" xml:space="preserve"><value>Risultati della Ricerca</value></data>
-  <data name="Home" xml:space="preserve"><value>Home</value></data>
-  <data name="Weather" xml:space="preserve"><value>Meteo</value></data>
   <data name="Counter" xml:space="preserve"><value>Contatore</value></data>
   <data name="AuthRequired" xml:space="preserve"><value>Autenticazione Richiesta</value></data>
   <data name="Logout" xml:space="preserve"><value>Esci</value></data>
   <data name="Register" xml:space="preserve"><value>Registrati</value></data>
   <data name="Login" xml:space="preserve"><value>Accedi</value></data>
-  <data name="AuthorsManager" xml:space="preserve"><value>Gestione Autori</value></data>
-  <data name="BooksBrowser" xml:space="preserve"><value>Sfoglia Libri</value></data>
   <data name="RefineResultsByTitlePlaceholder" xml:space="preserve"><value>Affina i risultati per titolo...</value></data>
   <data name="NoBooksFoundCriteria" xml:space="preserve"><value>Nessun libro trovato corrispondente ai criteri.</value></data>
   <data name="AddNewBookEntry" xml:space="preserve"><value>Aggiungi Nuova Voce di Libro</value></data>
@@ -266,9 +261,6 @@
   <data name="NoCoverImageFoundIsbn" xml:space="preserve"><value>Nessuna immagine di copertina trovata per questo ISBN in nessuna delle nostre biblioteche collegate.</value></data>
   <data name="CoverUrlApplied" xml:space="preserve"><value>URL della copertina applicato al campo immagine del libro.</value></data>
   <data name="NoAuthorsFoundMatchingName" xml:space="preserve"><value>Nessun autore trovato con quel nome.</value></data>
-  <data name="UsersManager" xml:space="preserve"><value>Gestione Utenti</value></data>
-  <data name="SearchByEmailOrNamePlaceholder" xml:space="preserve"><value>Cerca per email o nome...</value></data>
-  <data name="Name" xml:space="preserve"><value>Nome</value></data>
   <data name="CurrentRoles" xml:space="preserve"><value>Ruoli Attuali</value></data>
   <data name="RevokeManager" xml:space="preserve"><value>Revoca Manager</value></data>
   <data name="AssignManager" xml:space="preserve"><value>Assegna Manager</value></data>
@@ -342,4 +334,40 @@
   <data name="PasswordChangedSuccessfully" xml:space="preserve"><value>La tua password è stata aggiornata</value></data>
   <data name="PasswordLengthError" xml:space="preserve"><value>Il campo {0} deve essere lungo almeno {2} e massimo {1} caratteri.</value></data>
   <data name="PasswordsDoNotMatch" xml:space="preserve"><value>La nuova password e la password di conferma non corrispondono.</value></data>
+  <data name="Description" xml:space="preserve">
+    <value>Descrizione</value>
+  </data>
+  <data name="BookDescriptionPlaceholder" xml:space="preserve">
+    <value>Inserisci una descrizione o un riassunto facoltativo per il libro...</value>
+  </data>
+  <data name="MetadataSearch" xml:space="preserve">
+    <value>Ricerca Metadati</value>
+  </data>
+  <data name="SearchingMetadata" xml:space="preserve">
+    <value>Ricerca in corso...</value>
+  </data>
+  <data name="DescriptionUpdated" xml:space="preserve">
+    <value>Descrizione aggiornata con successo.</value>
+  </data>
+  <data name="DescriptionRemoved" xml:space="preserve">
+    <value>Descrizione rimossa con successo.</value>
+  </data>
+  <data name="Circulating" xml:space="preserve">
+    <value>Disponibile al Prestito</value>
+  </data>
+  <data name="ReferenceOnly" xml:space="preserve">
+    <value>Solo consultazione in sede</value>
+  </data>
+  <data name="Unspecified" xml:space="preserve">
+    <value>Non specificato</value>
+  </data>
+  <data name="Image" xml:space="preserve">
+    <value>Immagine</value>
+  </data>
+  <data name="AvailabilityType" xml:space="preserve">
+    <value>Tipo disponibilità</value>
+  </data>
+  <data name="All" xml:space="preserve">
+    <value>Tutti</value>
+  </data>
 </root>

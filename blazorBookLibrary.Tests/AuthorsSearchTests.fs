@@ -15,7 +15,8 @@ module AuthorsSearchTests =
 
     [<Tests>]
     let tests =
-        testList "Authors Search Service Tests" [
+        // test pending as the service may be down
+        ptestList "Authors Search Service Tests" [
             testCaseAsync "can lookup author by name" <| async {
                 let name = "J. R. R. Tolkien"
                 let! result = authService.LookupByNameAsync(name) |> Async.AwaitTask

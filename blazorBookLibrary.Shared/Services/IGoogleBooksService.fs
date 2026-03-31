@@ -10,6 +10,7 @@ type GoogleBookMetadata = {
     Categories: List<string>
     Year: int option
     Isbn: string option
+    Description: string option
 }
 
 type IGoogleBooksService =

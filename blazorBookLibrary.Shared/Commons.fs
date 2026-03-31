@@ -290,6 +290,22 @@ type Locale =
             match this with
             | Locale v -> v
 
+type Availability =
+    | Circulating
+    | ReferenceOnly
+    | Unspecified
+    with
+        override this.ToString () = 
+            match this with
+            | Circulating -> "Circulating"
+            | ReferenceOnly -> "ReferenceOnly"
+            | Unspecified -> "Unspecified"
+        static member FromString (s: string) = 
+            match s.ToLower() with
+            | "circulating" -> Circulating
+            | "referenceonly" -> ReferenceOnly
+            | _ -> Unspecified
+
 type YearSearch =
     | Before of int
     | After of int

@@ -6,7 +6,7 @@ open BookLibrary.Shared.Commons
 open System
 open System.Globalization
 
-type Book =
+type Book001 =
     {   
         BookId: BookId
         Title: Title
@@ -24,63 +24,51 @@ type Book =
         Isbn: Isbn
         Sealed: Sealed
     }
-            
+        with
+            member 
+                this.Upacast() : Book =
+                {
+                    BookId = this.BookId
+                    Title = this.Title
+                    ImageUrl = this.ImageUrl
+                    Description = this.Description
+                    Availability = Availability.Unspecified
+                    Authors = this.Authors
+                    Translators = this.Translators
+                    Languages = this.Languages
+                    CurrentReservations = this.CurrentReservations
+                    CurrentLoan = this.CurrentLoan
+                    Editor = this.Editor
+                    MainCategory = this.MainCategory
+                    AdditionalCategories = this.AdditionalCategories
+                    Year = this.Year
+                    Isbn = this.Isbn
+                    Sealed = this.Sealed
+                }
+and
+    Book =
+    {   
+        BookId: BookId
+        Title: Title
+        ImageUrl: Option<Uri>   
+        Description: Option<string>
+        Availability: Availability
+        Authors: List<AuthorId>
+        Translators: List<AuthorId>
+        Languages: List<CultureInfo>
+        CurrentReservations: List<ReservationId>
+        CurrentLoan: Option<LoanId>
+        Editor: Option<EditorId>
+        MainCategory: Category
+        AdditionalCategories: List<Category>
+        Year: Year
+        Isbn: Isbn
+        Sealed: Sealed
+    }
 
 with 
-    static member New 
-        (title: Title) 
-        (authors: list<AuthorId>) 
-        (translators: list<AuthorId>) 
-        (languages: list<CultureInfo>) 
-        (editor: Option<EditorId>) 
-        (year: Year) 
-        (isbn: Isbn) 
-        = 
-        {
-            BookId = BookId.New(); 
-            Title = title; 
-            Description = None;
-            ImageUrl = None;
-            Authors = authors; 
-            Translators = translators;
-            Languages = languages;
-            CurrentReservations = [];
-            CurrentLoan = None;
-            Editor = editor; 
-            MainCategory = Category.Other;
-            AdditionalCategories = [];
-            Year = year; 
-            Isbn = isbn
-            Sealed = Sealed.New(DateTime.UtcNow)
-        }
-    static member NewWithMainCategory  
-        (title: Title) 
-        (authors: list<AuthorId>) 
-        (translators: list<AuthorId>) 
-        (languages: list<CultureInfo>) 
-        (editor: Option<EditorId>) 
-        (mainCategory: Category) 
-        (year: Year) 
-        (isbn: Isbn) = 
-        {   
-            BookId = BookId.New(); 
-            Title = title; 
-            Description = None;
-            ImageUrl = None;
-            Authors = authors; 
-            Translators = translators;
-            Languages = languages;
-            CurrentReservations = [];
-            CurrentLoan = None;
-            Editor = editor; 
-            MainCategory = mainCategory;
-            AdditionalCategories = [];
-            Year = year; 
-            Isbn = isbn
-            Sealed = Sealed.New(DateTime.UtcNow)
-        }
 
-    static member NewWithMainCategoryAndAdditionalCategories
+    static member New
         (title: Title) 
         (authors: list<AuthorId>) 
         (translators: list<AuthorId>) 
@@ -97,6 +85,7 @@ with
             Title = title; 
             Description = None;
             ImageUrl = imageUrl;
+            Availability = Availability.Unspecified;
             Authors = authors; 
             Translators = translators;
             Languages = languages;
@@ -121,6 +110,39 @@ with
                     |> Result.ofBool "Book is sealed"
                 return { this with Title = title } 
             }
+    member this.UpdateDescription 
+        (description: string) 
+        (dateTime: DateTime) = 
+        result
+            {
+                do! 
+                    this.Sealed.IsSealed(dateTime)
+                    |> not
+                    |> Result.ofBool "Book is sealed"
+                return { this with Description = Some description } 
+            }
+    member this.RemoveDescription (dateTime: DateTime) = 
+        result
+            {
+                do! 
+                    this.Sealed.IsSealed(dateTime)
+                    |> not
+                    |> Result.ofBool "Book is sealed"
+                return { this with Description = None } 
+            }
+
+    member this.SetAvailability 
+        (availability: Availability) 
+        (dateTime: DateTime) = 
+        result
+            {
+                do! 
+                    this.Sealed.IsSealed(dateTime)
+                    |> not
+                    |> Result.ofBool "Book is sealed"
+                return { this with Availability = availability } 
+            }
+
     member this.UpdateAuthors 
         (authors: List<AuthorId>) 
         (dateTime: DateTime) = 
@@ -459,4 +481,9 @@ with
             Ok book
         with
             | ex -> 
-                Error (ex.Message + " " + ex.InnerException.Message)
+                try
+                    let book001 = JsonSerializer.Deserialize<Book001> (data, jsonOptions)
+                    let book = book001.Upacast()
+                    Ok book
+                with
+                    | ex2 -> Error (ex.Message + " " + ex2.Message)

@@ -31,6 +31,7 @@ type VolumeInfo = {
     [<JsonPropertyName("industryIdentifiers")>] IndustryIdentifiers: IndustryIdentifier[]
     [<JsonPropertyName("categories")>] Categories: string[]
     [<JsonPropertyName("imageLinks")>] ImageLinks: ImageLinks
+    [<JsonPropertyName("description")>] Description: string
 }
 
 type GoogleBookItem = {
@@ -82,6 +83,7 @@ type GoogleBooksService(httpClient: HttpClient, configuration: IConfiguration) =
                     | (true, year) -> Some year
                     | _ -> None
             Isbn = isbnOpt
+            Description = if String.IsNullOrWhiteSpace(item.Description) then None else Some item.Description
         }
 
     interface IGoogleBooksService with

@@ -144,6 +144,16 @@
                                 <i class="bi bi-person-circle me-2 opacity-75"></i>@context.Name.Value
                             </a>
                         </TemplateColumn>
+                        <TemplateColumn Title="@L["Image"]" Align="Align.Center" SortBy="@sortImage">
+                            @if (context.ImageUri != null && FSharpOption<Uri>.get_IsSome(context.ImageUri))
+                            {
+                                <span class="text-success" title="@context.ImageUri.Value.ToString()"><i class="bi bi-check-circle-fill"></i></span>
+                            }
+                            else
+                            {
+                                <span class="text-muted opacity-25"><i class="bi bi-x-circle"></i></span>
+                            }
+                        </TemplateColumn>
                         <PropertyColumn Property="@(a => a.Isni.Value)" Sortable="true" Title="@L["IsniNumber"]" />
                         <TemplateColumn Title="@L["WorksCount"]" Align="Align.Center">
                             <span class="badge rounded-pill bg-info text-dark">@context.Books.Length</span>
@@ -188,6 +198,7 @@
     private List<Author> authors = new();
     private PaginationState pagination = new() { ItemsPerPage = 10 };
     private GridSort<Author> sortName = GridSort<Author>.ByAscending(a => a.Name.Value);
+    private GridSort<Author> sortImage = GridSort<Author>.ByDescending(a => a.ImageUri != null && FSharpOption<Uri>.get_IsSome(a.ImageUri));
     
     private string nameFilter = "";
     private string isniFilter = "";

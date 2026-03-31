@@ -131,7 +131,7 @@ let tests =
                 |> Async.RunSynchronously
             Expect.isOk addAuthor "should be ok"
 
-            let book = Book.New (Title.New "The Great Gatsby") [author.AuthorId] [] [] None (Year.New 1924) (Isbn.NewEmpty())
+            let book = Book.New (Title.New "The Great Gatsby") [author.AuthorId] [] [] None  Category.Other [] (Year.New 1924) (Isbn.NewEmpty()) None
             let addBook = 
                 bookService.AddBookAsync (book, CancellationToken.None)
                 |> Async.AwaitTask
@@ -188,7 +188,7 @@ let tests =
             let loanService = getLoanService()
             let userService = getUserService()
             let reservationService = getReservationService()
-            let book = Book.New (Title.New "the constitution") [] [] [] None (Year.New 1924) (Isbn.NewEmpty())
+            let book = Book.New (Title.New "the constitution") [] [] [] None  Category.Other [] (Year.New 1924) (Isbn.NewEmpty()) None
             let addBook = 
                 bookService.AddBookAsync (book, CancellationToken.None)
                 |> Async.AwaitTask
@@ -235,7 +235,7 @@ let tests =
             let bookService = getBookService()
             let loanService = getLoanService()
             let userService = getUserService()
-            let book = Book.New (Title.New "the constitution") [] [] [] None (Year.New 1924) (Isbn.NewEmpty())
+            let book = Book.New (Title.New "the constitution") [] [] [] None  Category.Other [] (Year.New 1924) (Isbn.NewEmpty()) None
             let addBook = 
                 bookService.AddBookAsync book
                 |> Async.AwaitTask
@@ -299,7 +299,7 @@ let tests =
             let bookService = getBookService()
             let loanService = getLoanService()
             let userService = getUserService()
-            let book = Book.New (Title.New "the constitution") [] [] [] None (Year.New 1924) (Isbn.NewEmpty())
+            let book = Book.New (Title.New "the constitution") [] [] [] None  Category.Other [] (Year.New 1924) (Isbn.NewEmpty()) None
             let addBook = 
                 bookService.AddBookAsync book
                 |> Async.AwaitTask
@@ -371,7 +371,7 @@ let tests =
             let bookService = getBookService()
             let loanService = getLoanService()
             let userService = getUserService()
-            let book = Book.New (Title.New "the constitution") [] [] [] None (Year.New 1924) (Isbn.NewEmpty())
+            let book = Book.New (Title.New "the constitution") [] [] [] None  Category.Other [] (Year.New 1924) (Isbn.NewEmpty()) None
             let addBook = 
                 bookService.AddBookAsync book
                 |> Async.AwaitTask
@@ -421,7 +421,7 @@ let tests =
             let bookService = getBookService()
             let loanService = getLoanService()
             let userService = getUserService()
-            let book = Book.New (Title.New "the constitution") [] [] [] None (Year.New 1924) (Isbn.NewEmpty())
+            let book = Book.New (Title.New "the constitution") [] [] [] None  Category.Other [] (Year.New 1924) (Isbn.NewEmpty()) None
             let addBook = 
                 bookService.AddBookAsync book
                 |> Async.AwaitTask
@@ -487,7 +487,7 @@ let tests =
             let bookService = getBookService()
             let loanService = getLoanService()
             let userService = getUserService()
-            let book = Book.New (Title.New "the constitution") [] [] [] None (Year.New 1924) (Isbn.NewEmpty())
+            let book = Book.New (Title.New "the constitution") [] [] [] None  Category.Other [] (Year.New 1924) (Isbn.NewEmpty()) None
             let addBook = 
                 bookService.AddBookAsync book
                 |> Async.AwaitTask
@@ -551,8 +551,8 @@ let tests =
         testCase "add multiple books and retrieve them all - Ok" <| fun _ ->
             setUp ()
             let bookService = getBookService()
-            let book1 = Book.New (Title.New "Book One") [] [] [] None (Year.New 2000) (Isbn.NewEmpty())
-            let book2 = Book.New (Title.New "Book Two") [] [] [] None (Year.New 2010) (Isbn.NewEmpty())
+            let book1 = Book.New (Title.New "Book One") [] [] [] None  Category.Other [] (Year.New 2000) (Isbn.NewEmpty()) None
+            let book2 = Book.New (Title.New "Book Two") [] [] [] None  Category.Other [] (Year.New 2010) (Isbn.NewEmpty()) None
             
             (bookService :> IBookService).AddBookAsync book1 |> Async.AwaitTask |> Async.RunSynchronously |> ignore
             (bookService :> IBookService).AddBookAsync book2 |> Async.AwaitTask |> Async.RunSynchronously |> ignore
@@ -569,8 +569,8 @@ let tests =
         testCase "filtering books by title - Ok" <| fun _ ->
             setUp ()
             let bookService = getBookService()
-            let book1 = Book.New (Title.New "Star Wars") [] [] [] None (Year.New 1977) (Isbn.NewEmpty())
-            let book2 = Book.New (Title.New "Star Trek") [] [] [] None (Year.New 1966) (Isbn.NewEmpty())
+            let book1 = Book.New (Title.New "Star Wars") [] [] [] None  Category.Other [] (Year.New 1977) (Isbn.NewEmpty()) None
+            let book2 = Book.New (Title.New "Star Trek") [] [] [] None  Category.Other [] (Year.New 1966) (Isbn.NewEmpty()) None
             
             (bookService :> IBookService).AddBookAsync book1 |> Async.AwaitTask |> Async.RunSynchronously |> ignore
             (bookService :> IBookService).AddBookAsync book2 |> Async.AwaitTask |> Async.RunSynchronously |> ignore
@@ -584,8 +584,8 @@ let tests =
             let bookService = getBookService()
             let isbn1 = Isbn.New "978-3-16-148410-0" |> Result.get
             let isbn2 = Isbn.New "978-0-306-40615-7" |> Result.get
-            let book1 = Book.New (Title.New "Book One") [] [] [] None (Year.New 2000) isbn1
-            let book2 = Book.New (Title.New "Book Two") [] [] [] None (Year.New 2010) isbn2
+            let book1 = Book.New (Title.New "Book One") [] [] [] None  Category.Other [] (Year.New 2000) isbn1 None
+            let book2 = Book.New (Title.New "Book Two") [] [] [] None  Category.Other [] (Year.New 2010) isbn2 None
             
             (bookService :> IBookService).AddBookAsync book1 |> Async.AwaitTask |> Async.RunSynchronously |> ignore
             (bookService :> IBookService).AddBookAsync book2 |> Async.AwaitTask |> Async.RunSynchronously |> ignore
@@ -600,8 +600,8 @@ let tests =
             let bookService = getBookService()
             let isbn1 = Isbn.New "978-3-16-148410-0" |> Result.get
             let isbn2 = Isbn.New "978-0-306-40615-7" |> Result.get
-            let book1 = Book.New (Title.New "Star Wars") [] [] [] None (Year.New 1977) isbn1
-            let book2 = Book.New (Title.New "Star Trek") [] [] [] None (Year.New 1966) isbn2
+            let book1 = Book.New (Title.New "Star Wars") [] [] [] None  Category.Other [] (Year.New 1977) isbn1 None
+            let book2 = Book.New (Title.New "Star Trek") [] [] [] None  Category.Other [] (Year.New 1966) isbn2 None
             
             (bookService :> IBookService).AddBookAsync book1 |> Async.AwaitTask |> Async.RunSynchronously |> ignore
             (bookService :> IBookService).AddBookAsync book2 |> Async.AwaitTask |> Async.RunSynchronously |> ignore
@@ -619,7 +619,7 @@ let tests =
         testCase "change main category of a book - Ok" <| fun _ ->
             setUp ()
             let bookService = getBookService()
-            let book = Book.New (Title.New "Star Wars") [] [] [] None (Year.New 1977) (Isbn.NewEmpty())
+            let book = Book.New (Title.New "Star Wars") [] [] [] None  Category.Other [] (Year.New 1977) (Isbn.NewEmpty()) None
             let addResult = bookService.AddBookAsync book |> Async.AwaitTask |> Async.RunSynchronously
             Expect.isOk addResult "should be ok"
             
@@ -635,7 +635,7 @@ let tests =
         testCase "add additional categories to a book - Ok" <| fun _ ->
             setUp ()
             let bookService = getBookService()
-            let book = Book.New (Title.New "Star Wars 2") [] [] [] None (Year.New 1980) (Isbn.NewEmpty())
+            let book = Book.New (Title.New "Star Wars 2") [] [] [] None  Category.Other [] (Year.New 1980) (Isbn.NewEmpty()) None
             bookService.AddBookAsync book |> Async.AwaitTask |> Async.RunSynchronously |> ignore
             
             let res1 = (bookService :> IBookService).AddAdditionalCategoryAsync (Category.Fantasy, book.BookId) |> Async.AwaitTask |> Async.RunSynchronously
@@ -652,7 +652,7 @@ let tests =
         testCase "remove an additional category from a book - Ok" <| fun _ ->
             setUp ()
             let bookService = getBookService()
-            let book = Book.New (Title.New "Star Wars 3") [] [] [] None (Year.New 1983) (Isbn.NewEmpty())
+            let book = Book.New (Title.New "Star Wars 3") [] [] [] None  Category.Other [] (Year.New 1983) (Isbn.NewEmpty()) None
             bookService.AddBookAsync book |> Async.AwaitTask |> Async.RunSynchronously |> ignore
             
             let res1 = (bookService :> IBookService).AddAdditionalCategoryAsync (Category.Fantasy, book.BookId) |> Async.AwaitTask |> Async.RunSynchronously
@@ -667,7 +667,7 @@ let tests =
         testCase "cannot add the same category twice as additional - Error" <| fun _ ->
             setUp ()
             let bookService = getBookService()
-            let book = Book.New (Title.New "Star Wars 4") [] [] [] None (Year.New 1980) (Isbn.NewEmpty())
+            let book = Book.New (Title.New "Star Wars 4") [] [] [] None  Category.Other [] (Year.New 1980) (Isbn.NewEmpty()) None
             bookService.AddBookAsync book |> Async.AwaitTask |> Async.RunSynchronously |> ignore
             
             (bookService :> IBookService).AddAdditionalCategoryAsync (Category.Fantasy, book.BookId) |> Async.AwaitTask |> Async.RunSynchronously |> ignore
@@ -677,7 +677,7 @@ let tests =
         testCase "cannot add the main category as additional - Error" <| fun _ ->
             setUp ()
             let bookService = getBookService()
-            let book = Book.New (Title.New "Star Wars 5") [] [] [] None (Year.New 1977) (Isbn.NewEmpty())
+            let book = Book.New (Title.New "Star Wars 5") [] [] [] None  Category.Other [] (Year.New 1977) (Isbn.NewEmpty()) None
             bookService.AddBookAsync book |> Async.AwaitTask |> Async.RunSynchronously |> ignore
             
             // default main category is Category.Other in Book.fs constructor
@@ -687,8 +687,8 @@ let tests =
         testCase "filtering books by year (Exact) - Ok" <| fun _ ->
             setUp ()
             let bookService = getBookService()
-            let book1 = Book.New (Title.New "Book 1900") [] [] [] None (Year.New 1900) (Isbn.NewEmpty())
-            let book2 = Book.New (Title.New "Book 2000") [] [] [] None (Year.New 2000) (Isbn.NewEmpty())
+            let book1 = Book.New (Title.New "Book 1900") [] [] [] None  Category.Other [] (Year.New 1900) (Isbn.NewEmpty()) None
+            let book2 = Book.New (Title.New "Book 2000") [] [] [] None  Category.Other [] (Year.New 2000) (Isbn.NewEmpty()) None
             
             (bookService :> IBookService).AddBookAsync book1 |> Async.AwaitTask |> Async.RunSynchronously |> ignore
             (bookService :> IBookService).AddBookAsync book2 |> Async.AwaitTask |> Async.RunSynchronously |> ignore
@@ -700,8 +700,8 @@ let tests =
         testCase "filtering books by year (Before) - Ok" <| fun _ ->
             setUp ()
             let bookService = getBookService()
-            let book1 = Book.New (Title.New "Book 1900") [] [] [] None (Year.New 1900) (Isbn.NewEmpty())
-            let book2 = Book.New (Title.New "Book 2000") [] [] [] None (Year.New 2000) (Isbn.NewEmpty())
+            let book1 = Book.New (Title.New "Book 1900") [] [] [] None  Category.Other [] (Year.New 1900) (Isbn.NewEmpty()) None
+            let book2 = Book.New (Title.New "Book 2000") [] [] [] None  Category.Other [] (Year.New 2000) (Isbn.NewEmpty()) None
             
             (bookService :> IBookService).AddBookAsync book1 |> Async.AwaitTask |> Async.RunSynchronously |> ignore
             (bookService :> IBookService).AddBookAsync book2 |> Async.AwaitTask |> Async.RunSynchronously |> ignore
@@ -713,8 +713,8 @@ let tests =
         testCase "filtering books by year (After) - Ok" <| fun _ ->
             setUp ()
             let bookService = getBookService()
-            let book1 = Book.New (Title.New "Book 1900") [] [] [] None (Year.New 1900) (Isbn.NewEmpty())
-            let book2 = Book.New (Title.New "Book 2000") [] [] [] None (Year.New 2000) (Isbn.NewEmpty())
+            let book1 = Book.New (Title.New "Book 1900") [] [] [] None  Category.Other [] (Year.New 1900) (Isbn.NewEmpty()) None
+            let book2 = Book.New (Title.New "Book 2000") [] [] [] None  Category.Other [] (Year.New 2000) (Isbn.NewEmpty()) None
             
             (bookService :> IBookService).AddBookAsync book1 |> Async.AwaitTask |> Async.RunSynchronously |> ignore
             (bookService :> IBookService).AddBookAsync book2 |> Async.AwaitTask |> Async.RunSynchronously |> ignore
@@ -726,9 +726,9 @@ let tests =
         testCase "filtering books by year (Range) - Ok" <| fun _ ->
             setUp ()
             let bookService = getBookService()
-            let book1 = Book.New (Title.New "Book 1900") [] [] [] None (Year.New 1900) (Isbn.NewEmpty())
-            let book2 = Book.New (Title.New "Book 1950") [] [] [] None (Year.New 1950) (Isbn.NewEmpty())
-            let book3 = Book.New (Title.New "Book 2000") [] [] [] None (Year.New 2000) (Isbn.NewEmpty())
+            let book1 = Book.New (Title.New "Book 1900") [] [] [] None  Category.Other [] (Year.New 1900) (Isbn.NewEmpty()) None
+            let book2 = Book.New (Title.New "Book 1950") [] [] [] None  Category.Other [] (Year.New 1950) (Isbn.NewEmpty()) None
+            let book3 = Book.New (Title.New "Book 2000") [] [] [] None  Category.Other [] (Year.New 2000) (Isbn.NewEmpty()) None
             
             (bookService :> IBookService).AddBookAsync book1 |> Async.AwaitTask |> Async.RunSynchronously |> ignore
             (bookService :> IBookService).AddBookAsync book2 |> Async.AwaitTask |> Async.RunSynchronously |> ignore
@@ -741,9 +741,9 @@ let tests =
         testCase "filtering books by title and year (Exact) - Ok" <| fun _ ->
             setUp ()
             let bookService = getBookService()
-            let book1 = Book.New (Title.New "Star Wars") [] [] [] None (Year.New 1977) (Isbn.NewEmpty())
-            let book2 = Book.New (Title.New "Star Trek") [] [] [] None (Year.New 1966) (Isbn.NewEmpty())
-            let book3 = Book.New (Title.New "Star Wars 2") [] [] [] None (Year.New 1980) (Isbn.NewEmpty())
+            let book1 = Book.New (Title.New "Star Wars") [] [] [] None  Category.Other [] (Year.New 1977) (Isbn.NewEmpty()) None
+            let book2 = Book.New (Title.New "Star Trek") [] [] [] None  Category.Other [] (Year.New 1966) (Isbn.NewEmpty()) None
+            let book3 = Book.New (Title.New "Star Wars 2") [] [] [] None  Category.Other [] (Year.New 1980) (Isbn.NewEmpty()) None
             
             (bookService :> IBookService).AddBookAsync book1 |> Async.AwaitTask |> Async.RunSynchronously |> ignore
             (bookService :> IBookService).AddBookAsync book2 |> Async.AwaitTask |> Async.RunSynchronously |> ignore
@@ -756,9 +756,9 @@ let tests =
         testCase "filtering books by title and year (Range) - Ok" <| fun _ ->
             setUp ()
             let bookService = getBookService()
-            let book1 = Book.New (Title.New "Star Wars") [] [] [] None (Year.New 1977) (Isbn.NewEmpty())
-            let book2 = Book.New (Title.New "Star Trek") [] [] [] None (Year.New 1966) (Isbn.NewEmpty())
-            let book3 = Book.New (Title.New "Star Wars 2") [] [] [] None (Year.New 1980) (Isbn.NewEmpty())
+            let book1 = Book.New (Title.New "Star Wars") [] [] [] None  Category.Other [] (Year.New 1977) (Isbn.NewEmpty()) None
+            let book2 = Book.New (Title.New "Star Trek") [] [] [] None  Category.Other [] (Year.New 1966) (Isbn.NewEmpty()) None
+            let book3 = Book.New (Title.New "Star Wars 2") [] [] [] None  Category.Other [] (Year.New 1980) (Isbn.NewEmpty()) None
             
             (bookService :> IBookService).AddBookAsync book1 |> Async.AwaitTask |> Async.RunSynchronously |> ignore
             (bookService :> IBookService).AddBookAsync book2 |> Async.AwaitTask |> Async.RunSynchronously |> ignore
@@ -772,8 +772,8 @@ let tests =
         testCase "filtering books by title and year (Before) - Ok" <| fun _ ->
             setUp ()
             let bookService = getBookService()
-            let book1 = Book.New (Title.New "Star Wars") [] [] [] None (Year.New 1977) (Isbn.NewEmpty())
-            let book2 = Book.New (Title.New "A New Hope") [] [] [] None (Year.New 1977) (Isbn.NewEmpty())
+            let book1 = Book.New (Title.New "Star Wars") [] [] [] None  Category.Other [] (Year.New 1977) (Isbn.NewEmpty()) None
+            let book2 = Book.New (Title.New "A New Hope") [] [] [] None  Category.Other [] (Year.New 1977) (Isbn.NewEmpty()) None
             
             (bookService :> IBookService).AddBookAsync book1 |> Async.AwaitTask |> Async.RunSynchronously |> ignore
             (bookService :> IBookService).AddBookAsync book2 |> Async.AwaitTask |> Async.RunSynchronously |> ignore
@@ -785,8 +785,8 @@ let tests =
         testCase "filtering books by title and year (After) - Ok" <| fun _ ->
             setUp ()
             let bookService = getBookService()
-            let book1 = Book.New (Title.New "Star Wars") [] [] [] None (Year.New 1977) (Isbn.NewEmpty())
-            let book2 = Book.New (Title.New "Star Wars 2") [] [] [] None (Year.New 1980) (Isbn.NewEmpty())
+            let book1 = Book.New (Title.New "Star Wars") [] [] [] None  Category.Other [] (Year.New 1977) (Isbn.NewEmpty()) None
+            let book2 = Book.New (Title.New "Star Wars 2") [] [] [] None  Category.Other [] (Year.New 1980) (Isbn.NewEmpty()) None
             
             (bookService :> IBookService).AddBookAsync book1 |> Async.AwaitTask |> Async.RunSynchronously |> ignore
             (bookService :> IBookService).AddBookAsync book2 |> Async.AwaitTask |> Async.RunSynchronously |> ignore
@@ -799,7 +799,7 @@ let tests =
             setUp ()
             let bookService = getBookService()
             let isbn1 = Isbn.New "978-3-16-148410-0" |> Result.get
-            let book1 = Book.New (Title.New "Book One") [] [] [] None (Year.New 2000) isbn1
+            let book1 = Book.New (Title.New "Book One") [] [] [] None  Category.Other [] (Year.New 2000) isbn1 None
             
             (bookService :> IBookService).AddBookAsync book1 |> Async.AwaitTask |> Async.RunSynchronously |> ignore
             
@@ -811,7 +811,7 @@ let tests =
             setUp ()
             let bookService = getBookService()
             let isbn1 = Isbn.NewInvalid "INVALID123"
-            let book1 = Book.New (Title.New "Book One") [] [] [] None (Year.New 2000) isbn1
+            let book1 = Book.New (Title.New "Book One") [] [] [] None  Category.Other [] (Year.New 2000) isbn1 None
             
             (bookService :> IBookService).AddBookAsync book1 |> Async.AwaitTask |> Async.RunSynchronously |> ignore
             
@@ -825,7 +825,7 @@ let tests =
             let title = Title.New "Star Wars"
             let isbn = Isbn.New "978-3-16-148410-0" |> Result.get
             let year = Year.New 1977
-            let book1 = Book.New title [] [] [] None year isbn
+            let book1 = Book.New title [] [] [] None  Category.Other [] year isbn None
             
             (bookService :> IBookService).AddBookAsync book1 |> Async.AwaitTask |> Async.RunSynchronously |> ignore
             
@@ -836,13 +836,13 @@ let tests =
         testCase "filtering books by categories - Ok" <| fun _ ->
             setUp ()
             let bookService = getBookService()
-            let book1 = Book.New (Title.New "Book 1") [] [] [] None (Year.New 2000) (Isbn.NewEmpty())
+            let book1 = Book.New (Title.New "Book 1") [] [] [] None  Category.Other [] (Year.New 2000) (Isbn.NewEmpty()) None
             // Main category "Other" by default
             
-            let book2 = Book.NewWithMainCategoryAndAdditionalCategories 
+            let book2 = Book.New 
                             (Title.New "Book 2") [] [] [] None Category.Photography [] (Year.New 2001) (Isbn.NewEmpty()) None
             
-            let book3 = Book.NewWithMainCategoryAndAdditionalCategories 
+            let book3 = Book.New 
                             (Title.New "Book 3") [] [] [] None Category.Science [Category.Photography] (Year.New 2002) (Isbn.NewEmpty()) None
             
             (bookService :> IBookService).AddBookAsync book1 |> Async.AwaitTask |> Async.RunSynchronously |> ignore
@@ -858,9 +858,9 @@ let tests =
             setUp ()
             let bookService = getBookService()
             let title = Title.New "Star Wars"
-            let book1 = Book.NewWithMainCategoryAndAdditionalCategories 
+            let book1 = Book.New 
                             title [] [] [] None Category.ScienceFiction [] (Year.New 1977) (Isbn.NewEmpty()) None
-            let book2 = Book.NewWithMainCategoryAndAdditionalCategories 
+            let book2 = Book.New 
                             title [] [] [] None Category.Fiction [] (Year.New 1977) (Isbn.NewEmpty()) None
             
             (bookService :> IBookService).AddBookAsync book1 |> Async.AwaitTask |> Async.RunSynchronously |> ignore
@@ -873,9 +873,9 @@ let tests =
         testCase "filtering books by year and categories - Ok" <| fun _ ->
             setUp ()
             let bookService = getBookService()
-            let book1 = Book.NewWithMainCategoryAndAdditionalCategories 
+            let book1 = Book.New 
                             (Title.New "Star Wars") [] [] [] None Category.ScienceFiction [] (Year.New 1977) (Isbn.NewEmpty()) None
-            let book2 = Book.NewWithMainCategoryAndAdditionalCategories 
+            let book2 = Book.New 
                             (Title.New "Star Wars 2") [] [] [] None Category.ScienceFiction [] (Year.New 1980) (Isbn.NewEmpty()) None
             
             (bookService :> IBookService).AddBookAsync book1 |> Async.AwaitTask |> Async.RunSynchronously |> ignore
@@ -889,7 +889,7 @@ let tests =
             setUp ()
             let bookService = getBookService()
             let title = Title.New "Star Wars"
-            let book1 = Book.NewWithMainCategoryAndAdditionalCategories 
+            let book1 = Book.New 
                             title [] [] [] None Category.ScienceFiction [] (Year.New 1977) (Isbn.NewEmpty()) None
             
             (bookService :> IBookService).AddBookAsync book1 |> Async.AwaitTask |> Async.RunSynchronously |> ignore
@@ -912,9 +912,9 @@ let tests =
             let authorId1 = author1.AuthorId
             let authorId2 = author2.AuthorId
             
-            let book1 = Book.New (Title.New "Book 1") [authorId1] [] [] None (Year.New 2000) (Isbn.NewEmpty())
-            let book2 = Book.New (Title.New "Book 2") [authorId2] [] [] None (Year.New 2001) (Isbn.NewEmpty())
-            let book3 = Book.New (Title.New "Book 3") [authorId1; authorId2] [] [] None (Year.New 2002) (Isbn.NewEmpty())
+            let book1 = Book.New (Title.New "Book 1") [authorId1] [] [] None  Category.Other [] (Year.New 2000) (Isbn.NewEmpty()) None
+            let book2 = Book.New (Title.New "Book 2") [authorId2] [] [] None  Category.Other [] (Year.New 2001) (Isbn.NewEmpty()) None
+            let book3 = Book.New (Title.New "Book 3") [authorId1; authorId2] [] [] None  Category.Other [] (Year.New 2002) (Isbn.NewEmpty()) None
             
             (bookService :> IBookService).AddBookAsync book1 |> Async.AwaitTask |> Async.RunSynchronously |> ignore
             (bookService :> IBookService).AddBookAsync book2 |> Async.AwaitTask |> Async.RunSynchronously |> ignore
@@ -942,10 +942,10 @@ let tests =
             let authorId2 = author2.AuthorId
             let authorId3 = author3.AuthorId
             
-            let book1 = Book.New (Title.New "Book 1") [authorId1] [] [] None (Year.New 2000) (Isbn.NewEmpty())
-            let book2 = Book.New (Title.New "Book 2") [authorId2] [] [] None (Year.New 2001) (Isbn.NewEmpty())
-            let book3 = Book.New (Title.New "Book 3") [authorId3] [] [] None (Year.New 2002) (Isbn.NewEmpty())
-            let book4 = Book.New (Title.New "Book 4") [authorId1; authorId2] [] [] None (Year.New 2003) (Isbn.NewEmpty())
+            let book1 = Book.New (Title.New "Book 1") [authorId1] [] [] None  Category.Other [] (Year.New 2000) (Isbn.NewEmpty()) None
+            let book2 = Book.New (Title.New "Book 2") [authorId2] [] [] None  Category.Other [] (Year.New 2001) (Isbn.NewEmpty()) None
+            let book3 = Book.New (Title.New "Book 3") [authorId3] [] [] None  Category.Other [] (Year.New 2002) (Isbn.NewEmpty()) None
+            let book4 = Book.New (Title.New "Book 4") [authorId1; authorId2] [] [] None  Category.Other [] (Year.New 2003) (Isbn.NewEmpty()) None
             
             (bookService :> IBookService).AddBookAsync book1 |> Async.AwaitTask |> Async.RunSynchronously |> ignore
             (bookService :> IBookService).AddBookAsync book2 |> Async.AwaitTask |> Async.RunSynchronously |> ignore
@@ -971,10 +971,10 @@ let tests =
             let authorId1 = author1.AuthorId
             let authorId2 = author2.AuthorId
             
-            let book1 = Book.New (Title.New "Star Wars") [authorId1] [] [] None (Year.New 2000) (Isbn.NewEmpty())
-            let book2 = Book.New (Title.New "Star Trek") [authorId2] [] [] None (Year.New 2001) (Isbn.NewEmpty())
-            let book3 = Book.New (Title.New "Star Wars 2") [authorId2] [] [] None (Year.New 2002) (Isbn.NewEmpty())
-            let book4 = Book.New (Title.New "Interstellar") [authorId1] [] [] None (Year.New 2003) (Isbn.NewEmpty())
+            let book1 = Book.New (Title.New "Star Wars") [authorId1] [] [] None  Category.Other [] (Year.New 2000) (Isbn.NewEmpty()) None
+            let book2 = Book.New (Title.New "Star Trek") [authorId2] [] [] None  Category.Other [] (Year.New 2001) (Isbn.NewEmpty()) None
+            let book3 = Book.New (Title.New "Star Wars 2") [authorId2] [] [] None  Category.Other [] (Year.New 2002) (Isbn.NewEmpty()) None
+            let book4 = Book.New (Title.New "Interstellar") [authorId1] [] [] None  Category.Other [] (Year.New 2003) (Isbn.NewEmpty()) None
             
             (bookService :> IBookService).AddBookAsync book1 |> Async.AwaitTask |> Async.RunSynchronously |> ignore
             (bookService :> IBookService).AddBookAsync book2 |> Async.AwaitTask |> Async.RunSynchronously |> ignore
@@ -1003,10 +1003,10 @@ let tests =
             let authorId1 = author1.AuthorId
             let authorId2 = author2.AuthorId
             
-            let book1 = Book.New (Title.New "Star Wars") [authorId1] [] [] None (Year.New 1977) (Isbn.NewEmpty())
-            let book2 = Book.New (Title.New "Star Trek") [authorId2] [] [] None (Year.New 1966) (Isbn.NewEmpty())
-            let book3 = Book.New (Title.New "Star Wars 2") [authorId2] [] [] None (Year.New 1980) (Isbn.NewEmpty())
-            let book4 = Book.New (Title.New "Star Wars 3") [authorId1] [] [] None (Year.New 1983) (Isbn.NewEmpty())
+            let book1 = Book.New (Title.New "Star Wars") [authorId1] [] [] None  Category.Other [] (Year.New 1977) (Isbn.NewEmpty()) None
+            let book2 = Book.New (Title.New "Star Trek") [authorId2] [] [] None  Category.Other [] (Year.New 1966) (Isbn.NewEmpty()) None
+            let book3 = Book.New (Title.New "Star Wars 2") [authorId2] [] [] None  Category.Other [] (Year.New 1980) (Isbn.NewEmpty()) None
+            let book4 = Book.New (Title.New "Star Wars 3") [authorId1] [] [] None  Category.Other [] (Year.New 1983) (Isbn.NewEmpty()) None
             
             (bookService :> IBookService).AddBookAsync book1 |> Async.AwaitTask |> Async.RunSynchronously |> ignore
             (bookService :> IBookService).AddBookAsync book2 |> Async.AwaitTask |> Async.RunSynchronously |> ignore
@@ -1036,10 +1036,10 @@ let tests =
             let authorId1 = author1.AuthorId
             let authorId2 = author2.AuthorId
             
-            let book1 = Book.NewWithMainCategory (Title.New "Star Wars") [authorId1] [] [] None Category.ScienceFiction (Year.New 1977) (Isbn.NewEmpty())
-            let book2 = Book.NewWithMainCategory (Title.New "Star Trek") [authorId2] [] [] None Category.Drama (Year.New 1966) (Isbn.NewEmpty())
-            let book3 = Book.NewWithMainCategory (Title.New "Star Wars 2") [authorId2] [] [] None Category.ScienceFiction (Year.New 1980) (Isbn.NewEmpty())
-            let book4 = Book.NewWithMainCategory (Title.New "Star Wars 3") [authorId1] [] [] None Category.History (Year.New 1983) (Isbn.NewEmpty())
+            let book1 = Book.New (Title.New "Star Wars") [authorId1] [] [] None Category.ScienceFiction [Category.Other] (Year.New 1977) (Isbn.NewEmpty()) None
+            let book2 = Book.New (Title.New "Star Trek") [authorId2] [] [] None Category.Drama [Category.Other] (Year.New 1966) (Isbn.NewEmpty()) None
+            let book3 = Book.New (Title.New "Star Wars 2") [authorId2] [] [] None Category.ScienceFiction [Category.Other] (Year.New 1980) (Isbn.NewEmpty()) None
+            let book4 = Book.New (Title.New "Star Wars 3") [authorId1] [] [] None Category.History [Category.Other] (Year.New 1983) (Isbn.NewEmpty()) None
             
             (bookService :> IBookService).AddBookAsync book1 |> Async.AwaitTask |> Async.RunSynchronously |> ignore
             (bookService :> IBookService).AddBookAsync book2 |> Async.AwaitTask |> Async.RunSynchronously |> ignore
@@ -1058,7 +1058,7 @@ let tests =
         testCase "seal a book - Ok" <| fun _ ->
             setUp ()
             let bookService = getBookService()
-            let book = Book.New (Title.New "The Sealing Book") [] [] [] None (Year.New 2024) (Isbn.NewEmpty())
+            let book = Book.New (Title.New "The Sealing Book") [] [] [] None  Category.Other [] (Year.New 2024) (Isbn.NewEmpty()) None
             let addBook = 
                 bookService.AddBookAsync book
                 |> Async.AwaitTask
@@ -1085,7 +1085,7 @@ let tests =
             let author = Author.New (Name.New "The Test Author") (Isni.NewEmpty())
             (authorService :> IAuthorService).AddAuthorAsync author |> Async.AwaitTask |> Async.RunSynchronously |> ignore
             
-            let book = Book.New (Title.New "The Unmodifiable Book") [] [] [] None (Year.New 2024) (Isbn.NewEmpty())
+            let book = Book.New (Title.New "The Unmodifiable Book") [] [] [] None  Category.Other [] (Year.New 2024) (Isbn.NewEmpty()) None
             bookService.AddBookAsync book |> Async.AwaitTask |> Async.RunSynchronously |> ignore
 
             bookService.SealAsync book.BookId |> Async.AwaitTask |> Async.RunSynchronously |> ignore
@@ -1100,7 +1100,7 @@ let tests =
         testCase "unseal a book - Ok" <| fun _ ->
             setUp ()
             let bookService = getBookService()
-            let book = Book.New (Title.New "The Unsealing Book") [] [] [] None (Year.New 2024) (Isbn.NewEmpty())
+            let book = Book.New (Title.New "The Unsealing Book") [] [] [] None  Category.Other [] (Year.New 2024) (Isbn.NewEmpty()) None
             let addBook = 
                 bookService.AddBookAsync book
                 |> Async.AwaitTask
@@ -1129,7 +1129,7 @@ let tests =
         testCase "update/remove book image URL - Ok" <| fun _ ->
             setUp ()
             let bookService = getBookService()
-            let book = Book.New (Title.New "The Image Book") [] [] [] None (Year.New 2024) (Isbn.NewEmpty())
+            let book = Book.New (Title.New "The Image Book") [] [] [] None  Category.Other [] (Year.New 2024) (Isbn.NewEmpty()) None
             (bookService :> IBookService).AddBookAsync book |> Async.AwaitTask |> Async.RunSynchronously |> ignore
 
             let imageUrl = Uri "https://example.com/cover.jpg"

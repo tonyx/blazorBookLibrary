@@ -134,7 +134,7 @@ let tests =
                 |> Async.RunSynchronously
             Expect.isOk addAuthor "should be ok"
 
-            let book = Book.New (Title.New "The Great Gatsby") [author.AuthorId] [] [] None (Year.New 1924) (Isbn.NewEmpty())
+            let book = Book.New (Title.New "The Great Gatsby") [author.AuthorId] [] [] None  Category.Other [] (Year.New 1924) (Isbn.NewEmpty()) None
             let addBook = 
                 bookService.AddBookAsync book
                 |> Async.AwaitTask
@@ -167,7 +167,7 @@ let tests =
                 |> Async.RunSynchronously
             Expect.isOk addAuthor2 "should be ok"
 
-            let book = Book.New (Title.New "The Great Gatsby") [author.AuthorId; author2.AuthorId] [] [] None (Year.New 1924) (Isbn.NewEmpty())
+            let book = Book.New (Title.New "The Great Gatsby") [author.AuthorId; author2.AuthorId] [] [] None  Category.Other [] (Year.New 1924) (Isbn.NewEmpty()) None
             let addBook = 
                 bookService.AddBookAsync book
                 |> Async.AwaitTask
@@ -202,7 +202,7 @@ let tests =
                 |> Async.RunSynchronously
             Expect.isOk addAuthor "should be ok"
 
-            let book = Book.New (Title.New "The Great Gatsby") [] [] [] None (Year.New 1924) (Isbn.NewEmpty())
+            let book = Book.New (Title.New "The Great Gatsby") [] [] [] None  Category.Other [] (Year.New 1924) (Isbn.NewEmpty()) None
             let addBook = 
                 bookService.AddBookAsync book
                 |> Async.AwaitTask
@@ -249,7 +249,7 @@ let tests =
                 |> Async.RunSynchronously
             Expect.isOk addAuthor "should be ok"
 
-            let book = Book.New (Title.New "The Great Gatsby") [] [] [] None (Year.New 1924) (Isbn.NewEmpty())
+            let book = Book.New (Title.New "The Great Gatsby") [] [] [] None  Category.Other [] (Year.New 1924) (Isbn.NewEmpty()) None
 
             let addBook = 
                 bookService.AddBookAsync book
@@ -418,7 +418,7 @@ let tests =
             
             authorService.AddAuthorAsync author |> Async.AwaitTask |> Async.RunSynchronously |> ignore
             
-            let book = Book.New (Title.New "The Great Gatsby") [author.AuthorId] [] [] None (Year.New 1924) (Isbn.NewEmpty())
+            let book = Book.New (Title.New "The Great Gatsby") [author.AuthorId] [] [] None  Category.Other [] (Year.New 1924) (Isbn.NewEmpty()) None
             bookService.AddBookAsync book |> Async.AwaitTask |> Async.RunSynchronously |> ignore
             
             let removeResult = 

@@ -8,6 +8,8 @@ open System.Globalization
 
 type BookCommand =
     | UpdateTitle of Title * DateTime
+    | UpdateDescription of string * DateTime
+    | RemoveDescription of DateTime
     | UpdateAuthors of list<AuthorId> * DateTime
     | UpdateEditor of EditorId * DateTime
     | UpdateYear of Year * DateTime
@@ -29,6 +31,7 @@ type BookCommand =
     | RemoveAdditionalCategory of Category * DateTime
     | SetImageUrl of Uri * DateTime
     | RemoveImageUrl of DateTime
+    | SetAvailability of Availability * DateTime
 
     interface AggregateCommand<Book, BookEvent> with
         member this.Execute (book: Book) =
@@ -36,6 +39,12 @@ type BookCommand =
             | UpdateTitle (title, dateTime) ->
                 book.UpdateTitle title dateTime
                 |> Result.map (fun b -> (b, [TitleUpdated(title, dateTime)]))
+            | UpdateDescription (description, dateTime) ->
+                book.UpdateDescription description dateTime
+                |> Result.map (fun b -> (b, [DescriptionUpdated(description, dateTime)]))
+            | RemoveDescription dateTime ->
+                book.RemoveDescription dateTime
+                |> Result.map (fun b -> (b, [DescriptionRemoved(dateTime)]))
             | UpdateAuthors (authors, dateTime) ->
                 book.UpdateAuthors authors dateTime
                 |> Result.map (fun b -> (b, [AuthorsUpdated(authors, dateTime)]))
@@ -99,6 +108,9 @@ type BookCommand =
             | RemoveImageUrl dateTime ->
                 book.RemoveImageUrl dateTime
                 |> Result.map (fun b -> (b, [ImageUrlRemoved(dateTime)]))
+            | SetAvailability (availability, dateTime) ->
+                book.SetAvailability availability dateTime
+                |> Result.map (fun b -> (b, [AvailabilitySet(availability, dateTime)]))
 
 
         member this.Undoer = None

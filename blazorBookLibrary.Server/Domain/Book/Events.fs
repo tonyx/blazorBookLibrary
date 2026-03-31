@@ -9,6 +9,8 @@ open System.Globalization
 
 type BookEvent =
     | TitleUpdated of Title * DateTime
+    | DescriptionUpdated of string * DateTime
+    | DescriptionRemoved of DateTime
     | AuthorsUpdated of list<AuthorId> * DateTime
     | EditorUpdated of EditorId * DateTime
     | YearUpdated of Year * DateTime
@@ -30,6 +32,7 @@ type BookEvent =
     | AdditionalCategoryRemoved of Category * DateTime
     | ImageUrlSet of Uri * DateTime
     | ImageUrlRemoved of DateTime
+    | AvailabilitySet of Availability * DateTime
 
 
     interface Event<BookLibrary.Domain.Book> with
@@ -37,6 +40,10 @@ type BookEvent =
             match this with
             | TitleUpdated (title, dateTime) ->
                 book.UpdateTitle title dateTime
+            | DescriptionUpdated (description, dateTime) ->
+                book.UpdateDescription description dateTime
+            | DescriptionRemoved dateTime ->
+                book.RemoveDescription dateTime
             | AuthorsUpdated (authors, dateTime) ->
                 book.UpdateAuthors authors dateTime
             | EditorUpdated (editor, dateTime) ->
@@ -79,6 +86,8 @@ type BookEvent =
                 book.SetImageUrl imageUrl dateTime
             | ImageUrlRemoved dateTime ->
                 book.RemoveImageUrl dateTime
+            | AvailabilitySet (availability, dateTime) ->
+                book.SetAvailability availability dateTime
 
 
     static member Deserialize (x: string): Result<BookEvent, string> =

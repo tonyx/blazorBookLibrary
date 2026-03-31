@@ -119,7 +119,7 @@ let tests =
             let loanService = getLoanService()
             let bookService = getBookService()
             let userService = getUserService()
-            let book = Book.New (Title.New "the constitution") [] [] [] None (Year.New 1924) (Isbn.NewEmpty())
+            let book = Book.New (Title.New "the constitution") [] [] [] None  Category.Other [] (Year.New 1924) (Isbn.NewEmpty()) None
             let addBook = 
                 bookService.AddBookAsync book
                 |> Async.AwaitTask
@@ -196,7 +196,7 @@ let tests =
             let loanService = getLoanService()
             let userService = getUserService()
             let bookService = getBookService()
-            let book = Book.New (Title.New "the constitution") [] [] [] None (Year.New 1924) (Isbn.NewEmpty())
+            let book = Book.New (Title.New "the constitution") [] [] [] None  Category.Other [] (Year.New 1924) (Isbn.NewEmpty()) None
             let addBook = 
                 bookService.AddBookAsync book
                 |> Async.AwaitTask
@@ -233,7 +233,7 @@ let tests =
             let loanService = getLoanService()
             let userService = getUserService()
             let bookService = getBookService()
-            let book = Book.New (Title.New "the constitution") [] [] [] None (Year.New 1924) (Isbn.NewEmpty())
+            let book = Book.New (Title.New "the constitution") [] [] [] None  Category.Other [] (Year.New 1924) (Isbn.NewEmpty()) None
             let addBook = 
                 bookService.AddBookAsync book
                 |> Async.AwaitTask

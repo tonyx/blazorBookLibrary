@@ -71,8 +71,8 @@
     {
         <div class="row g-4">
             <!-- Book Info Section -->
-            <div class="col-lg-8">
-                <div class="card shadow-sm border-0 h-100">
+            <div class="col-lg-7">
+                <div class="card shadow-sm border-0 h-100" style="z-index: 10;">
                     <div class="card-header bg-primary text-white py-3 d-flex justify-content-between align-items-center">
                         <h5 class="card-title mb-0"><i class="bi bi-book me-2"></i>@L["GeneralInformation"]</h5>
                         <div class="form-check form-switch mb-0">
@@ -88,7 +88,7 @@
                     <div class="card-body">
                         <div class="row">
                             <!-- Image Column -->
-                            <div class="col-md-3 mb-4 mb-md-0">
+                            <div class="col-md-4 mb-4 mb-md-0">
                                 <div class="book-cover-container shadow-sm border rounded p-2 bg-white d-flex align-items-center justify-content-center" style="min-height: 200px; max-height: 350px; overflow: hidden;">
                                     @if (FSharpOption<Uri>.get_IsSome(bookDetails.Book.ImageUrl))
                                     {
@@ -191,10 +191,10 @@
                             </div>
 
                             <!-- Details Column -->
-                            <div class="col-md-9">
+                            <div class="col-md-8">
                                 <dl class="row mb-0">
-                                    <dt class="col-sm-3 text-muted" @onclick="CancelEdit" style="cursor: pointer" title="@L["CancelEdit"]">@L["Title"]</dt>
-                                    <dd class="col-sm-9 fw-bold fs-5">
+                                    <dt class="col-sm-4 text-muted" @onclick="CancelEdit" style="cursor: pointer" title="@L["CancelEdit"]">@L["Title"]</dt>
+                                    <dd class="col-sm-8 fw-bold fs-5">
                                         @if (isEditingTitle)
                                         {
                                             <div class="input-group">
@@ -219,8 +219,8 @@
                                         }
                                     </dd>
 
-                                    <dt class="col-sm-3 text-muted mt-2">ISBN</dt>
-                                    <dd class="col-sm-9 mt-2">
+                                    <dt class="col-sm-4 text-muted mt-2">ISBN</dt>
+                                    <dd class="col-sm-8 mt-2">
                                         @if (isEditingIsbn)
                                         {
                                             <div class="p-2 border rounded bg-light shadow-sm">
@@ -251,11 +251,11 @@
                                         }
                                     </dd>
 
-                                    <dt class="col-sm-3 text-muted mt-2">@L["PublicationYear"]</dt>
-                                    <dd class="col-sm-9 mt-2">@bookDetails.Book.Year.Value</dd>
+                                    <dt class="col-sm-4 text-muted mt-2">@L["PublicationYear"]</dt>
+                                    <dd class="col-sm-8 mt-2">@bookDetails.Book.Year.Value</dd>
 
-                            <dt class="col-sm-3 text-muted">@L["MainCategory"]</dt>
-                            <dd class="col-sm-9">
+                            <dt class="col-sm-4 text-muted">@L["MainCategory"]</dt>
+                            <dd class="col-sm-8">
                                 @if (isEditingCategory)
                                 {
                                     <div class="input-group input-group-sm" style="max-width: 300px;">
@@ -288,8 +288,8 @@
                                 }
                             </dd>
                             
-                            <dt class="col-sm-3 text-muted">@L["AdditionalCategories"]</dt>
-                            <dd class="col-sm-9">
+                            <dt class="col-sm-4 text-muted">@L["AdditionalCategories"]</dt>
+                            <dd class="col-sm-8">
                                 <div class="d-flex flex-wrap align-items-center gap-2">
                                     @foreach (var cat in bookDetails.Book.AdditionalCategories)
                                     {
@@ -342,8 +342,8 @@
                                 </div>
                             </dd>
 
-                            <dt class="col-sm-3 text-muted">@L["Authors"]</dt>
-                            <dd class="col-sm-9">
+                            <dt class="col-sm-4 text-muted">@L["Authors"]</dt>
+                            <dd class="col-sm-8">
                                 @if (bookDetails.Authors.Any())
                                 {
                                     <div class="d-flex flex-wrap gap-2 mb-2">
@@ -375,13 +375,13 @@
                                             <input type="text" 
                                                    class="form-control border-start-0" 
                                                    placeholder="@L["SearchAuthorToAdd"]" 
-                                                   @bind="authorSearchInput" 
+                                                   value="@authorSearchInput" 
                                                    @oninput="HandleAuthorSearchInput"
                                                    @onfocus="() => { if(authorSearchResults.Any()) showAuthorSearchResults = true; }" />
                                             <button class="btn btn-primary px-3" 
                                                     type="button" 
                                                     @onclick="AddAuthorToBook" 
-                                                    disabled="@(selectedAuthorForAdd == null || selectedAuthorForAdd.Name.Value != authorSearchInput)">
+                                                    disabled="@(selectedAuthorForAdd == null)">
                                                 <i class="bi bi-plus-lg me-1"></i>@L["Add"]
                                             </button>
                                         </div>
@@ -419,6 +419,41 @@
                                 }
                             </dd>
 
+                            <dt class="col-sm-4 text-muted mt-2">@L["Description"]</dt>
+                            <dd class="col-sm-8 mt-2">
+                                @if (isEditingDescription)
+                                {
+                                    <div class="input-group">
+                                        <textarea class="form-control" @bind="editedDescription" rows="5" autofocus></textarea>
+                                    </div>
+                                    <div class="mt-2 d-flex gap-2">
+                                        <button class="btn btn-sm btn-primary" @onclick="UpdateDescription">
+                                            <i class="bi bi-check-lg me-1"></i> @L["Confirm"]
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-secondary" @onclick="CancelEditDescription">
+                                            <i class="bi bi-x-lg me-1"></i> @L["Cancel"]
+                                        </button>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="@((bookDetails?.Book.Editable ?? false) ? "editable-title" : "")" @onclick="StartEditDescription">
+                                        @if (FSharpOption<string>.get_IsSome(bookDetails?.Book.Description))
+                                        {
+                                            <p class="mb-0 text-break" style="white-space: pre-wrap;">@bookDetails.Book.Description.Value</p>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted fst-italic">@L["NoDescriptionAvailable"]</span>
+                                        }
+                                        @if (bookDetails?.Book.Editable ?? false)
+                                        {
+                                            <i class="bi bi-pencil-square text-muted ms-2 small"></i>
+                                        }
+                                    </div>
+                                }
+                            </dd>
+
                                 </dl>
                             </div>
                         </div>
@@ -427,7 +462,7 @@
             </div>
 
             <!-- Status & Availability Section -->
-            <div class="col-lg-4">
+            <div class="col-lg-5">
                 <div class="card shadow-sm border-0 mb-4 h-100">
                     <div class="card-header bg-success text-white py-3">
                         <h5 class="card-title mb-0"><i class="bi bi-calendar-check me-2"></i>@L["StatusAvailability"]</h5>
@@ -647,6 +682,8 @@
     private string editedTitle = "";
     private bool isEditingCategory = false;
     private string editedCategory = "";
+    private bool isEditingDescription = false;
+    private string editedDescription = "";
     private bool isBookSealed => bookDetails != null && bookDetails.Book.Sealed.IsSealed(DateTime.UtcNow);
 
     private async Task AddAdditionalCategoryWrapper(Category category)
@@ -964,6 +1001,61 @@
         finally
         {
             isLookingUpCover = false;
+        }
+    }
+
+    private void StartEditDescription()
+    {
+        if (bookDetails?.Book.Editable ?? false)
+        {
+            isEditingDescription = true;
+            editedDescription = FSharpOption<string>.get_IsSome(bookDetails.Book.Description) 
+                ? bookDetails.Book.Description.Value 
+                : "";
+        }
+        else if (isBookSealed)
+        {
+            ShowStatus("This book is currently sealed. Please unseal it to edit the description.", "alert-warning");
+        }
+    }
+
+    private void CancelEditDescription()
+    {
+        isEditingDescription = false;
+    }
+
+    private async Task UpdateDescription()
+    {
+        if (bookDetails == null) return;
+        
+        try 
+        {
+            FSharpResult<Microsoft.FSharp.Core.Unit, string> result;
+            
+            if (string.IsNullOrWhiteSpace(editedDescription))
+            {
+                result = await BookService.RemoveDescriptionAsync(bookDetails.Book.BookId, FSharpOption<System.Threading.CancellationToken>.None);
+                if (result.IsOk) ShowStatus(L["DescriptionRemoved"], "alert-success");
+            }
+            else
+            {
+                result = await BookService.UpdateDescriptionAsync(editedDescription, bookDetails.Book.BookId, FSharpOption<System.Threading.CancellationToken>.None);
+                if (result.IsOk) ShowStatus(L["DescriptionUpdated"], "alert-success");
+            }
+            
+            if (result.IsOk)
+            {
+                await LoadBookDetails();
+                isEditingDescription = false;
+            }
+            else
+            {
+                ShowStatus($"Failed to update description: {result.ErrorValue}", "alert-danger");
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowStatus($"Error updating description: {ex.Message}", "alert-danger");
         }
     }
 

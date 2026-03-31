@@ -18,38 +18,38 @@
     <nav class="nav flex-column">
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-                <span class="bi bi-book-fill-nav-menu" aria-hidden="true"></span> @L["BooksBrowser"]
+                <span class="bi bi-book-fill" aria-hidden="true"></span> @L["BooksBrowser"]
             </NavLink>
         </div>
 
         @* <div class="nav-item px-3">
             <NavLink class="nav-link" href="books-browser">
-                <span class="bi bi-book-fill-nav-menu" aria-hidden="true"></span> @L["BooksBrowser"]
+                <span class="bi bi-book-fill" aria-hidden="true"></span> @L["BooksBrowser"]
             </NavLink>
         </div> *@
 
         @* <div class="nav-item px-3">
             <NavLink class="nav-link" href="counter">
-                <span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span> @L["Counter"]
+                <span class="bi bi-plus-square-fill" aria-hidden="true"></span> @L["Counter"]
             </NavLink>
         </div> *@
 
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="weather">
-                <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> @L["Weather"]
+                <span class="bi bi-list-nested" aria-hidden="true"></span> @L["Weather"]
             </NavLink>
         </div>
 
         @* <div class="nav-item px-3">
             <NavLink class="nav-link" href="auth">
-                <span class="bi bi-lock-nav-menu" aria-hidden="true"></span> @L["AuthRequired"]
+                <span class="bi bi-lock" aria-hidden="true"></span> @L["AuthRequired"]
             </NavLink>
         </div> *@
 
         <AuthorizeView Roles="Admin">
             <div class="nav-item px-3">
                 <NavLink class="nav-link" href="users-manager">
-                    <span class="bi bi-people-fill-nav-menu" aria-hidden="true"></span> @L["UsersManager"]
+                    <span class="bi bi-people-fill" aria-hidden="true"></span> @L["UsersManager"]
                 </NavLink>
             </div>
         </AuthorizeView>
@@ -57,12 +57,12 @@
         <AuthorizeView Roles="Admin, Manager">
             <div class="nav-item px-3">
                 <NavLink class="nav-link" href="authors-manager">
-                    <span class="bi bi-person-lines-fill-nav-menu" aria-hidden="true"></span> @L["AuthorsManager"]
+                    <span class="bi bi-person-lines-fill" aria-hidden="true"></span> @L["AuthorsManager"]
                 </NavLink>
             </div>
             <div class="nav-item px-3">
                 <NavLink class="nav-link" href="books-manager">
-                    <span class="bi bi-book-fill-nav-menu" aria-hidden="true"></span> @L["BooksManager"]
+                    <span class="bi bi-book-fill" aria-hidden="true"></span> @L["BooksManager"]
                 </NavLink>
             </div>
         </AuthorizeView>
@@ -73,7 +73,7 @@
             <Authorized>
                 <div class="nav-item px-3">
                     <NavLink class="nav-link" href="Account/Manage">
-                        <span class="bi bi-person-fill-nav-menu" aria-hidden="true"></span> @context.User.Identity?.Name
+                        <span class="bi bi-person-fill" aria-hidden="true"></span> @context.User.Identity?.Name
                     </NavLink>
                 </div>
                 <div class="nav-item px-3">
@@ -81,7 +81,7 @@
                         <AntiforgeryToken />
                         <input type="hidden" name="ReturnUrl" value="@currentUrl" />
                         <button type="submit" class="nav-link">
-                            <span class="bi bi-arrow-bar-left-nav-menu" aria-hidden="true"></span> @L["Logout"]
+                            <span class="bi bi-arrow-bar-left" aria-hidden="true"></span> @L["Logout"]
                         </button>
                     </form>
                 </div>
@@ -89,12 +89,12 @@
             <NotAuthorized>
                 <div class="nav-item px-3">
                     <NavLink class="nav-link" href="Account/Register">
-                        <span class="bi bi-person-nav-menu" aria-hidden="true"></span> @L["Register"]
+                        <span class="bi bi-person" aria-hidden="true"></span> @L["Register"]
                     </NavLink>
                 </div>
                 <div class="nav-item px-3">
                     <NavLink class="nav-link" href="Account/Login">
-                        <span class="bi bi-person-badge-nav-menu" aria-hidden="true"></span> @L["Login"]
+                        <span class="bi bi-person-badge" aria-hidden="true"></span> @L["Login"]
                     </NavLink>
                 </div>
             </NotAuthorized>

@@ -187,7 +187,6 @@
   <data name="Total" xml:space="preserve"><value>Total</value></data>
   <data name="FilterByName" xml:space="preserve"><value>Filter result by name...</value></data>
   <data name="FilterByIsni" xml:space="preserve"><value>Filter result by ISNI...</value></data>
-  <data name="AuthorName" xml:space="preserve"><value>Author Name</value></data>
   <data name="Status" xml:space="preserve"><value>Status</value></data>
   <data name="Sealed" xml:space="preserve"><value>Sealed</value></data>
   <data name="Active" xml:space="preserve"><value>Active</value></data>
@@ -221,15 +220,11 @@
   <data name="ActiveCategoryCriteria" xml:space="preserve"><value>Active Category Criteria</value></data>
   <data name="NoCategoriesSelected" xml:space="preserve"><value>No categories selected</value></data>
   <data name="SearchResults" xml:space="preserve"><value>Search Results</value></data>
-  <data name="Home" xml:space="preserve"><value>Home</value></data>
-  <data name="Weather" xml:space="preserve"><value>Meteo</value></data>
   <data name="Counter" xml:space="preserve"><value>Contatore</value></data>
   <data name="AuthRequired" xml:space="preserve"><value>Autenticazione Richiesta</value></data>
   <data name="Logout" xml:space="preserve"><value>Esci</value></data>
   <data name="Register" xml:space="preserve"><value>Registrati</value></data>
   <data name="Login" xml:space="preserve"><value>Accedi</value></data>
-  <data name="AuthorsManager" xml:space="preserve"><value>Gestione Autori</value></data>
-  <data name="BooksBrowser" xml:space="preserve"><value>Sfoglia Libri</value></data>
   <data name="RefineResultsByTitlePlaceholder" xml:space="preserve"><value>Refine results by title...</value></data>
   <data name="NoBooksFoundCriteria" xml:space="preserve"><value>No books found matching your criteria.</value></data>
   <data name="AddNewBookEntry" xml:space="preserve"><value>Add New Book Entry</value></data>
@@ -266,9 +261,6 @@
   <data name="NoCoverImageFoundIsbn" xml:space="preserve"><value>No cover image found for this ISBN in any of our connected libraries.</value></data>
   <data name="CoverUrlApplied" xml:space="preserve"><value>Cover URL applied to book image field.</value></data>
   <data name="NoAuthorsFoundMatchingName" xml:space="preserve"><value>No authors found matching that name.</value></data>
-  <data name="UsersManager" xml:space="preserve"><value>Gestione Utenti</value></data>
-  <data name="SearchByEmailOrNamePlaceholder" xml:space="preserve"><value>Cerca per email o nome...</value></data>
-  <data name="Name" xml:space="preserve"><value>Nome</value></data>
   <data name="CurrentRoles" xml:space="preserve"><value>Ruoli Attuali</value></data>
   <data name="RevokeManager" xml:space="preserve"><value>Revoca Manager</value></data>
   <data name="AssignManager" xml:space="preserve"><value>Assegna Manager</value></data>
@@ -342,4 +334,40 @@
   <data name="PasswordChangedSuccessfully" xml:space="preserve"><value>La tua password è stata aggiornata</value></data>
   <data name="PasswordLengthError" xml:space="preserve"><value>Il campo {0} deve essere lungo almeno {2} e massimo {1} caratteri.</value></data>
   <data name="PasswordsDoNotMatch" xml:space="preserve"><value>La nuova password e la password di conferma non corrispondono.</value></data>
+  <data name="Description" xml:space="preserve">
+    <value>Description</value>
+  </data>
+  <data name="BookDescriptionPlaceholder" xml:space="preserve">
+    <value>Enter an optional description or summary for the book...</value>
+  </data>
+  <data name="MetadataSearch" xml:space="preserve">
+    <value>Metadata Search</value>
+  </data>
+  <data name="SearchingMetadata" xml:space="preserve">
+    <value>Searching...</value>
+  </data>
+  <data name="DescriptionUpdated" xml:space="preserve">
+    <value>Description updated successfully.</value>
+  </data>
+  <data name="DescriptionRemoved" xml:space="preserve">
+    <value>Description removed successfully.</value>
+  </data>
+  <data name="Circulating" xml:space="preserve">
+    <value>Circulating</value>
+  </data>
+  <data name="ReferenceOnly" xml:space="preserve">
+    <value>Reference only</value>
+  </data>
+  <data name="Unspecified" xml:space="preserve">
+    <value>Unspecified</value>
+  </data>
+  <data name="Image" xml:space="preserve">
+    <value>Image</value>
+  </data>
+  <data name="AvailabilityType" xml:space="preserve">
+    <value>Availability Type</value>
+  </data>
+  <data name="All" xml:space="preserve">
+    <value>All</value>
+  </data>
 </root>
