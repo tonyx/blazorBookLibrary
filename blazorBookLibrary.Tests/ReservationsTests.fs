@@ -1,115 +1,14 @@
-
 module ReservationsTests
 
 open System
+open TestSetup
 open Expecto
-open DotNetEnv
-open Sharpino.PgStorage
 open BookLibrary.Domain
-open BookLibrary.Services
 open BookLibrary.Shared.Details
-open Sharpino.Cache
-open Sharpino.Core
 open BookLibrary.Shared.Commons
-open Sharpino.CommandHandler
-open Sharpino.EventBroker
-open Microsoft.Extensions.Configuration
 open System.Threading
-open BookLibrary.Services
-
-Env.Load() |> ignore
-let password = Environment.GetEnvironmentVariable("password")
-
-let connection =
-    "Server=127.0.0.1;"+
-    "Database=sharpino_booklibrary_test;" +
-    "User Id=safe;"+
-    $"Password={password}"
-
-let pgEventStore:Sharpino.Storage.IEventStore<string> = PgEventStore connection
-let setUp () =
-    pgEventStore.Reset Book.Version Book.StorageName
-    pgEventStore.ResetAggregateStream Book.Version Book.StorageName
-    pgEventStore.Reset Author.Version Author.StorageName
-    pgEventStore.ResetAggregateStream Author.Version Author.StorageName
-    pgEventStore.Reset Editor.Version Editor.StorageName
-    pgEventStore.ResetAggregateStream Editor.Version Editor.StorageName
-    pgEventStore.Reset Reservation.Version Reservation.StorageName
-    pgEventStore.ResetAggregateStream Reservation.Version Reservation.StorageName
-    pgEventStore.Reset Loan.Version Loan.StorageName
-    pgEventStore.ResetAggregateStream Loan.Version Loan.StorageName
-    pgEventStore.Reset User.Version User.StorageName
-    pgEventStore.ResetAggregateStream User.Version User.StorageName
-    AggregateCache3.Instance.Clear()            
-
-let timeSlotDurationInDays =
-    let config = 
-        ConfigurationBuilder()
-            .AddJsonFile("appSettings.json")
-            .Build()
-    config.GetValue<int>("TimeSlotLoanDurationInDays", 30)
-
-let bookViewerAsync = getAggregateStorageFreshStateViewerAsync<Book, BookEvent, string> pgEventStore
-let authorViewerAsync = getAggregateStorageFreshStateViewerAsync<Author, AuthorEvent, string> pgEventStore
-let editorViewerAsync = getAggregateStorageFreshStateViewerAsync<Editor, EditorEvent, string> pgEventStore
-let reservationViewerAsync = getAggregateStorageFreshStateViewerAsync<Reservation, ReservationEvent, string> pgEventStore
-let loanViewerAsync = getAggregateStorageFreshStateViewerAsync<Loan, LoanEvent, string> pgEventStore
-let userViewerAsync = getAggregateStorageFreshStateViewerAsync<User, UserEvent, string> pgEventStore
-
-let getAuthorService = 
-    fun () -> 
-        AuthorService(
-            pgEventStore, 
-            MessageSenders.NoSender, 
-            bookViewerAsync, 
-            authorViewerAsync, 
-            editorViewerAsync, 
-            reservationViewerAsync, 
-            loanViewerAsync)
-
-let getBookService = 
-    fun _ -> 
-        BookService
-            (pgEventStore, 
-            MessageSenders.NoSender, 
-            bookViewerAsync, 
-            authorViewerAsync, 
-            editorViewerAsync, 
-            reservationViewerAsync, 
-            loanViewerAsync)
-let getReservationService =
-    fun _ ->
-        ReservationService
-            (pgEventStore, 
-            MessageSenders.NoSender, 
-            bookViewerAsync, 
-            authorViewerAsync, 
-            editorViewerAsync, 
-            reservationViewerAsync, 
-            loanViewerAsync)
-
-let getLoanService =
-    fun _ ->
-        LoanService
-            (pgEventStore, 
-            MessageSenders.NoSender, 
-            bookViewerAsync, 
-            authorViewerAsync, 
-            editorViewerAsync, 
-            reservationViewerAsync, 
-            loanViewerAsync,
-            userViewerAsync)
-let getUserService =
-    fun _ ->
-        UserService
-            (pgEventStore, 
-            MessageSenders.NoSender, 
-            bookViewerAsync, 
-            authorViewerAsync, 
-            editorViewerAsync, 
-            reservationViewerAsync, 
-            loanViewerAsync,
-            userViewerAsync)
+open BookLibrary.Details.Details
+open BookLibrary.Shared.Services
 
 [<Tests>]
 let tests =
@@ -173,7 +72,7 @@ let tests =
                 |> Async.RunSynchronously
             Expect.isOk bookDetail "should be ok"
             let (bookDetail: BookDetails) = bookDetail |> Result.get
-            Expect.equal bookDetail.FutureReservations.Length 1 "should contain one reservation"
+            Expect.equal bookDetail.Reservations.Length 1 "should contain one reservation"
 
         testCase "add a non overlapping reservation and verify it will be ok, expect then two reservation on that book - Ok" <| fun _ ->
             setUp ()
@@ -238,7 +137,7 @@ let tests =
             let (bookDetail: BookDetails) = bookDetail |> Result.get
             Expect.isTrue (bookDetail.Book.CurrentLoan |> Option.isNone) "should not contain the loan"
             Expect.isTrue (bookDetail.CurrentLoan |> Option.isNone) "should not contain the loan"
-            Expect.equal bookDetail.FutureReservations.Length 2 "should contain two reservations"
+            Expect.equal bookDetail.Reservations.Length 2 "should contain two reservations"
 
         testCase "add and remove a reservation async - Ok " <| fun _ ->
             setUp ()
@@ -351,7 +250,7 @@ let tests =
             Expect.isTrue (bookDetail.Book.CurrentLoan |> Option.isSome) "should contain the loan"
             Expect.isTrue (bookDetail.CurrentLoan |> Option.isSome) "should contain the loan"
             Expect.isTrue (bookDetail.CurrentLoan.Value.LoanId = loan.LoanId) "should contain the loan"
-            Expect.isTrue (bookDetail.FutureReservations |> List.isEmpty) "should not contain reservations"
+            Expect.isTrue (bookDetail.Reservations |> List.isEmpty) "should not contain reservations"
 
             let releaseLoan = 
                 loanService.ReleaseLoanAsync(loan.LoanId, System.DateTime.Now)
@@ -368,7 +267,7 @@ let tests =
             let (bookDetail2: BookDetails) = bookDetail2 |> Result.get
             Expect.isTrue (bookDetail2.Book.CurrentLoan |> Option.isNone) "should not contain the loan"
             Expect.isTrue (bookDetail2.CurrentLoan |> Option.isNone) "should not contain the loan"
-            Expect.isTrue (bookDetail2.FutureReservations |> List.isEmpty) "should not contain reservations"
+            Expect.isTrue (bookDetail2.Reservations |> List.isEmpty) "should not contain reservations"
 
             let userId2 = UserId.New()
             let user2 = User.New userId2
@@ -396,7 +295,7 @@ let tests =
             let (bookDetail3: BookDetails) = bookDetail3 |> Result.get
             Expect.isTrue (bookDetail3.Book.CurrentLoan |> Option.isNone) "should not contain the loan"
             Expect.isTrue (bookDetail3.CurrentLoan |> Option.isNone) "should not contain the loan"
-            Expect.isTrue (bookDetail3.FutureReservations |> List.length = 1) "should contain the reservation"
+            Expect.isTrue (bookDetail3.Reservations |> List.length = 1) "should contain the reservation"
 
         testCase "should be able to add a reservation to a book and then retrieve the bookdetails containing the reservation 2" <| fun _ ->
             setUp ()
@@ -445,7 +344,7 @@ let tests =
             Expect.isTrue (bookDetail.Book.CurrentLoan |> Option.isSome) "should contain the loan"
             Expect.isTrue (bookDetail.CurrentLoan |> Option.isSome) "should contain the loan"
             Expect.isTrue (bookDetail.CurrentLoan.Value.LoanId = loan.LoanId) "should contain the loan"
-            Expect.isTrue (bookDetail.FutureReservations |> List.isEmpty) "should not contain reservations"
+            Expect.isTrue (bookDetail.Reservations |> List.isEmpty) "should not contain reservations"
 
             let releaseLoan = 
                 loanService.ReleaseLoanAsync(loan.LoanId, System.DateTime.Now)
@@ -462,7 +361,7 @@ let tests =
             let (bookDetail2: BookDetails) = bookDetail2 |> Result.get
             Expect.isTrue (bookDetail2.Book.CurrentLoan |> Option.isNone) "should not contain the loan"
             Expect.isTrue (bookDetail2.CurrentLoan |> Option.isNone) "should not contain the loan"
-            Expect.isTrue (bookDetail2.FutureReservations |> List.isEmpty) "should not contain reservations"
+            Expect.isTrue (bookDetail2.Reservations |> List.isEmpty) "should not contain reservations"
 
             let userId2 = UserId.New()
             let user2 = User.New userId2
@@ -490,7 +389,7 @@ let tests =
             let (bookDetail3: BookDetails) = bookDetail3 |> Result.get
             Expect.isTrue (bookDetail3.Book.CurrentLoan |> Option.isNone) "should not contain the loan"
             Expect.isTrue (bookDetail3.CurrentLoan |> Option.isNone) "should not contain the loan"
-            Expect.isTrue (bookDetail3.FutureReservations |> List.length = 1) "should contain the reservation"
+            Expect.isTrue (bookDetail3.Reservations |> List.length = 1) "should contain the reservation"
 
         testCase "should be able to add a reservation to a book and then retrieve the bookdetails containing the reservation async" <| fun _ ->
             setUp ()
@@ -548,7 +447,7 @@ let tests =
             Expect.isTrue (bookDetail.Book.CurrentLoan |> Option.isSome) "should contain the loan"
             Expect.isTrue (bookDetail.CurrentLoan |> Option.isSome) "should contain the loan"
             Expect.isTrue (bookDetail.CurrentLoan.Value.LoanId = loan.LoanId) "should contain the loan"
-            Expect.isTrue (bookDetail.FutureReservations |> List.isEmpty) "should not contain reservations"
+            Expect.isTrue (bookDetail.Reservations |> List.isEmpty) "should not contain reservations"
 
             let releaseLoan = 
                 loanService.ReleaseLoanAsync(loan.LoanId, System.DateTime.Now)
@@ -566,7 +465,7 @@ let tests =
             let (bookDetail2: BookDetails) = bookDetail2 |> Result.get
             Expect.isTrue (bookDetail2.Book.CurrentLoan |> Option.isNone) "should not contain the loan"
             Expect.isTrue (bookDetail2.CurrentLoan |> Option.isNone) "should not contain the loan"
-            Expect.isTrue (bookDetail2.FutureReservations |> List.isEmpty) "should not contain reservations"
+            Expect.isTrue (bookDetail2.Reservations |> List.isEmpty) "should not contain reservations"
 
             let futureTimeSlot = TimeSlot.New (System.DateTime.Now.AddMonths(1)) (System.DateTime.Now.AddMonths(2))
             let reservation = Reservation.New book.BookId userId2 futureTimeSlot (System.DateTime.Now)
@@ -587,7 +486,7 @@ let tests =
             let (bookDetail3: BookDetails) = bookDetail3 |> Result.get
             Expect.isTrue (bookDetail3.Book.CurrentLoan |> Option.isNone) "should not contain the loan"
             Expect.isTrue (bookDetail3.CurrentLoan |> Option.isNone) "should not contain the loan"
-            Expect.isTrue (bookDetail3.FutureReservations |> List.length = 1) "should contain the reservation"
+            Expect.isTrue (bookDetail3.Reservations |> List.length = 1) "should contain the reservation"
 
         testCase "should be able to add more than one reservation to a book and then retrieve the bookdetails containing the reservations" <| fun _ ->
             setUp ()
@@ -653,7 +552,7 @@ let tests =
             Expect.isTrue (bookDetail.Book.CurrentLoan |> Option.isSome) "should contain the loan"
             Expect.isTrue (bookDetail.CurrentLoan |> Option.isSome) "should contain the loan"
             Expect.isTrue (bookDetail.CurrentLoan.Value.LoanId = loan.LoanId) "should contain the loan"
-            Expect.isTrue (bookDetail.FutureReservations |> List.isEmpty) "should not contain reservations"
+            Expect.isTrue (bookDetail.Reservations |> List.isEmpty) "should not contain reservations"
 
             let releaseLoan = 
                 loanService.ReleaseLoanAsync(loan.LoanId, System.DateTime.Now)
@@ -670,8 +569,7 @@ let tests =
             let (bookDetail2: BookDetails) = bookDetail2 |> Result.get
             Expect.isTrue (bookDetail2.Book.CurrentLoan |> Option.isNone) "should not contain the loan"
             Expect.isTrue (bookDetail2.CurrentLoan |> Option.isNone) "should not contain the loan"
-            Expect.isTrue (bookDetail2.FutureReservations |> List.isEmpty) "should not contain reservations"
-
+            Expect.isTrue (bookDetail2.Reservations |> List.isEmpty) "should not contain reservations"
 
             let futureTimeSlot = TimeSlot.New (System.DateTime.Now.AddMonths(1)) (System.DateTime.Now.AddMonths(2))
             let reservation = Reservation.New book.BookId userId2 futureTimeSlot (System.DateTime.Now)
@@ -691,7 +589,7 @@ let tests =
             let (bookDetail3: BookDetails) = bookDetail3 |> Result.get
             Expect.isTrue (bookDetail3.Book.CurrentLoan |> Option.isNone) "should not contain the loan"
             Expect.isTrue (bookDetail3.CurrentLoan |> Option.isNone) "should not contain the loan"
-            Expect.isTrue (bookDetail3.FutureReservations |> List.length = 1) "should contain the reservation"
+            Expect.isTrue (bookDetail3.Reservations |> List.length = 1) "should contain the reservation"
 
             let secondFutureTimeSlot = TimeSlot.New (System.DateTime.Now.AddMonths(2)) (System.DateTime.Now.AddMonths(3))
             let secondReservation = Reservation.New book.BookId userId3 secondFutureTimeSlot (System.DateTime.Now)
@@ -711,7 +609,7 @@ let tests =
             let (bookDetail4: BookDetails) = bookDetail4 |> Result.get
             Expect.isTrue (bookDetail4.Book.CurrentLoan |> Option.isNone) "should not contain the loan"
             Expect.isTrue (bookDetail4.CurrentLoan |> Option.isNone) "should not contain the loan"
-            Expect.isTrue (bookDetail4.FutureReservations |> List.length = 2) "should contain the reservation"
+            Expect.isTrue (bookDetail4.Reservations |> List.length = 2) "should contain the reservation"
             
         testCase "should be able to add more than one reservation to a book and then retrieve the bookdetails containing the reservations async - Ok" <| fun _ ->
             setUp ()
@@ -778,7 +676,7 @@ let tests =
             Expect.isTrue (bookDetail.Book.CurrentLoan |> Option.isSome) "should contain the loan"
             Expect.isTrue (bookDetail.CurrentLoan |> Option.isSome) "should contain the loan"
             Expect.isTrue (bookDetail.CurrentLoan.Value.LoanId = loan.LoanId) "should contain the loan"
-            Expect.isTrue (bookDetail.FutureReservations |> List.isEmpty) "should not contain reservations"
+            Expect.isTrue (bookDetail.Reservations |> List.isEmpty) "should not contain reservations"
 
             let releaseLoan = 
                 loanService.ReleaseLoanAsync(loan.LoanId, System.DateTime.Now)
@@ -795,7 +693,7 @@ let tests =
             let (bookDetail2: BookDetails) = bookDetail2 |> Result.get
             Expect.isTrue (bookDetail2.Book.CurrentLoan |> Option.isNone) "should not contain the loan"
             Expect.isTrue (bookDetail2.CurrentLoan |> Option.isNone) "should not contain the loan"
-            Expect.isTrue (bookDetail2.FutureReservations |> List.isEmpty) "should not contain reservations"
+            Expect.isTrue (bookDetail2.Reservations |> List.isEmpty) "should not contain reservations"
 
             let futureTimeSlot = TimeSlot.New (System.DateTime.Now.AddMonths(1)) (System.DateTime.Now.AddMonths(2))
             let reservation = Reservation.New book.BookId userId2 futureTimeSlot (System.DateTime.Now)
@@ -815,7 +713,7 @@ let tests =
             let (bookDetail3: BookDetails) = bookDetail3 |> Result.get
             Expect.isTrue (bookDetail3.Book.CurrentLoan |> Option.isNone) "should not contain the loan"
             Expect.isTrue (bookDetail3.CurrentLoan |> Option.isNone) "should not contain the loan"
-            Expect.isTrue (bookDetail3.FutureReservations |> List.length = 1) "should contain the reservation"
+            Expect.isTrue (bookDetail3.Reservations |> List.length = 1) "should contain the reservation"
 
             let secondFutureTimeSlot = TimeSlot.New (System.DateTime.Now.AddMonths(2)) (System.DateTime.Now.AddMonths(3))
             let secondReservation = Reservation.New book.BookId userId3 secondFutureTimeSlot (System.DateTime.Now)
@@ -835,7 +733,7 @@ let tests =
             let (bookDetail4: BookDetails) = bookDetail4 |> Result.get
             Expect.isTrue (bookDetail4.Book.CurrentLoan |> Option.isNone) "should not contain the loan"
             Expect.isTrue (bookDetail4.CurrentLoan |> Option.isNone) "should not contain the loan"
-            Expect.isTrue (bookDetail4.FutureReservations |> List.length = 2) "should contain the reservation"
+            Expect.isTrue (bookDetail4.Reservations |> List.length = 2) "should contain the reservation"
 
         testCase "cannot add a reservation that overlaps an existing reservation " <| fun _ ->
             setUp ()
@@ -886,7 +784,7 @@ let tests =
             let (bookDetail3: BookDetails) = bookDetail3 |> Result.get
             Expect.isTrue (bookDetail3.Book.CurrentLoan |> Option.isNone) "should not contain the loan"
             Expect.isTrue (bookDetail3.CurrentLoan |> Option.isNone) "should not contain the loan"
-            Expect.isTrue (bookDetail3.FutureReservations |> List.length = 1) "should contain the reservation"
+            Expect.isTrue (bookDetail3.Reservations |> List.length = 1) "should contain the reservation"
 
             let overlappingTimeSlot = TimeSlot.New (System.DateTime.Now.AddMonths(1)) (System.DateTime.Now.AddMonths(2))
             let overlappingReservation = Reservation.New book.BookId userId2 overlappingTimeSlot (System.DateTime.Now)
@@ -897,7 +795,7 @@ let tests =
                 |> Async.RunSynchronously
             Expect.isError addOverlappingReservation "should not be ok"
             
-        testCase "when a there is no loan and no reservation the bookDetails should return a timeSlot that starts from now and ends in 30 days" <| fun _ ->
+        testCase "when there is no loan and no reservation the bookDetails should return a timeSlot that starts from now and ends in 30 days" <| fun _ ->
             setUp ()
             let bookService = getBookService()
             let authorService = getAuthorService()
@@ -919,17 +817,144 @@ let tests =
             let (bookDetail: BookDetails) = bookDetail |> Result.get
             Expect.isTrue (bookDetail.Book.CurrentLoan |> Option.isNone) "should not contain the loan"
             Expect.isTrue (bookDetail.CurrentLoan |> Option.isNone) "should not contain the loan"
-            Expect.isTrue (bookDetail.FutureReservations |> List.isEmpty) "should not contain reservations"
+            Expect.isTrue (bookDetail.Reservations |> List.isEmpty) "should not contain reservations"
 
             let timeNow = System.DateTime.Now
 
-            let expectedTimeSlot = TimeSlot.New (timeNow) (timeNow.AddDays(timeSlotDurationInDays))
-            Expect.isTrue (bookDetail.FutureReservations |> List.isEmpty) "should not contain reservations"
+            let expectedTimeSlot = TimeSlot.New (timeNow.AddHours(1.0)) (timeNow.AddHours(1.0) + TimeSpan.FromDays(float timeSlotDurationInDays))
+            Expect.isTrue (bookDetail.Reservations |> List.isEmpty) "should not contain reservations"
 
             let actualSuggestedTimeSlot =
                 bookDetail.GetNextAvailableTimeSlot(timeSlotDurationInDays, timeNow)
 
             Expect.equal actualSuggestedTimeSlot expectedTimeSlot "should return a timeSlot that starts from now and ends in 30 days"
+
+        testCase "add a reservation and verify that the involved user has reference to that reservation - Ok" <| fun _ ->
+            setUp ()
+            let bookService = getBookService()
+            let reservationService = getReservationService()
+            let userService = getUserService()
+
+            let book = Book.New (Title.New "the constitution") [] [] [] None  Category.Other [] (Year.New 1924) (Isbn.NewEmpty()) None
+            let addBook = 
+                bookService.AddBookAsync book
+                |> Async.AwaitTask
+                |> Async.RunSynchronously
+            Expect.isOk addBook "should be ok"
+
+            let userId1 = UserId.New()
+            let user1 = User.New userId1
+            let addUser1 = 
+                userService.CreateUserAsync user1
+                |> Async.AwaitTask
+                |> Async.RunSynchronously
+            Expect.isOk addUser1 "should be ok"
+
+            let futureTimeSlot = TimeSlot.New (System.DateTime.Now.AddMonths(1)) (System.DateTime.Now.AddMonths(2))
+            let reservation = Reservation.New book.BookId userId1 futureTimeSlot (System.DateTime.Now)
+            let addReservation = 
+                reservationService.AddReservationAsync (reservation, System.DateTime.Now)
+                |> Async.AwaitTask
+                |> Async.RunSynchronously
+            Expect.isOk addReservation "should be ok"
+
+            let user = 
+                userService.GetUserAsync userId1
+                |> Async.AwaitTask
+                |> Async.RunSynchronously
+            Expect.isOk user "should be ok"
+
+            Expect.isTrue (user.OkValue.Reservations |> List.length = 1) "should contain the reservation"
+
+        testCase "add a reservation, then remove it. Verify that the user has no reservation anymore" <| fun _ ->
+            setUp ()
+            let bookService = getBookService()
+            let reservationService = getReservationService()
+            let userService = getUserService()
+
+            let book = Book.New (Title.New "the constitution") [] [] [] None  Category.Other [] (Year.New 1924) (Isbn.NewEmpty()) None
+            let addBook = 
+                bookService.AddBookAsync book
+                |> Async.AwaitTask
+                |> Async.RunSynchronously
+            Expect.isOk addBook "should be ok"
+
+            let userId1 = UserId.New()
+            let user1 = User.New userId1
+            let addUser1 = 
+                userService.CreateUserAsync user1
+                |> Async.AwaitTask
+                |> Async.RunSynchronously
+            Expect.isOk addUser1 "should be ok"
+
+            let futureTimeSlot = TimeSlot.New (System.DateTime.Now.AddMonths(1)) (System.DateTime.Now.AddMonths(2))
+            let reservation = Reservation.New book.BookId userId1 futureTimeSlot (System.DateTime.Now)
+            let addReservation = 
+                reservationService.AddReservationAsync (reservation, System.DateTime.Now)
+                |> Async.AwaitTask
+                |> Async.RunSynchronously
+            Expect.isOk addReservation "should be ok"
+
+            let user = 
+                userService.GetUserAsync userId1
+                |> Async.AwaitTask
+                |> Async.RunSynchronously
+            Expect.isOk user "should be ok"
+
+            Expect.isTrue (user.OkValue.Reservations |> List.length = 1) "should contain the reservation"
+
+            let removeReservation = 
+                reservationService.RemoveReservationAsync (reservation.ReservationId, System.DateTime.Now)
+                |> Async.AwaitTask
+                |> Async.RunSynchronously
+            Expect.isOk removeReservation "should be ok"
+
+            let user = 
+                userService.GetUserAsync userId1
+                |> Async.AwaitTask
+                |> Async.RunSynchronously
+            Expect.isOk user "should be ok"
+
+            Expect.isTrue (user.OkValue.Reservations |> List.isEmpty) "should not contain the reservation"
+
+        testCase "add a reservation and retrieve the reservation details" <| fun _ ->
+            setUp ()
+            let bookService = getBookService()
+            let reservationService = getReservationService()
+            let userService = getUserService()
+
+            let book = Book.New (Title.New "the constitution") [] [] [] None  Category.Other [] (Year.New 1924) (Isbn.NewEmpty()) None
+            let addBook = 
+                bookService.AddBookAsync book
+                |> Async.AwaitTask
+                |> Async.RunSynchronously
+            Expect.isOk addBook "should be ok"
+
+            let userId1 = UserId.New()
+            let user1 = User.New userId1
+            let addUser1 = 
+                userService.CreateUserAsync user1
+                |> Async.AwaitTask
+                |> Async.RunSynchronously
+            Expect.isOk addUser1 "should be ok"
+
+            let futureTimeSlot = TimeSlot.New (System.DateTime.Now.AddMonths(1)) (System.DateTime.Now.AddMonths(2))
+            let reservation = Reservation.New book.BookId userId1 futureTimeSlot (System.DateTime.Now)
+            let addReservation = 
+                reservationService.AddReservationAsync (reservation, System.DateTime.Now)
+                |> Async.AwaitTask
+                |> Async.RunSynchronously
+            Expect.isOk addReservation "should be ok"
+
+            let reservationDetails = 
+                (reservationService :> IReservationService).GetReservationDetailsAsync reservation.ReservationId
+                |> Async.AwaitTask
+                |> Async.RunSynchronously
+            Expect.isOk reservationDetails "should be ok"
+
+            Expect.isTrue (reservationDetails.OkValue.Reservation.ReservationId = reservation.ReservationId) "should contain the reservation"
+            Expect.isTrue (reservationDetails.OkValue.Book.BookId = book.BookId) "should contain the book"
+            Expect.isTrue (reservationDetails.OkValue.User.UserId = user1.UserId) "should contain the user"
 
     ]
     |> testSequenced

@@ -298,10 +298,6 @@ with
     member this.ReturnFromLoan (dateTime: DateTime) = 
         result
             {
-                do! 
-                    this.Sealed.IsSealed(dateTime)
-                    |> not
-                    |> Result.ofBool "Book is sealed"
                 do!
                     this.CurrentLoan
                     |> Option.isSome
@@ -313,10 +309,6 @@ with
         (dateTime: DateTime) = 
         result
             {
-                do! 
-                    this.Sealed.IsSealed(dateTime)
-                    |> not
-                    |> Result.ofBool "Book is sealed"
                 do!
                     this.CurrentReservations
                     |> List.contains reservationId
@@ -329,10 +321,6 @@ with
         (dateTime: DateTime) = 
         result
             {
-                do! 
-                    this.Sealed.IsSealed(dateTime)
-                    |> not
-                    |> Result.ofBool "Book is sealed"
                 do!
                     this.CurrentReservations
                     |> List.contains reservationId

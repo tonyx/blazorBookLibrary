@@ -10,18 +10,18 @@ open System.Globalization
 type User =
     {
         UserId: UserId
-        FutureReservations: List<ReservationId>
+        Reservations: List<ReservationId>
         CurrentLoans: List<LoanId>
     }
     with
         static member New (userId: UserId) = 
-            { UserId = userId; FutureReservations = []; CurrentLoans = [] }
+            { UserId = userId; Reservations = []; CurrentLoans = [] }
     
-        member this.AddFutureReservation (reservationId: ReservationId) = 
-            { this with FutureReservations = reservationId :: this.FutureReservations } |> Ok
+        member this.AddReservation (reservationId: ReservationId) = 
+            { this with Reservations = reservationId :: this.Reservations } |> Ok
     
-        member this.RemoveFutureReservation (reservationId: ReservationId) = 
-            { this with FutureReservations = this.FutureReservations |> List.filter (fun id -> id <> reservationId) } |> Ok
+        member this.RemoveReservation (reservationId: ReservationId) = 
+            { this with Reservations = this.Reservations |> List.filter (fun id -> id <> reservationId) } |> Ok
 
         member this.AddLoan (loanId: LoanId) = 
             { this with CurrentLoans = loanId :: this.CurrentLoans } |> Ok
@@ -29,11 +29,11 @@ type User =
         member this.ReleaseLoan (loanId: LoanId) = 
             { this with CurrentLoans = this.CurrentLoans |> List.filter (fun id -> id <> loanId) } |> Ok
 
-        member this.LoanFromReservation (loanId: LoanId) (reservationId: ReservationId) = 
+        member this.ConvertReservationToLoan (loanId: LoanId) (reservationId: ReservationId) = 
             result
                 {
                     do! 
-                        this.FutureReservations
+                        this.Reservations
                         |> List.contains reservationId
                         |> fun x -> if x then Ok () else Error "User has no future reservation"
                     do! 
@@ -44,13 +44,13 @@ type User =
                     return
                         {
                             this with 
-                                FutureReservations = this.FutureReservations |> List.filter (fun id -> id <> reservationId)
+                                Reservations = this.Reservations |> List.filter (fun id -> id <> reservationId)
                                 CurrentLoans = loanId :: this.CurrentLoans
                         }
                 }
 
         member this.HasFutureReservation (reservationId: ReservationId) = 
-            this.FutureReservations |> List.contains reservationId
+            this.Reservations |> List.contains reservationId
     
         member this.HasCurrentLoan (loanId: LoanId) = 
             this.CurrentLoans |> List.contains loanId
@@ -64,7 +64,7 @@ type User =
             (this, jsonOptions) |> JsonSerializer.Serialize
         static member Deserialize (json: string) = 
             try
-                json |> JsonSerializer.Deserialize<User> |> Ok
+                (json, jsonOptions) |> JsonSerializer.Deserialize<User> |> Ok
             with
                 | ex -> Error (ex.Message)
     

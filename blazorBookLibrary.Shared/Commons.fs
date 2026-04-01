@@ -25,7 +25,7 @@ let timeSlotDurationInDays =
         ConfigurationBuilder()
             .AddJsonFile("appsettings.json", true)
             .Build()
-    let v = config.["TimeSlotLoanDurationInDays"]
+    let v = config.["BookLibrary::TimeSlotLoanDurationInDays"]
     if String.IsNullOrWhiteSpace v then 30 else int v
 
 

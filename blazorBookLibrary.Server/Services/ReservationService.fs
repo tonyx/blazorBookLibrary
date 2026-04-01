@@ -19,6 +19,9 @@ open BookLibrary.Domain
 open BookLibrary.Shared.Services
 open BookLibrary.Shared.Commons
 open BookLibrary.Shared.Details
+open BookLibrary.Details.Details
+open Microsoft.Extensions.Configuration
+open BookLibrary.Details.Details
 
 type ReservationService
     (
@@ -28,7 +31,8 @@ type ReservationService
         authorViewerAsync: AggregateViewerAsync2<Author>,
         editorViewerAsync: AggregateViewerAsync2<Editor>,
         reservationViewerAsync: AggregateViewerAsync2<Reservation>,
-        loanViewerAsync: AggregateViewerAsync2<Loan>
+        loanViewerAsync: AggregateViewerAsync2<Loan>,
+        userViewerAsync: AggregateViewerAsync2<User>
     ) =
     new (eventStore: IEventStore<string>)
         =
@@ -38,6 +42,7 @@ type ReservationService
         let editorViewerAsync = getAggregateStorageFreshStateViewerAsync<Editor, EditorEvent, string> eventStore
         let reservationViewerAsync = getAggregateStorageFreshStateViewerAsync<Reservation, ReservationEvent, string> eventStore
         let loanViewerAsync = getAggregateStorageFreshStateViewerAsync<Loan, LoanEvent, string> eventStore
+        let userViewerAsync = getAggregateStorageFreshStateViewerAsync<User, UserEvent, string> eventStore
         ReservationService (
             eventStore,
             messageSenders,
@@ -45,7 +50,8 @@ type ReservationService
             authorViewerAsync,
             editorViewerAsync,
             reservationViewerAsync,
-            loanViewerAsync
+            loanViewerAsync,
+            userViewerAsync
         )
     new (connectionString: string)
         =
@@ -56,6 +62,7 @@ type ReservationService
         let editorViewerAsync = getAggregateStorageFreshStateViewerAsync<Editor, EditorEvent, string> eventStore
         let reservationViewerAsync = getAggregateStorageFreshStateViewerAsync<Reservation, ReservationEvent, string> eventStore
         let loanViewerAsync = getAggregateStorageFreshStateViewerAsync<Loan, LoanEvent, string> eventStore
+        let userViewerAsync = getAggregateStorageFreshStateViewerAsync<User, UserEvent, string> eventStore
         ReservationService (
             eventStore,
             messageSenders,
@@ -63,20 +70,27 @@ type ReservationService
             authorViewerAsync,
             editorViewerAsync,
             reservationViewerAsync,
-            loanViewerAsync
+            loanViewerAsync,
+            userViewerAsync
         )
     new (configuration: Microsoft.Extensions.Configuration.IConfiguration) 
         =
-        let connectionString = configuration.Item("ConnectionStrings::BookLibraryDbConnection")
+        let connectionString = configuration.GetConnectionString("BookLibraryDbConnection")
+        let maxReservations = configuration.GetValue<int>("BooksLibrary::MaxReservationsPerUser", 3)
         ReservationService(connectionString)
 
         member this.AddReservationAsync (reservation: Reservation, dateTime: System.DateTime, ?ct: CancellationToken)= 
+
             taskResult
                 {
                     let ct = defaultArg ct CancellationToken.None
 
                     let! book =
                         bookViewerAsync (Some ct) reservation.BookId.Value
+                        |> TaskResult.map snd
+
+                    let! user =
+                        userViewerAsync (Some ct) reservation.UserId.Value
                         |> TaskResult.map snd
 
                     do!
@@ -91,18 +105,22 @@ type ReservationService
                         |> List.forall (fun r -> not (r.TimeSlot.Overlaps(reservation.TimeSlot)))
                         |> Result.ofBool "Reservation overlaps with existing reservation"
 
-                    let addReservationCommand = 
+                    let addReservationToBookCommand = 
                         BookCommand.AddReservation (reservation.ReservationId, dateTime)
 
+                    let addReservationToUserCommand = 
+                        UserCommand.AddReservation reservation.ReservationId
+
                     let! result =
-                        runInitAndNAggregateCommandsMdAsync<Book, BookEvent, Reservation, string>
-                            [book.Id]
+                        runInitAndTwoAggregateCommandsMd<Book, BookEvent, User, UserEvent, string, Reservation>
+                            book.Id
+                            user.Id
                             eventStore
                             messageSenders
                             reservation
                             ""
-                            [addReservationCommand]
-                            (Some ct)
+                            addReservationToBookCommand
+                            addReservationToUserCommand
                     return result
                 }
 
@@ -115,6 +133,50 @@ type ReservationService
                     |> TaskResult.map snd
                 return result
             }
+    member this.GetRefreshableReservationDetailsAsync (id: ReservationId, ?ct: CancellationToken) = 
+        let detailsBuilder =
+            fun (ct: Option<CancellationToken>) ->
+                let refresher = 
+                    fun () ->
+                        result
+                            {
+                                let ct = ct |> Option.defaultValue CancellationToken.None
+                                let! reservation = 
+                                    reservationViewerAsync (ct |> Some) id.Value |> TaskResult.map snd
+                                    |> Async.AwaitTask
+                                    |> Async.RunSynchronously
+                                let! book = 
+                                    bookViewerAsync (ct |> Some) reservation.BookId.Value |> TaskResult.map snd
+                                    |> Async.AwaitTask
+                                    |> Async.RunSynchronously
+                                let! user = 
+                                    userViewerAsync (ct |> Some) reservation.UserId.Value |> TaskResult.map snd
+                                    |> Async.AwaitTask
+                                    |> Async.RunSynchronously
+                                return 
+                                    {
+                                        Reservation = reservation
+                                        Book = book
+                                        User = user
+                                    }
+                            }
+                result {
+                    let! reservationDetails = refresher()
+                    return 
+                        {
+                            ReservationDetails = reservationDetails    
+                            Refresher = refresher
+                        } :> Refreshable<RefreshableReservationDetails>
+                        ,
+                        [id.Value ;
+                        reservationDetails.Reservation.BookId.Value ;
+                        reservationDetails.Book.BookId.Value]
+                    }
+        let key = DetailsCacheKey.OfType typeof<RefreshableReservationDetails> id.Value
+        task
+            {
+                return StateView.getRefreshableDetailsAsync<RefreshableReservationDetails> (fun ct -> detailsBuilder ct) key ct
+            }
 
     member this.RemoveReservationAsync (reservationId: ReservationId, dateTime: System.DateTime, ?ct:CancellationToken)= 
         taskResult
@@ -125,17 +187,26 @@ type ReservationService
                 let! book =
                     bookViewerAsync (Some ct) reservation.BookId.Value
                     |> TaskResult.map snd
+                let! user =     
+                    userViewerAsync (Some ct) reservation.UserId.Value
+                    |> TaskResult.map snd
+
                 let removeReservationFromBook: AggregateCommand<Book, BookEvent> =
                     BookCommand.RemoveReservation (reservation.ReservationId, dateTime)
 
+                let removeReservationFromUser: AggregateCommand<User, UserEvent> =
+                    UserCommand.RemoveReservation reservation.ReservationId
+
                 let! result =
-                    runDeleteAndAggregateCommandMd<Reservation, ReservationEvent, Book, BookEvent, string>
+                    runDeleteAndTwoAggregateCommandsMd<Reservation, ReservationEvent, Book, BookEvent, User, UserEvent, string>
                         eventStore
                         messageSenders
                         ""
                         reservationId.Value
                         book.Id
+                        user.Id
                         removeReservationFromBook
+                        removeReservationFromUser
                         (fun _ -> true)
                 return result
             }
@@ -157,6 +228,13 @@ type ReservationService
         member this.GetReservationAsync (id: ReservationId, ?ct: CancellationToken) = 
             let ct = defaultArg ct CancellationToken.None
             this.GetReservationAsync (id, ct)
+        member this.GetReservationDetailsAsync (id: ReservationId, ?ct: CancellationToken) = 
+            taskResult
+                {
+                    let ct = defaultArg ct CancellationToken.None
+                    let! refreshableDetails = this.GetRefreshableReservationDetailsAsync (id, ct)
+                    return refreshableDetails.ReservationDetails
+                }
         member this.RemoveReservationAsync (reservationId: ReservationId, ?ct:CancellationToken)= 
             let ct = defaultArg ct CancellationToken.None
             this.RemoveReservationAsync (reservationId, DateTime.UtcNow, ct)            

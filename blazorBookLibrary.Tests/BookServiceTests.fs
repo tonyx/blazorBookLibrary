@@ -1,118 +1,14 @@
-
 module BookServiceTests
 
 open System
+open TestSetup
 open Expecto
-open DotNetEnv
-open Sharpino.PgStorage
 open BookLibrary.Domain
-open BookLibrary.Services
 open BookLibrary.Shared.Details
-open Sharpino.Cache
-open Sharpino.Core
 open BookLibrary.Shared.Commons
-open Sharpino.CommandHandler
-open Sharpino.EventBroker
-open BookLibrary.Details.Details
-open Microsoft.Extensions.Configuration
-open System.Threading
-open BookLibrary.Services
 open BookLibrary.Shared.Services
+open System.Threading
 open System.Globalization
-
-Env.Load() |> ignore
-let password = Environment.GetEnvironmentVariable("password")
-
-let connection =
-    "Server=127.0.0.1;"+
-    "Database=sharpino_booklibrary_test;" +
-    "User Id=safe;"+
-    $"Password={password}"
-
-let pgEventStore:Sharpino.Storage.IEventStore<string> = PgEventStore connection
-let setUp () =
-    pgEventStore.Reset Book.Version Book.StorageName
-    pgEventStore.ResetAggregateStream Book.Version Book.StorageName
-    pgEventStore.Reset Author.Version Author.StorageName
-    pgEventStore.ResetAggregateStream Author.Version Author.StorageName
-    pgEventStore.Reset Editor.Version Editor.StorageName
-    pgEventStore.ResetAggregateStream Editor.Version Editor.StorageName
-    pgEventStore.Reset Reservation.Version Reservation.StorageName
-    pgEventStore.ResetAggregateStream Reservation.Version Reservation.StorageName
-    pgEventStore.Reset Loan.Version Loan.StorageName
-    pgEventStore.ResetAggregateStream Loan.Version Loan.StorageName
-    pgEventStore.Reset User.Version User.StorageName
-    pgEventStore.ResetAggregateStream User.Version User.StorageName
-    AggregateCache3.Instance.Clear()            
-
-let bookViewerAsync = getAggregateStorageFreshStateViewerAsync<Book, BookEvent, string> pgEventStore
-let authorViewerAsync = getAggregateStorageFreshStateViewerAsync<Author, AuthorEvent, string> pgEventStore
-let editorViewerAsync = getAggregateStorageFreshStateViewerAsync<Editor, EditorEvent, string> pgEventStore
-let reservationViewerAsync = getAggregateStorageFreshStateViewerAsync<Reservation, ReservationEvent, string> pgEventStore
-let loanViewerAsync = getAggregateStorageFreshStateViewerAsync<Loan, LoanEvent, string> pgEventStore
-let userViewerAsync = getAggregateStorageFreshStateViewerAsync<User, UserEvent, string> pgEventStore
-
-let getAuthorService = 
-    fun () -> 
-        AuthorService(
-            pgEventStore, 
-            MessageSenders.NoSender, 
-            bookViewerAsync, 
-            authorViewerAsync, 
-            editorViewerAsync, 
-            reservationViewerAsync, 
-            loanViewerAsync)
-
-let getBookService = 
-    fun _ -> 
-        BookService
-            (pgEventStore, 
-            MessageSenders.NoSender, 
-            bookViewerAsync, 
-            authorViewerAsync, 
-            editorViewerAsync, 
-            reservationViewerAsync, 
-            loanViewerAsync)
-let getReservationService =
-    fun _ ->
-        ReservationService
-            (pgEventStore, 
-            MessageSenders.NoSender, 
-            bookViewerAsync, 
-            authorViewerAsync, 
-            editorViewerAsync, 
-            reservationViewerAsync, 
-            loanViewerAsync)
-
-let getLoanService =
-    fun _ ->
-        LoanService
-            (pgEventStore, 
-            MessageSenders.NoSender, 
-            bookViewerAsync, 
-            authorViewerAsync, 
-            editorViewerAsync, 
-            reservationViewerAsync, 
-            loanViewerAsync,
-            userViewerAsync)
-let getUserService =
-    fun _ ->
-        UserService
-            (pgEventStore, 
-            MessageSenders.NoSender, 
-            bookViewerAsync, 
-            authorViewerAsync, 
-            editorViewerAsync, 
-            reservationViewerAsync, 
-            loanViewerAsync,
-            userViewerAsync)
-
-let timeSlotDurationInDays =
-    let config = 
-        ConfigurationBuilder()
-            .AddJsonFile("appSettings.json")
-            .Build()
-    config.GetValue<int>("TimeSlotLoanDurationInDays", 30)
 
 [<Tests>]
 let tests =
@@ -414,7 +310,7 @@ let tests =
             Expect.isTrue (bookDetail.Book.CurrentLoan |> Option.isSome) "should contain the loan"
             Expect.isTrue (bookDetail.CurrentLoan |> Option.isSome) "should contain the loan"
             Expect.isTrue (bookDetail.CurrentLoan.Value.LoanId = loan.LoanId) "should contain the loan"
-            Expect.isTrue (bookDetail.FutureReservations |> List.isEmpty) "should not contain reservations"
+            Expect.isTrue (bookDetail.Reservations |> List.isEmpty) "should not contain reservations"
 
         testCase "verify that when the loan is released then the book details are always in sync - Ok" <| fun _ ->
             setUp ()
@@ -463,7 +359,7 @@ let tests =
             Expect.isTrue (bookDetail.Book.CurrentLoan |> Option.isSome) "should contain the loan"
             Expect.isTrue (bookDetail.CurrentLoan |> Option.isSome) "should contain the loan"
             Expect.isTrue (bookDetail.CurrentLoan.Value.LoanId = loan.LoanId) "should contain the loan"
-            Expect.isTrue (bookDetail.FutureReservations |> List.isEmpty) "should not contain reservations"
+            Expect.isTrue (bookDetail.Reservations |> List.isEmpty) "should not contain reservations"
 
             let releaseLoan = 
                 loanService.ReleaseLoanAsync (loan.LoanId, System.DateTime.Now)
@@ -480,7 +376,7 @@ let tests =
             let (bookDetail2: BookDetails) = bookDetail2 |> Result.get
             Expect.isTrue (bookDetail2.Book.CurrentLoan |> Option.isNone) "should not contain the loan"
             Expect.isTrue (bookDetail2.CurrentLoan |> Option.isNone) "should not contain the loan"
-            Expect.isTrue (bookDetail2.FutureReservations |> List.isEmpty) "should not contain reservations"
+            Expect.isTrue (bookDetail2.Reservations |> List.isEmpty) "should not contain reservations"
 
         testCase "verify that when the loan is released then the details are always in sync 2 - Ok" <| fun _ ->
             setUp ()
@@ -529,7 +425,7 @@ let tests =
             Expect.isTrue (bookDetail.Book.CurrentLoan |> Option.isSome) "should contain the loan"
             Expect.isTrue (bookDetail.CurrentLoan |> Option.isSome) "should contain the loan"
             Expect.isTrue (bookDetail.CurrentLoan.Value.LoanId = loan.LoanId) "should contain the loan"
-            Expect.isTrue (bookDetail.FutureReservations |> List.isEmpty) "should not contain reservations"
+            Expect.isTrue (bookDetail.Reservations |> List.isEmpty) "should not contain reservations"
 
             let releaseLoan = 
                 loanService.ReleaseLoanAsync (loan.LoanId, System.DateTime.Now)
@@ -546,7 +442,7 @@ let tests =
             let (bookDetail2: BookDetails) = bookDetail2 |> Result.get
             Expect.isTrue (bookDetail2.Book.CurrentLoan |> Option.isNone) "should not contain the loan"
             Expect.isTrue (bookDetail2.CurrentLoan |> Option.isNone) "should not contain the loan"
-            Expect.isTrue (bookDetail2.FutureReservations |> List.isEmpty) "should not contain reservations"
+            Expect.isTrue (bookDetail2.Reservations |> List.isEmpty) "should not contain reservations"
 
         testCase "add multiple books and retrieve them all - Ok" <| fun _ ->
             setUp ()

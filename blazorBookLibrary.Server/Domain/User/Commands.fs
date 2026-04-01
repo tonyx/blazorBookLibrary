@@ -6,20 +6,20 @@ open Sharpino.Core
 open BookLibrary.Shared.Commons
 
 type UserCommand =
-    | AddFutureReservation of ReservationId
-    | RemoveFutureReservation of ReservationId
+    | AddReservation of ReservationId
+    | RemoveReservation of ReservationId
     | AddLoan of LoanId
     | ReleaseLoan of LoanId
     | LoanFromReservation of LoanId * ReservationId
     interface AggregateCommand<User, UserEvent> with
         member this.Execute (user: User) =
             match this with
-            | AddFutureReservation reservationId ->
-                user.AddFutureReservation reservationId
-                |> Result.map (fun u -> (u, [FutureReservationAdded(reservationId)]))
-            | RemoveFutureReservation reservationId ->
-                user.RemoveFutureReservation reservationId
-                |> Result.map (fun u -> (u, [FutureReservationRemoved(reservationId)]))
+            | AddReservation reservationId ->
+                user.AddReservation reservationId
+                |> Result.map (fun u -> (u, [ReservationAdded(reservationId)]))
+            | RemoveReservation reservationId ->
+                user.RemoveReservation reservationId
+                |> Result.map (fun u -> (u, [ReservationRemoved(reservationId)]))
             | AddLoan loanId ->
                 user.AddLoan loanId
                 |> Result.map (fun u -> (u, [LoanAdded(loanId)]))
@@ -27,7 +27,7 @@ type UserCommand =
                 user.ReleaseLoan loanId
                 |> Result.map (fun u -> (u, [LoanReleased(loanId)]))
             | LoanFromReservation (loanId, reservationId) ->
-                user.LoanFromReservation loanId reservationId
+                user.ConvertReservationToLoan loanId reservationId
                 |> Result.map (fun u -> (u, [LoanTakenFromReservation(loanId, reservationId)]))
 
         member this.Undoer = None

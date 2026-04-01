@@ -122,31 +122,46 @@
                     <label class="form-label fw-bold small text-muted text-uppercase mb-2 @(IsIsbnSearchActive ? "text-decoration-line-through" : "")">
                         <i class="bi bi-person-lines-fill me-1"></i>@L["RefineByAuthors"]
                     </label>
-                    <fieldset disabled="@IsIsbnSearchActive">
+                    <fieldset disabled="@IsIsbnSearchActive" class="position-relative">
                         <div class="input-group shadow-sm">
-                            <span class="input-group-text bg-white text-primary border-primary"><i class="bi bi-person-search"></i></span>
-                            <input type="text" class="form-control border-primary border-end-0" @bind="authorSearchNameFilter" placeholder="@L["SearchAuthorNamePlaceholder"]" @onkeyup='async (e) => { if (e.Key == "Enter") await SearchAuthorsForFilter(); }' />
-                            <button type="button" class="btn btn-outline-primary border-primary px-3 transition-hover" @onclick="SearchAuthorsForFilter">
-                                <i class="bi bi-search"></i>
+                            <span class="input-group-text bg-white text-primary border-primary border-end-0"><i class="bi bi-person-plus"></i></span>
+                            <input type="text" 
+                                   class="form-control border-primary border-start-0" 
+                                   placeholder="@L["SearchAuthorNamePlaceholder"]" 
+                                   value="@authorSearchNameFilter"
+                                   @oninput="HandleAuthorSearchInput"
+                                   @onfocus='() => { if(foundAuthorsForFilter.Any()) showAuthorSearchResults = true; }' />
+                            <button type="button" 
+                                    class="btn btn-primary px-3 transition-hover" 
+                                    @onclick="AddAuthorToSearchCriteria"
+                                    disabled="@(selectedAuthorFromResults == null)">
+                                <i class="bi bi-plus-lg me-1"></i>@L["Add"]
                             </button>
                         </div>
                         
-                        @if (foundAuthorsForFilter.Any())
+                        @if (showAuthorSearchResults)
                         {
-                            <div class="mt-3 p-3 border-start border-4 border-primary bg-white shadow-sm rounded-end animate-fade-in">
-                                <label class="form-label small text-muted text-uppercase d-block mb-2 fw-semibold">@L["ClickToAddAuthor"]</label>
-                                <div class="d-flex gap-2">
-                                    <select class="form-select border-primary shadow-sm" @bind="selectedAuthorIdForFilter">
-                                        <option value="">@L["ChooseFromResults"]</option>
-                                        @foreach (var author in foundAuthorsForFilter)
-                                        {
-                                            <option value="@author.AuthorId.Value.ToString()">@author.Name.Value</option>
-                                        }
-                                    </select>
-                                    <button type="button" class="btn btn-success shadow-sm transition-hover d-flex align-items-center" @onclick="AddAuthorToSearchCriteria" disabled="@(string.IsNullOrEmpty(selectedAuthorIdForFilter))">
-                                        <i class="bi bi-plus-lg me-1"></i>@L["Add"]
+                            <div class="list-group position-absolute w-100 shadow mt-1 border-primary-subtle" style="z-index: 1100; max-height: 250px; overflow-y: auto;">
+                                @foreach (var author in foundAuthorsForFilter)
+                                {
+                                    <button type="button" 
+                                            class="list-group-item list-group-item-action text-start py-2 animate-fade-in" 
+                                            @onclick="() => SelectAuthorFromResults(author)">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <div class="fw-bold text-primary">@author.Name.Value</div>
+                                            @if (!string.IsNullOrEmpty(author.Isni.Value))
+                                            {
+                                                <span class="badge bg-light text-muted border small font-monospace">@author.Isni.Value</span>
+                                            }
+                                        </div>
                                     </button>
-                                </div>
+                                }
+                            </div>
+                        }
+                        @if (!string.IsNullOrEmpty(authorSearchNameFilter) && authorSearchNameFilter.Length >= 2 && !foundAuthorsForFilter.Any() && !isLoadingAuthors)
+                        {
+                            <div class="alert alert-light border small mt-1 py-1 px-2 text-muted shadow-sm animate-fade-in">
+                                <i class="bi bi-info-circle me-1"></i>@L["NoAuthorsFoundMatching"] "@authorSearchNameFilter"
                             </div>
                         }
                     </fieldset>
@@ -238,7 +253,9 @@
     
     private string authorSearchNameFilter ="";
     private List<Author> foundAuthorsForFilter = new();
-    private string selectedAuthorIdForFilter = "";
+    private Author? selectedAuthorFromResults = null;
+    private bool showAuthorSearchResults = false;
+    private bool isLoadingAuthors = false;
     private List<Author> searchAuthorsCriteria = new();
 
     private string selectedCategoryForFilter = "";
@@ -266,36 +283,59 @@
         }
     }
 
-    private async Task SearchAuthorsForFilter()
+    private async Task HandleAuthorSearchInput(ChangeEventArgs e)
     {
-        if (string.IsNullOrWhiteSpace(authorSearchNameFilter)) return;
-        
-        var name = Name.New(authorSearchNameFilter);
-        var result = await AuthorService.SearchByNameAsync(name); 
-        
-        if (result.IsOk)
+        authorSearchNameFilter = e.Value?.ToString() ?? "";
+        if (authorSearchNameFilter.Length >= 2)
         {
-            foundAuthorsForFilter = result.ResultValue.ToList();
-            if (!foundAuthorsForFilter.Any())
+            isLoadingAuthors = true;
+            try
             {
-                await OnError.InvokeAsync(L["NoAuthorsFoundMatchingName"]);
+                var name = Name.New(authorSearchNameFilter);
+                var result = await AuthorService.SearchByNameAsync(name, FSharpOption<CancellationToken>.None);
+                
+                if (result.IsOk)
+                {
+                    foundAuthorsForFilter = result.ResultValue.ToList();
+                    showAuthorSearchResults = foundAuthorsForFilter.Any();
+                }
+                else
+                {
+                    foundAuthorsForFilter.Clear();
+                    showAuthorSearchResults = false;
+                    await OnError.InvokeAsync(L["ErrorSearchingAuthors", result.ErrorValue]);
+                }
+            }
+            finally
+            {
+                isLoadingAuthors = false;
             }
         }
         else
         {
-            await OnError.InvokeAsync(L["ErrorSearchingAuthors", result.ErrorValue]);
+            foundAuthorsForFilter.Clear();
+            showAuthorSearchResults = false;
+            selectedAuthorFromResults = null;
         }
+    }
+
+    private void SelectAuthorFromResults(Author author)
+    {
+        selectedAuthorFromResults = author;
+        authorSearchNameFilter = author.Name.Value;
+        showAuthorSearchResults = false;
     }
 
     private void AddAuthorToSearchCriteria()
     {
-        if (string.IsNullOrEmpty(selectedAuthorIdForFilter)) return;
+        if (selectedAuthorFromResults == null) return;
         
-        var author = foundAuthorsForFilter.FirstOrDefault(a => a.AuthorId.Value.ToString() == selectedAuthorIdForFilter);
-        if (author != null && !searchAuthorsCriteria.Any(a => a.AuthorId == author.AuthorId))
+        if (!searchAuthorsCriteria.Any(a => a.AuthorId == selectedAuthorFromResults.AuthorId))
         {
-            searchAuthorsCriteria.Add(author);
+            searchAuthorsCriteria.Add(selectedAuthorFromResults);
         }
+        authorSearchNameFilter = "";
+        selectedAuthorFromResults = null;
     }
 
     private void RemoveAuthorFromSearchCriteria(Author author)

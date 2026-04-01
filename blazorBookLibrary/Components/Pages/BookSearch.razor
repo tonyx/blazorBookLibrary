@@ -88,15 +88,16 @@
                                     }
                                     <span class="badge bg-light text-dark border p-1" style="font-size: 0.7rem;" title="@localizedLabel">@contraction</span>
                                 </TemplateColumn>
-                                <TemplateColumn Title="@L["Availability"]" Sortable="true" Align="Align.Center" Class="col-available">
+                                <TemplateColumn Title="@L["Loan"]" Sortable="true" Align="Align.Center" Class="col-available">
                                     @if (context.ImmediatelyAvailable)
                                     {
                                         <span class="text-success small fw-bold"><i class="bi bi-check-circle-fill me-1"></i>@L["Available"]</span>
                                     }
                                     else
                                     {
-                                        <span class="text-danger small fw-bold"><i class="bi bi-dash-circle-fill me-1"></i>@L["OnLoan"]</span>
+                                        <span class="text-danger small fw-bold"><i class="bi bi-dash-circle-fill me-1"></i>@L["NotAvailable"]</span>
                                     }
+
                                 </TemplateColumn>
                                 <PropertyColumn Property="@(b => b.Isbn.Value)" Title="@L["IsbnSearch"]" Class="col-isbn" />
                             </QuickGrid>

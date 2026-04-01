@@ -30,7 +30,8 @@ type BookService
         authorViewerAsync: AggregateViewerAsync2<Author>,
         editorViewerAsync: AggregateViewerAsync2<Editor>,
         reservationViewerAsync: AggregateViewerAsync2<Reservation>,
-        loanViewerAsync: AggregateViewerAsync2<Loan>
+        loanViewerAsync: AggregateViewerAsync2<Loan>,
+        userViewerAsync: AggregateViewerAsync2<User>
     ) =
 
     new (eventStore: IEventStore<string>)
@@ -41,6 +42,7 @@ type BookService
         let editorViewerAsync = getAggregateStorageFreshStateViewerAsync<Editor, EditorEvent, string> eventStore
         let reservationViewerAsync = getAggregateStorageFreshStateViewerAsync<Reservation, ReservationEvent, string> eventStore
         let loanViewerAsync = getAggregateStorageFreshStateViewerAsync<Loan, LoanEvent, string> eventStore
+        let userViewerAsync = getAggregateStorageFreshStateViewerAsync<User, UserEvent, string> eventStore
         BookService (
             eventStore,
             messageSenders,
@@ -48,7 +50,8 @@ type BookService
             authorViewerAsync,
             editorViewerAsync,
             reservationViewerAsync,
-            loanViewerAsync
+            loanViewerAsync,
+            userViewerAsync
         )
     new (connectionString: string)
         =
@@ -59,6 +62,7 @@ type BookService
         let editorViewerAsync = getAggregateStorageFreshStateViewerAsync<Editor, EditorEvent, string> eventStore
         let reservationViewerAsync = getAggregateStorageFreshStateViewerAsync<Reservation, ReservationEvent, string> eventStore
         let loanViewerAsync = getAggregateStorageFreshStateViewerAsync<Loan, LoanEvent, string> eventStore
+        let userViewerAsync = getAggregateStorageFreshStateViewerAsync<User, UserEvent, string> eventStore
         BookService (
             eventStore,
             messageSenders,
@@ -66,7 +70,8 @@ type BookService
             authorViewerAsync,
             editorViewerAsync,
             reservationViewerAsync,
-            loanViewerAsync
+            loanViewerAsync,
+            userViewerAsync
         )
     new (configuration: IConfiguration)
         =
@@ -114,7 +119,7 @@ type BookService
                                         Authors = authors
                                         Book = book
                                         CurrentLoan = currentLoan
-                                        FutureReservations = futureReservations
+                                        Reservations = futureReservations
                                     } 
                             }
                     result {
@@ -127,7 +132,7 @@ type BookService
                             ,
                             bookId.Value :: 
                             (if bookDetails.CurrentLoan.IsSome then [bookDetails.CurrentLoan.Value.LoanId.Value] else []) @ 
-                            (bookDetails.FutureReservations |> List.map _.ReservationId.Value) @
+                            (bookDetails.Reservations |> List.map _.ReservationId.Value) @
                             (bookDetails.Authors |> List.map _.AuthorId.Value)
                     }
             let key = DetailsCacheKey.OfType typeof<RefreshableBookDetails> bookId.Value

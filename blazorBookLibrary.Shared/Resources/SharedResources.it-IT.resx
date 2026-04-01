@@ -403,4 +403,94 @@
   <data name="NotAvailable" xml:space="preserve">
     <value>Non disponibile</value>
   </data>
+  <data name="NoAdditionalCategories" xml:space="preserve">
+    <value>Nessuna categoria aggiuntiva</value>
+  </data>
+  <data name="NoAuthorsAssociated" xml:space="preserve">
+    <value>Nessun autore associato</value>
+  </data>
+  <data name="NoDescriptionAvailable" xml:space="preserve">
+    <value>Nessuna descrizione disponibile</value>
+  </data>
+  <data name="Exact" xml:space="preserve">
+    <value>Esatto</value>
+  </data>
+  <data name="From" xml:space="preserve">
+    <value>Dal</value>
+  </data>
+  <data name="To" xml:space="preserve">
+    <value>Al</value>
+  </data>
+  <data name="Range" xml:space="preserve">
+    <value>Intervallo</value>
+  </data>
+  <data name="Loan" xml:space="preserve">
+    <value>Prestito</value>
+  </data>
+  <data name="BookSearch" xml:space="preserve">
+    <value>Ricerca Libri</value>
+  </data>
+  <data name="HumanVerification" xml:space="preserve">
+    <value>Verifica Umana</value>
+  </data>
+  <data name="SolveMathChallenge" xml:space="preserve">
+    <value>Risolvi: </value>
+  </data>
+  <data name="HumanVerificationRequired" xml:space="preserve">
+    <value>La verifica umana è richiesta</value>
+  </data>
+  <data name="IncorrectMathResponse" xml:space="preserve">
+    <value>Errore: Risposta errata alla sfida matematica. Riprova.</value>
+  </data>
+  <data name="FastSubmissionError" xml:space="preserve">
+    <value>Errore: Modulo inviato troppo velocemente. Prendi un momento per rivedere i dettagli.</value>
+  </data>
+  <data name="Register" xml:space="preserve">
+    <value>Registrati</value>
+  </data>
+  <data name="CreateANewAccount" xml:space="preserve">
+    <value>Crea un nuovo account.</value>
+  </data>
+  <data name="EmailLabel" xml:space="preserve">
+    <value>Email</value>
+  </data>
+  <data name="PasswordLabel" xml:space="preserve">
+    <value>Password</value>
+  </data>
+  <data name="ConfirmPassword" xml:space="preserve">
+    <value>Conferma Password</value>
+  </data>
+  <data name="UseAnotherServiceRegister" xml:space="preserve">
+    <value>Usa un altro servizio per registrarti.</value>
+  </data>
+  <data name="RegistrationFinalizationError" xml:space="preserve">
+    <value>Si è verificato un errore durante la finalizzazione della registrazione dell'account. Riprova.</value>
+  </data>
+  <data name="PasswordsDoNotMatch" xml:space="preserve">
+    <value>Le password non corrispondono.</value>
+  </data>
+  <data name="Reserve" xml:space="preserve">
+    <value>Prenota</value>
+  </data>
+  <data name="Reservations" xml:space="preserve">
+    <value>Prenotazioni</value>
+  </data>
+  <data name="AlreadyReservedMessage" xml:space="preserve">
+    <value>Hai una prenotazione per questo libro, effettuata il {0}.</value>
+  </data>
+  <data name="ReservationSuccessMessage" xml:space="preserve">
+    <value>Prenotazione effettuata con successo! Riceverai una notifica quando il libro sarà pronto per il ritiro.</value>
+  </data>
+  <data name="ReservationFailedMessage" xml:space="preserve">
+    <value>Prenotazione fallita: {0}</value>
+  </data>
+  <data name="PleaseLoginToReserve" xml:space="preserve">
+    <value>Per favore effettua il login per prenotare un libro.</value>
+  </data>
+  <data name="UserIdentifierNotFound" xml:space="preserve">
+    <value>Identificativo utente non trovato.</value>
+  </data>
+  <data name="MaxReservationsReachedMessage" xml:space="preserve">
+    <value>Hai raggiunto il numero massimo di prenotazioni consentite ({0}). Per favore completa i prestiti in corso o annulla prenotazioni precedenti prima di effettuarne di nuove.</value>
+  </data>
 </root>

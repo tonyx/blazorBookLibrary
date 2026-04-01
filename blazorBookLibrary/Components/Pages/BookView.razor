@@ -6,6 +6,10 @@
 @using Microsoft.FSharp.Core
 
 @inject IBookService BookService
+@inject IUserService UserService
+@inject IReservationService ReservationService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IConfiguration Configuration
 @inject IJSRuntime JSRuntime
 @using Microsoft.Extensions.Localization
 @using blazorBookLibrary.Shared.Resources
@@ -174,11 +178,43 @@
 
                             <div class="col-md-6 px-4">
                                 <h6 class="text-uppercase text-muted fw-bold mb-3 small border-bottom pb-2">@L["Availability"]</h6>
-                                <div class="d-flex align-items-center">
+                                <div class="d-flex align-items-center gap-3">
                                     <span class="badge @(bookDetails.Book.Availability.IsCirculating ? "bg-success" : bookDetails.Book.Availability.IsReferenceOnly ? "bg-warning text-dark" : "bg-secondary") fs-6 shadow-sm p-2">
                                         <i class="bi @(bookDetails.Book.Availability.IsCirculating ? "bi-journal-check" : bookDetails.Book.Availability.IsReferenceOnly ? "bi-journals" : "bi-journal-x") me-2"></i>
                                         @GetAvailabilityLocalName(bookDetails.Book.Availability)
                                     </span>
+                                    
+                                    @if (bookDetails.Book.Availability.IsCirculating)
+                                    {
+                                        <div class="d-flex flex-column align-items-start gap-2">
+                                            @if (userReservation != null)
+                                            {
+                                                <div class="alert alert-info py-2 px-3 mb-1 shadow-sm border-0 bg-opacity-10 border-start border-4 border-info">
+                                                    <i class="bi bi-info-circle-fill me-2 text-info"></i>
+                                                    @L["AlreadyReservedMessage", userReservation.ReservedAt.ToLocalTime().ToString("g")]
+                                                </div>
+                                            }
+                                            else if (loggedInUserDetails != null && 
+                                                     loggedInUserDetails.FutureReservations.Length >= Configuration.GetValue<int>("BooksLibrary:MaxReservationsPerUser", 3))
+                                            {
+                                                <div class="alert alert-warning py-2 px-3 mb-1 shadow-sm border-0 bg-opacity-10 border-start border-4 border-warning">
+                                                    <i class="bi bi-exclamation-triangle-fill me-2 text-warning"></i>
+                                                    @L["MaxReservationsReachedMessage", Configuration.GetValue<int>("BooksLibrary:MaxReservationsPerUser", 3)]
+                                                </div>
+                                            }
+                                            else
+                                            {
+                                                <button class="btn btn-primary shadow-sm" @onclick="ReserveBook">
+                                                    <i class="bi bi-calendar-plus me-1"></i> @L["Reserve"]
+                                                </button>
+                                            }
+                                            
+                                            <span class="text-muted small mt-1">
+                                                <i class="bi bi-people me-1"></i>
+                                                @L["Reservations"]: @bookDetails.FutureReservations.Length
+                                            </span>
+                                        </div>
+                                    }
                                 </div>
                             </div>
                         </div>
@@ -195,6 +231,8 @@
 
     private bool isLoading = true;
     private Details.BookDetails? bookDetails;
+    private Details.UserDetails? loggedInUserDetails;
+    private Reservation? userReservation;
     private string statusMessage = "";
     private string statusClass = "alert-info";
 
@@ -203,9 +241,81 @@
         JSRuntime.InvokeVoidAsync("history.back");
     }
 
+    private async Task ReserveBook()
+    {
+        if (bookDetails == null) return;
+        
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        
+        if (user.Identity?.IsAuthenticated != true)
+        {
+            ShowStatus(L["PleaseLoginToReserve"], "alert-warning");
+            return;
+        }
+
+        var userIdStr = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(userIdStr) || !Guid.TryParse(userIdStr, out var userGuid))
+        {
+            ShowStatus(L["UserIdentifierNotFound"], "alert-danger");
+            return;
+        }
+
+        var sharpinoUserId = UserId.NewUserId(userGuid);
+        
+        int maxReservations = Configuration.GetValue<int>("BooksLibrary:MaxReservationsPerUser", 3);
+
+        if (userReservation != null)
+        {
+            ShowStatus(L["AlreadyReservedMessage", userReservation.ReservedAt.ToLocalTime().ToString("g")], "alert-warning");
+            return;
+        }
+
+        if (loggedInUserDetails != null && loggedInUserDetails.FutureReservations.Length >= maxReservations)
+        {
+            ShowStatus(L["MaxReservationsReachedMessage", maxReservations], "alert-warning");
+            return;
+        }
+
+        try 
+        {
+            isLoading = true;
+            StateHasChanged();
+
+            int loanDuration = Configuration.GetValue<int>("BooksLibrary::TimeSlotLoanDurationInDays", 30);
+            var now = DateTime.UtcNow;
+            var nextSlot = bookDetails.GetNextAvailableTimeSlot(loanDuration, now);
+            
+            var reservation = Reservation.New(bookDetails.Book.BookId, sharpinoUserId, nextSlot, now);
+            
+            var result = await ReservationService.AddReservationAsync(reservation, FSharpOption<System.Threading.CancellationToken>.None);
+            
+            if (result.IsOk)
+            {
+                ShowStatus(L["ReservationSuccessMessage"], "alert-success");
+                await LoadBookDetails();
+                await LoadUserReservation();
+            }
+            else
+            {
+                ShowStatus(L["ReservationFailedMessage", result.ErrorValue], "alert-danger");
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowStatus(L["ReservationFailedMessage", ex.Message], "alert-danger");
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
     protected override async Task OnInitializedAsync()
     {
         await LoadBookDetails();
+        await LoadUserReservation();
     }
 
     private async Task LoadBookDetails()
@@ -241,6 +351,38 @@
         finally
         {
             isLoading = false;
+        }
+    }
+
+    private async Task LoadUserReservation()
+    {
+        try
+        {
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+            
+            if (user.Identity?.IsAuthenticated == true)
+            {
+                var userIdStr = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                if (!string.IsNullOrEmpty(userIdStr) && Guid.TryParse(userIdStr, out var userGuid))
+                {
+                    var sharpinoUserId = UserId.NewUserId(userGuid);
+                    var result = await UserService.GetUserDetailsAsync(sharpinoUserId, FSharpOption<System.Threading.CancellationToken>.None);
+                    
+                    if (result.IsOk)
+                    {
+                        loggedInUserDetails = result.ResultValue;
+                        if (bookDetails != null)
+                        {
+                            userReservation = loggedInUserDetails.FutureReservations.FirstOrDefault(r => r.BookId.Value == bookDetails.Book.BookId.Value);
+                        }
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading user reservation: {ex.Message}");
         }
     }
 

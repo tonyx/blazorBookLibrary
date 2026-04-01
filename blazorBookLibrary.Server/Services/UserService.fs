@@ -19,6 +19,7 @@ open BookLibrary.Domain
 open BookLibrary.Shared.Services
 open BookLibrary.Shared.Commons
 open BookLibrary.Shared.Details
+open BookLibrary.Details.Details
 
 type UserService 
     (
@@ -99,6 +100,62 @@ type UserService
                 return user
             }
 
+    member private 
+        this.GetRefreshableUserDetailsAsync(userId: UserId, ?ct:CancellationToken): TaskResult<RefreshableUserDetails, string> =
+            let detailsBuilder =
+                fun (ct: Option<CancellationToken>) ->
+                    let refresher =
+                        fun () ->
+                            result {
+                                let ct = ct |> Option.defaultValue CancellationToken.None
+                                let! user = 
+                                    userViewerAsync (ct |> Some) userId.Value 
+                                    |> Async.AwaitTask
+                                    |> Async.RunSynchronously
+                                    |> Result.map snd
+                                let! futureReservations = 
+                                    user.Reservations
+                                    |> List.traverseTaskResultM (fun reservationId -> reservationViewerAsync (Some ct) reservationId.Value |> TaskResult.map snd)
+                                    |> Async.AwaitTask
+                                    |> Async.RunSynchronously
+                                let! currentLoans = 
+                                    user.CurrentLoans
+                                    |> List.traverseTaskResultM (fun loanId -> loanViewerAsync (Some ct) loanId.Value |> TaskResult.map snd)
+                                    |> Async.AwaitTask
+                                    |> Async.RunSynchronously
+                                    
+                                return 
+                                    { 
+                                        User = user
+                                        FutureReservations = futureReservations
+                                        CurrentLoans = currentLoans
+                                    } 
+                            }
+                    result {
+                        let! userDetails = refresher ()
+                        return 
+                            { 
+                                UserDetails = userDetails
+                                Refresher = refresher
+                            } :> Refreshable<RefreshableUserDetails>
+                            ,
+                            userId.Value :: 
+                            (userDetails.CurrentLoans |> List.map (fun x -> x.LoanId.Value)) @ 
+                            (userDetails.FutureReservations |> List.map (fun x -> x.ReservationId.Value))
+                    }
+            let key = DetailsCacheKey.OfType typeof<RefreshableUserDetails> userId.Value
+            task {
+                return StateView.getRefreshableDetailsAsync<RefreshableUserDetails> (fun ct -> detailsBuilder ct) key ct
+            }
+
+    member this.GetUserDetailsAsync (userId: UserId, ?ct: CancellationToken) : Task<Result<UserDetails, string>> =
+        taskResult {
+            let ct = defaultArg ct CancellationToken.None
+            let! refreshableUserDetails =
+                this.GetRefreshableUserDetailsAsync(userId, ct)
+            return refreshableUserDetails.UserDetails
+        }
+
     interface IUserService with
         member this.CreateUserAsync (user: User, ?ct: CancellationToken) : Task<Result<unit, string>> =
             let ct = defaultArg ct CancellationToken.None
@@ -106,4 +163,7 @@ type UserService
         member this.GetUserAsync (userId: UserId, ?ct: CancellationToken) : Task<Result<User, string>> =
             let ct = defaultArg ct CancellationToken.None
             this.GetUserAsync(userId, ct)
+        member this.GetUserDetailsAsync (userId: UserId, ?ct: CancellationToken) : Task<Result<UserDetails, string>> =
+            let ct = defaultArg ct CancellationToken.None
+            this.GetUserDetailsAsync(userId, ct)
                  

@@ -18,40 +18,59 @@
 @inject NavigationManager NavigationManager
 @inject IdentityRedirectManager RedirectManager
 @inject IUserService UserService
+@inject IStringLocalizer<SharedResources> L
 
-<PageTitle>Register</PageTitle>
+@using Microsoft.Extensions.Localization
+@using Microsoft.AspNetCore.Components.Web
+@using blazorBookLibrary.Shared.Resources
 
-<h1>Register</h1>
+<PageTitle>@L["Register"]</PageTitle>
+
+<h1>@L["Register"]</h1>
 
 <div class="row">
     <div class="col-lg-6">
         <StatusMessage Message="@Message" />
         <EditForm Model="Input" method="post" OnValidSubmit="RegisterUser" FormName="register">
             <DataAnnotationsValidator />
-            <h2>Create a new account.</h2>
+            <h2>@L["CreateANewAccount"]</h2>
             <hr />
             <ValidationSummary class="text-danger" role="alert" />
             <div class="form-floating mb-3">
                 <InputText @bind-Value="Input.Email" id="Input.Email" class="form-control" autocomplete="username" aria-required="true" placeholder="name@example.com" />
-                <label for="Input.Email">Email</label>
+                <label for="Input.Email">@L["EmailLabel"]</label>
                 <ValidationMessage For="() => Input.Email" class="text-danger" />
             </div>
             <div class="form-floating mb-3">
                 <InputText type="password" @bind-Value="Input.Password" id="Input.Password" class="form-control" autocomplete="new-password" aria-required="true" placeholder="password" />
-                <label for="Input.Password">Password</label>
+                <label for="Input.Password">@L["PasswordLabel"]</label>
                 <ValidationMessage For="() => Input.Password" class="text-danger" />
             </div>
             <div class="form-floating mb-3">
                 <InputText type="password" @bind-Value="Input.ConfirmPassword" id="Input.ConfirmPassword" class="form-control" autocomplete="new-password" aria-required="true" placeholder="password" />
-                <label for="Input.ConfirmPassword">Confirm Password</label>
+                <label for="Input.ConfirmPassword">@L["ConfirmPassword"]</label>
                 <ValidationMessage For="() => Input.ConfirmPassword" class="text-danger" />
             </div>
-            <button type="submit" class="w-100 btn btn-lg btn-primary">Register</button>
+
+            <div class="card bg-light mb-3 border-secondary-subtle">
+                <div class="card-body py-2">
+                    <p class="mb-2 small fw-bold text-secondary text-uppercase"><i class="bi bi-shield-check me-1"></i>@L["HumanVerification"]</p>
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="fs-5 fw-bold text-primary">@number1 + @number2 =</span>
+                        <div style="max-width: 100px;">
+                            <InputNumber @bind-Value="Input.HumanAnswer" class="form-control form-control-sm border-primary" placeholder="?" />
+                        </div>
+                    </div>
+                    <ValidationMessage For="() => Input.HumanAnswer" class="text-danger small mt-1" />
+                </div>
+            </div>
+
+            <button type="submit" class="w-100 btn btn-lg btn-primary">@L["Register"]</button>
         </EditForm>
     </div>
     <div class="col-lg-4 col-lg-offset-2">
         <section>
-            <h3>Use another service to register.</h3>
+            <h3>@L["UseAnotherServiceRegister"]</h3>
             <hr />
             <ExternalLoginPicker />
         </section>
@@ -69,13 +88,34 @@
 
     private string? Message => identityErrors is null ? null : $"Error: {string.Join(", ", identityErrors.Select(error => error.Description))}";
 
+    private int number1;
+    private int number2;
+    private DateTime formLoadTime;
+
     protected override void OnInitialized()
     {
         Input ??= new();
+        number1 = Random.Shared.Next(1, 10);
+        number2 = Random.Shared.Next(1, 10);
+        formLoadTime = DateTime.Now;
     }
 
     public async Task RegisterUser(EditContext editContext)
     {
+        if (Input.HumanAnswer != number1 + number2)
+        {
+            identityErrors = new List<IdentityError> { new IdentityError { Description = L["IncorrectMathResponse"] } };
+            number1 = Random.Shared.Next(1, 10);
+            number2 = Random.Shared.Next(1, 10);
+            return;
+        }
+
+        if ((DateTime.Now - formLoadTime).TotalSeconds < 2)
+        {
+            identityErrors = new List<IdentityError> { new IdentityError { Description = L["FastSubmissionError"] } };
+            return;
+        }
+
         var user = CreateUser();
 
         await UserStore.SetUserNameAsync(user, Input.Email, CancellationToken.None);
@@ -102,7 +142,7 @@
             {
                 Logger.LogError("Failed to create Sharpino user for {email}: {error}", Input.Email, sharpinoResult.ErrorValue);
                 await UserManager.DeleteAsync(user);
-                identityErrors = new List<IdentityError> { new IdentityError { Description = "An error occurred while finalizing your account registration. Please try again." } };
+                identityErrors = new List<IdentityError> { new IdentityError { Description = L["RegistrationFinalizationError"] } };
                 return;
             }
         }
@@ -155,18 +195,22 @@
     {
         [Required]
         [EmailAddress]
-        [Display(Name = "Email")]
+        [Display(Name = "EmailLabel")]
         public string Email { get; set; } = "";
 
         [Required]
         [StringLength(100, ErrorMessage = "The {0} must be at least {2} and at max {1} characters long.", MinimumLength = 6)]
         [DataType(DataType.Password)]
-        [Display(Name = "Password")]
+        [Display(Name = "PasswordLabel")]
         public string Password { get; set; } = "";
 
         [DataType(DataType.Password)]
-        [Display(Name = "Confirm password")]
-        [Compare("Password", ErrorMessage = "The password and confirmation password do not match.")]
+        [Display(Name = "ConfirmPassword")]
+        [Compare("Password", ErrorMessage = "PasswordsDoNotMatch")]
         public string ConfirmPassword { get; set; } = "";
+
+        [Required(ErrorMessage = "HumanVerificationRequired")]
+        [Display(Name = "SolveMathChallenge")]
+        public int? HumanAnswer { get; set; }
     }
 }

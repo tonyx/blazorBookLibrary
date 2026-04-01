@@ -9,18 +9,26 @@ open System
 module Details =
     open BookLibrary.Domain
     open Commons
+
+    type ReservationDetails =
+        { 
+            Reservation: Reservation
+            Book: Book
+            User: User
+        }
+
     type BookDetails =
         { 
             Authors: List<Author>
             Book: Book
             CurrentLoan: Option<Loan>
-            FutureReservations: List<Reservation>
+            Reservations: List<Reservation>
         }
         member this.GetNextAvailableTimeSlot (timeSlotLoanDurationInDays: int, now: DateTime)=
             let currentTimeSlots =
-                (if this.CurrentLoan.IsSome then [this.CurrentLoan.Value.TimeSlot] else []) @ (this.FutureReservations |> List.map (fun reservation -> reservation.TimeSlot))
+                (if this.CurrentLoan.IsSome then [this.CurrentLoan.Value.TimeSlot] else []) @ (this.Reservations |> List.map (fun reservation -> reservation.TimeSlot))
             if (currentTimeSlots.IsEmpty) then
-                TimeSlot.New (now) (now + TimeSpan.FromDays(float timeSlotLoanDurationInDays))   
+                TimeSlot.New (now.AddHours(1.0)) (now.AddHours(1.0) + TimeSpan.FromDays(float timeSlotLoanDurationInDays))   
             else
                 let maximumTimeSlot = 
                     currentTimeSlots
@@ -33,6 +41,8 @@ module Details =
             FutureReservations: List<Reservation>
             CurrentLoans: List<Loan> 
         }
+        member this.HasReservedBook (bookId: BookId) =
+            this.FutureReservations |> List.exists (fun reservation -> reservation.BookId = bookId)
 
     type AuthorDetails = {
             Author: Author

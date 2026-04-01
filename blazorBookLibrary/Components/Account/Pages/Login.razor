@@ -1,15 +1,19 @@
-﻿@page "/Account/Login"
+@page "/Account/Login"
 
 @using System.ComponentModel.DataAnnotations
 @using Microsoft.AspNetCore.Authentication
 @using Microsoft.AspNetCore.Identity
 @using blazorBookLibrary.Data
 
+@using Microsoft.Extensions.Localization
+@using Microsoft.AspNetCore.Components.Web
+@using blazorBookLibrary.Shared.Resources
 @inject UserManager<ApplicationUser> UserManager
 @inject SignInManager<ApplicationUser> SignInManager
 @inject ILogger<Login> Logger
 @inject NavigationManager NavigationManager
 @inject IdentityRedirectManager RedirectManager
+@inject IStringLocalizer<SharedResources> L
 
 <PageTitle>Log in</PageTitle>
 
@@ -39,6 +43,20 @@
                         Remember me
                     </label>
                 </div>
+
+                <div class="card bg-light mb-3 border-secondary-subtle">
+                    <div class="card-body py-2">
+                        <p class="mb-2 small fw-bold text-secondary text-uppercase"><i class="bi bi-shield-check me-1"></i>@L["HumanVerification"]</p>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="fs-5 fw-bold text-primary">@number1 + @number2 =</span>
+                            <div style="max-width: 100px;">
+                                <InputNumber @bind-Value="Input.HumanAnswer" class="form-control form-control-sm border-primary" placeholder="?" />
+                            </div>
+                        </div>
+                        <ValidationMessage For="() => Input.HumanAnswer" class="text-danger small mt-1" />
+                    </div>
+                </div>
+
                 <div>
                     <button type="submit" class="w-100 btn btn-lg btn-primary">Log in</button>
                 </div>
@@ -74,6 +92,9 @@
 @code {
     private string? errorMessage;
     private EditContext editContext = default!;
+    private int number1;
+    private int number2;
+    private DateTime formLoadTime;
 
     [CascadingParameter]
     private HttpContext HttpContext { get; set; } = default!;
@@ -87,6 +108,9 @@
     protected override async Task OnInitializedAsync()
     {
         Input ??= new();
+        number1 = Random.Shared.Next(1, 10);
+        number2 = Random.Shared.Next(1, 10);
+        formLoadTime = DateTime.Now;
 
         editContext = new EditContext(Input);
 
@@ -116,6 +140,20 @@
             // If doing a password sign-in, validate the form.
             if (!editContext.Validate())
             {
+                return;
+            }
+
+            if (Input.HumanAnswer != number1 + number2)
+            {
+                errorMessage = L["IncorrectMathResponse"];
+                number1 = Random.Shared.Next(1, 10);
+                number2 = Random.Shared.Next(1, 10);
+                return;
+            }
+
+            if ((DateTime.Now - formLoadTime).TotalSeconds < 2)
+            {
+                errorMessage = L["FastSubmissionError"];
                 return;
             }
 
@@ -158,6 +196,10 @@
 
         [Display(Name = "Remember me?")]
         public bool RememberMe { get; set; }
+
+        [Required(ErrorMessage = "HumanVerificationRequired")]
+        [Display(Name = "SolveMathChallenge")]
+        public int? HumanAnswer { get; set; }
 
         public PasskeyInputModel? Passkey { get; set; }
     }
