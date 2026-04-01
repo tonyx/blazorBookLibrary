@@ -20,6 +20,7 @@ open BookLibrary.Shared.Services
 open BookLibrary.Shared.Commons
 open BookLibrary.Shared.Details
 open BookLibrary.Details.Details
+open Microsoft.Extensions.Configuration
 
 type UserService 
     (
@@ -52,31 +53,9 @@ type UserService
             userViewerAsync
         )    
 
-    new (connectionString: string)
+    new (configuration: IConfiguration) 
         =
-        let eventStore = PgStorage.PgEventStore connectionString
-        let messageSenders = MessageSenders.NoSender
-        let bookViewerAsync = getAggregateStorageFreshStateViewerAsync<Book, BookEvent, string> eventStore
-        let authorViewerAsync = getAggregateStorageFreshStateViewerAsync<Author, AuthorEvent, string> eventStore
-        let editorViewerAsync = getAggregateStorageFreshStateViewerAsync<Editor, EditorEvent, string> eventStore
-        let reservationViewerAsync = getAggregateStorageFreshStateViewerAsync<Reservation, ReservationEvent, string> eventStore
-        let loanViewerAsync = getAggregateStorageFreshStateViewerAsync<Loan, LoanEvent, string> eventStore
-        let userViewerAsync = getAggregateStorageFreshStateViewerAsync<User, UserEvent, string> eventStore
-        UserService (
-            eventStore,
-            messageSenders,
-            bookViewerAsync,
-            authorViewerAsync,
-            editorViewerAsync,
-            reservationViewerAsync,
-            loanViewerAsync,
-            userViewerAsync
-        )
-
-
-    new (configuration: Microsoft.Extensions.Configuration.IConfiguration) 
-        =
-        let connectionString = configuration.Item("ConnectionStrings::BookLibraryDbConnection")
+        let connectionString = configuration.GetConnectionString("BookLibraryDbConnection")
         let eventStore = PgStorage.PgEventStore connectionString
         UserService(eventStore)
 

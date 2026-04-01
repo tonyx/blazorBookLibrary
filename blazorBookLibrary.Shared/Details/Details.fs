@@ -10,6 +10,15 @@ module Details =
     open BookLibrary.Domain
     open Commons
 
+    type UserDetails =
+        {
+            User: User
+            FutureReservations: List<Reservation>
+            CurrentLoans: List<Loan> 
+        }
+        member this.HasReservedBook (bookId: BookId) =
+            this.FutureReservations |> List.exists (fun reservation -> reservation.BookId = bookId)
+
     type ReservationDetails =
         { 
             Reservation: Reservation
@@ -22,11 +31,11 @@ module Details =
             Authors: List<Author>
             Book: Book
             CurrentLoan: Option<Loan>
-            Reservations: List<Reservation>
+            ReservationsDetails: List<ReservationDetails>
         }
         member this.GetNextAvailableTimeSlot (timeSlotLoanDurationInDays: int, now: DateTime)=
             let currentTimeSlots =
-                (if this.CurrentLoan.IsSome then [this.CurrentLoan.Value.TimeSlot] else []) @ (this.Reservations |> List.map (fun reservation -> reservation.TimeSlot))
+                (if this.CurrentLoan.IsSome then [this.CurrentLoan.Value.TimeSlot] else []) @ (this.ReservationsDetails |> List.map (fun reservationDetails -> reservationDetails.Reservation.TimeSlot))
             if (currentTimeSlots.IsEmpty) then
                 TimeSlot.New (now.AddHours(1.0)) (now.AddHours(1.0) + TimeSpan.FromDays(float timeSlotLoanDurationInDays))   
             else
@@ -35,14 +44,6 @@ module Details =
                     |> List.maxBy (fun timeSlot -> timeSlot.End)
                 TimeSlot.New (maximumTimeSlot.End) (maximumTimeSlot.End + TimeSpan.FromDays(float timeSlotLoanDurationInDays))   
 
-    type UserDetails =
-        {
-            User: User
-            FutureReservations: List<Reservation>
-            CurrentLoans: List<Loan> 
-        }
-        member this.HasReservedBook (bookId: BookId) =
-            this.FutureReservations |> List.exists (fun reservation -> reservation.BookId = bookId)
 
     type AuthorDetails = {
             Author: Author

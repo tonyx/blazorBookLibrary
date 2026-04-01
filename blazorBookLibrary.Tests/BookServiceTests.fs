@@ -310,7 +310,7 @@ let tests =
             Expect.isTrue (bookDetail.Book.CurrentLoan |> Option.isSome) "should contain the loan"
             Expect.isTrue (bookDetail.CurrentLoan |> Option.isSome) "should contain the loan"
             Expect.isTrue (bookDetail.CurrentLoan.Value.LoanId = loan.LoanId) "should contain the loan"
-            Expect.isTrue (bookDetail.Reservations |> List.isEmpty) "should not contain reservations"
+            Expect.isTrue (bookDetail.ReservationsDetails |> List.isEmpty) "should not contain reservations"
 
         testCase "verify that when the loan is released then the book details are always in sync - Ok" <| fun _ ->
             setUp ()
@@ -359,7 +359,7 @@ let tests =
             Expect.isTrue (bookDetail.Book.CurrentLoan |> Option.isSome) "should contain the loan"
             Expect.isTrue (bookDetail.CurrentLoan |> Option.isSome) "should contain the loan"
             Expect.isTrue (bookDetail.CurrentLoan.Value.LoanId = loan.LoanId) "should contain the loan"
-            Expect.isTrue (bookDetail.Reservations |> List.isEmpty) "should not contain reservations"
+            Expect.isTrue (bookDetail.ReservationsDetails |> List.isEmpty) "should not contain reservations"
 
             let releaseLoan = 
                 loanService.ReleaseLoanAsync (loan.LoanId, System.DateTime.Now)
@@ -376,7 +376,7 @@ let tests =
             let (bookDetail2: BookDetails) = bookDetail2 |> Result.get
             Expect.isTrue (bookDetail2.Book.CurrentLoan |> Option.isNone) "should not contain the loan"
             Expect.isTrue (bookDetail2.CurrentLoan |> Option.isNone) "should not contain the loan"
-            Expect.isTrue (bookDetail2.Reservations |> List.isEmpty) "should not contain reservations"
+            Expect.isTrue (bookDetail2.ReservationsDetails |> List.isEmpty) "should not contain reservations"
 
         testCase "verify that when the loan is released then the details are always in sync 2 - Ok" <| fun _ ->
             setUp ()
@@ -425,7 +425,7 @@ let tests =
             Expect.isTrue (bookDetail.Book.CurrentLoan |> Option.isSome) "should contain the loan"
             Expect.isTrue (bookDetail.CurrentLoan |> Option.isSome) "should contain the loan"
             Expect.isTrue (bookDetail.CurrentLoan.Value.LoanId = loan.LoanId) "should contain the loan"
-            Expect.isTrue (bookDetail.Reservations |> List.isEmpty) "should not contain reservations"
+            Expect.isTrue (bookDetail.ReservationsDetails |> List.isEmpty) "should not contain reservations"
 
             let releaseLoan = 
                 loanService.ReleaseLoanAsync (loan.LoanId, System.DateTime.Now)
@@ -442,7 +442,7 @@ let tests =
             let (bookDetail2: BookDetails) = bookDetail2 |> Result.get
             Expect.isTrue (bookDetail2.Book.CurrentLoan |> Option.isNone) "should not contain the loan"
             Expect.isTrue (bookDetail2.CurrentLoan |> Option.isNone) "should not contain the loan"
-            Expect.isTrue (bookDetail2.Reservations |> List.isEmpty) "should not contain reservations"
+            Expect.isTrue (bookDetail2.ReservationsDetails |> List.isEmpty) "should not contain reservations"
 
         testCase "add multiple books and retrieve them all - Ok" <| fun _ ->
             setUp ()

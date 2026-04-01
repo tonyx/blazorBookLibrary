@@ -31,10 +31,11 @@ type BookService
         editorViewerAsync: AggregateViewerAsync2<Editor>,
         reservationViewerAsync: AggregateViewerAsync2<Reservation>,
         loanViewerAsync: AggregateViewerAsync2<Loan>,
-        userViewerAsync: AggregateViewerAsync2<User>
+        userViewerAsync: AggregateViewerAsync2<User>,
+        reservationService: IReservationService
     ) =
 
-    new (eventStore: IEventStore<string>)
+    new (eventStore: IEventStore<string>, reservationService: IReservationService)
         =
         let messageSenders = MessageSenders.NoSender
         let bookViewerAsync = getAggregateStorageFreshStateViewerAsync<Book, BookEvent, string> eventStore
@@ -43,6 +44,7 @@ type BookService
         let reservationViewerAsync = getAggregateStorageFreshStateViewerAsync<Reservation, ReservationEvent, string> eventStore
         let loanViewerAsync = getAggregateStorageFreshStateViewerAsync<Loan, LoanEvent, string> eventStore
         let userViewerAsync = getAggregateStorageFreshStateViewerAsync<User, UserEvent, string> eventStore
+
         BookService (
             eventStore,
             messageSenders,
@@ -51,32 +53,14 @@ type BookService
             editorViewerAsync,
             reservationViewerAsync,
             loanViewerAsync,
-            userViewerAsync
+            userViewerAsync,
+            reservationService
         )
-    new (connectionString: string)
-        =
-        let eventStore = PgStorage.PgEventStore connectionString
-        let messageSenders = MessageSenders.NoSender
-        let bookViewerAsync = getAggregateStorageFreshStateViewerAsync<Book, BookEvent, string> eventStore
-        let authorViewerAsync = getAggregateStorageFreshStateViewerAsync<Author, AuthorEvent, string> eventStore
-        let editorViewerAsync = getAggregateStorageFreshStateViewerAsync<Editor, EditorEvent, string> eventStore
-        let reservationViewerAsync = getAggregateStorageFreshStateViewerAsync<Reservation, ReservationEvent, string> eventStore
-        let loanViewerAsync = getAggregateStorageFreshStateViewerAsync<Loan, LoanEvent, string> eventStore
-        let userViewerAsync = getAggregateStorageFreshStateViewerAsync<User, UserEvent, string> eventStore
-        BookService (
-            eventStore,
-            messageSenders,
-            bookViewerAsync,
-            authorViewerAsync,
-            editorViewerAsync,
-            reservationViewerAsync,
-            loanViewerAsync,
-            userViewerAsync
-        )
-    new (configuration: IConfiguration)
+    new (configuration: IConfiguration, reservationService: IReservationService)
         =
         let connectionString = configuration.GetConnectionString("BookLibraryDbConnection")
-        BookService(connectionString)
+        let eventStore = PgStorage.PgEventStore connectionString
+        BookService(eventStore, reservationService)
 
     member private 
         this.GetRefreshableBookDetailsAsync(bookId: BookId, ?ct:CancellationToken): TaskResult<RefreshableBookDetails, string> =
@@ -110,7 +94,8 @@ type BookService
                                     |> Async.RunSynchronously
                                 let! futureReservations = 
                                     book.CurrentReservations
-                                    |> List.traverseTaskResultM (fun reservationId -> reservationViewerAsync (Some ct) reservationId.Value |> TaskResult.map snd)
+                                    // |> List.traverseTaskResultM (fun reservationId -> reservationViewerAsync (Some ct) reservationId.Value |> TaskResult.map snd)
+                                    |> List.traverseTaskResultM (fun reservationId -> reservationService.GetReservationDetailsAsync (reservationId, ct))
                                     |> Async.AwaitTask
                                     |> Async.RunSynchronously
                                     
@@ -119,7 +104,7 @@ type BookService
                                         Authors = authors
                                         Book = book
                                         CurrentLoan = currentLoan
-                                        Reservations = futureReservations
+                                        ReservationsDetails = futureReservations
                                     } 
                             }
                     result {
@@ -132,7 +117,7 @@ type BookService
                             ,
                             bookId.Value :: 
                             (if bookDetails.CurrentLoan.IsSome then [bookDetails.CurrentLoan.Value.LoanId.Value] else []) @ 
-                            (bookDetails.Reservations |> List.map _.ReservationId.Value) @
+                            (bookDetails.ReservationsDetails |> List.map _.Reservation.ReservationId.Value) @
                             (bookDetails.Authors |> List.map _.AuthorId.Value)
                     }
             let key = DetailsCacheKey.OfType typeof<RefreshableBookDetails> bookId.Value

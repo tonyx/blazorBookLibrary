@@ -52,28 +52,11 @@ type AuthorService
             reservationViewerAsync,
             loanViewerAsync
         )
-    new (connectionString: string)
-        =
-        let eventStore = PgStorage.PgEventStore connectionString
-        let messageSenders = MessageSenders.NoSender
-        let bookViewerAsync = getAggregateStorageFreshStateViewerAsync<Book, BookEvent, string> eventStore
-        let authorViewerAsync = getAggregateStorageFreshStateViewerAsync<Author, AuthorEvent, string> eventStore
-        let editorViewerAsync = getAggregateStorageFreshStateViewerAsync<Editor, EditorEvent, string> eventStore
-        let reservationViewerAsync = getAggregateStorageFreshStateViewerAsync<Reservation, ReservationEvent, string> eventStore
-        let loanViewerAsync = getAggregateStorageFreshStateViewerAsync<Loan, LoanEvent, string> eventStore
-        AuthorService (
-            eventStore,
-            messageSenders,
-            bookViewerAsync,
-            authorViewerAsync,
-            editorViewerAsync,
-            reservationViewerAsync,
-            loanViewerAsync
-        )
     new (configuration: IConfiguration)
         =   
         let connectionString = configuration.GetConnectionString("BookLibraryDbConnection")
-        AuthorService(connectionString)
+        let eventStore = PgStorage.PgEventStore connectionString
+        AuthorService(eventStore)
 
     member this.AddAuthorAsync(author: Author, ?ct: CancellationToken) = 
         taskResult

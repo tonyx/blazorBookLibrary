@@ -67,17 +67,6 @@ let getAuthorService () =
         reservationViewerAsync, 
         loanViewerAsync)
 
-let getBookService () = 
-    BookService(
-        pgEventStore, 
-        MessageSenders.NoSender, 
-        bookViewerAsync, 
-        authorViewerAsync, 
-        editorViewerAsync, 
-        reservationViewerAsync, 
-        loanViewerAsync,
-        userViewerAsync)
-
 let getReservationService () =
     ReservationService(
         pgEventStore, 
@@ -88,6 +77,19 @@ let getReservationService () =
         reservationViewerAsync, 
         loanViewerAsync,
         userViewerAsync)
+
+let getBookService () = 
+    BookService(
+        pgEventStore, 
+        MessageSenders.NoSender, 
+        bookViewerAsync, 
+        authorViewerAsync, 
+        editorViewerAsync, 
+        reservationViewerAsync, 
+        loanViewerAsync,
+        userViewerAsync,
+        getReservationService())
+
 
 let getLoanService () =
     LoanService(

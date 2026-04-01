@@ -43,10 +43,8 @@ builder.Services.AddAuthentication(options =>
 
 var usersDbConnection = builder.Configuration.GetConnectionString("UsersDbConnection") ?? throw new InvalidOperationException("Connection string 'UsersDbConnection' not found.");
 
-var bookLibraryDbConnection = builder.Configuration.GetConnectionString("BookLibraryDbConnection") ?? throw new InvalidOperationException("Connection string 'BookLibraryDbConnection' not found.");
+// var bookLibraryDbConnection = builder.Configuration.GetConnectionString("BookLibraryDbConnection") ?? throw new InvalidOperationException("Connection string 'BookLibraryDbConnection' not found.");
 
-// builder.Services.AddDbContext<ApplicationDbContext>(options =>
-//     options.UseSqlite(connectionString));
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(usersDbConnection));
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
@@ -63,11 +61,15 @@ builder.Services.AddIdentityCore<ApplicationUser>(options =>
 
 
 builder.Services.AddScoped<IAuthorService, AuthorService>();
-builder.Services.AddScoped<IBookService, BookService>();
 builder.Services.AddScoped<IReservationService, ReservationService>();
+builder.Services.AddScoped<IBookService, BookService>();
 builder.Services.AddScoped<ILoanService, LoanService>();
 builder.Services.AddScoped<IGoogleBooksService, GoogleBooksService>();
-builder.Services.AddScoped<IUserService>(sp => new UserService(bookLibraryDbConnection));
+
+// remove when is confirmed
+// builder.Services.AddScoped<IUserService>(sp => new UserService(bookLibraryDbConnection));
+
+builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddHttpClient<IAuthorsSearchService, AuthorsSearchService>(client =>
 {
     client.DefaultRequestHeaders.Add("User-Agent", "BlazorBookLibrary/1.0");

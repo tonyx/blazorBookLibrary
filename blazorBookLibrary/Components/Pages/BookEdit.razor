@@ -533,17 +533,17 @@
                         }
 
                         <h6 class="text-uppercase text-muted fw-bold mb-3 small border-bottom pb-2">@L["FutureReservations"]</h6>
-                        @if (bookDetails.FutureReservations.Any())
+                        @if (bookDetails.ReservationsDetails.Any())
                         {
                             <ul class="list-group list-group-flush mb-0">
-                                @foreach (var res in bookDetails.FutureReservations)
+                                @foreach (var res in bookDetails.ReservationsDetails)
                                 {
                                     <li class="list-group-item px-0 py-2 border-0 border-bottom">
                                         <div class="d-flex align-items-center">
                                             <i class="bi bi-calendar-event me-2 text-primary"></i>
                                             <div>
-                                                <div class="small fw-bold">@res.TimeSlot.Start.ToShortDateString() - @res.TimeSlot.End.ToShortDateString()</div>
-                                                <div class="small text-muted">User: @res.UserId</div>
+                                                <div class="small fw-bold">@res.Reservation.TimeSlot.Start.ToShortDateString() - @res.Reservation.TimeSlot.End.ToShortDateString()</div>
+                                                <div class="small text-muted">User: @res.User.UserId</div>
                                             </div>
                                         </div>
                                     </li>

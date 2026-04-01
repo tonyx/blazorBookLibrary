@@ -53,31 +53,12 @@ type ReservationService
             loanViewerAsync,
             userViewerAsync
         )
-    new (connectionString: string)
-        =
-        let eventStore = PgStorage.PgEventStore connectionString
-        let messageSenders = MessageSenders.NoSender
-        let bookViewerAsync = getAggregateStorageFreshStateViewerAsync<Book, BookEvent, string> eventStore
-        let authorViewerAsync = getAggregateStorageFreshStateViewerAsync<Author, AuthorEvent, string> eventStore
-        let editorViewerAsync = getAggregateStorageFreshStateViewerAsync<Editor, EditorEvent, string> eventStore
-        let reservationViewerAsync = getAggregateStorageFreshStateViewerAsync<Reservation, ReservationEvent, string> eventStore
-        let loanViewerAsync = getAggregateStorageFreshStateViewerAsync<Loan, LoanEvent, string> eventStore
-        let userViewerAsync = getAggregateStorageFreshStateViewerAsync<User, UserEvent, string> eventStore
-        ReservationService (
-            eventStore,
-            messageSenders,
-            bookViewerAsync,
-            authorViewerAsync,
-            editorViewerAsync,
-            reservationViewerAsync,
-            loanViewerAsync,
-            userViewerAsync
-        )
-    new (configuration: Microsoft.Extensions.Configuration.IConfiguration) 
+    new (configuration: IConfiguration) 
         =
         let connectionString = configuration.GetConnectionString("BookLibraryDbConnection")
         let maxReservations = configuration.GetValue<int>("BooksLibrary::MaxReservationsPerUser", 3)
-        ReservationService(connectionString)
+        let eventStore = PgStorage.PgEventStore connectionString
+        ReservationService(eventStore)
 
         member this.AddReservationAsync (reservation: Reservation, dateTime: System.DateTime, ?ct: CancellationToken)= 
 
