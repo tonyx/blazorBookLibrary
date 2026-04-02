@@ -79,15 +79,29 @@ type LoanService
                 let addLoanToUser =     
                     UserCommand.AddLoan (loan.LoanId)
 
+                // let! result = 
+                //     runInitAndTwoAggregateCommands<Book, BookEvent, User, UserEvent, string, Loan>
+                //         book.Id
+                //         user.Id
+                //         eventStore
+                //         messageSenders
+                //         loan
+                //         setCurrentLoanCommand
+                //         addLoanToUser
+                // return result
+
                 let! result = 
-                    runInitAndTwoAggregateCommands<Book, BookEvent, User, UserEvent, string, Loan>
+                    runInitAndTwoAggregateCommandsMdAsync<Book, BookEvent, User, UserEvent, string, Loan>
                         book.Id
                         user.Id
                         eventStore
                         messageSenders
                         loan
+                        ""
                         setCurrentLoanCommand
                         addLoanToUser
+                        (ct |> Some)
+                        
                 return result
             }
     member this.GetLoanAsync (id: LoanId, ?ct: CancellationToken): TaskResult<Loan, string> = 
@@ -118,17 +132,20 @@ type LoanService
                 let userReleaseLoanCommandr = 
                     UserCommand.ReleaseLoan (loanId)
                 let! result = 
-                    runThreeNAggregateCommands<Book, BookEvent, Loan, LoanEvent, User, UserEvent, string>
-                        [book.Id]
-                        [loan.Id]
-                        [user.Id]
+                    runThreeAggregateCommandsMdAsync<Book, BookEvent, Loan, LoanEvent, User, UserEvent, string>
+                        book.Id
+                        loan.Id
+                        user.Id
                         eventStore
                         messageSenders
-                        [releaseLoanCommand]
-                        [releaseBookCommand]
-                        [userReleaseLoanCommandr]
+                        ""
+                        releaseLoanCommand
+                        releaseBookCommand
+                        userReleaseLoanCommandr
+                        (ct |> Some)
                 return result
             }
+            
 
     interface ILoanService with
         member this.AddLoanAsync (loan: Loan, ?ct: CancellationToken) =

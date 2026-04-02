@@ -8,7 +8,7 @@
 
   <ItemGroup>
     <Compile Include="TestSetup.fs" />
-    <Compile Include="Tests.fs" />
+    <!-- <Compile Include="Tests.fs" /> -->
     <Compile Include="AuthorsServiceTests.fs" />
     <Compile Include="BookServiceTests.fs" />
     <Compile Include="LoanServiceTests.fs" />

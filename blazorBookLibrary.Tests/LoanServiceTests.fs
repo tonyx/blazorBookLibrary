@@ -163,3 +163,4 @@ let tests =
             Expect.isFalse (userRetrieved.CurrentLoans |> List.contains loan.LoanId) "should not contain the loan"
             
     ]
+    |> testSequenced

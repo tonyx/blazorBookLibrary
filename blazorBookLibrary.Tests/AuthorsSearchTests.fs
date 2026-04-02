@@ -42,3 +42,5 @@ module AuthorsSearchTests =
                     failwith e
             }
         ]
+        |> testSequenced
+
