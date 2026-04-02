@@ -15,17 +15,37 @@ open Sharpino.EventBroker
 open BookLibrary.Details.Details
 open Microsoft.Extensions.Configuration
 open System.Threading
-
+open Microsoft.AspNetCore.Identity
+open Microsoft.AspNetCore.Identity.EntityFrameworkCore
+open Microsoft.EntityFrameworkCore
+open Microsoft.Extensions.DependencyInjection
+open Microsoft.AspNetCore.DataProtection
+open blazorBookLibrary.Data
+Environment.SetEnvironmentVariable("IsTestEnv", "True")
 Env.Load() |> ignore
-let password = Environment.GetEnvironmentVariable("password")
+
+let config = 
+    ConfigurationBuilder()
+        .SetBasePath(AppDomain.CurrentDomain.BaseDirectory)
+        .AddJsonFile("appSettings.json", false)
+        .Build()
+
+let timeSlotDurationInDays =
+    config.GetValue<int>("BookLibrary::TimeSlotLoanDurationInDays", 30)
 
 let connection =
-    "Server=127.0.0.1;"+
-    "Database=sharpino_booklibrary_test;" +
-    "User Id=safe;"+
-    $"Password={password}"
+    "Host=127.0.0.1;Database=sharpino_booklibrary_test;Username=postgres;Password=postgres"
 
 let pgEventStore:Sharpino.Storage.IEventStore<string> = PgEventStore connection
+
+let usersDbConnection = config.GetConnectionString("UsersDbConnection")
+
+let getDbContext () =
+    let options = 
+        DbContextOptionsBuilder<ApplicationDbContext>()
+            .UseNpgsql(usersDbConnection)
+            .Options
+    new ApplicationDbContext(options)
 
 let setUp () =
     pgEventStore.Reset Book.Version Book.StorageName
@@ -41,14 +61,25 @@ let setUp () =
     pgEventStore.Reset User.Version User.StorageName
     pgEventStore.ResetAggregateStream User.Version User.StorageName
     AggregateCache3.Instance.Clear()            
+    try
+        let context = getDbContext()
+        context.Database.EnsureDeleted() |> ignore
+        context.Database.EnsureCreated() |> ignore
+    with
+    | ex -> printfn "Warning: Could not wipe identity database: %s" ex.Message
 
-let timeSlotDurationInDays =
-    let config = 
-        ConfigurationBuilder()
-            .AddJsonFile("appSettings.json", true)
-            .Build()
-
-    config.GetValue<int>("BookLibrary::TimeSlotLoanDurationInDays", 30)
+let getUserManager () =
+    let services = ServiceCollection()
+    services.AddLogging() |> ignore
+    services.AddDataProtection() |> ignore
+    services.AddDbContext<ApplicationDbContext>(fun options -> 
+        options.UseNpgsql(usersDbConnection) |> ignore) |> ignore
+    services.AddIdentityCore<ApplicationUser>()
+        .AddEntityFrameworkStores<ApplicationDbContext>()
+        .AddDefaultTokenProviders() |> ignore
+    
+    let serviceProvider = services.BuildServiceProvider()
+    serviceProvider.GetRequiredService<UserManager<ApplicationUser>>()
 
 let bookViewerAsync = getAggregateStorageFreshStateViewerAsync<Book, BookEvent, string> pgEventStore
 let authorViewerAsync = getAggregateStorageFreshStateViewerAsync<Author, AuthorEvent, string> pgEventStore
@@ -66,6 +97,17 @@ let getAuthorService () =
         editorViewerAsync, 
         reservationViewerAsync, 
         loanViewerAsync)
+let getUserService () =
+    UserService(
+        pgEventStore, 
+        MessageSenders.NoSender, 
+        bookViewerAsync, 
+        authorViewerAsync, 
+        editorViewerAsync, 
+        reservationViewerAsync, 
+        loanViewerAsync,
+        userViewerAsync,
+        getUserManager())
 
 let getReservationService () =
     ReservationService(
@@ -76,7 +118,8 @@ let getReservationService () =
         editorViewerAsync, 
         reservationViewerAsync, 
         loanViewerAsync,
-        userViewerAsync)
+        userViewerAsync,
+        getUserService())
 
 let getBookService () = 
     BookService(
@@ -102,13 +145,33 @@ let getLoanService () =
         loanViewerAsync,
         userViewerAsync)
 
-let getUserService () =
-    UserService(
-        pgEventStore, 
-        MessageSenders.NoSender, 
-        bookViewerAsync, 
-        authorViewerAsync, 
-        editorViewerAsync, 
-        reservationViewerAsync, 
-        loanViewerAsync,
-        userViewerAsync)
+let registerUser (email: string) (password: string) =
+    // ensure unique email to avoid parallel test conflicts
+    let guid = Guid.NewGuid()
+    let guidStr = guid.ToString("N")
+    let parts = email.Split('@')
+    let uniqueEmail = 
+        if parts.Length = 2 then
+            sprintf "%s+%s@%s" parts.[0] guidStr parts.[1]
+        else
+            sprintf "%s_%s" guidStr email
+
+    let userManager = getUserManager()
+    let aspUser = ApplicationUser(UserName = uniqueEmail, Email = uniqueEmail)
+    aspUser.Id <- guid.ToString() // ensure same ID as domain user
+    let result = (userManager.CreateAsync(aspUser, password) |> Async.AwaitTask |> Async.RunSynchronously)
+    if not result.Succeeded then
+        failwithf "Identity user creation failed: %A" result.Errors
+
+    let userId = UserId guid
+    let userService = getUserService()
+    let user = User.New userId
+    let addUser = 
+        userService.CreateUserAsync user
+        |> Async.AwaitTask
+        |> Async.RunSynchronously
+    
+    if not (addUser |> Result.isOk) then
+        failwithf "Domain user creation failed: %A" addUser
+
+    userId

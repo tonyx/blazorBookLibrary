@@ -26,21 +26,9 @@ let tests =
                 |> Async.RunSynchronously
             Expect.isOk addBook "should be ok"
 
-            let userId1 = UserId.New()
-            let user1 = User.New userId1
-            let addUser1 = 
-                userService.CreateUserAsync(user1, CancellationToken.None)
-                |> Async.AwaitTask
-                |> Async.RunSynchronously
-            Expect.isOk addUser1 "should be ok"
+            let userId1 = registerUser "test1@example.com" "Password123!"
 
-            let userId2 = UserId.New()
-            let user2 = User.New userId2
-            let addUser2 = 
-                userService.CreateUserAsync(user2, CancellationToken.None)
-                |> Async.AwaitTask
-                |> Async.RunSynchronously
-            Expect.isOk addUser2 "should be ok"
+            let userId2 = registerUser "test2@example.com" "Password123!"
 
             let retrieveBook = 
                 bookService.GetBookAsync (book.BookId, CancellationToken.None)
@@ -87,21 +75,9 @@ let tests =
                 |> Async.RunSynchronously
             Expect.isOk addBook "should be ok"
 
-            let userId1 = UserId.New()
-            let user1 = User.New userId1
-            let addUser1 = 
-                userService.CreateUserAsync user1
-                |> Async.AwaitTask
-                |> Async.RunSynchronously
-            Expect.isOk addUser1 "should be ok"
+            let userId1 = registerUser "test1@example.com" "Password123!"
 
-            let userId2 = UserId.New()
-            let user2 = User.New userId2
-            let addUser2 = 
-                userService.CreateUserAsync user2
-                |> Async.AwaitTask
-                |> Async.RunSynchronously
-            Expect.isOk addUser2 "should be ok"
+            let userId2 = registerUser "test2@example.com" "Password123!"
 
             let retrieveBook = 
                 bookService.GetBookAsync (book.BookId, CancellationToken.None)
@@ -152,13 +128,7 @@ let tests =
                 |> Async.RunSynchronously
             Expect.isOk addBook "should be ok"
 
-            let userId = UserId.New()
-            let user = User.New userId
-            let addUser = 
-                userService.CreateUserAsync user
-                |> Async.AwaitTask
-                |> Async.RunSynchronously
-            Expect.isOk addUser "should be ok"
+            let userId = registerUser "test@example.com" "Password123!"
 
             let retrieveBook = 
                 bookService.GetBookAsync (book.BookId, CancellationToken.None)
@@ -217,13 +187,7 @@ let tests =
                 |> Async.RunSynchronously
             Expect.isOk addBook "should be ok"
 
-            let userId = UserId.New()
-            let user = User.New userId
-            let addUser = 
-                userService.CreateUserAsync (user)
-                |> Async.AwaitTask
-                |> Async.RunSynchronously
-            Expect.isOk addUser "should be ok"
+            let userId = registerUser "test@example.com" "Password123!"
 
             let retrieveBook = 
                 bookService.GetBookAsync book.BookId
@@ -269,13 +233,7 @@ let tests =
             Expect.isTrue (bookDetail2.CurrentLoan |> Option.isNone) "should not contain the loan"
             Expect.isTrue (bookDetail2.ReservationsDetails |> List.isEmpty) "should not contain reservations"
 
-            let userId2 = UserId.New()
-            let user2 = User.New userId2
-            let addUser2 = 
-                userService.CreateUserAsync user2
-                |> Async.AwaitTask
-                |> Async.RunSynchronously
-            Expect.isOk addUser2 "should be ok"
+            let userId2 = registerUser "test2@example.com" "Password123!"
 
             let futureTimeSlot = TimeSlot.New (System.DateTime.Now.AddMonths(1)) (System.DateTime.Now.AddMonths(2))
             let reservation = Reservation.New book.BookId userId2 futureTimeSlot (System.DateTime.Now)
@@ -311,13 +269,7 @@ let tests =
                 |> Async.RunSynchronously
             Expect.isOk addBook "should be ok"
 
-            let userId = UserId.New()
-            let user = User.New userId
-            let addUser = 
-                userService.CreateUserAsync (user)
-                |> Async.AwaitTask
-                |> Async.RunSynchronously
-            Expect.isOk addUser "should be ok"
+            let userId = registerUser "test@example.com" "Password123!"
 
             let retrieveBook = 
                 bookService.GetBookAsync book.BookId
@@ -363,13 +315,7 @@ let tests =
             Expect.isTrue (bookDetail2.CurrentLoan |> Option.isNone) "should not contain the loan"
             Expect.isTrue (bookDetail2.ReservationsDetails |> List.isEmpty) "should not contain reservations"
 
-            let userId2 = UserId.New()
-            let user2 = User.New userId2
-            let addUser2 = 
-                userService.CreateUserAsync user2
-                |> Async.AwaitTask
-                |> Async.RunSynchronously
-            Expect.isOk addUser2 "should be ok"
+            let userId2 = registerUser "test2@example.com" "Password123!"
 
             let futureTimeSlot = TimeSlot.New (System.DateTime.Now.AddMonths(1)) (System.DateTime.Now.AddMonths(2))
             let reservation = Reservation.New book.BookId userId2 futureTimeSlot (System.DateTime.Now)
@@ -406,21 +352,9 @@ let tests =
                 |> Async.RunSynchronously
             Expect.isOk addBook "should be ok"
 
-            let userId1 = UserId.New()
-            let user1 = User.New userId1
-            let addUser1 = 
-                userService.CreateUserAsync user1
-                |> Async.AwaitTask
-                |> Async.RunSynchronously
-            Expect.isOk addUser1 "should be ok"
+            let userId1 = registerUser "test1@example.com" "Password123!"
 
-            let userId2 = UserId.New()
-            let user2 = User.New userId2
-            let addUser2 = 
-                userService.CreateUserAsync user2
-                |> Async.AwaitTask
-                |> Async.RunSynchronously
-            Expect.isOk addUser2 "should be ok"
+            let userId2 = registerUser "test2@example.com" "Password123!"
 
             let retrieveBook = 
                 bookService.GetBookAsync book.BookId
@@ -503,29 +437,11 @@ let tests =
                 |> Async.RunSynchronously
             Expect.isOk addBook "should be ok"
 
-            let userId1 = UserId.New()
-            let user1 = User.New userId1
-            let addUser1 = 
-                userService.CreateUserAsync user1
-                |> Async.AwaitTask
-                |> Async.RunSynchronously
-            Expect.isOk addUser1 "should be ok"
+            let userId1 = registerUser "test1@example.com" "Password123!"
 
-            let userId2 = UserId.New()
-            let user2 = User.New userId2
-            let addUser2 = 
-                userService.CreateUserAsync user2
-                |> Async.AwaitTask
-                |> Async.RunSynchronously
-            Expect.isOk addUser2 "should be ok"
+            let userId2 = registerUser "test2@example.com" "Password123!"
 
-            let userId3 = UserId.New()
-            let user3 = User.New userId3
-            let addUser3 = 
-                userService.CreateUserAsync user3
-                |> Async.AwaitTask
-                |> Async.RunSynchronously
-            Expect.isOk addUser3 "should be ok"
+            let userId3 = registerUser "test3@example.com" "Password123!"
 
             let retrieveBook = 
                 bookService.GetBookAsync book.BookId
@@ -626,29 +542,11 @@ let tests =
                 |> Async.RunSynchronously
             Expect.isOk addBook "should be ok"
 
-            let userId1 = UserId.New()
-            let user1 = User.New userId1
-            let addUser1 = 
-                userService.CreateUserAsync user1
-                |> Async.AwaitTask
-                |> Async.RunSynchronously
-            Expect.isOk addUser1 "should be ok"
+            let userId1 = registerUser "test1@example.com" "Password123!"
 
-            let userId2 = UserId.New()
-            let user2 = User.New userId2
-            let addUser2 = 
-                userService.CreateUserAsync user2
-                |> Async.AwaitTask
-                |> Async.RunSynchronously
-            Expect.isOk addUser2 "should be ok"
+            let userId2 = registerUser "test2@example.com" "Password123!"
 
-            let userId3 = UserId.New()
-            let user3 = User.New userId3
-            let addUser3 = 
-                userService.CreateUserAsync user3
-                |> Async.AwaitTask
-                |> Async.RunSynchronously
-            Expect.isOk addUser3 "should be ok"
+            let userId3 = registerUser "test3@example.com" "Password123!"
 
             let retrieveBook = 
                 bookService.GetBookAsync (book.BookId, CancellationToken.None)
@@ -750,21 +648,9 @@ let tests =
                 |> Async.RunSynchronously
             Expect.isOk addBook "should be ok"
 
-            let userId1 = UserId.New()
-            let user1 = User.New userId1
-            let addUser1 = 
-                userService.CreateUserAsync user1
-                |> Async.AwaitTask
-                |> Async.RunSynchronously
-            Expect.isOk addUser1 "should be ok"
+            let userId1 = registerUser "test1@example.com" "Password123!"
 
-            let userId2 = UserId.New()
-            let user2 = User.New userId2
-            let addUser2 = 
-                userService.CreateUserAsync user2
-                |> Async.AwaitTask
-                |> Async.RunSynchronously
-            Expect.isOk addUser2 "should be ok"
+            let userId2 = registerUser "test2@example.com" "Password123!"
 
             let futureTimeSlot = TimeSlot.New (System.DateTime.Now.AddMonths(1)) (System.DateTime.Now.AddMonths(2))
             let reservation = Reservation.New book.BookId userId1 futureTimeSlot (System.DateTime.Now)
@@ -842,13 +728,7 @@ let tests =
                 |> Async.RunSynchronously
             Expect.isOk addBook "should be ok"
 
-            let userId1 = UserId.New()
-            let user1 = User.New userId1
-            let addUser1 = 
-                userService.CreateUserAsync user1
-                |> Async.AwaitTask
-                |> Async.RunSynchronously
-            Expect.isOk addUser1 "should be ok"
+            let userId1 = registerUser "test1@example.com" "Password123!"
 
             let futureTimeSlot = TimeSlot.New (System.DateTime.Now.AddMonths(1)) (System.DateTime.Now.AddMonths(2))
             let reservation = Reservation.New book.BookId userId1 futureTimeSlot (System.DateTime.Now)
@@ -879,13 +759,7 @@ let tests =
                 |> Async.RunSynchronously
             Expect.isOk addBook "should be ok"
 
-            let userId1 = UserId.New()
-            let user1 = User.New userId1
-            let addUser1 = 
-                userService.CreateUserAsync user1
-                |> Async.AwaitTask
-                |> Async.RunSynchronously
-            Expect.isOk addUser1 "should be ok"
+            let userId1 = registerUser "test1@example.com" "Password123!"
 
             let futureTimeSlot = TimeSlot.New (System.DateTime.Now.AddMonths(1)) (System.DateTime.Now.AddMonths(2))
             let reservation = Reservation.New book.BookId userId1 futureTimeSlot (System.DateTime.Now)
@@ -930,13 +804,7 @@ let tests =
                 |> Async.RunSynchronously
             Expect.isOk addBook "should be ok"
 
-            let userId1 = UserId.New()
-            let user1 = User.New userId1
-            let addUser1 = 
-                userService.CreateUserAsync user1
-                |> Async.AwaitTask
-                |> Async.RunSynchronously
-            Expect.isOk addUser1 "should be ok"
+            let userId1 = registerUser "test1@example.com" "Password123!"
 
             let futureTimeSlot = TimeSlot.New (System.DateTime.Now.AddMonths(1)) (System.DateTime.Now.AddMonths(2))
             let reservation = Reservation.New book.BookId userId1 futureTimeSlot (System.DateTime.Now)
@@ -954,7 +822,7 @@ let tests =
 
             Expect.isTrue (reservationDetails.OkValue.Reservation.ReservationId = reservation.ReservationId) "should contain the reservation"
             Expect.isTrue (reservationDetails.OkValue.Book.BookId = book.BookId) "should contain the book"
-            Expect.isTrue (reservationDetails.OkValue.User.UserId = user1.UserId) "should contain the user"
+            Expect.isTrue (reservationDetails.OkValue.UserDetails.User.UserId = userId1) "should contain the user"
 
     ]
     |> testSequenced

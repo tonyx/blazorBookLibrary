@@ -15,6 +15,7 @@
 
   <ItemGroup>
     <ProjectReference Include="../blazorBookLibrary.Shared/blazorBookLibrary.Shared.fsproj" />
+    <ProjectReference Include="../blazorBookLibrary.Data/blazorBookLibrary.Data.csproj" />
   </ItemGroup>
 
   <ItemGroup>

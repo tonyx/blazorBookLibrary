@@ -247,7 +247,7 @@ type Sealed =
             }
         member 
             this.IsSealed (dateNow: DateTime) = 
-                this.Sealed  || (dateNow.ToUniversalTime() - this.DateTime.ToUniversalTime()).TotalMinutes > (float sealTimeoutInMinutes)
+                this.Sealed //  || (dateNow.ToUniversalTime() - this.DateTime.ToUniversalTime()).TotalMinutes > (float sealTimeoutInMinutes)
         member this.Unseal(dateTime: DateTime) =
             { this with DateTime = dateTime.ToUniversalTime(); Sealed = false } 
         member this.Seal(dateTime: DateTime) =

@@ -620,7 +620,7 @@ type BookService
             member this.SealAsync(bookId: BookId, ?ct: CancellationToken) = 
                 taskResult
                     {
-                        let command = BookCommand.Seal (System.DateTime.Now)
+                        let command = BookCommand.Seal (System.DateTime.UtcNow)
                         return!
                             runAggregateCommandMdAsync<Book, BookEvent, string>
                                 bookId.Value

@@ -21,6 +21,8 @@ open BookLibrary.Shared.Commons
 open BookLibrary.Shared.Details
 open BookLibrary.Details.Details
 open Microsoft.Extensions.Configuration
+open Microsoft.AspNetCore.Identity
+open blazorBookLibrary.Data
 
 type UserService 
     (
@@ -31,9 +33,10 @@ type UserService
         editorViewerAsync: AggregateViewerAsync2<Editor>,
         reservationViewerAsync: AggregateViewerAsync2<Reservation>,
         loanViewerAsync: AggregateViewerAsync2<Loan>,
-        userViewerAsync: AggregateViewerAsync2<User>
+        userViewerAsync: AggregateViewerAsync2<User>,
+        userManager: UserManager<ApplicationUser>
     ) =
-    new (eventStore: IEventStore<string>)
+    new (eventStore: IEventStore<string>, userManager: UserManager<ApplicationUser>)
         =
         let messageSenders = MessageSenders.NoSender
         let bookViewerAsync = getAggregateStorageFreshStateViewerAsync<Book, BookEvent, string> eventStore
@@ -50,14 +53,15 @@ type UserService
             editorViewerAsync,
             reservationViewerAsync,
             loanViewerAsync,
-            userViewerAsync
+            userViewerAsync,
+            userManager
         )    
 
-    new (configuration: IConfiguration) 
+    new (configuration: IConfiguration, userManager: UserManager<ApplicationUser>) 
         =
         let connectionString = configuration.GetConnectionString("BookLibraryDbConnection")
         let eventStore = PgStorage.PgEventStore connectionString
-        UserService(eventStore)
+        UserService(eventStore, userManager)
 
     member this.CreateUserAsync (user: User, ?ct: CancellationToken) : Task<Result<unit, string>> =
         taskResult 
@@ -102,10 +106,23 @@ type UserService
                                     |> List.traverseTaskResultM (fun loanId -> loanViewerAsync (Some ct) loanId.Value |> TaskResult.map snd)
                                     |> Async.AwaitTask
                                     |> Async.RunSynchronously
+                                let appUser = 
+                                    try
+                                        let appUser = 
+                                            userManager.FindByIdAsync(userId.Value.ToString()) |> Async.AwaitTask |> Async.RunSynchronously
+                                        if appUser = null then
+                                            ApplicationUser(UserName = "unknown", CodiceFiscale = "unknown")
+                                        else
+                                            appUser
+                                    with
+                                        | ex -> 
+                                            printfn "Error getting user: %s" ex.Message
+                                            ApplicationUser(UserName = "unknown", CodiceFiscale = "unknown")
                                     
                                 return 
                                     { 
                                         User = user
+                                        ApplicationUser = appUser
                                         FutureReservations = futureReservations
                                         CurrentLoans = currentLoans
                                     } 

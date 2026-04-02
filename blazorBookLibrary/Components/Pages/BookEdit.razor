@@ -543,7 +543,7 @@
                                             <i class="bi bi-calendar-event me-2 text-primary"></i>
                                             <div>
                                                 <div class="small fw-bold">@res.Reservation.TimeSlot.Start.ToShortDateString() - @res.Reservation.TimeSlot.End.ToShortDateString()</div>
-                                                <div class="small text-muted">User: @res.User.UserId</div>
+                                                <div class="small text-muted">User: @res.UserDetails.ApplicationUser.UserName - @res.UserDetails.ApplicationUser.CodiceFiscale</div>
                                             </div>
                                         </div>
                                     </li>

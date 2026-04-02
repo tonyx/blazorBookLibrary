@@ -32,9 +32,10 @@ type ReservationService
         editorViewerAsync: AggregateViewerAsync2<Editor>,
         reservationViewerAsync: AggregateViewerAsync2<Reservation>,
         loanViewerAsync: AggregateViewerAsync2<Loan>,
-        userViewerAsync: AggregateViewerAsync2<User>
+        userViewerAsync: AggregateViewerAsync2<User>,
+        usersService: IUserService
     ) =
-    new (eventStore: IEventStore<string>)
+    new (eventStore: IEventStore<string>, userService: IUserService)
         =
         let messageSenders = MessageSenders.NoSender
         let bookViewerAsync = getAggregateStorageFreshStateViewerAsync<Book, BookEvent, string> eventStore
@@ -51,14 +52,15 @@ type ReservationService
             editorViewerAsync,
             reservationViewerAsync,
             loanViewerAsync,
-            userViewerAsync
+            userViewerAsync,
+            userService
         )
-    new (configuration: IConfiguration) 
+    new (configuration: IConfiguration, userService: IUserService) 
         =
         let connectionString = configuration.GetConnectionString("BookLibraryDbConnection")
         let maxReservations = configuration.GetValue<int>("BooksLibrary::MaxReservationsPerUser", 3)
         let eventStore = PgStorage.PgEventStore connectionString
-        ReservationService(eventStore)
+        ReservationService(eventStore, userService)
 
         member this.AddReservationAsync (reservation: Reservation, dateTime: System.DateTime, ?ct: CancellationToken)= 
 
@@ -130,15 +132,15 @@ type ReservationService
                                     bookViewerAsync (ct |> Some) reservation.BookId.Value |> TaskResult.map snd
                                     |> Async.AwaitTask
                                     |> Async.RunSynchronously
-                                let! user = 
-                                    userViewerAsync (ct |> Some) reservation.UserId.Value |> TaskResult.map snd
+                                let! userDetails = 
+                                    usersService.GetUserDetailsAsync (reservation.UserId, ct)
                                     |> Async.AwaitTask
                                     |> Async.RunSynchronously
                                 return 
                                     {
                                         Reservation = reservation
                                         Book = book
-                                        User = user
+                                        UserDetails = userDetails
                                     }
                             }
                 result {

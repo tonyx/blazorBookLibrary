@@ -7,6 +7,8 @@ open BookLibrary.Domain
 open BookLibrary.Shared.Details
 open BookLibrary.Shared.Commons
 open System.Threading
+open blazorBookLibrary.Data
+open Microsoft.AspNetCore.Identity
 
 [<Tests>]
 let tests =
@@ -16,19 +18,14 @@ let tests =
             let loanService = getLoanService()
             let bookService = getBookService()
             let userService = getUserService()
+            let userId = registerUser "test@example.com" "Password123!"
+
             let book = Book.New (Title.New "the constitution") [] [] [] None  Category.Other [] (Year.New 1924) (Isbn.NewEmpty()) None
             let addBook = 
                 bookService.AddBookAsync book
                 |> Async.AwaitTask
                 |> Async.RunSynchronously
             Expect.isOk addBook "should be ok"
-            let userId = UserId.New ()
-            let user = User.New userId
-            let addUser = 
-                userService.CreateUserAsync user
-                |> Async.AwaitTask
-                |> Async.RunSynchronously
-            Expect.isOk addUser "should be ok"
 
             let timeSlot = TimeSlot.New (System.DateTime.Now) (System.DateTime.Now.AddDays(timeSlotDurationInDays))
             let loan = Loan.New book.BookId userId (System.DateTime.Now) timeSlot
@@ -99,13 +96,7 @@ let tests =
                 |> Async.AwaitTask
                 |> Async.RunSynchronously
             Expect.isOk addBook "should be ok"
-            let userId = UserId.New ()
-            let user = User.New userId
-            let addUser = 
-                userService.CreateUserAsync user
-                |> Async.AwaitTask
-                |> Async.RunSynchronously
-            Expect.isOk addUser "should be ok"
+            let userId = registerUser "test@example.com" "Password123!"
 
             let timeSlot = TimeSlot.New (System.DateTime.Now) (System.DateTime.Now.AddDays(timeSlotDurationInDays))
             let loan = Loan.New book.BookId userId (System.DateTime.Now) timeSlot
@@ -136,13 +127,7 @@ let tests =
                 |> Async.AwaitTask
                 |> Async.RunSynchronously
             Expect.isOk addBook "should be ok"
-            let userId = UserId.New ()
-            let user = User.New userId
-            let addUser = 
-                userService.CreateUserAsync user
-                |> Async.AwaitTask
-                |> Async.RunSynchronously
-            Expect.isOk addUser "should be ok"
+            let userId = registerUser "test@example.com" "Password123!"
 
             let timeSlot = TimeSlot.New (System.DateTime.Now) (System.DateTime.Now.AddDays(timeSlotDurationInDays))
             let loan = Loan.New book.BookId userId (System.DateTime.Now) timeSlot

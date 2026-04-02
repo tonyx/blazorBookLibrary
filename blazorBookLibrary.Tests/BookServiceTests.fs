@@ -20,6 +20,8 @@ let tests =
             let reservationService = getReservationService()
             let userService = getUserService()
             
+            let userId = registerUser "test@example.com" "Password123!"
+
             let author = Author.NewWithoutIsni (Name.New "John Doe")
             let addAuthor = 
                 authorService.AddAuthorAsync author
@@ -44,13 +46,7 @@ let tests =
             let (bookRetrieved: Book) = retrieveBook |> Result.get
             Expect.isTrue (bookRetrieved.Authors |> List.contains author.AuthorId) "should contain the author"
 
-            let userId = UserId.New ()
-            let user = User.New userId
-            let addUser = 
-                userService.CreateUserAsync user
-                |> Async.AwaitTask
-                |> Async.RunSynchronously
-            Expect.isOk addUser "should be ok"
+            let userId = registerUser "test@example.com" "Password123!"
 
             let timeSlot = TimeSlot.New (System.DateTime.Now.AddHours(1)) (System.DateTime.Now.AddDays(timeSlotDurationInDays))
 
@@ -91,13 +87,7 @@ let tests =
                 |> Async.RunSynchronously
             Expect.isOk addBook "should be ok"
 
-            let userId = UserId.New()
-            let user = User.New userId
-            let addUser = 
-                userService.CreateUserAsync user
-                |> Async.AwaitTask
-                |> Async.RunSynchronously
-            Expect.isOk addUser "should be ok"
+            let userId = registerUser "test@example.com" "Password123!"
 
             let timeSlot = TimeSlot.New (System.DateTime.Now) (System.DateTime.Now.AddDays(timeSlotDurationInDays))
             let loan = Loan.New book.BookId userId (System.DateTime.Now) timeSlot
@@ -138,21 +128,8 @@ let tests =
                 |> Async.RunSynchronously
             Expect.isOk addBook "should be ok"
 
-            let userId1 = UserId.New()
-            let user1 = User.New userId1
-            let addUser1 = 
-                userService.CreateUserAsync user1
-                |> Async.AwaitTask
-                |> Async.RunSynchronously
-            Expect.isOk addUser1 "should be ok"
-
-            let userId2 = UserId.New()
-            let user2 = User.New userId2
-            let addUser2 = 
-                userService.CreateUserAsync user2
-                |> Async.AwaitTask
-                |> Async.RunSynchronously
-            Expect.isOk addUser2 "should be ok"
+            let userId1 = registerUser "test1@example.com" "Password123!"
+            let userId2 = registerUser "test2@example.com" "Password123!"
 
             let timeSlot = TimeSlot.New (System.DateTime.Now) (System.DateTime.Now.AddDays(timeSlotDurationInDays))
             let loan = Loan.New book.BookId userId1 (System.DateTime.Now) timeSlot
@@ -202,13 +179,7 @@ let tests =
                 |> Async.RunSynchronously
             Expect.isOk addBook "should be ok"
 
-            let userId = UserId.New()
-            let user = User.New userId
-            let addUser = 
-                userService.CreateUserAsync user
-                |> Async.AwaitTask
-                |> Async.RunSynchronously
-            Expect.isOk addUser "should be ok"
+            let userId = registerUser "test@example.com" "Password123!"
 
             let timeSlot = TimeSlot.New (System.DateTime.Now) (System.DateTime.Now.AddDays(timeSlotDurationInDays))
             let loan = Loan.New book.BookId userId (System.DateTime.Now) timeSlot
@@ -274,13 +245,7 @@ let tests =
                 |> Async.RunSynchronously
             Expect.isOk addBook "should be ok"
 
-            let userId = UserId.New()
-            let user = User.New userId
-            let addUser = 
-                userService.CreateUserAsync user
-                |> Async.AwaitTask
-                |> Async.RunSynchronously
-            Expect.isOk addUser "should be ok"
+            let userId = registerUser "test@example.com" "Password123!"
 
             let retrieveBook = 
                 bookService.GetBookAsync book.BookId
@@ -325,13 +290,7 @@ let tests =
 
             Expect.isOk addBook "should be ok"
 
-            let userId = UserId.New()
-            let user = User.New userId
-            let addUser = 
-                userService.CreateUserAsync user
-                |> Async.AwaitTask
-                |> Async.RunSynchronously
-            Expect.isOk addUser "should be ok"
+            let userId = registerUser "test@example.com" "Password123!"
 
             let retrieveBook = 
                 bookService.GetBookAsync book.BookId
@@ -391,13 +350,7 @@ let tests =
 
             Expect.isOk addBook "should be ok"
 
-            let userId = UserId.New()
-            let user = User.New userId
-            let addUser = 
-                userService.CreateUserAsync user
-                |> Async.AwaitTask
-                |> Async.RunSynchronously
-            Expect.isOk addUser "should be ok"
+            let userId = registerUser "test@example.com" "Password123!"
 
             let retrieveBook = 
                 bookService.GetBookAsync book.BookId

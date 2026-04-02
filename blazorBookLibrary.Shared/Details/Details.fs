@@ -9,10 +9,12 @@ open System
 module Details =
     open BookLibrary.Domain
     open Commons
+    open blazorBookLibrary.Data
 
     type UserDetails =
         {
             User: User
+            ApplicationUser: ApplicationUser
             FutureReservations: List<Reservation>
             CurrentLoans: List<Loan> 
         }
@@ -23,7 +25,7 @@ module Details =
         { 
             Reservation: Reservation
             Book: Book
-            User: User
+            UserDetails: UserDetails
         }
 
     type BookDetails =
@@ -43,7 +45,6 @@ module Details =
                     currentTimeSlots
                     |> List.maxBy (fun timeSlot -> timeSlot.End)
                 TimeSlot.New (maximumTimeSlot.End) (maximumTimeSlot.End + TimeSpan.FromDays(float timeSlotLoanDurationInDays))   
-
 
     type AuthorDetails = {
             Author: Author

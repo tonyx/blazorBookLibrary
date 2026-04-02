@@ -48,6 +48,10 @@
     <PackageReference Include="Sharpino.Core" Version="4.8.8" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\blazorBookLibrary.Data\blazorBookLibrary.Data.csproj" />
+  </ItemGroup>
+
   <!-- <ItemGroup>
     <ProjectReference Include="..\..\realsharpino\Sharpino\Sharpino.Lib\Sharpino.Lib.fsproj" />
   </ItemGroup> -->

@@ -43,8 +43,6 @@ builder.Services.AddAuthentication(options =>
 
 var usersDbConnection = builder.Configuration.GetConnectionString("UsersDbConnection") ?? throw new InvalidOperationException("Connection string 'UsersDbConnection' not found.");
 
-// var bookLibraryDbConnection = builder.Configuration.GetConnectionString("BookLibraryDbConnection") ?? throw new InvalidOperationException("Connection string 'BookLibraryDbConnection' not found.");
-
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(usersDbConnection));
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
