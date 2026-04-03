@@ -39,7 +39,7 @@ internal static class IdentityComponentsEndpointRouteBuilderExtensions
 
             var properties = signInManager.ConfigureExternalAuthenticationProperties(provider, redirectUrl);
             return TypedResults.Challenge(properties, [provider]);
-        });
+        }).DisableAntiforgery();
 
         accountGroup.MapPost("/Logout", async (
             ClaimsPrincipal user,

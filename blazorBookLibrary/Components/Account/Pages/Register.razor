@@ -23,6 +23,7 @@
 @using Microsoft.Extensions.Localization
 @using Microsoft.AspNetCore.Components.Web
 @using blazorBookLibrary.Shared.Resources
+@using Microsoft.AspNetCore.Http
 
 <PageTitle>@L["Register"]</PageTitle>
 
@@ -56,12 +57,15 @@
                 <div class="card-body py-2">
                     <p class="mb-2 small fw-bold text-secondary text-uppercase"><i class="bi bi-shield-check me-1"></i>@L["HumanVerification"]</p>
                     <div class="d-flex align-items-center gap-2">
-                        <span class="fs-5 fw-bold text-primary">@number1 + @number2 =</span>
+                        <span class="fs-5 fw-bold text-primary">@Input.Number1 + @Input.Number2 =</span>
                         <div style="max-width: 100px;">
                             <InputNumber @bind-Value="Input.HumanAnswer" class="form-control form-control-sm border-primary" placeholder="?" />
                         </div>
                     </div>
                     <ValidationMessage For="() => Input.HumanAnswer" class="text-danger small mt-1" />
+                    <input type="hidden" name="Input.Number1" value="@Input.Number1" />
+                    <input type="hidden" name="Input.Number2" value="@Input.Number2" />
+                    <input type="hidden" name="Input.FormLoadTicks" value="@Input.FormLoadTicks" />
                 </div>
             </div>
 
@@ -88,29 +92,32 @@
 
     private string? Message => identityErrors is null ? null : $"Error: {string.Join(", ", identityErrors.Select(error => error.Description))}";
 
-    private int number1;
-    private int number2;
-    private DateTime formLoadTime;
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
 
     protected override void OnInitialized()
     {
         Input ??= new();
-        number1 = Random.Shared.Next(1, 10);
-        number2 = Random.Shared.Next(1, 10);
-        formLoadTime = DateTime.Now;
+        if (HttpMethods.IsGet(HttpContext.Request.Method))
+        {
+            Input.Number1 = Random.Shared.Next(1, 10);
+            Input.Number2 = Random.Shared.Next(1, 10);
+            Input.FormLoadTicks = DateTime.UtcNow.Ticks;
+        }
     }
 
     public async Task RegisterUser(EditContext editContext)
     {
-        if (Input.HumanAnswer != number1 + number2)
+        if (Input.HumanAnswer != Input.Number1 + Input.Number2)
         {
             identityErrors = new List<IdentityError> { new IdentityError { Description = L["IncorrectMathResponse"] } };
-            number1 = Random.Shared.Next(1, 10);
-            number2 = Random.Shared.Next(1, 10);
+            // Regenerate challenge for the next attempt
+            Input.Number1 = Random.Shared.Next(1, 10);
+            Input.Number2 = Random.Shared.Next(1, 10);
             return;
         }
 
-        if ((DateTime.Now - formLoadTime).TotalSeconds < 2)
+        if ((DateTime.UtcNow - new DateTime(Input.FormLoadTicks)).TotalSeconds < 2)
         {
             identityErrors = new List<IdentityError> { new IdentityError { Description = L["FastSubmissionError"] } };
             return;
@@ -212,5 +219,9 @@
         [Required(ErrorMessage = "HumanVerificationRequired")]
         [Display(Name = "SolveMathChallenge")]
         public int? HumanAnswer { get; set; }
+
+        public int Number1 { get; set; }
+        public int Number2 { get; set; }
+        public long FormLoadTicks { get; set; }
     }
 }

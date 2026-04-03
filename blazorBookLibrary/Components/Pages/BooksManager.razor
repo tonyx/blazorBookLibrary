@@ -96,7 +96,8 @@
                             </TemplateColumn>
                             <PropertyColumn Property="@(b => b.Year.Value)" Title="@L["Year"]" Sortable="true" Class="col-year" />
                             <PropertyColumn Property="@(b => b.MainCategory.Value())" Title="@L["Category"]" Sortable="true" Class="col-category" />
-                            <TemplateColumn Title="@L["AvailabilityType"]" Align="Align.Center" Class="col-availability-type" Sortable="true">
+
+                            <TemplateColumn Title="@L["AvailabilityType"]" Align="Align.Center" Class="col-availability-type" SortBy=@sortAvailabilityType>
                                 @{
                                     var label = context.Availability.ToString();
                                     var localizedLabel = L[label].Value;
@@ -104,7 +105,8 @@
                                 }
                                 <span class="badge bg-light text-dark border p-1" style="font-size: 0.7rem;" title="@localizedLabel">@contraction</span>
                             </TemplateColumn>
-                            <TemplateColumn Title="@L["Availability"]" Sortable="true" Align="Align.Center" Class="col-available">
+
+                            <TemplateColumn Title="@L["Availability"]" SortBy=@sortAvailability Align="Align.Center" Class="col-available">
                                 @if (context.ImmediatelyAvailable)
                                 {
                                     <span class="text-success small fw-bold"><i class="bi bi-check-circle-fill me-1"></i>@L["Available"]</span>
@@ -476,6 +478,10 @@
     private PaginationState bookPagination = new() { ItemsPerPage = 5 };
     private GridSort<Book> sortTitle = GridSort<Book>.ByAscending(b => b.Title.Value);
     private GridSort<Book> sortImage = GridSort<Book>.ByDescending(b => b.ImageUrl != null && FSharpOption<Uri>.get_IsSome(b.ImageUrl));
+
+    private GridSort<Book> sortAvailabilityType = GridSort<Book>.ByAscending(b => b.Availability.ToString());
+    private GridSort<Book> sortAvailability = GridSort<Book>.ByAscending(b => b.ImmediatelyAvailable);    
+
 
     private string statusMessage = "";
     private string statusClass = "alert-info";

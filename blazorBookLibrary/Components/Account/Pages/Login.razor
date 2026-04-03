@@ -8,6 +8,7 @@
 @using Microsoft.Extensions.Localization
 @using Microsoft.AspNetCore.Components.Web
 @using blazorBookLibrary.Shared.Resources
+@using Microsoft.AspNetCore.Http
 @inject UserManager<ApplicationUser> UserManager
 @inject SignInManager<ApplicationUser> SignInManager
 @inject ILogger<Login> Logger
@@ -48,36 +49,46 @@
                     <div class="card-body py-2">
                         <p class="mb-2 small fw-bold text-secondary text-uppercase"><i class="bi bi-shield-check me-1"></i>@L["HumanVerification"]</p>
                         <div class="d-flex align-items-center gap-2">
-                            <span class="fs-5 fw-bold text-primary">@number1 + @number2 =</span>
+                            <span class="fs-5 fw-bold text-primary">@Input.Number1 + @Input.Number2 =</span>
                             <div style="max-width: 100px;">
                                 <InputNumber @bind-Value="Input.HumanAnswer" class="form-control form-control-sm border-primary" placeholder="?" />
                             </div>
                         </div>
                         <ValidationMessage For="() => Input.HumanAnswer" class="text-danger small mt-1" />
+                        <input type="hidden" name="Input.Number1" value="@Input.Number1" />
+                        <input type="hidden" name="Input.Number2" value="@Input.Number2" />
+                        <input type="hidden" name="Input.FormLoadTicks" value="@Input.FormLoadTicks" />
                     </div>
                 </div>
 
-                <div>
-                    <button type="submit" class="w-100 btn btn-lg btn-primary">Log in</button>
+                <div class="d-flex flex-column gap-1">
+                    <span class="text-secondary mx-auto mt-2 fs-6 opacity-75">OR</span>
+                    <PasskeySubmit Operation="PasskeyOperation.Request" Name="Input.Passkey" EmailName="Input.Email" class="btn btn-link mx-auto text-decoration-none">
+                        <i class="bi bi-shield-lock me-1"></i> Log in with a passkey
+                    </PasskeySubmit>
                 </div>
-                <hr />
-                <div class="d-flex flex-column">
-                    <span class="text-secondary mx-auto mt-2">OR</span>
-                    <PasskeySubmit Operation="PasskeyOperation.Request" Name="Input.Passkey" EmailName="Input.Email" class="btn btn-link mx-auto">Log in with a passkey</PasskeySubmit>
-                </div>
-                <hr />
-                <div>
-                    <p>
-                        <a href="Account/ForgotPassword">Forgot your password?</a>
-                    </p>
-                    <p>
-                        <a href="@(NavigationManager.GetUriWithQueryParameters("Account/Register", new Dictionary<string, object?> { ["ReturnUrl"] = ReturnUrl }))">Register as a new user</a>
-                    </p>
-                    <p>
-                        <a href="Account/ResendEmailConfirmation">Resend email confirmation</a>
-                    </p>
-                </div>
+                <hr class="mt-2 mb-3" />
             </EditForm>
+            
+            <form action="Account/PerformExternalLogin" method="post" class="mt-n1 mb-4" data-enhance="false">
+                <AntiforgeryToken />
+                <input type="hidden" name="ReturnUrl" value="@ReturnUrl" />
+                <button type="submit" class="w-100 btn btn-lg btn-outline-primary border-primary-subtle shadow-sm transition-hover" name="provider" value="Google" title="Log in using your Google account">
+                    <i class="bi bi-google me-2 text-danger"></i> Log in using Google
+                </button>
+            </form>
+            
+            <div class="mt-1 pt-2 border-top">
+                <p class="mb-1">
+                    <a href="Account/ForgotPassword" class="text-secondary small">Forgot your password?</a>
+                </p>
+                <p class="mb-1">
+                    <a href="@(NavigationManager.GetUriWithQueryParameters("Account/Register", new Dictionary<string, object?> { ["ReturnUrl"] = ReturnUrl }))" class="text-secondary small">Register as a new user</a>
+                </p>
+                <p class="mb-0">
+                    <a href="Account/ResendEmailConfirmation" class="text-secondary small">Resend email confirmation</a>
+                </p>
+            </div>
         </section>
     </div>
     <div class="col-lg-4 col-lg-offset-2">
@@ -92,9 +103,6 @@
 @code {
     private string? errorMessage;
     private EditContext editContext = default!;
-    private int number1;
-    private int number2;
-    private DateTime formLoadTime;
 
     [CascadingParameter]
     private HttpContext HttpContext { get; set; } = default!;
@@ -108,9 +116,12 @@
     protected override async Task OnInitializedAsync()
     {
         Input ??= new();
-        number1 = Random.Shared.Next(1, 10);
-        number2 = Random.Shared.Next(1, 10);
-        formLoadTime = DateTime.Now;
+        if (HttpMethods.IsGet(HttpContext.Request.Method))
+        {
+            Input.Number1 = Random.Shared.Next(1, 10);
+            Input.Number2 = Random.Shared.Next(1, 10);
+            Input.FormLoadTicks = DateTime.UtcNow.Ticks;
+        }
 
         editContext = new EditContext(Input);
 
@@ -143,15 +154,15 @@
                 return;
             }
 
-            if (Input.HumanAnswer != number1 + number2)
+            if (Input.HumanAnswer != Input.Number1 + Input.Number2)
             {
                 errorMessage = L["IncorrectMathResponse"];
-                number1 = Random.Shared.Next(1, 10);
-                number2 = Random.Shared.Next(1, 10);
+                Input.Number1 = Random.Shared.Next(1, 10);
+                Input.Number2 = Random.Shared.Next(1, 10);
                 return;
             }
 
-            if ((DateTime.Now - formLoadTime).TotalSeconds < 2)
+            if ((DateTime.UtcNow - new DateTime(Input.FormLoadTicks)).TotalSeconds < 2)
             {
                 errorMessage = L["FastSubmissionError"];
                 return;
@@ -200,6 +211,10 @@
         [Required(ErrorMessage = "HumanVerificationRequired")]
         [Display(Name = "SolveMathChallenge")]
         public int? HumanAnswer { get; set; }
+
+        public int Number1 { get; set; }
+        public int Number2 { get; set; }
+        public long FormLoadTicks { get; set; }
 
         public PasskeyInputModel? Passkey { get; set; }
     }

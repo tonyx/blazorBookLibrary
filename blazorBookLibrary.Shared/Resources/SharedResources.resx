@@ -493,4 +493,16 @@
   <data name="MaxReservationsReachedMessage" xml:space="preserve">
     <value>You have reached the maximum number of reservations allowed ({0}). Please complete your current loans or cancel previous reservations to reserve new books.</value>
   </data>
+  <data name="CannotUnsealWithLoansOrReservations" xml:space="preserve">
+    <value>Cannot unseal this book because it has active loans or future reservations.</value>
+  </data>
+  <data name="BooksFound" xml:space="preserve">
+    <value>Books found</value>
+  </data>
+  <data name="ShowImages" xml:space="preserve">
+    <value>Show Images</value>
+  </data>
+  <data name="Preview" xml:space="preserve">
+    <value>Preview</value>
+  </data>
 </root>

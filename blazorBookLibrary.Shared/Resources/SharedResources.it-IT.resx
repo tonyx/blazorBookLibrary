@@ -493,4 +493,7 @@
   <data name="MaxReservationsReachedMessage" xml:space="preserve">
     <value>Hai raggiunto il numero massimo di prenotazioni consentite ({0}). Per favore completa i prestiti in corso o annulla prenotazioni precedenti prima di effettuarne di nuove.</value>
   </data>
+  <data name="CannotUnsealWithLoansOrReservations" xml:space="preserve">
+    <value>Impossibile togliere il sigillo perché il libro ha prestiti attivi o prenotazioni future.</value>
+  </data>
 </root>

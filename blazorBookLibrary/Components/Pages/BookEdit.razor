@@ -801,6 +801,18 @@
     {
         if (bookDetails == null) return;
         
+        if (isBookSealed)
+        {
+            var hasLoans = FSharpOption<BookLibrary.Domain.Loan>.get_IsSome(bookDetails.CurrentLoan);
+            var hasReservations = bookDetails.ReservationsDetails.Any();
+            
+            if (hasLoans || hasReservations)
+            {
+                ShowStatus(L["CannotUnsealWithLoansOrReservations"], "alert-warning");
+                return;
+            }
+        }
+
         var result = isBookSealed 
             ? await BookService.UnsealAsync(bookDetails.Book.BookId, FSharpOption<CancellationToken>.None)
             : await BookService.SealAsync(bookDetails.Book.BookId, FSharpOption<CancellationToken>.None);

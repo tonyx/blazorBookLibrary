@@ -463,4 +463,7 @@
   <data name="Reserve" xml:space="preserve">
     <value>Reserve</value>
   </data>
+  <data name="CannotUnsealWithLoansOrReservations" xml:space="preserve">
+    <value>Cannot unseal this book because it has active loans or future reservations.</value>
+  </data>
 </root>
