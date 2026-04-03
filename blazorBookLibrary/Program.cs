@@ -15,9 +15,13 @@ using BookLibrary.Domain;
 using static BookLibrary.Shared.Commons;
 // using static BookLibrary.Application.ServiceLayer;
 
+using blazorBookLibrary.Security;
+using blazorBookLibrary.Infrastructure.Services;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
+builder.Services.AddScoped<BotScoreService>();
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents()
     .AddInteractiveWebAssemblyComponents()
@@ -42,8 +46,7 @@ builder.Services.AddAuthentication(options =>
     {
         options.ClientId = builder.Configuration["Authentication:Google:ClientId"] ?? "PLACEHOLDER_GOOGLE_ID";
         options.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"] ?? "PLACEHOLDER_GOOGLE_SECRET";
-    })
-    .AddIdentityCookies();
+    }).AddIdentityCookies();
 
 var usersDbConnection = builder.Configuration.GetConnectionString("UsersDbConnection") ?? throw new InvalidOperationException("Connection string 'UsersDbConnection' not found.");
 
@@ -61,15 +64,13 @@ builder.Services.AddIdentityCore<ApplicationUser>(options =>
     .AddSignInManager()
     .AddDefaultTokenProviders();
 
+builder.Services.AddSingleton<MailNotificator>();
 
-builder.Services.AddScoped<IAuthorService, AuthorService>();
+builder.Services.AddSingleton<IAuthorService, AuthorService>();
 builder.Services.AddScoped<IReservationService, ReservationService>();
 builder.Services.AddScoped<IBookService, BookService>();
 builder.Services.AddScoped<ILoanService, LoanService>();
 builder.Services.AddScoped<IGoogleBooksService, GoogleBooksService>();
-
-// remove when is confirmed
-// builder.Services.AddScoped<IUserService>(sp => new UserService(bookLibraryDbConnection));
 
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddHttpClient<IAuthorsSearchService, AuthorsSearchService>(client =>

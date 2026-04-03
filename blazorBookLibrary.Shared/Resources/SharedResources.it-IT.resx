@@ -496,4 +496,7 @@
   <data name="CannotUnsealWithLoansOrReservations" xml:space="preserve">
     <value>Impossibile togliere il sigillo perché il libro ha prestiti attivi o prenotazioni future.</value>
   </data>
+  <data name="overActivity" xml:space="preserve">
+    <value>Potresti aver superato il limite di attività, riprova più tardi</value>
+  </data>
 </root>

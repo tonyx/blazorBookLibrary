@@ -466,4 +466,7 @@
   <data name="CannotUnsealWithLoansOrReservations" xml:space="preserve">
     <value>Cannot unseal this book because it has active loans or future reservations.</value>
   </data>
+  <data name="overActivity" xml:space="preserve">
+    <value>You may have over activity, please try again later</value>
+  </data>
 </root>

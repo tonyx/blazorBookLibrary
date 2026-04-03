@@ -3,6 +3,8 @@
 @page "/books-browser"
 @using Microsoft.AspNetCore.Components.QuickGrid
 @using BookLibrary.Shared.Services
+@using Microsoft.Extensions.Configuration
+@using blazorBookLibrary.Security
 @using BookLibrary.Domain
 @using static BookLibrary.Shared.Commons
 @using Microsoft.FSharp.Core
@@ -11,8 +13,11 @@
 @using static  BookLibrary.Shared.SearchCriteria
 @using System.Threading
 @using static BookLibrary.Shared.Details
+@inject BotScoreService BotScoreService
 @inject IBookService BookService
 @inject IAuthorService AuthorService
+@inject IConfiguration Configuration
+@inject ILogger<BookSearch> Logger
 @inject IJSRuntime JSRuntime
 @inject IStringLocalizer<SharedResources> L
 @rendermode InteractiveServer
@@ -186,8 +191,34 @@
     private GridSort<Book> sortAvailabilityType = GridSort<Book>.ByAscending(b => b.Availability.ToString());
     private GridSort<Book> sortAvailability = GridSort<Book>.ByAscending(b => b.ImmediatelyAvailable);    
 
+
     private string statusMessage = "";
     private string statusClass = "alert-info";
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        var siteKey = Configuration["Authentication:Recaptcha:SiteKey"];
+        if (firstRender)
+        {
+            // 1. Chiedi il token (azione silenziosa)
+            var token = await JSRuntime.InvokeAsync<string>("generateRecaptchaToken", siteKey, "book_browser");
+
+            // 2. Ottieni lo score reale dal server
+            var score = await BotScoreService.GetBotScoreAsync(token);
+
+            Console.WriteLine($"Score: {score}");
+
+            await BotScoreService.ApplyBotDelayAsync(score);
+
+            // 4. Logica di protezione immediata
+            if (score < 0.3) 
+            {
+                Logger.LogWarning($"Suspiciuos bot activity {score}");
+                statusMessage = L["overActivity"];
+                // Magari non bloccare, ma limita le informazioni (es. non mostrare il prezzo o la disponibilità)
+            }
+        }
+    }
 
     private void HandleSearchStarted(bool started)
     {

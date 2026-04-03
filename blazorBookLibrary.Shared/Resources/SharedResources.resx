@@ -505,4 +505,7 @@
   <data name="Preview" xml:space="preserve">
     <value>Preview</value>
   </data>
+  <data name="overActivity" xml:space="preserve">
+    <value>You may have over activity, please try again later</value>
+  </data>
 </root>
