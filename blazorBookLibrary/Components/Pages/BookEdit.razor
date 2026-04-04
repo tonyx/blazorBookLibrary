@@ -51,14 +51,6 @@
         </a>
     </div>
 
-    @if (!string.IsNullOrEmpty(statusMessage))
-    {
-        <div class="alert @statusClass alert-dismissible fade show mb-4" role="alert">
-            @statusMessage
-            <button type="button" class="btn-close" @onclick='() => statusMessage = ""'></button>
-        </div>
-    }
-
     @if (isLoading)
     {
         <div class="d-flex justify-content-center my-5">
@@ -682,16 +674,16 @@
                 await LoadBookDetails();
                 authorSearchInput = "";
                 selectedAuthorForAdd = null;
-                ShowStatus($"{L["Author"]} '{addedName}' {L["HasBeenAdded"]}.", "alert-success");
+                await ShowStatus($"{L["Author"]} '{addedName}' {L["HasBeenAdded"]}.", "alert-success");
             }
             else
             {
-                ShowStatus($"Failed to add author: {result.ErrorValue}", "alert-danger");
+                await ShowStatus(string.Format(L["ErrorAddingAuthor"], result.ErrorValue), "alert-danger");
             }
         }
         catch (Exception ex)
         {
-            ShowStatus($"Error adding author: {ex.Message}", "alert-danger");
+            await ShowStatus(string.Format(L["ErrorAddingAuthorGeneric"], ex.Message), "alert-danger");
         }
     }
 
@@ -708,16 +700,16 @@
             if (result.IsOk)
             {
                 await LoadBookDetails();
-                ShowStatus($"{L["Author"]} '{author.Name.Value}' {L["Removed"]}.", "alert-success");
+                await ShowStatus($"{L["Author"]} '{author.Name.Value}' {L["Removed"]}.", "alert-success");
             }
             else
             {
-                ShowStatus($"Failed to remove author: {result.ErrorValue}", "alert-danger");
+                await ShowStatus(string.Format(L["ErrorRemovingAuthor"], result.ErrorValue), "alert-danger");
             }
         }
         catch (Exception ex)
         {
-            ShowStatus($"Error removing author: {ex.Message}", "alert-danger");
+            await ShowStatus(string.Format(L["ErrorRemovingAuthorGeneric"], ex.Message), "alert-danger");
         }
     }
 
@@ -748,16 +740,16 @@
             if (result.IsOk)
             {
                 await LoadBookDetails();
-                ShowStatus($"{L["Category"]} '{category.Value()}' {L["HasBeenAdded"]}", "alert-success");
+                await ShowStatus($"{L["Category"]} '{category.Value()}' {L["HasBeenAdded"]}", "alert-success");
             }
             else
             {
-                ShowStatus($"Failed to add category: {result.ErrorValue}", "alert-danger");
+                await ShowStatus(string.Format(L["ErrorAddingCategory"], result.ErrorValue), "alert-danger");
             }
         }
         catch (Exception ex)
         {
-            ShowStatus($"Error adding category: {ex.Message}", "alert-danger");
+            await ShowStatus(string.Format(L["ErrorAddingCategoryGeneric"], ex.Message), "alert-danger");
         }
     }
 
@@ -771,20 +763,20 @@
             if (result.IsOk)
             {
                 await LoadBookDetails();
-                ShowStatus($"{L["Category"]} '{category.Value()}' {L["Removed"]}", "alert-success");
+                await ShowStatus($"{L["Category"]} '{category.Value()}' {L["Removed"]}", "alert-success");
             }
             else
             {
-                ShowStatus($"Failed to remove category: {result.ErrorValue}", "alert-danger");
+                await ShowStatus(string.Format(L["ErrorRemovingCategory"], result.ErrorValue), "alert-danger");
             }
         }
         catch (Exception ex)
         {
-            ShowStatus($"Error removing category: {ex.Message}", "alert-danger");
+            await ShowStatus(string.Format(L["ErrorRemovingCategoryGeneric"], ex.Message), "alert-danger");
         }
     }
 
-    private void StartEdit()
+    private async Task StartEdit()
     {
         if (bookDetails?.Book.Editable ?? false)
         {
@@ -793,7 +785,7 @@
         }
         else if (isBookSealed)
         {
-            ShowStatus("This book is currently sealed (locked). Please unseal it to edit.", "alert-warning");
+            await ShowStatus(L["BookSealedCannotEdit"], "alert-warning");
         }
     }
 
@@ -808,7 +800,7 @@
             
             if (hasLoans || hasReservations)
             {
-                ShowStatus(L["CannotUnsealWithLoansOrReservations"], "alert-warning");
+                await ShowStatus(L["CannotUnsealWithLoansOrReservations"], "alert-warning");
                 return;
             }
         }
@@ -824,7 +816,7 @@
         }
         else
         {
-            ShowStatus($"Failed to change seal state: {result.ErrorValue}", "alert-danger");
+            await ShowStatus(string.Format(L["ErrorChangingSealState"], result.ErrorValue), "alert-danger");
         }
     }
 
@@ -833,7 +825,7 @@
         isEditingTitle = false;
     }
 
-    private void StartEditCategory()
+    private async Task StartEditCategory()
     {
         if (bookDetails?.Book.Editable ?? false)
         {
@@ -842,7 +834,7 @@
         }
         else if (isBookSealed)
         {
-            ShowStatus("This book is currently sealed. Please unseal it to change its category.", "alert-warning");
+            await ShowStatus(L["BookSealedCannotChangeCategory"], "alert-warning");
         }
     }
 
@@ -862,20 +854,20 @@
             {
                 await LoadBookDetails();
                 isEditingCategory = false;
-                ShowStatus($"{L["Category"]} {L["HasBeenUpdated"]}.", "alert-success");
+                await ShowStatus($"{L["Category"]} {L["HasBeenUpdated"]}.", "alert-success");
             }
             else
             {
-                ShowStatus($"Failed to update category: {result.ErrorValue}", "alert-danger");
+                await ShowStatus(string.Format(L["ErrorUpdatingCategory"], result.ErrorValue), "alert-danger");
             }
         }
         catch (Exception ex)
         {
-            ShowStatus($"Error updating category: {ex.Message}", "alert-danger");
+            await ShowStatus(string.Format(L["ErrorUpdatingCategoryGeneric"], ex.Message), "alert-danger");
         }
     }
 
-    private void StartEditAvailability()
+    private async Task StartEditAvailability()
     {
         if (bookDetails?.Book.Editable ?? false)
         {
@@ -884,7 +876,7 @@
         }
         else if (isBookSealed)
         {
-            ShowStatus("This book is currently sealed. Please unseal it to change its availability status.", "alert-warning");
+            await ShowStatus(L["BookSealedCannotChangeAvailability"], "alert-warning");
         }
     }
 
@@ -904,16 +896,16 @@
             {
                 await LoadBookDetails();
                 isEditingAvailability = false;
-                ShowStatus($"{L["Availability"]} {L["HasBeenUpdated"]}.", "alert-success");
+                await ShowStatus($"{L["Availability"]} {L["HasBeenUpdated"]}.", "alert-success");
             }
             else
             {
-                ShowStatus($"Failed to update availability: {result.ErrorValue}", "alert-danger");
+                await ShowStatus(string.Format(L["ErrorUpdatingAvailability"], result.ErrorValue), "alert-danger");
             }
         }
         catch (Exception ex)
         {
-            ShowStatus($"Error updating availability: {ex.Message}", "alert-danger");
+            await ShowStatus(string.Format(L["ErrorUpdatingAvailabilityGeneric"], ex.Message), "alert-danger");
         }
     }
 
@@ -952,12 +944,12 @@
             }
             else
             {
-                ShowStatus($"Failed to delete book: {result.ErrorValue}", "alert-danger");
+                await ShowStatus(string.Format(L["ErrorDeletingBook"], result.ErrorValue), "alert-danger");
             }
         }
         catch (Exception ex)
         {
-            ShowStatus($"Error during deletion: {ex.Message}", "alert-danger");
+            await ShowStatus(string.Format(L["ErrorDuringDeletion"], ex.Message), "alert-danger");
         }
     }
 
@@ -978,16 +970,16 @@
             {
                 await LoadBookDetails();
                 isEditingTitle = false;
-                ShowStatus(L["TitleUpdated"], "alert-success");
+                await ShowStatus(L["TitleUpdated"], "alert-success");
             }
             else
             {
-                ShowStatus($"Failed to update title: {result.ErrorValue}", "alert-danger");
+                await ShowStatus(string.Format(L["ErrorUpdatingTitle"], result.ErrorValue), "alert-danger");
             }
         }
         catch (Exception ex)
         {
-            ShowStatus($"Error updating title: {ex.Message}", "alert-danger");
+            await ShowStatus(string.Format(L["ErrorUpdatingTitleGeneric"], ex.Message), "alert-danger");
         }
     }
 
@@ -1008,23 +1000,23 @@
                 var result = await BookService.SetImageUrlAsync(bookDetails.Book.BookId, uri);
                 if (result.IsOk)
                 {
-                    ShowStatus(L["ImageUrlUpdated"], "alert-success");
+                    await ShowStatus(L["ImageUrlUpdated"], "alert-success");
                     isEditingImageUrl = false;
                     await LoadBookDetails();
                 }
                 else
                 {
-                    ShowStatus($"Error updating image: {result.ErrorValue}", "alert-danger");
+                    await ShowStatus(string.Format(L["ErrorUpdatingImage"], result.ErrorValue), "alert-danger");
                 }
             }
             else
             {
-                ShowStatus("Invalid URL format. Please provide a full absolute URL.", "alert-warning");
+                await ShowStatus(L["InvalidUrlFormat"], "alert-warning");
             }
         }
         catch (Exception ex)
         {
-            ShowStatus($"Exception updating image: {ex.Message}", "alert-danger");
+            await ShowStatus(string.Format(L["ErrorUpdatingImageGeneric"], ex.Message), "alert-danger");
         }
     }
 
@@ -1040,18 +1032,18 @@
             var result = await BookService.RemoveImageUrlAsync(bookDetails.Book.BookId);
             if (result.IsOk)
             {
-                ShowStatus(L["ImageCoverRemoved"], "alert-info");
+                await ShowStatus(L["ImageCoverRemoved"], "alert-info");
                 isEditingImageUrl = false;
                 await LoadBookDetails();
             }
             else
             {
-                ShowStatus($"Error removing image: {result.ErrorValue}", "alert-danger");
+                await ShowStatus(string.Format(L["ErrorRemovingImage"], result.ErrorValue), "alert-danger");
             }
         }
         catch (Exception ex)
         {
-            ShowStatus($"Exception removing image: {ex.Message}", "alert-danger");
+            await ShowStatus(string.Format(L["ErrorRemovingImageGeneric"], ex.Message), "alert-danger");
         }
     }
 
@@ -1089,20 +1081,20 @@
             if (result.IsOk && FSharpOption<string>.get_IsSome(result.ResultValue))
             {
                 coverPreviewUrl = result.ResultValue.Value;
-                ShowStatus($"Cover image found via {searchMode}! See preview below.", "alert-success");
+                await ShowStatus(string.Format(L["CoverImageFoundVia"], searchMode), "alert-success");
             }
             else if (result.IsOk)
             {
-                ShowStatus($"No cover found using {searchMode}.", "alert-warning");
+                await ShowStatus(string.Format(L["NoCoverFoundUsing"], searchMode), "alert-warning");
             }
             else
             {
-                ShowStatus($"Lookup error: {result.ErrorValue}", "alert-danger");
+                await ShowStatus(string.Format(L["LookupError"], result.ErrorValue), "alert-danger");
             }
         }
         catch (Exception ex)
         {
-            ShowStatus($"Exception during lookup: {ex.Message}", "alert-danger");
+            await ShowStatus(string.Format(L["LookupErrorGeneric"], ex.Message), "alert-danger");
         }
         finally
         {
@@ -1110,7 +1102,7 @@
         }
     }
 
-    private void StartEditDescription()
+    private async Task StartEditDescription()
     {
         if (bookDetails?.Book.Editable ?? false)
         {
@@ -1121,7 +1113,7 @@
         }
         else if (isBookSealed)
         {
-            ShowStatus("This book is currently sealed. Please unseal it to edit the description.", "alert-warning");
+            await ShowStatus(L["BookSealedCannotEditDescription"], "alert-warning");
         }
     }
 
@@ -1141,12 +1133,12 @@
             if (string.IsNullOrWhiteSpace(editedDescription))
             {
                 result = await BookService.RemoveDescriptionAsync(bookDetails.Book.BookId, FSharpOption<System.Threading.CancellationToken>.None);
-                if (result.IsOk) ShowStatus(L["DescriptionRemoved"], "alert-success");
+                if (result.IsOk) await ShowStatus(L["DescriptionRemoved"], "alert-success");
             }
             else
             {
                 result = await BookService.UpdateDescriptionAsync(editedDescription, bookDetails.Book.BookId, FSharpOption<System.Threading.CancellationToken>.None);
-                if (result.IsOk) ShowStatus(L["DescriptionUpdated"], "alert-success");
+                if (result.IsOk) await ShowStatus(L["DescriptionUpdated"], "alert-success");
             }
             
             if (result.IsOk)
@@ -1156,32 +1148,32 @@
             }
             else
             {
-                ShowStatus($"Failed to update description: {result.ErrorValue}", "alert-danger");
+                await ShowStatus(string.Format(L["ErrorUpdatingDescription"], result.ErrorValue), "alert-danger");
             }
         }
         catch (Exception ex)
         {
-            ShowStatus($"Error updating description: {ex.Message}", "alert-danger");
+            await ShowStatus(string.Format(L["ErrorUpdatingDescriptionGeneric"], ex.Message), "alert-danger");
         }
     }
 
-    private void AcceptLookup()
+    private async Task AcceptLookup()
     {
         if (coverPreviewUrl != null)
         {
             editedImageUrl = coverPreviewUrl;
             coverPreviewUrl = null;
-            ShowStatus("New image URL applied. Click 'Save' to confirm.", "alert-info");
+            await ShowStatus(L["ImageUrlAppliedConfirm"], "alert-info");
         }
     }
 
-    private void DiscardLookup()
+    private async Task DiscardLookup()
     {
         coverPreviewUrl = null;
-        ShowStatus("Cover lookup discarded.", "alert-info");
+        await ShowStatus(L["CoverLookupDiscarded"], "alert-info");
     }
 
-    private void StartEditIsbn()
+    private async Task StartEditIsbn()
     {
         if (bookDetails?.Book.Editable ?? false)
         {
@@ -1191,7 +1183,7 @@
         }
         else if (isBookSealed)
         {
-            ShowStatus("This book is currently sealed. Please unseal it to edit the ISBN.", "alert-warning");
+            await ShowStatus(L["BookSealedCannotEditIsbn"], "alert-warning");
         }
     }
 
@@ -1205,7 +1197,7 @@
         if (bookDetails == null) return;
         if (string.IsNullOrWhiteSpace(editedIsbn))
         {
-            ShowStatus("ISBN cannot be empty.", "alert-warning");
+            await ShowStatus(L["IsbnCannotBeEmpty"], "alert-warning");
             return;
         }
 
@@ -1224,7 +1216,7 @@
             }
             else
             {
-                ShowStatus("Invalid ISBN format. If you need to save it anyway, use the 'Accept Invalid' switch.", "alert-warning");
+                await ShowStatus(L["InvalidIsbnFormatSwitch"], "alert-warning");
                 return;
             }
 
@@ -1233,16 +1225,16 @@
             {
                 await LoadBookDetails();
                 isEditingIsbn = false;
-                ShowStatus(L["IsbnUpdated"], "alert-success");
+                await ShowStatus(L["IsbnUpdated"], "alert-success");
             }
             else
             {
-                ShowStatus($"Failed to update ISBN: {result.ErrorValue}", "alert-danger");
+                await ShowStatus(string.Format(L["ErrorUpdatingIsbn"], result.ErrorValue), "alert-danger");
             }
         }
         catch (Exception ex)
         {
-            ShowStatus($"Error updating ISBN: {ex.Message}", "alert-danger");
+            await ShowStatus(string.Format(L["ErrorUpdatingIsbnGeneric"], ex.Message), "alert-danger");
         }
     }
 
@@ -1269,17 +1261,17 @@
                 }
                 else
                 {
-                    ShowStatus($"Failed to load book: {result.ErrorValue}", "alert-danger");
+                    await ShowStatus(string.Format(L["ErrorLoadingBook"], result.ErrorValue), "alert-danger");
                 }
             }
             else
             {
-                ShowStatus("Invalid book identifier in URL.", "alert-danger");
+                await ShowStatus(L["InvalidBookIdInUrl"], "alert-danger");
             }
         }
         catch (Exception ex)
         {
-            ShowStatus($"Error loading data: {ex.Message}", "alert-danger");
+            await ShowStatus(string.Format(L["ErrorLoadingData"], ex.Message), "alert-danger");
         }
         finally
         {
@@ -1287,9 +1279,16 @@
         }
     }
 
-    private void ShowStatus(string message, string cssClass)
+    private async Task ShowStatus(string message, string cssClass)
     {
         statusMessage = message;
         statusClass = cssClass;
+
+        string type = "info";
+        if (cssClass.Contains("success")) type = "success";
+        else if (cssClass.Contains("danger")) type = "error";
+        else if (cssClass.Contains("warning")) type = "warning";
+
+        await JSRuntime.InvokeVoidAsync("showToast", message, type);
     }
 }

@@ -86,15 +86,6 @@
         </a>
     </div>
 
-    @if (!string.IsNullOrEmpty(statusMessage))
-    {
-        <div class="alert @statusClass alert-dismissible fade show mb-4 shadow-sm" role="alert">
-            <i class="bi @(statusClass == "alert-danger" ? "bi-exclamation-triangle-fill" : "bi-info-circle-fill") me-2"></i>
-            @statusMessage
-            <button type="button" class="btn-close" @onclick='() => statusMessage = ""'></button>
-        </div>
-    }
-
     @if (isLoading)
     {
         <div class="d-flex justify-content-center my-5">
@@ -416,19 +407,16 @@
             if (result.IsOk)
             {
                 editedImageUrl = result.ResultValue;
-                statusMessage = "Image URL found. Please click 'Apply' to save.";
-                statusClass = "alert-info";
+                await ShowStatus("Image URL found. Please click 'Apply' to save.", "alert-info");
             }
             else
             {
-                statusMessage = $"Image lookup failed: {result.ErrorValue}";
-                statusClass = "alert-warning";
+                await ShowStatus(string.Format(L["LookupError"], result.ErrorValue), "alert-warning");
             }
         }
         catch (Exception ex)
         {
-            statusMessage = $"Error during lookup: {ex.Message}";
-            statusClass = "alert-danger";
+            await ShowStatus(string.Format(L["LookupErrorGeneric"], ex.Message), "alert-danger");
         }
         finally
         {
@@ -474,8 +462,7 @@
 
         if (!Uri.TryCreate(editedImageUrl, UriKind.Absolute, out var newUri))
         {
-            statusMessage = "Please enter a valid absolute URL (starting with http:// or https://).";
-            statusClass = "alert-danger";
+            await ShowStatus(L["InvalidUrlFormat"], "alert-danger");
             return;
         }
 
@@ -494,8 +481,7 @@
             using var response = await client.GetAsync(newUri, HttpCompletionOption.ResponseHeadersRead);
             if (!response.IsSuccessStatusCode)
             {
-                statusMessage = $"The provided link appears to be broken (Status code: {response.StatusCode}). Update failed.";
-                statusClass = "alert-danger";
+                await ShowStatus(string.Format(L["BrokenLinkError"], response.StatusCode), "alert-danger");
                 return;
             }
 
@@ -504,19 +490,16 @@
             {
                 await LoadAuthorDetails();
                 isEditingImageUrl = false;
-                statusMessage = "Author photo updated successfully.";
-                statusClass = "alert-success";
+                await ShowStatus(L["ImageUrlUpdated"], "alert-success");
             }
             else
             {
-                statusMessage = $"Failed to update image URL: {result.ErrorValue}";
-                statusClass = "alert-danger";
+                await ShowStatus(string.Format(L["ErrorUpdatingImage"], result.ErrorValue), "alert-danger");
             }
         }
         catch (Exception ex)
         {
-            statusMessage = $"Error validating or updating image: {ex.Message}";
-            statusClass = "alert-danger";
+            await ShowStatus(string.Format(L["ErrorUpdatingImageGeneric"], ex.Message), "alert-danger");
         }
     }
 
@@ -531,23 +514,20 @@
             {
                 await LoadAuthorDetails();
                 isEditingImageUrl = false;
-                statusMessage = "Author photo removed.";
-                statusClass = "alert-success";
+                await ShowStatus(L["ImageCoverRemoved"], "alert-success");
             }
             else
             {
-                statusMessage = $"Failed to remove image: {result.ErrorValue}";
-                statusClass = "alert-danger";
+                await ShowStatus(string.Format(L["ErrorRemovingImage"], result.ErrorValue), "alert-danger");
             }
         }
         catch (Exception ex)
         {
-            statusMessage = $"Error removing image: {ex.Message}";
-            statusClass = "alert-danger";
+            await ShowStatus(string.Format(L["ErrorRemovingImageGeneric"], ex.Message), "alert-danger");
         }
     }
 
-    private void StartEditName()
+    private async Task StartEditName()
     {
         if (authorDetails != null && authorDetails.Author.Editable)
         {
@@ -556,8 +536,7 @@
         }
         else if (isAuthorSealed)
         {
-            statusMessage = "This author is currently locked. Please unlock (unseal) to edit.";
-            statusClass = "alert-warning";
+            await ShowStatus(L["AuthorLockedCannotEdit"], "alert-warning");
         }
     }
 
@@ -582,23 +561,20 @@
             {
                 await LoadAuthorDetails();
                 isEditingName = false;
-                statusMessage = "Author name updated successfully.";
-                statusClass = "alert-success";
+                await ShowStatus(L["AuthorNameUpdated"], "alert-success");
             }
             else
             {
-                statusMessage = $"Failed to rename author: {result.ErrorValue}";
-                statusClass = "alert-danger";
+                await ShowStatus(string.Format(L["ErrorRenamingAuthor"], result.ErrorValue), "alert-danger");
             }
         }
         catch (Exception ex)
         {
-            statusMessage = $"Error updating name: {ex.Message}";
-            statusClass = "alert-danger";
+            await ShowStatus(string.Format(L["ErrorUpdatingNameGeneric"], ex.Message), "alert-danger");
         }
     }
 
-    private void StartEditIsni()
+    private async Task StartEditIsni()
     {
         if (authorDetails != null && authorDetails.Author.Editable)
         {
@@ -608,8 +584,7 @@
         }
         else if (isAuthorSealed)
         {
-            statusMessage = "This author is currently locked. Please unlock (unseal) to edit.";
-            statusClass = "alert-warning";
+            await ShowStatus("This author is currently locked. Please unlock (unseal) to edit.", "alert-warning");
         }
     }
 
@@ -640,8 +615,7 @@
             }
             else
             {
-                statusMessage = $"Invalid ISNI format: {result.ErrorValue}. To save it anyway, toggle 'Accept invalid' switch.";
-                statusClass = "alert-danger";
+                await ShowStatus(string.Format(L["InvalidIsniValue"], result.ErrorValue) + ". " + L["AcceptInvalidIsniPrompt"], "alert-danger");
                 return;
             }
         }
@@ -653,19 +627,16 @@
             {
                 await LoadAuthorDetails();
                 isEditingIsni = false;
-                statusMessage = "ISNI updated successfully.";
-                statusClass = "alert-success";
+                await ShowStatus(L["IsniUpdated"], "alert-success");
             }
             else
             {
-                statusMessage = $"Failed to update ISNI: {result.ErrorValue}";
-                statusClass = "alert-danger";
+                await ShowStatus(string.Format(L["ErrorUpdatingIsni"], result.ErrorValue), "alert-danger");
             }
         }
         catch (Exception ex)
         {
-            statusMessage = $"Error updating ISNI: {ex.Message}";
-            statusClass = "alert-danger";
+            await ShowStatus(string.Format(L["ErrorUpdatingIsniGeneric"], ex.Message), "alert-danger");
         }
     }
 
@@ -686,7 +657,7 @@
     {
         if (authorDetails == null) return;
         
-        bool confirmed = await JSRuntime.InvokeAsync<bool>("confirm", $"Are you sure you want to permanently delete author '{authorDetails.Author.Name.Value}'? This action cannot be undone.");
+        bool confirmed = await JSRuntime.InvokeAsync<bool>("confirm", string.Format(L["ConfirmPermanentlyDeleteAuthor"], authorDetails.Author.Name.Value));
         if (!confirmed) return;
         
         try 
@@ -698,14 +669,12 @@
             }
             else
             {
-                statusMessage = $"Failed to delete author: {result.ErrorValue}";
-                statusClass = "alert-danger";
+                await ShowStatus(string.Format(L["ErrorDuringDeletionGeneric"], result.ErrorValue), "alert-danger");
             }
         }
         catch (Exception ex)
         {
-            statusMessage = $"Error during deletion: {ex.Message}";
-            statusClass = "alert-danger";
+            await ShowStatus(string.Format(L["ErrorDuringDeletion"], ex.Message), "alert-danger");
         }
     }
 
@@ -722,20 +691,29 @@
             if (result.IsOk)
             {
                 await LoadAuthorDetails();
-                statusMessage = isAuthorSealed ? "Author profile has been locked." : "Author profile is now editable.";
-                statusClass = "alert-success";
+                await ShowStatus(isAuthorSealed ? L["AuthorProfileLocked"] : L["AuthorProfileUnlocked"], "alert-success");
             }
             else
             {
-                statusMessage = $"Failed to change seal state: {result.ErrorValue}";
-                statusClass = "alert-danger";
+                await ShowStatus(string.Format(L["ErrorChangingAuthorSealState"], result.ErrorValue), "alert-danger");
             }
         }
         catch (Exception ex)
         {
-            statusMessage = $"Error toggling seal state: {ex.Message}";
-            statusClass = "alert-danger";
+            await ShowStatus(string.Format(L["ErrorTogglingSealStateGeneric"], ex.Message), "alert-danger");
         }
+    }
+
+    private async Task ShowStatus(string message, string cssClass)
+    {
+        statusMessage = message;
+
+        string type = "info";
+        if (cssClass.Contains("success")) type = "success";
+        else if (cssClass.Contains("danger")) type = "error";
+        else if (cssClass.Contains("warning")) type = "warning";
+
+        await JSRuntime.InvokeVoidAsync("showToast", message, type);
     }
 
     protected override async Task OnInitializedAsync()
@@ -759,7 +737,7 @@
                 }
             }
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             // Error handling can be expanded here
         }

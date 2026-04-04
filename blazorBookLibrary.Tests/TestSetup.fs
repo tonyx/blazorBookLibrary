@@ -68,7 +68,20 @@ let setUp () =
     with
     | ex -> printfn "Warning: Could not wipe identity database: %s" ex.Message
 
-let getUserManager () =
+let getServiceScopeFactory () =
+    let services = ServiceCollection()
+    services.AddLogging() |> ignore
+    services.AddDataProtection() |> ignore
+    services.AddDbContext<ApplicationDbContext>(fun options -> 
+        options.UseNpgsql(usersDbConnection) |> ignore) |> ignore
+    services.AddIdentityCore<ApplicationUser>()
+        .AddEntityFrameworkStores<ApplicationDbContext>()
+        .AddDefaultTokenProviders() |> ignore
+    
+    let serviceProvider = services.BuildServiceProvider()
+    serviceProvider.GetRequiredService<IServiceScopeFactory>()
+
+let getUserManagerOld () =
     let services = ServiceCollection()
     services.AddLogging() |> ignore
     services.AddDataProtection() |> ignore
@@ -80,6 +93,11 @@ let getUserManager () =
     
     let serviceProvider = services.BuildServiceProvider()
     serviceProvider.GetRequiredService<UserManager<ApplicationUser>>()
+
+let getUserManager () =
+    let serviceScopeFacotry = getServiceScopeFactory()
+    let scope = serviceScopeFacotry.CreateScope()
+    scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>()
 
 let bookViewerAsync = getAggregateStorageFreshStateViewerAsync<Book, BookEvent, string> pgEventStore
 let authorViewerAsync = getAggregateStorageFreshStateViewerAsync<Author, AuthorEvent, string> pgEventStore
@@ -107,7 +125,7 @@ let getUserService () =
         reservationViewerAsync, 
         loanViewerAsync,
         userViewerAsync,
-        getUserManager())
+        getServiceScopeFactory())
 
 let getReservationService () =
     ReservationService(
@@ -156,7 +174,7 @@ let registerUser (email: string) (password: string) =
         else
             sprintf "%s_%s" guidStr email
 
-    let userManager = getUserManager()
+    use userManager = getUserManager()
     let aspUser = ApplicationUser(UserName = uniqueEmail, Email = uniqueEmail)
     aspUser.Id <- guid.ToString() // ensure same ID as domain user
     let result = (userManager.CreateAsync(aspUser, password) |> Async.AwaitTask |> Async.RunSynchronously)

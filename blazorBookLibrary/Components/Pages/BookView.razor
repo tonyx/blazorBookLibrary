@@ -8,6 +8,7 @@
 @using blazorBookLibrary.Security
 @inject IBookService BookService
 @inject IUserService UserService
+@inject ILogger<BookView> Logger
 @inject IReservationService ReservationService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject IConfiguration Configuration
@@ -18,7 +19,7 @@
 @inject BotScoreService BotScoreService
 @rendermode InteractiveServer
 
-<PageTitle>Book Details</PageTitle>
+<PageTitle>@L["BookDetails"]</PageTitle>
 
 <div class="container-fluid py-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
@@ -27,14 +28,6 @@
             <i class="bi bi-arrow-left me-1"></i>@L["Back"]
         </button>
     </div>
-
-    @if (!string.IsNullOrEmpty(statusMessage))
-    {
-        <div class="alert @statusClass alert-dismissible fade show mb-4" role="alert">
-            @statusMessage
-            <button type="button" class="btn-close" @onclick='() => statusMessage = ""'></button>
-        </div>
-    }
 
     @if (isLoading)
     {
@@ -252,14 +245,14 @@
         
         if (user.Identity?.IsAuthenticated != true)
         {
-            ShowStatus(L["PleaseLoginToReserve"], "alert-warning");
+            await ShowStatus(L["PleaseLoginToReserve"], "alert-warning");
             return;
         }
 
         var userIdStr = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
         if (string.IsNullOrEmpty(userIdStr) || !Guid.TryParse(userIdStr, out var userGuid))
         {
-            ShowStatus(L["UserIdentifierNotFound"], "alert-danger");
+            await ShowStatus(L["UserIdentifierNotFound"], "alert-danger");
             return;
         }
 
@@ -269,13 +262,13 @@
 
         if (userReservation != null)
         {
-            ShowStatus(L["AlreadyReservedMessage", userReservation.ReservedAt.ToLocalTime().ToString("g")], "alert-warning");
+            await ShowStatus(L["AlreadyReservedMessage", userReservation.ReservedAt.ToLocalTime().ToString("g")], "alert-warning");
             return;
         }
 
         if (loggedInUserDetails != null && loggedInUserDetails.FutureReservations.Length >= maxReservations)
         {
-            ShowStatus(L["MaxReservationsReachedMessage", maxReservations], "alert-warning");
+            await ShowStatus(L["MaxReservationsReachedMessage", maxReservations], "alert-warning");
             return;
         }
 
@@ -294,18 +287,18 @@
             
             if (result.IsOk)
             {
-                ShowStatus(L["ReservationSuccessMessage"], "alert-success");
+                await ShowStatus(L["ReservationSuccessMessage"], "alert-success");
                 await LoadBookDetails();
                 await LoadUserReservation();
             }
             else
             {
-                ShowStatus(L["ReservationFailedMessage", result.ErrorValue], "alert-danger");
+                await ShowStatus(L["ReservationFailedMessage", result.ErrorValue], "alert-danger");
             }
         }
         catch (Exception ex)
         {
-            ShowStatus(L["ReservationFailedMessage", ex.Message], "alert-danger");
+            await ShowStatus(L["ReservationFailedMessage", ex.Message], "alert-danger");
         }
         finally
         {
@@ -338,17 +331,17 @@
                 }
                 else
                 {
-                    ShowStatus($"Failed to load book: {result.ErrorValue}", "alert-danger");
+                    await ShowStatus(string.Format(L["ErrorLoadingBook"], result.ErrorValue), "alert-danger");
                 }
             }
             else
             {
-                ShowStatus("Invalid book identifier in URL.", "alert-danger");
+                await ShowStatus(L["InvalidBookIdInUrl"], "alert-danger");
             }
         }
         catch (Exception ex)
         {
-            ShowStatus($"Error loading data: {ex.Message}", "alert-danger");
+            await ShowStatus(string.Format(L["ErrorLoadingData"], ex.Message), "alert-danger");
         }
         finally
         {
@@ -390,29 +383,34 @@
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         var siteKey = Configuration["Authentication:Recaptcha:SiteKey"];
+        if (siteKey is null)
+            {
+                Logger.LogWarning("Recaptcha SiteKey is not configured");
+                return;
+            }
         if (firstRender)
         {
-            // 1. Chiedi il token (azione silenziosa)
             var token = await JSRuntime.InvokeAsync<string>("generateRecaptchaToken", siteKey, "book_view");
-
-            // 2. Ottieni lo score reale dal server
             var score = await BotScoreService.GetBotScoreAsync(token);
-
-            Console.WriteLine($"Score: {score}");
-            // 4. Logica di protezione immediata
-            if (score < 0.3) 
+            if (score < 0.7) 
             {
-                Console.WriteLine($"Sei un bot con score {score}");
-                statusMessage = "Sei un bot";
-                // Magari non bloccare, ma limita le informazioni (es. non mostrare il prezzo o la disponibilità)
+                Logger.LogInformation($"suspect bot interaction. Score: {score}");
+                await BotScoreService.ApplyBotDelayAsync(score);
             }
         }
     }
 
-    private void ShowStatus(string message, string cssClass)
+    private async Task ShowStatus(string message, string cssClass)
     {
         statusMessage = message;
         statusClass = cssClass;
+
+        string type = "info";
+        if (cssClass.Contains("success")) type = "success";
+        else if (cssClass.Contains("danger")) type = "error";
+        else if (cssClass.Contains("warning")) type = "warning";
+
+        await JSRuntime.InvokeVoidAsync("showToast", message, type);
     }
 
     private string GetAvailabilityLocalName(Availability availability)

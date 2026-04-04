@@ -28,7 +28,7 @@ public sealed class MailNotificator
                     mailjetSecretKey
                 );
 
-                _isEmailSendEnabled = _config.GetValue<bool>("BooksLibrary:EmailNotificationEnabled", false);
+                _isEmailSendEnabled = _config.GetValue<bool>("BooksLibrary:EmailNotificationEnabled", true);
             }
             catch (Exception ex)
             {
@@ -39,7 +39,7 @@ public sealed class MailNotificator
     
     public async Task SendEmailAsync(string emailFrom, string nameFrom, string emailRecipient, string subject, string body)
     {
-        if (!_isEmailSendEnabled)
+        if (!_isEmailSendEnabled) // can be disabled only in case of development
         {
             return;
         }

@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Subscription Information</title>
+</head>
+
+<body>
+  <p>Gentile {email},</p>
+
+  <p>La ringraziamo per l'interesse nel servizio di biblioteca digitale e la aspettiamo con ansia. Le forniamo delle brevi informazioni sul trattaemnto dei dati personali ai sensi dell'art. 13 del Regolamento UE 2016/679 (GDPR). </p>
+
+  <p>Ecco un riepilogo:</p>
+  <ul>
+    <li><strong>Sicurezza e privacy dei dati</strong>: I Suoi dati saranno trattati in modo sicuro e utilizzati solo quando necessario per fornire i nostri servizi.</li>
+    <li><strong>Proprietà e accesso ai dati</strong>: Lei conserva il pieno diritto di accedere per rivedere i Suoi dati in qualsiasi momento.</li>
+    <li><strong>Annullamento e cancellazione dei dati</strong>: Lei può annullare l'iscrizione in qualsiasi momento e, per Sua comodità, puo' cancellare definitivamente i Suoi dati</li>
+  </ul>
+
+  <p>Benché il sistema adotti le migliori pratiche per salvaguardare i dati con backup regolari, non possiamo garantire una protezione completa contro la perdita o il danneggiamento dei dati per cause che non siano sotto il nostro controllo</p>
+
+
+<b>Manutenzione programmata</b>
+  <p>Nel caso di brevi periodi di manutenzione programmata, una notifica sarà visualizzata in fondo a ogni pagina visitata per informare gli utenti in anticipo. Cercheremo sempre di ridurre al minimo i tempi di inattività e di fornire aggiornamenti tempestivi ogni volta che saranno necessarie interruzioni del servizio.</p>
+
+  <p>Sottoscrivendo questo servizio, Lei riconosce e accetta che il servizio prestito libri non sarà responsabile per eventuali danni diretti o indiretti, inclusa la perdita di dati, che potrebbero verificarsi attraverso l'uso di questo sistema. </p>
+
+  <p>Per qualsiasi domanda o dubbio riguardo a questa policy, non esiti a contattarci </p>
+
+  <p>Per accettare questi termini e confermare la Sua iscrizione, clicchi sul link sottostante:</p>
+
+  <p><a href="{confirmationLink}" style="color: #1a73e8; text-decoration: none;">Confirm Subscription</a></p>
+
+  <p>Se ha domande, non esiti a contattarci.</p>
+  <p><a href="mailto:[EMAIL_ADDRESS]" style="color: #1a73e8; text-decoration: none;">[EMAIL_ADDRESS]</a></p>
+
+  <p>Cordiali saluti<br>
+  Lo staff della Biblioteca
+  
+</body>
+

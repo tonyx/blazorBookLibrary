@@ -144,12 +144,14 @@ let tests =
                 reservationService.AddReservationAsync (reservation, System.DateTime.Now)
                 |> Async.AwaitTask
                 |> Async.RunSynchronously
+
             Expect.isOk addReservation "should be ok"
             let bookRetrieved = 
                 bookService.GetBookAsync (book.BookId, CancellationToken.None)
                 |> Async.AwaitTask
                 |> Async.RunSynchronously
             Expect.isOk bookRetrieved "should be ok"
+
             let (bookRetrieved: Book) = bookRetrieved |> Result.get
             Expect.equal (bookRetrieved.CurrentReservations |> List.length) 1 "should contain one reservation"
 

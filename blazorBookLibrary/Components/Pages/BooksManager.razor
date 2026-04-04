@@ -7,6 +7,7 @@
 @using Microsoft.FSharp.Core
 @using Microsoft.FSharp.Collections
 @using System.Threading
+@using BlazorBarcodeScanner.ZXing.JS
 
 @attribute [Authorize(Roles = "Admin, Manager")]
 @inject IBookService BookService
@@ -30,12 +31,67 @@
     .col-isbn { width: 170px; }
     .col-actions { width: 120px; }
     
+    @@media (max-width: 767.98px) {
+        .col-year, .col-category, .col-isbn, .col-availability-type, .col-available {
+            display: none !important;
+        }
+        .col-title {
+            min-width: 150px !important;
+            width: auto !important;
+        }
+    }
+
     /* Ensure text truncation for the title if it's too long */
     .title-cell {
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
     }
+
+    /* Scanner styles */
+    .barcode-scanner-container {
+        border: 2px solid #ffc107;
+        overflow: hidden;
+    }
+    
+    .scanner-preview-wrapper {
+        position: relative;
+        background-color: #000;
+        min-height: 250px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .scanner-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        pointer-events: none;
+        z-index: 10;
+        border: 20px solid rgba(0, 0, 0, 0.4);
+    }
+    
+    .scanner-laser {
+        width: 100%;
+        height: 2px;
+        background-color: #ffc107;
+        box-shadow: 0 0 10px #ffc107;
+        position: absolute;
+        top: 50%;
+        left: 0;
+        animation: scan 2s linear infinite;
+        z-index: 11;
+    }
+    
+    @@keyframes scan {
+        0% { top: 10%; }
+        50% { top: 90%; }
+        100% { top: 10%; }
+    }
+
 </style>
 
 <PageTitle>@L["BooksManager"]</PageTitle>
@@ -43,13 +99,6 @@
 <div class="container-fluid py-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h1 class="text-primary mb-0"><i class="bi bi-book-half me-2"></i>@L["BooksManager"]</h1>
-        @if (!string.IsNullOrEmpty(statusMessage))
-        {
-            <div class="alert @(statusClass) alert-dismissible fade show mb-0" role="alert">
-                @statusMessage
-                <button type="button" class="btn-close" @onclick='() => statusMessage = ""'></button>
-            </div>
-        }
     </div>
 <div class="row mb-4">
     <div class="col-12">
@@ -203,7 +252,10 @@
                                 <label class="form-label fw-bold">@L["IsbnSearch"]</label>
                                 <div class="input-group shadow-sm">
                                     <span class="input-group-text"><i class="bi bi-upc-scan"></i></span>
-                                    <InputText class="form-control" @bind-Value="newBookIsbn" placeholder="@L["IsbnExamplePlaceholder"]" />
+                                    <InputText @ref="isbnInput" class="form-control" @bind-Value="newBookIsbn" placeholder="@L["IsbnExamplePlaceholder"]" />
+                                    <button type="button" class="btn btn-warning text-dark" @onclick="ToggleScanner">
+                                        <i class="bi bi-camera me-1"></i> <span class="d-none d-sm-inline">@(showScanner ? L["CloseScanner"] : L["ScanBarcode"])</span>
+                                    </button>
                                     <button type="button" class="btn btn-info text-white" @onclick="LookupCoverImage" disabled="@(!IsNewBookIsbnValid || isLookingUpCover)">
                                         @if (isLookingUpCover) { <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> }
                                         <i class="bi bi-image me-1"></i> <span class="d-none d-sm-inline">@L["LookupCover"]</span>
@@ -213,6 +265,34 @@
                                         <i class="bi bi-search me-1"></i> <span class="d-none d-sm-inline">@L["MetadataSearch"]</span>
                                     </button>
                                 </div>
+
+                                @if (showScanner)
+                                {
+                                    <div class="barcode-scanner-container mt-3 animate-fade-in p-3 bg-dark rounded shadow-lg text-white">
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <h6 class="mb-0 text-warning"><i class="bi bi-camera-fill me-2"></i>@L["ScannerActive"]</h6>
+                                            <div class="d-flex gap-2">
+                                                <button type="button" class="btn btn-sm btn-outline-light" @onclick="ToggleScanner">
+                                                    <i class="bi bi-x-large"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div class="scanner-preview-wrapper border border-warning rounded overflow-hidden position-relative">
+                                            <BarcodeReader 
+                                                OnBarcodeReceived="HandleBarcodeReceived" 
+                                                Title=""
+                                                StartCameraAutomatically="true"
+                                                ShowStart="false"
+                                                ShowReset="false"
+                                                ShowVideoDeviceList="true"
+                                            />
+                                            <div class="scanner-overlay d-flex align-items-center justify-content-center">
+                                                <div class="scanner-laser"></div>
+                                            </div>
+                                        </div>
+                                        <p class="small text-muted mt-2 text-center mb-0">@L["PositionBarcodeInsideFrameNote"]</p>
+                                    </div>
+                                }
                             </div>
 
                             <div class="col-md-4">
@@ -410,7 +490,24 @@
 
 @code {
 
-    private bool showAddSection = false;
+    private bool _showAddSection = false;
+    private bool showAddSection 
+    {
+        get => _showAddSection;
+        set 
+        {
+            if (_showAddSection != value)
+            {
+                _showAddSection = value;
+                if (_showAddSection)
+                {
+                    shouldFocusIsbn = true;
+                }
+            }
+        }
+    }
+    private bool shouldFocusIsbn = false;
+    private Microsoft.AspNetCore.Components.Forms.InputText? isbnInput;
     private string newBookTitle = "";
     private string newBookIsbn = "";
     private string newBookDescription = "";
@@ -424,6 +521,28 @@
     private string newBookImageUrl = "";
     private string? coverPreviewUrl = null;
     private bool isLookingUpCover = false;
+    private bool showScanner = false;
+
+    private void ToggleScanner()
+    {
+        showScanner = !showScanner;
+    }
+
+    private async Task HandleBarcodeReceived(BarcodeReceivedEventArgs args)
+    {
+        if (string.IsNullOrWhiteSpace(args.BarcodeText)) return;
+
+        var scannedText = args.BarcodeText.Trim();
+        
+        // Use the domain logic to check if it's a valid ISBN
+        if (Isbn.IsValid(scannedText))
+        {
+            newBookIsbn = scannedText;
+            showScanner = false;
+            await JSRuntime.InvokeVoidAsync("playScanSound");
+            StateHasChanged();
+        }
+    }
 
     private string searchAuthorName = "";
     private string searchAuthorIsni = "";
@@ -441,9 +560,9 @@
         foundBooks = books;
     }
 
-    private void ShowSearchError(string error)
+    private async Task ShowSearchError(string error)
     {
-        ShowStatus(error, "alert-danger");
+        await ShowStatus(error, "alert-danger");
     }
 
     private string newBookAvailability = "Circulating";
@@ -546,7 +665,7 @@
         }
         else
         {
-            ShowStatus(L["ErrorSearchingAuthors", result.ErrorValue], "alert-danger");
+            await ShowStatus(L["ErrorSearchingAuthors", result.ErrorValue], "alert-danger");
         }
     }
 
@@ -574,13 +693,13 @@
     {
         if (string.IsNullOrWhiteSpace(newBookTitle))
         {
-            ShowStatus(L["TitleIsRequired"], "alert-warning");
+            await ShowStatus(L["TitleIsRequired"], "alert-warning");
             return;
         }
 
         if (!newBookYear.HasValue)
         {
-            ShowStatus(L["YearIsRequired"], "alert-warning");
+            await ShowStatus(L["YearIsRequired"], "alert-warning");
             return;
         }
 
@@ -598,7 +717,7 @@
             var isbnResult = Isbn.New(newBookIsbn);
             if (isbnResult.IsError)
             {
-                ShowStatus(L["InvalidIsniValue", isbnResult.ErrorValue], "alert-danger");
+                await ShowStatus(L["InvalidIsniValue", isbnResult.ErrorValue], "alert-danger");
                 return;
             }
             isbn = isbnResult.ResultValue;
@@ -643,19 +762,26 @@
             var availability = BookLibrary.Shared.Commons.Availability.FromString(newBookAvailability);
             await BookService.SetAvailabilityAsync(availability, book.BookId, FSharpOption<System.Threading.CancellationToken>.None);
 
-            ShowStatus(L["BookCreatedSuccessfully", newBookTitle], "alert-success");
+            await ShowStatus(L["BookCreatedSuccessfully", newBookTitle], "alert-success");
             ResetForm();
         }
         else
         {
-            ShowStatus(L["ErrorCreatingBook", result.ErrorValue], "alert-danger");
+            await ShowStatus(L["ErrorCreatingBook", result.ErrorValue], "alert-danger");
         }
     }
 
-    private void ShowStatus(string message, string cssClass)
+    private async Task ShowStatus(string message, string cssClass)
     {
         statusMessage = message;
         statusClass = cssClass;
+
+        string type = "info";
+        if (cssClass.Contains("success")) type = "success";
+        else if (cssClass.Contains("danger")) type = "error";
+        else if (cssClass.Contains("warning")) type = "warning";
+
+        await JSRuntime.InvokeVoidAsync("showToast", message, type);
     }
 
     private void ResetForm()
@@ -677,7 +803,7 @@
     {
         if (string.IsNullOrWhiteSpace(newBookTitle))
         {
-            ShowStatus(L["EnterTitleToSearch"], "alert-warning");
+            await ShowStatus(L["EnterTitleToSearch"], "alert-warning");
             return;
         }
 
@@ -695,21 +821,21 @@
                 lookupResults = result.ResultValue.ToList();
                 if (!lookupResults.Any())
                 {
-                    ShowStatus(L["NoBooksFoundTitle"], "alert-warning");
+                    await ShowStatus(L["NoBooksFoundTitle"], "alert-warning");
                 }
                 else
                 {
-                    ShowStatus(L["FoundResultsFromApi", lookupResults.Count], "alert-info");
+                    await ShowStatus(L["FoundResultsFromApi", lookupResults.Count], "alert-info");
                 }
             }
             else
             {
-                ShowStatus(L["ErrorSearchingApi", result.ErrorValue], "alert-danger");
+                await ShowStatus(L["ErrorSearchingApi", result.ErrorValue], "alert-danger");
             }
         }
         catch (Exception ex)
         {
-            ShowStatus(L["ErrorDuringLookup", ex.Message], "alert-danger");
+            await ShowStatus(L["ErrorDuringLookup", ex.Message], "alert-danger");
         }
         finally
         {
@@ -921,6 +1047,18 @@
         finally
         {
             isLookingUpMetadata = false;
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (shouldFocusIsbn)
+        {
+            shouldFocusIsbn = false;
+            if (isbnInput != null && isbnInput.Element != null)
+            {
+                await isbnInput.Element.Value.FocusAsync();
+            }
         }
     }
 }

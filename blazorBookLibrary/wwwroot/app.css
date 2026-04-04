@@ -67,3 +67,78 @@ h1:focus {
 .form-floating > .form-control-plaintext:focus::placeholder, .form-floating > .form-control:focus::placeholder {
     text-align: start;
 }
+
+.transition-hover {
+    transition: transform 0.2s ease, filter 0.2s ease, box-shadow 0.2s ease;
+}
+
+.transition-hover:hover {
+    transform: translateY(-1px);
+    filter: brightness(105%);
+}
+
+.transition-hover:active {
+    transform: translateY(0);
+}
+
+/* Toast Notifications */
+#toast-container {
+    position: fixed;
+    top: 24px;
+    right: 24px;
+    z-index: 10000;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    pointer-events: none;
+}
+
+.toast-notification {
+    min-width: 300px;
+    max-width: 450px;
+    padding: 16px 24px;
+    border-radius: 12px;
+    background: white;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.12);
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    pointer-events: auto;
+    animation: toast-in 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    border-left: 6px solid #6c757d;
+    font-weight: 500;
+    font-size: 0.95rem;
+}
+
+.toast-notification.toast-success { border-left-color: #198754; background: #f0fff4; color: #0f5132; }
+.toast-notification.toast-error { border-left-color: #dc3545; background: #fff5f5; color: #842029; }
+.toast-notification.toast-warning { border-left-color: #ffc107; background: #fffcf0; color: #664d03; }
+.toast-notification.toast-info { border-left-color: #0dcaf0; background: #f0faff; color: #055160; }
+
+@keyframes toast-in {
+    from { transform: translateX(40px); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+
+.toast-fade-out {
+    animation: toast-out 0.4s ease forwards !important;
+}
+
+@keyframes toast-out {
+    from { transform: translateX(0); opacity: 1; }
+    to { transform: translateX(40px); opacity: 0; }
+}
+
+@media (max-width: 576px) {
+    #toast-container {
+        top: auto;
+        bottom: 30px;
+        right: 15px;
+        left: 15px;
+    }
+    .toast-notification {
+        max-width: none;
+        width: 100%;
+        box-shadow: 0 8px 30px rgba(0,0,0,0.2);
+    }
+}

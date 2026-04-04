@@ -23,6 +23,7 @@ open BookLibrary.Details.Details
 open Microsoft.Extensions.Configuration
 open Microsoft.AspNetCore.Identity
 open blazorBookLibrary.Data
+open Microsoft.Extensions.DependencyInjection
 
 type UserService 
     (
@@ -34,9 +35,11 @@ type UserService
         reservationViewerAsync: AggregateViewerAsync2<Reservation>,
         loanViewerAsync: AggregateViewerAsync2<Loan>,
         userViewerAsync: AggregateViewerAsync2<User>,
-        userManager: UserManager<ApplicationUser>
+        scopeFactory: IServiceScopeFactory
+
+        // userManager: UserManager<ApplicationUser>
     ) =
-    new (eventStore: IEventStore<string>, userManager: UserManager<ApplicationUser>)
+    new (eventStore: IEventStore<string>, scopeFactory: IServiceScopeFactory) 
         =
         let messageSenders = MessageSenders.NoSender
         let bookViewerAsync = getAggregateStorageFreshStateViewerAsync<Book, BookEvent, string> eventStore
@@ -54,14 +57,14 @@ type UserService
             reservationViewerAsync,
             loanViewerAsync,
             userViewerAsync,
-            userManager
+            scopeFactory
         )    
 
-    new (configuration: IConfiguration, userManager: UserManager<ApplicationUser>) 
+    new (configuration: IConfiguration, scopeFactory: IServiceScopeFactory) 
         =
         let connectionString = configuration.GetConnectionString("BookLibraryDbConnection")
         let eventStore = PgStorage.PgEventStore connectionString
-        UserService(eventStore, userManager)
+        UserService(eventStore, scopeFactory)
 
     member this.CreateUserAsync (user: User, ?ct: CancellationToken) : Task<Result<unit, string>> =
         taskResult 
@@ -89,6 +92,8 @@ type UserService
                 fun (ct: Option<CancellationToken>) ->
                     let refresher =
                         fun () ->
+                            use scope = scopeFactory.CreateScope()
+                            let userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>()
                             result {
                                 let ct = ct |> Option.defaultValue CancellationToken.None
                                 let! user = 

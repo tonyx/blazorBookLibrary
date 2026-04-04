@@ -25,18 +25,10 @@
     <script src="@Assets["Components/Account/Shared/PasskeySubmit.razor.js"]" type="module"></script>
 
     <script src="https://www.google.com/recaptcha/api.js?render=@Configuration["Authentication:Recaptcha:SiteKey"]" async defer></script>
+    <script src="/_content/BlazorBarcodeScanner.ZXing.JS/zxingjs.index.min.js"></script>
+    <script src="/_content/BlazorBarcodeScanner.ZXing.JS/BlazorBarcodeScanner.js"></script>
 
-    <script>
-        window.generateRecaptchaToken = (siteKey, actionName) => {
-            return new Promise((resolve, reject) => {
-                grecaptcha.ready(() => {
-                    grecaptcha.execute(siteKey, { action: actionName })
-                        .then(token => resolve(token))
-                        .catch(error => reject(error));
-                });
-            });
-        };
-    </script>
+    <script src="site.js"></script>
 
 </body>
 

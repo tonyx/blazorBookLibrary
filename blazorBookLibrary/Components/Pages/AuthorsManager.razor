@@ -35,7 +35,7 @@
                                 <InputText class="form-control" @bind-Value="searchName" placeholder="@L["SearchByName"]" />
                             </div>
                             <div class="col-md-5">
-                                <label class="form-label fw-bold">ISNI</label>
+                                <label class="form-label fw-bold">@L["IsniNumber"]</label>
                                 <InputText class="form-control" @bind-Value="searchIsni" placeholder="@L["SearchByIsni"]" />
                             </div>
                             <div class="col-md-2 d-flex align-items-end">
@@ -50,14 +50,6 @@
         </div>
     </div>
 
-
-    @if (!string.IsNullOrEmpty(statusMessage))
-    {
-        <div class="alert alert-info alert-dismissible fade show shadow-sm" role="alert">
-            <i class="bi bi-info-circle-fill me-2"></i>@statusMessage
-            <button type="button" class="btn-close" @onclick='() => statusMessage = ""'></button>
-        </div>
-    }
 
     <div class="row mb-4">
         <div class="col-12">
@@ -103,7 +95,7 @@
                             <div class="mt-3">
                                 <label class="form-label fw-bold d-block text-muted small uppercase mb-1">@L["ImagePreview"]</label>
                                 <div class="preview-container d-inline-block p-1 bg-white border rounded shadow-sm">
-                                    <img src="@newAuthorImageUrl" class="img-fluid rounded" style="max-height: 120px; min-width: 80px; object-fit: contain;" alt="Author Preview" @onerror='() => { statusMessage = "Preview image could not be loaded."; newAuthorImageUrl = ""; }' />
+                                    <img src="@newAuthorImageUrl" class="img-fluid rounded" style="max-height: 120px; min-width: 80px; object-fit: contain;" alt="Author Preview" @onerror='async () => { await ShowStatus(L["PreviewImageLoadError"], "alert-danger"); newAuthorImageUrl = ""; }' />
                                 </div>
                             </div>
                         }
@@ -265,7 +257,7 @@
         }
         else
         {
-            statusMessage = $"{L["ErrorLoadingAuthors"]}: {result.ErrorValue}";
+            await ShowStatus(string.Format(L["ErrorLoadingAuthors"], result.ErrorValue), "alert-danger");
         }
     }
 
@@ -279,7 +271,7 @@
     {
         if (string.IsNullOrWhiteSpace(newAuthorName))
         {
-            statusMessage = L["AuthorNameRequired"];
+            await ShowStatus(L["AuthorNameRequired"], "alert-warning");
             return;
         }
 
@@ -289,7 +281,7 @@
             var isniResult = Isni.New(newAuthorIsni);
             if (isniResult.IsError)
             {
-                statusMessage = $"{L["InvalidIsni"]}: {isniResult.ErrorValue}";
+                await ShowStatus(string.Format(L["InvalidIsniValue"], isniResult.ErrorValue), "alert-danger");
                 return;
             }
             isniOpt = FSharpOption<Isni>.Some(isniResult.ResultValue);
@@ -304,7 +296,7 @@
             }
             else
             {
-                statusMessage = L["InvalidImageUrl"];
+                await ShowStatus(L["InvalidImageUrl"], "alert-warning");
                 return;
             }
         }
@@ -316,7 +308,7 @@
 
         if (result.IsOk)
         {
-            statusMessage = $"{L["Author"]} '{newAuthorName}' {L["HasBeenAdded"]}.";
+            await ShowStatus(string.Format(L["AuthorAddedSuccessfully"], newAuthorName), "alert-success");
             newAuthorName = "";
             newAuthorIsni = "";
             newAuthorImageUrl = "";
@@ -324,7 +316,7 @@
         }
         else
         {
-            statusMessage = $"{L["ErrorCreatingAuthor"]}: {result.ErrorValue}";
+            await ShowStatus(string.Format(L["ErrorCreatingAuthor"], result.ErrorValue), "alert-danger");
         }
     }
 
@@ -339,20 +331,32 @@
             if (result.IsOk)
             {
                 newAuthorImageUrl = result.ResultValue;
-                statusMessage = L["ImageFoundWikipedia"];
+                await ShowStatus(L["ImageFoundWikipedia"], "alert-success");
             }
             else
             {
-                statusMessage = $"{L["WikipediaImageNotFound"]}: {result.ErrorValue}";
+                await ShowStatus(string.Format(L["WikipediaLookupError"], result.ErrorValue), "alert-warning");
             }
         }
         catch (Exception ex)
         {
-            statusMessage = $"{L["ErrorSearchingImage"]}: {ex.Message}";
+            await ShowStatus(string.Format(L["ErrorSearchingImage"], ex.Message), "alert-danger");
         }
         finally
         {
             isSearchingImage = false;
         }
+    }
+
+    private async Task ShowStatus(string message, string cssClass)
+    {
+        statusMessage = message;
+
+        string type = "info";
+        if (cssClass.Contains("success")) type = "success";
+        else if (cssClass.Contains("danger")) type = "error";
+        else if (cssClass.Contains("warning")) type = "warning";
+
+        await JSRuntime.InvokeVoidAsync("showToast", message, type);
     }
 }

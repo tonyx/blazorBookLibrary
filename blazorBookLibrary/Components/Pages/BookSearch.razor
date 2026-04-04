@@ -71,13 +71,6 @@
 <div class="container-fluid py-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h1 class="text-primary mb-0"><i class="bi bi-search me-2"></i>@L["BookSearch"]</h1>
-        @if (!string.IsNullOrEmpty(statusMessage))
-        {
-            <div class="alert @(statusClass) alert-dismissible fade show mb-0" role="alert">
-                @statusMessage
-                <button type="button" class="btn-close" @onclick='() => statusMessage = ""'></button>
-            </div>
-        }
     </div>
 
     <BookSearchToolbar OnSearchResultsFound="HandleSearchResultsFound" OnError="ShowSearchError" OnSearchStarted="HandleSearchStarted" />
@@ -103,18 +96,21 @@
                                 @if (showImagePreview)
                                 {
                                     <TemplateColumn Title="@L["Preview"]" Class="col-preview">
-                                        @* @if (context.ImageUrl != null && context.ImageUrl.IsSome) *@
-                                        @if (context.ImageUrl != null && FSharpOption<Uri>.get_IsSome(context.ImageUrl))
-                                        {
-                                            <img src="@context.ImageUrl.Value.ToString()" class="book-preview-img" alt="@context.Title.Value" />
-                                        }
-                                        else
-                                        {
-                                            <div class="no-image-placeholder">
-                                                <i class="bi bi-image small"></i>
-                                            </div>
-                                        }
+                                        <a href="/book-view/@context.Id" class="d-inline-block text-decoration-none transition-hover shadow-sm rounded overflow-hidden" 
+                                           title="@L["BookDetails"]: @context.Title.Value">
+                                            @if (context.ImageUrl != null && FSharpOption<Uri>.get_IsSome(context.ImageUrl))
+                                            {
+                                                <img src="@context.ImageUrl.Value.ToString()" class="book-preview-img shadow-none" alt="@context.Title.Value" />
+                                            }
+                                            else
+                                            {
+                                                <div class="no-image-placeholder">
+                                                    <i class="bi bi-image small"></i>
+                                                </div>
+                                            }
+                                        </a>
                                     </TemplateColumn>
+
                                 }
                                 <TemplateColumn Title="@L["Title"]" SortBy="@sortTitle" Class="fw-bold text-dark col-title title-cell">
                                     <ColumnOptions>
@@ -214,13 +210,13 @@
             if (score < 0.3) 
             {
                 Logger.LogWarning($"Suspiciuos bot activity {score}");
-                statusMessage = L["overActivity"];
+                await ShowStatus(L["overActivity"], "alert-danger");
                 // Magari non bloccare, ma limita le informazioni (es. non mostrare il prezzo o la disponibilità)
             }
         }
     }
 
-    private void HandleSearchStarted(bool started)
+    private async Task HandleSearchStarted(bool started)
     {
         searchBooksPerformed = true;
         statusMessage = "";
@@ -231,9 +227,21 @@
         foundBooks = books;
     }
 
-    private void ShowSearchError(string error)
+    private async Task ShowSearchError(string error)
     {
-        statusMessage = error;
-        statusClass = "alert-danger";
+        await ShowStatus(error, "alert-danger");
+    }
+
+    private async Task ShowStatus(string message, string cssClass)
+    {
+        statusMessage = message;
+        statusClass = cssClass;
+
+        string type = "info";
+        if (cssClass.Contains("success")) type = "success";
+        else if (cssClass.Contains("danger")) type = "error";
+        else if (cssClass.Contains("warning")) type = "warning";
+
+        await JSRuntime.InvokeVoidAsync("showToast", message, type);
     }
 }

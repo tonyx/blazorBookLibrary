@@ -58,445 +58,163 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
-  <data name="AppTitle" xml:space="preserve">
-    <value>Libreria Blazor</value>
-  </data>
-  <data name="Home" xml:space="preserve">
-    <value>Pagina Iniziale</value>
-  </data>
-  <data name="BooksManager" xml:space="preserve">
-    <value>Gestione Libri</value>
-  </data>
-  <data name="SearchBooks" xml:space="preserve">
-    <value>Cerca Libri</value>
-  </data>
-  <data name="AuthorsManager" xml:space="preserve">
-    <value>Gestione Autori</value>
-  </data>
-  <data name="UsersManager" xml:space="preserve">
-    <value>Gestione Utenti</value>
-  </data>
-  <data name="Weather" xml:space="preserve">
-    <value>Meteo</value>
-  </data>
-  <data name="BooksBrowser" xml:space="preserve">
-    <value>Sfoglia Libri</value>
-  </data>
-  <data name="Search" xml:space="preserve">
-    <value>Cerca</value>
-  </data>
-  <data name="AddAuthor" xml:space="preserve">
-    <value>Aggiungi Autore</value>
-  </data>
-  <data name="Name" xml:space="preserve">
-    <value>Nome</value>
-  </data>
-  <data name="Actions" xml:space="preserve">
-    <value>Azioni</value>
-  </data>
-  <data name="Loading" xml:space="preserve">
-    <value>Caricamento in corso...</value>
-  </data>
-  <data name="BookDetails" xml:space="preserve"><value>Dettagli Libro</value></data>
-  <data name="Back" xml:space="preserve"><value>Indietro</value></data>
-  <data name="BackToBooks" xml:space="preserve"><value>Torna ai Libri</value></data>
-  <data name="GeneralInformation" xml:space="preserve"><value>Informazioni Generali</value></data>
-  <data name="LockedSealed" xml:space="preserve"><value>Bloccato (Sigillato)</value></data>
-  <data name="EditableUnsealed" xml:space="preserve"><value>Modificabile (Sbloccato)</value></data>
-  <data name="BookCover" xml:space="preserve"><value>Copertina Libro</value></data>
-  <data name="NoCoverAvailable" xml:space="preserve"><value>Nessuna Copertina</value></data>
-  <data name="ViewFullImage" xml:space="preserve"><value>Vedi Intera Immagine</value></data>
-  <data name="ImageURL" xml:space="preserve"><value>URL Immagine</value></data>
-  <data name="Save" xml:space="preserve"><value>Salva</value></data>
-  <data name="Cancel" xml:space="preserve"><value>Annulla</value></data>
-  <data name="LookupCover" xml:space="preserve"><value>Cerca Copertina</value></data>
-  <data name="Lookup" xml:space="preserve"><value>Cerca</value></data>
-  <data name="Accept" xml:space="preserve"><value>Accetta</value></data>
-  <data name="Discard" xml:space="preserve"><value>Scarta</value></data>
-  <data name="ChangeImage" xml:space="preserve"><value>Cambia Immagine</value></data>
-  <data name="AddImage" xml:space="preserve"><value>Aggiungi Immagine</value></data>
-  <data name="RemoveImage" xml:space="preserve"><value>Rimuovi Immagine</value></data>
-  <data name="Confirm" xml:space="preserve"><value>Conferma</value></data>
-  <data name="PublicationYear" xml:space="preserve"><value>Anno di Pubblicazione</value></data>
-  <data name="MainCategory" xml:space="preserve"><value>Categoria Principale</value></data>
-  <data name="AdditionalCategories" xml:space="preserve"><value>Categorie Aggiuntive</value></data>
-  <data name="Authors" xml:space="preserve"><value>Autori</value></data>
-  <data name="AssociateNewAuthor" xml:space="preserve"><value>Associa Nuovo Autore</value></data>
-  <data name="StatusAndAvailability" xml:space="preserve"><value>Stato e Disponibilità</value></data>
-  <data name="CurrentLoan" xml:space="preserve"><value>Prestito Attuale</value></data>
-  <data name="CurrentlyLoanedOut" xml:space="preserve"><value>Attualmente in Prestito</value></data>
-  <data name="AvailableForLoan" xml:space="preserve"><value>Disponibile per il Prestito</value></data>
-  <data name="FutureReservations" xml:space="preserve"><value>Prenotazioni Future</value></data>
-  <data name="DangerZone" xml:space="preserve"><value>Zona Pericolo</value></data>
-  <data name="PermanentlyRemoveBook" xml:space="preserve"><value>Rimuovi Libro Definitivamente</value></data>
-  <data name="DeleteBook" xml:space="preserve"><value>Elimina Libro</value></data>
-  <data name="AuthorDetails" xml:space="preserve"><value>Dettagli Autore</value></data>
-  <data name="AuthorProfile" xml:space="preserve"><value>Profilo Autore</value></data>
-  <data name="AuthorName" xml:space="preserve"><value>Nome Autore</value></data>
-  <data name="Nationality" xml:space="preserve"><value>Nazionalità</value></data>
-  <data name="BirthDate" xml:space="preserve"><value>Data di Nascita</value></data>
-  <data name="DeathDate" xml:space="preserve"><value>Data di Morte</value></data>
-  <data name="Biography" xml:space="preserve"><value>Biografia</value></data>
-  <data name="BooksBy" xml:space="preserve"><value>Libri di</value></data>
-  <data name="NoBooksFound" xml:space="preserve"><value>Nessun libro trovato</value></data>
-  <data name="EditAuthor" xml:space="preserve"><value>Modifica Autore</value></data>
-  <data name="DeleteAuthor" xml:space="preserve"><value>Elimina Autore</value></data>
-  <data name="ConfirmDeleteAuthor" xml:space="preserve"><value>Sei sicuro di voler eliminare questo autore?</value></data>
-  <data name="AuthorDeleted" xml:space="preserve"><value>Autore eliminato con successo</value></data>
-  <data name="ErrorDeletingAuthor" xml:space="preserve"><value>Errore durante l'eliminazione dell'autore</value></data>
-  <data name="AuthorUpdated" xml:space="preserve"><value>Autore aggiornato con successo</value></data>
-  <data name="ErrorUpdatingAuthor" xml:space="preserve"><value>Errore durante l'aggiornamento dell'autore</value></data>
-  <data name="AuthorCreated" xml:space="preserve"><value>Autore creato con successo</value></data>
-  <data name="ErrorCreatingAuthor" xml:space="preserve"><value>Errore durante la creazione dell'autore</value></data>
-  <data name="NoAuthorFound" xml:space="preserve"><value>Nessun autore trovato</value></data>
-  <data name="ErrorLoadingAuthor" xml:space="preserve"><value>Errore durante il caricamento dell'autore</value></data>
-  <data name="Author" xml:space="preserve"><value>Autore</value></data>
-  <data name="AuthorNamePhoto" xml:space="preserve"><value>Nome Autore / Foto</value></data>
-  <data name="UpdateProfileImageUrl" xml:space="preserve"><value>Aggiorna URL Immagine Profilo</value></data>
-  <data name="PreviewNewImage" xml:space="preserve"><value>Anteprima Nuova Immagine</value></data>
-  <data name="AcceptInvalidIsni" xml:space="preserve"><value>Accetta formato ISNI non valido</value></data>
-  <data name="RegisteredTitles" xml:space="preserve"><value>Titoli Registrati</value></data>
-  <data name="WorksCount" xml:space="preserve"><value>Numero Opere</value></data>
-  <data name="WorksPublished" xml:space="preserve"><value>Opere Pubblicate</value></data>
-  <data name="BooksInLibrary" xml:space="preserve"><value>Libri in Libreria</value></data>
-  <data name="Title" xml:space="preserve"><value>Titolo</value></data>
-  <data name="Year" xml:space="preserve"><value>Anno</value></data>
-  <data name="Category" xml:space="preserve"><value>Categoria</value></data>
-  <data name="Availability" xml:space="preserve"><value>Disponibilità</value></data>
-  <data name="Available" xml:space="preserve"><value>Disponibile</value></data>
-  <data name="OnLoan" xml:space="preserve"><value>In Prestito</value></data>
-  <data name="IsniNumber" xml:space="preserve"><value>Numero ISNI</value></data>
-  <data name="NoneNotSet" xml:space="preserve"><value>Nessuno / Non Impostato</value></data>
-  <data name="ChangeProfileImage" xml:space="preserve"><value>Cambia immagine profilo</value></data>
-  <data name="Apply" xml:space="preserve"><value>Applica</value></data>
-  <data name="RemoveCurrentImage" xml:space="preserve"><value>Rimuovi Immagine Corrente</value></data>
-  <data name="EditAuthorProfile" xml:space="preserve"><value>Modifica Profilo Autore</value></data>
-  <data name="DeleteAuthorProfile" xml:space="preserve"><value>Elimina Profilo Autore</value></data>
-  <data name="PermanentlyRemoveAuthor" xml:space="preserve"><value>Rimuovi Autore Definitivamente</value></data>
-  <data name="Locked" xml:space="preserve"><value>Bloccato</value></data>
-  <data name="Editable" xml:space="preserve"><value>Modificabile</value></data>
-  <data name="SearchAuthors" xml:space="preserve"><value>Cerca Autori</value></data>
-  <data name="SearchByName" xml:space="preserve"><value>Cerca per nome...</value></data>
-  <data name="SearchByIsni" xml:space="preserve"><value>Cerca per ISNI...</value></data>
-  <data name="AddNewAuthor" xml:space="preserve"><value>Aggiungi Nuovo Autore</value></data>
-  <data name="IsniOptional" xml:space="preserve"><value>ISNI (Opzionale)</value></data>
-  <data name="ImageUrlOptional" xml:space="preserve"><value>URL Immagine (Opzionale)</value></data>
-  <data name="LookupFromWikipedia" xml:space="preserve"><value>Cerca immagine da Wikipedia</value></data>
-  <data name="ImagePreview" xml:space="preserve"><value>Anteprima Immagine</value></data>
-  <data name="RegisteredAuthors" xml:space="preserve"><value>Autori Registrati</value></data>
-  <data name="Total" xml:space="preserve"><value>Totale</value></data>
-  <data name="FilterByName" xml:space="preserve"><value>Filtra risultati per nome...</value></data>
-  <data name="FilterByIsni" xml:space="preserve"><value>Filtra risultati per ISNI...</value></data>
-  <data name="Status" xml:space="preserve"><value>Stato</value></data>
-  <data name="Sealed" xml:space="preserve"><value>Sigillato</value></data>
   <data name="Active" xml:space="preserve"><value>Attivo</value></data>
-  <data name="AuthorNameRequired" xml:space="preserve"><value>Il nome dell'autore è obbligatorio.</value></data>
-  <data name="InvalidIsni" xml:space="preserve"><value>ISNI non valido</value></data>
-  <data name="InvalidImageUrl" xml:space="preserve"><value>URL Immagine non valido.</value></data>
-  <data name="ImageFoundWikipedia" xml:space="preserve"><value>Immagine trovata su Wikipedia!</value></data>
-  <data name="WikipediaImageNotFound" xml:space="preserve"><value>Immagine Wikipedia non trovata</value></data>
-  <data name="ErrorSearchingImage" xml:space="preserve"><value>Errore durante la ricerca dell'immagine</value></data>
-  <data name="SearchBooksForm" xml:space="preserve"><value>Cerca Libri</value></data>
-  <data name="TitleSearch" xml:space="preserve"><value>Cerca Titolo</value></data>
-  <data name="SearchByTitlePlaceholder" xml:space="preserve"><value>Cerca per titolo...</value></data>
-  <data name="IsbnSearch" xml:space="preserve"><value>Cerca ISBN</value></data>
-  <data name="PartialIsbnPlaceholder" xml:space="preserve"><value>ISBN parziale...</value></data>
-  <data name="YearSearchOption" xml:space="preserve"><value>Opzione Ricerca Anno</value></data>
-  <data name="Exact" xml:space="preserve"><value>Esatto</value></data>
-  <data name="FromYear" xml:space="preserve"><value>Dall'anno</value></data>
-  <data name="ToYear" xml:space="preserve"><value>All'anno</value></data>
-  <data name="Between" xml:space="preserve"><value>Tra</value></data>
-  <data name="StartingYear" xml:space="preserve"><value>Anno iniziale</value></data>
-  <data name="YearValue" xml:space="preserve"><value>Valore anno</value></data>
-  <data name="EndingYear" xml:space="preserve"><value>Anno finale</value></data>
-  <data name="RefineByAuthors" xml:space="preserve"><value>Affina per autore/i</value></data>
-  <data name="SearchAuthorNamePlaceholder" xml:space="preserve"><value>Cerca nome autore...</value></data>
-  <data name="ClickToAddAuthor" xml:space="preserve"><value>Clicca per aggiungere l'autore</value></data>
-  <data name="ChooseFromResults" xml:space="preserve"><value>-- Scegli dai risultati --</value></data>
-  <data name="ActiveAuthorCriteria" xml:space="preserve"><value>Criteri Autore Attivi</value></data>
-  <data name="NoAuthorsSelected" xml:space="preserve"><value>Nessun autore selezionato</value></data>
-  <data name="RefineByCategory" xml:space="preserve"><value>Affina per Categoria</value></data>
-  <data name="SelectCategoryPlaceholder" xml:space="preserve"><value>-- Seleziona Categoria --</value></data>
-  <data name="ActiveCategoryCriteria" xml:space="preserve"><value>Criteri Categoria Attivi</value></data>
-  <data name="NoCategoriesSelected" xml:space="preserve"><value>Nessuna categoria selezionata</value></data>
-  <data name="SearchResults" xml:space="preserve"><value>Risultati della Ricerca</value></data>
-  <data name="Counter" xml:space="preserve"><value>Contatore</value></data>
-  <data name="AuthRequired" xml:space="preserve"><value>Autenticazione Richiesta</value></data>
-  <data name="Logout" xml:space="preserve"><value>Esci</value></data>
-  <data name="Register" xml:space="preserve"><value>Registrati</value></data>
-  <data name="Login" xml:space="preserve"><value>Accedi</value></data>
-  <data name="RefineResultsByTitlePlaceholder" xml:space="preserve"><value>Affina i risultati per titolo...</value></data>
-  <data name="NoBooksFoundCriteria" xml:space="preserve"><value>Nessun libro trovato corrispondente ai criteri.</value></data>
-  <data name="AddNewBookEntry" xml:space="preserve"><value>Aggiungi Nuova Voce di Libro</value></data>
-  <data name="Visible" xml:space="preserve"><value>Visibile</value></data>
-  <data name="Hidden" xml:space="preserve"><value>Nascosto</value></data>
+  <data name="Add" xml:space="preserve"><value>Aggiungi</value></data>
+  <data name="AddAuthor" xml:space="preserve"><value>Aggiungi Autore</value></data>
+  <data name="AddNewAuthor" xml:space="preserve"><value>Aggiungi Nuovo Autore</value></data>
   <data name="AddNewBook" xml:space="preserve"><value>Aggiungi Nuovo Libro</value></data>
-  <data name="BookTitleSearchApi" xml:space="preserve"><value>Titolo Libro / Cerca API</value></data>
-  <data name="EnterTitleToSearchPlaceholder" xml:space="preserve"><value>Inserisci il titolo del libro da cercare...</value></data>
-  <data name="SearchApi" xml:space="preserve"><value>Cerca API</value></data>
-  <data name="SelectFromResultToPopulate" xml:space="preserve"><value>Seleziona dai risultati per popolare il modulo</value></data>
-  <data name="SelectABook" xml:space="preserve"><value>-- Seleziona un libro --</value></data>
-  <data name="AutofillFields" xml:space="preserve"><value>Autocompila campi</value></data>
-  <data name="IsbnExamplePlaceholder" xml:space="preserve"><value>es. 978-3-16-148410-0</value></data>
-  <data name="AcceptInvalidIsbn" xml:space="preserve"><value>Accetta ISBN non valido</value></data>
-  <data name="PasteImageUrlPlaceholder" xml:space="preserve"><value>Incolla qui l'URL dell'immagine...</value></data>
-  <data name="UseCoverLookupInfo" xml:space="preserve"><value>Usa la Ricerca Copertina con un ISBN per trovarne una automaticamente.</value></data>
-  <data name="CoverFound" xml:space="preserve"><value>Copertina Trovata!</value></data>
-  <data name="UseThisImageUrl" xml:space="preserve"><value>Vuoi usare questo URL immagine per il libro?</value></data>
-  <data name="AcceptAndUse" xml:space="preserve"><value>Accetta e Usa</value></data>
-  <data name="NoAuthorsAssociatedDescription" xml:space="preserve"><value>Nessun autore associato. Usa il modulo di ricerca a destra per trovare e aggiungere autori.</value></data>
+  <data name="AddNewBookEntry" xml:space="preserve"><value>Aggiungi Nuova Voce Libro</value></data>
+  <data name="AdditionalCategories" xml:space="preserve"><value>Categorie Aggiuntive</value></data>
+  <data name="AlreadyReservedMessage" xml:space="preserve"><value>Hai già prenotato questo libro per il {0}.</value></data>
+  <data name="Author" xml:space="preserve"><value>Autore</value></data>
+  <data name="AuthorName" xml:space="preserve"><value>Nome Autore</value></data>
+  <data name="Authors" xml:space="preserve"><value>Autori</value></data>
+  <data name="TitleUpdated" xml:space="preserve"><value>Titolo aggiornato con successo.</value></data>
+  <data name="AuthorsManager" xml:space="preserve"><value>Gestione Autori</value></data>
+  <data name="Availability" xml:space="preserve"><value>Disponibilità</value></data>
+  <data name="AvailabilityFilters" xml:space="preserve"><value>Filtri Disponibilità</value></data>
+  <data name="AvailabilityType" xml:space="preserve"><value>Tipo Disponibilità</value></data>
+  <data name="Available" xml:space="preserve"><value>Disponibile</value></data>
+  <data name="AvailableForLoan" xml:space="preserve"><value>Disponibile per il Prestito</value></data>
+  <data name="Back" xml:space="preserve"><value>Indietro</value></data>
+  <data name="BookCover" xml:space="preserve"><value>Copertina Libro</value></data>
+  <data name="BookDescriptionPlaceholder" xml:space="preserve"><value>Inserisci una breve descrizione del libro...</value></data>
+  <data name="BookDetails" xml:space="preserve"><value>Dettagli Libro</value></data>
+  <data name="BooksFound" xml:space="preserve"><value>libri trovati</value></data>
+  <data name="BooksManager" xml:space="preserve"><value>Gestione Libri</value></data>
+  <data name="BookTitleSearchApi" xml:space="preserve"><value>Titolo Libro (Ricerca via API)</value></data>
+  <data name="Category" xml:space="preserve"><value>Categoria</value></data>
+  <data name="Circulating" xml:space="preserve"><value>Circolante</value></data>
+  <data name="CirculatingRule" xml:space="preserve"><value>Circolante (Prestito Standard)</value></data>
   <data name="CreateBookEntry" xml:space="preserve"><value>Crea Voce Libro</value></data>
+  <data name="CurrentLoan" xml:space="preserve"><value>Stato Prestito Corrente</value></data>
+  <data name="Description" xml:space="preserve"><value>Descrizione</value></data>
+  <data name="Discard" xml:space="preserve"><value>Scarta</value></data>
+  <data name="Email" xml:space="preserve"><value>Email</value></data>
+  <data name="EndingYear" xml:space="preserve"><value>Anno Fine</value></data>
+  <data name="EnterTitleToSearchPlaceholder" xml:space="preserve"><value>es. Il Signore degli Anelli</value></data>
+  <data name="Exact" xml:space="preserve"><value>Esatto</value></data>
+  <data name="FilterByName" xml:space="preserve"><value>Filtra autori per nome...</value></data>
+  <data name="FilterByIsni" xml:space="preserve"><value>Filtra per ISNI...</value></data>
   <data name="FindAuthors" xml:space="preserve"><value>Trova Autori</value></data>
-  <data name="BookCreatedSuccessfully" xml:space="preserve"><value>Il libro '{0}' è stato creato con successo!</value></data>
-  <data name="TitleIsRequired" xml:space="preserve"><value>Il titolo è obbligatorio.</value></data>
-  <data name="YearIsRequired" xml:space="preserve"><value>L'anno è obbligatorio.</value></data>
+  <data name="From" xml:space="preserve"><value>Da (Anno)</value></data>
+  <data name="GeneralInformation" xml:space="preserve"><value>Informazioni Generali</value></data>
+  <data name="HasBeenAdded" xml:space="preserve"><value>è stato aggiunto</value></data>
+  <data name="Hidden" xml:space="preserve"><value>Nascosto</value></data>
+  <data name="ImmediatelyAvailableOnly" xml:space="preserve"><value>Solo Disponibili Subito</value></data>
+  <data name="IsbnSearch" xml:space="preserve"><value>ISBN</value></data>
+  <data name="IsniNumber" xml:space="preserve"><value>Numero ISNI</value></data>
+  <data name="IsniOptional" xml:space="preserve"><value>ISNI (Opzionale)</value></data>
+  <data name="Loading" xml:space="preserve"><value>Caricamento</value></data>
+  <data name="LookupCover" xml:space="preserve"><value>Cerca Copertina</value></data>
+  <data name="LookupFromWikipedia" xml:space="preserve"><value>Cerca immagine su Wikipedia</value></data>
+  <data name="MainCategory" xml:space="preserve"><value>Categoria Principale</value></data>
+  <data name="MaxReservationsReachedMessage" xml:space="preserve"><value>Hai raggiunto il numero massimo di prenotazioni ({0}).</value></data>
+  <data name="MetadataSearch" xml:space="preserve"><value>Ricerca Metadati</value></data>
+  <data name="Name" xml:space="preserve"><value>Nome</value></data>
+  <data name="NoAdditionalCategories" xml:space="preserve"><value>Nessuna categoria aggiuntiva</value></data>
+  <data name="NoAuthorsAssociated" xml:space="preserve"><value>Nessun autore associato</value></data>
+  <data name="NoAuthorsAssociatedDescription" xml:space="preserve"><value>Nessun autore associato a questa voce. Cerca e aggiungi autori dal pannello a destra.</value></data>
+  <data name="NoBooksFoundCriteria" xml:space="preserve"><value>Nessun libro trovato con i criteri selezionati.</value></data>
+  <data name="NoCoverAvailable" xml:space="preserve"><value>Nessuna copertina disponibile</value></data>
+  <data name="NoDescriptionAvailable" xml:space="preserve"><value>Nessuna descrizione disponibile per questo libro.</value></data>
+  <data name="NotAvailable" xml:space="preserve"><value>Non disponibile (In Prestito)</value></data>
+  <data name="OnLoan" xml:space="preserve"><value>In Prestito</value></data>
+  <data name="PartialIsbnPlaceholder" xml:space="preserve"><value>ISBN Parziale...</value></data>
+  <data name="PleaseLoginToReserve" xml:space="preserve"><value>Effettua il login per prenotare un libro.</value></data>
+  <data name="Preview" xml:space="preserve"><value>Anteprima</value></data>
+  <data name="PublicationYear" xml:space="preserve"><value>Anno di Pubblicazione</value></data>
+  <data name="Range" xml:space="preserve"><value>Intervallo</value></data>
+  <data name="ReferenceOnly" xml:space="preserve"><value>Sola Consultazione</value></data>
+  <data name="ReferenceOnlyRule" xml:space="preserve"><value>Sola Consultazione (No Prestito)</value></data>
+  <data name="RefineByCategory" xml:space="preserve"><value>Affina per Categoria</value></data>
+  <data name="RefineResultsByTitlePlaceholder" xml:space="preserve"><value>Affina i risultati per titolo...</value></data>
+  <data name="SelectCategoryPlaceholder" xml:space="preserve"><value>-- Seleziona Categoria --</value></data>
+  <data name="RegisteredAuthors" xml:space="preserve"><value>Autori Registrati</value></data>
+  <data name="Reserve" xml:space="preserve"><value>Prenota</value></data>
+  <data name="ReservationFailedMessage" xml:space="preserve"><value>Prenotazione fallita: {0}</value></data>
+  <data name="ReservationSuccessMessage" xml:space="preserve"><value>Libro prenotato con successo!</value></data>
+  <data name="Reservations" xml:space="preserve"><value>Prenotazioni</value></data>
+  <data name="Search" xml:space="preserve"><value>Cerca</value></data>
+  <data name="SearchApi" xml:space="preserve"><value>Cerca API</value></data>
+  <data name="SearchAuthors" xml:space="preserve"><value>Cerca Autori</value></data>
+  <data name="SearchAuthorNamePlaceholder" xml:space="preserve"><value>Cerca autore...</value></data>
+  <data name="SearchByEmailOrNamePlaceholder" xml:space="preserve"><value>Cerca per email o nome...</value></data>
+  <data name="SearchByIsni" xml:space="preserve"><value>Cerca per ISNI...</value></data>
+  <data name="SearchByName" xml:space="preserve"><value>Cerca per nome...</value></data>
+  <data name="SearchByTitlePlaceholder" xml:space="preserve"><value>Cerca per titolo...</value></data>
+  <data name="SearchResults" xml:space="preserve"><value>Risultati della Ricerca</value></data>
+  <data name="Sealed" xml:space="preserve"><value>Sigillato</value></data>
+  <data name="SelectABook" xml:space="preserve"><value>-- Seleziona un libro --</value></data>
+  <data name="StartingYear" xml:space="preserve"><value>Anno Inizio</value></data>
+  <data name="Status" xml:space="preserve"><value>Stato</value></data>
+  <data name="StatusAvailability" xml:space="preserve"><value>Stato e Disponibilità</value></data>
+  <data name="Title" xml:space="preserve"><value>Titolo</value></data>
+  <data name="To" xml:space="preserve"><value>A (Anno)</value></data>
+  <data name="Total" xml:space="preserve"><value>Totale</value></data>
+  <data name="Unspecified" xml:space="preserve"><value>Non specificato</value></data>
+  <data name="UnspecifiedRule" xml:space="preserve"><value>Non specificato (Consulta il personale)</value></data>
+  <data name="UserIdentifierNotFound" xml:space="preserve"><value>Identificatore utente non trovato.</value></data>
+  <data name="UsersManager" xml:space="preserve"><value>Gestione Utenti</value></data>
+  <data name="ViewDetails" xml:space="preserve"><value>Visualizza Dettagli</value></data>
+  <data name="ViewFullImage" xml:space="preserve"><value>Visualizza Immagine Completa</value></data>
+  <data name="Visible" xml:space="preserve"><value>Visibile</value></data>
+  <data name="WorksCount" xml:space="preserve"><value>Conteggio Opere</value></data>
+  <data name="Year" xml:space="preserve"><value>Anno</value></data>
+  <data name="YearValue" xml:space="preserve"><value>Valore anno</value></data>
+  <data name="overActivity" xml:space="preserve"><value>Potresti avere troppa attività, riprova più tardi</value></data>
+  <data name="ErrorSearchingAuthors" xml:space="preserve"><value>Errore nella ricerca degli autori: {0}</value></data>
+  <data name="InvalidIsniValue" xml:space="preserve"><value>Valore ISBN non valido: {0}</value></data>
+  <data name="ErrorCreatingBook" xml:space="preserve"><value>Errore nella creazione del libro: {0}</value></data>
+  <data name="ErrorSearchingApi" xml:space="preserve"><value>Errore nella ricerca via API: {0}</value></data>
+  <data name="ErrorDuringLookup" xml:space="preserve"><value>Errore durante la ricerca: {0}</value></data>
+  <data name="ErrorAutofillingFields" xml:space="preserve"><value>Errore durante l'autocompletamento dei campi: {0}</value></data>
+  <data name="ErrorLookingUpCover" xml:space="preserve"><value>Errore durante la ricerca della copertina: {0}</value></data>
+  <data name="MetadataNotFound" xml:space="preserve"><value>Metadati non trovati nei cataloghi esterni.</value></data>
+  <data name="ErrorLookingUpMetadata" xml:space="preserve"><value>Errore durante la ricerca dei metadati: {0}</value></data>
+  <data name="ErrorSearchingBooks" xml:space="preserve"><value>Errore nella ricerca dei libri: {0}</value></data>
+  <data name="BrokenLinkError" xml:space="preserve"><value>Il link fornito sembra essere non funzionante (Codice di stato: {0}). Aggiornamento fallito.</value></data>
+  <data name="AcceptInvalidIsniPrompt" xml:space="preserve"><value>Per salvarlo comunque, attiva l'interruttore 'Accetta non valido'.</value></data>
+  <data name="ErrorLoadingData" xml:space="preserve"><value>Errore durante il caricamento dei dati: {0}</value></data>
+  <data name="AuthorAddedSuccessfully" xml:space="preserve"><value>L'autore '{0}' è stato aggiunto.</value></data>
+  <data name="ErrorCreatingAuthor" xml:space="preserve"><value>Errore nella creazione dell'autore: {0}</value></data>
+  <data name="WikipediaLookupError" xml:space="preserve"><value>Ricerca su Wikipedia fallita: {0}</value></data>
+  <data name="ImageFoundWikipedia" xml:space="preserve"><value>Foto dell'autore trovata su Wikipedia.</value></data>
+  <data name="ErrorSearchingImage" xml:space="preserve"><value>Errore nella ricerca dell'immagine: {0}</value></data>
+  <data name="PreviewImageLoadError" xml:space="preserve"><value>L'immagine di anteprima non può essere caricata.</value></data>
+  <data name="ErrorLoadingBook" xml:space="preserve"><value>Impossibile caricare il libro: {0}</value></data>
+  <data name="InvalidBookIdInUrl" xml:space="preserve"><value>Identificatore del libro non valido nell'URL.</value></data>
+  <data name="AssignedManagerRoleTo" xml:space="preserve"><value>Ruolo Manager assegnato a {0}.</value></data>
+  <data name="RevokedManagerRoleFrom" xml:space="preserve"><value>Ruolo Manager revocato a {0}.</value></data>
+  <data name="ConfirmPermanentlyDeleteAuthor" xml:space="preserve"><value>Sei sicuro di voler eliminare permanentemente l'autore '{0}'? Questa azione non può essere annullata.</value></data>
   <data name="EnterTitleToSearch" xml:space="preserve"><value>Inserisci un titolo per la ricerca.</value></data>
-  <data name="NoBooksFoundTitle" xml:space="preserve"><value>Nessun libro trovato con quel titolo.</value></data>
-  <data name="FoundResultsFromApi" xml:space="preserve"><value>Trovati {0} risultati dall'API. Selezionane uno dall'elenco sottostante.</value></data>
-  <data name="MappingCategoryWarning" xml:space="preserve"><value>Impossibile mappare accuratamente la categoria esterna '{0}' alle categorie locali. Dovrai selezionarne una manualmente.</value></data>
-  <data name="AuthorNotFoundCreateAssign" xml:space="preserve"><value>Autore '{0}' non trovato nel database locale. Vuoi crearlo e assegnarlo a questo libro?</value></data>
+  <data name="FieldsPopulatedReview" xml:space="preserve"><value>Campi popolati dai metadati esterni. Per favore, rivedi e completa se necessario.</value></data>
+  <data name="MappingCategoryWarning" xml:space="preserve"><value>Impossibile mappare automaticamente la categoria '{0}' a una categoria del dominio.</value></data>
   <data name="FailedToCreateAuthor" xml:space="preserve"><value>Impossibile creare l'autore '{0}'.</value></data>
-  <data name="FieldsPopulatedReview" xml:space="preserve"><value>Campi popolati dal libro selezionato. Si prega di rivedere e salvare.</value></data>
-  <data name="CoverImageFoundCatalogs" xml:space="preserve"><value>Immagine di copertina trovata nei nostri cataloghi! Vedi l'anteprima sotto.</value></data>
-  <data name="NoCoverImageFoundIsbn" xml:space="preserve"><value>Nessuna immagine di copertina trovata per questo ISBN in nessuna delle nostre biblioteche collegate.</value></data>
-  <data name="CoverUrlApplied" xml:space="preserve"><value>URL della copertina applicato al campo immagine del libro.</value></data>
-  <data name="NoAuthorsFoundMatchingName" xml:space="preserve"><value>Nessun autore trovato con quel nome.</value></data>
-  <data name="CurrentRoles" xml:space="preserve"><value>Ruoli Attuali</value></data>
-  <data name="RevokeManager" xml:space="preserve"><value>Revoca Manager</value></data>
-  <data name="AssignManager" xml:space="preserve"><value>Assegna Manager</value></data>
-  <data name="NoUsersFound" xml:space="preserve"><value>Nessun utente trovato.</value></data>
-  <data name="ExistingManagers" xml:space="preserve"><value>Manager Esistenti</value></data>
-  <data name="NoManagersFound" xml:space="preserve"><value>Nessun manager trovato.</value></data>
-  <data name="RevokeRole" xml:space="preserve"><value>Revoca Ruolo</value></data>
-  <data name="AssignedManagerRoleTo" xml:space="preserve"><value>Ruolo Manager assegnato a {0}</value></data>
-  <data name="RevokedManagerRoleFrom" xml:space="preserve"><value>Ruolo Manager revocato a {0}</value></data>
-  <data name="Error" xml:space="preserve"><value>Errore</value></data>
-  <data name="Profile" xml:space="preserve"><value>Profilo</value></data>
-  <data name="AccountVerificationStatus" xml:space="preserve"><value>Stato di Verifica dell'Account</value></data>
-  <data name="PhysicallyIdentifiedVerified" xml:space="preserve"><value>Fisicamente Identificato e Verificato</value></data>
-  <data name="IdentityVerifiedLibrarianLocked" xml:space="preserve"><value>La tua identità è stata verificata da un bibliotecario. I tuoi dettagli essenziali di identificazione sono ora bloccati per sicurezza.</value></data>
-  <data name="PendingPhysicalIdentification" xml:space="preserve"><value>In attesa di Identificazione Fisica</value></data>
-  <data name="VisitLibraryToVerify" xml:space="preserve"><value>Visita la biblioteca con un documento d'identità valido per verificare il tuo account e sbloccare altre funzionalità.</value></data>
-  <data name="Username" xml:space="preserve"><value>Nome utente</value></data>
-  <data name="PhoneNumber" xml:space="preserve"><value>Numero di telefono</value></data>
-  <data name="FiscalCodeVerified" xml:space="preserve"><value>Codice Fiscale (Verificato)</value></data>
-  <data name="IdentityVerifiedLocked" xml:space="preserve"><value>Bloccato: L'identità è stata verificata fisicamente.</value></data>
-  <data name="FiscalCode" xml:space="preserve"><value>Codice Fiscale</value></data>
-  <data name="FiscalCodeVerificationSubject" xml:space="preserve"><value>Il Codice Fiscale fornito è soggetto a verifica.</value></data>
-  <data name="ManageEmail" xml:space="preserve"><value>Gestisci email</value></data>
-  <data name="SendVerificationEmail" xml:space="preserve"><value>Invia email di verifica</value></data>
-  <data name="NewEmail" xml:space="preserve"><value>Nuova email</value></data>
-  <data name="ChangeEmail" xml:space="preserve"><value>Cambia email</value></data>
-  <data name="ManageYourPasskeys" xml:space="preserve"><value>Gestisci le tue passkey</value></data>
-  <data name="Rename" xml:space="preserve"><value>Rinomina</value></data>
-  <data name="Delete" xml:space="preserve"><value>Elimina</value></data>
-  <data name="NoPasskeysRegistered" xml:space="preserve"><value>Nessuna passkey registrata.</value></data>
-  <data name="AddANewPasskey" xml:space="preserve"><value>Aggiungi una nuova passkey</value></data>
-  <data name="PersonalData" xml:space="preserve"><value>Dati Personali</value></data>
-  <data name="PersonalDataInfo" xml:space="preserve"><value>Il tuo account contiene dati personali che ci hai fornito. Questa pagina ti permette di scaricare o eliminare tali dati.</value></data>
-  <data name="PersonalDataDeleteWarning" xml:space="preserve"><value>L'eliminazione di questi dati rimuoverà permanentemente il tuo account e non potrà essere recuperato.</value></data>
-  <data name="Download" xml:space="preserve"><value>Scarica</value></data>
-  <data name="TwoFactorAuthentication" xml:space="preserve"><value>Autenticazione a due fattori (2FA)</value></data>
-  <data name="NoRecoveryCodesLeft" xml:space="preserve"><value>Non hai più codici di recupero.</value></data>
-  <data name="GenerateNewRecoveryCodesInfo" xml:space="preserve"><value>Devi generare un nuovo set di codici di recupero prima di poter accedere con un codice di recupero.</value></data>
-  <data name="OneRecoveryCodeLeft" xml:space="preserve"><value>Ti è rimasto 1 codice di recupero.</value></data>
-  <data name="GenerateNewRecoveryCodesLink" xml:space="preserve"><value>Puoi generare un nuovo set di codici di recupero.</value></data>
-  <data name="MultipleRecoveryCodesLeft" xml:space="preserve"><value>Ti sono rimasti {0} codici di recupero.</value></data>
-  <data name="ShouldGenerateNewRecoveryCodes" xml:space="preserve"><value>Dovresti generare un nuovo set di codici di recupero.</value></data>
-  <data name="ForgetThisBrowser" xml:space="preserve"><value>Dimentica questo browser</value></data>
-  <data name="Disable2FA" xml:space="preserve"><value>Disabilita 2FA</value></data>
-  <data name="ResetRecoveryCodes" xml:space="preserve"><value>Reimposta codici di recupero</value></data>
-  <data name="AuthenticatorApp" xml:space="preserve"><value>App di autenticazione</value></data>
-  <data name="AddAuthenticatorApp" xml:space="preserve"><value>Aggiungi app di autenticazione</value></data>
-  <data name="SetUpAuthenticatorApp" xml:space="preserve"><value>Configura app di autenticazione</value></data>
-  <data name="ResetAuthenticatorApp" xml:space="preserve"><value>Reimposta app di autenticazione</value></data>
-  <data name="InvalidPhoneNumber" xml:space="preserve"><value>Il numero di telefono fornito non è valido.</value></data>
-  <data name="ProfileUpdated" xml:space="preserve"><value>Il tuo profilo è stato aggiornato</value></data>
-  <data name="EmailUnchanged" xml:space="preserve"><value>La tua email è rimasta invariata.</value></data>
-  <data name="ConfirmationLinkSent" xml:space="preserve"><value>Link di conferma inviato. Controlla la tua email.</value></data>
-  <data name="VerificationEmailSent" xml:space="preserve"><value>Email di verifica inviata. Controlla la tua email.</value></data>
-  <data name="MaxPasskeysReachedShort" xml:space="preserve"><value>Hai raggiunto il numero massimo di passkey consentite.</value></data>
-  <data name="NoPasskeyProvided" xml:space="preserve"><value>Il browser non ha fornito una passkey.</value></data>
-  <data name="CouldNotAddPasskey" xml:space="preserve"><value>Impossibile aggiungere la passkey: {0}</value></data>
-  <data name="PasskeyAddAccountFailed" xml:space="preserve"><value>Impossibile aggiungere la passkey al tuo account.</value></data>
-  <data name="UnknownAction" xml:space="preserve"><value>Azione sconosciuta '{0}'.</value></data>
-  <data name="InvalidPasskeyId" xml:space="preserve"><value>L'ID della passkey specificata ha un formato non valido.</value></data>
-  <data name="PasskeyDeleteFailed" xml:space="preserve"><value>Impossibile eliminare la passkey.</value></data>
-  <data name="PasskeyDeletedSuccessfully" xml:space="preserve"><value>Passkey eliminata con successo.</value></data>
-  <data name="PrivacyPolicyNotAccepted" xml:space="preserve"><value>Le norme sulla privacy e sui cookie non sono state accettate.</value></data>
-  <data name="AcceptPolicyToEnable2FA" xml:space="preserve"><value>Devi accettare le norme prima di poter abilitare l'autenticazione a due fattori.</value></data>
-  <data name="BrowserForgottenPrompt2FA" xml:space="preserve"><value>Il browser corrente è stato dimenticato. Al prossimo accesso da questo browser, ti verrà richiesto il codice 2fa.</value></data>
-  <data name="ChangePassword" xml:space="preserve"><value>Cambia password</value></data>
-  <data name="OldPassword" xml:space="preserve"><value>Vecchia password</value></data>
-  <data name="NewPassword" xml:space="preserve"><value>Nuova password</value></data>
-  <data name="ConfirmPassword" xml:space="preserve"><value>Conferma password</value></data>
-  <data name="UpdatePassword" xml:space="preserve"><value>Aggiorna password</value></data>
-  <data name="PasswordChangedSuccessfully" xml:space="preserve"><value>La tua password è stata aggiornata</value></data>
-  <data name="PasswordLengthError" xml:space="preserve"><value>Il campo {0} deve essere lungo almeno {2} e massimo {1} caratteri.</value></data>
-  <data name="PasswordsDoNotMatch" xml:space="preserve"><value>La nuova password e la password di conferma non corrispondono.</value></data>
-  <data name="Description" xml:space="preserve">
-    <value>Descrizione</value>
-  </data>
-  <data name="BookDescriptionPlaceholder" xml:space="preserve">
-    <value>Inserisci una descrizione o un riassunto facoltativo per il libro...</value>
-  </data>
-  <data name="MetadataSearch" xml:space="preserve">
-    <value>Ricerca Metadati</value>
-  </data>
-  <data name="SearchingMetadata" xml:space="preserve">
-    <value>Ricerca in corso...</value>
-  </data>
-  <data name="DescriptionUpdated" xml:space="preserve">
-    <value>Descrizione aggiornata con successo.</value>
-  </data>
-  <data name="DescriptionRemoved" xml:space="preserve">
-    <value>Descrizione rimossa con successo.</value>
-  </data>
-  <data name="Circulating" xml:space="preserve">
-    <value>Disponibile al Prestito</value>
-  </data>
-  <data name="ReferenceOnly" xml:space="preserve">
-    <value>Solo consultazione in sede</value>
-  </data>
-  <data name="Unspecified" xml:space="preserve">
-    <value>Non specificato</value>
-  </data>
-  <data name="Image" xml:space="preserve">
-    <value>Immagine</value>
-  </data>
-  <data name="AvailabilityType" xml:space="preserve">
-    <value>Tipo disponibilità</value>
-  </data>
-  <data name="All" xml:space="preserve">
-    <value>Tutti</value>
-  </data>
-  <data name="AvailabilityFilters" xml:space="preserve">
-    <value>Filtri Disponibilità</value>
-  </data>
-  <data name="AllBooks" xml:space="preserve">
-    <value>Tutti i libri</value>
-  </data>
-  <data name="CirculatingRule" xml:space="preserve">
-    <value>Prestabile</value>
-  </data>
-  <data name="ReferenceOnlyRule" xml:space="preserve">
-    <value>Consultazione</value>
-  </data>
-  <data name="UnspecifiedRule" xml:space="preserve">
-    <value>N.D.</value>
-  </data>
-  <data name="ImmediatelyAvailableOnly" xml:space="preserve">
-    <value>Libero subito</value>
-  </data>
-  <data name="NotAvailableForLoan" xml:space="preserve">
-    <value>Non disponibile per il prestito</value>
-  </data>
-  <data name="HasBeenUpdated" xml:space="preserve">
-    <value>è stato aggiornato</value>
-  </data>
-  <data name="ChangeAvailability" xml:space="preserve">
-    <value>Cambia Disponibilità</value>
-  </data>
-  <data name="StatusAvailability" xml:space="preserve">
-    <value>Stato e Disponibilità</value>
-  </data>
-  <data name="NotAvailable" xml:space="preserve">
-    <value>Non disponibile</value>
-  </data>
-  <data name="NoAdditionalCategories" xml:space="preserve">
-    <value>Nessuna categoria aggiuntiva</value>
-  </data>
-  <data name="NoAuthorsAssociated" xml:space="preserve">
-    <value>Nessun autore associato</value>
-  </data>
-  <data name="NoDescriptionAvailable" xml:space="preserve">
-    <value>Nessuna descrizione disponibile</value>
-  </data>
-  <data name="Exact" xml:space="preserve">
-    <value>Esatto</value>
-  </data>
-  <data name="From" xml:space="preserve">
-    <value>Dal</value>
-  </data>
-  <data name="To" xml:space="preserve">
-    <value>Al</value>
-  </data>
-  <data name="Range" xml:space="preserve">
-    <value>Intervallo</value>
-  </data>
-  <data name="Loan" xml:space="preserve">
-    <value>Prestito</value>
-  </data>
-  <data name="BookSearch" xml:space="preserve">
-    <value>Ricerca Libri</value>
-  </data>
-  <data name="HumanVerification" xml:space="preserve">
-    <value>Verifica Umana</value>
-  </data>
-  <data name="SolveMathChallenge" xml:space="preserve">
-    <value>Risolvi: </value>
-  </data>
-  <data name="HumanVerificationRequired" xml:space="preserve">
-    <value>La verifica umana è richiesta</value>
-  </data>
-  <data name="IncorrectMathResponse" xml:space="preserve">
-    <value>Errore: Risposta errata alla sfida matematica. Riprova.</value>
-  </data>
-  <data name="FastSubmissionError" xml:space="preserve">
-    <value>Errore: Modulo inviato troppo velocemente. Prendi un momento per rivedere i dettagli.</value>
-  </data>
-  <data name="Register" xml:space="preserve">
-    <value>Registrati</value>
-  </data>
-  <data name="CreateANewAccount" xml:space="preserve">
-    <value>Crea un nuovo account.</value>
-  </data>
-  <data name="EmailLabel" xml:space="preserve">
-    <value>Email</value>
-  </data>
-  <data name="PasswordLabel" xml:space="preserve">
-    <value>Password</value>
-  </data>
-  <data name="ConfirmPassword" xml:space="preserve">
-    <value>Conferma Password</value>
-  </data>
-  <data name="UseAnotherServiceRegister" xml:space="preserve">
-    <value>Usa un altro servizio per registrarti.</value>
-  </data>
-  <data name="RegistrationFinalizationError" xml:space="preserve">
-    <value>Si è verificato un errore durante la finalizzazione della registrazione dell'account. Riprova.</value>
-  </data>
-  <data name="PasswordsDoNotMatch" xml:space="preserve">
-    <value>Le password non corrispondono.</value>
-  </data>
-  <data name="Reserve" xml:space="preserve">
-    <value>Prenota</value>
-  </data>
-  <data name="Reservations" xml:space="preserve">
-    <value>Prenotazioni</value>
-  </data>
-  <data name="AlreadyReservedMessage" xml:space="preserve">
-    <value>Hai una prenotazione per questo libro, effettuata il {0}.</value>
-  </data>
-  <data name="ReservationSuccessMessage" xml:space="preserve">
-    <value>Prenotazione effettuata con successo! Riceverai una notifica quando il libro sarà pronto per il ritiro.</value>
-  </data>
-  <data name="ReservationFailedMessage" xml:space="preserve">
-    <value>Prenotazione fallita: {0}</value>
-  </data>
-  <data name="PleaseLoginToReserve" xml:space="preserve">
-    <value>Per favore effettua il login per prenotare un libro.</value>
-  </data>
-  <data name="UserIdentifierNotFound" xml:space="preserve">
-    <value>Identificativo utente non trovato.</value>
-  </data>
-  <data name="MaxReservationsReachedMessage" xml:space="preserve">
-    <value>Hai raggiunto il numero massimo di prenotazioni consentite ({0}). Per favore completa i prestiti in corso o annulla prenotazioni precedenti prima di effettuarne di nuove.</value>
-  </data>
-  <data name="CannotUnsealWithLoansOrReservations" xml:space="preserve">
-    <value>Impossibile togliere il sigillo perché il libro ha prestiti attivi o prenotazioni future.</value>
-  </data>
-  <data name="overActivity" xml:space="preserve">
-    <value>Potresti aver superato il limite di attività, riprova più tardi</value>
-  </data>
+  <data name="CoverImageFoundCatalogs" xml:space="preserve"><value>Immagine di copertina trovata! Controlla l'anteprima in basso.</value></data>
+  <data name="NoCoverImageFoundIsbn" xml:space="preserve"><value>Nessuna immagine di copertina trovata per questo ISBN.</value></data>
+  <data name="CoverUrlApplied" xml:space="preserve"><value>URL della copertina applicato al modulo.</value></data>
+  <data name="FoundResultsFromApi" xml:space="preserve"><value>Trovati {0} risultati dalle API.</value></data>
+  <data name="NoBooksFoundTitle" xml:space="preserve"><value>Nessun libro trovato con questo titolo.</value></data>
+  <data name="BookCreatedSuccessfully" xml:space="preserve"><value>Libro '{0}' creato con successo.</value></data>
+  <data name="SelectFromResultToPopulate" xml:space="preserve"><value>Seleziona un risultato dalla lista per popolare il modulo.</value></data>
+  <data name="AutofillFields" xml:space="preserve"><value>Autocompleta Campi</value></data>
+  <data name="IsbnExamplePlaceholder" xml:space="preserve"><value>es. 978-0123456789</value></data>
+  <data name="AcceptInvalidIsbn" xml:space="preserve"><value>Accetta ISBN comunque (ignora validazione)</value></data>
+  <data name="ImageURL" xml:space="preserve"><value>URL Immagine</value></data>
+  <data name="PasteImageUrlPlaceholder" xml:space="preserve"><value>Incolla URL copertina...</value></data>
+  <data name="UseCoverLookupInfo" xml:space="preserve"><value>Fornire un ISBN permette il recupero automatico della copertina dai cataloghi esterni.</value></data>
+  <data name="CoverFound" xml:space="preserve"><value>Potenziale Copertina Trovata!</value></data>
+  <data name="UseThisImageUrl" xml:space="preserve"><value>Un'anteprima è mostrata in basso. Vuoi usare questa immagine per il nuovo libro?</value></data>
+  <data name="AcceptAndUse" xml:space="preserve"><value>Accetta e Usa Foto</value></data>
+  <data name="ErrorAddingAuthor" xml:space="preserve"><value>Aggiunta autore fallita: {0}</value></data>
+  <data name="ErrorAddingAuthorGeneric" xml:space="preserve"><value>Errore durante l'aggiunta dell'autore: {0}</value></data>
+  <data name="ErrorRemovingAuthor" xml:space="preserve"><value>Rimozione autore fallita: {0}</value></data>
+  <data name="ErrorRemovingAuthorGeneric" xml:space="preserve"><value>Errore durante la rimozione dell'autore: {0}</value></data>
+  <data name="ErrorAddingCategory" xml:space="preserve"><value>Aggiunta categoria fallita: {0}</value></data>
+  <data name="ErrorAddingCategoryGeneric" xml:space="preserve"><value>Errore durante l'aggiunta della categoria: {0}</value></data>
+  <data name="ErrorRemovingCategory" xml:space="preserve"><value>Rimozione categoria fallita: {0}</value></data>
+  <data name="ErrorRemovingCategoryGeneric" xml:space="preserve"><value>Errore durante la rimozione della categoria: {0}</value></data>
+  <data name="DescriptionRemoved" xml:space="preserve"><value>Descrizione rimossa con successo.</value></data>
+  <data name="DescriptionUpdated" xml:space="preserve"><value>Descrizione aggiornata con successo.</value></data>
 </root>

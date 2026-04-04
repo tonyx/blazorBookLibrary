@@ -271,7 +271,7 @@
         get 
         {
             if (string.IsNullOrEmpty(searchBookAvailability) || searchBookAvailability == "All")
-                return null;
+                return _ => true;
             
             if (searchBookAvailability == "ImmediatelyAvailable")
                 return book => book.ImmediatelyAvailable;

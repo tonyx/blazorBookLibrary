@@ -469,4 +469,76 @@
   <data name="overActivity" xml:space="preserve">
     <value>You may have over activity, please try again later</value>
   </data>
+  <data name="ScanBarcode" xml:space="preserve">
+    <value>Scan Barcode</value>
+  </data>
+  <data name="CloseScanner" xml:space="preserve">
+    <value>Close Scanner</value>
+  </data>
+  <data name="ScannerActive" xml:space="preserve">
+    <value>Scanner Active</value>
+  </data>
+  <data name="PositionBarcodeInsideFrameNote" xml:space="preserve">
+    <value>Position the barcode inside the frame to scan it.</value>
+  </data>
+  <data name="ErrorSearchingAuthors" xml:space="preserve"><value>Error searching authors: {0}</value></data>
+  <data name="InvalidIsniValue" xml:space="preserve"><value>Invalid ISBN value: {0}</value></data>
+  <data name="ErrorCreatingBook" xml:space="preserve"><value>Error creating book: {0}</value></data>
+  <data name="ErrorSearchingApi" xml:space="preserve"><value>API search error: {0}</value></data>
+  <data name="ErrorDuringLookup" xml:space="preserve"><value>Error during lookup: {0}</value></data>
+  <data name="ErrorAutofillingFields" xml:space="preserve"><value>Error autofilling fields: {0}</value></data>
+  <data name="ErrorLookingUpCover" xml:space="preserve"><value>Error looking up cover: {0}</value></data>
+  <data name="MetadataNotFound" xml:space="preserve"><value>Metadata not found.</value></data>
+  <data name="ErrorLookingUpMetadata" xml:space="preserve"><value>Error looking up metadata: {0}</value></data>
+  <data name="TitleUpdated" xml:space="preserve"><value>Title updated successfully.</value></data>
+  <data name="ImageUrlUpdated" xml:space="preserve"><value>Image URL updated successfully.</value></data>
+  <data name="ImageCoverRemoved" xml:space="preserve"><value>Image cover removed.</value></data>
+  <data name="IsbnUpdated" xml:space="preserve"><value>ISBN updated successfully.</value></data>
+  <data name="BookSealedCannotEdit" xml:space="preserve"><value>This book is currently sealed (locked). Please unseal it to edit.</value></data>
+  <data name="BookSealedCannotChangeCategory" xml:space="preserve"><value>This book is currently sealed. Please unseal it to change its category.</value></data>
+  <data name="BookSealedCannotChangeAvailability" xml:space="preserve"><value>This book is currently sealed. Please unseal it to change its availability status.</value></data>
+  <data name="BookSealedCannotEditDescription" xml:space="preserve"><value>This book is currently sealed. Please unseal it to edit the description.</value></data>
+  <data name="BookSealedCannotEditIsbn" xml:space="preserve"><value>This book is currently sealed. Please unseal it to edit the ISBN.</value></data>
+  <data name="ErrorUpdatingCategory" xml:space="preserve"><value>Failed to update category: {0}</value></data>
+  <data name="ErrorUpdatingCategoryGeneric" xml:space="preserve"><value>Error updating category: {0}</value></data>
+  <data name="ErrorUpdatingAvailability" xml:space="preserve"><value>Failed to update availability: {0}</value></data>
+  <data name="ErrorUpdatingAvailabilityGeneric" xml:space="preserve"><value>Error updating availability: {0}</value></data>
+  <data name="ErrorChangingSealState" xml:space="preserve"><value>Failed to change seal state: {0}</value></data>
+  <data name="ErrorDeletingBook" xml:space="preserve"><value>Failed to delete book: {0}</value></data>
+  <data name="ErrorDuringDeletion" xml:space="preserve"><value>Error during deletion: {0}</value></data>
+  <data name="ErrorUpdatingTitle" xml:space="preserve"><value>Failed to update title: {0}</value></data>
+  <data name="ErrorUpdatingTitleGeneric" xml:space="preserve"><value>Error updating title: {0}</value></data>
+  <data name="ErrorUpdatingImage" xml:space="preserve"><value>Failed to update image: {0}</value></data>
+  <data name="InvalidUrlFormat" xml:space="preserve"><value>Invalid URL format. Please provide a full absolute URL.</value></data>
+  <data name="ErrorUpdatingImageGeneric" xml:space="preserve"><value>Exception updating image: {0}</value></data>
+  <data name="ErrorRemovingImage" xml:space="preserve"><value>Failed to remove image: {0}</value></data>
+  <data name="ErrorRemovingImageGeneric" xml:space="preserve"><value>Exception removing image: {0}</value></data>
+  <data name="CoverImageFoundVia" xml:space="preserve"><value>Cover image found via {0}! See preview below.</value></data>
+  <data name="NoCoverFoundUsing" xml:space="preserve"><value>No cover found using {0}.</value></data>
+  <data name="LookupError" xml:space="preserve"><value>Lookup error: {0}</value></data>
+  <data name="LookupErrorGeneric" xml:space="preserve"><value>Exception during lookup: {0}</value></data>
+  <data name="ErrorUpdatingDescription" xml:space="preserve"><value>Failed to update description: {0}</value></data>
+  <data name="ErrorUpdatingDescriptionGeneric" xml:space="preserve"><value>Error updating description: {0}</value></data>
+  <data name="ImageUrlAppliedConfirm" xml:space="preserve"><value>New image URL applied. Click 'Save' to confirm.</value></data>
+  <data name="CoverLookupDiscarded" xml:space="preserve"><value>Cover lookup discarded.</value></data>
+  <data name="IsbnCannotBeEmpty" xml:space="preserve"><value>ISBN cannot be empty.</value></data>
+  <data name="InvalidIsbnFormatSwitch" xml:space="preserve"><value>Invalid ISBN format. If you need to save it anyway, use the 'Accept Invalid' switch.</value></data>
+  <data name="ErrorUpdatingIsbn" xml:space="preserve"><value>Failed to update ISBN: {0}</value></data>
+  <data name="ErrorUpdatingIsbnGeneric" xml:space="preserve"><value>Error updating ISBN: {0}</value></data>
+  <data name="ErrorLoadingBook" xml:space="preserve"><value>Failed to load book: {0}</value></data>
+  <data name="InvalidBookIdInUrl" xml:space="preserve"><value>Invalid book identifier in URL.</value></data>
+  <data name="ErrorLoadingData" xml:space="preserve"><value>Error loading data: {0}</value></data>
+  <data name="AuthorLockedCannotEdit" xml:space="preserve"><value>This author is currently locked. Please unlock (unseal) to edit.</value></data>
+  <data name="AuthorNameUpdated" xml:space="preserve"><value>Author name updated successfully.</value></data>
+  <data name="ErrorRenamingAuthor" xml:space="preserve"><value>Failed to rename author: {0}</value></data>
+  <data name="ErrorUpdatingNameGeneric" xml:space="preserve"><value>Error updating name: {0}</value></data>
+  <data name="IsniUpdated" xml:space="preserve"><value>ISNI updated successfully.</value></data>
+  <data name="ErrorUpdatingIsni" xml:space="preserve"><value>Failed to update ISNI: {0}</value></data>
+  <data name="ErrorUpdatingIsniGeneric" xml:space="preserve"><value>Error updating ISNI: {0}</value></data>
+  <data name="ErrorDuringDeletionGeneric" xml:space="preserve"><value>Error during deletion: {0}</value></data>
+  <data name="AuthorProfileLocked" xml:space="preserve"><value>Author profile has been locked.</value></data>
+  <data name="AuthorProfileUnlocked" xml:space="preserve"><value>Author profile is now editable.</value></data>
+  <data name="ErrorChangingAuthorSealState" xml:space="preserve"><value>Failed to change seal state: {0}</value></data>
+  <data name="ErrorTogglingSealStateGeneric" xml:space="preserve"><value>Error toggling seal state: {0}</value></data>
+  <data name="ErrorSearchingBooks" xml:space="preserve"><value>Error searching books: {0}</value></data>
 </root>

@@ -67,12 +67,12 @@ builder.Services.AddIdentityCore<ApplicationUser>(options =>
 builder.Services.AddSingleton<MailNotificator>();
 
 builder.Services.AddSingleton<IAuthorService, AuthorService>();
-builder.Services.AddScoped<IReservationService, ReservationService>();
-builder.Services.AddScoped<IBookService, BookService>();
-builder.Services.AddScoped<ILoanService, LoanService>();
-builder.Services.AddScoped<IGoogleBooksService, GoogleBooksService>();
+builder.Services.AddSingleton<IReservationService, ReservationService>();
+builder.Services.AddSingleton<IBookService, BookService>();
+builder.Services.AddSingleton<ILoanService, LoanService>();
+builder.Services.AddSingleton<IGoogleBooksService, GoogleBooksService>();
 
-builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddSingleton<IUserService, UserService>();
 builder.Services.AddHttpClient<IAuthorsSearchService, AuthorsSearchService>(client =>
 {
     client.DefaultRequestHeaders.Add("User-Agent", "BlazorBookLibrary/1.0");

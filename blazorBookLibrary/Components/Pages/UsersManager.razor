@@ -6,6 +6,7 @@
 @inject UserManager<ApplicationUser> UserManager
 @inject RoleManager<IdentityRole> RoleManager
 @inject IStringLocalizer<SharedResources> L
+@inject IJSRuntime JSRuntime
 @rendermode InteractiveServer
 
 <PageTitle>@L["UsersManager"]</PageTitle>
@@ -104,14 +105,6 @@
     }
 </div>
 
-@if (!string.IsNullOrEmpty(statusMessage))
-{
-    <div class="alert alert-info mt-3 alert-dismissible fade show" role="alert">
-        @statusMessage
-        <button type="button" class="btn-close" @onclick='() => statusMessage = ""'></button>
-    </div>
-}
-
 @code {
     private string searchQuery = "";
     private List<ApplicationUser>? searchResults;
@@ -183,12 +176,14 @@
         if (assign)
         {
             result = await UserManager.AddToRoleAsync(user, "Manager");
-            statusMessage = result.Succeeded ? L["AssignedManagerRoleTo", user.Email].Value : $"{L["Error"]}: {string.Join(", ", result.Errors.Select(e => e.Description))}";
+            var message = result.Succeeded ? L["AssignedManagerRoleTo", user.Email].Value : $"{L["Error"]}: {string.Join(", ", result.Errors.Select(e => e.Description))}";
+            await ShowStatus(message, result.Succeeded ? "alert-success" : "alert-danger");
         }
         else
         {
             result = await UserManager.RemoveFromRoleAsync(user, "Manager");
-            statusMessage = result.Succeeded ? L["RevokedManagerRoleFrom", user.Email].Value : $"{L["Error"]}: {string.Join(", ", result.Errors.Select(e => e.Description))}";
+            var message = result.Succeeded ? L["RevokedManagerRoleFrom", user.Email].Value : $"{L["Error"]}: {string.Join(", ", result.Errors.Select(e => e.Description))}";
+            await ShowStatus(message, result.Succeeded ? "alert-success" : "alert-danger");
         }
 
         if (result.Succeeded)
@@ -200,5 +195,17 @@
             }
             await LoadManagers();
         }
+    }
+
+    private async Task ShowStatus(string message, string cssClass)
+    {
+        statusMessage = message;
+
+        string type = "info";
+        if (cssClass.Contains("success")) type = "success";
+        else if (cssClass.Contains("danger")) type = "error";
+        else if (cssClass.Contains("warning")) type = "warning";
+
+        await JSRuntime.InvokeVoidAsync("showToast", message, type);
     }
 }
