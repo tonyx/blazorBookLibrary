@@ -12,11 +12,14 @@ using blazorBookLibrary.Data;
 using BookLibrary.Shared.Services;
 using BookLibrary.Services;
 using BookLibrary.Domain;
-using static BookLibrary.Shared.Commons;
+using static BookLibrary.Shared.Commons; 
+using static BookLibrary.CleanServices.CleanUpServices;
 // using static BookLibrary.Application.ServiceLayer;
 
 using blazorBookLibrary.Security;
 using blazorBookLibrary.Infrastructure.Services;
+using BookLibrary.CleanServices;
+using Microsoft.FSharp.Core;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -71,6 +74,7 @@ builder.Services.AddSingleton<IReservationService, ReservationService>();
 builder.Services.AddSingleton<IBookService, BookService>();
 builder.Services.AddSingleton<ILoanService, LoanService>();
 builder.Services.AddSingleton<IGoogleBooksService, GoogleBooksService>();
+builder.Services.AddTransient<CleanUpService>();
 
 builder.Services.AddSingleton<IUserService, UserService>();
 builder.Services.AddHttpClient<IAuthorsSearchService, AuthorsSearchService>(client =>
@@ -172,6 +176,17 @@ using (var scope = app.Services.CreateScope())
                 }
             }
         }
+    }
+
+    // Invoke CleanUpService to force snapshots on startup if configured
+    // CleanUpService cleanUpService = scope.ServiceProvider.GetRequiredService<BookLibrary.CleanServices.CleanUpServices.CleanUpService>();
+    var cleanUpService = scope.ServiceProvider.GetRequiredService<CleanUpService>();
+    FSharpResult<Unit, string> cleanupResult = await cleanUpService.ReSnapshotOnStartup();
+
+    if (cleanupResult.IsError)
+    {
+        var cleanUpLogger = scope.ServiceProvider.GetRequiredService<ILogger<CleanUpService>>();
+        cleanUpLogger.LogError("Snapshot cleanup service failed: {Error}", cleanupResult.ErrorValue);
     }
 }
 

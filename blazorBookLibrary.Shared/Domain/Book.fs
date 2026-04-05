@@ -6,47 +6,49 @@ open BookLibrary.Shared.Commons
 open System
 open System.Globalization
 
-type Book001 =
-    {   
-        BookId: BookId
-        Title: Title
-        ImageUrl: Option<Uri>   
-        Description: Option<string>
-        Authors: List<AuthorId>
-        Translators: List<AuthorId>
-        Languages: List<CultureInfo>
-        CurrentReservations: List<ReservationId>
-        CurrentLoan: Option<LoanId>
-        Editor: Option<EditorId>
-        MainCategory: Category
-        AdditionalCategories: List<Category>
-        Year: Year
-        Isbn: Isbn
-        Sealed: Sealed
-    }
-        with
-            member 
-                this.Upacast() : Book =
-                {
-                    BookId = this.BookId
-                    Title = this.Title
-                    ImageUrl = this.ImageUrl
-                    Description = this.Description
-                    Availability = Availability.Unspecified
-                    Authors = this.Authors
-                    Translators = this.Translators
-                    Languages = this.Languages
-                    CurrentReservations = this.CurrentReservations
-                    CurrentLoan = this.CurrentLoan
-                    Editor = this.Editor
-                    MainCategory = this.MainCategory
-                    AdditionalCategories = this.AdditionalCategories
-                    Year = this.Year
-                    Isbn = this.Isbn
-                    Sealed = this.Sealed
-                }
-and
-    Book =
+// type Book001 =
+//     {   
+        // BookId: BookId
+        // Title: Title
+        // ImageUrl: Option<Uri>   
+        // Description: Option<string>
+        // Availability: Availability
+        // Authors: List<AuthorId>
+        // Translators: List<AuthorId>
+        // Languages: List<CultureInfo>
+        // CurrentReservations: List<ReservationId>
+        // CurrentLoan: Option<LoanId>
+        // Editor: Option<EditorId>
+        // MainCategory: Category
+        // AdditionalCategories: List<Category>
+        // Year: Year
+        // Isbn: Isbn
+        // Sealed: Sealed
+
+//     }
+//         with
+//             member 
+//                 this.Upacast() : Book =
+//                 {
+//                     BookId = this.BookId
+//                     Title = this.Title
+//                     ImageUrl = this.ImageUrl
+//                     Description = this.Description
+//                     Availability = Availability.Unspecified
+//                     Authors = this.Authors
+//                     Translators = this.Translators
+//                     Languages = this.Languages
+//                     CurrentReservations = this.CurrentReservations
+//                     CurrentLoan = this.CurrentLoan
+//                     Editor = this.Editor
+//                     MainCategory = this.MainCategory
+//                     AdditionalCategories = this.AdditionalCategories
+//                     Year = this.Year
+//                     Isbn = this.Isbn
+//                     Sealed = this.Sealed
+//                 }
+// and
+type  Book =
     {
         BookId: BookId
         Title: Title
@@ -67,7 +69,6 @@ and
     }
 
 with 
-
     static member New
         (title: Title) 
         (authors: list<AuthorId>) 
@@ -469,10 +470,4 @@ with
             let book = JsonSerializer.Deserialize<Book> (data, jsonOptions)
             Ok book
         with
-            | ex -> 
-                try
-                    let book001 = JsonSerializer.Deserialize<Book001> (data, jsonOptions)
-                    let book = book001.Upacast()
-                    Ok book
-                with
-                    | ex2 -> Error (ex.Message + " " + ex2.Message)
+            | ex -> Error (ex.Message)

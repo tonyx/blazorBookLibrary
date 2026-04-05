@@ -217,4 +217,229 @@
   <data name="ErrorRemovingCategoryGeneric" xml:space="preserve"><value>Errore durante la rimozione della categoria: {0}</value></data>
   <data name="DescriptionRemoved" xml:space="preserve"><value>Descrizione rimossa con successo.</value></data>
   <data name="DescriptionUpdated" xml:space="preserve"><value>Descrizione aggiornata con successo.</value></data>
+  <data name="AcceptInvalidIsni" xml:space="preserve"><value>Accetta formato ISNI non valido</value></data>
+  <data name="AccountVerificationStatus" xml:space="preserve"><value>Stato Verifica Account</value></data>
+  <data name="ActiveAuthorCriteria" xml:space="preserve"><value>Criteri Autore Attivi</value></data>
+  <data name="ActiveCategoryCriteria" xml:space="preserve"><value>Criteri Categoria Attivi</value></data>
+  <data name="AddAuthenticatorApp" xml:space="preserve"><value>Aggiungi app di autenticazione</value></data>
+  <data name="AddANewPasskey" xml:space="preserve"><value>Aggiungi una nuova passkey</value></data>
+  <data name="AddImage" xml:space="preserve"><value>Aggiungi Immagine</value></data>
+  <data name="AllBooks" xml:space="preserve"><value>Tutti i Libri</value></data>
+  <data name="Apply" xml:space="preserve"><value>Applica</value></data>
+  <data name="AppTitle" xml:space="preserve"><value>Blazor Library</value></data>
+  <data name="Accept" xml:space="preserve"><value>Accetta</value></data>
+  <data name="AcceptPolicyToEnable2FA" xml:space="preserve"><value>Devi accettare l'informativa sulla privacy prima di attivare l'autenticazione a due fattori.</value></data>
+  <data name="Actions" xml:space="preserve"><value>Azioni</value></data>
+  <data name="AssociateNewAuthor" xml:space="preserve"><value>Associa Nuovo Autore</value></data>
+  <data name="AuthenticatorApp" xml:space="preserve"><value>App di autenticazione</value></data>
+  <data name="AuthorCreated" xml:space="preserve"><value>Autore creato con successo</value></data>
+  <data name="AuthorDeleted" xml:space="preserve"><value>Autore eliminato con successo</value></data>
+  <data name="AuthorDetails" xml:space="preserve"><value>Dettagli Autore</value></data>
+  <data name="AuthorLockedCannotEdit" xml:space="preserve"><value>Questo autore è attualmente bloccato. Sbloccalo per poterlo modificare.</value></data>
+  <data name="AuthorNamePhoto" xml:space="preserve"><value>Nome Autore / Foto</value></data>
+  <data name="AuthorNameRequired" xml:space="preserve"><value>Il nome dell'autore è obbligatorio.</value></data>
+  <data name="AuthorNameUpdated" xml:space="preserve"><value>Nome dell'autore aggiornato con successo.</value></data>
+  <data name="AuthorNotFoundCreateAssign" xml:space="preserve"><value>Autore '{0}' non trovato nel database locale. Vuoi crearlo e assegnarlo a questo libro?</value></data>
+  <data name="AuthorProfile" xml:space="preserve"><value>Profilo Autore</value></data>
+  <data name="AuthorProfileLocked" xml:space="preserve"><value>Profilo dell'autore bloccato.</value></data>
+  <data name="AuthorProfileUnlocked" xml:space="preserve"><value>Profilo dell'autore ora è modificabile.</value></data>
+  <data name="AuthorUpdated" xml:space="preserve"><value>Autore aggiornato con successo</value></data>
+  <data name="AuthRequired" xml:space="preserve"><value>Autenticazione Richiesta</value></data>
+  <data name="BackToBooks" xml:space="preserve"><value>Torna ai Libri</value></data>
+  <data name="Between" xml:space="preserve"><value>Tra</value></data>
+  <data name="Biography" xml:space="preserve"><value>Biografia</value></data>
+  <data name="BirthDate" xml:space="preserve"><value>Data di Nascita</value></data>
+  <data name="BooksBrowser" xml:space="preserve"><value>Sfoglia Libri</value></data>
+  <data name="BooksBy" xml:space="preserve"><value>Libri di</value></data>
+  <data name="BooksInLibrary" xml:space="preserve"><value>Libri in Biblioteca</value></data>
+  <data name="BookSearch" xml:space="preserve"><value>Ricerca Libri</value></data>
+  <data name="BookSealedCannotChangeAvailability" xml:space="preserve"><value>Questo libro è sigillato. Rimuovi il sigillo per modificare la disponibilità.</value></data>
+  <data name="BookSealedCannotChangeCategory" xml:space="preserve"><value>Questo libro è sigillato. Rimuovi il sigillo per cambiare la categoria.</value></data>
+  <data name="BookSealedCannotEdit" xml:space="preserve"><value>Questo libro è sigillato (bloccato). Rimuovi il sigillo per modificarlo.</value></data>
+  <data name="BookSealedCannotEditDescription" xml:space="preserve"><value>Questo libro è sigillato. Rimuovi il sigillo per modificare la descrizione.</value></data>
+  <data name="BookSealedCannotEditIsbn" xml:space="preserve"><value>Questo libro è sigillato. Rimuovi il sigillo per modificare l'ISBN.</value></data>
+  <data name="BrowserForgottenPrompt2FA" xml:space="preserve"><value>Questo browser è stato dimenticato. Al prossimo accesso da questo browser ti verrà richiesto il codice 2FA.</value></data>
+  <data name="Cancel" xml:space="preserve"><value>Annulla</value></data>
+  <data name="CannotUnsealWithLoansOrReservations" xml:space="preserve"><value>Impossibile rimuovere il sigillo da questo libro perché ha prestiti attivi o prenotazioni future.</value></data>
+  <data name="ChangeAvailability" xml:space="preserve"><value>Modifica Disponibilità</value></data>
+  <data name="ChangeEmail" xml:space="preserve"><value>Cambia email</value></data>
+  <data name="ChangeImage" xml:space="preserve"><value>Cambia Immagine</value></data>
+  <data name="ChangePassword" xml:space="preserve"><value>Cambia password</value></data>
+  <data name="ChangeProfileImage" xml:space="preserve"><value>Cambia immagine del profilo</value></data>
+  <data name="ChooseFromResults" xml:space="preserve"><value>-- Scegli dai risultati --</value></data>
+  <data name="ClickToAddAuthor" xml:space="preserve"><value>Clicca per aggiungere un autore</value></data>
+  <data name="CloseScanner" xml:space="preserve"><value>Chiudi Scanner</value></data>
+  <data name="Confirm" xml:space="preserve"><value>Conferma</value></data>
+  <data name="ConfirmDeleteAuthor" xml:space="preserve"><value>Sei sicuro di voler eliminare questo autore?</value></data>
+  <data name="ConfirmPassword" xml:space="preserve"><value>Conferma Password</value></data>
+  <data name="ConfirmationLinkSent" xml:space="preserve"><value>Link di conferma inviato. Controlla la tua email.</value></data>
+  <data name="CouldNotAddPasskey" xml:space="preserve"><value>Impossibile aggiungere la passkey: {0}</value></data>
+  <data name="Counter" xml:space="preserve"><value>Contatore</value></data>
+  <data name="CoverImageFoundVia" xml:space="preserve"><value>Immagine di copertina trovata tramite {0}! Vedi anteprima in basso.</value></data>
+  <data name="CoverLookupDiscarded" xml:space="preserve"><value>Ricerca copertina annullata.</value></data>
+  <data name="CreateANewAccount" xml:space="preserve"><value>Crea un nuovo account.</value></data>
+  <data name="CurrentRoles" xml:space="preserve"><value>Ruoli Attuali</value></data>
+  <data name="CurrentlyLoanedOut" xml:space="preserve"><value>Attualmente in Prestito</value></data>
+  <data name="DangerZone" xml:space="preserve"><value>Zona Pericolosa</value></data>
+  <data name="DeathDate" xml:space="preserve"><value>Data di Morte</value></data>
+  <data name="Delete" xml:space="preserve"><value>Elimina</value></data>
+  <data name="DeleteAuthor" xml:space="preserve"><value>Elimina Autore</value></data>
+  <data name="DeleteAuthorProfile" xml:space="preserve"><value>Elimina Profilo Autore</value></data>
+  <data name="DeleteBook" xml:space="preserve"><value>Elimina Libro</value></data>
+  <data name="Disable2FA" xml:space="preserve"><value>Disabilita 2FA</value></data>
+  <data name="Download" xml:space="preserve"><value>Scarica</value></data>
+  <data name="EditAuthor" xml:space="preserve"><value>Modifica Autore</value></data>
+  <data name="EditAuthorProfile" xml:space="preserve"><value>Modifica Profilo Autore</value></data>
+  <data name="Editable" xml:space="preserve"><value>Modificabile</value></data>
+  <data name="EditableUnsealed" xml:space="preserve"><value>Modificabile (Non Sigillato)</value></data>
+  <data name="EmailLabel" xml:space="preserve"><value>Email</value></data>
+  <data name="EmailUnchanged" xml:space="preserve"><value>La tua email non è cambiata.</value></data>
+  <data name="Error" xml:space="preserve"><value>Errore</value></data>
+  <data name="ErrorChangingAuthorSealState" xml:space="preserve"><value>Impossibile cambiare lo stato del sigillo: {0}</value></data>
+  <data name="ErrorChangingSealState" xml:space="preserve"><value>Impossibile cambiare lo stato del sigillo: {0}</value></data>
+  <data name="ErrorDeletingAuthor" xml:space="preserve"><value>Errore nell'eliminazione dell'autore</value></data>
+  <data name="ErrorDeletingBook" xml:space="preserve"><value>Impossibile eliminare il libro: {0}</value></data>
+  <data name="ErrorDuringDeletion" xml:space="preserve"><value>Errore durante l'eliminazione: {0}</value></data>
+  <data name="ErrorDuringDeletionGeneric" xml:space="preserve"><value>Errore durante l'eliminazione: {0}</value></data>
+  <data name="ErrorLoadingAuthor" xml:space="preserve"><value>Errore nel caricamento dell'autore</value></data>
+  <data name="ErrorRemovingImage" xml:space="preserve"><value>Rimozione immagine fallita: {0}</value></data>
+  <data name="ErrorRemovingImageGeneric" xml:space="preserve"><value>Eccezione nella rimozione dell'immagine: {0}</value></data>
+  <data name="ErrorRenamingAuthor" xml:space="preserve"><value>Impossibile rinominare l'autore: {0}</value></data>
+  <data name="ErrorTogglingSealStateGeneric" xml:space="preserve"><value>Errore nel cambio dello stato del sigillo: {0}</value></data>
+  <data name="ErrorUpdatingAuthor" xml:space="preserve"><value>Errore nell'aggiornamento dell'autore</value></data>
+  <data name="ErrorUpdatingAvailability" xml:space="preserve"><value>Aggiornamento disponibilità fallito: {0}</value></data>
+  <data name="ErrorUpdatingAvailabilityGeneric" xml:space="preserve"><value>Errore nell'aggiornamento della disponibilità: {0}</value></data>
+  <data name="ErrorUpdatingCategory" xml:space="preserve"><value>Aggiornamento categoria fallito: {0}</value></data>
+  <data name="ErrorUpdatingCategoryGeneric" xml:space="preserve"><value>Errore nell'aggiornamento della categoria: {0}</value></data>
+  <data name="ErrorUpdatingDescription" xml:space="preserve"><value>Aggiornamento descrizione fallito: {0}</value></data>
+  <data name="ErrorUpdatingDescriptionGeneric" xml:space="preserve"><value>Errore nell'aggiornamento della descrizione: {0}</value></data>
+  <data name="ErrorUpdatingImage" xml:space="preserve"><value>Aggiornamento immagine fallito: {0}</value></data>
+  <data name="ErrorUpdatingImageGeneric" xml:space="preserve"><value>Eccezione nell'aggiornamento dell'immagine: {0}</value></data>
+  <data name="ErrorUpdatingIsbn" xml:space="preserve"><value>Aggiornamento ISBN fallito: {0}</value></data>
+  <data name="ErrorUpdatingIsbnGeneric" xml:space="preserve"><value>Errore nell'aggiornamento dell'ISBN: {0}</value></data>
+  <data name="ErrorUpdatingIsni" xml:space="preserve"><value>Aggiornamento ISNI fallito: {0}</value></data>
+  <data name="ErrorUpdatingIsniGeneric" xml:space="preserve"><value>Errore nell'aggiornamento dell'ISNI: {0}</value></data>
+  <data name="ErrorUpdatingNameGeneric" xml:space="preserve"><value>Errore nell'aggiornamento del nome: {0}</value></data>
+  <data name="ErrorUpdatingTitle" xml:space="preserve"><value>Aggiornamento titolo fallito: {0}</value></data>
+  <data name="ErrorUpdatingTitleGeneric" xml:space="preserve"><value>Errore nell'aggiornamento del titolo: {0}</value></data>
+  <data name="ExistingManagers" xml:space="preserve"><value>Manager Esistenti</value></data>
+  <data name="FastSubmissionError" xml:space="preserve"><value>Errore: modulo inviato troppo velocemente. Prenditi un momento per controllare i tuoi dati.</value></data>
+  <data name="FiscalCode" xml:space="preserve"><value>Codice Fiscale</value></data>
+  <data name="FiscalCodeVerificationSubject" xml:space="preserve"><value>Il codice fiscale fornito è soggetto a verifica.</value></data>
+  <data name="FiscalCodeVerified" xml:space="preserve"><value>Codice Fiscale (Verificato)</value></data>
+  <data name="ForgetThisBrowser" xml:space="preserve"><value>Dimentica questo browser</value></data>
+  <data name="FromYear" xml:space="preserve"><value>Da Anno</value></data>
+  <data name="FutureReservations" xml:space="preserve"><value>Prenotazioni Future</value></data>
+  <data name="GenerateNewRecoveryCodesInfo" xml:space="preserve"><value>Devi generare un nuovo set di codici di recupero prima di poter accedere con un codice di recupero.</value></data>
+  <data name="GenerateNewRecoveryCodesLink" xml:space="preserve"><value>Puoi generare un nuovo set di codici di recupero.</value></data>
+  <data name="HasBeenUpdated" xml:space="preserve"><value>è stato aggiornato</value></data>
+  <data name="Home" xml:space="preserve"><value>Home</value></data>
+  <data name="HumanVerification" xml:space="preserve"><value>Verifica Umana</value></data>
+  <data name="HumanVerificationRequired" xml:space="preserve"><value>La verifica umana è obbligatoria</value></data>
+  <data name="IdentityVerifiedLibrarianLocked" xml:space="preserve"><value>La tua identità è stata verificata da un bibliotecario. I tuoi dati identificativi sono ora bloccati per sicurezza.</value></data>
+  <data name="IdentityVerifiedLocked" xml:space="preserve"><value>Bloccato: l'identità è stata verificata fisicamente.</value></data>
+  <data name="ImageCoverRemoved" xml:space="preserve"><value>Immagine di copertina rimossa.</value></data>
+  <data name="ImagePreview" xml:space="preserve"><value>Anteprima Immagine</value></data>
+  <data name="ImageUrlAppliedConfirm" xml:space="preserve"><value>Nuovo URL immagine applicato. Clicca 'Salva' per confermare.</value></data>
+  <data name="ImageUrlOptional" xml:space="preserve"><value>URL Immagine (Opzionale)</value></data>
+  <data name="ImageUrlUpdated" xml:space="preserve"><value>URL immagine aggiornato con successo.</value></data>
+  <data name="IncorrectMathResponse" xml:space="preserve"><value>Errore: risposta alla sfida matematica errata. Riprova.</value></data>
+  <data name="InvalidImageUrl" xml:space="preserve"><value>URL Immagine non valido.</value></data>
+  <data name="InvalidIsbnFormatSwitch" xml:space="preserve"><value>Formato ISBN non valido. Se vuoi salvarlo comunque, usa l'interruttore 'Accetta non valido'.</value></data>
+  <data name="InvalidIsni" xml:space="preserve"><value>ISNI non valido</value></data>
+  <data name="InvalidPasskeyId" xml:space="preserve"><value>L'ID della passkey specificata ha un formato non valido.</value></data>
+  <data name="InvalidPhoneNumber" xml:space="preserve"><value>Il numero di telefono fornito non è valido.</value></data>
+  <data name="InvalidUrlFormat" xml:space="preserve"><value>Formato URL non valido. Fornisci un URL completo e assoluto.</value></data>
+  <data name="IsbnCannotBeEmpty" xml:space="preserve"><value>L'ISBN non può essere vuoto.</value></data>
+  <data name="IsbnUpdated" xml:space="preserve"><value>ISBN aggiornato con successo.</value></data>
+  <data name="IsniUpdated" xml:space="preserve"><value>ISNI aggiornato con successo.</value></data>
+  <data name="Loan" xml:space="preserve"><value>Prestito</value></data>
+  <data name="Locked" xml:space="preserve"><value>Bloccato</value></data>
+  <data name="LockedSealed" xml:space="preserve"><value>Bloccato (Sigillato)</value></data>
+  <data name="Login" xml:space="preserve"><value>Accedi</value></data>
+  <data name="Logout" xml:space="preserve"><value>Esci</value></data>
+  <data name="Lookup" xml:space="preserve"><value>Cerca</value></data>
+  <data name="LookupError" xml:space="preserve"><value>Errore nella ricerca: {0}</value></data>
+  <data name="LookupErrorGeneric" xml:space="preserve"><value>Eccezione durante la ricerca: {0}</value></data>
+  <data name="ManageEmail" xml:space="preserve"><value>Gestisci email</value></data>
+  <data name="ManageYourPasskeys" xml:space="preserve"><value>Gestisci le tue passkey</value></data>
+  <data name="MaxPasskeysReachedShort" xml:space="preserve"><value>Hai raggiunto il numero massimo di passkey consentite.</value></data>
+  <data name="MultipleRecoveryCodesLeft" xml:space="preserve"><value>Hai {0} codici di recupero rimanenti.</value></data>
+  <data name="Nationality" xml:space="preserve"><value>Nazionalità</value></data>
+  <data name="NewEmail" xml:space="preserve"><value>Nuova email</value></data>
+  <data name="NewPassword" xml:space="preserve"><value>Nuova password</value></data>
+  <data name="NoAuthorFound" xml:space="preserve"><value>Nessun autore trovato</value></data>
+  <data name="NoAuthorsFoundMatchingName" xml:space="preserve"><value>Nessun autore trovato con questo nome.</value></data>
+  <data name="NoAuthorsSelected" xml:space="preserve"><value>Nessun autore selezionato</value></data>
+  <data name="NoBooksFound" xml:space="preserve"><value>Nessun libro trovato</value></data>
+  <data name="NoCategoriesSelected" xml:space="preserve"><value>Nessuna categoria selezionata</value></data>
+  <data name="NoCoverFoundUsing" xml:space="preserve"><value>Nessuna copertina trovata tramite {0}.</value></data>
+  <data name="NoManagersFound" xml:space="preserve"><value>Nessun manager trovato.</value></data>
+  <data name="NoPasskeyProvided" xml:space="preserve"><value>Il browser non ha fornito una passkey.</value></data>
+  <data name="NoPasskeysRegistered" xml:space="preserve"><value>Nessuna passkey registrata.</value></data>
+  <data name="NoRecoveryCodesLeft" xml:space="preserve"><value>Non hai codici di recupero rimanenti.</value></data>
+  <data name="NoUsersFound" xml:space="preserve"><value>Nessun utente trovato.</value></data>
+  <data name="NoneNotSet" xml:space="preserve"><value>Nessuno / Non impostato</value></data>
+  <data name="NotAvailableForLoan" xml:space="preserve"><value>Non disponibile per il prestito</value></data>
+  <data name="OldPassword" xml:space="preserve"><value>Vecchia password</value></data>
+  <data name="OneRecoveryCodeLeft" xml:space="preserve"><value>Hai 1 codice di recupero rimanente.</value></data>
+  <data name="PasskeyAddAccountFailed" xml:space="preserve"><value>Impossibile aggiungere la passkey al tuo account.</value></data>
+  <data name="PasskeyDeleteFailed" xml:space="preserve"><value>Impossibile eliminare la passkey.</value></data>
+  <data name="PasskeyDeletedSuccessfully" xml:space="preserve"><value>Passkey eliminata con successo.</value></data>
+  <data name="PasswordChangedSuccessfully" xml:space="preserve"><value>La tua password è stata aggiornata</value></data>
+  <data name="PasswordLabel" xml:space="preserve"><value>Password</value></data>
+  <data name="PasswordLengthError" xml:space="preserve"><value>Il campo {0} deve avere almeno {2} e al massimo {1} caratteri.</value></data>
+  <data name="PasswordsDoNotMatch" xml:space="preserve"><value>La password e la password di conferma non corrispondono.</value></data>
+  <data name="PendingPhysicalIdentification" xml:space="preserve"><value>Identificazione Fisica in Attesa</value></data>
+  <data name="PermanentlyRemoveAuthor" xml:space="preserve"><value>Rimuovi Autore Permanentemente</value></data>
+  <data name="PermanentlyRemoveBook" xml:space="preserve"><value>Rimuovi Libro Permanentemente</value></data>
+  <data name="PersonalData" xml:space="preserve"><value>Dati Personali</value></data>
+  <data name="PersonalDataDeleteWarning" xml:space="preserve"><value>L'eliminazione di questi dati rimuoverà permanentemente il tuo account e non potrà essere annullata.</value></data>
+  <data name="PersonalDataInfo" xml:space="preserve"><value>Il tuo account contiene dati personali che ci hai fornito. Questa pagina ti permette di scaricarli o eliminarli.</value></data>
+  <data name="PhoneNumber" xml:space="preserve"><value>Numero di telefono</value></data>
+  <data name="PhysicallyIdentifiedVerified" xml:space="preserve"><value>Fisicamente Identificato &amp; Verificato</value></data>
+  <data name="PositionBarcodeInsideFrameNote" xml:space="preserve"><value>Posiziona il codice a barre all'interno della cornice per scansionarlo.</value></data>
+  <data name="PreviewNewImage" xml:space="preserve"><value>Anteprima Nuova Immagine</value></data>
+  <data name="PrivacyPolicyNotAccepted" xml:space="preserve"><value>L'informativa sulla privacy e sui cookie non è stata accettata.</value></data>
+  <data name="Profile" xml:space="preserve"><value>Profilo</value></data>
+  <data name="ProfileUpdated" xml:space="preserve"><value>Il tuo profilo è stato aggiornato</value></data>
+  <data name="RefineByAuthors" xml:space="preserve"><value>Affina per Autore/i</value></data>
+  <data name="Register" xml:space="preserve"><value>Registrati</value></data>
+  <data name="RegisteredTitles" xml:space="preserve"><value>Titoli Registrati</value></data>
+  <data name="RegistrationFinalizationError" xml:space="preserve"><value>Si è verificato un errore durante la finalizzazione della registrazione del tuo account. Riprova.</value></data>
+  <data name="RemoveCurrentImage" xml:space="preserve"><value>Rimuovi Immagine Attuale</value></data>
+  <data name="RemoveImage" xml:space="preserve"><value>Rimuovi Immagine</value></data>
+  <data name="Rename" xml:space="preserve"><value>Rinomina</value></data>
+  <data name="ResetAuthenticatorApp" xml:space="preserve"><value>Reimposta app di autenticazione</value></data>
+  <data name="ResetRecoveryCodes" xml:space="preserve"><value>Reimposta codici di recupero</value></data>
+  <data name="RevokeManager" xml:space="preserve"><value>Revoca Manager</value></data>
+  <data name="RevokeRole" xml:space="preserve"><value>Revoca Ruolo</value></data>
+  <data name="Save" xml:space="preserve"><value>Salva</value></data>
+  <data name="ScanBarcode" xml:space="preserve"><value>Scansiona Codice a Barre</value></data>
+  <data name="ScannerActive" xml:space="preserve"><value>Scanner Attivo</value></data>
+  <data name="SearchBooks" xml:space="preserve"><value>Cerca Libri</value></data>
+  <data name="SearchBooksForm" xml:space="preserve"><value>Cerca Libri</value></data>
+  <data name="SearchingMetadata" xml:space="preserve"><value>Ricerca in corso...</value></data>
+  <data name="SendVerificationEmail" xml:space="preserve"><value>Invia email di verifica</value></data>
+  <data name="SetUpAuthenticatorApp" xml:space="preserve"><value>Configura app di autenticazione</value></data>
+  <data name="ShouldGenerateNewRecoveryCodes" xml:space="preserve"><value>Dovresti generare un nuovo set di codici di recupero.</value></data>
+  <data name="SolveMathChallenge" xml:space="preserve"><value>Risolvi: </value></data>
+  <data name="StatusAndAvailability" xml:space="preserve"><value>Stato &amp; Disponibilità</value></data>
+  <data name="TitleIsRequired" xml:space="preserve"><value>Il titolo è obbligatorio.</value></data>
+  <data name="TitleSearch" xml:space="preserve"><value>Ricerca per Titolo</value></data>
+  <data name="ToYear" xml:space="preserve"><value>Fino all'Anno</value></data>
+  <data name="TwoFactorAuthentication" xml:space="preserve"><value>Autenticazione a due fattori (2FA)</value></data>
+  <data name="UnknownAction" xml:space="preserve"><value>Azione sconosciuta '{0}'.</value></data>
+  <data name="UpdatePassword" xml:space="preserve"><value>Aggiorna password</value></data>
+  <data name="UpdateProfileImageUrl" xml:space="preserve"><value>Aggiorna URL Immagine Profilo</value></data>
+  <data name="UseAnotherServiceRegister" xml:space="preserve"><value>Usa un altro servizio per registrarti.</value></data>
+  <data name="Username" xml:space="preserve"><value>Nome utente</value></data>
+  <data name="VerificationEmailSent" xml:space="preserve"><value>Email di verifica inviata. Controlla la tua email.</value></data>
+  <data name="VisitLibraryToVerify" xml:space="preserve"><value>Visita la biblioteca con un documento d'identità valido per verificare il tuo account e sbloccare ulteriori funzionalità.</value></data>
+  <data name="Weather" xml:space="preserve"><value>Meteo</value></data>
+  <data name="WikipediaImageNotFound" xml:space="preserve"><value>Immagine da Wikipedia non trovata</value></data>
+  <data name="WorksPublished" xml:space="preserve"><value>Opere Pubblicate</value></data>
+  <data name="YearIsRequired" xml:space="preserve"><value>L'anno è obbligatorio.</value></data>
+  <data name="YearSearchOption" xml:space="preserve"><value>Opzione Ricerca per Anno</value></data>
+  <data name="AssignManager" xml:space="preserve"><value>Assegna Manager</value></data>
 </root>

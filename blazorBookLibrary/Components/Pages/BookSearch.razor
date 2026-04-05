@@ -196,22 +196,16 @@
         var siteKey = Configuration["Authentication:Recaptcha:SiteKey"];
         if (firstRender)
         {
-            // 1. Chiedi il token (azione silenziosa)
             var token = await JSRuntime.InvokeAsync<string>("generateRecaptchaToken", siteKey, "book_browser");
 
-            // 2. Ottieni lo score reale dal server
             var score = await BotScoreService.GetBotScoreAsync(token);
-
-            Console.WriteLine($"Score: {score}");
 
             await BotScoreService.ApplyBotDelayAsync(score);
 
-            // 4. Logica di protezione immediata
             if (score < 0.3) 
             {
                 Logger.LogWarning($"Suspiciuos bot activity {score}");
                 await ShowStatus(L["overActivity"], "alert-danger");
-                // Magari non bloccare, ma limita le informazioni (es. non mostrare il prezzo o la disponibilità)
             }
         }
     }
