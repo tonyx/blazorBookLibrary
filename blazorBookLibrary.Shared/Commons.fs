@@ -161,6 +161,14 @@ type AuthorId =
             match this with
             | AuthorId v -> v
 
+type IsbnRegistryId =
+    | IsbnRegistryId of Guid
+    with
+        static member New() = IsbnRegistryId(Guid.NewGuid())
+        member this.Value = 
+            match this with
+            | IsbnRegistryId v -> v
+
 type EditorId =
     | EditorId of Guid
     with

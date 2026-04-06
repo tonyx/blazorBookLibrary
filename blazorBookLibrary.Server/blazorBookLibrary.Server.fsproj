@@ -33,6 +33,8 @@
     <Compile Include="Domain/User/Commands.fs" />
     <Compile Include="Details.fs" />
     <Compile Include="CleanServices/CleanUpService.fs" />
+    <Compile Include="SeedServices/RandomAuthorGeneratorService.fs" />
+    <Compile Include="SeedServices/RandomBooksGeneratorService.fs" />
 
     <Compile Include="Services/UserService.fs" />
     <Compile Include="Services/ReservationService.fs" />
@@ -50,7 +52,7 @@
     <PackageReference Include="Microsoft.Extensions.Configuration" Version="10.0.5" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.0.5" />
 
-    <PackageReference Include="Sharpino" Version="4.9.2" />
+    <PackageReference Include="Sharpino" Version="4.9.3" />
 
   </ItemGroup>
 

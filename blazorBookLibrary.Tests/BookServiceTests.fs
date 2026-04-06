@@ -8,7 +8,6 @@ open BookLibrary.Shared.Details
 open BookLibrary.Shared.Commons
 open BookLibrary.Shared.Services
 open System.Threading
-open System.Globalization
 
 [<Tests>]
 let tests =

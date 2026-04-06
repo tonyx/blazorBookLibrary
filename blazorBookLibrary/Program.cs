@@ -12,9 +12,10 @@ using blazorBookLibrary.Data;
 using BookLibrary.Shared.Services;
 using BookLibrary.Services;
 using BookLibrary.Domain;
+
 using static BookLibrary.Shared.Commons; 
 using static BookLibrary.CleanServices.CleanUpServices;
-// using static BookLibrary.Application.ServiceLayer;
+using BookLibrary.Server.SeedServices;
 
 using blazorBookLibrary.Security;
 using blazorBookLibrary.Infrastructure.Services;
@@ -83,12 +84,16 @@ builder.Services.AddHttpClient<IAuthorsSearchService, AuthorsSearchService>(clie
 });
 builder.Services.AddHttpClient();
 
+builder.Services.AddScoped<RandomAuthorGeneratorService>();
+builder.Services.AddScoped<RandomBooksGeneratorService>();
+
 // Optional: Configure Passkey options for ASP.NET Core 10 Identity WebAuthn support
 builder.Services.Configure<IdentityPasskeyOptions>(options =>
 {
     // Configure WebAuthn options here if needed, for instance customizing the relying party or challenge
     // options.ServerDomain = "localhost"; // Example configuration
 });
+
 
 builder.Services.AddSingleton<IEmailSender<ApplicationUser>, IdentityNoOpEmailSender>();
 
@@ -188,6 +193,27 @@ using (var scope = app.Services.CreateScope())
         var cleanUpLogger = scope.ServiceProvider.GetRequiredService<ILogger<CleanUpService>>();
         cleanUpLogger.LogError("Snapshot cleanup service failed: {Error}", cleanupResult.ErrorValue);
     }
+    if (app.Configuration.GetValue<bool>("TestDataSeedSetup:SeedRandomAuthors", false))
+    {
+        var randomAuthorGeneratorService = scope.ServiceProvider.GetRequiredService<RandomAuthorGeneratorService>();
+        var result = await randomAuthorGeneratorService.SeedRandomAuthorsAccordingToThreshold();
+        if (result.IsError)
+        {
+            var randomAuthorGeneratorLogger = scope.ServiceProvider.GetRequiredService<ILogger<RandomAuthorGeneratorService>>();
+            randomAuthorGeneratorLogger.LogError("Random author generator service failed: {Error}", result.ErrorValue);
+        }
+    }
+    if (app.Configuration.GetValue<bool>("TestDataSeedSetup:SeedRandomBooks", false))
+    {
+        var randomBookGeneratorService = scope.ServiceProvider.GetRequiredService<RandomBooksGeneratorService>();
+        var result = await randomBookGeneratorService.SeedRandomBooksAccordingToThreshold();
+        if (result.IsError)
+        {
+            var randomBookGeneratorLogger = scope.ServiceProvider.GetRequiredService<ILogger<RandomBooksGeneratorService>>();
+            randomBookGeneratorLogger.LogError("Random book generator service failed: {Error}", result.ErrorValue);
+        }
+    }
+
 }
 
 app.Run();

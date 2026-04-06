@@ -15,6 +15,7 @@
     <Compile Include="Domain/Reservation.fs" />
     <Compile Include="Domain/User.fs" />
     <Compile Include="Domain/Loan.fs" />
+    <Compile Include="Domain/IsbnRegistry.fs" />
     <Compile Include="Details/Details.fs" />
     <Compile Include="Services/IAuthorService.fs" />
     <Compile Include="Services/IBookService.fs" />
@@ -26,6 +27,8 @@
     <Compile Include="Services/IUserService.fs" />
     <Compile Include="SearchCriteria.fs" />
     <Compile Include="Resources/SharedResources.fs" />
+    <Compile Include="TestSeedExtensions/AuthorSeed.fs" />
+    <Compile Include="TestSeedExtensions/BookSeed.fs" />
   </ItemGroup>
 
   <ItemGroup>

@@ -149,6 +149,16 @@ type BookService
                             (Some ct)
                     }
 
+            member this.AddBooksAsync (books: List<Book>, ?ct: CancellationToken) = 
+                taskResult
+                    {
+                        let ct = defaultArg ct CancellationToken.None
+                        let! result =
+                            books
+                            |> List.traverseTaskResultM (fun book -> this.AddBookAsync(book, ct))
+                        return () 
+                    }
+
             member this.RemoveBookAsync (bookId: BookId, ?ct: CancellationToken) = 
                 taskResult
                     {
@@ -797,6 +807,9 @@ type BookService
             member this.AddBookAsync(book: Book, ?ct: CancellationToken ) =
                 let ct = defaultArg ct CancellationToken.None
                 this.AddBookAsync(book, ct)
+            member this.AddBooksAsync(books: List<Book>, ?ct: CancellationToken ) =
+                let ct = defaultArg ct CancellationToken.None
+                this.AddBooksAsync(books, ct)
             member this.GetBookAsync(id: BookId, ?ct: CancellationToken) =
                 let ct = defaultArg ct CancellationToken.None
                 this.GetBookAsync(id, ct)
