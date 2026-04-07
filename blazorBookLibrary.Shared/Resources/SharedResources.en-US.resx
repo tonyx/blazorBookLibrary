@@ -541,4 +541,12 @@
   <data name="ErrorChangingAuthorSealState" xml:space="preserve"><value>Failed to change seal state: {0}</value></data>
   <data name="ErrorTogglingSealStateGeneric" xml:space="preserve"><value>Error toggling seal state: {0}</value></data>
   <data name="ErrorSearchingBooks" xml:space="preserve"><value>Error searching books: {0}</value></data>
+  <data name="BulkEdit" xml:space="preserve"><value>Bulk Edit</value></data>
+  <data name="BulkEditTitle" xml:space="preserve"><value>Bulk Edit Selected Books</value></data>
+  <data name="BooksSelected" xml:space="preserve"><value>Books Selected</value></data>
+  <data name="Select" xml:space="preserve"><value>Select</value></data>
+  <data name="ApplyToSelectedBooks" xml:space="preserve"><value>Apply Changes to Selected Books</value></data>
+  <data name="BulkEditSuccess" xml:space="preserve"><value>Bulk edit completed successfully.</value></data>
+  <data name="BulkEditError" xml:space="preserve"><value>Bulk edit failed: {0}</value></data>
+  <data name="Processing" xml:space="preserve"><value>Processing...</value></data>
 </root>

@@ -112,12 +112,25 @@
         <div class="col-12">
             <div class="card shadow-sm border-0 overflow-hidden">
                 <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center py-3">
-                    <h5 class="card-title mb-0"><i class="bi bi-list-stars me-2"></i>@L["SearchResults"]</h5>
+                    <div class="d-flex align-items-center">
+                        <h5 class="card-title mb-0 me-3"><i class="bi bi-list-stars me-2"></i>@L["SearchResults"]</h5>
+                        @if (selectedBookIds.Count > 0)
+                        {
+                            <button class="btn btn-sm btn-primary shadow-sm animate-fade-in" @onclick="EnableBulkEdit">
+                                <i class="bi bi-pencil-square me-1"></i> @L["BulkEdit"] (@selectedBookIds.Count)
+                            </button>
+                        }
+                    </div>
                     <span class="badge bg-primary text-white">@foundBooks.Count @L["BooksFound"]</span>
                 </div>
                 <div class="card-body p-0">
                     <div class="table-responsive">
                         <QuickGrid Items="@FilteredBooks" Pagination="@bookPagination" Class="table table-hover align-middle mb-0 book-grid">
+                            <TemplateColumn Title="@L["Select"]" Align="Align.Center" Class="col-select">
+                                <input type="checkbox" class="form-check-input" 
+                                       checked="@selectedBookIds.Contains(context.BookId)" 
+                                       @onchange="@(e => ToggleBookSelection(context.BookId, e.Value))" />
+                            </TemplateColumn>
                             <TemplateColumn Title="@L["Title"]" SortBy="@sortTitle" Class="fw-bold text-dark col-title title-cell">
                                 <ColumnOptions>
                                     <div class="p-3 shadow-sm border rounded bg-white" style="min-width: 250px;">
@@ -183,6 +196,15 @@
                     }
                 </div>
             </div>
+        </div>
+    </div>
+}
+
+@if (showBulkEdit && selectedBookIds.Count > 0)
+{
+    <div class="row mb-5 animate-fade-in">
+        <div class="col-12">
+            <BulkEditComponent BookIds="@selectedBookIds.ToList()" OnCancel="() => showBulkEdit = false" OnSuccess="HandleBulkEditSuccess" />
         </div>
     </div>
 }
@@ -489,6 +511,34 @@
 </div>
 
 @code {
+
+    private bool showBulkEdit = false;
+    private HashSet<BookId> selectedBookIds = new();
+
+    private void ToggleBookSelection(BookId bookId, object? checkedValue)
+    {
+        bool isChecked = checkedValue is bool b && b;
+        if (isChecked)
+        {
+            selectedBookIds.Add(bookId);
+        }
+        else
+        {
+            selectedBookIds.Remove(bookId);
+        }
+    }
+
+    private void EnableBulkEdit()
+    {
+        showBulkEdit = true;
+    }
+
+    private void HandleBulkEditSuccess()
+    {
+        showBulkEdit = false;
+        selectedBookIds.Clear();
+        // Optionally refresh search
+    }
 
     private bool _showAddSection = false;
     private bool showAddSection 

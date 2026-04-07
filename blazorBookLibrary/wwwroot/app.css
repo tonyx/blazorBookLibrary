@@ -110,6 +110,20 @@ h1:focus {
     font-size: 0.95rem;
 }
 
+.loading-overlay {
+    position: fixed;          /* or absolute if you want it within a specific container */
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100%;
+    height: 0;
+    pointer-events: none;     /* so it doesn’t block clicks, optional */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;            /* above normal content */
+}
+
 .toast-notification.toast-success { border-left-color: #198754; background: #f0fff4; color: #0f5132; }
 .toast-notification.toast-error { border-left-color: #dc3545; background: #fff5f5; color: #842029; }
 .toast-notification.toast-warning { border-left-color: #ffc107; background: #fffcf0; color: #664d03; }
@@ -141,4 +155,4 @@ h1:focus {
         width: 100%;
         box-shadow: 0 8px 30px rgba(0,0,0,0.2);
     }
-}
+}

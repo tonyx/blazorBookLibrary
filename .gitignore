@@ -45,6 +45,8 @@ external/
 *.VisualState.xml
 TestResult.xml
 nunit-agent.log
+app.zip
+publish/**/*
 
 # Build log of MSBuild
 *.log

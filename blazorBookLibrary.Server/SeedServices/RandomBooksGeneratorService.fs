@@ -37,6 +37,7 @@ type RandomBooksGeneratorService (
     logger: ILogger<RandomBooksGeneratorService>
 ) = 
     member this.SeedRandomBooksAccordingToThreshold () = 
+        let random = Random()
         taskResult
             {
                 let! existingBooks = bookService.GetAllAsync()
@@ -46,7 +47,7 @@ type RandomBooksGeneratorService (
                     return ()
                 else
                     let numberOfBooksToCreate = configuration.GetValue<int>("TestDataSeedSetup:NumberOfRandomBooks", 0)
-                    let randomAuthor = existingAuthors |> List.item (Random().Next(existingAuthors.Length))
+                    let randomAuthor = existingAuthors |> List.item (random.Next(existingAuthors.Length))
 
                     let! randomBooks =
                         [ 1 .. numberOfBooksToCreate]

@@ -29,6 +29,7 @@ type BookCommand =
     | ChangeMainCategory of Category * DateTime
     | AddAdditionalCategory of Category * DateTime
     | RemoveAdditionalCategory of Category * DateTime
+    | ReplaceAdditionalCategories of List<Category> * DateTime
     | SetImageUrl of Uri * DateTime
     | RemoveImageUrl of DateTime
     | SetAvailability of Availability * DateTime
@@ -102,6 +103,9 @@ type BookCommand =
             | RemoveAdditionalCategory (category, dateTime) ->
                 book.RemoveAdditionalCategory category dateTime
                 |> Result.map (fun b -> (b, [AdditionalCategoryRemoved(category, dateTime)]))
+            | ReplaceAdditionalCategories (additionalCategories, dateTime) ->
+                book.ReplaceAdditionalCategories additionalCategories dateTime
+                |> Result.map (fun b -> (b, [AdditionalCategoriesReplaced(additionalCategories, dateTime)]))
             | SetImageUrl (imageUrl, dateTime) ->
                 book.SetImageUrl imageUrl dateTime
                 |> Result.map (fun b -> (b, [ImageUrlSet(imageUrl, dateTime)]))

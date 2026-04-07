@@ -442,4 +442,12 @@
   <data name="YearIsRequired" xml:space="preserve"><value>L'anno è obbligatorio.</value></data>
   <data name="YearSearchOption" xml:space="preserve"><value>Opzione Ricerca per Anno</value></data>
   <data name="AssignManager" xml:space="preserve"><value>Assegna Manager</value></data>
+  <data name="BulkEdit" xml:space="preserve"><value>Modifica Massiva</value></data>
+  <data name="BulkEditTitle" xml:space="preserve"><value>Modifica Massiva Libri Selezionati</value></data>
+  <data name="BooksSelected" xml:space="preserve"><value>Libri Selezionati</value></data>
+  <data name="Select" xml:space="preserve"><value>Seleziona</value></data>
+  <data name="ApplyToSelectedBooks" xml:space="preserve"><value>Applica Modifiche ai Libri Selezionati</value></data>
+  <data name="BulkEditSuccess" xml:space="preserve"><value>Modifica massiva completata con successo.</value></data>
+  <data name="BulkEditError" xml:space="preserve"><value>Modifica massiva fallita: {0}</value></data>
+  <data name="Processing" xml:space="preserve"><value>In corso...</value></data>
 </root>

@@ -11,6 +11,31 @@ open BookLibrary.Shared.Details
 
 type BookSearchCriteria = delegate of Book -> bool
 
+type BulkBookEdit = 
+    {
+        YearEdit: Option<Year>
+        MainCategoryEdit: Option<Category>
+        AdditionalCategoriesEdit: Option<List<Category>>
+        AvailabilityEdit: Option<Availability>
+    }
+    with
+        static member 
+            Empty =
+                { YearEdit = None; MainCategoryEdit = None; AdditionalCategoriesEdit = None; AvailabilityEdit = None }
+        member 
+            this.SetYearIfCondition (year, switch) =
+                if switch then { this with YearEdit = Some year } else this
+        member 
+            this.SetMainCategoryIfCondition (category, switch) =
+                if switch then { this with MainCategoryEdit = Some category } else this
+        member 
+            this.SetAdditionalCategoriesIfCondition (categories, switch) =
+                if switch then { this with AdditionalCategoriesEdit = Some categories } else this
+        member 
+            this.SetAvailabilityIfCondition (availability, switch) =
+                if switch then { this with AvailabilityEdit = Some availability } else this
+
+
 type IBookService =
     abstract member AddBookAsync : book: Book * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<unit, string>>
     abstract member AddBooksAsync : books: List<Book> * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<unit, string>>
@@ -23,6 +48,8 @@ type IBookService =
     abstract member RemoveImageUrlAsync: bookId: BookId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<unit, string>>
     abstract member SetImageUrlAsync: bookId: BookId * imageUrl: Uri * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<unit, string>>
     abstract member SetAvailabilityAsync: availability: Availability * bookId: BookId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<unit, string>>
+
+    abstract member BulkEditAsync: bookIds: List<BookId> * editCriteria: BulkBookEdit * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<unit, string>>
 
     abstract member GetAllAsync : [<Optional; DefaultParameterValue(null)>] ?criteria: BookSearchCriteria * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<Book list, string>>
     abstract member SearchByTitleAsync : title: Title * [<Optional; DefaultParameterValue(null)>] ?criteria: BookSearchCriteria * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<List<Book>, string>>

@@ -1,0 +1,291 @@
+@using BookLibrary.Domain
+@using blazorBookLibrary.Shared.Resources
+@using Microsoft.Extensions.Localization
+@using Microsoft.FSharp.Collections
+@using Microsoft.FSharp.Core
+@using BookLibrary.Shared.Services
+@inject IBookService BookService
+@inject IStringLocalizer<SharedResources> L
+@inject IAuthorService AuthorService
+@inject IJSRuntime JSRuntime
+
+<div class="bulk-edit-container p-4 bg-white rounded shadow-sm border animate-fade-in">
+    <div class="d-flex align-items-center justify-content-between mb-4 border-bottom pb-3">
+        <h4 class="text-primary mb-0">
+            <i class="bi bi-pencil-square me-2"></i>@L["BulkEditTitle"]
+        </h4>
+        <span class="badge bg-info text-white rounded-pill px-3 py-2">
+            @BookIds.Count @L["BooksSelected"]
+        </span>
+    </div>
+
+    <div class="row g-4">
+        <!-- Publication Year -->
+        <div class="col-12">
+            <div class="bulk-edit-row d-flex align-items-center p-3 rounded @(editYear ? "bg-primary-subtle border-primary" : "bg-light border-transparent") border transition-all">
+                <div class="form-check form-switch me-4">
+                    <input class="form-check-input" type="checkbox" role="switch" @bind="editYear" id="toggleYear">
+                </div>
+                <div class="flex-grow-1">
+                    <label class="form-label fw-bold mb-1 d-flex align-items-center" for="toggleYear">
+                        <i class="bi bi-calendar-event me-2"></i>@L["PublicationYear"]
+                    </label>
+                    <input type="number" class="form-control" @bind="year" disabled="@(!editYear)" placeholder="YYYY" />
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Category -->
+        <div class="col-12">
+            <div class="bulk-edit-row d-flex align-items-center p-3 rounded @(editMainCategory ? "bg-primary-subtle border-primary" : "bg-light border-transparent") border transition-all">
+                <div class="form-check form-switch me-4">
+                    <input class="form-check-input" type="checkbox" role="switch" @bind="editMainCategory" id="toggleMainCategory">
+                </div>
+                <div class="flex-grow-1">
+                    <label class="form-label fw-bold mb-1 d-flex align-items-center" for="toggleMainCategory">
+                        <i class="bi bi-tag me-2"></i>@L["MainCategory"]
+                    </label>
+                    <select class="form-select" @bind="mainCategoryString" disabled="@(!editMainCategory)">
+                        @foreach (var cat in allCategories)
+                        {
+                            <option value="@cat.Value()">@cat.Value()</option>
+                        }
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Availability -->
+        <div class="col-12">
+            <div class="bulk-edit-row d-flex align-items-center p-3 rounded @(editAvailability ? "bg-primary-subtle border-primary" : "bg-light border-transparent") border transition-all">
+                <div class="form-check form-switch me-4">
+                    <input class="form-check-input" type="checkbox" role="switch" @bind="editAvailability" id="toggleAvailability">
+                </div>
+                <div class="flex-grow-1">
+                    <label class="form-label fw-bold mb-1 d-flex align-items-center" for="toggleAvailability">
+                        <i class="bi bi-check2-square me-2"></i>@L["Availability"]
+                    </label>
+                    <select class="form-select" @bind="availability" disabled="@(!editAvailability)">
+                        <option value="Circulating">@L["Circulating"]</option>
+                        <option value="ReferenceOnly">@L["ReferenceOnly"]</option>
+                        <option value="Unspecified">@L["Unspecified"]</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Additional Categories -->
+        <div class="col-12">
+            <div class="bulk-edit-row d-flex align-items-start p-3 rounded @(editAdditionalCategories ? "bg-primary-subtle border-primary" : "bg-light border-transparent") border transition-all">
+                <div class="form-check form-switch me-4 mt-2">
+                    <input class="form-check-input" type="checkbox" role="switch" @bind="editAdditionalCategories" id="toggleAdditionalCategories">
+                </div>
+                <div class="flex-grow-1">
+                    <label class="form-label fw-bold mb-1 d-flex align-items-center" for="toggleAdditionalCategories">
+                        <i class="bi bi-tags me-2"></i>@L["AdditionalCategories"]
+                    </label>
+                    <div class="d-flex gap-2 mb-2">
+                        <select class="form-select" @bind="categoryToAddString" disabled="@(!editAdditionalCategories)">
+                            @foreach (var cat in allCategories)
+                            {
+                                <option value="@cat.Value()">@cat.Value()</option>
+                            }
+                        </select>
+                        <button type="button" class="btn btn-outline-primary" @onclick="AddAdditionalCategory" disabled="@(!editAdditionalCategories)">
+                            <i class="bi bi-plus-lg"></i>
+                        </button>
+                    </div>
+                    <div class="d-flex flex-wrap gap-2 min-vh-5 mt-2">
+                        @foreach (var cat in additionalCategories)
+                        {
+                            <div class="badge bg-secondary p-2 d-flex align-items-center gap-2">
+                                @cat.Value()
+                                <button type="button" class="btn-close btn-close-white" style="font-size: 0.5rem" 
+                                        @onclick="() => additionalCategories.Remove(cat)" disabled="@(!editAdditionalCategories)"></button>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Authors -->
+        <div class="col-12">
+            <div class="bulk-edit-row d-flex align-items-start p-3 rounded @(editAuthors ? "bg-primary-subtle border-primary" : "bg-light border-transparent") border transition-all">
+                <div class="form-check form-switch me-4 mt-2">
+                    <input class="form-check-input" type="checkbox" role="switch" @bind="editAuthors" id="toggleAuthors">
+                </div>
+                <div class="flex-grow-1">
+                    <label class="form-label fw-bold mb-1 d-flex align-items-center" for="toggleAuthors">
+                        <i class="bi bi-people me-2"></i>@L["Authors"]
+                    </label>
+                    
+                    <div class="search-authors-box mb-3 border rounded p-2 bg-white @(!editAuthors ? "opacity-50" : "")">
+                        <div class="input-group input-group-sm mb-2">
+                            <input type="text" class="form-control" @bind="authorSearchTerm" placeholder="@L["SearchAuthors"]" disabled="@(!editAuthors)" />
+                            <button class="btn btn-primary" type="button" @onclick="SearchAuthors" disabled="@(!editAuthors)">
+                                <i class="bi bi-search"></i>
+                            </button>
+                        </div>
+                        @if (foundAuthors.Any())
+                        {
+                            <div class="author-search-results border rounded p-2" style="max-height: 150px; overflow-y: auto;">
+                                @foreach (var author in foundAuthors)
+                                {
+                                    <div class="author-item d-flex justify-content-between align-items-center p-1 border-bottom">
+                                        <span class="small">@author.Name.Value</span>
+                                        <button class="btn btn-sm btn-outline-success p-0 px-2" @onclick="() => AddAuthor(author)">
+                                            <i class="bi bi-plus small"></i>
+                                        </button>
+                                    </div>
+                                }
+                            </div>
+                        }
+                    </div>
+
+                    <div class="d-flex flex-wrap gap-2 mt-2">
+                        @foreach (var author in selectedAuthors)
+                        {
+                            <div class="badge bg-info text-dark p-2 d-flex align-items-center gap-2 shadow-sm font-monospace">
+                                @author.Name.Value
+                                <button type="button" class="btn-close" style="font-size: 0.5rem" 
+                                        @onclick="() => selectedAuthors.Remove(author)" disabled="@(!editAuthors)"></button>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-5 pt-3 border-top d-flex gap-3">
+        <button class="btn btn-lg btn-primary flex-grow-1 shadow-sm" @onclick="ApplyChanges" disabled="@isProcessing">
+            @if (isProcessing)
+            {
+                <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                @L["Processing"]
+            }
+            else
+            {
+                <i class="bi bi-check-all me-2"></i>@L["ApplyToSelectedBooks"]
+            }
+        </button>
+        <button class="btn btn-lg btn-outline-secondary px-4 shadow-sm" @onclick="Cancel" disabled="@isProcessing">
+            @L["Cancel"]
+        </button>
+    </div>
+</div>
+
+<style>
+    .bulk-edit-row {
+        transition: all 0.2s ease-in-out;
+    }
+    .bulk-edit-row:hover {
+        transform: translateX(5px);
+    }
+    .min-vh-5 { min-height: 20px; }
+    .transition-all { transition: all 0.3s ease; }
+</style>
+
+@code {
+    [Parameter] public List<BookId> BookIds { get; set; } = new();
+    [Parameter] public EventCallback OnCancel { get; set; }
+    [Parameter] public EventCallback OnSuccess { get; set; }
+
+    private bool editYear;
+    private bool editMainCategory;
+    private bool editAvailability;
+    private bool editAdditionalCategories;
+    private bool editAuthors;
+    private bool isProcessing;
+
+    private int year = DateTime.Now.Year;
+    private Category mainCategory = Category.Other;
+    private string availability = "Circulating";
+    private List<Category> additionalCategories = new();
+    private List<Author> selectedAuthors = new();
+
+    private FSharpList<Category> allCategories = Category.AllCases();
+    private Category categoryToAdd = Category.Other;
+    
+    private string mainCategoryString 
+    {
+        get => mainCategory.Value();
+        set => mainCategory = Category.FromString(value);
+    }
+
+    private string categoryToAddString
+    {
+        get => categoryToAdd.Value();
+        set => categoryToAdd = Category.FromString(value);
+    }
+
+    private string authorSearchTerm = "";
+    private List<Author> foundAuthors = new();
+
+    private void AddAdditionalCategory()
+    {
+        if (categoryToAdd != null && !additionalCategories.Contains(categoryToAdd))
+        {
+            additionalCategories.Add(categoryToAdd);
+        }
+    }
+
+    private async Task SearchAuthors()
+    {
+        if (string.IsNullOrWhiteSpace(authorSearchTerm)) return;
+        var result = await AuthorService.SearchByNameAsync(Name.New(authorSearchTerm));
+        if (result.IsOk)
+        {
+            foundAuthors = result.ResultValue.ToList();
+        }
+    }
+
+    private void AddAuthor(Author author)
+    {
+        if (!selectedAuthors.Any(a => a.AuthorId == author.AuthorId))
+        {
+            selectedAuthors.Add(author);
+        }
+    }
+
+    private async Task ApplyChanges()
+    {
+        isProcessing = true;
+        StateHasChanged();
+
+        try
+        {
+            var editCriteria = BulkBookEdit.Empty
+                .SetYearIfCondition(Year.New(year), editYear)
+                .SetMainCategoryIfCondition(mainCategory, editMainCategory)
+                .SetAdditionalCategoriesIfCondition(ListModule.OfSeq(additionalCategories), editAdditionalCategories)
+                .SetAvailabilityIfCondition(Availability.FromString(availability), editAvailability);
+
+            var result = await BookService.BulkEditAsync(ListModule.OfSeq(BookIds), editCriteria);
+            if (result.IsOk)
+            {
+                await JSRuntime.InvokeVoidAsync("showToast", L["BulkEditSuccess"].Value, "success");
+                await OnSuccess.InvokeAsync();
+            }
+            else
+            {
+                await JSRuntime.InvokeVoidAsync("showToast", L["BulkEditError", result.ErrorValue].Value, "error");
+            }
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("showToast", L["BulkEditError", ex.Message].Value, "error");
+        }
+        finally
+        {
+            isProcessing = false;
+            StateHasChanged();
+        }
+    }
+
+    private void Cancel()
+    {
+        OnCancel.InvokeAsync();
+    }
+}

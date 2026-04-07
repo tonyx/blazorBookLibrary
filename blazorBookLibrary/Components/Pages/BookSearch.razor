@@ -68,6 +68,10 @@
 
 <PageTitle>@L["BookSearch"]</PageTitle>
 
+@if (_isLoading)
+{
+    <img src="/images/loading-gif.gif" alt="Uploading..." style="height:32px;"/>
+}
 <div class="container-fluid py-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h1 class="text-primary mb-0"><i class="bi bi-search me-2"></i>@L["BookSearch"]</h1>
@@ -173,6 +177,7 @@
 </div>
 
 @code {
+    private bool _isLoading = false;
     private List<Book> foundBooks = new();
     private string titleRefinementFilter = "";
     private IQueryable<Book> FilteredBooks => 

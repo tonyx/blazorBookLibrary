@@ -30,10 +30,10 @@ type BookEvent =
     | MainCategoryChanged of Category * DateTime
     | AdditionalCategoryAdded of Category * DateTime
     | AdditionalCategoryRemoved of Category * DateTime
+    | AdditionalCategoriesReplaced of List<Category> * DateTime
     | ImageUrlSet of Uri * DateTime
     | ImageUrlRemoved of DateTime
     | AvailabilitySet of Availability * DateTime
-
 
     interface Event<BookLibrary.Domain.Book> with
         member this.Process (book: Book) : Result<Book, string> =
@@ -82,6 +82,8 @@ type BookEvent =
                 book.AddAdditionalCategory category dateTime
             | AdditionalCategoryRemoved (category, dateTime) ->
                 book.RemoveAdditionalCategory category dateTime
+            | AdditionalCategoriesReplaced (additionalCategories, dateTime) ->
+                book.ReplaceAdditionalCategories additionalCategories dateTime
             | ImageUrlSet (imageUrl, dateTime) ->
                 book.SetImageUrl imageUrl dateTime
             | ImageUrlRemoved dateTime ->

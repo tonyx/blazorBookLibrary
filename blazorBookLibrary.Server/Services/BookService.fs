@@ -342,6 +342,103 @@ type BookService
                                 (Some ct)
                     }
 
+            member this.BulkEditAsync (bookIds: List<BookId>, bulkBookEdit: BulkBookEdit, ?ct: CancellationToken) = 
+                let ct = defaultArg ct CancellationToken.None
+                taskResult
+                    {
+                        let dateTime = System.DateTime.UtcNow
+                        let preExecutedYearEditCommands = 
+                            match bulkBookEdit.YearEdit with
+                            | Some year -> 
+                                let command = BookCommand.UpdateYear (year, dateTime)
+                                let! preExecutedYearUpdateCommands =
+                                    bookIds
+                                    |> List.map _.Value
+                                    |> List.traverseResultM (fun id -> preExecuteAggregateCommandMd<Book, BookEvent, string> id eventStore MessageSenders.NoSender "" command)
+                                if preExecutedYearUpdateCommands.IsError then
+                                    let (Error e) = preExecutedYearUpdateCommands
+                                    printf "Error pre-executing year update command: %A\n" e
+                                    None 
+                                else
+                                    Some preExecutedYearUpdateCommands.OkValue
+                            | None -> None
+
+                        let preExecutedMainCategoryCommands =
+                            match bulkBookEdit.MainCategoryEdit with
+                            | Some mainCategory -> 
+                                let command = BookCommand.ChangeMainCategory (mainCategory, dateTime)
+                                let! preExecutedMainCategoryUpdateCommands =
+                                    bookIds
+                                    |> List.map _.Value
+                                    |> List.traverseResultM (fun id -> preExecuteAggregateCommandMd<Book, BookEvent, string> id eventStore MessageSenders.NoSender "" command)
+                                if preExecutedMainCategoryUpdateCommands.IsError then
+                                    let (Error e) = preExecutedMainCategoryUpdateCommands
+                                    printf "Error pre-executing main category update command: %A\n" e
+                                    None 
+                                else
+                                    Some preExecutedMainCategoryUpdateCommands.OkValue
+                            | None -> None
+
+                        let preExecutedAdditionalCategory =
+                            match bulkBookEdit.AdditionalCategoriesEdit with
+                            | Some additionalCategories -> 
+                                let command = BookCommand.ReplaceAdditionalCategories (additionalCategories, dateTime)
+                                let! preExecutedAdditionalCategoryUpdateCommands =
+                                    bookIds
+                                    |> List.map _.Value
+                                    |> List.traverseResultM (fun id -> preExecuteAggregateCommandMd<Book, BookEvent, string> id eventStore MessageSenders.NoSender "" command)
+                                if preExecutedAdditionalCategoryUpdateCommands.IsError then
+                                    let (Error e) = preExecutedAdditionalCategoryUpdateCommands
+                                    printf "Error pre-executing additional category update command: %A\n" e
+                                    None 
+                                else
+                                    Some preExecutedAdditionalCategoryUpdateCommands.OkValue
+                            | None -> None
+
+                        let preExecutedAvailabilityEditCommands =
+                            match bulkBookEdit.AvailabilityEdit with
+                            | Some availability -> 
+                                let command = BookCommand.SetAvailability (availability, dateTime)
+                                let! preExecutedAvailabilityUpdateCommands =
+                                    bookIds
+                                    |> List.map _.Value
+                                    |> List.traverseResultM (fun id -> preExecuteAggregateCommandMd<Book, BookEvent, string> id eventStore MessageSenders.NoSender "" command)
+                                if preExecutedAvailabilityUpdateCommands.IsError then
+                                    let (Error e) = preExecutedAvailabilityUpdateCommands
+                                    printf "Error pre-executing availability update command: %A\n" e
+                                    None 
+                                else
+                                    Some preExecutedAvailabilityUpdateCommands.OkValue
+                            | None -> None
+
+                        let allPreExecutedCommands =
+                            if preExecutedYearEditCommands.IsSome then
+                                preExecutedYearEditCommands.Value
+                            else
+                                []
+                            @
+                            if preExecutedMainCategoryCommands.IsSome then
+                                preExecutedMainCategoryCommands.Value
+                            else
+                                []
+                            @
+                            if preExecutedAdditionalCategory.IsSome then
+                                preExecutedAdditionalCategory.Value
+                            else
+                                []
+                            @
+                            if preExecutedAvailabilityEditCommands.IsSome then
+                                preExecutedAvailabilityEditCommands.Value
+                            else
+                                []
+                        let result = 
+                            runPreExecutedAggregateCommands<string>      
+                                allPreExecutedCommands
+                                eventStore
+                                messageSenders
+                        return! result
+                    }
+
             member this.RemoveAuthorFromBookAsync (authorId: AuthorId, bookId: BookId, dateTime: System.DateTime, ?ct: CancellationToken) = 
                 taskResult
                     {
@@ -950,3 +1047,8 @@ type BookService
             member this.SetAvailabilityAsync(availability: Availability, bookId: BookId, ?ct: CancellationToken) = 
                 let ct = defaultArg ct CancellationToken.None
                 this.SetAvailabilityAsync(availability, bookId, ct)
+
+            member this.BulkEditAsync(bookIds: List<BookId>, editCriteria: BulkBookEdit, ?ct: CancellationToken) = 
+                let ct = defaultArg ct CancellationToken.None
+                this.BulkEditAsync(bookIds, editCriteria, ct)
+                    
