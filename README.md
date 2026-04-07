@@ -26,3 +26,5 @@ See the [LICENSE](LICENSE) file for the full legal text.
 ---
 
 *“To catalog is to preserve; to curate is to honor.”*
+
+**Note**: some features are still in progress. More info will come next.
