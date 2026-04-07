@@ -31,6 +31,7 @@ obj/
 external/
 [Ll]og/
 [Ll]ogs/
+howto.txt
 
 # Visual Studio 2015/2017/2019/2022 cache directories
 .vs/
