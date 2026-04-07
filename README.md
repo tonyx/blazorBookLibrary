@@ -21,6 +21,7 @@ See the [LICENSE](LICENSE) file for the full legal text.
 - **Metadata Discovery Engine**: Automated ISBN and title-based lookup using Google Books and other archival APIs to instantly enrich records with high-quality metadata and imagery.
 - **Unified Image Management**: A consistent and interactive portrait/cover management workflow with camera badges, pulse animations, and real-time archival previews.
 - **F# Core Domain Architecture**: Leveraging the power of F# for bulletproof domain modeling, ensuring safe and reliable archival data processing.
+- **Event-Sourcing Architecture**: Leveraging the power of Event-Sourcing for robust and reliable data management with [Sharpino](https://github.com/sharpino/sharpino).
 
 ---
 
