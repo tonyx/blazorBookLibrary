@@ -19,229 +19,154 @@
 @inject IConfiguration Configuration
 @rendermode InteractiveServer
 
-<style>
-    .book-grid {
-        table-layout: fixed;
-        width: 100%;
-    }
-    .col-title { width: auto; min-width: 200px; }
-    .col-year { width: 100px; }
-    .col-category { width: 180px; }
-    .col-available { width: 140px; }
-    .col-isbn { width: 170px; }
-    .col-actions { width: 120px; }
-    
-    @@media (max-width: 767.98px) {
-        .col-year, .col-category, .col-isbn, .col-availability-type, .col-available {
-            display: none !important;
-        }
-        .col-title {
-            min-width: 150px !important;
-            width: auto !important;
-        }
-    }
+<PageTitle>@L["BooksManager"] — @L["TheModernArchivist"]</PageTitle>
 
-    /* Ensure text truncation for the title if it's too long */
-    .title-cell {
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-
-    /* Scanner styles */
-    .barcode-scanner-container {
-        border: 2px solid #ffc107;
-        overflow: hidden;
-    }
-    
-    .scanner-preview-wrapper {
-        position: relative;
-        background-color: #000;
-        min-height: 250px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-    
-    .scanner-overlay {
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        pointer-events: none;
-        z-index: 10;
-        border: 20px solid rgba(0, 0, 0, 0.4);
-    }
-    
-    .scanner-laser {
-        width: 100%;
-        height: 2px;
-        background-color: #ffc107;
-        box-shadow: 0 0 10px #ffc107;
-        position: absolute;
-        top: 50%;
-        left: 0;
-        animation: scan 2s linear infinite;
-        z-index: 11;
-    }
-    
-    @@keyframes scan {
-        0% { top: 10%; }
-        50% { top: 90%; }
-        100% { top: 10%; }
-    }
-
-</style>
-
-<PageTitle>@L["BooksManager"]</PageTitle>
-
-<div class="container-fluid py-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1 class="text-primary mb-0"><i class="bi bi-book-half me-2"></i>@L["BooksManager"]</h1>
+<div class="sanctuary-container py-5">
+    @* Page Header *@
+    <div class="mb-5">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/" class="text-decoration-none text-muted">@L["Home"]</a></li>
+                <li class="breadcrumb-item active text-serif" aria-current="page">@L["BooksManager"]</li>
+            </ol>
+        </nav>
+        <div class="d-flex justify-content-between align-items-end">
+            <div>
+                <h1 class="display-4 text-serif mb-2">@L["CatalogManagement"]</h1>
+                <p class="text-muted lead mb-0">@L["BooksManagerDescription"]</p>
+            </div>
+            
+            <div class="d-flex gap-3">
+                <button class="btn btn-sanctuary @(showAddSection ? "active" : "")" @onclick="() => showAddSection = !showAddSection">
+                    <i class="bi @(showAddSection ? "bi-dash-lg" : "bi-plus-lg") me-2"></i>
+                    @(showAddSection ? L["CloseEntryForm"] : L["AddNewBookEntry"])
+                </button>
+            </div>
+        </div>
     </div>
-<div class="row mb-4">
-    <div class="col-12">
-    <BookSearchToolbar OnSearchResultsFound="HandleSearchResultsFound" OnError="ShowSearchError" OnSearchStarted="HandleSearchStarted" />
-    </div>
-</div>
 
-@if (searchBooksPerformed)
-{
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="card shadow-sm border-0 overflow-hidden">
-                <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center py-3">
-                    <div class="d-flex align-items-center">
-                        <h5 class="card-title mb-0 me-3"><i class="bi bi-list-stars me-2"></i>@L["SearchResults"]</h5>
+    @* Search & Filter Toolbar *@
+    <div class="card-sanctuary mb-5 p-4 border-0 shadow-none bg-surface-low">
+        <BookSearchToolbar OnSearchResultsFound="HandleSearchResultsFound" OnError="ShowSearchError" OnSearchStarted="HandleSearchStarted" />
+    </div>
+
+    @if (searchBooksPerformed)
+    {
+        <div class="mb-5 animate-fade-in">
+            <div class="card-sanctuary p-0 overflow-hidden">
+                <div class="px-4 py-4 bg-surface-container d-flex justify-content-between align-items-center border-bottom">
+                    <div class="d-flex align-items-center gap-3">
+                        <h2 class="h4 text-serif mb-0">@L["SearchResults"]</h2>
+                        <span class="badge-sanctuary badge-neutral">@foundBooks.Count @L["BooksFound"]</span>
+                        
                         @if (selectedBookIds.Count > 0)
                         {
-                            <button class="btn btn-sm btn-primary shadow-sm animate-fade-in" @onclick="EnableBulkEdit">
-                                <i class="bi bi-pencil-square me-1"></i> @L["BulkEdit"] (@selectedBookIds.Count)
+                            <button class="btn btn-primary btn-sm rounded-pill px-4 ms-3 animate-slide-in" @onclick="EnableBulkEdit">
+                                <i class="bi bi-pencil-square me-2"></i> @L["BulkEdit"] (@selectedBookIds.Count)
                             </button>
                         }
                     </div>
-                    <span class="badge bg-primary text-white">@foundBooks.Count @L["BooksFound"]</span>
                 </div>
-                <div class="card-body p-0">
-                    <div class="table-responsive">
-                        <QuickGrid Items="@FilteredBooks" Pagination="@bookPagination" Class="table table-hover align-middle mb-0 book-grid">
-                            <TemplateColumn Title="@L["Select"]" Align="Align.Center" Class="col-select">
+
+                <div class="table-responsive">
+                    <QuickGrid Items="@FilteredBooks" Pagination="@bookPagination" Class="editorial-ledger w-100 align-middle">
+                        <TemplateColumn Title="@L["Select"]" Align="Align.Center" Class="col-select">
+                            <div class="form-check d-inline-block">
                                 <input type="checkbox" class="form-check-input" 
                                        checked="@selectedBookIds.Contains(context.BookId)" 
                                        @onchange="@(e => ToggleBookSelection(context.BookId, e.Value))" />
-                            </TemplateColumn>
-                            <TemplateColumn Title="@L["Title"]" SortBy="@sortTitle" Class="fw-bold text-dark col-title title-cell">
-                                <ColumnOptions>
-                                    <div class="p-3 shadow-sm border rounded bg-white" style="min-width: 250px;">
-                                        <div class="input-group">
-                                            <span class="input-group-text bg-primary text-white border-0"><i class="bi bi-filter"></i></span>
-                                            <input type="search" autofocus @bind="titleRefinementFilter" @bind:event="oninput" placeholder="@L["RefineResultsByTitlePlaceholder"]" class="form-control border-primary shadow-none" />
-                                        </div>
+                            </div>
+                        </TemplateColumn>
+                        
+                        <TemplateColumn Title="@L["Title"]" SortBy="@sortTitle" Class="col-title text-serif fw-bold h5">
+                            <ColumnOptions>
+                                <div class="p-3 bg-surface-low rounded-3 border shadow-sm" style="min-width: 300px;">
+                                    <div class="input-group input-group-sm">
+                                        <span class="input-group-text bg-transparent border-end-0 text-muted"><i class="bi bi-filter"></i></span>
+                                        <input type="search" autofocus @bind="titleRefinementFilter" @bind:event="oninput" 
+                                               placeholder="@L["RefineResultsByTitlePlaceholder"]" 
+                                               class="form-control border-start-0 ps-0" />
                                     </div>
-                                </ColumnOptions>
-                                <ChildContent>
-                                    <a href="/book-edit/@context.Id" class="text-decoration-none text-primary-emphasis transition-hover d-block w-100 h-100 py-1" title="View details for '@context.Title.Value'">
-                                        <i class="bi bi-book-fill me-2 small opacity-75"></i>@context.Title.Value
-                                    </a>
-                                </ChildContent>
-                            </TemplateColumn>
-                            <TemplateColumn Title="@L["Image"]" Align="Align.Center" SortBy="@sortImage">
-                                @if (context.ImageUrl != null && FSharpOption<Uri>.get_IsSome(context.ImageUrl))
-                                {
-                                    <span class="text-success" title="@context.ImageUrl.Value.ToString()"><i class="bi bi-check-circle-fill"></i></span>
-                                }
-                                else
-                                {
-                                    <span class="text-muted opacity-25"><i class="bi bi-x-circle"></i></span>
-                                }
-                            </TemplateColumn>
-                            <PropertyColumn Property="@(b => b.Year.Value)" Title="@L["Year"]" Sortable="true" Class="col-year" />
-                            <PropertyColumn Property="@(b => b.MainCategory.Value())" Title="@L["Category"]" Sortable="true" Class="col-category" />
+                                </div>
+                            </ColumnOptions>
+                            <ChildContent>
+                                <a href="/book-edit/@context.Id" class="text-decoration-none text-reset transition-hover py-2 d-block">
+                                    @context.Title.Value
+                                </a>
+                            </ChildContent>
+                        </TemplateColumn>
 
-                            <TemplateColumn Title="@L["AvailabilityType"]" Align="Align.Center" Class="col-availability-type" SortBy=@sortAvailabilityType>
-                                @{
-                                    var label = context.Availability.ToString();
-                                    var localizedLabel = L[label].Value;
-                                    var contraction = localizedLabel.Length >= 3 ? localizedLabel.Substring(0, 3).ToUpper() : localizedLabel.ToUpper();
-                                }
-                                <span class="badge bg-light text-dark border p-1" style="font-size: 0.7rem;" title="@localizedLabel">@contraction</span>
-                            </TemplateColumn>
+                        <TemplateColumn Title="@L["Status"]" Align="Align.Center">
+                            @if (context.ImageUrl != null && FSharpOption<Uri>.get_IsSome(context.ImageUrl))
+                            {
+                                <span class="text-success" title="@L["RecordHasImage"]"><i class="bi bi-image-fill"></i></span>
+                            }
+                            else
+                            {
+                                <span class="text-muted opacity-25" title="@L["RecordMissingImage"]"><i class="bi bi-image"></i></span>
+                            }
+                        </TemplateColumn>
 
-                            <TemplateColumn Title="@L["Availability"]" SortBy=@sortAvailability Align="Align.Center" Class="col-available">
-                                @if (context.ImmediatelyAvailable)
-                                {
-                                    <span class="text-success small fw-bold"><i class="bi bi-check-circle-fill me-1"></i>@L["Available"]</span>
-                                }
-                                else
-                                {
-                                    <span class="text-danger small fw-bold"><i class="bi bi-dash-circle-fill me-1"></i>@L["OnLoan"]</span>
-                                }
-                            </TemplateColumn>
-                            <PropertyColumn Property="@(b => b.Isbn.Value)" Title="@L["IsbnSearch"]" Class="col-isbn" />
-                        </QuickGrid>
+                        <PropertyColumn Property="@(b => b.Year.Value)" Title="@L["Year"]" Sortable="true" Class="col-year text-muted small px-3" />
+                        
+                        <TemplateColumn Title="@L["EditorialTaxonomy"]" Sortable="true" Class="col-category small">
+                            <span class="badge-sanctuary badge-neutral">@context.MainCategory.Value()</span>
+                        </TemplateColumn>
+
+                        <TemplateColumn Title="@L["ArchivalAvailability"]" SortBy=@sortAvailability Align="Align.End" Class="col-available pe-4">
+                            @if (context.ImmediatelyAvailable)
+                            {
+                                <span class="text-success small fw-bold"><i class="bi bi-check-circle-fill me-2" style="font-size: 0.5rem;"></i>@L["Available"]</span>
+                            }
+                            else
+                            {
+                                <span class="text-danger small fw-bold"><i class="bi bi-circle-fill me-2" style="font-size: 0.5rem;"></i>@L["OnLoan"]</span>
+                            }
+                        </TemplateColumn>
+                    </QuickGrid>
+                </div>
+                
+                <div class="px-4 py-3 bg-surface-container border-top d-flex justify-content-between align-items-center">
+                    <div class="small text-muted serif italic">@L["Showing"] @FilteredBooks.Count() @L["Records"]</div>
+                    <Paginator State="@bookPagination" />
+                </div>
+            </div>
+        </div>
+    }
+
+    @if (showBulkEdit && selectedBookIds.Count > 0)
+    {
+        <div class="mb-5 animate-fade-in">
+            <div class="card-sanctuary p-4 bg-surface-low border-primary-subtle border">
+                <BulkEditComponent BookIds="@selectedBookIds.ToList()" OnCancel="() => showBulkEdit = false" OnSuccess="HandleBulkEditSuccess" />
+            </div>
+        </div>
+    }
+
+    @* Add New Book Entry Section *@
+    @if (showAddSection)
+    {
+        <div class="row g-5 mb-5 animate-slide-up">
+            <div class="col-lg-8">
+                <div class="card-sanctuary p-5">
+                    <div class="border-bottom pb-4 mb-4">
+                        <h2 class="display-6 text-serif mb-2">@L["NewArchivalRegistration"]</h2>
+                        <p class="text-muted">@L["CompleteTheFormBelowToRegister"]</p>
                     </div>
-                    @if (foundBooks.Count > 0)
-                    {
-                        <div class="p-3 border-top bg-light">
-                            <Paginator State="@bookPagination" />
-                        </div>
-                    }
-                    else
-                    {
-                        <div class="p-5 text-center text-muted">
-                            <i class="bi bi-search fs-1 mb-3 d-block opacity-25"></i>
-                            <p class="mb-0">@L["NoBooksFoundCriteria"]</p>
-                        </div>
-                    }
-                </div>
-            </div>
-        </div>
-    </div>
-}
 
-@if (showBulkEdit && selectedBookIds.Count > 0)
-{
-    <div class="row mb-5 animate-fade-in">
-        <div class="col-12">
-            <BulkEditComponent BookIds="@selectedBookIds.ToList()" OnCancel="() => showBulkEdit = false" OnSuccess="HandleBulkEditSuccess" />
-        </div>
-    </div>
-}
-
-<div class="row mb-4">
-    <div class="col-12 text-center">
-        <div class="d-inline-flex align-items-center bg-white p-2 rounded-pill shadow-sm border border-primary-subtle px-4 animate-fade-in">
-            <label class="form-check-label me-3 fw-bold text-primary" for="showAddSectionToggle">
-                <i class="bi bi-plus-circle me-1"></i> @L["AddNewBookEntry"]
-            </label>
-            <div class="form-check form-switch mb-0">
-                <input class="form-check-input" type="checkbox" role="switch" id="showAddSectionToggle" @bind="showAddSection" style="width: 2.5em; height: 1.25em; cursor: pointer;">
-            </div>
-            <span class="ms-2 badge @(showAddSection ? "bg-success" : "bg-secondary") rounded-pill">@(showAddSection ? L["Visible"] : L["Hidden"])</span>
-        </div>
-    </div>
-</div>
-
-@if (showAddSection)
-{
-    <div class="row g-4 mb-5 animate-fade-in">
-        <!-- Add New Book Form (Left Side) -->
-        <div class="col-lg-7">
-            <div class="card shadow-sm border-0 h-100">
-                <div class="card-header bg-primary text-white py-3">
-                    <h5 class="card-title mb-0"><i class="bi bi-plus-circle-fill me-2"></i>@L["AddNewBook"]</h5>
-                </div>
-                <div class="card-body p-4 bg-light">
                     <EditForm Model="@this" OnValidSubmit="HandleAddBook" FormName="AddBookForm">
-                        <div class="row g-3">
+                        <div class="row g-4">
+                            @* Title Lookup Section *@
                             <div class="col-12">
-                                <label class="form-label fw-bold">@L["BookTitleSearchApi"]</label>
-                                <div class="input-group">
-                                    <InputText class="form-control form-control-lg" @bind-Value="newBookTitle" placeholder="@L["EnterTitleToSearchPlaceholder"]" />
-                                    <button type="button" class="btn btn-outline-secondary px-4" @onclick="PerformGoogleLookup" disabled="@isAutofilling">
-                                        @if (isAutofilling) { <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> }
-                                        <i class="bi bi-search me-1"></i> @L["SearchApi"]
+                                <label class="form-label small text-muted text-uppercase fw-bold mb-2">@L["PrimaryTitle"]</label>
+                                <div class="input-group input-group-lg shadow-sm rounded-3 overflow-hidden border">
+                                    <InputText class="form-control border-0 serif fw-bold bg-surface-low" 
+                                               @bind-Value="newBookTitle" 
+                                               placeholder="@L["EnterTitleToSearchPlaceholder"]" />
+                                    <button type="button" class="btn btn-white border-start px-4" 
+                                            @onclick="PerformGoogleLookup" disabled="@isAutofilling">
+                                        @if (isAutofilling) { <span class="spinner-border spinner-border-sm me-2"></span> }
+                                        <i class="bi bi-search me-2"></i> @L["SearchApi"]
                                     </button>
                                 </div>
                             </div>
@@ -249,10 +174,10 @@
                             @if (lookupResults.Any())
                             {
                                 <div class="col-12 animate-fade-in">
-                                    <div class="p-3 bg-white border border-primary rounded shadow-sm">
-                                        <label class="form-label small fw-bold text-primary mb-2">@L["SelectFromResultToPopulate"]</label>
+                                    <div class="p-4 bg-surface-low rounded-3 border border-primary-subtle shadow-sm">
+                                        <label class="form-label small fw-bold text-primary mb-3">@L["SelectFromResultToPopulate"]</label>
                                         <div class="input-group">
-                                            <select class="form-select border-primary" @bind="selectedLookupIndex">
+                                            <select class="form-select border-primary-subtle serif" @bind="selectedLookupIndex">
                                                 <option value="-1">@L["SelectABook"]</option>
                                                 @for (int i = 0; i < lookupResults.Count; i++)
                                                 {
@@ -263,43 +188,48 @@
                                                 }
                                             </select>
                                             <button type="button" class="btn btn-primary px-4" @onclick="AutofillFromSelected" disabled="@(selectedLookupIndex < 0)">
-                                                <i class="bi bi-magic me-1"></i> @L["AutofillFields"]
+                                                <i class="bi bi-magic me-2"></i> @L["AutofillFields"]
                                             </button>
                                         </div>
                                     </div>
                                 </div>
                             }
 
-                            <div class="col-md-8">
-                                <label class="form-label fw-bold">@L["IsbnSearch"]</label>
-                                <div class="input-group shadow-sm">
-                                    <span class="input-group-text"><i class="bi bi-upc-scan"></i></span>
-                                    <InputText @ref="isbnInput" class="form-control" @bind-Value="newBookIsbn" placeholder="@L["IsbnExamplePlaceholder"]" />
-                                    <button type="button" class="btn btn-warning text-dark" @onclick="ToggleScanner">
-                                        <i class="bi bi-camera me-1"></i> <span class="d-none d-sm-inline">@(showScanner ? L["CloseScanner"] : L["ScanBarcode"])</span>
+                            @* ISBN & Scanner *@
+                            <div class="col-md-7">
+                                <label class="form-label small text-muted text-uppercase fw-bold mb-2">@L["IsbnIdentifier"]</label>
+                                <div class="input-group shadow-sm rounded-3 overflow-hidden border">
+                                    <span class="input-group-text bg-surface-low border-0"><i class="bi bi-upc-scan"></i></span>
+                                    <InputText @ref="isbnInput" class="form-control border-0 font-monospace" 
+                                               @bind-Value="newBookIsbn" 
+                                               placeholder="@L["IsbnExamplePlaceholder"]" />
+                                    <button type="button" class="btn btn-white border-start" @onclick="ToggleScanner">
+                                        <i class="bi bi-camera me-1"></i> <span class="d-none d-sm-inline">@(showScanner ? L["Close"] : L["Scan"])</span>
                                     </button>
-                                    <button type="button" class="btn btn-info text-white" @onclick="LookupCoverImage" disabled="@(!IsNewBookIsbnValid || isLookingUpCover)">
-                                        @if (isLookingUpCover) { <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> }
-                                        <i class="bi bi-image me-1"></i> <span class="d-none d-sm-inline">@L["LookupCover"]</span>
-                                    </button>
-                                    <button type="button" class="btn btn-primary" @onclick="LookupMetadataByIsbn" disabled="@(!IsNewBookIsbnValid || isLookingUpMetadata)">
-                                        @if (isLookingUpMetadata) { <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> }
-                                        <i class="bi bi-search me-1"></i> <span class="d-none d-sm-inline">@L["MetadataSearch"]</span>
+                                    <button type="button" class="btn btn-white border-start text-primary" @onclick="LookupMetadataByIsbn" disabled="@(!IsNewBookIsbnValid || isLookingUpMetadata)">
+                                        <i class="bi bi-search"></i>
                                     </button>
                                 </div>
+                                <div class="form-check form-switch mt-2 small">
+                                    <InputCheckbox class="form-check-input" @bind-Value="allowInvalidIsbn" id="invalidIsbnSwitch" />
+                                    <label class="form-check-label text-muted" for="invalidIsbnSwitch">@L["AcceptInvalidIsbn"]</label>
+                                </div>
+                            </div>
 
-                                @if (showScanner)
-                                {
-                                    <div class="barcode-scanner-container mt-3 animate-fade-in p-3 bg-dark rounded shadow-lg text-white">
-                                        <div class="d-flex justify-content-between align-items-center mb-2">
-                                            <h6 class="mb-0 text-warning"><i class="bi bi-camera-fill me-2"></i>@L["ScannerActive"]</h6>
-                                            <div class="d-flex gap-2">
-                                                <button type="button" class="btn btn-sm btn-outline-light" @onclick="ToggleScanner">
-                                                    <i class="bi bi-x-large"></i>
-                                                </button>
-                                            </div>
+                            <div class="col-md-5">
+                                <label class="form-label small text-muted text-uppercase fw-bold mb-2">@L["PublicationYear"]</label>
+                                <InputNumber class="form-control bg-surface-low border-0 py-2 shadow-sm" @bind-Value="newBookYear" placeholder="YYYY" />
+                            </div>
+
+                            @if (showScanner)
+                            {
+                                <div class="col-12 animate-fade-in mt-2">
+                                    <div class="barcode-scanner-container p-4 bg-dark rounded-4 shadow-lg text-white">
+                                        <div class="d-flex justify-content-between align-items-center mb-3">
+                                            <h6 class="mb-0 text-primary text-serif"><i class="bi bi-camera-fill me-2"></i>@L["ArchivalScannerActive"]</h6>
+                                            <button type="button" class="btn btn-link text-white p-0" @onclick="ToggleScanner">@L["Close"]</button>
                                         </div>
-                                        <div class="scanner-preview-wrapper border border-warning rounded overflow-hidden position-relative">
+                                        <div class="scanner-preview-wrapper rounded-3 overflow-hidden position-relative bg-black" style="min-height: 300px;">
                                             <BarcodeReader 
                                                 OnBarcodeReceived="HandleBarcodeReceived" 
                                                 Title=""
@@ -308,73 +238,27 @@
                                                 ShowReset="false"
                                                 ShowVideoDeviceList="true"
                                             />
-                                            <div class="scanner-overlay d-flex align-items-center justify-content-center">
-                                                <div class="scanner-laser"></div>
+                                            <div class="scanner-overlay border-0">
+                                                <div class="scanner-laser border-primary"></div>
                                             </div>
                                         </div>
-                                        <p class="small text-muted mt-2 text-center mb-0">@L["PositionBarcodeInsideFrameNote"]</p>
-                                    </div>
-                                }
-                            </div>
-
-                            <div class="col-md-4">
-                                <label class="form-label fw-bold text-transparent">.</label>
-                                <div class="form-check form-switch pt-2">
-                                    <InputCheckbox class="form-check-input" @bind-Value="allowInvalidIsbn" id="invalidIsbnSwitch" />
-                                    <label class="form-check-label text-muted small" for="invalidIsbnSwitch">@L["AcceptInvalidIsbn"]</label>
-                                </div>
-                            </div>
-
-                            <div class="col-12 mt-3">
-                                <label class="form-label fw-bold">@L["ImageURL"]</label>
-                                <div class="input-group shadow-sm">
-                                    <span class="input-group-text bg-white text-info border-info"><i class="bi bi-link-45deg"></i></span>
-                                    <InputText class="form-control border-info" @bind-Value="newBookImageUrl" placeholder="@L["PasteImageUrlPlaceholder"]" />
-                                    @if (!string.IsNullOrWhiteSpace(newBookImageUrl))
-                                    {
-                                        <button type="button" class="btn btn-outline-danger border-info" @onclick='() => newBookImageUrl = ""'>
-                                            <i class="bi bi-x-lg"></i>
-                                        </button>
-                                    }
-                                </div>
-                                <div class="form-text small italic text-muted">@L["UseCoverLookupInfo"]</div>
-                            </div>
-
-                            @if (coverPreviewUrl != null)
-                            {
-                                <div class="col-12 mt-3 animate-fade-in">
-                                    <div class="p-3 bg-white border border-info rounded shadow-sm d-flex align-items-center gap-4">
-                                        <div class="flex-shrink-0" style="width: 100px; height: 140px; overflow: hidden; border: 1px solid #dee2e6; border-radius: 4px;">
-                                            <img src="@coverPreviewUrl" alt="Cover Preview" style="width: 100%; height: 100%; object-fit: contain;" />
-                                        </div>
-                                        <div class="flex-grow-1">
-                                            <h6 class="text-info fw-bold mb-1">@L["CoverFound"]</h6>
-                                            <p class="small text-muted mb-3">@L["UseThisImageUrl"]</p>
-                                            <div class="d-flex gap-2">
-                                                <button type="button" class="btn btn-info text-white btn-sm px-4" @onclick="AcceptCoverUrl">
-                                                    <i class="bi bi-check2-circle me-1"></i> @L["AcceptAndUse"]
-                                                </button>
-                                                <button type="button" class="btn btn-outline-secondary btn-sm" @onclick='() => coverPreviewUrl = null'>
-                                                    @L["Discard"]
-                                                </button>
-                                            </div>
-                                        </div>
+                                        <p class="small text-muted mt-3 text-center mb-0 serif italic">@L["PositionBarcodeInsideFrameNote"]</p>
                                     </div>
                                 </div>
                             }
-                            <div class="col-md-4">
-                                <label class="form-label fw-bold">@L["PublicationYear"]</label>
-                                <InputNumber class="form-control" @bind-Value="newBookYear" placeholder="YYYY" />
+
+                            @* Description / Narrative Abstract *@
+                            <div class="col-12">
+                                <label class="form-label small text-muted text-uppercase fw-bold mb-2">@L["NarrativeAbstract"]</label>
+                                <InputTextArea class="form-control bg-surface-low border-0 shadow-sm p-4 serif" 
+                                               @bind-Value="newBookDescription" rows="5" 
+                                               placeholder="@L["BookDescriptionPlaceholder"]" />
                             </div>
 
-                            <div class="col-12 mt-3">
-                                <label class="form-label fw-bold">@L["Description"]</label>
-                                <InputTextArea class="form-control" @bind-Value="newBookDescription" rows="4" placeholder="@L["BookDescriptionPlaceholder"]" />
-                            </div>
-
-                            <div class="col-md-12 mt-3">
-                                <label class="form-label fw-bold">@L["MainCategory"]</label>
-                                <select class="form-select" @bind="mainCategoryString">
+                            @* Taxonomy & Availability *@
+                            <div class="col-md-6 text-serif">
+                                <label class="form-label small text-muted text-uppercase fw-bold mb-2">@L["PrimaryTaxonomy"]</label>
+                                <select class="form-select bg-surface-low border-0 py-2 shadow-sm" @bind="mainCategoryString">
                                     @foreach (var cat in allCategories)
                                     {
                                         <option value="@cat.Value()">@cat.Value()</option>
@@ -382,136 +266,160 @@
                                 </select>
                             </div>
 
-                            <div class="col-md-12 mt-3">
-                                <label class="form-label fw-bold">@L["AvailabilityType"]</label>
-                                <select class="form-select" @bind="newBookAvailability">
+                            <div class="col-md-6">
+                                <label class="form-label small text-muted text-uppercase fw-bold mb-2">@L["ArchivalAvailability"]</label>
+                                <select class="form-select bg-surface-low border-0 py-2 shadow-sm" @bind="newBookAvailability">
                                     <option value="Circulating">@L["Circulating"]</option>
                                     <option value="ReferenceOnly">@L["ReferenceOnly"]</option>
                                     <option value="Unspecified">@L["Unspecified"]</option>
                                 </select>
                             </div>
 
-                            <div class="col-12 mt-3">
-                                <label class="form-label fw-bold">@L["AdditionalCategories"]</label>
-                                <div class="input-group mb-2">
-                                    <select class="form-select" @bind="categoryToAddString">
-                                        @foreach (var cat in allCategories)
-                                        {
-                                            <option value="@cat.Value()">@cat.Value()</option>
-                                        }
-                                    </select>
-                                    <button type="button" class="btn btn-outline-secondary" @onclick="AddAdditionalCategory">
-                                        <i class="bi bi-plus-lg"></i> @L["Add"]
-                                    </button>
-                                </div>
-                                <div class="d-flex flex-wrap gap-2">
-                                    @if (additionalCategories.Count == 0)
-                                    {
-                                        <span class="text-muted small italic">@L["NoAdditionalCategories"]</span>
-                                    }
-                                    else
-                                    {
-                                        @foreach (var cat in additionalCategories)
-                                        {
-                                            <div class="badge bg-secondary p-2 d-flex align-items-center gap-2">
-                                                @cat.Value()
-                                                <button type="button" class="btn-close btn-close-white" style="font-size: 0.5rem" @onclick="() => additionalCategories.Remove(cat)"></button>
-                                            </div>
-                                        }
-                                    }
-                                </div>
-                            </div>
-
-                            <div class="col-12 mt-4">
-                                <label class="form-label fw-bold d-flex justify-content-between">
-                                    @L["Authors"] 
-                                    <span class="badge bg-secondary">@selectedAuthors.Count @L["Selected"]</span>
+                            @* Selected Authors Ledger *@
+                            <div class="col-12 mt-2">
+                                <label class="form-label small text-muted text-uppercase fw-bold d-flex justify-content-between mb-3">
+                                    @L["CatalogedAuthors"] 
+                                    <span class="badge-sanctuary badge-neutral">@selectedAuthors.Count @L["Linked"]</span>
                                 </label>
-                                <div class="selected-authors-container p-3 border rounded bg-white" style="min-height: 100px;">
+                                <div class="bg-surface-low rounded-3 p-4 border border-dashed text-serif" style="min-height: 120px;">
                                     @if (selectedAuthors.Count == 0)
                                     {
-                                        <p class="text-muted text-center mb-0 mt-3 small italic">@L["NoAuthorsAssociatedDescription"]</p>
+                                        <div class="text-center py-4 text-muted italic">
+                                            <i class="bi bi-person-plus d-block h3 mb-2 opacity-25"></i>
+                                            @L["NoAuthorsLinkedUseSidebar"]
+                                        </div>
                                     }
                                     else
                                     {
                                         <div class="d-flex flex-wrap gap-2">
                                             @foreach (var author in selectedAuthors)
                                             {
-                                                <div class="badge bg-info text-dark p-2 d-flex align-items-center gap-2 shadow-sm font-monospace">
-                                                    @author.Name.Value
-                                                    <button type="button" class="btn-close btn-close-white" style="font-size: 0.5rem" @onclick="() => RemoveAuthor(author)"></button>
+                                                <div class="badge-sanctuary badge-neutral d-flex align-items-center gap-3 py-2 px-3 shadow-sm">
+                                                    <span class="fw-bold">@author.Name.Value</span>
+                                                    <button type="button" class="btn-close" style="font-size: 0.6rem" 
+                                                            @onclick="() => RemoveAuthor(author)"></button>
                                                 </div>
                                             }
                                         </div>
                                     }
                                 </div>
                             </div>
-
+                            
+                            @* Action Buttons *@
                             <div class="col-12 mt-5">
-                                <button type="submit" class="btn btn-success btn-lg w-100 shadow">
-                                    <i class="bi bi-cloud-arrow-up-fill me-2"></i>@L["CreateBookEntry"]
-                                </button>
-                            </div>
-                        </div>
-                    </EditForm>
-                </div>
-            </div>
-        </div>
-
-        <!-- Author Search (Right Side) -->
-        <div class="col-lg-5">
-            <div class="card shadow-sm border-0 h-100">
-                <div class="card-header bg-dark text-white py-3">
-                    <h5 class="card-title mb-0"><i class="bi bi-person-search me-2"></i>@L["FindAuthors"]</h5>
-                </div>
-                <div class="card-body p-4">
-                    <EditForm Model="@this" OnValidSubmit="HandleAuthorSearch" FormName="AuthorSearchForm">
-                        <div class="row g-3 mb-4">
-                            <div class="col-12">
-                                <label class="form-label small fw-bold">@L["Name"]</label>
-                                <InputText class="form-control" @bind-Value="searchAuthorName" placeholder="@L["SearchByName"]" />
-                            </div>
-                            <div class="col-12">
-                                <label class="form-label small fw-bold">@L["IsniNumber"]</label>
-                                <InputText class="form-control" @bind-Value="searchAuthorIsni" placeholder="@L["SearchByIsni"]" />
-                            </div>
-                            <div class="col-12">
-                                <button type="submit" class="btn btn-outline-primary w-100">
-                                    <i class="bi bi-search me-2"></i>@L["SearchAuthors"]
-                                </button>
-                            </div>
-                        </div>
-                    </EditForm>
-
-                    <div class="author-results table-responsive border rounded">
-                        <QuickGrid Items="@foundAuthors.AsQueryable()" Pagination="@pagination" Class="table table-sm table-hover mb-0">
-                            <PropertyColumn Property="@(a => a.Name.Value)" Title="@L["Name"]" Class="small fw-bold" />
-                            <TemplateColumn Title="@L["Actions"]" Align="Align.Center">
-                                @if (selectedAuthors.Any(sa => sa.AuthorId == context.AuthorId))
-                                {
-                                    <span class="text-success"><i class="bi bi-check-circle-fill"></i></span>
-                                }
-                                else
-                                {
-                                    <button type="button" class="btn btn-sm btn-outline-primary shadow-sm" @onclick="() => AddAuthor(context)" title="@L["AddAuthor"]">
-                                        <i class="bi bi-plus-circle-fill me-1"></i> @L["Add"]
+                                <div class="d-flex gap-3">
+                                    <button type="submit" class="btn btn-sanctuary btn-lg flex-grow-1 py-3 shadow-sm shadow-hover">
+                                        <i class="bi bi-journal-plus me-2"></i> @L["FinalizeArchivalRegistration"]
                                     </button>
-                                }
-                            </TemplateColumn>
-                        </QuickGrid>
+                                    <button type="button" class="btn btn-outline-secondary btn-lg px-4" @onclick="() => showAddSection = false">
+                                        @L["Discard"]
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </EditForm>
+                </div>
+            </div>
+
+            @* Sidebar: Author Association Ledger *@
+            <div class="col-lg-4">
+                <div class="card-sanctuary p-4 sticky-top" style="top: 2rem;">
+                    <div class="border-bottom pb-3 mb-4">
+                        <h3 class="h5 text-serif mb-1">@L["AuthorDiscovery"]</h3>
+                        <p class="small text-muted mb-0">@L["LocateAuthorsToAssociateWithThisRecord"]</p>
                     </div>
-                    <div class="mt-3 d-flex justify-content-center">
-                        <Paginator State="@pagination" />
+
+                    <EditForm Model="@this" OnValidSubmit="HandleAuthorSearch" FormName="AuthorSearchForm">
+                        <div class="mb-4">
+                            <div class="mb-3">
+                                <label class="form-label small text-muted text-uppercase fw-bold mb-1">@L["SearchByName"]</label>
+                                <InputText class="form-control bg-surface-low border-0 shadow-sm" @bind-Value="searchAuthorName" placeholder="@L["AuthorName"]" />
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label small text-muted text-uppercase fw-bold mb-1">@L["SearchByIsni"]</label>
+                                <InputText class="form-control bg-surface-low border-0 shadow-sm" @bind-Value="searchAuthorIsni" placeholder="0000 0001..." />
+                            </div>
+                            <button type="submit" class="btn btn-outline-primary btn-sm w-100 rounded-pill mt-2 py-2">
+                                <i class="bi bi-search me-2"></i>@L["SearchAuthors"]
+                            </button>
+                        </div>
+                    </EditForm>
+                    
+                    @if (metadataAuthors.Any())
+                    {
+                        <div class="metadata-authors-ledger mb-4 border rounded-3 overflow-hidden animate-fade-in" style="background-color: var(--surface-container-low);">
+                            <div class="bg-primary bg-opacity-10 px-3 py-2 border-bottom fw-bold small text-primary text-uppercase letter-spacing-1">
+                                <i class="bi bi-magic me-2"></i>@L["FoundInMetadata"]
+                            </div>
+                            <div class="list-group list-group-flush">
+                                @foreach (var name in metadataAuthors.Where(n => !selectedAuthors.Any(sa => sa.Name.Value.Equals(n, StringComparison.OrdinalIgnoreCase))))
+                                {
+                                    <div class="list-group-item bg-transparent px-3 py-2 small d-flex align-items-center justify-content-between gap-2">
+                                        <div class="d-flex align-items-center gap-2">
+                                            <i class="bi bi-person-badge text-muted"></i>
+                                            <span>@name</span>
+                                        </div>
+                                        <button type="button" class="btn btn-link btn-sm text-primary p-0 text-decoration-none" 
+                                                title="@L["AddAndLinkAuthor"]"
+                                                @onclick="() => AddMetadataAuthor(name)">
+                                            <i class="bi bi-person-plus-fill me-1"></i>@L["AddLink"]
+                                        </button>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    }
+
+                    <div class="author-results-ledger border rounded-3 overflow-hidden">
+                        <div class="bg-surface-container px-3 py-2 border-bottom fw-bold small text-muted text-uppercase letter-spacing-1">
+                            @L["RepositorySearch"]
+                        </div>
+                        <div class="list-group list-group-flush overflow-auto" style="max-height: 400px;">
+                            @if (!foundAuthors.Any())
+                            {
+                                <div class="p-4 text-center text-muted small italic">@L["NoResultsYet"]</div>
+                            }
+                            else
+                            {
+                                @foreach (var author in foundAuthors)
+                                {
+                                    <div class="list-group-item bg-transparent px-3 py-3 d-flex justify-content-between align-items-center transition-hover">
+                                        <div class="text-serif">@author.Name.Value</div>
+                                        @if (selectedAuthors.Any(sa => sa.AuthorId == author.AuthorId))
+                                        {
+                                            <span class="text-success h5 mb-0"><i class="bi bi-check-circle-fill"></i></span>
+                                        }
+                                        else
+                                        {
+                                            <button type="button" class="btn btn-link text-primary p-0" @onclick="() => AddAuthor(author)">
+                                                <i class="bi bi-plus-circle h5 mb-0"></i>
+                                            </button>
+                                        }
+                                    </div>
+                                }
+                            }
+                        </div>
+                        @if (foundAuthors.Any())
+                        {
+                            <div class="p-2 bg-surface-low border-top d-flex justify-content-center">
+                                <Paginator State="@pagination" />
+                            </div>
+                        }
+                    </div>
+                    
+                    <div class="mt-4 p-3 bg-surface-neutral rounded-3">
+                        <h6 class="small fw-bold mb-2 text-serif">@L["ArchivalNote"]</h6>
+                        <p class="small text-muted mb-0 italic">
+                            @L["AssociationNote"]
+                        </p>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
-}
+    }
 </div>
 
 @code {
-
     private bool showBulkEdit = false;
     private HashSet<BookId> selectedBookIds = new();
 
@@ -537,7 +445,6 @@
     {
         showBulkEdit = false;
         selectedBookIds.Clear();
-        // Optionally refresh search
     }
 
     private bool _showAddSection = false;
@@ -572,6 +479,7 @@
     private string? coverPreviewUrl = null;
     private bool isLookingUpCover = false;
     private bool showScanner = false;
+    private List<string> metadataAuthors = new();
 
     private void ToggleScanner()
     {
@@ -584,7 +492,6 @@
 
         var scannedText = args.BarcodeText.Trim();
         
-        // Use the domain logic to check if it's a valid ISBN
         if (Isbn.IsValid(scannedText))
         {
             newBookIsbn = scannedText;
@@ -612,7 +519,7 @@
 
     private async Task ShowSearchError(string error)
     {
-        await ShowStatus(error, "alert-danger");
+        await ShowStatus(error, "error");
     }
 
     private string newBookAvailability = "Circulating";
@@ -626,7 +533,6 @@
         }
     }
 
-    private bool IsIsbnSearchActive => false; // Or remove if not used anymore in this page for UI disabling
     private bool IsNewBookIsbnValid 
     {
         get 
@@ -644,21 +550,14 @@
                         b.Title.Value.Contains(titleRefinementFilter, StringComparison.OrdinalIgnoreCase));
 
     private bool searchBooksPerformed = false;
-    private PaginationState bookPagination = new() { ItemsPerPage = 5 };
+    private PaginationState bookPagination = new() { ItemsPerPage = 10 };
     private GridSort<Book> sortTitle = GridSort<Book>.ByAscending(b => b.Title.Value);
-    private GridSort<Book> sortImage = GridSort<Book>.ByDescending(b => b.ImageUrl != null && FSharpOption<Uri>.get_IsSome(b.ImageUrl));
-
-    private GridSort<Book> sortAvailabilityType = GridSort<Book>.ByAscending(b => b.Availability.ToString());
     private GridSort<Book> sortAvailability = GridSort<Book>.ByAscending(b => b.ImmediatelyAvailable);    
 
-
     private string statusMessage = "";
-    private string statusClass = "alert-info";
-
     private Category mainCategory = Category.Other;
     private List<Category> additionalCategories = new();
     private Category categoryToAdd = Category.Other;
-
     private FSharpList<Category> allCategories = Category.AllCases();
 
     private string mainCategoryString 
@@ -673,12 +572,120 @@
         set => categoryToAdd = Category.FromString(value);
     }
 
-    private void AddAdditionalCategory()
+    private void AddAuthor(Author author)
     {
-        if (categoryToAdd != null && !additionalCategories.Contains(categoryToAdd) && categoryToAdd != mainCategory)
+        if (!selectedAuthors.Any(a => a.AuthorId == author.AuthorId))
         {
-            additionalCategories.Add(categoryToAdd);
+            selectedAuthors.Add(author);
         }
+    }
+
+    private void RemoveAuthor(Author author)
+    {
+        selectedAuthors.RemoveAll(a => a.AuthorId == author.AuthorId);
+    }
+
+    private async Task HandleAddBook()
+    {
+        if (string.IsNullOrWhiteSpace(newBookTitle))
+        {
+            await ShowStatus(L["TitleIsRequired"], "warning");
+            return;
+        }
+
+        if (!newBookYear.HasValue)
+        {
+            await ShowStatus(L["YearIsRequired"], "warning");
+            return;
+        }
+
+        Isbn isbn;
+        if (string.IsNullOrWhiteSpace(newBookIsbn))
+        {
+            isbn = Isbn.EmptyIsbn;
+        }
+        else if (allowInvalidIsbn)
+        {
+            isbn = Isbn.NewInvalid(newBookIsbn);
+        }
+        else
+        {
+            var isbnResult = Isbn.New(newBookIsbn);
+            if (isbnResult.IsError)
+            {
+                await ShowStatus(L["InvalidIsniValue", isbnResult.ErrorValue], "error");
+                return;
+            }
+            isbn = isbnResult.ResultValue;
+        }
+
+        var title = Title.New(newBookTitle);
+        var year = Year.New(newBookYear.Value);
+        var authorIds = selectedAuthors.Select(a => a.AuthorId).ToList();
+
+        FSharpOption<Uri> resolvedImageUrl = FSharpOption<Uri>.None;
+        if (!string.IsNullOrWhiteSpace(newBookImageUrl))
+        {
+            if (Uri.TryCreate(newBookImageUrl, UriKind.Absolute, out var uri))
+            {
+                resolvedImageUrl = FSharpOption<Uri>.Some(uri);
+            }
+        }
+
+        var book = Book.New(
+            title, 
+            ListModule.OfSeq(authorIds),
+            ListModule.OfSeq(Enumerable.Empty<AuthorId>()),
+            ListModule.OfSeq(Enumerable.Empty<System.Globalization.CultureInfo>()),
+            FSharpOption<EditorId>.None,
+            mainCategory,
+            ListModule.OfSeq(additionalCategories),
+            year,
+            isbn,
+            resolvedImageUrl
+        );
+
+        if (!string.IsNullOrWhiteSpace(newBookDescription))
+        {
+            var updateResult = book.UpdateDescription(newBookDescription, DateTime.UtcNow);
+            if (updateResult.IsOk)
+            {
+                book = updateResult.ResultValue;
+            }
+        }
+
+        var availability = Availability.FromString(newBookAvailability);
+        
+        var result = await BookService.AddBookAsync(book);
+        if (result.IsOk)
+        {
+            await ShowStatus(string.Format(L["BookCreatedSuccessfully"], newBookTitle), "success");
+            ResetForm();
+            // Refresh managers list if needed or redirect
+        }
+        else
+        {
+            await ShowStatus(string.Format(L["ErrorCreatingBook"], result.ErrorValue), "error");
+        }
+    }
+
+    private void ResetForm()
+    {
+        newBookTitle = "";
+        newBookIsbn = "";
+        newBookDescription = "";
+        newBookImageUrl = "";
+        coverPreviewUrl = null;
+        selectedAuthors.Clear();
+        metadataAuthors.Clear();
+        lookupResults.Clear();
+        selectedLookupIndex = -1;
+    }
+
+    private async Task ShowStatus(string message, string type)
+    {
+        statusMessage = message;
+        await JSRuntime.InvokeVoidAsync("showToast", message, type);
     }
 
     private async Task HandleAuthorSearch()
@@ -715,177 +722,38 @@
         }
         else
         {
-            await ShowStatus(L["ErrorSearchingAuthors", result.ErrorValue], "alert-danger");
+            await ShowStatus(L["ErrorSearchingAuthors", result.ErrorValue], "error");
         }
-    }
-
-    private void RemoveCategoryFromSearchCriteria(Category category)
-    {
-        // searchCategoriesCriteria.Remove(category); // Handled by component now
-    }
-
-
-
-    private void AddAuthor(Author author)
-    {
-        if (!selectedAuthors.Any(a => a.AuthorId == author.AuthorId))
-        {
-            selectedAuthors.Add(author);
-        }
-    }
-
-    private void RemoveAuthor(Author author)
-    {
-        selectedAuthors.RemoveAll(a => a.AuthorId == author.AuthorId);
-    }
-
-    private async Task HandleAddBook()
-    {
-        if (string.IsNullOrWhiteSpace(newBookTitle))
-        {
-            await ShowStatus(L["TitleIsRequired"], "alert-warning");
-            return;
-        }
-
-        if (!newBookYear.HasValue)
-        {
-            await ShowStatus(L["YearIsRequired"], "alert-warning");
-            return;
-        }
-
-        Isbn isbn;
-        if (string.IsNullOrWhiteSpace(newBookIsbn))
-        {
-            isbn = Isbn.EmptyIsbn;
-        }
-        else if (allowInvalidIsbn)
-        {
-            isbn = Isbn.NewInvalid(newBookIsbn);
-        }
-        else
-        {
-            var isbnResult = Isbn.New(newBookIsbn);
-            if (isbnResult.IsError)
-            {
-                await ShowStatus(L["InvalidIsniValue", isbnResult.ErrorValue], "alert-danger");
-                return;
-            }
-            isbn = isbnResult.ResultValue;
-        }
-
-        var title = Title.New(newBookTitle);
-        var year = Year.New(newBookYear.Value);
-        var authorIds = selectedAuthors.Select(a => a.AuthorId).ToList();
-
-        FSharpOption<Uri> resolvedImageUrl = FSharpOption<Uri>.None;
-        if (!string.IsNullOrWhiteSpace(newBookImageUrl))
-        {
-            if (Uri.TryCreate(newBookImageUrl, UriKind.Absolute, out var uri))
-            {
-                resolvedImageUrl = FSharpOption<Uri>.Some(uri);
-            }
-        }
-
-        // Construct the book aggregate using the new constructor with categories.
-        var book = Book.New(
-            title, 
-            ListModule.OfSeq(authorIds),
-            ListModule.OfSeq(Enumerable.Empty<AuthorId>()),
-            ListModule.OfSeq(Enumerable.Empty<System.Globalization.CultureInfo>()),
-            FSharpOption<EditorId>.None,
-            mainCategory,
-            ListModule.OfSeq(additionalCategories),
-            year,
-            isbn,
-            resolvedImageUrl
-        );
-
-        var result = await BookService.AddBookAsync(book);
-
-        if (result.IsOk)
-        {
-            if (!string.IsNullOrWhiteSpace(newBookDescription))
-            {
-                await BookService.UpdateDescriptionAsync(newBookDescription, book.BookId, FSharpOption<System.Threading.CancellationToken>.None);
-            }
-            
-            var availability = BookLibrary.Shared.Commons.Availability.FromString(newBookAvailability);
-            await BookService.SetAvailabilityAsync(availability, book.BookId, FSharpOption<System.Threading.CancellationToken>.None);
-
-            await ShowStatus(L["BookCreatedSuccessfully", newBookTitle], "alert-success");
-            ResetForm();
-        }
-        else
-        {
-            await ShowStatus(L["ErrorCreatingBook", result.ErrorValue], "alert-danger");
-        }
-    }
-
-    private async Task ShowStatus(string message, string cssClass)
-    {
-        statusMessage = message;
-        statusClass = cssClass;
-
-        string type = "info";
-        if (cssClass.Contains("success")) type = "success";
-        else if (cssClass.Contains("danger")) type = "error";
-        else if (cssClass.Contains("warning")) type = "warning";
-
-        await JSRuntime.InvokeVoidAsync("showToast", message, type);
-    }
-
-    private void ResetForm()
-    {
-        newBookTitle = "";
-        newBookIsbn = "";
-        newBookDescription = "";
-        allowInvalidIsbn = false;
-        newBookYear = DateTime.Now.Year;
-        selectedAuthors.Clear();
-        mainCategory = Category.Other;
-        additionalCategories.Clear();
-        newBookImageUrl = "";
-        coverPreviewUrl = null;
-        newBookAvailability = Configuration["DefaultAvailability"] ?? "Circulating";
     }
 
     private async Task PerformGoogleLookup()
     {
         if (string.IsNullOrWhiteSpace(newBookTitle))
         {
-            await ShowStatus(L["EnterTitleToSearch"], "alert-warning");
+            await ShowStatus(L["EnterTitleToSearch"], "warning");
             return;
         }
 
         isAutofilling = true;
-        lookupResults.Clear();
-        selectedLookupIndex = -1;
-        StateHasChanged();
-
         try
         {
-            var result = await GoogleBooksService.LookupMultipleByTitleAsync(newBookTitle);
-
-            if (result.IsOk)
+            var results = await GoogleBooksService.LookupMultipleByTitleAsync(newBookTitle);
+            if (results.IsOk)
             {
-                lookupResults = result.ResultValue.ToList();
-                if (!lookupResults.Any())
+                lookupResults = results.ResultValue.ToList();
+                if (lookupResults.Any())
                 {
-                    await ShowStatus(L["NoBooksFoundTitle"], "alert-warning");
+                    await ShowStatus(string.Format(L["FoundResultsFromApi"], lookupResults.Count), "success");
                 }
                 else
                 {
-                    await ShowStatus(L["FoundResultsFromApi", lookupResults.Count], "alert-info");
+                    await ShowStatus(L["NoBooksFoundTitle"], "warning");
                 }
             }
             else
             {
-                await ShowStatus(L["ErrorSearchingApi", result.ErrorValue], "alert-danger");
+                await ShowStatus(string.Format(L["GoogleBooksServiceError"], results.ErrorValue), "error");
             }
-        }
-        catch (Exception ex)
-        {
-            await ShowStatus(L["ErrorDuringLookup", ex.Message], "alert-danger");
         }
         finally
         {
@@ -896,203 +764,46 @@
     private async Task AutofillFromSelected()
     {
         if (selectedLookupIndex < 0 || selectedLookupIndex >= lookupResults.Count) return;
-
-        var metadata = lookupResults[selectedLookupIndex];
-        isAutofilling = true;
-        StateHasChanged();
-
-        try
-        {
-            newBookTitle = metadata.Title;
-            if (FSharpOption<string>.get_IsSome(metadata.Isbn) && !string.IsNullOrWhiteSpace(metadata.Isbn.Value))
-            {
-                newBookIsbn = metadata.Isbn.Value;
-            }
-            
-            if (FSharpOption<int>.get_IsSome(metadata.Year))
-            {
-                newBookYear = metadata.Year.Value;
-            }
-            
-            if (FSharpOption<string>.get_IsSome(metadata.Description))
-            {
-                newBookDescription = metadata.Description.Value;
-            }
-
-            // Categories
-            if (metadata.Categories != null && metadata.Categories.Any())
-            {
-                var firstCatStr = metadata.Categories.First();
-                try 
-                {
-                    var domainCat = Category.FromString(firstCatStr);
-                    mainCategory = domainCat;
-                } 
-                catch 
-                {
-                    ShowStatus(L["MappingCategoryWarning", firstCatStr], "alert-warning");
-                }
-            }
-
-            // Authors
-            if (metadata.Authors != null && metadata.Authors.Any())
-            {
-                selectedAuthors.Clear();
-                foreach (var authorName in metadata.Authors)
-                {
-                    var nameCriteria = Name.New(authorName);
-                    var authorResult = await AuthorService.SearchByNameAsync(nameCriteria);
-                    if (authorResult.IsOk && authorResult.ResultValue.Any())
-                    {
-                        selectedAuthors.Add(authorResult.ResultValue.First());
-                    }
-                    else
-                    {
-                        bool create = await JSRuntime.InvokeAsync<bool>("confirm", L["AuthorNotFoundCreateAssign", authorName].Value);
-                        if (create)
-                        {
-                            var newAuthor = Author.NewWithoutIsni(nameCriteria);
-                            var addResult = await AuthorService.AddAuthorAsync(newAuthor);
-                            if (addResult.IsOk)
-                            {
-                                selectedAuthors.Add(newAuthor);
-                            }
-                            else 
-                            {
-                                ShowStatus(L["FailedToCreateAuthor", authorName], "alert-danger");
-                            }
-                        }
-                    }
-                }
-            }
-            
-            ShowStatus(L["FieldsPopulatedReview"], "alert-success");
-            lookupResults.Clear();
-            selectedLookupIndex = -1;
-        }
-        catch (Exception ex)
-        {
-            ShowStatus(L["ErrorAutofillingFields", ex.Message], "alert-danger");
-        }
-        finally
-        {
-            isAutofilling = false;
-        }
-    }
-
-    private async Task AutofillBookInfo() => await PerformGoogleLookup();
-
-    private async Task LookupCoverImage()
-    {
-        if (!IsNewBookIsbnValid) return;
-
-        isLookingUpCover = true;
-        coverPreviewUrl = null;
-        StateHasChanged();
-
-        try
-        {
-            var isbnResult = Isbn.New(newBookIsbn);
-            if (isbnResult.IsOk)
-            {
-                var result = await GoogleBooksService.LookupCoverImageByIsbnWithOpenApiAndThenGoogleAsync(isbnResult.ResultValue, FSharpOption<ThumbRoughSize>.Some(ThumbRoughSize.Medium));
-                if (result.IsOk && FSharpOption<string>.get_IsSome(result.ResultValue))
-                {
-                    coverPreviewUrl = result.ResultValue.Value;
-                    ShowStatus(L["CoverImageFoundCatalogs"], "alert-info");
-                }
-                else
-                {
-                    ShowStatus(L["NoCoverImageFoundIsbn"], "alert-warning");
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            ShowStatus(L["ErrorLookingUpCover", ex.Message], "alert-danger");
-        }
-        finally
-        {
-            isLookingUpCover = false;
-        }
-    }
-
-    private void AcceptCoverUrl()
-    {
-        if (!string.IsNullOrEmpty(coverPreviewUrl))
-        {
-            newBookImageUrl = coverPreviewUrl;
-            coverPreviewUrl = null;
-            ShowStatus(L["CoverUrlApplied"], "alert-success");
-        }
+        
+        var book = lookupResults[selectedLookupIndex];
+        newBookTitle = book.Title;
+        if (FSharpOption<int>.get_IsSome(book.Year)) newBookYear = book.Year.Value;
+        if (FSharpOption<string>.get_IsSome(book.Isbn)) newBookIsbn = book.Isbn.Value;
+        if (FSharpOption<string>.get_IsSome(book.Description)) newBookDescription = book.Description.Value;
+        
+        // Search and link authors
+        await ProcessMetadataAuthors(book.Authors);
+        
+        await ShowStatus(L["FieldsPopulatedReview"], "success");
     }
 
     private async Task LookupMetadataByIsbn()
     {
         if (!IsNewBookIsbnValid) return;
-
         isLookingUpMetadata = true;
-        StateHasChanged();
-
         try
         {
             var result = await GoogleBooksService.LookupByIsbnAsync(newBookIsbn);
             if (result.IsOk && FSharpOption<GoogleBookMetadata>.get_IsSome(result.ResultValue))
             {
-                var metadata = result.ResultValue.Value;
+                var book = result.ResultValue.Value;
+                newBookTitle = book.Title;
+                if (FSharpOption<int>.get_IsSome(book.Year)) newBookYear = book.Year.Value;
+                if (FSharpOption<string>.get_IsSome(book.Description)) newBookDescription = book.Description.Value;
                 
-                newBookTitle = metadata.Title;
+                // Search and link authors
+                await ProcessMetadataAuthors(book.Authors);
                 
-                if (FSharpOption<int>.get_IsSome(metadata.Year))
-                {
-                    newBookYear = metadata.Year.Value;
-                }
-                
-                if (FSharpOption<string>.get_IsSome(metadata.Description))
-                {
-                    newBookDescription = metadata.Description.Value;
-                }
-                
-                // Authors
-                if (metadata.Authors != null && metadata.Authors.Any())
-                {
-                    selectedAuthors.Clear();
-                    foreach (var authorName in metadata.Authors)
-                    {
-                        var nameCriteria = Name.New(authorName);
-                        var authorResult = await AuthorService.SearchByNameAsync(nameCriteria);
-                        if (authorResult.IsOk && authorResult.ResultValue.Any())
-                        {
-                            selectedAuthors.Add(authorResult.ResultValue.First());
-                        }
-                    }
-                }
-                
-                // Categories
-                if (metadata.Categories != null && metadata.Categories.Any())
-                {
-                    var firstCatStr = metadata.Categories.First();
-                    try 
-                    {
-                        var domainCat = Category.FromString(firstCatStr);
-                        mainCategory = domainCat;
-                    } 
-                    catch 
-                    {
-                        // Quietly fail for category mapping
-                    }
-                }
-
-                ShowStatus(L["FieldsPopulatedReview"], "alert-success");
+                await ShowStatus(L["MetadataFound"], "success");
+            }
+            else if (result.IsOk)
+            {
+                await ShowStatus(L["MetadataNotFound"], "warning");
             }
             else
             {
-                ShowStatus(L["MetadataNotFound"], "alert-warning");
+                await ShowStatus(string.Format(L["GoogleBooksServiceError"], result.ErrorValue), "error");
             }
-        }
-        catch (Exception ex)
-        {
-            ShowStatus(L["ErrorLookingUpMetadata", ex.Message], "alert-danger");
         }
         finally
         {
@@ -1100,15 +811,52 @@
         }
     }
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+    private async Task ProcessMetadataAuthors(IEnumerable<string> names)
     {
-        if (shouldFocusIsbn)
+        metadataAuthors.Clear();
+        foreach (var name in names)
         {
-            shouldFocusIsbn = false;
-            if (isbnInput != null && isbnInput.Element != null)
+            var searchResult = await AuthorService.SearchByNameAsync(Name.New(name));
+            if (searchResult.IsOk && searchResult.ResultValue.Any())
             {
-                await isbnInput.Element.Value.FocusAsync();
+                // Find exact name match in the list
+                var localAuthor = searchResult.ResultValue.FirstOrDefault(a => a.Name.Value.Equals(name, StringComparison.OrdinalIgnoreCase));
+                if (localAuthor != null)
+                {
+                    AddAuthor(localAuthor);
+                }
+                else
+                {
+                    metadataAuthors.Add(name);
+                }
+            }
+            else
+            {
+                metadataAuthors.Add(name);
             }
         }
     }
+
+    private async Task AddMetadataAuthor(string name)
+    {
+        var author = Author.NewWithoutIsni(Name.New(name));
+        var result = await AuthorService.AddAuthorAsync(author);
+        if (result.IsOk)
+        {
+            AddAuthor(author);
+            await ShowStatus(string.Format(L["AuthorAddedAndLinked"], name), "success");
+        }
+        else
+        {
+            await ShowStatus(string.Format(L["ErrorAddingAuthor"], result.ErrorValue), "error");
+        }
+    }
 }
+
+<style>
+    .editorial-ledger td { vertical-align: middle; }
+    .border-dashed { border-style: dashed !important; border-width: 2px !important; }
+    .letter-spacing-1 { letter-spacing: 1px; }
+    .italic { font-style: italic; }
+    .display-4 { font-weight: 800; color: var(--primary); }
+</style>

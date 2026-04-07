@@ -450,4 +450,83 @@
   <data name="BulkEditSuccess" xml:space="preserve"><value>Modifica massiva completata con successo.</value></data>
   <data name="BulkEditError" xml:space="preserve"><value>Modifica massiva fallita: {0}</value></data>
   <data name="Processing" xml:space="preserve"><value>In corso...</value></data>
+  <data name="ArchivalLifecycle" xml:space="preserve"><value>Ciclo di Vita Archivistico</value></data>
+  <data name="NarrativeAbstract" xml:space="preserve"><value>Abstract Narrativo</value></data>
+  <data name="PrimaryArchivalMetadata" xml:space="preserve"><value>Metadati Archivistici Primari</value></data>
+  <data name="EditorialTaxonomy" xml:space="preserve"><value>Tassonomia Editoriale</value></data>
+  <data name="ArchivalStatus" xml:space="preserve"><value>Stato Archivistico</value></data>
+  <data name="SealDescription" xml:space="preserve"><value>Quando un elemento è 'Sigillato', i suoi record core sono bloccati per coerenza archivistica. Rimuovi il sigillo per abilitare modifiche amministrative.</value></data>
+  <data name="CurrentLoanStatus" xml:space="preserve"><value>Stato Prestito Attuale</value></data>
+  <data name="ItemCurrentlyWithBorrower" xml:space="preserve"><value>Elemento Attualmente in Prestito</value></data>
+  <data name="ProvisionallyUnavailable" xml:space="preserve"><value>Provvisoriamente Non Disponibile</value></data>
+  <data name="ReadyForDissemination" xml:space="preserve"><value>Pronto per la diffusione ai lettori.</value></data>
+  <data name="ContactRepositoryManager" xml:space="preserve"><value>Contatta il responsabile del repository per conferma stato.</value></data>
+  <data name="ScheduledReservations" xml:space="preserve"><value>Prenotazioni Programmate</value></data>
+  <data name="NoFutureProvisions" xml:space="preserve"><value>Nessuna fornitura futura programmata per questo elemento.</value></data>
+  <data name="DeaccessionItem" xml:space="preserve"><value>Dismissione Elemento</value></data>
+  <data name="PermanentlyRemoveFromArchivalRecord" xml:space="preserve"><value>Rimuovi permanentemente questo elemento dal record archivistico. Questa azione è irreversibile.</value></data>
+  <data name="PurgeRecord" xml:space="preserve"><value>Elimina Record</value></data>
+  <data name="ArchivalAvailability" xml:space="preserve"><value>Disponibilità Archivistica</value></data>
+  <data name="CatalogedAuthors" xml:space="preserve"><value>Autori Catalogati</value></data>
+  <data name="AddAuthorToRecord" xml:space="preserve"><value>Cerca per associare un autore...</value></data>
+  <data name="AddArchivalTag" xml:space="preserve"><value>Aggiungi Tag Archivistico</value></data>
+  <data name="EditorialAccountLedger" xml:space="preserve"><value>Libro Mastro Account Editoriale</value></data>
+  <data name="PatronDirectory" xml:space="preserve"><value>Elenco Utenti</value></data>
+  <data name="SearchByEmailOrNamePlaceholder" xml:space="preserve"><value>Cerca per email, nome o username...</value></data>
+  <data name="CurrentArchivalRoles" xml:space="preserve"><value>Ruoli Archivistici Attuali</value></data>
+  <data name="SystemAccountManagers" xml:space="preserve"><value>Gestori Account di Sistema</value></data>
+  <data name="NoPatronsFound" xml:space="preserve"><value>Nessun utente trovato nel database archivistico.</value></data>
+  <data name="NoArchivalManagersFound" xml:space="preserve"><value>Nessun gestore account trovato.</value></data>
+  <data name="ArchivalPatron" xml:space="preserve"><value>Patrono Archivistico</value></data>
+  <data name="Deaccession" xml:space="preserve"><value>Dismissione</value></data>
+  <data name="TheModernArchivist" xml:space="preserve"><value>L'Archivista Moderno</value></data>
+  <data name="ManageSystemAccountRolesAndPermissions" xml:space="preserve"><value>Gestisci i ruoli e i permessi degli account di sistema.</value></data>
+  <data name="EnterSearchQueryToBegin" xml:space="preserve"><value>Inserisci un'email o un nome qui sopra per cercare gli utenti.</value></data>
+  <data name="AdministrativeNote" xml:space="preserve"><value>Nota Amministrativa</value></data>
+  <data name="ManagerRoleGrantsAccessToAdministrativeTools" xml:space="preserve"><value>L'assegnazione del ruolo 'Manager' garantisce a questo utente l'accesso parziale agli strumenti di gestione e alle azioni del repository.</value></data>
+  <data name="CatalogManagement" xml:space="preserve"><value>Gestione Catalogo</value></data>
+  <data name="BooksManagerDescription" xml:space="preserve"><value>Registra e raffina i record del catalogo archivistico centrale.</value></data>
+  <data name="CloseEntryForm" xml:space="preserve"><value>Chiudi Modulo Inserimento</value></data>
+  <data name="RecordHasImage" xml:space="preserve"><value>Il record archivistico contiene documentazione visiva.</value></data>
+  <data name="RecordMissingImage" xml:space="preserve"><value>Il record non contiene documentazione visiva.</value></data>
+  <data name="PrimaryTaxonomy" xml:space="preserve"><value>Tassonomia Primaria</value></data>
+  <data name="NewArchivalRegistration" xml:space="preserve"><value>Nuova Registrazione Archivistica</value></data>
+  <data name="CompleteTheFormBelowToRegister" xml:space="preserve"><value>Finalizza i metadati primari per la nuova voce del libro mastro archivistico.</value></data>
+  <data name="PrimaryTitle" xml:space="preserve"><value>Titolo Primario</value></data>
+  <data name="IsbnIdentifier" xml:space="preserve"><value>Identificatore ISBN</value></data>
+  <data name="Close" xml:space="preserve"><value>Chiudi</value></data>
+  <data name="Scan" xml:space="preserve"><value>Scansiona</value></data>
+  <data name="ArchivalScannerActive" xml:space="preserve"><value>Scanner Archivistico Attivo</value></data>
+  <data name="Linked" xml:space="preserve"><value>Collegato</value></data>
+  <data name="NoAuthorsLinkedUseSidebar" xml:space="preserve"><value>Nessun autore collegato. Usa la barra laterale per individuare e associare autori catalogati.</value></data>
+  <data name="FinalizeArchivalRegistration" xml:space="preserve"><value>Finalizza Registrazione Archivistica</value></data>
+  <data name="AuthorDiscovery" xml:space="preserve"><value>Ricerca Autori</value></data>
+  <data name="LocateAuthorsToAssociateWithThisRecord" xml:space="preserve"><value>Individua gli autori da associare a questo record.</value></data>
+  <data name="RepositorySearch" xml:space="preserve"><value>Ricerca nel Repository</value></data>
+  <data name="NoResultsYet" xml:space="preserve"><value>Nessun risultato ancora.</value></data>
+  <data name="ArchivalNote" xml:space="preserve"><value>Nota Archivistica</value></data>
+  <data name="AssociationNote" xml:space="preserve"><value>L'associazione degli autori preserva il legame metabolico incrociato attraverso l'intera tassonomia del repository.</value></data>
+  <data name="Records" xml:space="preserve"><value>Record</value></data>
+  <data name="Showing" xml:space="preserve"><value>Visualizzazione</value></data>
+  <data name="AuthorRegistry" xml:space="preserve"><value>Registro Autori</value></data>
+  <data name="ManageCatalogedAuthors" xml:space="preserve"><value>Gestisci gli autori catalogati all'interno del repository.</value></data>
+  <data name="NewAuthorDiscovery" xml:space="preserve"><value>Scoperta Nuovo Autore</value></data>
+  <data name="NewAuthorRegistration" xml:space="preserve"><value>Nuova Registrazione Autore</value></data>
+  <data name="RegisterNewScholarlyAuthorRecord" xml:space="preserve"><value>Registra un nuovo record di autore accademico nel libro mastro archivistico.</value></data>
+  <data name="ProfileImage" xml:space="preserve"><value>Immagine del Profilo</value></data>
+  <data name="VisualIdentityPreview" xml:space="preserve"><value>Anteprima Identità Visiva</value></data>
+  <data name="VerifyAuthorImageBeforeRegistration" xml:space="preserve"><value>Verifica l'immagine dell'autore prima della registrazione archivistica finale.</value></data>
+  <data name="AuthorLedger" xml:space="preserve"><value>Libro Mastro Autori</value></data>
+  <data name="TotalRegistered" xml:space="preserve"><value>Totale Registrati</value></data>
+  <data name="Identity" xml:space="preserve"><value>Identità</value></data>
+  <data name="LinkedTitles" xml:space="preserve"><value>Titoli Collegati</value></data>
+  <data name="CuratedCatalog" xml:space="preserve"><value>Il Catalogo Curato</value></data>
+  <data name="ArchivalDiscoveryDescription" xml:space="preserve"><value>Scopri opere di rilevanza accademica all'interno del nostro repository archivistico meticolosamente mantenuto. Raffina la tua ricerca utilizzando gli strumenti del libro mastro sottostanti.</value></data>
+  <data name="CatalogDiscovery" xml:space="preserve"><value>Scoperta nel Catalogo</value></data>
+  <data name="VisualIdentity" xml:space="preserve"><value>Identità Visiva</value></data>
+  <data name="TitlesFound" xml:space="preserve"><value>Titoli Trovati</value></data>
+  <data name="VisualRef" xml:space="preserve"><value>Rif. Visivo</value></data>
+  <data name="Taxonomy" xml:space="preserve"><value>Tassonomia</value></data>
+  <data name="ArchivalStatus" xml:space="preserve"><value>Stato Archivistico</value></data>
+  <data name="ArchivalReferenceNote" xml:space="preserve"><value>La registrazione in questo catalogo garantisce la conservazione e l'accessibilità incrociata del patrimonio letterario collettivo.</value></data>
 </root>

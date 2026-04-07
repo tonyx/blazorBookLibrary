@@ -16,181 +16,197 @@
 @inject IStringLocalizer<SharedResources> L
 @rendermode InteractiveServer
 
-<PageTitle>@L["AuthorsManager"]</PageTitle>
+<PageTitle>@L["AuthorsManager"] — @L["TheModernArchivist"]</PageTitle>
 
-<div class="container-fluid py-4">
-    <h1 class="mb-4 text-primary">@L["AuthorsManager"]</h1>
-
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="card shadow-sm border-0">
-                <div class="card-header bg-secondary text-white">
-                    <h5 class="card-title mb-0"><i class="bi bi-search me-2"></i>@L["SearchAuthors"]</h5>
-                </div>
-                <div class="card-body bg-light">
-                    <EditForm Model="@this" OnValidSubmit="HandleSearch" FormName="SearchAuthorForm">
-                        <div class="row g-3">
-                            <div class="col-md-5">
-                                <label class="form-label fw-bold">@L["Name"]</label>
-                                <InputText class="form-control" @bind-Value="searchName" placeholder="@L["SearchByName"]" />
-                            </div>
-                            <div class="col-md-5">
-                                <label class="form-label fw-bold">@L["IsniNumber"]</label>
-                                <InputText class="form-control" @bind-Value="searchIsni" placeholder="@L["SearchByIsni"]" />
-                            </div>
-                            <div class="col-md-2 d-flex align-items-end">
-                                <button type="submit" class="btn btn-primary w-100">
-                                    <i class="bi bi-search me-1"></i> @L["Search"]
-                                </button>
-                            </div>
-                        </div>
-                    </EditForm>
-                </div>
+<div class="sanctuary-container py-5">
+    @* Page Header *@
+    <div class="mb-5">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/" class="text-decoration-none text-muted">@L["Home"]</a></li>
+                <li class="breadcrumb-item active text-serif" aria-current="page">@L["AuthorsManager"]</li>
+            </ol>
+        </nav>
+        <div class="d-flex justify-content-between align-items-end">
+            <div>
+                <h1 class="display-4 text-serif mb-2">@L["AuthorRegistry"]</h1>
+                <p class="text-muted lead mb-0">@L["ManageCatalogedAuthors"]</p>
             </div>
+            
+            <button class="btn btn-sanctuary @(showAddSection ? "active" : "")" @onclick="() => showAddSection = !showAddSection">
+                <i class="bi @(showAddSection ? "bi-dash-lg" : "bi-plus-lg") me-2"></i>
+                @(showAddSection ? L["CloseEntryForm"] : L["NewAuthorRegistration"])
+            </button>
         </div>
     </div>
 
-
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="card shadow-sm border-0">
-                <div class="card-header bg-primary text-white">
-                    <h5 class="card-title mb-0"><i class="bi bi-person-plus-fill me-2"></i>@L["AddNewAuthor"]</h5>
+    @* Search Filters *@
+    <div class="card-sanctuary mb-5 p-4 border-0 shadow-none bg-surface-low">
+        <EditForm Model="@this" OnValidSubmit="HandleSearch" FormName="SearchAuthorForm">
+            <div class="row g-4 align-items-end">
+                <div class="col-md-5">
+                    <label class="form-label small text-muted text-uppercase fw-bold mb-2">@L["AuthorName"]</label>
+                    <InputText class="form-control bg-white border-0 shadow-sm py-2" @bind-Value="searchName" placeholder="@L["SearchByName"]" />
                 </div>
-                <div class="card-body bg-light">
-                    <EditForm Model="@this" OnValidSubmit="HandleAddAuthor" FormName="AddAuthorForm">
-                        <div class="row g-3">
-                            <div class="col-md-4">
-                                <label class="form-label fw-bold">@L["Name"]</label>
-                                <InputText class="form-control" @bind-Value="newAuthorName" placeholder="e.g. Stephen King" />
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label fw-bold">@L["IsniOptional"]</label>
-                                <InputText class="form-control" @bind-Value="newAuthorIsni" placeholder="e.g. 0000 0001 2140 1961" />
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label fw-bold">@L["ImageUrlOptional"]</label>
-                                <div class="input-group">
-                                    <InputText class="form-control" @bind-Value="newAuthorImageUrl" placeholder="https://..." />
-                                    <button type="button" class="btn btn-outline-secondary" @onclick="LookupAuthorImage" disabled="@(string.IsNullOrWhiteSpace(newAuthorName) || isSearchingImage)" title="@L["LookupFromWikipedia"]">
-                                        @if (isSearchingImage)
-                                        {
-                                            <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-                                        }
-                                        else
-                                        {
-                                            <i class="bi bi-image"></i>
-                                        }
-                                    </button>
-                                </div>
-                            </div>
-                            <div class="col-md-2 d-flex align-items-end">
-                                <button type="submit" class="btn btn-success w-100">
-                                    <i class="bi bi-plus-circle me-1"></i> @L["AddAuthor"]
+                <div class="col-md-5">
+                    <label class="form-label small text-muted text-uppercase fw-bold mb-2">@L["IsniIdentifier"]</label>
+                    <InputText class="form-control bg-white border-0 shadow-sm py-2" @bind-Value="searchIsni" placeholder="@L["SearchByIsni"]" />
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary w-100 py-2 rounded-pill">
+                        <i class="bi bi-search me-2"></i> @L["Search"]
+                    </button>
+                </div>
+            </div>
+        </EditForm>
+    </div>
+
+    @* Add New Author Section *@
+    @if (showAddSection)
+    {
+        <div class="mb-5 animate-slide-up">
+            <div class="card-sanctuary p-5">
+                <div class="border-bottom pb-4 mb-4">
+                    <h2 class="display-6 text-serif mb-2">@L["NewAuthorDiscovery"]</h2>
+                    <p class="text-muted">@L["RegisterNewScholarlyAuthorRecord"]</p>
+                </div>
+
+                <EditForm Model="@this" OnValidSubmit="HandleAddAuthor" FormName="AddAuthorForm">
+                    <div class="row g-4">
+                        <div class="col-md-5">
+                            <label class="form-label small text-muted text-uppercase fw-bold mb-2">@L["FullName"]</label>
+                            <InputText class="form-control bg-surface-low border-0 py-2 shadow-sm serif fw-bold" @bind-Value="newAuthorName" placeholder="e.g. Stephen King" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small text-muted text-uppercase fw-bold mb-2">@L["IsniIdentifier"] (@L["Optional"])</label>
+                            <InputText class="form-control bg-surface-low border-0 py-2 shadow-sm font-monospace" @bind-Value="newAuthorIsni" placeholder="0000 0001..." />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small text-muted text-uppercase fw-bold mb-2">@L["ProfileImage"] (@L["Optional"])</label>
+                            <div class="input-group shadow-sm rounded-3 overflow-hidden">
+                                <InputText class="form-control bg-surface-low border-0 py-2" @bind-Value="newAuthorImageUrl" placeholder="https://..." />
+                                <button type="button" class="btn btn-white border-start" @onclick="LookupAuthorImage" disabled="@(string.IsNullOrWhiteSpace(newAuthorName) || isSearchingImage)" title="@L["WikipediaImageLookup"]">
+                                    @if (isSearchingImage) { <span class="spinner-border spinner-border-sm"></span> }
+                                    else { <i class="bi bi-wikipedia me-2"></i> @L["Lookup"] }
                                 </button>
                             </div>
                         </div>
+                        
                         @if (!string.IsNullOrWhiteSpace(newAuthorImageUrl))
                         {
-                            <div class="mt-3">
-                                <label class="form-label fw-bold d-block text-muted small uppercase mb-1">@L["ImagePreview"]</label>
-                                <div class="preview-container d-inline-block p-1 bg-white border rounded shadow-sm">
-                                    <img src="@newAuthorImageUrl" class="img-fluid rounded" style="max-height: 120px; min-width: 80px; object-fit: contain;" alt="Author Preview" @onerror='async () => { await ShowStatus(L["PreviewImageLoadError"], "alert-danger"); newAuthorImageUrl = ""; }' />
+                            <div class="col-12 mt-3 animate-fade-in">
+                                <div class="p-3 bg-surface-low rounded-3 border d-flex align-items-center gap-4">
+                                    <div class="position-relative" style="width: 100px; height: 100px; overflow: hidden; border-radius: 50%; border: 4px solid white; box-shadow: var(--shadow-sm);">
+                                        <img src="@newAuthorImageUrl" class="w-100 h-100" style="object-fit: cover;" alt="Preview" @onerror='() => newAuthorImageUrl = ""' />
+                                    </div>
+                                    <div>
+                                        <h6 class="text-serif mb-1">@L["VisualIdentityPreview"]</h6>
+                                        <p class="small text-muted mb-0 italic">@L["VerifyAuthorImageBeforeRegistration"]</p>
+                                    </div>
                                 </div>
                             </div>
                         }
-                    </EditForm>
-                </div>
-            </div>
-        </div>
-    </div>
 
-
-    @if (searchPerformed)
-    {
-        <div class="card shadow-sm border-0">
-            <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
-                <h5 class="card-title mb-0"><i class="bi bi-table me-2"></i>@L["RegisteredAuthors"]</h5>
-                <span class="badge bg-light text-dark">@L["Total"]: @authors.Count</span>
-            </div>
-            <div class="card-body">
-                <div class="row mb-4 g-2">
-                    <div class="col-md-6">
-                        <div class="input-group">
-                            <span class="input-group-text bg-white border-end-0"><i class="bi bi-search"></i></span>
-                            <input type="search" autofocus @bind="nameFilter" @bind:event="oninput" class="form-control border-start-0" placeholder="@L["FilterByName"]" />
+                        <div class="col-12 mt-5">
+                            <div class="d-flex gap-3">
+                                <button type="submit" class="btn btn-sanctuary btn-lg flex-grow-1 py-3 shadow-sm shadow-hover">
+                                    <i class="bi bi-person-check me-2"></i> @L["FinalizeAuthorRegistration"]
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary btn-lg px-4" @onclick="() => showAddSection = false">
+                                    @L["Discard"]
+                                </button>
+                            </div>
                         </div>
                     </div>
-                    <div class="col-md-6">
-                        <div class="input-group">
-                            <span class="input-group-text bg-white border-end-0"><i class="bi bi-upc-scan"></i></span>
-                            <input type="search" @bind="isniFilter" @bind:event="oninput" class="form-control border-start-0" placeholder="@L["FilterByIsni"]" />
-                        </div>
+                </EditForm>
+            </div>
+        </div>
+    }
+
+    @* Authors Ledger *@
+    @if (searchPerformed)
+    {
+        <div class="animate-fade-in">
+            <div class="card-sanctuary p-0 overflow-hidden">
+                <div class="px-5 py-4 bg-surface-container d-flex justify-content-between align-items-center border-bottom">
+                    <div class="d-flex align-items-center gap-3">
+                        <h2 class="h4 text-serif mb-0">@L["AuthorLedger"]</h2>
+                        <span class="badge-sanctuary badge-neutral">@authors.Count @L["TotalRegistered"]</span>
                     </div>
                 </div>
 
                 <div class="table-responsive">
-                    <QuickGrid Items="@FilteredAuthors" Pagination="@pagination" Class="table table-hover align-middle">
-                        <TemplateColumn Title="@L["AuthorName"]" SortBy="@sortName" Class="fw-bold">
-                            <a href="/author-details/@context.Id" class="text-decoration-none text-primary" title="View details for '@context.Name.Value'">
-                                <i class="bi bi-person-circle me-2 opacity-75"></i>@context.Name.Value
-                            </a>
-                        </TemplateColumn>
-                        <TemplateColumn Title="@L["Image"]" Align="Align.Center" SortBy="@sortImage">
-                            @if (context.ImageUri != null && FSharpOption<Uri>.get_IsSome(context.ImageUri))
-                            {
-                                <span class="text-success" title="@context.ImageUri.Value.ToString()"><i class="bi bi-check-circle-fill"></i></span>
-                            }
-                            else
-                            {
-                                <span class="text-muted opacity-25"><i class="bi bi-x-circle"></i></span>
-                            }
-                        </TemplateColumn>
-                        <PropertyColumn Property="@(a => a.Isni.Value)" Sortable="true" Title="@L["IsniNumber"]" />
-                        <TemplateColumn Title="@L["WorksCount"]" Align="Align.Center">
-                            <span class="badge rounded-pill bg-info text-dark">@context.Books.Length</span>
+                    <QuickGrid Items="@FilteredAuthors" Pagination="@pagination" Class="editorial-ledger w-100 align-middle">
+                        <TemplateColumn Title="@L["AuthorName"]" SortBy="@sortName" Class="col-title text-serif fw-bold h5">
+                            <ColumnOptions>
+                                <div class="p-3 bg-surface-low rounded-3 border shadow-sm" style="min-width: 300px;">
+                                    <div class="input-group input-group-sm">
+                                        <span class="input-group-text bg-transparent border-end-0 text-muted"><i class="bi bi-filter"></i></span>
+                                        <input type="search" autofocus @bind="nameFilter" @bind:event="oninput" 
+                                               placeholder="@L["FilterRecords"]" 
+                                               class="form-control border-start-0 ps-0" />
+                                    </div>
+                                </div>
+                            </ColumnOptions>
+                            <ChildContent>
+                                <a href="/author-details/@context.Id" class="text-decoration-none text-reset transition-hover py-2 d-block">
+                                    @context.Name.Value
+                                </a>
+                            </ChildContent>
                         </TemplateColumn>
 
-                        <TemplateColumn Title="@L["Status"]" Align="Align.Center">
-                            @if (context.Sealed.Sealed)
+                        <TemplateColumn Title="@L["Identity"]" Align="Align.Center">
+                            @if (context.ImageUri != null && FSharpOption<Uri>.get_IsSome(context.ImageUri))
                             {
-                                <span class="badge bg-secondary"><i class="bi bi-lock-fill me-1"></i>@L["Sealed"]</span>
+                                <span class="text-success"><i class="bi bi-person-badge-fill"></i></span>
                             }
                             else
                             {
-                                <span class="badge bg-success"><i class="bi bi-unlock-fill me-1"></i>@L["Active"]</span>
+                                <span class="text-muted opacity-25"><i class="bi bi-person-badge"></i></span>
+                            }
+                        </TemplateColumn>
+
+                        <TemplateColumn Title="@L["IsniIdentifier"]" Sortable="true" Class="font-monospace small">
+                            @if (string.IsNullOrEmpty(context.Isni.Value))
+                            {
+                                <span class="text-muted opacity-25 italic">@L["NoneNotSet"]</span>
+                            }
+                            else
+                            {
+                                @context.Isni.Value
+                            }
+                        </TemplateColumn>
+
+                        <TemplateColumn Title="@L["LinkedTitles"]" Align="Align.Center">
+                            <span class="badge-sanctuary badge-neutral">@context.Books.Length</span>
+                        </TemplateColumn>
+
+                        <TemplateColumn Title="@L["Status"]" Align="Align.End" Class="pe-5">
+                            @if (context.Sealed.Sealed)
+                            {
+                                <span class="text-muted small fw-bold"><i class="bi bi-lock-fill me-2" style="font-size: 0.5rem;"></i>@L["Sealed"]</span>
+                            }
+                            else
+                            {
+                                <span class="text-success small fw-bold"><i class="bi bi-unlock-fill me-2" style="font-size: 0.5rem;"></i>@L["Active"]</span>
                             }
                         </TemplateColumn>
                     </QuickGrid>
                 </div>
                 
-                <div class="mt-3 d-flex justify-content-center">
+                <div class="px-5 py-3 bg-surface-container border-top d-flex justify-content-center">
                     <Paginator State="@pagination" />
                 </div>
             </div>
         </div>
     }
-
 </div>
 
-<style>
-    .quickgrid {
-        --grid-selected-color: #f8f9fa;
-    }
-    .quickgrid th {
-        background-color: #fcfcfc;
-        font-weight: 600;
-        text-transform: uppercase;
-        font-size: 0.85rem;
-        letter-spacing: 0.025em;
-    }
-</style>
-
 @code {
+    private bool showAddSection = false;
     private List<Author> authors = new();
-    private PaginationState pagination = new() { ItemsPerPage = 10 };
+    private PaginationState pagination = new() { ItemsPerPage = 12 };
     private GridSort<Author> sortName = GridSort<Author>.ByAscending(a => a.Name.Value);
-    private GridSort<Author> sortImage = GridSort<Author>.ByDescending(a => a.ImageUri != null && FSharpOption<Uri>.get_IsSome(a.ImageUri));
     
     private string nameFilter = "";
     private string isniFilter = "";
@@ -205,11 +221,6 @@
     private string searchName = "";
     private string searchIsni = "";
     private bool searchPerformed = false;
-
-    protected override void OnInitialized()
-    {
-        // No auto-load
-    }
 
     private async Task HandleSearch()
     {
@@ -229,23 +240,17 @@
             var name = Name.New(searchName);
             var isni = Isni.NewInvalid(searchIsni);
             result = await AuthorService.SearchByIsniAndNameAsync(isni, name);
-
         }
-
         else if (hasName)
         {
             var name = Name.New(searchName);
             result = await AuthorService.SearchByNameAsync(name);
-
-
         }
         else if (hasIsni)
         {
             var isni = Isni.NewInvalid(searchIsni);
             result = await AuthorService.SearchByIsniAsync(isni); 
-
         }
-
         else
         {
             result = await AuthorService.GetAllAsync();
@@ -257,10 +262,9 @@
         }
         else
         {
-            await ShowStatus(string.Format(L["ErrorLoadingAuthors"], result.ErrorValue), "alert-danger");
+            await ShowStatus(string.Format(L["ErrorLoadingAuthors"], result.ErrorValue), "error");
         }
     }
-
 
     private IQueryable<Author> FilteredAuthors => 
         authors.AsQueryable()
@@ -271,7 +275,7 @@
     {
         if (string.IsNullOrWhiteSpace(newAuthorName))
         {
-            await ShowStatus(L["AuthorNameRequired"], "alert-warning");
+            await ShowStatus(L["AuthorNameRequired"], "warning");
             return;
         }
 
@@ -281,7 +285,7 @@
             var isniResult = Isni.New(newAuthorIsni);
             if (isniResult.IsError)
             {
-                await ShowStatus(string.Format(L["InvalidIsniValue"], isniResult.ErrorValue), "alert-danger");
+                await ShowStatus(string.Format(L["InvalidIsniValue"], isniResult.ErrorValue), "error");
                 return;
             }
             isniOpt = FSharpOption<Isni>.Some(isniResult.ResultValue);
@@ -296,7 +300,7 @@
             }
             else
             {
-                await ShowStatus(L["InvalidImageUrl"], "alert-warning");
+                await ShowStatus(L["InvalidImageUrl"], "warning");
                 return;
             }
         }
@@ -308,7 +312,7 @@
 
         if (result.IsOk)
         {
-            await ShowStatus(string.Format(L["AuthorAddedSuccessfully"], newAuthorName), "alert-success");
+            await ShowStatus(string.Format(L["AuthorAddedSuccessfully"], newAuthorName), "success");
             newAuthorName = "";
             newAuthorIsni = "";
             newAuthorImageUrl = "";
@@ -316,7 +320,7 @@
         }
         else
         {
-            await ShowStatus(string.Format(L["ErrorCreatingAuthor"], result.ErrorValue), "alert-danger");
+            await ShowStatus(string.Format(L["ErrorCreatingAuthor"], result.ErrorValue), "error");
         }
     }
 
@@ -331,16 +335,16 @@
             if (result.IsOk)
             {
                 newAuthorImageUrl = result.ResultValue;
-                await ShowStatus(L["ImageFoundWikipedia"], "alert-success");
+                await ShowStatus(L["ImageFoundWikipedia"], "success");
             }
             else
             {
-                await ShowStatus(string.Format(L["WikipediaLookupError"], result.ErrorValue), "alert-warning");
+                await ShowStatus(string.Format(L["WikipediaLookupError"], result.ErrorValue), "warning");
             }
         }
         catch (Exception ex)
         {
-            await ShowStatus(string.Format(L["ErrorSearchingImage"], ex.Message), "alert-danger");
+            await ShowStatus(string.Format(L["ErrorSearchingImage"], ex.Message), "error");
         }
         finally
         {
@@ -348,15 +352,9 @@
         }
     }
 
-    private async Task ShowStatus(string message, string cssClass)
+    private async Task ShowStatus(string message, string type)
     {
         statusMessage = message;
-
-        string type = "info";
-        if (cssClass.Contains("success")) type = "success";
-        else if (cssClass.Contains("danger")) type = "error";
-        else if (cssClass.Contains("warning")) type = "warning";
-
         await JSRuntime.InvokeVoidAsync("showToast", message, type);
     }
 }

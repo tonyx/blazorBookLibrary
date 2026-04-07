@@ -22,155 +22,104 @@
 @inject IStringLocalizer<SharedResources> L
 @rendermode InteractiveServer
 
-<style>
-    .book-grid {
-        table-layout: fixed;
-        width: 100%;
-    }
-    .col-preview { width: 80px; text-align: center; }
-    .col-title { width: auto; min-width: 200px; }
-    .col-year { width: 100px; }
-    .col-category { width: 180px; }
-    .col-available { width: 140px; }
-    .col-isbn { width: 170px; }
-    
-    .title-cell {
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
+<PageTitle>@L["BookSearch"] — @L["TheModernArchivist"]</PageTitle>
 
-    .book-preview-img {
-        width: 48px;
-        height: 64px;
-        object-fit: cover;
-        border-radius: 4px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        transition: transform 0.2s;
-    }
-
-    .book-preview-img:hover {
-        transform: scale(1.1);
-    }
-
-    .no-image-placeholder {
-        width: 48px;
-        height: 64px;
-        background-color: #f8f9fa;
-        border: 1px dashed #dee2e6;
-        border-radius: 4px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: #adb5bd;
-    }
-</style>
-
-<PageTitle>@L["BookSearch"]</PageTitle>
-
-@if (_isLoading)
-{
-    <img src="/images/loading-gif.gif" alt="Uploading..." style="height:32px;"/>
-}
-<div class="container-fluid py-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1 class="text-primary mb-0"><i class="bi bi-search me-2"></i>@L["BookSearch"]</h1>
+<div class="sanctuary-container py-5">
+    @* Page Header *@
+    <div class="mb-5 text-center">
+        <h1 class="display-3 text-serif mb-3">@L["CuratedCatalog"]</h1>
+        <p class="text-muted lead mx-auto" style="max-width: 800px;">@L["ArchivalDiscoveryDescription"]</p>
     </div>
 
-    <BookSearchToolbar OnSearchResultsFound="HandleSearchResultsFound" OnError="ShowSearchError" OnSearchStarted="HandleSearchStarted" />
+    @* Search Toolbar *@
+    <div class="card-sanctuary mb-5 p-4 border-0 shadow-none bg-surface-low rounded-pill-sm">
+        <BookSearchToolbar OnSearchResultsFound="HandleSearchResultsFound" OnError="ShowSearchError" OnSearchStarted="HandleSearchStarted" />
+    </div>
 
     @if (searchBooksPerformed)
     {
-        <div class="row mb-4">
-            <div class="col-12">
-                <div class="card shadow-sm border-0 overflow-hidden">
-                    <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center py-3">
-                        <div class="d-flex align-items-center gap-3">
-                            <h5 class="card-title mb-0"><i class="bi bi-list-stars me-2"></i>@L["SearchResults"]</h5>
-                            <div class="form-check form-switch ms-3 mb-0">
-                                <input class="form-check-input bg-primary border-primary" type="checkbox" id="imagePreviewSwitch" @bind="showImagePreview">
-                                <label class="form-check-label small fw-bold text-light" for="imagePreviewSwitch">@L["ShowImages"]</label>
-                            </div>
+        <div class="animate-fade-in">
+            <div class="card-sanctuary p-0 overflow-hidden">
+                <div class="px-5 py-4 bg-surface-container d-flex justify-content-between align-items-center border-bottom">
+                    <div class="d-flex align-items-center gap-4">
+                        <h2 class="h4 text-serif mb-0">@L["CatalogDiscovery"]</h2>
+                        <div class="form-check form-switch p-0 m-0 d-flex align-items-center gap-2">
+                             <input class="form-check-input ms-0" type="checkbox" id="imagePreviewSwitch" @bind="showImagePreview" style="cursor: pointer;">
+                             <label class="form-check-label small fw-bold text-muted" for="imagePreviewSwitch">@L["VisualIdentity"]</label>
                         </div>
-                        <span class="badge bg-primary text-white">@foundBooks.Count @L["BooksFound"]</span>
                     </div>
-                    <div class="card-body p-0">
-                        <div class="table-responsive">
-                            <QuickGrid Items="@FilteredBooks" Pagination="@bookPagination" Class="table table-hover align-middle mb-0 book-grid">
-                                @if (showImagePreview)
-                                {
-                                    <TemplateColumn Title="@L["Preview"]" Class="col-preview">
-                                        <a href="/book-view/@context.Id" class="d-inline-block text-decoration-none transition-hover shadow-sm rounded overflow-hidden" 
-                                           title="@L["BookDetails"]: @context.Title.Value">
-                                            @if (context.ImageUrl != null && FSharpOption<Uri>.get_IsSome(context.ImageUrl))
-                                            {
-                                                <img src="@context.ImageUrl.Value.ToString()" class="book-preview-img shadow-none" alt="@context.Title.Value" />
-                                            }
-                                            else
-                                            {
-                                                <div class="no-image-placeholder">
-                                                    <i class="bi bi-image small"></i>
-                                                </div>
-                                            }
-                                        </a>
-                                    </TemplateColumn>
-
-                                }
-                                <TemplateColumn Title="@L["Title"]" SortBy="@sortTitle" Class="fw-bold text-dark col-title title-cell">
-                                    <ColumnOptions>
-                                        <div class="p-3 shadow-sm border rounded bg-white" style="min-width: 250px;">
-                                            <div class="input-group">
-                                                <span class="input-group-text bg-primary text-white border-0"><i class="bi bi-filter"></i></span>
-                                                <input type="search" autofocus @bind="titleRefinementFilter" @bind:event="oninput" placeholder="@L["RefineResultsByTitlePlaceholder"]" class="form-control border-primary shadow-none" />
-                                            </div>
-                                        </div>
-                                    </ColumnOptions>
-                                    <ChildContent>
-                                        <a href="/book-view/@context.Id" class="text-decoration-none text-primary-emphasis transition-hover d-block w-100 h-100 py-1" 
-                                           title="@(FSharpOption<string>.get_IsSome(context.Description) ? context.Description.Value :  context.Title.Value)">
-                                            <i class="bi bi-book-fill me-2 small opacity-75"></i>@context.Title.Value
-                                        </a>
-                                    </ChildContent>
-                                </TemplateColumn>
-                                <PropertyColumn Property="@(b => b.Year.Value)" Title="@L["Year"]" Sortable="true" Class="col-year" />
-                                <PropertyColumn Property="@(b => b.MainCategory.Value())" Title="@L["Category"]" Sortable="true" Class="col-category" />
-                                <TemplateColumn Title="@L["AvailabilityType"]" Align="Align.Center" Class="col-availability-type" SortBy=@sortAvailabilityType>
-                                    @{
-                                        var label = context.Availability.ToString();
-                                        var localizedLabel = L[label].Value;
-                                        var contraction = localizedLabel.Length >= 3 ? localizedLabel.Substring(0, 3).ToUpper() : localizedLabel.ToUpper();
-                                    }
-                                    <span class="badge bg-light text-dark border p-1" style="font-size: 0.7rem;" title="@localizedLabel">@contraction</span>
-                                </TemplateColumn>
-                                <TemplateColumn Title="@L["Loan"]" SortBy=@sortAvailability Align="Align.Center" Class="col-available">
-                                    @if (context.ImmediatelyAvailable)
-                                    {
-                                        <span class="text-success small fw-bold"><i class="bi bi-check-circle-fill me-1"></i>@L["Available"]</span>
-                                    }
-                                    else
-                                    {
-                                        <span class="text-danger small fw-bold"><i class="bi bi-dash-circle-fill me-1"></i>@L["NotAvailable"]</span>
-                                    }
-
-                                </TemplateColumn>
-                                <PropertyColumn Property="@(b => b.Isbn.Value)" Title="@L["IsbnSearch"]" Class="col-isbn" />
-                            </QuickGrid>
-                        </div>
-                        @if (foundBooks.Count > 0)
-                        {
-                            <div class="p-3 border-top bg-light">
-                                <Paginator State="@bookPagination" />
-                            </div>
-                        }
-                        else
-                        {
-                            <div class="p-5 text-center text-muted">
-                                <i class="bi bi-search fs-1 mb-3 d-block opacity-25"></i>
-                                <p class="mb-0">@L["NoBooksFoundCriteria"]</p>
-                            </div>
-                        }
-                    </div>
+                    <span class="badge-sanctuary badge-neutral">@foundBooks.Count @L["TitlesFound"]</span>
                 </div>
+
+                <div class="table-responsive">
+                    <QuickGrid Items="@FilteredBooks" Pagination="@bookPagination" Class="editorial-ledger w-100 align-middle">
+                        @if (showImagePreview)
+                        {
+                            <TemplateColumn Title="@L["VisualRef"]" Class="col-preview ps-5">
+                                <a href="/book-view/@context.Id" class="d-inline-block text-decoration-none transition-hover shadow-sm rounded overflow-hidden" 
+                                   title="@L["BookDetails"]: @context.Title.Value">
+                                    <div class="bg-surface-low rounded p-1" style="width: 48px; height: 68px; display: flex; align-items: center; justify-content: center;">
+                                        @if (context.ImageUrl != null && FSharpOption<Uri>.get_IsSome(context.ImageUrl))
+                                        {
+                                            <img src="@context.ImageUrl.Value.ToString()" style="max-width: 100%; max-height: 100%; object-fit: contain;" alt="@context.Title.Value" />
+                                        }
+                                        else
+                                        {
+                                            <i class="bi bi-journal-text opacity-25" style="font-size: 1.2rem;"></i>
+                                        }
+                                    </div>
+                                </a>
+                            </TemplateColumn>
+                        }
+
+                        <TemplateColumn Title="@L["Title"]" SortBy="@sortTitle" Class="col-title text-serif fw-bold h5">
+                            <ColumnOptions>
+                                <div class="p-3 bg-surface-low rounded-3 border shadow-sm" style="min-width: 300px;">
+                                    <div class="input-group input-group-sm">
+                                        <span class="input-group-text bg-transparent border-end-0 text-muted"><i class="bi bi-filter"></i></span>
+                                        <input type="search" autofocus @bind="titleRefinementFilter" @bind:event="oninput" 
+                                               placeholder="@L["RefineResultsByTitlePlaceholder"]" 
+                                               class="form-control border-start-0 ps-0" />
+                                    </div>
+                                </div>
+                            </ColumnOptions>
+                            <ChildContent>
+                                <a href="/book-view/@context.Id" class="text-decoration-none text-reset transition-hover py-2 d-block">
+                                    @context.Title.Value
+                                </a>
+                            </ChildContent>
+                        </TemplateColumn>
+
+                        <PropertyColumn Property="@(b => b.Year.Value)" Title="@L["Year"]" Sortable="true" Class="col-year text-muted small px-3" />
+                        
+                        <TemplateColumn Title="@L["Taxonomy"]" Sortable="true" Class="col-category small">
+                            <span class="badge-sanctuary badge-neutral">@context.MainCategory.Value()</span>
+                        </TemplateColumn>
+
+                        <TemplateColumn Title="@L["ArchivalStatus"]" SortBy=@sortAvailability Align="Align.End" Class="col-available pe-5">
+                            @if (context.ImmediatelyAvailable)
+                            {
+                                <span class="text-success small fw-bold"><i class="bi bi-check-circle-fill me-2" style="font-size: 0.5rem;"></i>@L["Available"]</span>
+                            }
+                            else
+                            {
+                                <span class="text-danger small fw-bold"><i class="bi bi-circle-fill me-2" style="font-size: 0.5rem;"></i>@L["OnLoan"]</span>
+                            }
+                        </TemplateColumn>
+                    </QuickGrid>
+                </div>
+                
+                <div class="px-5 py-3 bg-surface-container border-top d-flex justify-content-between align-items-center">
+                    <div class="small text-muted serif italic">@L["Showing"] @FilteredBooks.Count() @L["Records"]</div>
+                    <Paginator State="@bookPagination" />
+                </div>
+            </div>
+            
+            <div class="mt-5 p-4 bg-surface-low rounded-4 border border-dashed text-center">
+                <p class="small text-muted mb-0 italic">
+                    <i class="bi bi-info-circle me-2"></i>
+                    @L["ArchivalReferenceNote"]
+                </p>
             </div>
         </div>
     }
@@ -187,30 +136,33 @@
 
     private bool showImagePreview = true;
     private bool searchBooksPerformed = false;
-    private PaginationState bookPagination = new() { ItemsPerPage = 10 };
+    private PaginationState bookPagination = new() { ItemsPerPage = 12 };
     private GridSort<Book> sortTitle = GridSort<Book>.ByAscending(b => b.Title.Value);
-    private GridSort<Book> sortAvailabilityType = GridSort<Book>.ByAscending(b => b.Availability.ToString());
     private GridSort<Book> sortAvailability = GridSort<Book>.ByAscending(b => b.ImmediatelyAvailable);    
 
 
     private string statusMessage = "";
-    private string statusClass = "alert-info";
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         var siteKey = Configuration["Authentication:Recaptcha:SiteKey"];
         if (firstRender)
         {
-            var token = await JSRuntime.InvokeAsync<string>("generateRecaptchaToken", siteKey, "book_browser");
-
-            var score = await BotScoreService.GetBotScoreAsync(token);
-
-            await BotScoreService.ApplyBotDelayAsync(score);
-
-            if (score < 0.3) 
+            try 
             {
-                Logger.LogWarning($"Suspiciuos bot activity {score}");
-                await ShowStatus(L["overActivity"], "alert-danger");
+                var token = await JSRuntime.InvokeAsync<string>("generateRecaptchaToken", siteKey, "book_browser");
+                var score = await BotScoreService.GetBotScoreAsync(token);
+                await BotScoreService.ApplyBotDelayAsync(score);
+
+                if (score < 0.3) 
+                {
+                    Logger.LogWarning($"Suspicious bot activity {score}");
+                    await ShowStatus(L["overActivity"], "error");
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error during reCAPTCHA verification");
             }
         }
     }
@@ -228,19 +180,12 @@
 
     private async Task ShowSearchError(string error)
     {
-        await ShowStatus(error, "alert-danger");
+        await ShowStatus(error, "error");
     }
 
-    private async Task ShowStatus(string message, string cssClass)
+    private async Task ShowStatus(string message, string type)
     {
         statusMessage = message;
-        statusClass = cssClass;
-
-        string type = "info";
-        if (cssClass.Contains("success")) type = "success";
-        else if (cssClass.Contains("danger")) type = "error";
-        else if (cssClass.Contains("warning")) type = "warning";
-
         await JSRuntime.InvokeVoidAsync("showToast", message, type);
     }
 }

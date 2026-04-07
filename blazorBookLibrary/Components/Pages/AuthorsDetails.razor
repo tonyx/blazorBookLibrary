@@ -19,352 +19,274 @@
 
 <PageTitle>@L["AuthorDetails"]</PageTitle>
 
-<style>
-    .book-grid {
-        table-layout: fixed;
-        width: 100%;
-    }
-    .col-title { width: auto; min-width: 250px; }
-    .col-year { width: 100px; }
-    .col-category { width: 180px; }
-    .col-available { width: 140px; }
-    .col-isbn { width: 170px; }
-    
-    .title-cell {
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-    .row-clickable:hover {
-        background-color: rgba(13, 110, 253, 0.05);
-    }
-    .editable-title {
-        cursor: pointer;
-        padding: 4px 8px;
-        border-radius: 4px;
-        transition: all 0.2s ease;
-        display: inline-block;
-        border: 1px solid transparent;
-    }
-    .editable-title:hover {
-        background-color: #f8f9fa;
-        border-color: #dee2e6;
-        color: #0d6efd;
-    }
-    .profile-image-container {
-        position: relative;
-        display: inline-block;
-    }
-    .image-edit-overlay {
-        position: absolute;
-        bottom: 0;
-        right: 0;
-        background-color: #0d6efd;
-        color: white;
-        width: 40px;
-        height: 40px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        border: 3px solid white;
-        transition: transform 0.2s ease;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-    }
-    .image-edit-overlay:hover {
-        transform: scale(1.1);
-        background-color: #0b5ed7;
-    }
-</style>
-
-<div class="container-fluid py-4" @onclick="CancelAllEdits">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1 class="text-primary mb-0"><i class="bi bi-person-badge-fill me-2"></i>@L["AuthorProfile"]</h1>
-        <a href="/books-manager" class="btn btn-outline-secondary">
-            <i class="bi bi-arrow-left me-1"></i>@L["BackToLibrary"]
+<div class="sanctuary-container" @onclick="CancelAllEdits">
+    <!-- Header Area -->
+    <div class="d-flex justify-content-between align-items-end mb-5 border-bottom pb-4" style="border-color: var(--outline-variant) !important;">
+        <div>
+            <nav aria-label="breadcrumb" class="mb-2">
+                <ol class="breadcrumb mb-0" style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--secondary);">
+                    <li class="breadcrumb-item"><a href="/" class="text-decoration-none text-reset">@L["Home"]</a></li>
+                    <li class="breadcrumb-item"><a href="/books-manager" class="text-decoration-none text-reset">@L["Library"]</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">@L["AuthorProfile"]</li>
+                </ol>
+            </nav>
+            <h1 class="serif display-5 mb-0" style="font-weight: 800; color: var(--primary);">@L["AuthorProfile"]</h1>
+        </div>
+        <a href="/books-manager" class="btn-sanctuary-outline text-decoration-none">
+            <i class="bi bi-arrow-left me-2"></i>@L["BackToLibrary"]
         </a>
     </div>
 
     @if (isLoading)
     {
-        <div class="d-flex justify-content-center my-5">
-            <div class="spinner-border text-primary" role="status">
+        <div class="d-flex justify-content-center align-items-center" style="min-height: 400px;">
+            <div class="spinner-grow text-primary" role="status">
                 <span class="visually-hidden">Loading...</span>
             </div>
         </div>
     }
     else if (authorDetails != null)
     {
-        <!-- Author Top Header Info -->
-        <div class="row mb-4">
-            <div class="col-12">
-                <div class="card shadow-sm border-0 bg-white">
-                    <div class="card-header bg-primary text-white py-3 d-flex justify-content-between align-items-center">
-                        <h5 class="card-title mb-0"><i class="bi bi-info-circle me-2"></i>@L["GeneralInformation"]</h5>
-                        @if (authorDetails.UnSealable)
+        <div class="row g-5">
+            <!-- Left Column: Portrait & Stats -->
+            <div class="col-lg-4">
+                <div class="card-sanctuary floating text-center mb-4">
+                    <div class="profile-image-wrap mb-4 bg-surface-low rounded-circle mx-auto position-relative" style="width: 200px; height: 200px; overflow: hidden; border: 8px solid var(--surface-container-lowest);">
+                        @if (authorDetails.Author.ImageUri != null && FSharpOption<Uri>.get_IsSome(authorDetails.Author.ImageUri))
                         {
-                            <div class="form-check form-switch mb-0">
-                                <input class="form-check-input" type="checkbox" id="sealSwitch" 
-                                       checked="@(!isAuthorSealed)" 
-                                       @onchange="ToggleSeal"
-                                       style="cursor: pointer" />
-                                <label class="form-check-label text-white ms-2" for="sealSwitch">
-                                    @(isAuthorSealed ? L["LockedSealed"] : L["EditableUnsealed"])
-                                </label>
-                            </div>
-                        }
-                    </div>
-                    <div class="card-body p-4">
-                        <div class="row align-items-center">
-                            <div class="col-md-auto mb-3 mb-md-0 text-center">
-                                <div class="profile-image-container">
-                                    @if (authorDetails.Author.ImageUri != null && FSharpOption<Uri>.get_IsSome(authorDetails.Author.ImageUri))
-                                    {
-                                        <img src="@authorDetails.Author.ImageUri.Value.ToString()" 
-                                             class="rounded-circle shadow-sm border border-4 border-white" 
-                                             style="width: 150px; height: 150px; object-fit: cover; background-color: #f8f9fa;" 
-                                             alt="@authorDetails.Author.Name.Value Profile Image" />
-                                    }
-                                    else
-                                    {
-                                        <div class="bg-primary-subtle text-primary p-3 rounded-circle d-flex align-items-center justify-content-center mx-auto" style="width: 150px; height: 150px;">
-                                            <i class="bi bi-person fs-1" style="font-size: 4rem !important;"></i>
-                                        </div>
-                                    }
-                                    
-                                    @if (authorDetails.Author.Editable)
-                                    {
-                                        <div class="image-edit-overlay" @onclick="StartEditImageUrl" @onclick:stopPropagation title="@L["ChangeProfileImage"]">
-                                            <i class="bi bi-camera-fill"></i>
-                                        </div>
-                                    }
-                                </div>
-                            </div>
-                            <div class="col-md ms-md-4">
-                                <div class="row align-items-center mb-3 pb-3 border-bottom">
-                                    <div class="col-sm-3 text-muted">@L["AuthorNamePhoto"]</div>
-                                    <div class="col-sm-9 fw-bold fs-3">
-                                        @if (isEditingName)
-                                        {
-                                            <div class="input-group" @onclick:stopPropagation>
-                                                <input type="text" class="form-control fs-4 fw-bold" @bind="editedName" @onkeyup="HandleKeyUp" autofocus />
-                                                <button class="btn btn-primary" @onclick="UpdateName">
-                                                    <i class="bi bi-check-lg me-1"></i>@L["Confirm"]
-                                                </button>
-                                                <button class="btn btn-outline-secondary" @onclick="CancelEditName" title="@L["Cancel"]">
-                                                    <i class="bi bi-x-lg"></i>
-                                                </button>
-                                            </div>
-                                        }
-                                        else if (isEditingImageUrl)
-                                        {
-                                            <div class="card bg-light border p-2" @onclick:stopPropagation>
-                                                <label class="form-label small text-muted mb-1 text-uppercase fw-bold">@L["UpdateProfileImageUrl"]</label>
-                                                <div class="input-group">
-                                                    <input type="text" class="form-control" placeholder="https://example.com/author.jpg" @bind="editedImageUrl" @bind:event="oninput" />
-                                                    <button class="btn btn-outline-primary" type="button" @onclick="LookupImage" title="@L["LookupCover"]" disabled="@isLookingUpImage">
-                                                        @if (isLookingUpImage)
-                                                        {
-                                                            <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-                                                        }
-                                                        else
-                                                        {
-                                                            <i class="bi bi-search me-1"></i><span>@L["Lookup"]</span>
-                                                        }
-                                                    </button>
-                                                    <button class="btn btn-primary" @onclick="UpdateImageUrl">
-                                                        <i class="bi bi-check-lg me-1"></i>@L["Apply"]
-                                                    </button>
-                                                    <button class="btn btn-outline-secondary" @onclick="CancelEditImageUrl" title="@L["Cancel"]">
-                                                        <i class="bi bi-x-lg"></i>
-                                                    </button>
-                                                </div>
-                                                
-                                                @if (!string.IsNullOrWhiteSpace(editedImageUrl) && Uri.TryCreate(editedImageUrl, UriKind.Absolute, out _))
-                                                {
-                                                    <div class="mt-3 text-center animate-fade-in">
-                                                        <label class="form-label small text-muted d-block mb-2 text-uppercase fw-semibold">@L["PreviewNewImage"]</label>
-                                                        <div class="d-inline-block p-1 border rounded bg-white shadow-sm">
-                                                            <img src="@editedImageUrl" class="rounded" style="max-width: 120px; max-height: 120px; object-fit: cover;" alt="Preview" />
-                                                        </div>
-                                                    </div>
-                                                }
-                                                <div class="mt-2 text-end">
-                                                    @if (authorDetails.Author.ImageUri != null && FSharpOption<Uri>.get_IsSome(authorDetails.Author.ImageUri))
-                                                    {
-                                                        <button class="btn btn-sm btn-link text-danger text-decoration-none" @onclick="RemoveImageUrl">
-                                                            <i class="bi bi-trash me-1"></i>@L["RemoveCurrentImage"]
-                                                        </button>
-                                                    }
-                                                </div>
-                                            </div>
-                                        }
-                                        else
-                                        {
-                                            <div class="@(authorDetails.Author.Editable ? "editable-title" : "")" @onclick="StartEditName" @onclick:stopPropagation title="@(authorDetails.Author.Editable ? "Click to rename author" : "")">
-                                                @authorDetails.Author.Name.Value
-                                                @if (authorDetails.Author.Editable)
-                                                {
-                                                    <i class="bi bi-pencil-square text-muted ms-2 small"></i>
-                                                }
-                                            </div>
-                                        }
-                                    </div>
-                                </div>
-
-                                <div class="row align-items-center mb-3 pb-3 border-bottom">
-                                    <div class="col-sm-3 text-muted">@L["IsniNumber"]</div>
-                                    <div class="col-sm-9 fs-5 font-monospace">
-                                        @if (isEditingIsni)
-                                        {
-                                            <div class="edit-isni-container" @onclick:stopPropagation>
-                                                <div class="input-group mb-2">
-                                                    <input type="text" class="form-control font-monospace" @bind="editedIsni" placeholder="e.g. 0000 0001 2140 1961" />
-                                                    <button class="btn btn-primary" @onclick="UpdateIsni">
-                                                        <i class="bi bi-check-lg me-1"></i>@L["Confirm"]
-                                                    </button>
-                                                    <button class="btn btn-outline-secondary" @onclick="CancelEditIsni" title="@L["Cancel"]">
-                                                        <i class="bi bi-x-lg"></i>
-                                                    </button>
-                                                </div>
-                                                <div class="form-check form-switch small">
-                                                    <input class="form-check-input" type="checkbox" id="invalidIsniSwitch" @bind="acceptInvalidIsni" />
-                                                    <label class="form-check-label text-muted" for="invalidIsniSwitch">@L["AcceptInvalidIsni"]</label>
-                                                </div>
-                                            </div>
-                                        }
-                                        else
-                                        {
-                                            <div class="@(authorDetails.Author.Editable ? "editable-title" : "") d-flex align-items-center" @onclick="StartEditIsni" @onclick:stopPropagation>
-                                                @if (string.IsNullOrEmpty(authorDetails.Author.Isni.Value))
-                                                {
-                                                    <span class="text-muted small fst-italic me-2">
-                                                        <i class="bi bi-plus-circle me-1"></i>@L["NoneNotSet"]
-                                                    </span>
-                                                }
-                                                else
-                                                {
-                                                    <span class="badge @(authorDetails.Author.Isni.IsInvalidIsni ? "bg-warning-subtle text-warning-emphasis border-warning" : "bg-light text-dark border") p-2 shadow-sm">
-                                                        @authorDetails.Author.Isni.Value
-                                                    </span>
-                                                }
-                                                
-                                                @if (authorDetails.Author.Editable)
-                                                {
-                                                    <i class="bi bi-pencil-square text-muted ms-2 small"></i>
-                                                }
-                                            </div>
-                                        }
-                                    </div>
-                                </div>
-
-                                <div class="row align-items-center">
-                                    <div class="col-sm-3 text-muted">@L["WorksCount"]</div>
-                                    <div class="col-sm-9">
-                                        <span class="badge rounded-pill bg-info text-dark">@authorDetails.Books.Length @L["RegisteredTitles"]</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Author Books Grid -->
-        <div class="row">
-            <div class="col-12">
-                <div class="card shadow-sm border-0">
-                    <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center py-3">
-                        <h5 class="card-title mb-0"><i class="bi bi-journals me-2"></i>@L["WorksPublished"]</h5>
-                        <span class="badge bg-primary text-white">@authorDetails.Books.Length @L["BooksInLibrary"]</span>
-                    </div>
-                    <div class="card-body p-0">
-                        @if (authorDetails.Books.Any())
-                        {
-                            <div class="table-responsive">
-                                <QuickGrid Items="@authorDetails.Books.AsQueryable()" Pagination="@bookPagination" Class="table table-hover align-middle mb-0 book-grid">
-                                    <TemplateColumn Title="@L["Title"]" SortBy="@sortTitle" Class="fw-bold text-dark col-title title-cell">
-                                        <ChildContent>
-                                            <a href="/book-view/@context.Id" class="text-decoration-none text-primary-emphasis d-block w-100 py-2 h-100" title="View details for '@context.Title.Value'">
-                                                <i class="bi bi-book-fill me-2 text-primary opacity-50"></i>@context.Title.Value
-                                            </a>
-                                        </ChildContent>
-                                    </TemplateColumn>
-                                    
-                                    <PropertyColumn Property="@(b => b.Year.Value)" Title="@L["Year"]" Sortable="true" Class="col-year text-muted" />
-                                    
-                                    <TemplateColumn Title="@L["Category"]" Sortable="true" Class="col-category">
-                                        <span class="badge bg-secondary-subtle text-secondary-emphasis border">@context.MainCategory.Value()</span>
-                                    </TemplateColumn>
-                                    
-                                    <TemplateColumn Title="@L["Availability"]" Sortable="true" Align="Align.Center" Class="col-available">
-                                        @if (context.Available)
-                                        {
-                                            <span class="text-success small fw-bold"><i class="bi bi-check-circle-fill me-1"></i>@L["Available"]</span>
-                                        }
-                                        else
-                                        {
-                                            <span class="text-danger small fw-bold"><i class="bi bi-dash-circle-fill me-1"></i>@L["OnLoan"]</span>
-                                        }
-                                    </TemplateColumn>
-                                    
-                                    <PropertyColumn Property="@(b => b.Isbn.Value)" Title="ISBN-13" Class="col-isbn font-monospace small" />
-                                </QuickGrid>
-                            </div>
-                            <div class="p-3 border-top bg-light">
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <div class="small text-muted">Showing @Math.Min(bookPagination.ItemsPerPage, authorDetails.Books.Length) of @authorDetails.Books.Length records</div>
-                                    <Paginator State="@bookPagination" />
-                                </div>
-                            </div>
+                            <img src="@authorDetails.Author.ImageUri.Value.ToString()" 
+                                 class="w-100 h-100" 
+                                 style="object-fit: cover;" 
+                                 alt="@authorDetails.Author.Name.Value Profile" />
                         }
                         else
                         {
-                            <div class="p-5 text-center text-muted">
-                                <i class="bi bi-journal-x fs-1 mb-3 d-block opacity-25"></i>
-                                <p class="mb-0">@L["NoBooksFound"]</p>
+                            <div class="w-100 h-100 d-flex flex-column align-items-center justify-content-center text-muted opacity-25">
+                                <i class="bi bi-person-fill" style="font-size: 6rem;"></i>
+                                @if (authorDetails.Author.Editable)
+                                {
+                                    <button class="btn btn-link btn-sm text-decoration-none mt-n4 text-serif" @onclick:stopPropagation @onclick="StartEditImageUrl">
+                                        + @L["AddPortrait"]
+                                    </button>
+                                }
+                            </div>
+                        }
+
+                        @if (authorDetails.Author.Editable)
+                        {
+                            <div class="image-edit-badge position-absolute" @onclick="StartEditImageUrl" @onclick:stopPropagation title="@L["ChangeProfileImage"]">
+                                <i class="bi bi-camera-fill"></i>
+                            </div>
+                        }
+                    </div>
+
+                    <div class="d-flex flex-column gap-3">
+                        <div class="d-flex justify-content-center flex-wrap gap-2">
+                             <span class="badge-sanctuary badge-neutral">
+                                <i class="bi bi-journals me-2"></i> @authorDetails.Books.Length @L["RegisteredTitles"]
+                            </span>
+                            
+                            @if (authorDetails.UnSealable)
+                            {
+                                <div class="badge-sanctuary @(isAuthorSealed ? "badge-borrowed" : "badge-available") d-flex align-items-center py-1">
+                                    <i class="bi @(isAuthorSealed ? "bi-lock-fill" : "bi-unlock-fill") me-2"></i>
+                                    <div class="form-check form-switch p-0 m-0 d-flex align-items-center">
+                                        <input class="form-check-input ms-0 me-2" type="checkbox" id="sealSwitch" 
+                                               checked="@(!isAuthorSealed)" 
+                                               @onchange="ToggleSeal"
+                                               style="cursor: pointer; width: 2em; height: 1em;" />
+                                        <label class="form-check-label small fw-bold" for="sealSwitch">
+                                            @(isAuthorSealed ? L["LockedSealed"] : L["EditableUnsealed"])
+                                        </label>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+
+                    @if (authorDetails.Books.Length == 0 && authorDetails.Author.Editable)
+                    {
+                        <div class="mt-5 p-4 bg-surface-low rounded-xl text-start">
+                            <h6 class="serif text-danger mb-2">@L["DangerZone"]</h6>
+                            <p class="small text-muted mb-3">@L["PermanentlyRemoveAuthor"]</p>
+                            <button class="btn btn-sm btn-outline-danger w-100 rounded-pill" @onclick="DeleteAuthor">
+                                <i class="bi bi-trash me-2"></i>@L["DeleteAuthorProfile"]
+                            </button>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <!-- Right Column: Details & Works Ledger -->
+            <div class="col-lg-8">
+                <!-- Administrative Ledger (Profile Stats) -->
+                <div class="card-sanctuary mb-5">
+                    <h5 class="serif mb-4 pb-2 border-bottom" style="border-color: var(--outline-variant) !important;">@L["ArchivalRecord"]</h5>
+                    
+                    <div class="row g-4">
+                        <div class="col-md-6">
+                            <label class="form-label small text-muted text-uppercase fw-bold mb-2">@L["AuthorFullName"]</label>
+                            @if (isEditingName)
+                            {
+                                <div class="input-group input-group-sm mb-2" @onclick:stopPropagation>
+                                    <input type="text" class="form-control bg-surface-low border-0 serif fw-bold" @bind="editedName" @onkeyup="HandleKeyUp" autofocus />
+                                    <button class="btn btn-primary" @onclick="UpdateName">@L["Confirm"]</button>
+                                    <button class="btn btn-outline-secondary" @onclick="CancelEditName"><i class="bi bi-x-lg"></i></button>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="d-flex align-items-center gap-3">
+                                    <p class="serif h4 mb-0" style="color: var(--primary); font-weight: 700;">@authorDetails.Author.Name.Value</p>
+                                    @if (authorDetails.Author.Editable)
+                                    {
+                                        <button class="btn btn-link p-0 text-muted" @onclick="StartEditName" @onclick:stopPropagation><i class="bi bi-pencil-square"></i></button>
+                                    }
+                                </div>
+                            }
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label class="form-label small text-muted text-uppercase fw-bold mb-2">@L["IsniNumber"]</label>
+                            @if (isEditingIsni)
+                            {
+                                <div class="edit-isni-container" @onclick:stopPropagation>
+                                    <div class="input-group input-group-sm mb-2">
+                                        <input type="text" class="form-control font-monospace py-2" @bind="editedIsni" placeholder="0000 0001 2140 1961" />
+                                        <button class="btn btn-primary px-3" @onclick="UpdateIsni">@L["Confirm"]</button>
+                                        <button class="btn btn-outline-secondary" @onclick="CancelEditIsni"><i class="bi bi-x-lg"></i></button>
+                                    </div>
+                                    <div class="form-check form-switch small">
+                                        <input class="form-check-input" type="checkbox" id="invalidIsniSwitch" @bind="acceptInvalidIsni" />
+                                        <label class="form-check-label text-muted" for="invalidIsniSwitch">@L["AcceptInvalidIsni"]</label>
+                                    </div>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="d-flex align-items-center gap-3">
+                                    @if (string.IsNullOrEmpty(authorDetails.Author.Isni.Value))
+                                    {
+                                        <span class="text-muted small fst-italic">@L["NoneNotSet"]</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge-sanctuary badge-neutral font-monospace">@authorDetails.Author.Isni.Value</span>
+                                    }
+                                    @if (authorDetails.Author.Editable)
+                                    {
+                                        <button class="btn btn-link p-0 text-muted" @onclick="StartEditIsni" @onclick:stopPropagation><i class="bi bi-pencil-square"></i></button>
+                                    }
+                                </div>
+                            }
+                        </div>
+
+                        @if (isEditingImageUrl)
+                        {
+                            <div class="col-12 mt-4 animate-fade-in" @onclick:stopPropagation>
+                                <div class="p-4 bg-surface-low rounded-xl border border-dashed border-primary-subtle shadow-sm">
+                                    <label class="form-label small text-muted text-uppercase fw-bold mb-3 d-flex justify-content-between align-items-center">
+                                        <span>@L["ModifyAuthorPortrait"]</span>
+                                        @if (isLookingUpImage) { <span class="spinner-border spinner-border-sm text-primary"></span> }
+                                    </label>
+                                    
+                                    <div class="input-group shadow-sm rounded-3 overflow-hidden mb-4 border">
+                                        <input type="text" class="form-control border-0 py-2 serif" 
+                                               placeholder="@L["EnterPortraitUrlPlaceholder"]" 
+                                               @bind="editedImageUrl" />
+                                        <button class="btn btn-white border-start" type="button" @onclick="LookupImage" disabled="@isLookingUpImage">
+                                            <i class="bi bi-magic me-2 text-primary"></i>@L["DiscoverPortrait"]
+                                        </button>
+                                    </div>
+
+                                    @if (!string.IsNullOrWhiteSpace(editedImageUrl))
+                                    {
+                                        <div class="mb-4 text-center animate-fade-in">
+                                            <p class="small text-muted mb-2 italic">@L["PortraitPreview"]</p>
+                                            <div class="preview-circle bg-surface-container mx-auto rounded-circle overflow-hidden shadow-sm border border-4 border-white" style="width: 120px; height: 120px;">
+                                                <img src="@editedImageUrl" class="w-100 h-100" style="object-fit: cover;" @onerror="HandlePreviewError" />
+                                            </div>
+                                        </div>
+                                    }
+
+                                    <div class="d-flex gap-2 mt-2">
+                                        <button class="btn btn-primary flex-grow-1" @onclick="UpdateImageUrl" disabled="@(string.IsNullOrWhiteSpace(editedImageUrl))">
+                                            <i class="bi bi-check2-circle me-2"></i>@L["FinalizePortraitUpdate"]
+                                        </button>
+                                        <button class="btn btn-outline-secondary" @onclick="CancelEditImageUrl">@L["Discard"]</button>
+                                        @if (authorDetails.Author.ImageUri != null && FSharpOption<Uri>.get_IsSome(authorDetails.Author.ImageUri))
+                                        {
+                                            <button class="btn btn-outline-danger" @onclick="RemoveImageUrl" title="@L["DiscardPortrait"]">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        }
+                                    </div>
+                                </div>
                             </div>
                         }
                     </div>
                 </div>
-            </div>
-        </div>
 
-        @if (authorDetails.Books.Length == 0 && authorDetails.Author.Editable)
-        {
-            <!-- Danger Zone Section -->
-            <div class="row g-4 mt-2 mb-5">
-                <div class="col-12">
-                    <div class="card border-danger shadow-sm border-2 overflow-hidden">
-                        <div class="card-header bg-danger text-white py-3">
-                            <h5 class="card-title mb-0"><i class="bi bi-exclamation-octagon me-2"></i>@L["DangerZone"]</h5>
+                <!-- Works Published Section -->
+                <div class="card-sanctuary p-0 overflow-hidden">
+                    <div class="px-5 pt-5 pb-4 d-flex justify-content-between align-items-end">
+                        <h5 class="serif display-6 mb-0">@L["WorksPublished"]</h5>
+                        <div class="badge-sanctuary badge-neutral">@authorDetails.Books.Length @L["BooksInLibrary"]</div>
+                    </div>
+
+                    <div class="px-5 pb-5">
+                        <div class="table-responsive">
+                            <QuickGrid Items="@authorDetails.Books.AsQueryable()" Pagination="@bookPagination" Class="table table-editorial align-middle mb-0">
+                                <TemplateColumn Title="@L["Title"]" SortBy="@sortTitle" Class="col-title serif fw-bold">
+                                    <a href="/book-view/@context.Id" class="text-decoration-none text-reset d-flex align-items-center gap-3 py-2">
+                                        <div class="bg-surface-low rounded p-2" style="width: 40px; height: 55px; display: flex; align-items: center; justify-content: center;">
+                                            @if (FSharpOption<Uri>.get_IsSome(context.ImageUrl))
+                                            {
+                                                <img src="@context.ImageUrl.Value.ToString()" style="max-width: 100%; max-height: 100%; object-fit: contain;" />
+                                            }
+                                            else
+                                            {
+                                                <i class="bi bi-journal-text opacity-25"></i>
+                                            }
+                                        </div>
+                                        <span>@context.Title.Value</span>
+                                    </a>
+                                </TemplateColumn>
+                                
+                                <PropertyColumn Property="@(b => b.Year.Value)" Title="@L["Year"]" Sortable="true" Class="col-year text-muted" />
+                                
+                                <TemplateColumn Title="@L["Category"]" Sortable="true" Class="col-category">
+                                    <span class="badge-sanctuary badge-neutral" style="font-size: 0.7rem;">@context.MainCategory.Value()</span>
+                                </TemplateColumn>
+                                
+                                <TemplateColumn Title="@L["Availability"]" Sortable="true" Align="Align.End" Class="col-available">
+                                    @if (context.Available)
+                                    {
+                                        <span class="text-success small fw-bold"><i class="bi bi-circle-fill me-2" style="font-size: 0.5rem;"></i>@L["Available"]</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-danger small fw-bold"><i class="bi bi-circle-fill me-2" style="font-size: 0.5rem;"></i>@L["OnLoan"]</span>
+                                    }
+                                </TemplateColumn>
+                            </QuickGrid>
                         </div>
-                        <div class="card-body d-flex flex-column flex-md-row justify-content-between align-items-md-center p-4">
-                            <div class="me-md-4 mb-3 mb-md-0">
-                                <h6 class="fw-bold mb-1 text-danger">@L["PermanentlyRemoveAuthor"]</h6>
-                                <p class="text-muted small mb-0">
-                                    @L["ConfirmDeleteAuthor"]
-                                </p>
-                            </div>
-                            <button class="btn btn-danger btn-lg px-4 flex-shrink-0" 
-                                    @onclick="DeleteAuthor">
-                                <i class="bi bi-trash me-2"></i>@L["DeleteAuthorProfile"]
-                            </button>
+                        
+                        <div class="mt-4 d-flex justify-content-between align-items-center">
+                            <div class="small text-muted serif italic">@L["Showing"] @Math.Min(bookPagination.ItemsPerPage, authorDetails.Books.Length) @L["Of"] @authorDetails.Books.Length @L["CatalogedTitles"]</div>
+                            <Paginator State="@bookPagination" />
                         </div>
                     </div>
                 </div>
             </div>
-        }
+        </div>
     }
     else if (!isLoading && authorDetails == null)
     {
-        <div class="alert alert-danger" role="alert">
-            <i class="bi bi-exclamation-triangle-fill me-2"></i>@L["ErrorLoadingAuthor"]
-            <div class="mt-3">
-                <a href="/books-manager" class="btn btn-outline-danger">@L["BackToLibrary"]</a>
-            </div>
+        <div class="card-sanctuary text-center p-5">
+            <i class="bi bi-exclamation-triangle display-4 text-warning mb-3"></i>
+            <h4 class="serif">@L["ErrorLoadingAuthor"]</h4>
+            <a href="/books-manager" class="btn-sanctuary-outline text-decoration-none d-inline-block mt-3">@L["BackToLibrary"]</a>
         </div>
     }
 </div>
@@ -746,4 +668,45 @@
             isLoading = false;
         }
     }
+
+    private void HandlePreviewError()
+    {
+        // For preview purposes, we don't necessarily show an error, but we could toast if interested
+    }
 }
+
+<style>
+    .image-edit-badge {
+        bottom: 15px;
+        right: 15px;
+        background: var(--primary);
+        color: white;
+        width: 42px;
+        height: 42px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        z-index: 10;
+        border: 4px solid var(--surface-container-lowest);
+    }
+    .image-edit-badge:hover {
+        transform: scale(1.1);
+        background: var(--secondary);
+        box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+    }
+    .image-edit-badge i {
+        font-size: 1.2rem;
+    }
+    .profile-image-wrap:hover .image-edit-badge {
+        animation: pulse-sanctuary 2s infinite;
+    }
+    @@keyframes pulse-sanctuary {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.05); }
+        100% { transform: scale(1); }
+    }
+</style>

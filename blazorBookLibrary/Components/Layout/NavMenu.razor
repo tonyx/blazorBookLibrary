@@ -6,71 +6,73 @@
 @inject NavigationManager NavigationManager
 @inject IStringLocalizer<SharedResources> L
 
-<div class="top-row ps-3 navbar navbar-dark">
-    <div class="container-fluid">
-        <a class="navbar-brand" href="">blazorBookLibrary</a>
+<div class="top-row navbar navbar-light sanctuary-brand-area border-bottom">
+    <div class="container-fluid justify-content-center">
+        <a class="navbar-brand serif" href="" style="font-weight: 800; color: var(--primary); font-size: 1.4rem; letter-spacing: -0.02em;">
+            <i class="bi bi-book-half me-2"></i> Archivist
+        </a>
     </div>
 </div>
 
 <input type="checkbox" title="Navigation menu" class="navbar-toggler" />
 
 <div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
-    <nav class="nav flex-column">
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-                <span class="bi bi-book-fill" aria-hidden="true"></span> @L["BooksBrowser"]
+    <nav class="nav flex-column p-3 gap-1">
+        <div class="nav-item">
+            <NavLink class="nav-link sanctuary-nav-link" href="" Match="NavLinkMatch.All">
+                <span class="bi bi-compass" aria-hidden="true"></span> @L["BooksBrowser"]
             </NavLink>
         </div>
 
         <AuthorizeView Roles="Admin">
-            <div class="nav-item px-3">
-                <NavLink class="nav-link" href="users-manager">
-                    <span class="bi bi-people-fill" aria-hidden="true"></span> @L["UsersManager"]
+            <div class="nav-item">
+                <NavLink class="nav-link sanctuary-nav-link" href="users-manager">
+                    <span class="bi bi-people" aria-hidden="true"></span> @L["UsersManager"]
                 </NavLink>
             </div>
         </AuthorizeView>
 
         <AuthorizeView Roles="Admin, Manager">
-            <div class="nav-item px-3">
-                <NavLink class="nav-link" href="authors-manager">
+            <div class="nav-item">
+                <NavLink class="nav-link sanctuary-nav-link" href="authors-manager">
                     <span class="bi bi-person-lines-fill" aria-hidden="true"></span> @L["AuthorsManager"]
                 </NavLink>
             </div>
-            <div class="nav-item px-3">
-                <NavLink class="nav-link" href="books-manager">
-                    <span class="bi bi-book-fill" aria-hidden="true"></span> @L["BooksManager"]
+            <div class="nav-item">
+                <NavLink class="nav-link sanctuary-nav-link" href="books-manager">
+                    <span class="bi bi-journals" aria-hidden="true"></span> @L["BooksManager"]
                 </NavLink>
             </div>
         </AuthorizeView>
 
-
+        <div class="my-3 border-bottom opacity-10 mx-3"></div>
 
         <AuthorizeView>
             <Authorized>
-                <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="Account/Manage">
-                        <span class="bi bi-person-fill" aria-hidden="true"></span> @context.User.Identity?.Name
+                <div class="nav-item">
+                    <NavLink class="nav-link sanctuary-nav-link" href="Account/Manage">
+                        <span class="bi bi-person-circle" aria-hidden="true"></span> @context.User.Identity?.Name
                     </NavLink>
                 </div>
-                <div class="nav-item px-3">
+                <div class="nav-item">
                     <form action="Account/Logout" method="post">
                         <AntiforgeryToken />
                         <input type="hidden" name="ReturnUrl" value="@currentUrl" />
-                        <button type="submit" class="nav-link">
-                            <span class="bi bi-arrow-bar-left" aria-hidden="true"></span> @L["Logout"]
+                        <button type="submit" class="nav-link sanctuary-nav-link w-100 text-start border-0 bg-transparent">
+                            <span class="bi bi-box-arrow-left" aria-hidden="true"></span> @L["Logout"]
                         </button>
                     </form>
                 </div>
             </Authorized>
             <NotAuthorized>
-                <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="Account/Register">
-                        <span class="bi bi-person" aria-hidden="true"></span> @L["Register"]
+                <div class="nav-item">
+                    <NavLink class="nav-link sanctuary-nav-link" href="Account/Register">
+                        <span class="bi bi-person-plus" aria-hidden="true"></span> @L["Register"]
                     </NavLink>
                 </div>
-                <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="Account/Login">
-                        <span class="bi bi-person-badge" aria-hidden="true"></span> @L["Login"]
+                <div class="nav-item">
+                    <NavLink class="nav-link sanctuary-nav-link" href="Account/Login">
+                        <span class="bi bi-box-arrow-in-right" aria-hidden="true"></span> @L["Login"]
                     </NavLink>
                 </div>
             </NotAuthorized>

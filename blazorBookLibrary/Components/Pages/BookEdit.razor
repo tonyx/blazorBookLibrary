@@ -34,518 +34,482 @@
         border-color: #dee2e6;
         color: #0d6efd;
     }
-    .editable-category {
-        transition: all 0.2s ease;
-    }
     .editable-category:hover {
         opacity: 0.8;
         transform: scale(1.05);
     }
+    .image-edit-badge {
+        bottom: 15px;
+        right: 15px;
+        background: var(--primary);
+        color: white;
+        width: 42px;
+        height: 42px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        z-index: 10;
+        border: 4px solid var(--surface-container-lowest);
+    }
+    .image-edit-badge:hover {
+        transform: scale(1.1);
+        background: var(--secondary);
+        box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+    }
+    .image-edit-badge i {
+        font-size: 1.2rem;
+    }
+    .book-cover-wrap:hover .image-edit-badge {
+        animation: pulse-sanctuary 2s infinite;
+    }
+    @@keyframes pulse-sanctuary {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.05); }
+        100% { transform: scale(1); }
+    }
 </style>
 
-<div class="container-fluid py-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1 class="text-primary mb-0"><i class="bi bi-info-circle me-2"></i>@L["BookDetails"]</h1>
-        <a href="/books-manager" class="btn btn-outline-secondary">
-            <i class="bi bi-arrow-left me-1"></i>@L["BackToBooks"]
-        </a>
+<div class="sanctuary-container">
+    <!-- Header Area -->
+    <div class="d-flex justify-content-between align-items-end mb-5 border-bottom pb-4" style="border-color: var(--outline-variant) !important;">
+        <div>
+            <nav aria-label="breadcrumb" class="mb-2">
+                <ol class="breadcrumb mb-0" style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--secondary);">
+                    <li class="breadcrumb-item"><a href="/" class="text-decoration-none text-reset">@L["Home"]</a></li>
+                    <li class="breadcrumb-item"><a href="/books-manager" class="text-decoration-none text-reset">@L["Catalog"]</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">@L["BookDetails"]</li>
+                </ol>
+            </nav>
+            <h1 class="serif display-5 mb-0" style="font-weight: 800; color: var(--primary);">@L["BookDetails"]</h1>
+        </div>
+        <div class="d-flex gap-3">
+            <a href="/books-manager" class="btn-sanctuary-outline text-decoration-none">
+                <i class="bi bi-arrow-left me-2"></i>@L["BackToBooks"]
+            </a>
+        </div>
     </div>
 
     @if (isLoading)
     {
-        <div class="d-flex justify-content-center my-5">
-            <div class="spinner-border text-primary" role="status">
+        <div class="d-flex justify-content-center align-items-center" style="min-height: 400px;">
+            <div class="spinner-grow text-primary" role="status">
                 <span class="visually-hidden">@L["WaitLoading"]</span>
             </div>
         </div>
     }
     else if (bookDetails != null)
     {
-        <div class="row g-4">
-            <!-- Book Info Section -->
-            <div class="col-lg-7">
-                <div class="card shadow-sm border-0 h-100" style="z-index: 10;">
-                    <div class="card-header bg-primary text-white py-3 d-flex justify-content-between align-items-center">
-                        <h5 class="card-title mb-0"><i class="bi bi-book me-2"></i>@L["GeneralInformation"]</h5>
-                        <div class="form-check form-switch mb-0">
-                            <input class="form-check-input" type="checkbox" id="sealSwitch" 
-                                   checked="@(!isBookSealed)" 
-                                   @onchange="ToggleSeal"
-                                   style="cursor: pointer" />
-                            <label class="form-check-label text-white ms-2" for="sealSwitch">
-                                @(isBookSealed ? L["LockedSealed"] : L["EditableUnsealed"])
-                            </label>
-                        </div>
+        <div class="row g-5">
+            <!-- Left Column: Visual & Archival Controls -->
+            <div class="col-lg-4">
+                <div class="card-sanctuary floating text-center mb-4">
+                    <div class="book-cover-wrap mb-4 bg-surface-low shadow-sm" style="height: 450px; border-radius: 4px; overflow: hidden; display: flex; align-items: center; justify-content: center; position: relative;">
+                        @if (FSharpOption<Uri>.get_IsSome(bookDetails.Book.ImageUrl))
+                        {
+                            <img src="@bookDetails.Book.ImageUrl.Value.ToString()" 
+                                 alt="@bookDetails.Book.Title.Value Cover" 
+                                 class="w-100 h-100" 
+                                 style="object-fit: cover;" />
+                        }
+                        else
+                        {
+                            <div class="text-center text-muted opacity-25 p-4 d-flex flex-column align-items-center">
+                                <i class="bi bi-journal-text" style="font-size: 5rem;"></i>
+                                <span class="d-block mt-3 serif">@L["NoCoverAvailable"]</span>
+                                @if (bookDetails.Book.Editable)
+                                {
+                                    <button class="btn btn-link btn-sm text-decoration-none mt-2 text-serif" @onclick:stopPropagation @onclick="StartEditingImageUrl">
+                                        + @L["AddCoverImage"]
+                                    </button>
+                                }
+                            </div>
+                        }
+
+                        @if (bookDetails.Book.Editable)
+                        {
+                            <div class="image-edit-badge position-absolute" @onclick="StartEditingImageUrl" @onclick:stopPropagation title="@L["ChangeImage"]">
+                                <i class="bi bi-camera-fill"></i>
+                            </div>
+                        }
                     </div>
-                    <div class="card-body">
-                        <div class="row">
-                            <!-- Image Column -->
-                            <div class="col-md-4 mb-4 mb-md-0">
-                                <div class="book-cover-container shadow-sm border rounded p-2 bg-white d-flex align-items-center justify-content-center" style="min-height: 200px; max-height: 350px; overflow: hidden;">
-                                    @if (FSharpOption<Uri>.get_IsSome(bookDetails.Book.ImageUrl))
-                                    {
-                                        <img src="@bookDetails.Book.ImageUrl.Value.ToString()" 
-                                             class="img-fluid rounded shadow-sm" 
-                                             alt="Book Cover" 
-                                             style="max-height: 100%; max-width: 100%; object-fit: contain;" />
-                                    }
-                                    else
-                                    {
-                                        <div class="text-center text-muted opacity-50 p-4">
-                                            <i class="bi bi-book h1 d-block mb-2"></i>
-                                            <span class="small d-block">@L["NoCoverAvailable"]</span>
-                                        </div>
-                                    }
-                                </div>
 
-                                @if (bookDetails.Book.Editable)
-                                {
-                                    <div class="mt-3">
-                                        @if (isEditingImageUrl)
-                                        {
-                                            <div class="p-3 border rounded bg-light shadow-sm animate-fade-in">
-                                                <label class="form-label small fw-bold text-muted text-uppercase mb-2">@L["UpdateProfileImageUrl"]</label>
-                                                <div class="input-group input-group-sm mb-3">
-                                                    <span class="input-group-text bg-white border-primary"><i class="bi bi-link-45deg"></i></span>
-                                                    <input type="text" class="form-control border-primary" @bind="editedImageUrl" placeholder="@L["PasteImageUrl"]" />
-                                                    <button class="btn btn-primary d-flex align-items-center" @onclick="UpdateImageUrl" title="@L["ConfirmChanges"]">
-                                                        <i class="bi bi-check-lg me-1"></i><span>@L["Save"]</span>
-                                                    </button>
-                                                    <button class="btn btn-outline-secondary" @onclick="() => isEditingImageUrl = false">
-                                                        <i class="bi bi-x-lg"></i><span>@L["Cancel"]</span>
-                                                    </button>
-                                                </div>
-
-                                                <label class="form-label small fw-bold text-muted text-uppercase mb-2">@L["LookupCover"]</label>
-                                                <div class="d-flex gap-2">
-                                                    <select class="form-select form-select-sm border-info" @bind="coverSizeLookup">
-                                                        <option value="Small">@L["Small"]</option>
-                                                        <option value="Medium">@L["Medium"]</option>
-                                                        <option value="Large">@L["Large"]</option>
-                                                    </select>
-                                                    <button class="btn btn-info btn-sm text-white flex-grow-1" @onclick="LookupCover" disabled="@isLookingUpCover">
-                                                        @if (isLookingUpCover) { <span class="spinner-border spinner-border-sm me-1" role="status"></span> }
-                                                        <i class="bi bi-search me-1"></i> @L["Lookup"]
-                                                    </button>
-                                                </div>
-                                                <div class="form-text x-small mt-1 px-1 text-muted">
-                                                    <i class="bi bi-info-circle me-1"></i>
-                                                    @(isBookIsbnValid() ? "Searching by ISBN" : "Searching by title & author")
-                                                </div>
-
-                                                @if (coverPreviewUrl != null)
-                                                {
-                                                    <div class="mt-3 p-3 bg-white border border-info rounded shadow-sm animate-fade-in">
-                                                        <div class="d-flex align-items-center gap-3">
-                                                            <div class="flex-shrink-0" style="width: 80px; height: 110px; overflow: hidden; border: 1px solid #dee2e6; border-radius: 4px;">
-                                                                <img src="@coverPreviewUrl" alt="Cover Preview" style="width: 100%; height: 100%; object-fit: contain;" />
-                                                            </div>
-                                                            <div class="flex-grow-1">
-                                                                <h6 class="text-info fw-bold mb-1 small">@L["NewCoverFound"]</h6>
-                                                                <p class="x-small text-muted mb-2">@L["UseThisImage"]</p>
-                                                                <div class="d-flex gap-2">
-                                                                    <button type="button" class="btn btn-info text-white btn-sm px-3 py-1" @onclick="AcceptLookup">
-                                                                        <i class="bi bi-check2 me-1"></i>@L["Accept"]
-                                                                    </button>
-                                                                    <button type="button" class="btn btn-outline-secondary btn-sm px-3 py-1" @onclick="DiscardLookup">
-                                                                        @L["Discard"]
-                                                                    </button>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                }
-                                            </div>
-                                        }
-                                        else
-                                        {
-                                            <div class="d-grid gap-2">
-                                                <button class="btn btn-sm btn-outline-primary" @onclick="StartEditingImageUrl">
-                                                    @if (FSharpOption<Uri>.get_IsSome(bookDetails.Book.ImageUrl))
-                                                    {
-                                                        <i class="bi bi-pencil-square me-1"></i><span>@L["ChangeImage"]</span>
-                                                    }
-                                                    else
-                                                    {
-                                                        <i class="bi bi-plus-lg me-1"></i><span>@L["AddImage"]</span>
-                                                    }
-                                                </button>
-                                                @if (FSharpOption<Uri>.get_IsSome(bookDetails.Book.ImageUrl))
-                                                {
-                                                    <button class="btn btn-sm btn-outline-danger" @onclick="RemoveImageUrl">
-                                                        <i class="bi bi-image-fill me-1"></i> @L["RemoveImage"]
-                                                    </button>
-                                                }
-                                            </div>
-                                        }
-                                    </div>
-                                }
+                    @if (bookDetails.Book.Editable && isEditingImageUrl)
+                    {
+                        <div class="mt-4 p-4 bg-surface-low rounded-xl text-start animate-fade-in shadow-sm border border-dashed border-primary-subtle">
+                            <label class="form-label small text-muted text-uppercase fw-bold mb-3 d-flex justify-content-between align-items-center">
+                                <span>@L["ModifyArchivalCover"]</span>
+                                @if (isLookingUpCover) { <span class="spinner-border spinner-border-sm text-primary"></span> }
+                            </label>
+                            
+                            <div class="input-group shadow-sm rounded-3 overflow-hidden mb-4 border">
+                                <input type="text" class="form-control border-0 py-2 serif" 
+                                       placeholder="@L["PasteImageUrl"]" 
+                                       @bind="editedImageUrl" />
+                                <button class="btn btn-white border-start d-flex align-items-center gap-2" type="button" @onclick="LookupCover" disabled="@isLookingUpCover">
+                                    <select class="form-select form-select-sm border-0 bg-transparent py-0" @bind="coverSizeLookup" style="width: auto;" @onclick:stopPropagation>
+                                        <option value="Small">S</option>
+                                        <option value="Medium" selected>M</option>
+                                        <option value="Large">L</option>
+                                    </select>
+                                    <i class="bi bi-magic text-primary"></i>@L["DiscoverCover"]
+                                </button>
                             </div>
 
-                            <!-- Details Column -->
-                            <div class="col-md-8">
-                                <dl class="row mb-0">
-                                    <dt class="col-sm-4 text-muted" @onclick="CancelEdit" style="cursor: pointer" title="@L["CancelEdit"]">@L["Title"]</dt>
-                                    <dd class="col-sm-8 fw-bold fs-5">
-                                        @if (isEditingTitle)
-                                        {
-                                            <div class="input-group">
-                                                <input type="text" class="form-control fw-bold" @bind="editedTitle" @onkeyup="HandleKeyUp" autofocus />
-                                                <button class="btn btn-primary" @onclick="UpdateTitle" title="@L["ConfirmChanges"]">
-                                                    <i class="bi bi-check-lg"></i> @L["Confirm"]
-                                                </button>
-                                                <button class="btn btn-outline-secondary" @onclick="CancelEdit" title="@L["Cancel"]">
-                                                    <i class="bi bi-x-lg"></i>
-                                                </button>
-                                            </div>
-                                        }
-                                        else
-                                        {
-                                            <div class="@((bookDetails?.Book.Editable ?? false) ? "editable-title" : "")" @onclick="StartEdit">
-                                                @bookDetails.Book.Title.Value
-                                                @if (bookDetails.Book.Editable)
-                                                {
-                                                    <i class="bi bi-pencil-square text-muted ms-2 small"></i>
-                                                }
-                                            </div>
-                                        }
-                                    </dd>
-
-                                    <dt class="col-sm-4 text-muted mt-2">ISBN</dt>
-                                    <dd class="col-sm-8 mt-2">
-                                        @if (isEditingIsbn)
-                                        {
-                                            <div class="p-2 border rounded bg-light shadow-sm">
-                                                <div class="input-group input-group-sm mb-2">
-                                                    <input type="text" class="form-control" @bind="editedIsbn" placeholder="ISBN..." autofocus />
-                                                    <button class="btn btn-primary" @onclick="UpdateIsbn">
-                                                        <i class="bi bi-check-lg"></i> @L["Confirm"]
-                                                    </button>
-                                                    <button class="btn btn-outline-secondary" @onclick="CancelEditIsbn">
-                                                        <i class="bi bi-x-lg"></i>
-                                                    </button>
-                                                </div>
-                                                <div class="form-check form-switch">
-                                                    <input class="form-check-input" type="checkbox" id="invalidIsbnSwitch" @bind="acceptInvalidIsbn" />
-                                                    <label class="form-check-label x-small text-muted" for="invalidIsbnSwitch">@L["AcceptInvalidIsbn"]</label>
-                                                </div>
-                                            </div>
-                                        }
-                                        else
-                                        {
-                                            <div class="@((bookDetails?.Book.Editable ?? false) ? "editable-title" : "")" @onclick="StartEditIsbn">
-                                                @bookDetails.Book.Isbn.Value
-                                                @if (bookDetails.Book.Editable)
-                                                {
-                                                    <i class="bi bi-pencil-square text-muted ms-2 small"></i>
-                                                }
-                                            </div>
-                                        }
-                                    </dd>
-
-                                    <dt class="col-sm-4 text-muted mt-2">@L["PublicationYear"]</dt>
-                                    <dd class="col-sm-8 mt-2">@bookDetails.Book.Year.Value</dd>
-
-                            <dt class="col-sm-4 text-muted">@L["MainCategory"]</dt>
-                            <dd class="col-sm-8">
-                                @if (isEditingCategory)
-                                {
-                                    <div class="input-group input-group-sm" style="max-width: 300px;">
-                                        <select class="form-select" @bind="editedCategory">
-                                            @foreach (var cat in Category.AllCases())
-                                            {
-                                                <option value="@cat.Value()" selected="@(cat.Value() == bookDetails.Book.MainCategory.Value())">@cat.Value()</option>
-                                            }
-                                        </select>
-                                        <button class="btn btn-primary" @onclick="UpdateCategory">
-                                            <i class="bi bi-check-lg"></i>
-                                        </button>
-                                        <button class="btn btn-outline-secondary" @onclick="() => isEditingCategory = false">
-                                            <i class="bi bi-x-lg"></i>
-                                        </button>
+                            @if (coverPreviewUrl != null)
+                            {
+                                <div class="mb-4 text-center animate-fade-in bg-white p-3 rounded-lg border shadow-sm">
+                                    <p class="small text-muted mb-2 italic">@L["DiscoveredCoverPreview"]</p>
+                                    <div class="preview-rect bg-surface-container mx-auto overflow-hidden shadow-sm border border-4 border-white" style="width: 100px; height: 140px;">
+                                        <img src="@coverPreviewUrl" class="w-100 h-100" style="object-fit: contain;" />
                                     </div>
-                                }
-                                else
-                                {
-                                    <span class="badge bg-secondary @((bookDetails?.Book.Editable ?? false) ? "editable-category" : "")" 
-                                          @onclick="StartEditCategory" 
-                                          style="@((bookDetails?.Book.Editable ?? false) ? "cursor: pointer;" : "")" 
-                                          title="@((bookDetails?.Book.Editable ?? false) ? L["ChangeCategory"] : "")">
-                                        @bookDetails.Book.MainCategory.Value()
-                                        @if (bookDetails.Book.Editable)
-                                        {
-                                            <i class="bi bi-pencil-fill ms-2 small"></i>
-                                        }
-                                    </span>
-                                }
-                            </dd>
-
-                            <dt class="col-sm-4 text-muted mt-2">@L["Availability"]</dt>
-                            <dd class="col-sm-8 mt-2">
-                                @if (isEditingAvailability)
-                                {
-                                    <div class="input-group input-group-sm" style="max-width: 300px;">
-                                        <select class="form-select" @bind="editedAvailability">
-                                            @foreach (var avail in Availability.AllCases())
-                                            {
-                                                <option value="@avail.ToString()" selected="@(avail.ToString() == bookDetails.Book.Availability.ToString())">
-                                                    @GetAvailabilityLocalName(avail)
-                                                </option>
-                                            }
-                                        </select>
-                                        <button class="btn btn-primary" @onclick="UpdateAvailability">
-                                            <i class="bi bi-check-lg"></i>
-                                        </button>
-                                        <button class="btn btn-outline-secondary" @onclick="() => isEditingAvailability = false">
-                                            <i class="bi bi-x-lg"></i>
-                                        </button>
+                                    <div class="d-flex gap-2 justify-content-center mt-3">
+                                        <button type="button" class="btn btn-primary btn-sm px-3" @onclick="AcceptLookup">@L["UseThisCover"]</button>
+                                        <button type="button" class="btn btn-outline-secondary btn-sm px-3" @onclick="DiscardLookup">@L["Discard"]</button>
                                     </div>
-                                }
-                                else
-                                {
-                                    <div class="@((bookDetails?.Book.Editable ?? false) ? "editable-title" : "")" 
-                                          @onclick="StartEditAvailability" 
-                                          style="@((bookDetails?.Book.Editable ?? false) ? "cursor: pointer;" : "")" 
-                                          title="@((bookDetails?.Book.Editable ?? false) ? L["ChangeAvailability"] : "")">
-                                        <span class="badge @(bookDetails.Book.Availability.IsCirculating ? "bg-success" : bookDetails.Book.Availability.IsReferenceOnly ? "bg-warning text-dark" : "bg-secondary")">
-                                            @GetAvailabilityLocalName(bookDetails.Book.Availability)
-                                        </span>
-                                        @if (bookDetails.Book.Editable)
-                                        {
-                                            <i class="bi bi-pencil-square text-muted ms-2 small"></i>
-                                        }
-                                    </div>
-                                }
-                            </dd>
-                            
-                            <dt class="col-sm-4 text-muted">@L["AdditionalCategories"]</dt>
-                            <dd class="col-sm-8">
-                                <div class="d-flex flex-wrap align-items-center gap-2">
-                                    @foreach (var cat in bookDetails.Book.AdditionalCategories)
-                                    {
-                                        <span class="badge rounded-pill bg-light text-dark border d-flex align-items-center">
-                                            @cat.Value()
-                                            @if (bookDetails.Book.Editable)
-                                            {
-                                                <span class="badge rounded-circle bg-danger ms-2 p-1 d-flex align-items-center justify-content-center hover-shadow" 
-                                                      style="cursor: pointer; width: 18px; height: 18px;"
-                                                      @onclick="() => RemoveAdditionalCategory(cat)"
-                                                      title="@L["RemoveCategory"]">
-                                                    <i class="bi bi-x text-white" style="font-size: 0.75rem;"></i>
-                                                </span>
-                                            }
-                                        </span>
-                                    }
-                                    
-                                    @if (bookDetails.Book.Editable)
-                                    {
-                                        <div class="position-relative d-inline-block">
-                                            <button class="btn btn-sm btn-outline-primary rounded-pill" type="button" @onclick="() => showAddDropdown = !showAddDropdown">
-                                                <i class="bi bi-plus-lg me-1"></i> @L["Add"]
-                                            </button>
-                                            
-                                            @if (showAddDropdown)
-                                            {
-                                                <div class="position-absolute shadow border rounded bg-white p-2" style="z-index: 1000; min-width: 200px; max-height: 300px; overflow-y: auto; top: 100%; left: 0;">
-                                                    <div class="d-flex justify-content-between align-items-center mb-2 px-2 border-bottom pb-1">
-                                                        <span class="small fw-bold">@L["SelectCategory"]</span>
-                                                        <button class="btn btn-sm p-0 border-0" @onclick="() => showAddDropdown = false"><i class="bi bi-x"></i></button>
-                                                    </div>
-                                                    @foreach (var cat in Category.AllCases())
-                                                    {
-                                                        var mainCat = bookDetails.Book.MainCategory;
-                                                        if (cat != mainCat && !bookDetails.Book.AdditionalCategories.Contains(cat))
-                                                        {
-                                                            <div class="dropdown-item py-1 px-2 small rounded" style="cursor: pointer;" @onclick="() => AddAdditionalCategoryWrapper(cat)">
-                                                                @cat.Value()
-                                                            </div>
-                                                        }
-                                                    }
-                                                </div>
-                                            }
-                                        </div>
-                                    }
-                                    else if (!bookDetails.Book.AdditionalCategories.Any())
-                                    {
-                                        <span class="text-muted fst-italic small">@L["NoAdditionalCategories"]</span>
-                                    }
                                 </div>
-                            </dd>
+                            }
 
-                            <dt class="col-sm-4 text-muted">@L["Authors"]</dt>
-                            <dd class="col-sm-8">
-                                @if (bookDetails.Authors.Any())
+                            <div class="d-flex gap-2 mt-2">
+                                <button class="btn btn-primary flex-grow-1" @onclick="UpdateImageUrl" disabled="@(string.IsNullOrWhiteSpace(editedImageUrl))">
+                                    <i class="bi bi-check2-circle me-2"></i>@L["FinalizeCoverUpdate"]
+                                </button>
+                                <button class="btn btn-outline-secondary" @onclick="() => isEditingImageUrl = false">@L["Cancel"]</button>
+                                @if (FSharpOption<Uri>.get_IsSome(bookDetails.Book.ImageUrl))
                                 {
-                                    <div class="d-flex flex-wrap gap-2 mb-2">
-                                        @foreach (var author in bookDetails.Authors)
-                                        {
-                                            <span class="badge bg-info text-dark d-flex align-items-center p-2 mb-1">
-                                                <i class="bi bi-person me-1"></i>
-                                                <a href="/author-details/@author.AuthorId.Value" class="text-dark text-decoration-none">@author.Name.Value</a>
-                                                @if (bookDetails.Book.Editable)
-                                                {
-                                                    <span class="badge rounded-circle bg-danger ms-2 p-1 d-flex align-items-center justify-content-center hover-shadow" 
-                                                          style="cursor: pointer; width: 18px; height: 18px;"
-                                                          @onclick="() => RemoveAuthorFromBook(author)"
-                                                          title="@L["RemoveAuthor"]">
-                                                        <i class="bi bi-x text-white" style="font-size: 0.75rem;"></i>
-                                                    </span>
-                                                }
-                                            </span>
-                                        }
-                                    </div>
+                                    <button class="btn btn-outline-danger" @onclick="RemoveImageUrl" title="@L["DiscardCover"]">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
                                 }
-                                
-                                @if (bookDetails.Book.Editable)
-                                {
-                                    <div class="mt-3 position-relative" style="max-width: 450px;">
-                                        <label class="form-label small fw-bold text-muted text-uppercase mb-1">@L["AssociateNewAuthor"]</label>
-                                        <div class="input-group shadow-sm">
-                                            <span class="input-group-text bg-white border-end-0"><i class="bi bi-person-plus text-primary"></i></span>
-                                            <input type="text" 
-                                                   class="form-control border-start-0" 
-                                                   placeholder="@L["SearchAuthorToAdd"]" 
-                                                   value="@authorSearchInput" 
-                                                   @oninput="HandleAuthorSearchInput"
-                                                   @onfocus="() => { if(authorSearchResults.Any()) showAuthorSearchResults = true; }" />
-                                            <button class="btn btn-primary px-3" 
-                                                    type="button" 
-                                                    @onclick="AddAuthorToBook" 
-                                                    disabled="@(selectedAuthorForAdd == null)">
-                                                <i class="bi bi-plus-lg me-1"></i>@L["Add"]
-                                            </button>
-                                        </div>
-                                        
-                                        @if (showAuthorSearchResults)
-                                        {
-                                            <div class="list-group position-absolute w-100 shadow mt-1 border-primary-subtle" style="z-index: 1100; max-height: 250px; overflow-y: auto;">
-                                                @foreach (var author in authorSearchResults)
-                                                {
-                                                    <button type="button" 
-                                                            class="list-group-item list-group-item-action text-start py-2 animate-fade-in" 
-                                                            @onclick="() => SelectAuthorForAdd(author)">
-                                                        <div class="d-flex justify-content-between align-items-center">
-                                                            <div class="fw-bold text-primary">@author.Name.Value</div>
-                                                            @if (!string.IsNullOrEmpty(author.Isni.Value))
-                                                            {
-                                                                <span class="badge bg-light text-muted border small font-monospace">@author.Isni.Value</span>
-                                                            }
-                                                        </div>
-                                                    </button>
-                                                }
-                                            </div>
-                                        }
-                                        @if (!string.IsNullOrEmpty(authorSearchInput) && authorSearchInput.Length >= 2 && !authorSearchResults.Any() && !isLoadingAuthors)
-                                        {
-                                            <div class="alert alert-light border small mt-1 py-1 px-2 text-muted shadow-sm">
-                                                <i class="bi bi-info-circle me-1"></i>@L["NoAuthorsFoundMatching"] "@authorSearchInput"
-                                            </div>
-                                        }
-                                    </div>
-                                }
-                                else if (!bookDetails.Authors.Any())
-                                {
-                                    <span class="text-muted fst-italic">@L["NoAuthorsAssociated"]</span>
-                                }
-                            </dd>
-
-                            <dt class="col-sm-4 text-muted mt-2">@L["Description"]</dt>
-                            <dd class="col-sm-8 mt-2">
-                                @if (isEditingDescription)
-                                {
-                                    <div class="input-group">
-                                        <textarea class="form-control" @bind="editedDescription" rows="5" autofocus></textarea>
-                                    </div>
-                                    <div class="mt-2 d-flex gap-2">
-                                        <button class="btn btn-sm btn-primary" @onclick="UpdateDescription">
-                                            <i class="bi bi-check-lg me-1"></i> @L["Confirm"]
-                                        </button>
-                                        <button class="btn btn-sm btn-outline-secondary" @onclick="CancelEditDescription">
-                                            <i class="bi bi-x-lg me-1"></i> @L["Cancel"]
-                                        </button>
-                                    </div>
-                                }
-                                else
-                                {
-                                    <div class="@((bookDetails?.Book.Editable ?? false) ? "editable-title" : "")" @onclick="StartEditDescription">
-                                        @if (FSharpOption<string>.get_IsSome(bookDetails?.Book.Description))
-                                        {
-                                            <p class="mb-0 text-break" style="white-space: pre-wrap;">@bookDetails.Book.Description.Value</p>
-                                        }
-                                        else
-                                        {
-                                            <span class="text-muted fst-italic">@L["NoDescriptionAvailable"]</span>
-                                        }
-                                        @if (bookDetails?.Book.Editable ?? false)
-                                        {
-                                            <i class="bi bi-pencil-square text-muted ms-2 small"></i>
-                                        }
-                                    </div>
-                                }
-                            </dd>
-
-                                </dl>
                             </div>
                         </div>
+                    }
+
+                    <div class="mt-5 text-start p-4 bg-surface-low rounded-xl">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h6 class="serif mb-0">@L["ArchivalStatus"]</h6>
+                            <div class="badge-sanctuary @(isBookSealed ? "badge-borrowed" : "badge-available") d-flex align-items-center">
+                                <i class="bi @(isBookSealed ? "bi-lock-fill" : "bi-unlock-fill") me-2"></i>
+                                <div class="form-check form-switch p-0 m-0 d-flex align-items-center">
+                                    <input class="form-check-input ms-0 me-2" type="checkbox" id="sealSwitch" 
+                                           checked="@(!isBookSealed)" 
+                                           @onchange="ToggleSeal"
+                                           style="cursor: pointer; width: 2em; height: 1em;" />
+                                    <label class="form-check-label small fw-bold" for="sealSwitch">
+                                        @(isBookSealed ? L["LockedSealed"] : L["EditableUnsealed"])
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        <p class="small text-muted mb-0 serif italic">@L["SealDescription"]</p>
                     </div>
                 </div>
             </div>
 
-            <!-- Status & Availability Section -->
-            <div class="col-lg-5">
-                <div class="card shadow-sm border-0 mb-4 h-100">
-                    <div class="card-header bg-success text-white py-3">
-                        <h5 class="card-title mb-0"><i class="bi bi-calendar-check me-2"></i>@L["StatusAvailability"]</h5>
-                    </div>
-                    <div class="card-body">
-                        <h6 class="text-uppercase text-muted fw-bold mb-3 small border-bottom pb-2">@L["CurrentLoan"]</h6>
-                        @if (FSharpOption<BookLibrary.Domain.Loan>.get_IsSome(bookDetails.CurrentLoan))
-                        {
-                            var loan = bookDetails.CurrentLoan.Value;
-                            <div class="alert alert-warning mb-4">
-                                <p class="mb-1"><i class="bi bi-exclamation-triangle me-2"></i><strong>@L["CurrentlyLoanedOut"]</strong></p>
-                                <ul class="list-unstyled mb-0 small mt-2">
-                                    <li><strong>@L["Start"]:</strong> @loan.TimeSlot.Start.ToShortDateString()</li>
-                                    <li><strong>@L["ExpectedReturn"]:</strong> @loan.TimeSlot.End.ToShortDateString()</li>
-                                    <li><strong>@L["BorrowerUserId"]:</strong> @loan.UserId</li>
-                                </ul>
-                            </div>
-                        }
-                        else if (bookDetails.Book.ImmediatelyAvailable)
-                        {
-                            <div class="alert alert-success mb-4">
-                                <i class="bi bi-check-circle me-2"></i><strong>@L["AvailableForLoan"]</strong>
-                            </div>
-                        }
-                        else
-                        {
-                            <div class="alert alert-warning mb-4">
-                                <i class="bi bi-exclamation-triangle me-2"></i><strong>@L["NotAvailable"]</strong>
-                            </div>
-                        }
+            <!-- Right Column: Administrative Details -->
+            <div class="col-lg-8">
+                <div class="card-sanctuary mb-5">
+                    <h5 class="serif mb-4 pb-2 border-bottom" style="border-color: var(--outline-variant) !important;">@L["PrimaryArchivalMetadata"]</h5>
+                    
+                    <div class="row g-4">
+                        <!-- Title -->
+                        <div class="col-12 border-bottom pb-4" style="border-color: var(--surface-container-low) !important;">
+                            <label class="form-label small text-muted text-uppercase fw-bold mb-2">@L["Title"]</label>
+                             @if (isEditingTitle)
+                            {
+                                <div class="input-group shadow-sm rounded overflow-hidden">
+                                    <input type="text" class="form-control border-0 py-3 serif h4 mb-0 fw-bold bg-surface-low" @bind="editedTitle" @onkeyup="HandleKeyUp" autofocus />
+                                    <button class="btn btn-primary px-4" @onclick="UpdateTitle">@L["Confirm"]</button>
+                                    <button class="btn btn-white border-start" @onclick="CancelEdit"><i class="bi bi-x-lg"></i></button>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="d-flex align-items-center gap-3">
+                                    <h2 class="serif mb-0" style="color: var(--primary); font-weight: 800;">@bookDetails.Book.Title.Value</h2>
+                                    @if (bookDetails.Book.Editable)
+                                    {
+                                        <button class="btn btn-link p-0 text-muted" @onclick="StartEdit"><i class="bi bi-pencil-square"></i></button>
+                                    }
+                                </div>
+                            }
+                        </div>
 
-                        <h6 class="text-uppercase text-muted fw-bold mb-3 small border-bottom pb-2">@L["FutureReservations"]</h6>
-                        @if (bookDetails.ReservationsDetails.Any())
-                        {
-                            <ul class="list-group list-group-flush mb-0">
-                                @foreach (var res in bookDetails.ReservationsDetails)
+                        <!-- ISBN & Availability Grid -->
+                        <div class="col-md-6 border-end" style="border-color: var(--surface-container-low) !important;">
+                            <label class="form-label small text-muted text-uppercase fw-bold mb-2">Identifier (ISBN-13)</label>
+                            @if (isEditingIsbn)
+                            {
+                                <div class="p-3 bg-surface-low rounded border">
+                                    <div class="input-group mb-2">
+                                        <input type="text" class="form-control small py-2" @bind="editedIsbn" placeholder="ISBN..." />
+                                        <button class="btn btn-primary btn-sm" @onclick="UpdateIsbn"><i class="bi bi-check-lg"></i></button>
+                                        <button class="btn btn-white border-start" @onclick="CancelEditIsbn"><i class="bi bi-x-lg"></i></button>
+                                    </div>
+                                    <div class="form-check form-switch small">
+                                        <input class="form-check-input" type="checkbox" id="invalidIsbnSwitch" @bind="acceptInvalidIsbn" />
+                                        <label class="form-check-label x-small text-muted" for="invalidIsbnSwitch">@L["AcceptInvalidIsbn"]</label>
+                                    </div>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="d-flex align-items-center gap-3">
+                                    <span class="badge-sanctuary badge-neutral font-monospace p-2">@bookDetails.Book.Isbn.Value</span>
+                                    @if (bookDetails.Book.Editable)
+                                    {
+                                        <button class="btn btn-link p-0 text-muted" @onclick="StartEditIsbn"><i class="bi bi-pencil-square"></i></button>
+                                    }
+                                </div>
+                            }
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label small text-muted text-uppercase fw-bold mb-2">@L["ArchivalAvailability"]</label>
+                             @if (isEditingAvailability)
+                            {
+                                <div class="input-group input-group-sm">
+                                    <select class="form-select border-primary" @bind="editedAvailability">
+                                        @foreach (var avail in Availability.AllCases())
+                                        {
+                                            <option value="@avail.ToString()" selected="@(avail.ToString() == bookDetails.Book.Availability.ToString())">
+                                                @GetAvailabilityLocalName(avail)
+                                            </option>
+                                        }
+                                    </select>
+                                    <button class="btn btn-primary" @onclick="UpdateAvailability"><i class="bi bi-check-lg"></i></button>
+                                    <button class="btn btn-white border-start" @onclick="() => isEditingAvailability = false"><i class="bi bi-x-lg"></i></button>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="d-flex align-items-center gap-3">
+                                    <span class="badge-sanctuary @(bookDetails.Book.Availability.IsCirculating ? "badge-available" : "badge-neutral") p-2">
+                                        <i class="bi @(bookDetails.Book.Availability.IsCirculating ? "bi-journal-check" : "bi-journal-lock") me-2"></i>
+                                        @GetAvailabilityLocalName(bookDetails.Book.Availability)
+                                    </span>
+                                    @if (bookDetails.Book.Editable)
+                                    {
+                                        <button class="btn btn-link p-0 text-muted" @onclick="StartEditAvailability"><i class="bi bi-pencil-square"></i></button>
+                                    }
+                                </div>
+                            }
+                        </div>
+
+                        <!-- Authors & Taxonomy -->
+                        <div class="col-md-6 border-end" style="border-color: var(--surface-container-low) !important;">
+                            <label class="form-label small text-muted text-uppercase fw-bold mb-3">@L["CatalogedAuthors"]</label>
+                            <div class="d-flex flex-wrap gap-2 mb-3">
+                                @foreach (var author in bookDetails.Authors)
                                 {
-                                    <li class="list-group-item px-0 py-2 border-0 border-bottom">
-                                        <div class="d-flex align-items-center">
-                                            <i class="bi bi-calendar-event me-2 text-primary"></i>
-                                            <div>
-                                                <div class="small fw-bold">@res.Reservation.TimeSlot.Start.ToShortDateString() - @res.Reservation.TimeSlot.End.ToShortDateString()</div>
-                                                <div class="small text-muted">User: @res.UserDetails.ApplicationUser.UserName - @res.UserDetails.ApplicationUser.CodiceFiscale</div>
-                                            </div>
-                                        </div>
-                                    </li>
+                                    <span class="badge-sanctuary badge-neutral p-2 d-flex align-items-center">
+                                        <i class="bi bi-journal-richtext me-2 opacity-50"></i>
+                                        <a href="/author-details/@author.AuthorId.Value" class="text-reset text-decoration-none fw-bold">@author.Name.Value</a>
+                                        @if (bookDetails.Book.Editable)
+                                        {
+                                            <span class="ms-2 ps-2 border-start" style="cursor: pointer;" @onclick="() => RemoveAuthorFromBook(author)"><i class="bi bi-x text-danger"></i></span>
+                                        }
+                                    </span>
                                 }
-                            </ul>
-                        }
-                        else
+                            </div>
+                            
+                            @if (bookDetails.Book.Editable)
+                            {
+                                <div class="position-relative">
+                                    <div class="input-group input-group-sm rounded bg-surface-low border p-1 shadow-sm">
+                                        <span class="input-group-text bg-transparent border-0"><i class="bi bi-person-plus"></i></span>
+                                        <input type="text" 
+                                               class="form-control border-0 bg-transparent py-2" 
+                                               placeholder="@L["AddAuthorToRecord"]" 
+                                               value="@authorSearchInput" 
+                                               @oninput="HandleAuthorSearchInput"
+                                               @onfocus="() => { if(authorSearchResults.Any()) showAuthorSearchResults = true; }" />
+                                    </div>
+                                    
+                                    @if (showAuthorSearchResults)
+                                    {
+                                        <div class="list-group position-absolute w-100 shadow mt-1 border" style="z-index: 1100; max-height: 200px; overflow-y: auto; border-radius: 8px;">
+                                            @foreach (var author in authorSearchResults)
+                                            {
+                                                <button type="button" class="list-group-item list-group-item-action text-start p-3 small border-0" @onclick="() => SelectAuthorForAdd(author)">
+                                                    <div class="fw-bold">@author.Name.Value</div>
+                                                </button>
+                                            }
+                                        </div>
+                                    }
+                                </div>
+                            }
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label small text-muted text-uppercase fw-bold mb-3">@L["EditorialTaxonomy"]</label>
+                            <div class="d-flex flex-wrap gap-2 mb-3">
+                                <!-- Main -->
+                                <span class="badge-sanctuary badge-neutral p-2 d-flex align-items-center @((bookDetails?.Book.Editable ?? false) ? "clickable" : "")" @onclick="StartEditCategory">
+                                    <i class="bi bi-bookmark-fill me-2 opacity-50"></i>
+                                    @bookDetails.Book.MainCategory.Value()
+                                    @if (bookDetails.Book.Editable) { <i class="bi bi-pencil-fill ms-2 ps-2 border-start x-small"></i> }
+                                </span>
+                                <!-- Additions -->
+                                @foreach (var cat in bookDetails.Book.AdditionalCategories)
+                                {
+                                    <span class="badge-sanctuary badge-neutral p-2 d-flex align-items-center">
+                                        @cat.Value()
+                                        @if (bookDetails.Book.Editable)
+                                        {
+                                            <span class="ms-2 ps-2 border-start" style="cursor: pointer;" @onclick="() => RemoveAdditionalCategory(cat)"><i class="bi bi-dash text-danger"></i></span>
+                                        }
+                                    </span>
+                                }
+                            </div>
+                            
+                            @if (bookDetails.Book.Editable)
+                            {
+                                <button class="btn btn-sm btn-white border rounded-pill px-3" @onclick="() => showAddDropdown = !showAddDropdown">
+                                    <i class="bi bi-plus-lg me-1"></i> @L["AddArchivalTag"]
+                                </button>
+                                @if (showAddDropdown)
+                                {
+                                    <div class="position-absolute shadow-lg border rounded-lg bg-white p-3 mt-1" style="z-index: 1000; min-width: 250px; left: 15px;">
+                                        <div class="small fw-bold mb-3 border-bottom pb-2">@L["SelectCategory"]</div>
+                                        <div class="row g-1">
+                                            @foreach (var cat in Category.AllCases())
+                                            {
+                                                if (cat != bookDetails.Book.MainCategory && !bookDetails.Book.AdditionalCategories.Contains(cat))
+                                                {
+                                                    <div class="col-6">
+                                                        <div class="dropdown-item py-1 px-2 small rounded text-truncate border mb-1" style="cursor: pointer;" @onclick="() => AddAdditionalCategoryWrapper(cat)">
+                                                            @cat.Value()
+                                                        </div>
+                                                    </div>
+                                                }
+                                            }
+                                        </div>
+                                    </div>
+                                }
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Narrative Ledger (Description) -->
+                <div class="card-sanctuary p-5">
+                    <div class="d-flex justify-content-between align-items-baseline mb-4 border-bottom pb-3" style="border-color: var(--outline-variant) !important;">
+                        <h5 class="serif mb-0">@L["NarrativeAbstract"]</h5>
+                        @if (bookDetails.Book.Editable && !isEditingDescription)
                         {
-                            <p class="text-muted fst-italic small mb-0">@L["NoFutureReservations"]</p>
+                            <button class="btn btn-sm btn-white border" @onclick="StartEditDescription"><i class="bi bi-pencil-square me-1"></i> @L["EditNarrative"]</button>
                         }
+                    </div>
+
+                    @if (isEditingDescription)
+                    {
+                        <div class="p-4 bg-surface-low rounded-xl">
+                            <textarea class="form-control border-0 serif bg-transparent mb-3" @bind="editedDescription" rows="10" placeholder="@L["WriteDescription"]"></textarea>
+                            <div class="d-flex gap-3">
+                                <button class="btn btn-primary px-4" @onclick="UpdateDescription">@L["Save"]</button>
+                                <button class="btn btn-white border px-4" @onclick="CancelEditDescription">@L["Cancel"]</button>
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="serif italic text-muted lh-lg" style="font-size: 1.1rem; white-space: pre-wrap;">
+                            @(FSharpOption<string>.get_IsSome(bookDetails.Book.Description) ? bookDetails.Book.Description.Value : L["NoDescriptionProvided"])
+                        </div>
+                    }
+                </div>
+
+            </div> <!-- End lg-8 -->
+        </div> <!-- End row g-5 -->
+
+        <!-- Status & Future Engagements -->
+        <div class="row g-5 mt-4">
+            <div class="col-lg-12">
+                <div class="card-sanctuary">
+                    <h5 class="serif mb-4 pb-2 border-bottom" style="border-color: var(--outline-variant) !important;">@L["ArchivalLifecycle"]</h5>
+                    
+                    <div class="row g-4">
+                        <div class="col-md-6 border-end" style="border-color: var(--surface-container-low) !important;">
+                            <label class="form-label small text-muted text-uppercase fw-bold mb-3">@L["CurrentLoanStatus"]</label>
+                            @if (FSharpOption<BookLibrary.Domain.Loan>.get_IsSome(bookDetails.CurrentLoan))
+                            {
+                                var loan = bookDetails.CurrentLoan.Value;
+                                <div class="p-4 bg-surface-low rounded-xl border border-warning-subtle">
+                                    <div class="d-flex align-items-center gap-3 mb-3">
+                                        <i class="bi bi-journal-minus fs-3 text-warning"></i>
+                                        <div>
+                                            <h6 class="serif mb-1">@L["ItemCurrentlyWithBorrower"]</h6>
+                                            <p class="small text-muted mb-0">UID: @loan.UserId</p>
+                                        </div>
+                                    </div>
+                                    <div class="d-flex justify-content-between small border-top pt-2">
+                                        <span>@L["CheckoutDate"]: <strong class="serif">@loan.TimeSlot.Start.ToShortDateString()</strong></span>
+                                        <span>@L["ExpectedReturn"]: <strong class="serif">@loan.TimeSlot.End.ToShortDateString()</strong></span>
+                                    </div>
+                                </div>
+                            }
+                            else if (bookDetails.Book.ImmediatelyAvailable)
+                            {
+                                <div class="p-4 bg-surface-low rounded-xl border border-success-subtle d-flex align-items-center gap-3">
+                                    <i class="bi bi-journal-check fs-3 text-success"></i>
+                                    <div>
+                                        <h6 class="serif mb-1">@L["AvailableInStacks"]</h6>
+                                        <p class="small text-muted mb-0">@L["ReadyForDissemination"]</p>
+                                    </div>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="p-4 bg-surface-low rounded-xl border d-flex align-items-center gap-3">
+                                    <i class="bi bi-journal-x fs-3 text-muted"></i>
+                                    <div>
+                                        <h6 class="serif mb-1">@L["ProvisionallyUnavailable"]</h6>
+                                        <p class="small text-muted mb-0">@L["ContactRepositoryManager"]</p>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label small text-muted text-uppercase fw-bold mb-3">@L["ScheduledReservations"]</label>
+                            @if (bookDetails.ReservationsDetails.Any())
+                            {
+                                <div class="editorial-ledger">
+                                    <table class="table table-borderless mb-0">
+                                        <thead>
+                                            <tr>
+                                                <th class="ps-0">@L["Patron"]</th>
+                                                <th>@L["TimeSlot"]</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach (var res in bookDetails.ReservationsDetails)
+                                            {
+                                                <tr>
+                                                    <td class="ps-0 py-3">
+                                                        <div class="fw-bold serif">@res.UserDetails.ApplicationUser.UserName</div>
+                                                        <div class="x-small text-muted">@res.UserDetails.ApplicationUser.CodiceFiscale</div>
+                                                    </td>
+                                                    <td class="py-3">
+                                                        <div class="small font-monospace">@res.Reservation.TimeSlot.Start.ToShortDateString() — @res.Reservation.TimeSlot.End.ToShortDateString()</div>
+                                                    </td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="p-4 bg-surface-low rounded-xl text-center border dashed">
+                                    <p class="text-muted fst-italic small mb-0 serif">@L["NoFutureProvisions"]</p>
+                                </div>
+                            }
+                        </div>
                     </div>
                 </div>
             </div>
@@ -553,28 +517,24 @@
 
         @if (bookDetails.Book.Editable)
         {
-            <!-- Danger Zone Section -->
-            <div class="row g-4 mt-4 mb-5">
-                <div class="col-12">
-                    <div class="card border-danger shadow-sm border-2">
-                        <div class="card-header bg-danger text-white py-3">
-                            <h5 class="card-title mb-0"><i class="bi bi-exclamation-octagon me-2"></i>@L["DangerZone"]</h5>
+            <!-- Archival Removal -->
+            <div class="mt-5 pt-5 border-top" style="border-color: var(--outline-variant) !important; border-style: dashed !important;">
+                <div class="card-sanctuary bg-surface-low border-0">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="serif text-danger mb-1">@L["DeaccessionItem"]</h5>
+                            <p class="text-muted small mb-0 serif">@L["PermanentlyRemoveFromArchivalRecord"]</p>
                         </div>
-                        <div class="card-body d-flex justify-content-between align-items-center">
-                            <div class="me-4">
-                                <h6 class="fw-bold mb-1 text-danger">@L["PermanentlyRemoveBook"]</h6>
-                                <p class="text-muted small mb-0">@L["DeleteBookDescription"]</p>
-                            </div>
-                            <button class="btn btn-danger btn-lg px-4 flex-shrink-0" @onclick="DeleteBook" disabled="@(!bookDetails.Book.Editable)">
-                                <i class="bi bi-trash me-2"></i>@L["DeleteBook"]
-                            </button>
-                        </div>
+                        <button class="btn btn-outline-danger px-4 py-2 serif" @onclick="DeleteBook" disabled="@(!bookDetails.Book.Editable)">
+                            <i class="bi bi-trash me-2"></i>@L["PurgeRecord"]
+                        </button>
                     </div>
                 </div>
             </div>
         }
     }
 </div>
+
 
 @code {
     [Parameter]
@@ -654,11 +614,12 @@
         }
     }
 
-    private void SelectAuthorForAdd(Author author)
+    private async Task SelectAuthorForAdd(Author author)
     {
         selectedAuthorForAdd = author;
         authorSearchInput = author.Name.Value;
         showAuthorSearchResults = false;
+        await AddAuthorToBook();
     }
 
     private async Task AddAuthorToBook()

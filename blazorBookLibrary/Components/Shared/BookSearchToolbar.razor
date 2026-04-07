@@ -17,227 +17,138 @@
 {
     <img src="/images/loading-gif.gif" alt="Uploading..." style="height:32px;"/>
 }
-<div class="card shadow-sm border-0 mb-4">
-    <div class="card-header bg-secondary text-white py-3">
-        <h5 class="card-title mb-0"><i class="bi bi-search me-2"></i>@L["SearchBooks"]</h5>
-    </div>
-    <div class="card-body bg-light">
+<div class="card-sanctuary bg-surface-lowest floating mb-5 p-0 overflow-hidden">
+    <div class="px-3 px-md-5 pt-4 pt-md-5 pb-4">
+        <h5 class="serif display-6 mb-4" style="font-size: calc(1.3rem + 0.6vw);">@L["SearchBooks"]</h5>
+        
         <EditForm Model="@this" OnValidSubmit="HandleBookSearch" FormName="SearchBookComponentForm">
-            <div class="row g-3 align-items-start">
-                <div class="col-md-4">
-                    <label class="form-label fw-bold small text-muted text-uppercase mb-2">@L["TitleSearch"]</label>
-                    <InputText class="form-control border-primary shadow-sm py-2" @bind-Value="searchBookTitle" placeholder="@L["SearchByTitlePlaceholder"]" />
-                </div>
-                <div class="col-md-4">
-                    <label class="form-label fw-bold small text-muted text-uppercase mb-2">@L["IsbnSearch"]</label>
-                    <InputText class="form-control border-primary shadow-sm py-2" @bind-Value="searchBookIsbn" placeholder="@L["PartialIsbnPlaceholder"]" />
-                </div>
-                <div class="col-md-4 @(IsIsbnSearchActive ? "opacity-50" : "") transition-opacity" style="transition: opacity 0.3s ease;">
-                    <label class="form-label fw-bold small text-muted text-uppercase mb-2 @(IsIsbnSearchActive ? "text-decoration-line-through" : "")">
-                        <i class="bi bi-calendar-range me-1"></i>@L["PublicationYear"]
-                    </label>
-                    <div class="year-search-container bg-white p-2 rounded shadow-sm border @(IsIsbnSearchActive ? "bg-light border-secondary-subtle" : "border-primary-subtle")">
-                        <fieldset disabled="@IsIsbnSearchActive">
-                            <div class="d-flex flex-wrap gap-2 mb-2">
-                                <div class="form-check">
-                                    <input class="form-check-input" type="radio" name="yearSearchOption" id="exactYear" value="exact" 
-                                           checked='@(yearSearchMode == "exact")' @onclick='() => yearSearchMode = "exact"' />
-                                    <label class="form-check-label small" for="exactYear">@L["Exact"]</label>
+            <!-- The Entryway: Main Title Search -->
+            <div class="position-relative mb-4 mb-md-5">
+                <InputText class="search-entryway" @bind-Value="searchBookTitle" placeholder="@L["SearchByTitlePlaceholder"]" />
+                <button type="submit" class="btn-sanctuary-primary position-absolute d-flex align-items-center justify-content-center" 
+                        style="top: 50%; right: 8px; transform: translateY(-50%); padding: 0.6rem 1rem;">
+                    <i class="bi bi-search @(string.IsNullOrEmpty(L["Search"]) ? "" : "me-md-2")"></i> 
+                    <span class="d-none d-md-inline">@L["Search"]</span>
+                </button>
+            </div>
+
+            <!-- Advanced Filters Region -->
+            <div class="bg-surface-low rounded-xl p-3 p-md-5">
+                <div class="row g-4 g-md-5">
+                    <!-- Column 1: ISBN & Category -->
+                    <div class="col-lg-4">
+                        <h6 class="serif mb-3 mb-md-4 pb-2 border-bottom" style="border-color: var(--outline-variant) !important;">@L["CoreIdentifiers"]</h6>
+                        
+                        <div class="mb-3 mb-md-4">
+                            <label class="form-label small text-muted text-uppercase fw-bold mb-2">@L["ISBN"]</label>
+                            <InputText class="form-control bg-surface-lowest border-0 rounded-lg shadow-sm py-2 py-md-3" @bind-Value="searchBookIsbn" placeholder="@L["PartialIsbnPlaceholder"]" />
+                        </div>
+
+                        <div>
+                            <label class="form-label small text-muted text-uppercase fw-bold mb-2">@L["RefineByCategory"]</label>
+                            <div class="d-flex gap-2">
+                                <select class="form-select bg-surface-lowest border-0 rounded-lg shadow-sm py-2 py-md-3" @bind="selectedCategoryForFilter">
+                                    <option value="">@L["SelectCategoryPlaceholder"]</option>
+                                    @foreach (var category in allCategories)
+                                    {
+                                        <option value="@category.Value()">@category.Value()</option>
+                                    }
+                                </select>
+                                <button type="button" class="btn-sanctuary-outline bg-surface-lowest px-3" @onclick="AddCategoryToSearchCriteria" disabled="@(string.IsNullOrEmpty(selectedCategoryForFilter))">
+                                    <i class="bi bi-plus-lg"></i>
+                                </button>
+                            </div>
+                            
+                            <div class="mt-3 d-flex flex-wrap gap-2">
+                                @foreach (var category in searchCategoriesCriteria)
+                                {
+                                    <span class="badge-sanctuary badge-neutral">
+                                        @category.Value()
+                                        <i class="bi bi-x-circle-fill ms-2" style="cursor: pointer" @onclick="() => RemoveCategoryFromSearchCriteria(category)"></i>
+                                    </span>
+                                }
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Column 2: Authors -->
+                    <div class="col-lg-4">
+                        <h6 class="serif mb-3 mb-md-4 pb-2 border-bottom" style="border-color: var(--outline-variant) !important;">@L["Authorship"]</h6>
+                        
+                        <div class="position-relative">
+                            <label class="form-label small text-muted text-uppercase fw-bold mb-2">@L["SearchAuthorNamePlaceholder"]</label>
+                            <div class="input-group bg-surface-lowest rounded-lg shadow-sm overflow-hidden">
+                                <input type="text" 
+                                       class="form-control border-0 py-2 py-md-3" 
+                                       value="@authorSearchNameFilter"
+                                       @oninput="HandleAuthorSearchInput"
+                                       @onfocus='() => { if(foundAuthorsForFilter.Any()) showAuthorSearchResults = true; }' />
+                                <button type="button" class="btn btn-link text-primary border-0 p-2 p-md-3" @onclick="AddAuthorToSearchCriteria" disabled="@(selectedAuthorFromResults == null)">
+                                    <i class="bi bi-person-plus-fill fs-4"></i>
+                                </button>
+                            </div>
+                            
+                            @if (showAuthorSearchResults)
+                            {
+                                <div class="list-group position-absolute w-100 shadow mt-1 glass border-0" style="z-index: 1100; max-height: 250px; overflow-y: auto; border-radius: var(--radius-lg);">
+                                    @foreach (var author in foundAuthorsForFilter)
+                                    {
+                                        <button type="button" class="list-group-item list-group-item-action bg-transparent border-0 py-2" @onclick="() => SelectAuthorFromResults(author)">
+                                            @author.Name.Value
+                                        </button>
+                                    }
                                 </div>
-                                <div class="form-check">
-                                    <input class="form-check-input" type="radio" name="yearSearchOption" id="afterYear" value="after" 
-                                           checked='@(yearSearchMode == "after")' @onclick='() => yearSearchMode = "after"' />
-                                    <label class="form-check-label small" for="afterYear">@L["From"]</label>
-                                </div>
-                                <div class="form-check">
-                                    <input class="form-check-input" type="radio" name="yearSearchOption" id="beforeYear" value="before" 
-                                           checked='@(yearSearchMode == "before")' @onclick='() => yearSearchMode = "before"' />
-                                    <label class="form-check-label small" for="beforeYear">@L["To"]</label>
-                                </div>
-                                <div class="form-check">
-                                    <input class="form-check-input" type="radio" name="yearSearchOption" id="betweenYear" value="between" 
-                                           checked='@(yearSearchMode == "between")' @onclick='() => yearSearchMode = "between"' />
-                                    <label class="form-check-label small" for="betweenYear">@L["Range"]</label>
-                                </div>
+                            }
+                        </div>
+
+                        <div class="mt-4 d-flex flex-wrap gap-2">
+                            @if (!searchAuthorsCriteria.Any())
+                            {
+                                <p class="text-muted small fst-italic">@L["NoAuthorsSelected"]</p>
+                            }
+                            @foreach (var author in searchAuthorsCriteria)
+                            {
+                                <span class="badge-sanctuary badge-neutral">
+                                    @author.Name.Value
+                                    <i class="bi bi-x-circle-fill ms-2" style="cursor: pointer" @onclick="() => RemoveAuthorFromSearchCriteria(author)"></i>
+                                </span>
+                            }
+                        </div>
+                    </div>
+
+                    <!-- Column 3: Year & Availability -->
+                    <div class="col-lg-4">
+                        <h6 class="serif mb-3 mb-md-4 pb-2 border-bottom" style="border-color: var(--outline-variant) !important;">@L["TimelineStatus"]</h6>
+                        
+                        <div class="mb-4">
+                            <div class="btn-group w-100 shadow-sm rounded-lg overflow-hidden mb-3">
+                                <button type="button" class="btn btn-xs btn-light py-2 @(yearSearchMode == "exact" ? "active" : "")" @onclick='() => yearSearchMode = "exact"'>@L["Exact"]</button>
+                                <button type="button" class="btn btn-xs btn-light py-2 @(yearSearchMode == "after" ? "active" : "")" @onclick='() => yearSearchMode = "after"'>@L["From"]</button>
+                                <button type="button" class="btn btn-xs btn-light py-2 @(yearSearchMode == "before" ? "active" : "")" @onclick='() => yearSearchMode = "before"'>@L["To"]</button>
+                                <button type="button" class="btn btn-xs btn-light py-2 @(yearSearchMode == "between" ? "active" : "")" @onclick='() => yearSearchMode = "between"'>@L["Range"]</button>
                             </div>
                             <div class="row g-2">
-                                <div class="@(yearSearchMode == "between" ? "col-6" : "col-12")">
-                                    <div class="input-group input-group-sm">
-                                        <span class="input-group-text bg-light text-primary"><i class="bi bi-calendar-event"></i></span>
-                                        <InputNumber class="form-control" @bind-Value="searchBookYear" 
-                                                       placeholder='@(yearSearchMode == "between" ? L["StartingYear"] : L["YearValue"])' />
-                                    </div>
+                                <div class="col">
+                                    <InputNumber class="form-control bg-surface-lowest border-0 rounded-lg shadow-sm py-2" @bind-Value="searchBookYear" placeholder="@L["Year"]" />
                                 </div>
                                 @if (yearSearchMode == "between")
                                 {
-                                    <div class="col-6">
-                                        <div class="input-group input-group-sm">
-                                            <span class="input-group-text bg-light text-primary"><i class="bi bi-calendar-check"></i></span>
-                                            <InputNumber class="form-control" @bind-Value="searchBookYearTo" placeholder="@L["EndingYear"]" />
-                                        </div>
+                                    <div class="col">
+                                        <InputNumber class="form-control bg-surface-lowest border-0 rounded-lg shadow-sm py-2" @bind-Value="searchBookYearTo" placeholder="@L["To"]" />
                                     </div>
                                 }
                             </div>
-                        </fieldset>
-                    </div>
-                </div>
-            </div>
-
-            <div class="row g-3 mt-1">
-                <div class="col-md-10">
-                    <label class="form-label fw-bold small text-muted text-uppercase mb-2"><i class="bi bi-funnel-fill me-1"></i>@L["AvailabilityFilters"]</label>
-                    <div class="d-flex flex-wrap gap-3">
-                        <div class="btn-group shadow-sm flex-grow-1" role="group">
-                            <input type="radio" class="btn-check" name="availSearch" id="availAll" checked="@(searchBookAvailability == "All")" @onclick='() => searchBookAvailability = "All"' autocomplete="off">
-                            <label class="btn btn-outline-primary py-2" for="availAll">@L["AllBooks"]</label>
-
-                            <input type="radio" class="btn-check" name="availSearch" id="availCirc" checked="@(searchBookAvailability == "Circulating")" @onclick='() => searchBookAvailability = "Circulating"' autocomplete="off">
-                            <label class="btn btn-outline-primary py-2" for="availCirc" title="@L["Circulating"]">
-                                <i class="bi bi-journal-text me-1"></i><span class="d-none d-lg-inline">@L["CirculatingRule"]</span>
-                            </label>
-
-                            <input type="radio" class="btn-check" name="availSearch" id="availRef" checked="@(searchBookAvailability == "ReferenceOnly")" @onclick='() => searchBookAvailability = "ReferenceOnly"' autocomplete="off">
-                            <label class="btn btn-outline-primary py-2" for="availRef" title="@L["ReferenceOnly"]">
-                                <i class="bi bi-lock-fill me-1"></i><span class="d-none d-lg-inline">@L["ReferenceOnlyRule"]</span>
-                            </label>
-
-                            <input type="radio" class="btn-check" name="availSearch" id="availUnsp" checked="@(searchBookAvailability == "Unspecified")" @onclick='() => searchBookAvailability = "Unspecified"' autocomplete="off">
-                            <label class="btn btn-outline-primary py-2" for="availUnsp" title="@L["Unspecified"]">
-                                <i class="bi bi-question-circle me-1"></i><span class="d-none d-lg-inline">@L["UnspecifiedRule"]</span>
-                            </label>
                         </div>
-                        
-                        <div class="btn-group shadow-sm" role="group">
-                            <input type="radio" class="btn-check" name="availSearch" id="availNow" checked="@(searchBookAvailability == "ImmediatelyAvailable")" @onclick='() => searchBookAvailability = "ImmediatelyAvailable"' autocomplete="off">
-                            <label class="btn btn-outline-success py-2 px-4 fw-bold" for="availNow">
-                                <i class="bi bi-lightning-fill me-1"></i>@L["ImmediatelyAvailableOnly"]
-                            </label>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-2 d-flex align-items-end">
-                    <button type="submit" class="btn btn-primary btn-lg w-100 shadow-sm transition-hover py-2 d-flex align-items-center justify-content-center h-75 mb-1">
-                        <i class="bi bi-search me-2 fs-5"></i><span>@L["Search"]</span>
-                    </button>
-                </div>
-            </div>
 
-            <div class="row g-3 mt-4 border-top pt-4 @(IsIsbnSearchActive ? "opacity-50" : "") transition-opacity" style="transition: opacity 0.3s ease;">
-                <div class="col-md-5">
-                    <label class="form-label fw-bold small text-muted text-uppercase mb-2 @(IsIsbnSearchActive ? "text-decoration-line-through" : "")">
-                        <i class="bi bi-person-lines-fill me-1"></i>@L["RefineByAuthors"]
-                    </label>
-                    <fieldset disabled="@IsIsbnSearchActive" class="position-relative">
-                        <div class="input-group shadow-sm">
-                            <span class="input-group-text bg-white text-primary border-primary border-end-0"><i class="bi bi-person-plus"></i></span>
-                            <input type="text" 
-                                   class="form-control border-primary border-start-0" 
-                                   placeholder="@L["SearchAuthorNamePlaceholder"]" 
-                                   value="@authorSearchNameFilter"
-                                   @oninput="HandleAuthorSearchInput"
-                                   @onfocus='() => { if(foundAuthorsForFilter.Any()) showAuthorSearchResults = true; }' />
-                            <button type="button" 
-                                    class="btn btn-primary px-3 transition-hover" 
-                                    @onclick="AddAuthorToSearchCriteria"
-                                    disabled="@(selectedAuthorFromResults == null)">
-                                <i class="bi bi-plus-lg me-1"></i>@L["Add"]
-                            </button>
-                        </div>
-                        
-                        @if (showAuthorSearchResults)
-                        {
-                            <div class="list-group position-absolute w-100 shadow mt-1 border-primary-subtle" style="z-index: 1100; max-height: 250px; overflow-y: auto;">
-                                @foreach (var author in foundAuthorsForFilter)
-                                {
-                                    <button type="button" 
-                                            class="list-group-item list-group-item-action text-start py-2 animate-fade-in" 
-                                            @onclick="() => SelectAuthorFromResults(author)">
-                                        <div class="d-flex justify-content-between align-items-center">
-                                            <div class="fw-bold text-primary">@author.Name.Value</div>
-                                            @if (!string.IsNullOrEmpty(author.Isni.Value))
-                                            {
-                                                <span class="badge bg-light text-muted border small font-monospace">@author.Isni.Value</span>
-                                            }
-                                        </div>
-                                    </button>
-                                }
-                            </div>
-                        }
-                        @if (!string.IsNullOrEmpty(authorSearchNameFilter) && authorSearchNameFilter.Length >= 2 && !foundAuthorsForFilter.Any() && !isLoadingAuthors)
-                        {
-                            <div class="alert alert-light border small mt-1 py-1 px-2 text-muted shadow-sm animate-fade-in">
-                                <i class="bi bi-info-circle me-1"></i>@L["NoAuthorsFoundMatching"] "@authorSearchNameFilter"
-                            </div>
-                        }
-                    </fieldset>
-                </div>
-                
-                <div class="col-md-7">
-                    <label class="form-label fw-bold small text-muted text-uppercase mb-2">@L["ActiveAuthorCriteria"]</label>
-                    <div class="d-flex flex-wrap gap-2 p-3 border border-dashed rounded bg-white shadow-inner min-vh-10" style="min-height: 80px;">
-                        @if (!searchAuthorsCriteria.Any())
-                        {
-                            <div class="w-100 d-flex align-items-center justify-content-center text-muted small italic">
-                                <i class="bi bi-info-circle me-2"></i>@L["NoAuthorsSelected"]
-                            </div>
-                        }
-                        else
-                        {
-                            @foreach (var author in searchAuthorsCriteria)
-                            {
-                                <div class="badge bg-primary text-white d-flex align-items-center py-2 px-3 rounded-pill shadow-sm animate-pop-in">
-                                    <i class="bi bi-person-fill me-2 border-end pe-2 border-white-50"></i>
-                                    <span class="me-2 fw-normal">@author.Name.Value</span>
-                                    <button type="button" class="btn-close btn-close-white ms-1 small" style="transform: scale(0.7);" title="@L["Remove"]" @onclick="() => { if (!IsIsbnSearchActive) RemoveAuthorFromSearchCriteria(author); }"></button>
-                                </div>
-                            }
-                        }
-                    </div>
-                </div>
-            </div>
-
-            <!-- Category Selection Section -->
-            <div class="row g-3 mt-4 border-top pt-4 @(IsIsbnSearchActive ? "opacity-50" : "") transition-opacity" style="transition: opacity 0.3s ease;">
-                <div class="col-md-5">
-                    <label class="form-label fw-bold small text-muted text-uppercase mb-2 @(IsIsbnSearchActive ? "text-decoration-line-through" : "")">
-                        <i class="bi bi-tags-fill me-1"></i>@L["RefineByCategory"]
-                    </label>
-                    <fieldset disabled="@IsIsbnSearchActive">
-                        <div class="d-flex gap-2">
-                            <select class="form-select border-primary shadow-sm" @bind="selectedCategoryForFilter">
-                                <option value="">@L["SelectCategoryPlaceholder"]</option>
-                                @foreach (var category in allCategories)
-                                {
-                                    <option value="@category.Value()">@category.Value()</option>
-                                }
+                        <div>
+                            <label class="form-label small text-muted text-uppercase fw-bold mb-2">@L["AvailabilityFilters"]</label>
+                            <select class="form-select bg-surface-lowest border-0 rounded-lg shadow-sm py-2" @bind="searchBookAvailability">
+                                <option value="All">@L["AllBooks"]</option>
+                                <option value="Circulating">@L["CirculatingRule"]</option>
+                                <option value="ReferenceOnly">@L["ReferenceOnlyRule"]</option>
+                                <option value="ImmediatelyAvailable">@L["ImmediatelyAvailableOnly"]</option>
                             </select>
-                            <button type="button" class="btn btn-info text-white shadow-sm transition-hover d-flex align-items-center" @onclick="AddCategoryToSearchCriteria" disabled="@(string.IsNullOrEmpty(selectedCategoryForFilter))">
-                                <i class="bi bi-bookmark-plus-fill me-1"></i>@L["Add"]
-                            </button>
                         </div>
-                    </fieldset>
-                </div>
-                
-                <div class="col-md-7">
-                    <label class="form-label fw-bold small text-muted text-uppercase mb-2">@L["ActiveCategoryCriteria"]</label>
-                    <div class="d-flex flex-wrap gap-2 p-3 border border-dashed rounded bg-white shadow-inner" style="min-height: 80px;">
-                        @if (!searchCategoriesCriteria.Any())
-                        {
-                            <div class="w-100 d-flex align-items-center justify-content-center text-muted small italic">
-                                <i class="bi bi-info-circle me-2"></i>@L["NoCategoriesSelected"]
-                            </div>
-                        }
-                        else
-                        {
-                            @foreach (var category in searchCategoriesCriteria)
-                            {
-                                <div class="badge bg-info text-white d-flex align-items-center py-2 px-3 rounded shadow-sm animate-pop-in">
-                                    <i class="bi bi-tag-fill me-2 border-end pe-2 border-white-50"></i>
-                                    <span class="me-2 fw-normal">@category.Value()</span>
-                                    <button type="button" class="btn-close btn-close-white ms-1 small" style="transform: scale(0.7);" title="@L["Remove"]" @onclick="() => { if (!IsIsbnSearchActive) RemoveCategoryFromSearchCriteria(category); }"></button>
-                                </div>
-                            }
-                        }
                     </div>
                 </div>
             </div>

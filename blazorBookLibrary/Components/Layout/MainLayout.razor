@@ -1,4 +1,5 @@
 @inherits LayoutComponentBase
+@using blazorBookLibrary.Components.Shared
 @inject NavigationManager NavigationManager
 
 <div class="page">
@@ -6,22 +7,26 @@
         <NavMenu />
     </div>
 
-    <main>
-        <div class="top-row px-4">
-            <CultureSelector currentUrl="@currentUrl" />
-            <a href="https://learn.microsoft.com/aspnet/core/" target="_blank">About</a>
+    <main class="main-content">
+        <div class="top-row">
+            <div class="top-row-inner d-flex align-items-center justify-content-end w-100 px-4">
+                <CultureSelector currentUrl="@currentUrl" />
+            </div>
         </div>
 
-        <article class="content px-4">
+        <div class="sanctuary-viewport">
             @Body
-        </article>
+        </div>
     </main>
 </div>
 
 <div id="blazor-error-ui" data-nosnippet>
-    An unhandled error has occurred.
-    <a href="." class="reload">Reload</a>
-    <span class="dismiss">🗙</span>
+    <div class="d-flex align-items-center gap-3">
+        <i class="bi bi-exclamation-triangle-fill"></i>
+        <span>An unexpected error occurred in the repository interface.</span>
+        <a href="." class="reload btn btn-sm btn-outline-dark">Reload</a>
+        <span class="dismiss ms-auto">🗙</span>
+    </div>
 </div>
 
 @code {
@@ -36,3 +41,43 @@
         };
     }
 }
+
+<style>
+    .main-content {
+        min-height: 100vh;
+        background-color: var(--surface);
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .top-row {
+        height: 4rem;
+        background-color: var(--surface-container-lowest);
+        border-bottom: 1px solid var(--outline-variant);
+        position: sticky;
+        top: 0;
+        z-index: 50;
+        display: flex;
+        align-items: center;
+    }
+
+    .sanctuary-viewport {
+        flex: 1;
+        overflow-y: auto;
+    }
+
+    #blazor-error-ui {
+        background: var(--error-container);
+        color: var(--on-error-container);
+        padding: 1rem 2rem;
+        font-weight: 600;
+        display: none;
+        position: fixed;
+        bottom: 0;
+        width: 100%;
+        z-index: 1000;
+        box-shadow: 0 -4px 20px rgba(0,0,0,0.1);
+        border-top: 1px solid var(--error);
+    }
+</style>
