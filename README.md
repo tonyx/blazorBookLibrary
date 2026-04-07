@@ -27,4 +27,5 @@ See the [LICENSE](LICENSE) file for the full legal text.
 
 *“To catalog is to preserve; to curate is to honor.”*
 
+**Try it on line**:  https://bookslibrary.azurewebsites.net (will be on line for 1 month or so)
 **Note**: some features are still in progress. More info will come next.
