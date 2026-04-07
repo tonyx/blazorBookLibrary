@@ -57,6 +57,8 @@ publish/**/*
 *.vspx
 *.sap
 
+.env
+
 # Visual Studio Code project settings
 .vscode/*
 !.vscode/settings.json
