@@ -92,7 +92,7 @@
 
                         <PropertyColumn Property="@(b => b.Year.Value)" Title="@L["Year"]" Sortable="true" Class="col-year text-muted small px-3" />
                         
-                        <TemplateColumn Title="@L["Taxonomy"]" Sortable="true" Class="col-category small">
+                        <TemplateColumn Title="@L["Taxonomy"]" sortBy="@sortTaxonomy" Class="col-category small">
                             <span class="badge-sanctuary badge-neutral">@context.MainCategory.Value()</span>
                         </TemplateColumn>
 
@@ -139,6 +139,7 @@
     private PaginationState bookPagination = new() { ItemsPerPage = 12 };
     private GridSort<Book> sortTitle = GridSort<Book>.ByAscending(b => b.Title.Value);
     private GridSort<Book> sortAvailability = GridSort<Book>.ByAscending(b => b.ImmediatelyAvailable);    
+    private GridSort<Book> sortTaxonomy = GridSort<Book>.ByAscending(b => b.MainCategory.Value());
 
 
     private string statusMessage = "";
