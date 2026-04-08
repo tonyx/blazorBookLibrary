@@ -1,17 +1,17 @@
 # Elevator Pitch: The Modern Archivist  📚🚀
 
 ## The Vision
-In an era of information overload, the **Modern Archivist** transforms the chaos of physical and digital book collections into a high-fidelity, searchable masterpiece. We bridge the gap between traditional cataloging and modern metadata discovery, providing a premium experience for curators who value both design and data integrity.
+In an era of information overload, the **Modern Archivist** bridges the gap between traditional cataloging and modern metadata discovery, providing a premium experience for curators who value both design and data integrity.
 
 ## The Pitch
-> "We provide a state-of-the-art archival management system that handles the heavy lifting of cataloging through AI-driven metadata discovery and bulletproof Event-Sourced logic. Whether you are a small private library or a growing scholarly institution, we give you the tools to preserve your collection with the precision of a professional archivist and the ease of a modern web app."
+> "We provide a state-of-the-art archival management system that handles the heavy lifting of cataloging through metadata discovery and bulletproof Event-Sourced logic. Whether you are a small private library or a growing scholarly institution, we give you the tools to preserve your collection with the precision of a professional archivist and the ease of a modern web app."
 
 ---
 
 ## Why Choose Us?
 
 ### 1. Unified Metadata Discovery
-Stop typing. Our engine uses barcodes and title-based discovery to fetch high-quality metadata and imagery from global APIs instantly. Your records are enriched, standardized, and beautiful from second one.
+Stop typing. Our engine uses barcodes and title-based discovery to fetch metadata and imagery from global APIs instantly. Your records are enriched, standardized, and beautiful from second one.
 
 ### 2. Bulletproof Archival Integrity
 Built on **F# and Event Sourcing (Sharpino)**, every change in your library is tracked and traceable. We don't just store "current state"; we store the entire history of your archive, providing an immutable audit trail that prevents data loss and ensures reliability.
@@ -39,7 +39,7 @@ For the DIY curators who want full control.
 - **Ideal for**: Tech-savvy librarians and privacy-focused private collections.
 
 ### 🌤 Option B: The "Zenith" (Fully Managed & Hands-Off)
-**Cost: Subscription/Service Fee**
+**Cost: ...**
 For the curators who want to focus on their books, not their servers.
 - **Zero Configuration**: We handle the cloud hosting, PostgreSQL event stores, and database maintenance.
 - **API Pass-through**: We cover the costs of metadata discovery APIs and external lookups.

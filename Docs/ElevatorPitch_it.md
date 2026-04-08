@@ -1,17 +1,17 @@
 # Elevator Pitch: The Modern Archivist  📚🚀
 
 ## La visione
-In un'era caratterizzata dal sovraccarico di informazioni, **The Modern Archivist** trasforma il caos delle collezioni di libri fisici e digitali in un capolavoro di alta fedeltà e facilmente consultabile. Colmiamo il divario tra la catalogazione tradizionale e la moderna ricerca dei metadati, offrendo un'esperienza di alto livello ai curatori che danno importanza sia al design che all'integrità dei dati.
+In un'era caratterizzata dal sovraccarico di informazioni, **The Modern Archivist** colma il divario tra la catalogazione tradizionale e la moderna ricerca dei metadati, offrendo un'esperienza di alto livello ai curatori che danno importanza sia al design che all'integrità dei dati.
 
 ## La presentazione
-> “Forniamo un sistema di gestione archivistica all'avanguardia che si occupa del lavoro pesante della catalogazione attraverso la ricerca di metadati basata sull'intelligenza artificiale e una logica Event-Sourced a prova di errore. Che si tratti di una piccola biblioteca privata o di un'istituzione accademica in crescita, vi forniamo gli strumenti per preservare la vostra collezione con la precisione di un archivista professionista e la facilità di una moderna applicazione web.”
+> “Forniamo un sistema di gestione archivistica all'avanguardia che si occupa del lavoro pesante della catalogazione attraverso la ricerca di metadati e una logica Event-Sourced a prova di errore. Che si tratti di una piccola biblioteca privata o di un'istituzione accademica in crescita, vi forniamo gli strumenti per preservare la vostra collezione con la precisione di un archivista professionista e la facilità di una moderna applicazione web.”
 
 ---
 
 ## Perché scegliere noi?
 
 ### 1. Ricerca unificata dei metadati
-Smettete di digitare. Il nostro motore utilizza codici a barre e la ricerca basata sui titoli per recuperare istantaneamente metadati e immagini di alta qualità da API globali. I vostri record sono arricchiti, standardizzati e perfetti fin dal primo istante.
+Smettete di digitare. Il nostro motore utilizza codici a barre e la ricerca basata sui titoli per recuperare istantaneamente metadati e immagini da API globali. I vostri record sono arricchiti, standardizzati e perfetti fin dal primo istante.
 
 ### 2. Integrità archivistica a prova di errore
 Costruito su **F# ed Event Sourcing (Sharpino)**, ogni cambiamento nella vostra biblioteca è monitorato e tracciabile. Non ci limitiamo a memorizzare lo “stato attuale”; conserviamo l'intera cronologia del tuo archivio, fornendo una traccia di audit immutabile che previene la perdita di dati e garantisce l'affidabilità.
@@ -39,7 +39,7 @@ Per i curatori fai-da-te che vogliono il pieno controllo.
 - **Ideale per**: Bibliotecari esperti di tecnologia e collezioni private attente alla privacy.
 
 ### 🌤 Opzione B: “Zenith” (Completamente gestito e senza intervento)
-**Costo: Abbonamento/Costo del servizio**
+**Costo: ...**
 Per i curatori che vogliono concentrarsi sui propri libri, non sui propri server.
 - **Configurazione zero**: Ci occupiamo noi dell'hosting cloud, degli archivi eventi PostgreSQL e della manutenzione del database.
 - **Pass-through API**: copriamo i costi delle API di ricerca dei metadati e delle ricerche esterne.
