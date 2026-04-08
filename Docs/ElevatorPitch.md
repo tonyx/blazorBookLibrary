@@ -16,8 +16,14 @@ Stop typing. Our engine uses barcodes and title-based discovery to fetch high-qu
 ### 2. Bulletproof Archival Integrity
 Built on **F# and Event Sourcing (Sharpino)**, every change in your library is tracked and traceable. We don't just store "current state"; we store the entire history of your archive, providing an immutable audit trail that prevents data loss and ensures reliability.
 
-### 3. The "Sanctuary" Aesthetic
-We believe archival software shouldn't look like a spreadsheet from 1995. Our **Sanctuary Design System** provides a calm, premium, and interactive interface that makes cataloging a pleasure, not a chore.
+### 3. Seamless Member Experience
+The library isn't just for curators; it's a sanctuary for readers. 
+- **Elegant Browsing**: High-fidelity catalog views with smart filtering by title, ISBN, or category make finding the next great read a pleasure.
+- **Frictionless Loans**: Clear, real-time availability status and intuitive workflows for borrowing and returning books.
+- **Smart Reservations**: A robust reservation system that allows users to secure high-demand titles, complete with automated tracking of return dates and potential availability.
+
+### 4. The "Sanctuary" Aesthetic
+We believe archival software shouldn't look like a spreadsheet from 1995. Our **Sanctuary Design System** provides a calm, premium, and interactive interface that makes cataloging and reading a pleasure, not a chore.
 
 ---
 
