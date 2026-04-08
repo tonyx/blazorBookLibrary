@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.UI.Services;
+using blazorBookLibrary.Shared.Infrastructure.Services;
 using blazorBookLibrary.Data;
 using blazorBookLibrary.Infrastructure.Services;
 
@@ -8,15 +9,16 @@ namespace blazorBookLibrary.Components.Account;
 // Remove the "else if (EmailSender is IdentityNoOpEmailSender)" block from RegisterConfirmation.razor after updating with a real implementation.
 internal sealed class IdentityNoOpEmailSender : IEmailSender<ApplicationUser>
 {
-    private readonly IEmailSender emailSender = new NoOpEmailSender();
-    private readonly MailNotificator _mailNotificator;
+    // private readonly IEmailSender emailSender = new NoOpEmailSender();
+    // private readonly MailNotificator _mailNotificator;
+    private readonly IMailNotificator _mailNotificator;
     private readonly string _emailFrom;
     private readonly string _nameFrom;
     private readonly ILogger<IdentityNoOpEmailSender> _logger;
     private string _agreementText;
 
 
-    public IdentityNoOpEmailSender(IConfiguration configuration, MailNotificator mailNotificator, ILogger<IdentityNoOpEmailSender> logger)
+    public IdentityNoOpEmailSender(IConfiguration configuration, IMailNotificator mailNotificator, ILogger<IdentityNoOpEmailSender> logger)
     {
         _mailNotificator = mailNotificator;
         _emailFrom = configuration["BooksLibrary:FromEmail"] ?? "noreply@restaurantsystem.cloud";

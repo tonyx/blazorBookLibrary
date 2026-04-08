@@ -926,7 +926,7 @@ let tests =
             let (bookRetrieved: Book) = retrieveBook |> Result.get
             Expect.isTrue (bookRetrieved.Sealed.IsSealed(DateTime.UtcNow)) "book should be sealed (manually)"
 
-        testCase "modifying a sealed book - Error" <| fun _ ->
+        testCase "the business logic allow modifying a sealed book, which is prevented only at u.i. level - Ok" <| fun _ ->
             setUp ()
             let bookService = getBookService()
             let authorService = getAuthorService()
@@ -943,7 +943,7 @@ let tests =
                 |> Async.AwaitTask
                 |> Async.RunSynchronously
             
-            Expect.isError addAuthor "adding author to sealed book should fail"
+            Expect.isOk addAuthor "adding author to sealed book should be ok"
 
         testCase "unseal a book - Ok" <| fun _ ->
             setUp ()

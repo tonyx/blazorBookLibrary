@@ -11,6 +11,7 @@ using blazorBookLibrary.Components.Account;
 using blazorBookLibrary.Data;
 using BookLibrary.Shared.Services;
 using BookLibrary.Services;
+using blazorBookLibrary.Shared.Infrastructure.Services;
 using BookLibrary.Domain;
 
 using static BookLibrary.Shared.Commons; 
@@ -68,7 +69,7 @@ builder.Services.AddIdentityCore<ApplicationUser>(options =>
     .AddSignInManager()
     .AddDefaultTokenProviders();
 
-builder.Services.AddSingleton<MailNotificator>();
+builder.Services.AddSingleton<IMailNotificator, MailNotificator>();
 
 builder.Services.AddSingleton<IAuthorService, AuthorService>();
 builder.Services.AddSingleton<IReservationService, ReservationService>();

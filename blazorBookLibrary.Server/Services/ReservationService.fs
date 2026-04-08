@@ -22,6 +22,7 @@ open BookLibrary.Shared.Details
 open BookLibrary.Details.Details
 open Microsoft.Extensions.Configuration
 open BookLibrary.Details.Details
+open System.Globalization
 
 type ReservationService
     (
@@ -208,6 +209,7 @@ type ReservationService
     interface IReservationService with
         member this.AddReservationAsync (reservation: Reservation, ?ct: CancellationToken)= 
             let ct = defaultArg ct CancellationToken.None
+            // Console.WriteLine("ZZZZ: AddReservationAsync: "+CultureInfo.CurrentCulture.Name.Substring(0,2))
             this.AddReservationAsync (reservation, DateTime.UtcNow, ct)
         member this.GetReservationAsync (id: ReservationId, ?ct: CancellationToken) = 
             let ct = defaultArg ct CancellationToken.None

@@ -4,10 +4,11 @@ using Mailjet.Client;
 using Mailjet.Client.TransactionalEmails;
 using Mailjet.Client.TransactionalEmails.Response;
 using Microsoft.AspNetCore.Identity.UI.Services;
+using blazorBookLibrary.Shared.Infrastructure.Services;
 
 namespace blazorBookLibrary.Infrastructure.Services;
 
-public sealed class MailNotificator
+public sealed class MailNotificator : IMailNotificator
 {
     private readonly MailjetClient _mailjetClient;
     private readonly ILogger<MailNotificator> _logger;

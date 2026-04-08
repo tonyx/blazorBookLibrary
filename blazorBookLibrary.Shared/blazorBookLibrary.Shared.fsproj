@@ -26,6 +26,7 @@
     <Compile Include="Services/IAuthorsSearchService.fs" />
     <Compile Include="Services/IUserService.fs" />
     <Compile Include="SearchCriteria.fs" />
+    <Compile Include="Infrastructure/Services/IMailNotificator.fs" />
     <Compile Include="Resources/SharedResources.fs" />
     <Compile Include="TestSeedExtensions/AuthorSeed.fs" />
     <Compile Include="TestSeedExtensions/BookSeed.fs" />

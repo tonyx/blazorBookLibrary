@@ -38,7 +38,7 @@
 
 @code {
     [Parameter] public string? currentUrl { get; set; }
-
+    
     private async Task ToggleDropdown()
     {
         var dropdown = await JSRuntime.InvokeAsync<IJSObjectReference>("bootstrap.Dropdown.getOrCreateInstance", "#cultureDropdownButton");

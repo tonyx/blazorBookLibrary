@@ -1,0 +1,6 @@
+We inform you that the loan request for the book "{bookTitle}" has been approved. 
+
+You will receive an email when the book is available for pickup.
+
+Best regards,
+The Library Staff

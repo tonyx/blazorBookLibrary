@@ -1,0 +1,6 @@
+La informiamo che la richiesta di prestito del libro "{bookTitle}" è stata approvata. 
+
+Riceverà una mail quando il libro sarà disponibile per il ritiro.
+
+Cordiali saluti,
+Lo staff della Biblioteca
