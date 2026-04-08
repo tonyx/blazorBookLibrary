@@ -95,10 +95,6 @@ with
         (dateTime: DateTime) = 
         result
             {
-                // do! 
-                //     this.Sealed.IsSealed(dateTime)
-                //     |> not
-                //     |> Result.ofBool "Book is sealed"
                 return { this with Availability = availability } 
             }
 
@@ -107,10 +103,6 @@ with
         (dateTime: DateTime) = 
         result
             { 
-                // do! 
-                //     this.Sealed.IsSealed(dateTime)
-                //     |> not
-                //     |> Result.ofBool "Book is sealed"
                 return { this with Authors = authors } 
             }
     member this.AddAuthor 
@@ -118,10 +110,6 @@ with
         (dateTime: DateTime) = 
         result
             {
-                // do! 
-                //     this.Sealed.IsSealed(dateTime)
-                //     |> not
-                //     |> Result.ofBool "Book is sealed"
                 do!
                     this.Authors
                     |> List.contains author
@@ -134,10 +122,6 @@ with
         (dateTime: DateTime) = 
         result
             {   
-                // do! 
-                //     this.Sealed.IsSealed(dateTime)
-                //     |> not
-                //     |> Result.ofBool "Book is sealed"
                 do!
                     this.Translators
                     |> List.contains translator
@@ -150,10 +134,6 @@ with
         (dateTime: DateTime) = 
         result
             {
-                // do! 
-                //     this.Sealed.IsSealed(dateTime)
-                //     |> not
-                //     |> Result.ofBool "Book is sealed"
                 do!
                     this.Translators
                     |> List.contains translator
@@ -165,10 +145,6 @@ with
         (dateTime: DateTime) = 
         result
             {
-                // do! 
-                //     this.Sealed.IsSealed(dateTime)
-                //     |> not
-                //     |> Result.ofBool "Book is sealed"
                 do!
                     this.Languages
                     |> List.contains language
@@ -181,10 +157,6 @@ with
         (dateTime: DateTime) = 
         result
             {
-                // do! 
-                //     this.Sealed.IsSealed(dateTime)
-                //     |> not
-                //     |> Result.ofBool "Book is sealed"
                 do!
                     this.Languages
                     |> List.contains language
@@ -197,10 +169,6 @@ with
         (dateTime: DateTime) = 
         result
             {
-                // do! 
-                //     this.Sealed.IsSealed(dateTime)
-                //     |> not
-                //     |> Result.ofBool "Book is sealed"
                 do!
                     this.Authors
                     |> List.contains author
@@ -213,10 +181,6 @@ with
         (dateTime: DateTime) = 
         result
             {
-                // do! 
-                //     this.Sealed.IsSealed(dateTime)
-                //     |> not
-                //     |> Result.ofBool "Book is sealed"
                 return { this with ImageUrl = Some imageUrl } 
             }
     member this.RemoveImageUrl 
@@ -291,10 +255,6 @@ with
         (dateTime: DateTime) = 
         result
             {
-                // do! 
-                //     this.Sealed.IsSealed(dateTime)
-                //     |> not
-                //     |> Result.ofBool "Book is sealed"
                 return { this with Editor = Some editor } 
             }
     member this.ChangeMainCategory 
@@ -302,10 +262,6 @@ with
         (dateTime: DateTime) = 
         result
             {
-                // do! 
-                //     this.Sealed.IsSealed(dateTime)
-                //     |> not
-                //     |> Result.ofBool "Book is sealed"
                 do! 
                     this.AdditionalCategories
                     |> List.contains mainCategory
@@ -318,10 +274,6 @@ with
         (dateTime: DateTime) = 
         result
             {
-                // do! 
-                //     this.Sealed.IsSealed(dateTime)
-                //     |> not
-                //     |> Result.ofBool "Book is sealed"
                 do! 
                     this.AdditionalCategories
                     |> List.contains category
@@ -338,10 +290,6 @@ with
         (dateTime: DateTime) = 
         result
             {
-                // do! 
-                //     this.Sealed.IsSealed(dateTime)
-                //     |> not
-                //     |> Result.ofBool "Book is sealed"
                 do! 
                     this.AdditionalCategories
                     |> List.contains category
@@ -361,10 +309,6 @@ with
     member this.RemoveEditor (dateTime: DateTime) = 
         result
             {
-                // do! 
-                //     this.Sealed.IsSealed(dateTime)
-                //     |> not
-                //     |> Result.ofBool "Book is sealed"
                 return { this with Editor = None } 
             }
     member this.UpdateYear 
@@ -372,10 +316,6 @@ with
         (dateTime: DateTime) = 
         result
             {
-                // do! 
-                //     this.Sealed.IsSealed(dateTime)
-                //     |> not
-                //     |> Result.ofBool "Book is sealed"
                 return { this with Year = year } 
             }
     member this.UpdateIsbn 
