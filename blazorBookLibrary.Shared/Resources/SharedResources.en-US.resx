@@ -645,4 +645,20 @@
   <data name="UserDetails" xml:space="preserve"><value>User Details</value></data>
   <data name="Details" xml:space="preserve"><value>Details</value></data>
   <data name="ViewBook" xml:space="preserve"><value>View Book</value></data>
+  <data name="ValidPhoneNumberUpdated" xml:space="preserve"><value>Valid phone number updated</value></data>
+  <data name="InvalidPhoneNumberUpdated" xml:space="preserve"><value>Invalid phone number updated</value></data>
+  <data name="ValidFiscalCodeUpdated" xml:space="preserve"><value>Valid fiscal code updated</value></data>
+  <data name="InvalidFiscalCodeUpdated" xml:space="preserve"><value>Invalid fiscal code updated</value></data>
+  <data name="NameUpdated" xml:space="preserve"><value>Name updated</value></data>
+  <data name="SurnameUpdated" xml:space="preserve"><value>Surname updated</value></data>
+  <data name="Name" xml:space="preserve"><value>Name</value></data>
+  <data name="Surname" xml:space="preserve"><value>Surname</value></data>
+  <data name="Valid" xml:space="preserve"><value>Valid</value></data>
+  <data name="Invalid" xml:space="preserve"><value>Invalid</value></data>
+  <data name="Missing" xml:space="preserve"><value>Missing</value></data>
+  <data name="VerificationControl" xml:space="preserve"><value>Verification Control</value></data>
+  <data name="ConfirmUserEmailToProceed" xml:space="preserve"><value>Confirm user email to proceed</value></data>
+  <data name="RevokePhysicalVerification" xml:space="preserve"><value>Revoke Physical Verification</value></data>
+  <data name="GrantPhysicalVerification" xml:space="preserve"><value>Grant Physical Verification</value></data>
+  <data name="EmailDoesNotMatchIdentityRecord" xml:space="preserve"><value>Email does not match identity record</value></data>
 </root>

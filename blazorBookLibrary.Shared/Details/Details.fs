@@ -15,11 +15,11 @@ module Details =
         {
             User: User
             ApplicationUser: ApplicationUser
-            FutureReservations: List<Reservation>
+            FutureReservations: List<Reservation*Book>
             CurrentLoans: List<Loan> 
         }
         member this.HasReservedBook (bookId: BookId) =
-            this.FutureReservations |> List.exists (fun reservation -> reservation.BookId = bookId)
+            this.FutureReservations |> List.exists (fun (reservation, _) -> reservation.BookId = bookId)
 
     type ReservationDetails =
         { 

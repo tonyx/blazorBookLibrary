@@ -25,6 +25,7 @@ open blazorBookLibrary.Tests.MockServices
 open blazorBookLibrary.Data
 open blazorBookLibrary.Shared.Infrastructure.Services
 open Microsoft.Extensions.Logging
+open BookLibrary.Shared.Services
 Environment.SetEnvironmentVariable("IsTestEnv", "True")
 Env.Load() |> ignore
 
@@ -110,6 +111,7 @@ let reservationViewerAsync = getAggregateStorageFreshStateViewerAsync<Reservatio
 let loanViewerAsync = getAggregateStorageFreshStateViewerAsync<Loan, LoanEvent, string> pgEventStore
 let userViewerAsync = getAggregateStorageFreshStateViewerAsync<User, UserEvent, string> pgEventStore
 let fakeEmailNotificator: IMailNotificator = new FakeEmailNotificator()
+let fakeReservationService: IReservationService = new FakeReservationService()
 
 let dummyLogger = 
     LoggerFactory.Create(fun builder -> builder.AddConsole() |> ignore).CreateLogger<MailResenderService>()

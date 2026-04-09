@@ -94,6 +94,83 @@ type Year =
             match this with
             | Year v -> v
 
+type PhoneNumber =
+    | PhoneNumber of string
+    | InvalidPhoneNumber of string
+    | EmptyPhoneNumber
+    with
+        static member IsValid (phoneNumber: string) = 
+            if String.IsNullOrWhiteSpace(phoneNumber) then false
+            else
+                let cleanPhoneNumber = phoneNumber.Trim().Replace(" ", "")
+                let regex = System.Text.RegularExpressions.Regex(@"^(\+|00)?[0-9]{7,15}$")
+                regex.IsMatch(cleanPhoneNumber)
+        static member New (phoneNumber: string) = 
+            if PhoneNumber.IsValid(phoneNumber) then Ok (PhoneNumber phoneNumber)
+            else if String.IsNullOrWhiteSpace(phoneNumber) then Error "Empty phone number"
+            else Error "Invalid phone number"
+        member this.Value = 
+            match this with
+            | PhoneNumber v -> v
+            | InvalidPhoneNumber v -> v
+            | EmptyPhoneNumber -> ""
+        member this.IsNone = 
+            match this with
+            | EmptyPhoneNumber -> true
+            | _ -> false
+        member this.IsInvalid = 
+            match this with
+            | InvalidPhoneNumber _ -> true
+            | _ -> false
+
+type FiscalCode = 
+    | FiscalCode of string
+    | InvalidFiscalCode of string
+    | EmptyFiscalCode
+    with
+        static member IsValid (fiscalCode: string) = 
+            if String.IsNullOrWhiteSpace(fiscalCode) then false
+            else
+                let cf = fiscalCode.Trim().ToUpper()
+                if cf.Length <> 16 then false
+                else
+                    let regex = System.Text.RegularExpressions.Regex("^[A-Z]{6}[0-9LMNPQRSTUV]{2}[ABCDEHLMPRST]{1}[0-9LMNPQRSTUV]{2}[A-Z]{1}[0-9LMNPQRSTUV]{3}[A-Z]{1}$")
+                    if not (regex.IsMatch(cf)) then false
+                    else
+                        let oddValues = [| 1; 0; 5; 7; 9; 13; 15; 17; 19; 21; 1; 0; 5; 7; 9; 13; 15; 17; 19; 21; 2; 4; 18; 20; 11; 3; 6; 8; 12; 14; 16; 10; 22; 25; 24; 23 |]
+                        let evenValues = [| 0; 1; 2; 3; 4; 5; 6; 7; 8; 9; 0; 1; 2; 3; 4; 5; 6; 7; 8; 9; 10; 11; 12; 13; 14; 15; 16; 17; 18; 19; 20; 21; 22; 23; 24; 25 |]
+                        
+                        let getValue (c: char) (isOdd: bool) =
+                            let index = 
+                                if Char.IsDigit c then int c - int '0'
+                                else int c - int 'A' + 10
+                            if isOdd then oddValues.[index] else evenValues.[index]
+
+                        let sum = 
+                            cf 
+                            |> Seq.take 15 
+                            |> Seq.mapi (fun i c -> getValue c (i % 2 = 0)) 
+                            |> Seq.sum
+                        
+                        let expectedCheckChar = char (int 'A' + (sum % 26))
+                        cf.[15] = expectedCheckChar
+        static member New (fiscalCode: string) = 
+            if FiscalCode.IsValid(fiscalCode) then Ok (FiscalCode fiscalCode)
+            else Error "Invalid Fiscal Code"
+        static member NewInvalid (fiscalCode: string) = 
+            InvalidFiscalCode fiscalCode
+        static member NewEmpty () = 
+            EmptyFiscalCode
+        member this.Value = 
+            match this with
+            | FiscalCode v -> v
+            | InvalidFiscalCode v -> v
+            | EmptyFiscalCode -> ""
+        member this.IsNone = 
+            match this with
+            | EmptyFiscalCode -> true
+            | _ -> false
+    
 type Isbn = 
     | Isbn of string
     | InvalidIsbn of string

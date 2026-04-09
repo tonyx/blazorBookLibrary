@@ -35,10 +35,9 @@ type UserService
         reservationViewerAsync: AggregateViewerAsync2<Reservation>,
         loanViewerAsync: AggregateViewerAsync2<Loan>,
         userViewerAsync: AggregateViewerAsync2<User>,
-        scopeFactory: IServiceScopeFactory
+        scopeFactory: IServiceScopeFactory)
 
-        // userManager: UserManager<ApplicationUser>
-    ) =
+    =
     new (eventStore: IEventStore<string>, scopeFactory: IServiceScopeFactory) 
         =
         let messageSenders = MessageSenders.NoSender
@@ -60,7 +59,7 @@ type UserService
             scopeFactory
         )    
 
-    new (configuration: IConfiguration, scopeFactory: IServiceScopeFactory) 
+    new (configuration: IConfiguration, scopeFactory: IServiceScopeFactory)
         =
         let connectionString = configuration.GetConnectionString("BookLibraryDbConnection")
         let eventStore = PgStorage.PgEventStore connectionString
@@ -123,12 +122,19 @@ type UserService
                                         | ex -> 
                                             printfn "Error getting user: %s" ex.Message
                                             ApplicationUser(UserName = "unknown", CodiceFiscale = "unknown")
+
+                                let! reservationsAndBooks =
+                                    futureReservations
+                                    |> List.traverseTaskResultM (fun reservation -> bookViewerAsync (Some ct) reservation.BookId.Value |> TaskResult.map snd)
+                                    |> Async.AwaitTask
+                                    |> Async.RunSynchronously
+                                    |> Result.map (fun books -> List.zip futureReservations books)
                                     
                                 return 
                                     { 
                                         User = user
                                         ApplicationUser = appUser
-                                        FutureReservations = futureReservations
+                                        FutureReservations = reservationsAndBooks
                                         CurrentLoans = currentLoans
                                     } 
                             }
@@ -142,7 +148,8 @@ type UserService
                             ,
                             userId.Value :: 
                             (userDetails.CurrentLoans |> List.map (fun x -> x.LoanId.Value)) @ 
-                            (userDetails.FutureReservations |> List.map (fun x -> x.ReservationId.Value))
+                            (userDetails.FutureReservations |> List.map (fun (x, _) -> x.ReservationId.Value)) @
+                            (userDetails.FutureReservations |> List.map (fun (_, x) -> x.BookId.Value))
                     }
             let key = DetailsCacheKey.OfType typeof<RefreshableUserDetails> userId.Value
             task {
@@ -157,6 +164,45 @@ type UserService
             return refreshableUserDetails.UserDetails
         }
 
+    member private this.UpdateAppUserPropertyAsync (userId: UserId, updateAction: ApplicationUser -> unit) : Task<Result<unit, string>> =
+        taskResult {
+            use scope = scopeFactory.CreateScope()
+            let userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>()
+            let userIdStr = userId.Value.ToString()
+            let! appUser = 
+                userManager.FindByIdAsync(userIdStr)
+                |> Async.AwaitTask
+                |> Async.RunSynchronously
+                |> fun u -> if u <> null then Ok u else Error (sprintf "User %s not found" userIdStr)
+            
+            updateAction appUser
+            let! updateResult = 
+                userManager.UpdateAsync(appUser)
+                |> Async.AwaitTask
+                |> Async.RunSynchronously
+                |> fun r -> if r.Succeeded then Ok () else Error (r.Errors |> Seq.map (fun e -> e.Description) |> String.concat ", ")
+            DetailsCache.Instance.RefreshDependentDetails userId.Value |> ignore
+            return updateResult
+        }
+
+    member this.SetFiscalCodeAsync (userId: UserId, fiscalCode: FiscalCode, ?ct: CancellationToken) : Task<Result<unit, string>> =
+        this.UpdateAppUserPropertyAsync(userId, fun u -> u.CodiceFiscale <- fiscalCode.Value)
+
+    member this.SetNameAsync (userId: UserId, name: string, ?ct: CancellationToken) : Task<Result<unit, string>> =
+        this.UpdateAppUserPropertyAsync(userId, fun u -> u.Nome <- name)
+
+    member this.SetSurnameAsync (userId: UserId, surname: string, ?ct: CancellationToken) : Task<Result<unit, string>> =
+        this.UpdateAppUserPropertyAsync(userId, fun u -> u.Cognome <- surname)
+
+    member this.SetPhoneNumberAsync (userId: UserId, phoneNumber: PhoneNumber, ?ct: CancellationToken) : Task<Result<unit, string>> =
+        this.UpdateAppUserPropertyAsync(userId, fun u -> u.PhoneNumber <- phoneNumber.Value)
+
+    member this.SetIsPhysicallyIdentifiedAsync (userId: UserId, ?ct: CancellationToken) : Task<Result<unit, string>> =
+        this.UpdateAppUserPropertyAsync(userId, fun u -> u.IsIdentifiedPhysically <- true)
+
+    member this.UnSetIsPhysicallyIdentifiedAsync (userId: UserId, ?ct: CancellationToken) : Task<Result<unit, string>> =
+        this.UpdateAppUserPropertyAsync(userId, fun u -> u.IsIdentifiedPhysically <- false)
+
     interface IUserService with
         member this.CreateUserAsync (user: User, ?ct: CancellationToken) : Task<Result<unit, string>> =
             let ct = defaultArg ct CancellationToken.None
@@ -167,4 +213,22 @@ type UserService
         member this.GetUserDetailsAsync (userId: UserId, ?ct: CancellationToken) : Task<Result<UserDetails, string>> =
             let ct = defaultArg ct CancellationToken.None
             this.GetUserDetailsAsync(userId, ct)
+        member this.SetFiscalCodeAsync (userId: UserId, fiscalCode: FiscalCode, ?ct: CancellationToken) : Task<Result<unit, string>> =
+            let ct = defaultArg ct CancellationToken.None
+            this.SetFiscalCodeAsync(userId, fiscalCode, ct)
+        member this.SetNameAsync (userId: UserId, name: string, ?ct: CancellationToken) : Task<Result<unit, string>> =
+            let ct = defaultArg ct CancellationToken.None
+            this.SetNameAsync(userId, name, ct)
+        member this.SetSurnameAsync (userId: UserId, surname: string, ?ct: CancellationToken) : Task<Result<unit, string>> =
+            let ct = defaultArg ct CancellationToken.None
+            this.SetSurnameAsync(userId, surname, ct)
+        member this.SetPhoneNumberAsync (userId: UserId, phoneNumber: PhoneNumber, ?ct: CancellationToken) : Task<Result<unit, string>> =
+            let ct = defaultArg ct CancellationToken.None
+            this.SetPhoneNumberAsync(userId, phoneNumber, ct)
+        member this.SetIsPhysicallyIdentifiedAsync (userId: UserId, ?ct: CancellationToken) : Task<Result<unit, string>> =
+            let ct = defaultArg ct CancellationToken.None
+            this.SetIsPhysicallyIdentifiedAsync(userId, ct)
+        member this.UnSetIsPhysicallyIdentifiedAsync (userId: UserId, ?ct: CancellationToken) : Task<Result<unit, string>> =
+            let ct = defaultArg ct CancellationToken.None
+            this.UnSetIsPhysicallyIdentifiedAsync(userId, ct)
                  

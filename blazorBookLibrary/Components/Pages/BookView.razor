@@ -342,7 +342,9 @@
                         loggedInUserDetails = result.ResultValue;
                         if (bookDetails != null)
                         {
-                            userReservation = loggedInUserDetails.FutureReservations.FirstOrDefault(r => r.BookId.Value == bookDetails.Book.BookId.Value);
+                            userReservation = loggedInUserDetails.FutureReservations
+                                .Select(t => t.Item1)
+                                .FirstOrDefault(r => r.BookId.Value == bookDetails.Book.BookId.Value);
                         }
                     }
                 }

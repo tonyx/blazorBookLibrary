@@ -546,4 +546,20 @@
   <data name="UserDetails" xml:space="preserve"><value>Dettagli Utente</value></data>
   <data name="Details" xml:space="preserve"><value>Dettagli</value></data>
   <data name="ViewBook" xml:space="preserve"><value>Visualizza Libro</value></data>
+  <data name="ValidPhoneNumberUpdated" xml:space="preserve"><value>Numero di telefono valido aggiornato</value></data>
+  <data name="InvalidPhoneNumberUpdated" xml:space="preserve"><value>Numero di telefono non valido aggiornato</value></data>
+  <data name="ValidFiscalCodeUpdated" xml:space="preserve"><value>Codice fiscale valido aggiornato</value></data>
+  <data name="InvalidFiscalCodeUpdated" xml:space="preserve"><value>Codice fiscale non valido aggiornato</value></data>
+  <data name="NameUpdated" xml:space="preserve"><value>Nome aggiornato</value></data>
+  <data name="SurnameUpdated" xml:space="preserve"><value>Cognome aggiornato</value></data>
+  <data name="Name" xml:space="preserve"><value>Nome</value></data>
+  <data name="Surname" xml:space="preserve"><value>Cognome</value></data>
+  <data name="Valid" xml:space="preserve"><value>Valido</value></data>
+  <data name="Invalid" xml:space="preserve"><value>Non Valido</value></data>
+  <data name="Missing" xml:space="preserve"><value>Mancante</value></data>
+  <data name="VerificationControl" xml:space="preserve"><value>Controllo Verifica</value></data>
+  <data name="ConfirmUserEmailToProceed" xml:space="preserve"><value>Conferma email utente per procedere</value></data>
+  <data name="RevokePhysicalVerification" xml:space="preserve"><value>Revoca Verifica Fisica</value></data>
+  <data name="GrantPhysicalVerification" xml:space="preserve"><value>Concedi Verifica Fisica</value></data>
+  <data name="EmailDoesNotMatchIdentityRecord" xml:space="preserve"><value>L'email non corrisponde al record d'identità</value></data>
 </root>

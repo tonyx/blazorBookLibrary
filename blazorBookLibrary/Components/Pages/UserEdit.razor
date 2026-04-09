@@ -90,7 +90,43 @@
                         </div>
                         <div class="ledger-item">
                             <label>@L["CodiceFiscale"]</label>
-                            <div class="value">@(string.IsNullOrEmpty(userDetails.ApplicationUser.CodiceFiscale) ? L["NotSpecified"] : userDetails.ApplicationUser.CodiceFiscale)</div>
+                            <div class="value">
+                                @if (string.IsNullOrWhiteSpace(userDetails.ApplicationUser.CodiceFiscale))
+                                {
+                                    <span class="text-muted italic"><i class="bi bi-person-vcard me-1"></i> @L["NotSpecified"]</span>
+                                }
+                                else if (BookLibrary.Shared.Commons.FiscalCode.IsValid(userDetails.ApplicationUser.CodiceFiscale))
+                                {
+                                    <span class="text-success">@userDetails.ApplicationUser.CodiceFiscale <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill ms-2 small">@L["Valid"]</span></span>
+                                }
+                                else
+                                {
+                                    <span class="text-danger">@userDetails.ApplicationUser.CodiceFiscale <span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill ms-2 small">@L["Invalid"]</span></span>
+                                }
+                            </div>
+                        </div>
+                        <div class="ledger-item">
+                            <label>@L["PhoneNumber"]</label>
+                            <div class="value">
+                                @if (string.IsNullOrWhiteSpace(userDetails.ApplicationUser.PhoneNumber))
+                                {
+                                    <span class="text-muted italic"><i class="bi bi-telephone-x me-1"></i> @L["Missing"]</span>
+                                }
+                                else if (BookLibrary.Shared.Commons.PhoneNumber.IsValid(userDetails.ApplicationUser.PhoneNumber))
+                                {
+                                    <span class="text-success">
+                                        <i class="bi bi-telephone me-1"></i> @userDetails.ApplicationUser.PhoneNumber 
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill ms-2 small">@L["Valid"]</span>
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="text-danger">
+                                        <i class="bi bi-telephone me-1"></i> @userDetails.ApplicationUser.PhoneNumber 
+                                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill ms-2 small">@L["Invalid"]</span>
+                                    </span>
+                                }
+                            </div>
                         </div>
                         <div class="ledger-item">
                             <label>@L["PhysicalIdentification"]</label>
@@ -108,7 +144,36 @@
                     </div>
                     
                     <div class="mt-4 pt-4 border-top">
-                        <button class="btn btn-primary w-100 rounded-pill py-2 shadow-sm" @onclick="HandleEditRequest">
+                        <div class="verification-confirm-box p-3 bg-light rounded-4 mb-4 border shadow-none">
+                            <h3 class="h6 mb-3 text-uppercase small fw-bold text-muted">
+                                <i class="bi bi-shield-check me-2 text-primary"></i> @L["VerificationControl"]
+                            </h3>
+                            <div class="form-floating mb-3">
+                                <input type="email" @bind="emailConfirmation" @bind:event="oninput" class="form-control bg-white" id="emailConfirmInput" placeholder="name@example.com" />
+                                <label for="emailConfirmInput" class="small">@L["ConfirmUserEmailToProceed"]</label>
+                            </div>
+                            
+                            @if (userDetails.ApplicationUser.IsIdentifiedPhysically)
+                            {
+                                <button class="btn btn-warning w-100 rounded-pill py-2 shadow-sm fw-bold" @onclick="HandleUnverify" disabled="@(!CanVerify)">
+                                    <i class="bi bi-person-dash me-2"></i> @L["RevokePhysicalVerification"]
+                                </button>
+                            }
+                            else
+                            {
+                                <button class="btn btn-success w-100 rounded-pill py-2 shadow-sm fw-bold" @onclick="HandleVerify" disabled="@(!CanVerify)">
+                                    <i class="bi bi-person-check me-2"></i> @L["GrantPhysicalVerification"]
+                                </button>
+                            }
+                            @if (!string.IsNullOrEmpty(emailConfirmation) && !CanVerify)
+                            {
+                                <div class="form-text text-danger small mt-2 px-1">
+                                    <i class="bi bi-info-circle me-1"></i> @L["EmailDoesNotMatchIdentityRecord"]
+                                </div>
+                            }
+                        </div>
+
+                        <button class="btn btn-outline-primary w-100 rounded-pill py-2" @onclick="HandleEditRequest">
                             <i class="bi bi-pencil-square me-2"></i> @L["ReviseCredentials"]
                         </button>
                     </div>
@@ -175,10 +240,14 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @foreach (var res in userDetails.FutureReservations)
+                                    @foreach (var tuple in userDetails.FutureReservations)
                                     {
+                                        var res = tuple.Item1;
+                                        var book = tuple.Item2;
                                         <tr>
-                                            <td class="small fw-bold">Book ID: @res.BookId.Value</td>
+                                            <td>
+                                                <div class="fw-bold">@book.Title.Value</div>
+                                            </td>
                                             <td class="small">@res.TimeSlot.Start.ToShortDateString() - @res.TimeSlot.End.ToShortDateString()</td>
                                             <td class="text-end">
                                                 <button class="btn btn-sm btn-outline-primary rounded-pill px-3" @onclick='() => NavigateToBook(res.BookId.Value.ToString())'>
@@ -209,6 +278,11 @@
 
     private UserDetails? userDetails;
     private string errorMessage = "";
+    private string emailConfirmation = "";
+
+    private bool CanVerify => !string.IsNullOrEmpty(emailConfirmation) && 
+                              userDetails != null && 
+                              emailConfirmation.Trim().Equals(userDetails.ApplicationUser.Email.Trim(), StringComparison.OrdinalIgnoreCase);
 
     protected override async Task OnInitializedAsync()
     {
@@ -252,6 +326,46 @@
     private void NavigateToBook(string bookId)
     {
         NavigationManager.NavigateTo($"/book-view/{bookId}");
+    }
+
+    private async Task HandleVerify()
+    {
+        if (!CanVerify || userDetails == null) return;
+        
+        if (Guid.TryParse(UserIdStr, out var guid))
+        {
+            var userId = UserId.NewUserId(guid);
+            var result = await UserService.SetIsPhysicallyIdentifiedAsync(userId, FSharpOption<System.Threading.CancellationToken>.None);
+            if (result.IsOk)
+            {
+                emailConfirmation = "";
+                await LoadUserDetails();
+            }
+            else
+            {
+                errorMessage = $"Verification failed: {result.ErrorValue}";
+            }
+        }
+    }
+
+    private async Task HandleUnverify()
+    {
+        if (!CanVerify || userDetails == null) return;
+        
+        if (Guid.TryParse(UserIdStr, out var guid))
+        {
+            var userId = UserId.NewUserId(guid);
+            var result = await UserService.UnSetIsPhysicallyIdentifiedAsync(userId, FSharpOption<System.Threading.CancellationToken>.None);
+            if (result.IsOk)
+            {
+                emailConfirmation = "";
+                await LoadUserDetails();
+            }
+            else
+            {
+                errorMessage = $"Revocation failed: {result.ErrorValue}";
+            }
+        }
     }
 
     private void HandleEditRequest()

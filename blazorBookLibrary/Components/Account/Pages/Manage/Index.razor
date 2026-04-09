@@ -7,6 +7,7 @@
 @using blazorBookLibrary.Shared.Resources
 
 @inject UserManager<ApplicationUser> UserManager
+@inject IUserService UserService
 @inject SignInManager<ApplicationUser> SignInManager
 @inject IStringLocalizer<SharedResources> L
 @inject IdentityRedirectManager RedirectManager
@@ -43,6 +44,23 @@
                 <input type="text" value="@username" id="username" class="form-control" placeholder="@username" disabled />
                 <label for="username" class="form-label">@L["Username"]</label>
             </div>
+            
+            <div class="row">
+                <div class="col-md-6 px-1">
+                    <div class="form-floating mb-3">
+                        <InputText @bind-Value="Input.Name" id="Input.Name" class="form-control" placeholder="@L["Name"]" />
+                        <label for="Input.Name" class="form-label">@L["Name"]</label>
+                        <ValidationMessage For="() => Input.Name" class="text-danger" />
+                    </div>
+                </div>
+                <div class="col-md-6 px-1">
+                    <div class="form-floating mb-3">
+                        <InputText @bind-Value="Input.Surname" id="Input.Surname" class="form-control" placeholder="@L["Surname"]" />
+                        <label for="Input.Surname" class="form-label">@L["Surname"]</label>
+                        <ValidationMessage For="() => Input.Surname" class="text-danger" />
+                    </div>
+                </div>
+            </div>
             <div class="form-floating mb-3">
                 <InputText @bind-Value="Input.PhoneNumber" id="Input.PhoneNumber" class="form-control" placeholder="@L["PhoneNumber"]" />
                 <label for="Input.PhoneNumber" class="form-label">@L["PhoneNumber"]</label>
@@ -77,6 +95,8 @@
     private string? username;
     private string? phoneNumber;
     private string? codiceFiscale;
+    private string? nome;
+    private string? cognome;
     private bool isIdentified;
 
     [CascadingParameter]
@@ -99,10 +119,14 @@
         username = await UserManager.GetUserNameAsync(user);
         phoneNumber = await UserManager.GetPhoneNumberAsync(user);
         codiceFiscale = user.CodiceFiscale;
+        nome = user.Nome;
+        cognome = user.Cognome;
         isIdentified = user.IsIdentifiedPhysically;
 
         Input.PhoneNumber ??= phoneNumber;
         Input.CodiceFiscale ??= codiceFiscale;
+        Input.Name ??= nome;
+        Input.Surname ??= cognome;
     }
 
     private async Task OnValidSubmitAsync()
@@ -111,6 +135,41 @@
         {
             RedirectManager.RedirectToInvalidUser(UserManager, HttpContext);
             return;
+        }
+
+        bool changed = false;
+        List<string> successMessages = new();
+
+        if ((Input.Name ?? "") != (nome ?? ""))
+        {
+            if (Guid.TryParse(user.Id, out var userGuid))
+            {
+                var userId = UserId.NewUserId(userGuid);
+                var result = await UserService.SetNameAsync(userId, Input.Name ?? "", default);
+                if (!result.IsOk)
+                {
+                    RedirectManager.RedirectToCurrentPageWithStatus($"Error: {result.ErrorValue}", HttpContext);
+                    return;
+                }
+                changed = true;
+                successMessages.Add(L["NameUpdated"]);
+            }
+        }
+
+        if ((Input.Surname ?? "") != (cognome ?? ""))
+        {
+            if (Guid.TryParse(user.Id, out var userGuid))
+            {
+                var userId = UserId.NewUserId(userGuid);
+                var result = await UserService.SetSurnameAsync(userId, Input.Surname ?? "", default);
+                if (!result.IsOk)
+                {
+                    RedirectManager.RedirectToCurrentPageWithStatus($"Error: {result.ErrorValue}", HttpContext);
+                    return;
+                }
+                changed = true;
+                successMessages.Add(L["SurnameUpdated"]);
+            }
         }
 
         // Manual validation for phone number if provided
@@ -124,40 +183,85 @@
             }
         }
 
-        bool changed = false;
-
         if ((Input.PhoneNumber ?? "") != (phoneNumber ?? ""))
         {
-            var setPhoneResult = await UserManager.SetPhoneNumberAsync(user, Input.PhoneNumber);
-            if (!setPhoneResult.Succeeded)
+            if (Guid.TryParse(user.Id, out var userGuid))
             {
-                RedirectManager.RedirectToCurrentPageWithStatus("Error: Failed to set phone number.", HttpContext);
-                return;
+                var userId = UserId.NewUserId(userGuid);
+                BookLibrary.Shared.Commons.PhoneNumber phoneObj;
+                string statusMsg;
+
+                if (BookLibrary.Shared.Commons.PhoneNumber.IsValid(Input.PhoneNumber ?? ""))
+                {
+                    phoneObj = BookLibrary.Shared.Commons.PhoneNumber.NewPhoneNumber(Input.PhoneNumber ?? "");
+                    statusMsg = L["ValidPhoneNumberUpdated"];
+                }
+                else
+                {
+                    phoneObj = BookLibrary.Shared.Commons.PhoneNumber.NewInvalidPhoneNumber(Input.PhoneNumber ?? "");
+                    statusMsg = L["InvalidPhoneNumberUpdated"];
+                }
+
+                var result = await UserService.SetPhoneNumberAsync(userId, phoneObj, default);
+                if (!result.IsOk)
+                {
+                    RedirectManager.RedirectToCurrentPageWithStatus($"Error: {result.ErrorValue}", HttpContext);
+                    return;
+                }
+                changed = true;
+                successMessages.Add(statusMsg);
             }
-            changed = true;
         }
 
         if (!isIdentified && (Input.CodiceFiscale ?? "") != (codiceFiscale ?? ""))
         {
-            user.CodiceFiscale = Input.CodiceFiscale?.ToUpper() ?? string.Empty;
-            var updateResult = await UserManager.UpdateAsync(user);
-            if (!updateResult.Succeeded)
+            if (Guid.TryParse(user.Id, out var userGuid))
             {
-                RedirectManager.RedirectToCurrentPageWithStatus("Error: Failed to set fiscal code.", HttpContext);
-                return;
+                var userId = UserId.NewUserId(userGuid);
+                BookLibrary.Shared.Commons.FiscalCode fiscalObj;
+                string statusMsg;
+                string cfInput = Input.CodiceFiscale?.ToUpper() ?? string.Empty;
+
+                if (BookLibrary.Shared.Commons.FiscalCode.IsValid(cfInput))
+                {
+                    fiscalObj = BookLibrary.Shared.Commons.FiscalCode.NewFiscalCode(cfInput);
+                    statusMsg = L["ValidFiscalCodeUpdated"];
+                }
+                else
+                {
+                    fiscalObj = BookLibrary.Shared.Commons.FiscalCode.NewInvalidFiscalCode(cfInput);
+                    statusMsg = L["InvalidFiscalCodeUpdated"];
+                }
+
+                var result = await UserService.SetFiscalCodeAsync(userId, fiscalObj, default);
+                if (!result.IsOk)
+                {
+                    RedirectManager.RedirectToCurrentPageWithStatus($"Error: {result.ErrorValue}", HttpContext);
+                    return;
+                }
+                changed = true;
+                successMessages.Add(statusMsg);
             }
-            changed = true;
         }
 
         if (changed)
         {
             await SignInManager.RefreshSignInAsync(user);
-            RedirectManager.RedirectToCurrentPageWithStatus(L["ProfileUpdated"].Value, HttpContext);
+            string finalMsg = successMessages.Count > 0 ? string.Join(", ", successMessages) : L["ProfileUpdated"];
+            RedirectManager.RedirectToCurrentPageWithStatus(finalMsg, HttpContext);
         }
     }
 
     private sealed class InputModel
     {
+        [Required]
+        [Display(Name = "Name")]
+        public string? Name { get; set; }
+
+        [Required]
+        [Display(Name = "Surname")]
+        public string? Surname { get; set; }
+
         [Display(Name = "Phone number")]
         public string? PhoneNumber { get; set; }
 

@@ -13,4 +13,11 @@ type IUserService =
     abstract member CreateUserAsync: user:User * [<Optional; DefaultParameterValue(null)>] ?ct:CancellationToken -> Task<Result<unit, string>>
     abstract member GetUserAsync: userId:UserId * [<Optional; DefaultParameterValue(null)>] ?ct:CancellationToken -> Task<Result<User, string>>
     abstract member GetUserDetailsAsync: userId:UserId * [<Optional; DefaultParameterValue(null)>] ?ct:CancellationToken -> Task<Result<UserDetails, string>>
+    abstract member SetFiscalCodeAsync: userId:UserId * fiscalCode:FiscalCode * [<Optional; DefaultParameterValue(null)>] ?ct:CancellationToken -> Task<Result<unit, string>>
+    abstract member SetNameAsync: userId:UserId * name:string * [<Optional; DefaultParameterValue(null)>] ?ct:CancellationToken -> Task<Result<unit, string>>
+    abstract member SetSurnameAsync: userId:UserId * surname:string * [<Optional; DefaultParameterValue(null)>] ?ct:CancellationToken -> Task<Result<unit, string>>
+    abstract member SetPhoneNumberAsync: userId:UserId * phoneNumber:PhoneNumber * [<Optional; DefaultParameterValue(null)>] ?ct:CancellationToken -> Task<Result<unit, string>>
+    abstract member SetIsPhysicallyIdentifiedAsync: userId:UserId * [<Optional; DefaultParameterValue(null)>] ?ct:CancellationToken -> Task<Result<unit, string>>
+    abstract member UnSetIsPhysicallyIdentifiedAsync: userId:UserId * [<Optional; DefaultParameterValue(null)>] ?ct:CancellationToken -> Task<Result<unit, string>>
+
     

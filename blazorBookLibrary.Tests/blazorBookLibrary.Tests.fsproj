@@ -8,6 +8,7 @@
 
   <ItemGroup>
     <Compile Include="MockServices/FakeEmailNotificator.fs" />
+    <Compile Include="MockServices/FakeReservationService.fs" />
     <Compile Include="TestSetup.fs" />
     <Compile Include="RandomGenerationsTests.fs" />
     <Compile Include="AuthorsServiceTests.fs" />
