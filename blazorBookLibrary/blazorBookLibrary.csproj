@@ -10,8 +10,6 @@
 
   <ItemGroup>
     <None Include="agreement.txt" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="templates/en/ReservationNotification.txt" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="templates/it/ReservationNotification.txt" CopyToOutputDirectory="PreserveNewest" />
     <None Include="wwwroot/images/**/*.*" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 

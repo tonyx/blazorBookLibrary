@@ -628,4 +628,21 @@
   <data name="Taxonomy" xml:space="preserve"><value>Taxonomy</value></data>
   <data name="ArchivalStatus" xml:space="preserve"><value>Archival Status</value></data>
   <data name="ArchivalReferenceNote" xml:space="preserve"><value>Registration in this catalog ensures the preservation and cross-referenced accessibility of the collective literary heritage.</value></data>
+  <data name="UserAccountDetail" xml:space="preserve"><value>User Account Detail</value></data>
+  <data name="RefiningAndReviewingPatronCredentials" xml:space="preserve"><value>Refining and Reviewing Patron Credentials</value></data>
+  <data name="ArchivalRetrievalError" xml:space="preserve"><value>Archival Retrieval Error</value></data>
+  <data name="RetrievingArchivalRecords" xml:space="preserve"><value>Retrieving Archival Records</value></data>
+  <data name="FullName" xml:space="preserve"><value>Full Name</value></data>
+  <data name="EmailAddress" xml:space="preserve"><value>Email Address</value></data>
+  <data name="CodiceFiscale" xml:space="preserve"><value>Codice Fiscale</value></data>
+  <data name="PhysicalIdentification" xml:space="preserve"><value>Physical Identification</value></data>
+  <data name="Identified" xml:space="preserve"><value>Identified</value></data>
+  <data name="PendingVerification" xml:space="preserve"><value>Pending Verification</value></data>
+  <data name="ReviseCredentials" xml:space="preserve"><value>Revise Credentials</value></data>
+  <data name="ActiveArchivalLoans" xml:space="preserve"><value>Active Archival Loans</value></data>
+  <data name="NoActiveLoansFound" xml:space="preserve"><value>No active loans found for this patron.</value></data>
+  <data name="NoFutureReservationsFound" xml:space="preserve"><value>No future reservations found for this patron.</value></data>
+  <data name="UserDetails" xml:space="preserve"><value>User Details</value></data>
+  <data name="Details" xml:space="preserve"><value>Details</value></data>
+  <data name="ViewBook" xml:space="preserve"><value>View Book</value></data>
 </root>

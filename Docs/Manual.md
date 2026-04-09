@@ -1,0 +1,143 @@
+# End-User Manual: Blazor Book Library
+
+Welcome to the **Blazor Book Library** manual. This guide will help you navigate the system, manage the catalog, and understand the core features of the platform.
+
+---
+
+## Table of Contents
+1. [Introduction](#introduction)
+2. [Getting Started](#getting-started)
+3. [Core Features for All Users](#core-features-for-all-users)
+    - [Search & Discovery](#search--discovery)
+    - [Viewing Book Details](#viewing-book-details)
+4. [Member Privileges](#member-privileges)
+    - [Loans & Returns](#loans--returns)
+    - [Reservations](#reservations)
+5. [Librarian & Manager Tools](#librarian--manager-tools)
+    - [Catalog Management](#catalog-management)
+    - [Barcode Scanning](#barcode-scanning)
+    - [Author Registry](#author-registry)
+    - [Bulk Operations](#bulk-operations)
+6. [System Administration](#system-administration)
+    - [User Management](#user-management)
+    - [Email Service Reliability](#email-service-reliability)
+7. [Troubleshooting & Support](#troubleshooting--support)
+
+---
+
+<a name="introduction"></a>
+## 1. Introduction
+The Blazor Book Library is a modern, high-performance archival system designed for discoverability and ease of use. It leverages event-sourcing for a perfect audit trail and integrates with global services like Google Books to keep your catalog rich and accurate.
+
+<a name="getting-started"></a>
+## 2. Getting Started
+### Login and Authentication
+- Access the system via the **Login** link in the navigation menu.
+- You can register a new account or sign in with your existing credentials.
+- The system supports **Social Login** (e.g., Google OAuth) for a seamless experience.
+
+### Main Dashboard
+- Once logged in, the **Home** page provides a quick overview of the library's recent additions.
+- Use the sidebar or top navigation to jump to **Library Search**, **Books Manager**, or **Authors Manager** (depending on your role).
+
+---
+
+<a name="core-features-for-all-users"></a>
+## 3. Core Features for All Users
+
+<a name="search--discovery"></a>
+### Search & Discovery
+The **Library Search** page is your primary tool for finding literature.
+- **Title Search**: Enter any part of a book title.
+- **ISBN Search**: Locate a book specifically by its 10 or 13-digit ISBN.
+- **Advanced Filters**:
+    - **Authors**: Filter by one or more authors.
+    - **Categories**: Filter by genre or classification (e.g., Fiction, Science, History).
+    - **Timeline**: Search for books published in a specific year or within a range.
+    - **Availability**: Filter to show only books that are immediately available for loan.
+
+<a name="viewing-book-details"></a>
+### Viewing Book Details
+Clicking on a book title opens the **Book View** page.
+- **Overview**: View cover images, summaries, and metadata.
+- **Availability Status**: See at a glance if the book is on the shelf, on loan, or reference-only.
+- **Return Dates**: If on loan, the expected return date is displayed.
+
+---
+
+<a name="member-privileges"></a>
+## 4. Member Privileges
+
+<a name="loans--returns"></a>
+### Loans & Returns
+Members can manage their own borrowings.
+- **Borrowing**: Navigate to a book detail page and click **"Borrow"** if the book is circulating and available.
+- **Returns**: Active loans can be finalized by clicking **"Return"**, making the book available for others.
+
+<a name="reservations"></a>
+### Reservations
+If a book is currently on loan, you can place a **Reservation**.
+- You will be notified when the book is returned and reserved for you.
+- Reservations can be canceled at any time from your profile or the book page.
+
+---
+
+<a name="librarian--manager-tools"></a>
+## 5. Librarian & Manager Tools
+
+<a name="catalog-management"></a>
+### Catalog Management
+Managers use the **Books Manager** to maintain the library's excellence.
+- **Adding Books**: Click **"Add New Book Entry"** to open the registration form.
+- **Google Books Integration**: Enter a title and click **"Search API"** to automatically pull metadata (description, year, authors) from global records.
+- **Editing Records**: Click any title in the manager list to modify its details, including categories and archival notes.
+
+<a name="barcode-scanning"></a>
+### Barcode Scanning
+The system supports physical hardware or camera-based scanning.
+- In the Add Book form, click the **"Scan"** camera icon.
+- Position the book's barcode in the frame. The system will capture the ISBN and allow you to **"Autofill"** metadata immediately.
+
+<a name="author-registry"></a>
+### Author Registry
+Manage the database of creators in the **Authors Manager**.
+- **Wikipedia Lookup**: When adding an author, use the **"Discover Portrait"** tool to automatically fetch a profile image and biographical link from Wikipedia.
+- **Sealing Records**: Author profiles can be **Sealed** (locked) to prevent accidental changes during administrative reviews.
+
+<a name="bulk-operations"></a>
+### Bulk Operations
+Save time with mass updates:
+- Select multiple books in the **Books Manager** ledger.
+- Click **"Bulk Edit"** to simultaneously update publication years, categories, or availability status for the entire selection.
+
+---
+
+<a name="system-administration"></a>
+## 6. System Administration
+
+<a name="user-management"></a>
+### User Management
+Administrators manage access via the **Users Manager**.
+- **Role Assignment**: Promote users to **Manager** or **Librarian** roles to grant catalog access.
+- **Account Control**: Search for users by email or username to review their status and roles.
+
+<a name="email-service-reliability"></a>
+### Email Service Reliability
+The system includes a dedicated **Background Mail Resender Service**.
+- If a notification email (like account confirmation or loan alerts) fails due to external service issues, the system automatically queues it.
+- A background worker retries failed emails every 10 minutes until successful, ensuring no critical communication is lost.
+
+---
+
+<a name="troubleshooting--support"></a>
+## 7. Troubleshooting & Support
+
+| Issue | Potential Solution |
+| :--- | :--- |
+| **Email Not Received** | Check your Spam folder. If it still hasn't arrived, the system's background worker will retry the delivery automatically. |
+| **Scan Failed** | Ensure adequate lighting and that the barcode is clean. Alternatively, type the ISBN manually and use the **Lookup** button. |
+| **Cannot Edit Record** | Check if the record is **"Sealed"**. A Manager or Admin must unseal it before updates can be applied. |
+| **Google Books No Results** | Verify the title spelling or try searching by ISBN for more precise matching. |
+
+---
+*For technical architecture details, see [Architecture.md](file:///Users/antoniolucca/github/blazorBookLibrary/Docs/Architecture.md).*

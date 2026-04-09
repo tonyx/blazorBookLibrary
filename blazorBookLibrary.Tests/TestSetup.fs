@@ -24,6 +24,7 @@ open Microsoft.AspNetCore.DataProtection
 open blazorBookLibrary.Tests.MockServices
 open blazorBookLibrary.Data
 open blazorBookLibrary.Shared.Infrastructure.Services
+open Microsoft.Extensions.Logging
 Environment.SetEnvironmentVariable("IsTestEnv", "True")
 Env.Load() |> ignore
 
@@ -110,6 +111,10 @@ let loanViewerAsync = getAggregateStorageFreshStateViewerAsync<Loan, LoanEvent, 
 let userViewerAsync = getAggregateStorageFreshStateViewerAsync<User, UserEvent, string> pgEventStore
 let fakeEmailNotificator: IMailNotificator = new FakeEmailNotificator()
 
+let dummyLogger = 
+    LoggerFactory.Create(fun builder -> builder.AddConsole() |> ignore).CreateLogger<MailResenderService>()
+let dummyMailJetClient = new Mailjet.Client.MailjetClient("", "")
+
 let getAuthorService () = 
     AuthorService(
         pgEventStore, 
@@ -142,7 +147,10 @@ let getReservationService () =
         loanViewerAsync,
         userViewerAsync,
         getUserService(),
-        fakeEmailNotificator)
+        fakeEmailNotificator,
+        3,
+        "noreply@blazorbooklibrary.com",
+        "Blazor Book Library")
 
 let getBookService () = 
     BookService(
@@ -172,7 +180,9 @@ let getMailResenderService () =
     MailResenderService(
         config,
         pgEventStore,
-        getAggregateStorageFreshStateViewerAsync<BookLibrary.MessagesScheduler.MailQueue, BookLibrary.MessagesScheduler.MailQueueEvent, string> pgEventStore
+        getAggregateStorageFreshStateViewerAsync<BookLibrary.MessagesScheduler.MailQueue, BookLibrary.MessagesScheduler.MailQueueEvent, string> pgEventStore,
+        dummyMailJetClient,
+        dummyLogger
     )
 
 let registerUser (email: string) (password: string) =
@@ -186,7 +196,7 @@ let registerUser (email: string) (password: string) =
         else
             sprintf "%s_%s" guidStr email
 
-    use userManager = getUserManager()
+    let userManager = getUserManager()
     let aspUser = ApplicationUser(UserName = uniqueEmail, Email = uniqueEmail)
     aspUser.Id <- guid.ToString() // ensure same ID as domain user
     let result = (userManager.CreateAsync(aspUser, password) |> Async.AwaitTask |> Async.RunSynchronously)

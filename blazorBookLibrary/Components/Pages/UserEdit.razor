@@ -1,0 +1,334 @@
+@page "/user-edit/{UserIdStr}"
+@using Microsoft.AspNetCore.Authorization
+@using BookLibrary.Shared.Services
+@using BookLibrary.Domain
+@using BookLibrary.Shared
+@using BookLibrary.Shared.Services
+@using BookLibrary.Domain
+@using blazorBookLibrary.Shared.Resources
+@using static BookLibrary.Shared.Commons
+@using Microsoft.FSharp.Core
+@using static BookLibrary.Shared.Details
+@using Microsoft.AspNetCore.Identity
+@using blazorBookLibrary.Data
+
+@attribute [Authorize(Roles = "Admin, Manager")]
+@inject IUserService UserService
+@inject UserManager<ApplicationUser> UserManager
+@inject IJSRuntime JSRuntime
+@inject NavigationManager NavigationManager
+@inject IStringLocalizer<SharedResources> L
+@rendermode InteractiveServer
+
+<PageTitle>@L["UserAccountDetail"] — @L["TheModernArchivist"]</PageTitle>
+
+<div class="sanctuary-container py-5">
+    <div class="mb-5">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/" class="text-decoration-none text-muted">@L["Home"]</a></li>
+                <li class="breadcrumb-item"><a href="/users-manager" class="text-decoration-none text-muted">@L["EditorialAccountLedger"]</a></li>
+                <li class="breadcrumb-item active text-serif" aria-current="page">@L["UserAccountDetail"]</li>
+            </ol>
+        </nav>
+        <div class="d-flex justify-content-between align-items-end">
+            <div>
+                <h1 class="display-4 text-serif mb-2">@L["UserAccountDetail"]</h1>
+                <p class="text-muted lead">@L["RefiningAndReviewingPatronCredentials"]</p>
+            </div>
+            <div class="mb-2">
+                <button class="btn btn-outline-secondary rounded-pill px-4" @onclick="GoBack">
+                    <i class="bi bi-arrow-left me-2"></i> @L["Back"]
+                </button>
+            </div>
+        </div>
+    </div>
+
+    @if (userDetails == null && string.IsNullOrEmpty(errorMessage))
+    {
+        <div class="d-flex flex-column align-items-center justify-content-center py-5">
+            <div class="spinner-sanctuary mb-3"></div>
+            <p class="text-muted text-serif">@L["RetrievingArchivalRecords"]...</p>
+        </div>
+    }
+    else if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <div class="alert alert-danger shadow-sm rounded-4 border-0 p-4">
+            <div class="d-flex align-items-center">
+                <i class="bi bi-exclamation-triangle-fill h2 mb-0 me-3"></i>
+                <div>
+                    <h4 class="alert-heading mb-1">@L["ArchivalRetrievalError"]</h4>
+                    <p class="mb-0">@errorMessage</p>
+                </div>
+            </div>
+        </div>
+    }
+    else if (userDetails != null)
+    {
+        <div class="row g-4">
+            @* Personal Credentials Card *@
+            <div class="col-lg-5">
+                <div class="card-sanctuary p-4 h-100">
+                    <div class="d-flex align-items-center mb-4 border-bottom pb-3">
+                        <div class="avatar-circle me-3">
+                            <i class="bi bi-person-badge h3 mb-0"></i>
+                        </div>
+                        <div>
+                            <h2 class="h5 text-serif mb-0">@userDetails.ApplicationUser.Nome @userDetails.ApplicationUser.Cognome</h2>
+                            <p class="text-muted small mb-0">@userDetails.ApplicationUser.Email</p>
+                        </div>
+                    </div>
+
+                    <div class="credential-ledger">
+                        <div class="ledger-item">
+                            <label>@L["FullName"]</label>
+                            <div class="value">@userDetails.ApplicationUser.Nome @userDetails.ApplicationUser.Cognome</div>
+                        </div>
+                        <div class="ledger-item">
+                            <label>@L["EmailAddress"]</label>
+                            <div class="value">@userDetails.ApplicationUser.Email</div>
+                        </div>
+                        <div class="ledger-item">
+                            <label>@L["CodiceFiscale"]</label>
+                            <div class="value">@(string.IsNullOrEmpty(userDetails.ApplicationUser.CodiceFiscale) ? L["NotSpecified"] : userDetails.ApplicationUser.CodiceFiscale)</div>
+                        </div>
+                        <div class="ledger-item">
+                            <label>@L["PhysicalIdentification"]</label>
+                            <div class="value">
+                                @if (userDetails.ApplicationUser.IsIdentifiedPhysically)
+                                {
+                                    <span class="text-success"><i class="bi bi-patch-check-fill me-1"></i> @L["Identified"]</span>
+                                }
+                                else
+                                {
+                                    <span class="text-warning"><i class="bi bi-hourglass-split me-1"></i> @L["PendingVerification"]</span>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4 pt-4 border-top">
+                        <button class="btn btn-primary w-100 rounded-pill py-2 shadow-sm" @onclick="HandleEditRequest">
+                            <i class="bi bi-pencil-square me-2"></i> @L["ReviseCredentials"]
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            @* Archival Activity Card *@
+            <div class="col-lg-7">
+                <div class="card-sanctuary p-4 mb-4">
+                    <h2 class="h5 text-serif mb-4 border-bottom pb-2">
+                        <i class="bi bi-journals me-2 text-primary"></i> @L["ActiveArchivalLoans"]
+                    </h2>
+                    
+                    @if (userDetails.CurrentLoans.Any())
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>@L["Book"]</th>
+                                        <th>@L["DueDate"]</th>
+                                        <th class="text-end">@L["Actions"]</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var loan in userDetails.CurrentLoans)
+                                    {
+                                        <tr>
+                                            <td class="small fw-bold">Book ID: @loan.BookId.Value</td>
+                                            <td class="small">@loan.TimeSlot.End.ToShortDateString()</td>
+                                            <td class="text-end">
+                                                <button class="btn btn-sm btn-outline-primary rounded-pill px-3" @onclick='() => NavigateToBook(loan.BookId.Value.ToString())'>
+                                                    @L["ViewBook"]
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-center py-4 bg-surface-low rounded-3">
+                            <p class="text-muted mb-0 small italic">@L["NoActiveLoansFound"]</p>
+                        </div>
+                    }
+                </div>
+
+                <div class="card-sanctuary p-4">
+                    <h2 class="h5 text-serif mb-4 border-bottom pb-2">
+                        <i class="bi bi-calendar-event me-2 text-primary"></i> @L["FutureReservations"]
+                    </h2>
+                    
+                    @if (userDetails.FutureReservations.Any())
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>@L["Book"]</th>
+                                        <th>@L["ReservedFor"]</th>
+                                        <th class="text-end">@L["Actions"]</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var res in userDetails.FutureReservations)
+                                    {
+                                        <tr>
+                                            <td class="small fw-bold">Book ID: @res.BookId.Value</td>
+                                            <td class="small">@res.TimeSlot.Start.ToShortDateString() - @res.TimeSlot.End.ToShortDateString()</td>
+                                            <td class="text-end">
+                                                <button class="btn btn-sm btn-outline-primary rounded-pill px-3" @onclick='() => NavigateToBook(res.BookId.Value.ToString())'>
+                                                    @L["ViewBook"]
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-center py-4 bg-surface-low rounded-3">
+                            <p class="text-muted mb-0 small italic">@L["NoFutureReservationsFound"]</p>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public string UserIdStr { get; set; } = string.Empty;
+
+    private UserDetails? userDetails;
+    private string errorMessage = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadUserDetails();
+    }
+
+    private async Task LoadUserDetails()
+    {
+        try
+        {
+            if (Guid.TryParse(UserIdStr, out var guid))
+            {
+                var sharpinoUserId = UserId.NewUserId(guid);
+                var result = await UserService.GetUserDetailsAsync(sharpinoUserId, FSharpOption<System.Threading.CancellationToken>.None);
+
+                if (result.IsOk)
+                {
+                    userDetails = result.ResultValue;
+                }
+                else
+                {
+                    errorMessage = result.ErrorValue;
+                }
+            }
+            else
+            {
+                errorMessage = "Invalid User ID format.";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Unexpected Error: {ex.Message}";
+        }
+    }
+
+    private void GoBack()
+    {
+        NavigationManager.NavigateTo("/users-manager");
+    }
+
+    private void NavigateToBook(string bookId)
+    {
+        NavigationManager.NavigateTo($"/book-view/{bookId}");
+    }
+
+    private void HandleEditRequest()
+    {
+        // For now, this could just show a toast or navigate to an actual edit form
+        // But the user particularly wants data like PartitaIva to be VISIBLE.
+        // We've made it visible in the ledger above.
+    }
+}
+
+<style>
+    .card-sanctuary {
+        background: rgba(255, 255, 255, 0.9);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(0, 0, 0, 0.05);
+        border-radius: 20px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.03);
+    }
+    
+    .avatar-circle {
+        width: 60px;
+        height: 60px;
+        background: var(--bs-primary-bg-subtle, #e7f1ff);
+        color: var(--bs-primary, #0d6efd);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .credential-ledger .ledger-item {
+        padding: 1rem 0;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.03);
+    }
+    
+    .credential-ledger .ledger-item:last-child {
+        border-bottom: none;
+    }
+    
+    .credential-ledger .ledger-item label {
+        display: block;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        color: #888;
+        margin-bottom: 0.25rem;
+        font-weight: 600;
+    }
+    
+    .credential-ledger .ledger-item .value {
+        font-family: var(--bs-body-font-family);
+        font-weight: 500;
+        color: #333;
+    }
+    
+    .credential-ledger .ledger-item.highlight .value {
+        color: var(--bs-primary);
+        font-weight: 600;
+    }
+    
+    .bg-surface-low {
+        background-color: #f8f9fa;
+        border: 1px dashed #dee2e6;
+    }
+    
+    .spinner-sanctuary {
+        width: 40px;
+        height: 40px;
+        border: 3px solid rgba(13, 110, 253, 0.1);
+        border-top-color: #0d6efd;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+    
+    @@keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+    
+    .italic { font-style: italic; }
+</style>

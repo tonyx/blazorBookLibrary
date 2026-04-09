@@ -70,6 +70,22 @@ type Title =
             match this with
             | Title v -> v
 
+type ShortLang =
+    | ShortLocale of string
+    with 
+        static member 
+            New(locale: string) =
+                if (locale.Length < 2) then
+                    (ShortLocale "en")
+                else
+                    match locale.Substring(0, 2).ToLower() with
+                    | "en" -> (ShortLocale "en")
+                    | "it" -> (ShortLocale "it")
+                    | _ -> (ShortLocale "en")
+            member this.Value = 
+                match this with
+                | ShortLocale v -> v
+
 type Year = 
     | Year of int
     with

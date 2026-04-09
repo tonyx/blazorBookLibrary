@@ -17,6 +17,10 @@
     <ProjectReference Include="../blazorBookLibrary.Shared/blazorBookLibrary.Shared.fsproj" />
     <ProjectReference Include="../blazorBookLibrary.Data/blazorBookLibrary.Data.csproj" />
   </ItemGroup>
+  <ItemGroup> 
+    <None Include="Templates/en/ReservationNotification.txt" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="Templates/it/ReservationNotification.txt" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
 
   <ItemGroup>
     <Compile Include="Domain/Book/Events.fs" />

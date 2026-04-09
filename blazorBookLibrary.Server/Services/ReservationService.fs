@@ -36,9 +36,12 @@ type ReservationService
         loanViewerAsync: AggregateViewerAsync2<Loan>,
         userViewerAsync: AggregateViewerAsync2<User>,
         usersService: IUserService,
-        mailNotificator: IMailNotificator
+        mailNotificator: IMailNotificator,
+        maxReservations: int,
+        fromEmail: string,
+        fromName: string
     ) =
-    new (eventStore: IEventStore<string>, userService: IUserService, mailNotificator: IMailNotificator)
+    new (eventStore: IEventStore<string>, userService: IUserService, mailNotificator: IMailNotificator, configuration: IConfiguration)
         =
         let messageSenders = MessageSenders.NoSender
         let bookViewerAsync = getAggregateStorageFreshStateViewerAsync<Book, BookEvent, string> eventStore
@@ -47,6 +50,9 @@ type ReservationService
         let reservationViewerAsync = getAggregateStorageFreshStateViewerAsync<Reservation, ReservationEvent, string> eventStore
         let loanViewerAsync = getAggregateStorageFreshStateViewerAsync<Loan, LoanEvent, string> eventStore
         let userViewerAsync = getAggregateStorageFreshStateViewerAsync<User, UserEvent, string> eventStore
+        let maxReservations = configuration.GetValue<int>("BooksLibrary:MaxReservationsPerUser", 3)
+        let fromEmail = configuration.GetValue<string>("BooksLibrary:FromEmail", "noreply@blazorbooklibrary.com")
+        let fromName = configuration.GetValue<string>("BooksLibrary:FromName", "Blazor Book Library")
         ReservationService (
             eventStore,
             messageSenders,
@@ -57,16 +63,18 @@ type ReservationService
             loanViewerAsync,
             userViewerAsync,
             userService,
-            mailNotificator
+            mailNotificator,
+            maxReservations,
+            fromEmail,
+            fromName
         )
     new (configuration: IConfiguration, userService: IUserService, mailNotificator: IMailNotificator) 
         =
         let connectionString = configuration.GetConnectionString("BookLibraryDbConnection")
-        let maxReservations = configuration.GetValue<int>("BooksLibrary::MaxReservationsPerUser", 3)
         let eventStore = PgStorage.PgEventStore connectionString
-        ReservationService(eventStore, userService, mailNotificator)
+        ReservationService(eventStore, userService, mailNotificator, configuration) 
 
-        member this.AddReservationAsync (reservation: Reservation, dateTime: System.DateTime, ?ct: CancellationToken)= 
+        member this.AddReservationAsync (reservation: Reservation, dateTime: System.DateTime, shortLang: ShortLang, ?ct: CancellationToken)= 
 
             taskResult
                 {
@@ -79,6 +87,10 @@ type ReservationService
                     let! user =
                         userViewerAsync (Some ct) reservation.UserId.Value
                         |> TaskResult.map snd
+
+                    let! userHasEnoughReservations = 
+                        user.Reservations.Length < maxReservations
+                        |> Result.ofBool "Already reached maximum number of reservations"
 
                     do!
                         reservation.TimeSlot.IsFutureOf(dateTime)
@@ -98,6 +110,19 @@ type ReservationService
                     let addReservationToUserCommand = 
                         UserCommand.AddReservation reservation.ReservationId
 
+                    let! userDetails = 
+                        usersService.GetUserDetailsAsync (user.UserId, ct)
+
+                    let templatePath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Templates", shortLang.Value, "ReservationNotification.txt")
+                    let! emailTextRetrieved = 
+                        task {
+                            try
+                                let! content = System.IO.File.ReadAllTextAsync(templatePath)
+                                return Ok content
+                            with ex ->
+                                return Error (sprintf "Error reading template %s: %s" templatePath ex.Message)
+                        }
+
                     let! result =
                         runInitAndTwoAggregateCommandsMd<Book, BookEvent, User, UserEvent, string, Reservation>
                             book.Id
@@ -109,8 +134,24 @@ type ReservationService
                             addReservationToBookCommand
                             addReservationToUserCommand
 
+                    let emailBody = emailTextRetrieved.Replace("{bookTitle}", book.Title.Value)
+                    
+                    do! 
+                        task {
+                            do! mailNotificator.SendEmailAsync(
+                                    fromEmail,
+                                    fromName,
+                                    userDetails.ApplicationUser.Email,
+                                    "Book Reservation Confirmation",
+                                    emailBody
+                                )
+                            return Ok ()
+                        }
+
                     return result
                 }
+        member this.AddReservationAsync (reservation: Reservation, dateTime: DateTime, ?ct: CancellationToken) =
+            this.AddReservationAsync (reservation, dateTime, ShortLang.New "en", ?ct = ct)
 
     member this.GetReservationAsync (id: ReservationId, ?ct: CancellationToken) = 
         taskResult
@@ -210,10 +251,9 @@ type ReservationService
             }
 
     interface IReservationService with
-        member this.AddReservationAsync (reservation: Reservation, ?ct: CancellationToken)= 
+        member this.AddReservationAsync (reservation: Reservation, shortLang: ShortLang, ?ct: CancellationToken)= 
             let ct = defaultArg ct CancellationToken.None
-            // Console.WriteLine("ZZZZ: AddReservationAsync: "+CultureInfo.CurrentCulture.Name.Substring(0,2))
-            this.AddReservationAsync (reservation, DateTime.UtcNow, ct)
+            this.AddReservationAsync (reservation, DateTime.UtcNow, shortLang, ct)
         member this.GetReservationAsync (id: ReservationId, ?ct: CancellationToken) = 
             let ct = defaultArg ct CancellationToken.None
             this.GetReservationAsync (id, ct)

@@ -1,4 +1,5 @@
 @page "/book-view/{BookIdStr}"
+@using System.Globalization
 @using BookLibrary.Shared.Services
 @using BookLibrary.Domain
 @using BookLibrary.Shared
@@ -18,8 +19,6 @@
 @inject IStringLocalizer<SharedResources> L
 @inject BotScoreService BotScoreService
 @rendermode InteractiveServer
-
-<PageTitle>@L["BookDetails"]</PageTitle>
 
 <PageTitle>@L["BookDetails"]</PageTitle>
 
@@ -257,7 +256,7 @@
             
             var reservation = Reservation.New(bookDetails.Book.BookId, sharpinoUserId, nextSlot, now);
             
-            var result = await ReservationService.AddReservationAsync(reservation, FSharpOption<System.Threading.CancellationToken>.None);
+            var result = await ReservationService.AddReservationAsync(reservation, ShortLang.New(CultureInfo.CurrentCulture.Name.Substring(0,2)), FSharpOption<System.Threading.CancellationToken>.None);
             
             if (result.IsOk)
             {

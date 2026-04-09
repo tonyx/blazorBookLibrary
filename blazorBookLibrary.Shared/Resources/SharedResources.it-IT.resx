@@ -529,4 +529,21 @@
   <data name="Taxonomy" xml:space="preserve"><value>Tassonomia</value></data>
   <data name="ArchivalStatus" xml:space="preserve"><value>Stato Archivistico</value></data>
   <data name="ArchivalReferenceNote" xml:space="preserve"><value>La registrazione in questo catalogo garantisce la conservazione e l'accessibilità incrociata del patrimonio letterario collettivo.</value></data>
+  <data name="UserAccountDetail" xml:space="preserve"><value>Dettagli Account Utente</value></data>
+  <data name="RefiningAndReviewingPatronCredentials" xml:space="preserve"><value>Revisione e Raffinamento Credenziali Utente</value></data>
+  <data name="ArchivalRetrievalError" xml:space="preserve"><value>Errore di Recupero Archivistico</value></data>
+  <data name="RetrievingArchivalRecords" xml:space="preserve"><value>Recupero dei Record Archivistici...</value></data>
+  <data name="FullName" xml:space="preserve"><value>Nome Completo</value></data>
+  <data name="EmailAddress" xml:space="preserve"><value>Indirizzo Email</value></data>
+  <data name="CodiceFiscale" xml:space="preserve"><value>Codice Fiscale</value></data>
+  <data name="PhysicalIdentification" xml:space="preserve"><value>Identificazione Fisica</value></data>
+  <data name="Identified" xml:space="preserve"><value>Identificato</value></data>
+  <data name="PendingVerification" xml:space="preserve"><value>Verifica in Sospeso</value></data>
+  <data name="ReviseCredentials" xml:space="preserve"><value>Revisiona Credenziali</value></data>
+  <data name="ActiveArchivalLoans" xml:space="preserve"><value>Prestiti Archivistici Attivi</value></data>
+  <data name="NoActiveLoansFound" xml:space="preserve"><value>Nessun prestito attivo trovato per questo utente.</value></data>
+  <data name="NoFutureReservationsFound" xml:space="preserve"><value>Nessuna prenotazione futura trovata per questo utente.</value></data>
+  <data name="UserDetails" xml:space="preserve"><value>Dettagli Utente</value></data>
+  <data name="Details" xml:space="preserve"><value>Dettagli</value></data>
+  <data name="ViewBook" xml:space="preserve"><value>Visualizza Libro</value></data>
 </root>
