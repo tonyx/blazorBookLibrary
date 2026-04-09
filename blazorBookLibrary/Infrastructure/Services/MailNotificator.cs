@@ -5,18 +5,24 @@ using Mailjet.Client.TransactionalEmails;
 using Mailjet.Client.TransactionalEmails.Response;
 using Microsoft.AspNetCore.Identity.UI.Services;
 using blazorBookLibrary.Shared.Infrastructure.Services;
+using static BookLibrary.Shared.Commons;
+using BookLibrary.MessagesScheduler;
+using BookLibrary.CleanServices;
+using Farmer.Builders;
 
 namespace blazorBookLibrary.Infrastructure.Services;
 
-public sealed class MailNotificator : IMailNotificator
+public sealed partial class MailNotificator : IMailNotificator
 {
     private readonly MailjetClient _mailjetClient;
     private readonly ILogger<MailNotificator> _logger;
     private readonly IConfiguration _config;
     private readonly bool _isEmailSendEnabled;
+    private readonly IMailResenderService _mailResenderService;
 
-    public MailNotificator(IConfiguration config, ILogger<MailNotificator> logger)
+    public MailNotificator(IConfiguration config, ILogger<MailNotificator> logger, IMailResenderService mailResenderService)
     {
+        this._mailResenderService = mailResenderService;
         try
             {
                 _config = config;
@@ -42,6 +48,7 @@ public sealed class MailNotificator : IMailNotificator
     {
         if (!_isEmailSendEnabled) // can be disabled only in case of development
         {
+            _logger.LogWarning("Email sending is disabled. Some features may not work. Particularly the user will be unable to log at all in case Program.cs uses options.SignIn.RequireConfirmedAccount = true");
             return;
         }
         
@@ -52,25 +59,38 @@ public sealed class MailNotificator : IMailNotificator
             .WithTo(new SendContact(emailRecipient))
             .Build();
 
-        _logger.LogInformation("Sending email to {EmailRecipient}", emailRecipient);
+        LogSendingEmail(emailRecipient);
         try
         {
             TransactionalEmailResponse response = await _mailjetClient.SendTransactionalEmailAsync(email);
             if (response is null)
             {
-                _logger.LogError("Failed to send email to {EmailRecipient}", emailRecipient);
+                LogEmailSendFailed(emailRecipient);
+
+                await _mailResenderService.AddMailQueueItemAsync(MailQueueItem.New(email));
                 throw new InvalidOperationException($"Failed to send email to {emailRecipient}");
             }
-            _logger.LogInformation("Email sent to {EmailRecipient}", emailRecipient);
+            LogEmailSent(emailRecipient);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to send email to {EmailRecipient}", emailRecipient);
+            LogEmailSendError(ex, emailRecipient);
+            await _mailResenderService.AddMailQueueItemAsync(MailQueueItem.New(email));
             throw;
         }
-
-        _logger.LogInformation("Email sent to {EmailRecipient}", emailRecipient);
-        return;
     }
+
+    // a.i. generated optimization
+    [LoggerMessage(Level = LogLevel.Information, Message = "Sending email to {EmailRecipient}")]
+    private partial void LogSendingEmail(string emailRecipient);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Email sent to {EmailRecipient}")]
+    private partial void LogEmailSent(string emailRecipient);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Failed to send email to {EmailRecipient}")]
+    private partial void LogEmailSendFailed(string emailRecipient);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Failed to send email to {EmailRecipient}")]
+    private partial void LogEmailSendError(Exception ex, string emailRecipient);
 }
     

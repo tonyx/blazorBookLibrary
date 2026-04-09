@@ -79,17 +79,6 @@ type LoanService
                 let addLoanToUser =     
                     UserCommand.AddLoan (loan.LoanId)
 
-                // let! result = 
-                //     runInitAndTwoAggregateCommands<Book, BookEvent, User, UserEvent, string, Loan>
-                //         book.Id
-                //         user.Id
-                //         eventStore
-                //         messageSenders
-                //         loan
-                //         setCurrentLoanCommand
-                //         addLoanToUser
-                // return result
-
                 let! result = 
                     runInitAndTwoAggregateCommandsMdAsync<Book, BookEvent, User, UserEvent, string, Loan>
                         book.Id

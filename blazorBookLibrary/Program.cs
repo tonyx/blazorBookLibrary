@@ -16,11 +16,13 @@ using BookLibrary.Domain;
 
 using static BookLibrary.Shared.Commons; 
 using static BookLibrary.CleanServices.CleanUpServices;
+using BookLibrary.CleanServices;
 using BookLibrary.Server.SeedServices;
 
 using blazorBookLibrary.Security;
 using blazorBookLibrary.Infrastructure.Services;
 using BookLibrary.CleanServices;
+using BookLibrary.Server.CleanServices;
 using Microsoft.FSharp.Core;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -61,13 +63,15 @@ builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
 builder.Services.AddIdentityCore<ApplicationUser>(options =>
     {
-        options.SignIn.RequireConfirmedAccount = true;
+        options.SignIn.RequireConfirmedAccount = false;
         options.Stores.SchemaVersion = IdentitySchemaVersions.Version3;
     })
     .AddRoles<IdentityRole>()
     .AddEntityFrameworkStores<ApplicationDbContext>()
     .AddSignInManager()
     .AddDefaultTokenProviders();
+
+builder.Services.AddSingleton<IMailResenderService, MailResenderService>();
 
 builder.Services.AddSingleton<IMailNotificator, MailNotificator>();
 
@@ -95,8 +99,9 @@ builder.Services.Configure<IdentityPasskeyOptions>(options =>
     // options.ServerDomain = "localhost"; // Example configuration
 });
 
-
 builder.Services.AddSingleton<IEmailSender<ApplicationUser>, IdentityNoOpEmailSender>();
+
+builder.Services.AddHostedService<ScheduledWorker>();
 
 var app = builder.Build();
 
@@ -214,6 +219,9 @@ using (var scope = app.Services.CreateScope())
             randomBookGeneratorLogger.LogError("Random book generator service failed: {Error}", result.ErrorValue);
         }
     }
+
+    var mailResenderService = scope.ServiceProvider.GetRequiredService<IMailResenderService>();
+    await mailResenderService.CreateInitialMailQueueInstanceAsync(Microsoft.FSharp.Core.FSharpOption<System.Threading.CancellationToken>.None);
 
 }
 

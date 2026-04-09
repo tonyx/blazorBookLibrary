@@ -23,6 +23,7 @@ open BookLibrary.Details.Details
 open Microsoft.Extensions.Configuration
 open BookLibrary.Details.Details
 open System.Globalization
+open blazorBookLibrary.Shared.Infrastructure.Services
 
 type ReservationService
     (
@@ -34,9 +35,10 @@ type ReservationService
         reservationViewerAsync: AggregateViewerAsync2<Reservation>,
         loanViewerAsync: AggregateViewerAsync2<Loan>,
         userViewerAsync: AggregateViewerAsync2<User>,
-        usersService: IUserService
+        usersService: IUserService,
+        mailNotificator: IMailNotificator
     ) =
-    new (eventStore: IEventStore<string>, userService: IUserService)
+    new (eventStore: IEventStore<string>, userService: IUserService, mailNotificator: IMailNotificator)
         =
         let messageSenders = MessageSenders.NoSender
         let bookViewerAsync = getAggregateStorageFreshStateViewerAsync<Book, BookEvent, string> eventStore
@@ -54,14 +56,15 @@ type ReservationService
             reservationViewerAsync,
             loanViewerAsync,
             userViewerAsync,
-            userService
+            userService,
+            mailNotificator
         )
-    new (configuration: IConfiguration, userService: IUserService) 
+    new (configuration: IConfiguration, userService: IUserService, mailNotificator: IMailNotificator) 
         =
         let connectionString = configuration.GetConnectionString("BookLibraryDbConnection")
         let maxReservations = configuration.GetValue<int>("BooksLibrary::MaxReservationsPerUser", 3)
         let eventStore = PgStorage.PgEventStore connectionString
-        ReservationService(eventStore, userService)
+        ReservationService(eventStore, userService, mailNotificator)
 
         member this.AddReservationAsync (reservation: Reservation, dateTime: System.DateTime, ?ct: CancellationToken)= 
 

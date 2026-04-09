@@ -31,11 +31,19 @@
     <Compile Include="Domain/Loan/Commands.fs" />
     <Compile Include="Domain/User/Events.fs" />
     <Compile Include="Domain/User/Commands.fs" />
+    
+    <Compile Include="MessagesScheduler/MailsQueue/MailQueue.fs" />
+    <Compile Include="MessagesScheduler/MailsQueue/Events.fs" />
+    <Compile Include="MessagesScheduler/MailsQueue/Commands.fs" />
+
     <Compile Include="Details.fs" />
     <Compile Include="CleanServices/CleanUpService.fs" />
+    <Compile Include="CleanServices/IMailResenderService.fs" />
+    <Compile Include="CleanServices/MailResenderService.fs" />
+    <Compile Include="CleanServices/MailResenderScheduler.fs" />
+
     <Compile Include="SeedServices/RandomAuthorGeneratorService.fs" />
     <Compile Include="SeedServices/RandomBooksGeneratorService.fs" />
-
     <Compile Include="Services/UserService.fs" />
     <Compile Include="Services/ReservationService.fs" />
     <Compile Include="Services/BookService.fs" />
@@ -48,6 +56,7 @@
   <ItemGroup>
     <PackageReference Include="Bolero.Server" Version="0.*" />
     <PackageReference Include="Bolero.HotReload.Server" Version="0.*" />
+    <PackageReference Include="Mailjet.Api" Version="4.0.0" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="10.0.*" />
     <PackageReference Include="Microsoft.Extensions.Configuration" Version="10.0.5" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.0.5" />

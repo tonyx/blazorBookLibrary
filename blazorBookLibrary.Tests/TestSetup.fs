@@ -6,6 +6,7 @@ open DotNetEnv
 open Sharpino.PgStorage
 open BookLibrary.Domain
 open BookLibrary.Services
+open BookLibrary.CleanServices
 open BookLibrary.Shared.Details
 open Sharpino.Cache
 open Sharpino.Core
@@ -20,7 +21,9 @@ open Microsoft.AspNetCore.Identity.EntityFrameworkCore
 open Microsoft.EntityFrameworkCore
 open Microsoft.Extensions.DependencyInjection
 open Microsoft.AspNetCore.DataProtection
+open blazorBookLibrary.Tests.MockServices
 open blazorBookLibrary.Data
+open blazorBookLibrary.Shared.Infrastructure.Services
 Environment.SetEnvironmentVariable("IsTestEnv", "True")
 Env.Load() |> ignore
 
@@ -105,6 +108,7 @@ let editorViewerAsync = getAggregateStorageFreshStateViewerAsync<Editor, EditorE
 let reservationViewerAsync = getAggregateStorageFreshStateViewerAsync<Reservation, ReservationEvent, string> pgEventStore
 let loanViewerAsync = getAggregateStorageFreshStateViewerAsync<Loan, LoanEvent, string> pgEventStore
 let userViewerAsync = getAggregateStorageFreshStateViewerAsync<User, UserEvent, string> pgEventStore
+let fakeEmailNotificator: IMailNotificator = new FakeEmailNotificator()
 
 let getAuthorService () = 
     AuthorService(
@@ -137,7 +141,8 @@ let getReservationService () =
         reservationViewerAsync, 
         loanViewerAsync,
         userViewerAsync,
-        getUserService())
+        getUserService(),
+        fakeEmailNotificator)
 
 let getBookService () = 
     BookService(
@@ -162,6 +167,13 @@ let getLoanService () =
         reservationViewerAsync, 
         loanViewerAsync,
         userViewerAsync)
+
+let getMailResenderService () =
+    MailResenderService(
+        config,
+        pgEventStore,
+        getAggregateStorageFreshStateViewerAsync<BookLibrary.MessagesScheduler.MailQueue, BookLibrary.MessagesScheduler.MailQueueEvent, string> pgEventStore
+    )
 
 let registerUser (email: string) (password: string) =
     // ensure unique email to avoid parallel test conflicts

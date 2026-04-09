@@ -1,5 +1,5 @@
 {
-  "NOTES": "This is a template file. Copy it to appsettings.json and fill in the values. For production, you may wanto to secure the connection strings and other secrets using Azure Key Vault.",
+  "NOTES": "This is a template file. Copy it to appsettings.json and fill in the values. For production, you may want to secure the connection strings and other secrets using Azure Key Vault.",
   "ConnectionStrings": {
     "UsersDbConnection": "Host=....;Database=....;Username=....;Password=....",
     "BookLibraryDbConnection": "Server=....;Database=....;User Id=....;Password=...."

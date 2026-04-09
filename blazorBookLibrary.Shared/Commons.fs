@@ -161,6 +161,62 @@ type AuthorId =
             match this with
             | AuthorId v -> v
 
+type MailQueueItemId =
+    | MailQueueItemId of Guid
+    with
+        static member New() = MailQueueItemId(Guid.NewGuid())
+        member this.Value = 
+            match this with
+            | MailQueueItemId v -> v
+
+type MailQueueId =
+    | MailQueueId of Guid
+    with
+        static member New() = MailQueueId(Guid.NewGuid())
+        member this.Value = 
+            match this with
+            | MailQueueId v -> v
+
+type EmailFrom = 
+    | EmailFrom of string
+    with
+        static member New(email: string) = EmailFrom(email)
+        member this.Value = 
+            match this with
+            | EmailFrom v -> v
+
+type NameFrom = 
+    | NameFrom of string
+    with
+        static member New(name: string) = NameFrom(name)
+        member this.Value = 
+            match this with
+            | NameFrom v -> v
+
+type EmailTo = 
+    | EmailTo of string
+    with
+        static member New(email: string) = EmailTo(email)
+        member this.Value = 
+            match this with
+            | EmailTo v -> v
+
+type Subject = 
+    | Subject of string
+    with
+        static member New(subject: string) = Subject(subject)
+        member this.Value = 
+            match this with
+            | Subject v -> v
+
+type Body = 
+    | Body of string
+    with
+        static member New(body: string) = Body(body)
+        member this.Value = 
+            match this with
+            | Body v -> v
+
 type IsbnRegistryId =
     | IsbnRegistryId of Guid
     with
