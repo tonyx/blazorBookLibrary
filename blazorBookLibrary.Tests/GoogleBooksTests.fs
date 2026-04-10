@@ -7,6 +7,7 @@ open BookLibrary.Services
 open BookLibrary.Shared.Services
 open BookLibrary.Shared.Commons
 open System.IO
+open System.Threading
 
 module GoogleBooksTests =
     let getService () =
@@ -24,9 +25,9 @@ module GoogleBooksTests =
     let tests =
         // test pending as Google Books API may be down
         ptestList "Google Books Service Tests" [
-            testCaseAsync "can lookup book by ISBN and populate Description" <| async {
+            testCaseTask "can lookup book by ISBN and populate Description" <| fun _ -> task {
                 let isbn = "9780132350884" // Clean Code
-                let! result = googleService.LookupByIsbnAsync(isbn) |> Async.AwaitTask
+                let! result = googleService.LookupByIsbnAsync(isbn)
                 match result with
                 | Ok (Some metadata) ->
                     Expect.isNotNull metadata.Title "Title should not be null"
@@ -39,9 +40,9 @@ module GoogleBooksTests =
                 | Error e ->
                     failwith e
             }
-            testCaseAsync "can lookup book by Title" <| async {
+            testCaseTask "can lookup book by Title" <| fun _ -> task {
                 let title = "The Lord of the Rings"
-                let! result = googleService.LookupByTitleAsync(title) |> Async.AwaitTask
+                let! result = googleService.LookupByTitleAsync(title)
                 match result with
                 | Ok (Some metadata) ->
                     Expect.isNotNull metadata.Title "Title should not be null"
@@ -52,9 +53,9 @@ module GoogleBooksTests =
                 | Error e ->
                     failwith e
             }
-            testCaseAsync "can lookup multiple books by Title" <| async {
+            testCaseTask "can lookup multiple books by Title" <| fun _ -> task {
                 let title = "The Lord of the Rings"
-                let! result = googleService.LookupMultipleByTitleAsync(title) |> Async.AwaitTask
+                let! result = googleService.LookupMultipleByTitleAsync(title)
                 match result with
                 | Ok list ->
                     Expect.isTrue (list.Length > 0) "Should find at least one book"
@@ -62,12 +63,12 @@ module GoogleBooksTests =
                 | Error e ->
                     failwith e
             }
-            testCaseAsync "can lookup cover image by ISBN (Open Library)" <| async {
+            testCaseTask "can lookup cover image by ISBN (Open Library)" <| fun _ -> task {
                 let isbnStr = "9788804668237"
                 let isbn = Isbn isbnStr
                 
                 // Test default size (Medium)
-                let! resultM = googleService.LookupCoverImageByIsbnAsync(isbn) |> Async.AwaitTask
+                let! resultM = googleService.LookupCoverImageByIsbnAsync(isbn)
                 match resultM with
                 | Ok (Some url) ->
                     // The URL now should be the final redirected URL, usually on archive.org
@@ -81,32 +82,32 @@ module GoogleBooksTests =
                     failwith e
 
                 // Test Small size
-                let! resultS = googleService.LookupCoverImageByIsbnAsync(isbn, ThumbRoughSize.Small) |> Async.AwaitTask
+                let! resultS = googleService.LookupCoverImageByIsbnAsync(isbn, ThumbRoughSize.Small)
                 match resultS with
                 | Ok (Some url) ->
                     Expect.isTrue (url.Contains("archive.org")) "Small cover should also point to archive.org"
                 | _ -> failwith "Failed to lookup Small cover"
 
                 // Test Large size
-                let! resultL = googleService.LookupCoverImageByIsbnAsync(isbn, ThumbRoughSize.Large) |> Async.AwaitTask
+                let! resultL = googleService.LookupCoverImageByIsbnAsync(isbn, ThumbRoughSize.Large)
                 match resultL with
                 | Ok (Some url) ->
                     Expect.isTrue (url.Contains("archive.org")) "Large cover should also point to archive.org"
                 | _ -> failwith "Failed to lookup Large cover"
             }
-            testCaseAsync "returns error for invalid ISBN in cover lookup" <| async {
+            testCaseTask "returns error for invalid ISBN in cover lookup" <| fun _ -> task {
                 let isbn = InvalidIsbn "123"
-                let! result = googleService.LookupCoverImageByIsbnAsync(isbn) |> Async.AwaitTask
+                let! result = googleService.LookupCoverImageByIsbnAsync(isbn)
                 match result with
                 | Error msg -> Expect.stringContains msg "invalid" "Should return error message for invalid ISBN"
                 | _ -> failwith "Should have returned an error"
             }
 
             // service may be down
-            ptestCaseAsync "can lookup cover image from Google API" <| async {
+            ptestCaseTask "can lookup cover image from Google API" <| fun _ -> task {
                 let isbnStr = "9780132350884" // Clean Code
                 let isbn = Isbn isbnStr
-                let! result = googleService.LookupGoogleApiCoverImageByIsbnAsync(isbn) |> Async.AwaitTask
+                let! result = googleService.LookupGoogleApiCoverImageByIsbnAsync(isbn)
                 match result with
                 | Ok (Some url) ->
                     Expect.isTrue (url.StartsWith("http")) "Should return a valid URL"
@@ -117,18 +118,4 @@ module GoogleBooksTests =
                 | Error e ->
                     failwith e
             }
-            // testCaseAsync "lookup description via Google API" <| async {
-            //     let isbnStr = "9780795300455" // The brave new world
-            //     let isbn = Isbn isbnStr
-            //     let! result = googleService.LookupByIsbnAsync(isbn.Value) |> Async.AwaitTask
-            //     match result with
-            //     | Ok (Some metadata) ->
-            //         Expect.isTrue (metadata.Description.IsSome) "Should return a valid URL"
-            //         Expect.stringContains metadata.Description.Value "books.google.com" "URL should point to Google Books"
-            //         printfn "Found description: %s" metadata.Description.Value
-            //     | Ok None ->
-            //         failwith "Should have found a cover for Clean Code"
-            //     | Error e ->
-            //         failwith e
-            // }
         ]

@@ -4,6 +4,7 @@ open Expecto
 open System.Net.Http
 open BookLibrary.Services
 open BookLibrary.Shared.Services
+open System.Threading
 
 module AuthorsSearchTests =
     let getService () =
@@ -17,9 +18,9 @@ module AuthorsSearchTests =
     let tests =
         // test pending as the service may be down
         ptestList "Authors Search Service Tests" [
-            testCaseAsync "can lookup author by name" <| async {
+            testCaseTask "can lookup author by name" <| fun _ -> task {
                 let name = "J. R. R. Tolkien"
-                let! result = authService.LookupByNameAsync(name) |> Async.AwaitTask
+                let! result = authService.LookupByNameAsync(name)
                 match result with
                 | Ok metadata ->
                     Expect.isNotNull metadata.Name "Author Name should not be null"
@@ -30,9 +31,9 @@ module AuthorsSearchTests =
                     failwith e
             }
 
-            testCaseAsync "can lookup author thumbnail by name" <| async {
+            testCaseTask "can lookup author thumbnail by name" <| fun _ -> task {
                 let name = "Dante Alighieri"
-                let! result = authService.LookupImageUrlByNameAndThumbSizeAsync(name, 200) |> Async.AwaitTask
+                let! result = authService.LookupImageUrlByNameAndThumbSizeAsync(name, 200)
                 match result with
                 | Ok url ->
                     Expect.isNotNull url "Thumbnail URL should not be null"

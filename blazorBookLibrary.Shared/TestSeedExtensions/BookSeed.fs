@@ -7,7 +7,7 @@ open BookLibrary.Shared.Commons
 open FsToolkit.ErrorHandling
 
 module BookSeeds =
-    let bookPictureUri = Uri("http://books.google.com/books/content?id=VWCEkgAACAAJ&printsec=frontcover&img=1&zoom=1&source=gbs_api")
+    let bookPictureUri = Uri("https://ia600502.us.archive.org/view_archive.php?archive=/31/items/m_covers_0013/m_covers_0013_20.zip&file=0013200934-M.jpg")
 
     let rnd = Random()
     

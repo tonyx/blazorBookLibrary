@@ -16,14 +16,16 @@ open BookLibrary.Tests.TestSeedExtensions.BookSeeds
 [<Tests>]
 let tests =
     testList "generate random authors and books" [
-        testCase "generate random author and book" <| fun _ ->
+        testCaseTask "generate random author and book" <| fun _ -> task {
             setUp ()
             let author = generateRandomAuthor ()
             let book = randomBook ([author.AuthorId])
             printfn "%A\n" book
             Expect.isOk book "true"
+        }
 
-        testCase "generate random isbn" <| fun _ ->
+        testCaseTask "generate random isbn" <| fun _ -> task {
             let isbn = randomIsbn ()
             Expect.isOk isbn "should be ok"
+        }
     ]

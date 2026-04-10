@@ -94,7 +94,6 @@ type BookService
                                     |> Async.RunSynchronously
                                 let! futureReservations = 
                                     book.CurrentReservations
-                                    // |> List.traverseTaskResultM (fun reservationId -> reservationViewerAsync (Some ct) reservationId.Value |> TaskResult.map snd)
                                     |> List.traverseTaskResultM (fun reservationId -> reservationService.GetReservationDetailsAsync (reservationId, ct))
                                     |> Async.AwaitTask
                                     |> Async.RunSynchronously

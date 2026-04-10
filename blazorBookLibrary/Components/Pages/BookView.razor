@@ -53,11 +53,13 @@
             <!-- Left Column: Visual & Status Rail -->
             <div class="col-lg-4">
                 <div class="card-sanctuary floating mb-4 text-center">
-                    <div class="book-cover-wrap mb-4 bg-surface-low">
+                    <div class="book-cover-wrap mb-4 bg-surface-low shadow-sm" style="height: 450px; border-radius: 4px; overflow: hidden; display: flex; align-items: center; justify-content: center; position: relative;">
                         @if (FSharpOption<Uri>.get_IsSome(bookDetails.Book.ImageUrl))
                         {
                             <img src="@bookDetails.Book.ImageUrl.Value.ToString()" 
-                                 alt="@bookDetails.Book.Title.Value Cover" />
+                                 alt="@bookDetails.Book.Title.Value Cover" 
+                                 class="w-100 h-100" 
+                                 style="object-fit: cover;" />
                         }
                         else
                         {

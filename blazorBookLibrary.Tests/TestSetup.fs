@@ -217,3 +217,32 @@ let registerUser (email: string) (password: string) =
         failwithf "Domain user creation failed: %A" addUser
 
     userId
+
+let registerUserTask (email: string) (password: string) =
+    task {
+        let guid = Guid.NewGuid()
+        let guidStr = guid.ToString("N")
+        let parts = email.Split('@')
+        let uniqueEmail = 
+            if parts.Length = 2 then
+                sprintf "%s+%s@%s" parts.[0] guidStr parts.[1]
+            else
+                sprintf "%s_%s" guidStr email
+
+        let userManager = getUserManager()
+        let aspUser = ApplicationUser(UserName = uniqueEmail, Email = uniqueEmail)
+        aspUser.Id <- guid.ToString()
+        let! result = userManager.CreateAsync(aspUser, password)
+        if not result.Succeeded then
+            failwithf "Identity user creation failed: %A" result.Errors
+
+        let userId = UserId guid
+        let userService = getUserService()
+        let user = User.New userId
+        let! addUser = userService.CreateUserAsync user
+        
+        if not (addUser |> Result.isOk) then
+            failwithf "Domain user creation failed: %A" addUser
+
+        return userId
+    }
