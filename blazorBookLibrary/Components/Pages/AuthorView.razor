@@ -1,0 +1,215 @@
+@page "/author-view/{AuthorIdStr}"
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using BookLibrary.Shared.Services
+@using Microsoft.Extensions.Localization
+@using blazorBookLibrary.Shared.Resources
+@using BookLibrary.Domain
+@using static BookLibrary.Shared.Commons
+@using BookLibrary.Shared
+@using Microsoft.FSharp.Core
+
+@inject IAuthorService AuthorService
+@inject NavigationManager NavigationManager
+@inject IStringLocalizer<SharedResources> L
+@inject IJSRuntime JSRuntime
+@rendermode InteractiveServer
+
+<PageTitle>@L["AuthorDetails"]</PageTitle>
+
+<div class="sanctuary-container">
+    <!-- Header Area -->
+    <div class="d-flex justify-content-between align-items-end mb-5 border-bottom pb-4" style="border-color: var(--outline-variant) !important;">
+        <div>
+            <nav aria-label="breadcrumb" class="mb-2">
+                <ol class="breadcrumb mb-0" style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--secondary);">
+                    <li class="breadcrumb-item"><a href="/" class="text-decoration-none text-reset">@L["Home"]</a></li>
+                    <li class="breadcrumb-item"><a href="/books-browser" class="text-decoration-none text-reset">@L["Library"]</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">@L["AuthorProfile"]</li>
+                </ol>
+            </nav>
+            <h1 class="serif display-5 mb-0" style="font-weight: 800; color: var(--primary);">@L["AuthorProfile"]</h1>
+        </div>
+        <button class="btn-sanctuary-outline" @onclick="GoBack">
+            <i class="bi bi-arrow-left me-2"></i>@L["Back"]
+        </button>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="d-flex justify-content-center align-items-center" style="min-height: 400px;">
+            <div class="spinner-grow text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+    }
+    else if (authorDetails != null)
+    {
+        <div class="row g-5">
+            <!-- Left Column: Portrait & Stats -->
+            <div class="col-lg-4">
+                <div class="card-sanctuary floating text-center mb-4">
+                    <div class="profile-image-wrap mb-4 bg-surface-low rounded-circle mx-auto position-relative" style="width: 200px; height: 200px; overflow: hidden; border: 8px solid var(--surface-container-lowest);">
+                        @if (authorDetails.Author.ImageUri != null && FSharpOption<Uri>.get_IsSome(authorDetails.Author.ImageUri))
+                        {
+                            <img src="@authorDetails.Author.ImageUri.Value.ToString()" 
+                                 class="w-100 h-100" 
+                                 style="object-fit: cover;" 
+                                 alt="@authorDetails.Author.Name.Value Profile" />
+                        }
+                        else
+                        {
+                            <div class="w-100 h-100 d-flex flex-column align-items-center justify-content-center text-muted opacity-25">
+                                <i class="bi bi-person-fill" style="font-size: 6rem;"></i>
+                            </div>
+                        }
+                    </div>
+
+                    <div class="d-flex flex-column gap-3">
+                        <div class="d-flex justify-content-center flex-wrap gap-2">
+                             <span class="badge-sanctuary badge-neutral">
+                                <i class="bi bi-journals me-2"></i> @authorDetails.Books.Length @L["RegisteredTitles"]
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column: Details & Works Ledger -->
+            <div class="col-lg-8">
+                <!-- Administrative Ledger (Profile Stats) -->
+                <div class="card-sanctuary mb-5">
+                    <h5 class="serif mb-4 pb-2 border-bottom" style="border-color: var(--outline-variant) !important;">@L["ArchivalRecord"]</h5>
+                    
+                    <div class="row g-4">
+                        <div class="col-md-6">
+                            <label class="form-label small text-muted text-uppercase fw-bold mb-2">@L["AuthorFullName"]</label>
+                            <div class="d-flex align-items-center gap-3">
+                                <p class="serif h4 mb-0" style="color: var(--primary); font-weight: 700;">@authorDetails.Author.Name.Value</p>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label class="form-label small text-muted text-uppercase fw-bold mb-2">@L["IsniNumber"]</label>
+                            <div class="d-flex align-items-center gap-3">
+                                @if (string.IsNullOrEmpty(authorDetails.Author.Isni.Value))
+                                {
+                                    <span class="text-muted small fst-italic">@L["NoneNotSet"]</span>
+                                }
+                                else
+                                {
+                                    <span class="badge-sanctuary badge-neutral font-monospace">@authorDetails.Author.Isni.Value</span>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Works Published Section -->
+                <div class="card-sanctuary p-0 overflow-hidden">
+                    <div class="px-5 pt-5 pb-4 d-flex justify-content-between align-items-end">
+                        <h5 class="serif display-6 mb-0">@L["WorksPublished"]</h5>
+                        <div class="badge-sanctuary badge-neutral">@authorDetails.Books.Length @L["BooksInLibrary"]</div>
+                    </div>
+
+                    <div class="px-5 pb-5">
+                        <div class="table-responsive">
+                            <QuickGrid Items="@authorDetails.Books.AsQueryable()" Pagination="@bookPagination" Class="table table-editorial align-middle mb-0">
+                                <TemplateColumn Title="@L["Title"]" SortBy="@sortTitle" Class="col-title serif fw-bold">
+                                    <a href="/book-view/@context.Id" class="text-decoration-none text-reset d-flex align-items-center gap-3 py-2">
+                                        <div class="bg-surface-low rounded p-2" style="width: 40px; height: 55px; display: flex; align-items: center; justify-content: center;">
+                                            @if (FSharpOption<Uri>.get_IsSome(context.ImageUrl))
+                                            {
+                                                <img src="@context.ImageUrl.Value.ToString()" style="max-width: 100%; max-height: 100%; object-fit: contain;" />
+                                            }
+                                            else
+                                            {
+                                                <i class="bi bi-journal-text opacity-25"></i>
+                                            }
+                                        </div>
+                                        <span>@context.Title.Value</span>
+                                    </a>
+                                </TemplateColumn>
+                                
+                                <PropertyColumn Property="@(b => b.Year.Value)" Title="@L["Year"]" Sortable="true" Class="col-year text-muted" />
+                                
+                                <TemplateColumn Title="@L["Category"]" Sortable="true" Class="col-category">
+                                    <span class="badge-sanctuary badge-neutral" style="font-size: 0.7rem;">@context.MainCategory.Value()</span>
+                                </TemplateColumn>
+                                
+                                <TemplateColumn Title="@L["Availability"]" Sortable="true" Align="Align.End" Class="col-available">
+                                    @if (context.Available)
+                                    {
+                                        <span class="text-success small fw-bold"><i class="bi bi-circle-fill me-2" style="font-size: 0.5rem;"></i>@L["Available"]</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-danger small fw-bold"><i class="bi bi-circle-fill me-2" style="font-size: 0.5rem;"></i>@L["OnLoan"]</span>
+                                    }
+                                </TemplateColumn>
+                            </QuickGrid>
+                        </div>
+                        
+                        <div class="mt-4 d-flex justify-content-between align-items-center">
+                            <div class="small text-muted serif italic">@L["Showing"] @Math.Min(bookPagination.ItemsPerPage, authorDetails.Books.Length) @L["Of"] @authorDetails.Books.Length @L["CatalogedTitles"]</div>
+                            <Paginator State="@bookPagination" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+    else if (!isLoading && authorDetails == null)
+    {
+        <div class="card-sanctuary text-center p-5">
+            <i class="bi bi-exclamation-triangle display-4 text-warning mb-3"></i>
+            <h4 class="serif">@L["ErrorLoadingAuthor"]</h4>
+            <a href="/books-browser" class="btn-sanctuary-outline text-decoration-none d-inline-block mt-3">@L["BackToLibrary"]</a>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public string AuthorIdStr { get; set; } = "";
+
+    private bool isLoading = true;
+    private Details.AuthorDetails? authorDetails;
+    private PaginationState bookPagination = new() { ItemsPerPage = 10 };
+    private GridSort<Book> sortTitle = GridSort<Book>.ByAscending(b => b.Title.Value);
+
+    private void GoBack()
+    {
+        JSRuntime.InvokeVoidAsync("history.back");
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAuthorDetails();
+    }
+
+    private async Task LoadAuthorDetails()
+    {
+        isLoading = true;
+        try
+        {
+            if (Guid.TryParse(AuthorIdStr, out var guid))
+            {
+                var authorId = AuthorId.NewAuthorId(guid);
+                var result = await AuthorService.GetAuthorDetailsAsync(authorId);
+
+                if (result.IsOk)
+                {
+                    authorDetails = result.ResultValue;
+                }
+            }
+        }
+        catch (Exception)
+        {
+            // Error handling can be expanded here
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+}

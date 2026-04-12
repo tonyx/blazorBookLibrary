@@ -135,7 +135,7 @@ let tests =
             let timeSlot = TimeSlot.New (System.DateTime.Now) (System.DateTime.Now.AddDays(timeSlotDurationInDays))
             let loan = Loan.New book.BookId (userId) System.DateTime.Now timeSlot
 
-            let! addLoan = loanService.AddLoanAsync (loan, System.DateTime.Now)
+            let! addLoan = loanService.AddLoanAsync (loan, ShortLang.New "en", System.DateTime.Now)
             Expect.isOk addLoan "should be ok"
 
             let! bookDetailResult = bookService.GetBookDetailsAsync book.BookId 
@@ -144,10 +144,10 @@ let tests =
             let (bookDetail: BookDetails) = bookDetailResult |> Result.get
             Expect.isTrue (bookDetail.Book.CurrentLoan |> Option.isSome) "should contain the loan"
             Expect.isTrue (bookDetail.CurrentLoan |> Option.isSome) "should contain the loan"
-            Expect.isTrue (bookDetail.CurrentLoan.Value.LoanId = loan.LoanId) "should contain the loan"
+            Expect.isTrue ((bookDetail.CurrentLoan.Value).Loan.LoanId = loan.LoanId) "should contain the loan"
             Expect.isTrue (bookDetail.ReservationsDetails |> List.isEmpty) "should not contain reservations"
 
-            let! releaseLoan = loanService.ReleaseLoanAsync(loan.LoanId, System.DateTime.Now)
+            let! releaseLoan = loanService.ReleaseLoanAsync(loan.LoanId, ShortLang.New "en", System.DateTime.Now)
             Expect.isOk releaseLoan "should be ok"
 
             let! bookDetail2Result = bookService.GetBookDetailsAsync book.BookId
@@ -192,7 +192,7 @@ let tests =
             let timeSlot = TimeSlot.New (System.DateTime.Now) (System.DateTime.Now.AddDays(timeSlotDurationInDays))
             let loan = Loan.New book.BookId userId System.DateTime.Now timeSlot
 
-            let! addLoan = loanService.AddLoanAsync (loan, System.DateTime.Now)
+            let! addLoan = loanService.AddLoanAsync (loan, ShortLang.New "en", System.DateTime.Now)
             Expect.isOk addLoan "should be ok"
 
             let! bookDetailResult = bookService.GetBookDetailsAsync book.BookId 
@@ -201,10 +201,10 @@ let tests =
             let (bookDetail: BookDetails) = bookDetailResult |> Result.get
             Expect.isTrue (bookDetail.Book.CurrentLoan |> Option.isSome) "should contain the loan"
             Expect.isTrue (bookDetail.CurrentLoan |> Option.isSome) "should contain the loan"
-            Expect.isTrue (bookDetail.CurrentLoan.Value.LoanId = loan.LoanId) "should contain the loan"
+            Expect.isTrue ((bookDetail.CurrentLoan.Value).Loan.LoanId = loan.LoanId) "should contain the loan"
             Expect.isTrue (bookDetail.ReservationsDetails |> List.isEmpty) "should not contain reservations"
 
-            let! releaseLoan = loanService.ReleaseLoanAsync(loan.LoanId, System.DateTime.Now)
+            let! releaseLoan = loanService.ReleaseLoanAsync(loan.LoanId, ShortLang.New "en", System.DateTime.Now)
             Expect.isOk releaseLoan "should be ok"
 
             let! bookDetail2Result = bookService.GetBookDetailsAsync book.BookId
@@ -251,7 +251,7 @@ let tests =
             let timeSlot = TimeSlot.New (System.DateTime.Now) (System.DateTime.Now.AddDays(timeSlotDurationInDays))
             let loan = Loan.New book.BookId userId1 System.DateTime.Now timeSlot
 
-            let! addLoan = loanService.AddLoanAsync (loan, System.DateTime.Now)
+            let! addLoan = loanService.AddLoanAsync (loan, ShortLang.New "en", System.DateTime.Now)
             Expect.isOk addLoan "should be ok"
 
             let! bookDetailResult = bookService.GetBookDetailsAsync book.BookId
@@ -260,10 +260,10 @@ let tests =
             let (bookDetail: BookDetails) = bookDetailResult |> Result.get
             Expect.isTrue (bookDetail.Book.CurrentLoan |> Option.isSome) "should contain the loan"
             Expect.isTrue (bookDetail.CurrentLoan |> Option.isSome) "should contain the loan"
-            Expect.isTrue (bookDetail.CurrentLoan.Value.LoanId = loan.LoanId) "should contain the loan"
+            Expect.isTrue ((bookDetail.CurrentLoan.Value).Loan.LoanId = loan.LoanId) "should contain the loan"
             Expect.isTrue (bookDetail.ReservationsDetails |> List.isEmpty) "should not contain reservations"
 
-            let! releaseLoan = loanService.ReleaseLoanAsync(loan.LoanId, System.DateTime.Now)
+            let! releaseLoan = loanService.ReleaseLoanAsync(loan.LoanId, ShortLang.New "en", System.DateTime.Now)
             Expect.isOk releaseLoan "should be ok"
 
             let! bookDetail2Result = bookService.GetBookDetailsAsync book.BookId
@@ -309,7 +309,7 @@ let tests =
             let timeSlot = TimeSlot.New (System.DateTime.Now) (System.DateTime.Now.AddDays(timeSlotDurationInDays))
             let loan = Loan.New book.BookId userId1 System.DateTime.Now timeSlot
 
-            let! addLoan = loanService.AddLoanAsync (loan, System.DateTime.Now)
+            let! addLoan = loanService.AddLoanAsync (loan, ShortLang.New "en", System.DateTime.Now)
             Expect.isOk addLoan "should be ok"
 
             let! bookDetailResult = bookService.GetBookDetailsAsync book.BookId
@@ -318,10 +318,10 @@ let tests =
             let (bookDetail: BookDetails) = bookDetailResult |> Result.get
             Expect.isTrue (bookDetail.Book.CurrentLoan |> Option.isSome) "should contain the loan"
             Expect.isTrue (bookDetail.CurrentLoan |> Option.isSome) "should contain the loan"
-            Expect.isTrue (bookDetail.CurrentLoan.Value.LoanId = loan.LoanId) "should contain the loan"
+            Expect.isTrue ((bookDetail.CurrentLoan.Value).Loan.LoanId = loan.LoanId) "should contain the loan"
             Expect.isTrue (bookDetail.ReservationsDetails |> List.isEmpty) "should not contain reservations"
 
-            let! releaseLoan = loanService.ReleaseLoanAsync(loan.LoanId, System.DateTime.Now)
+            let! releaseLoan = loanService.ReleaseLoanAsync(loan.LoanId, ShortLang.New "en", System.DateTime.Now)
             Expect.isOk releaseLoan "should be ok"
 
             let! bookDetail2Result = bookService.GetBookDetailsAsync book.BookId
@@ -381,7 +381,7 @@ let tests =
             let timeSlot = TimeSlot.New (System.DateTime.Now) (System.DateTime.Now.AddDays(timeSlotDurationInDays))
             let loan = Loan.New book.BookId userId1 System.DateTime.Now timeSlot
 
-            let! addLoan = loanService.AddLoanAsync (loan, System.DateTime.Now)
+            let! addLoan = loanService.AddLoanAsync (loan, ShortLang.New "en", System.DateTime.Now)
             Expect.isOk addLoan "should be ok"
 
             let! bookDetailResult = bookService.GetBookDetailsAsync book.BookId
@@ -390,10 +390,10 @@ let tests =
             let (bookDetail: BookDetails) = bookDetailResult |> Result.get
             Expect.isTrue (bookDetail.Book.CurrentLoan |> Option.isSome) "should contain the loan"
             Expect.isTrue (bookDetail.CurrentLoan |> Option.isSome) "should contain the loan"
-            Expect.isTrue (bookDetail.CurrentLoan.Value.LoanId = loan.LoanId) "should contain the loan"
+            Expect.isTrue ((bookDetail.CurrentLoan.Value).Loan.LoanId = loan.LoanId) "should contain the loan"
             Expect.isTrue (bookDetail.ReservationsDetails |> List.isEmpty) "should not contain reservations"
 
-            let! releaseLoan = loanService.ReleaseLoanAsync(loan.LoanId, System.DateTime.Now)
+            let! releaseLoan = loanService.ReleaseLoanAsync(loan.LoanId, ShortLang.New "en", System.DateTime.Now)
             Expect.isOk releaseLoan "should be ok"
 
             let! bookDetail2Result = bookService.GetBookDetailsAsync book.BookId
@@ -577,5 +577,354 @@ let tests =
             Expect.isTrue (reservationDetailsResult.OkValue.UserDetails.User.UserId = userId1) "should contain the user"
         }
 
+        testCaseTask "given a reservation transformed into a loan, if the current time is within the time slot, the loan time slot is the same of the reservation - Ok" <| fun _ -> task {
+            setUp ()
+            let bookService = getBookService()
+            let reservationService = getReservationService()
+            let loanService = getLoanService()
+            let _ = getUserService()
+
+            let book = Book.New (Title.New "the constitution") [] [] [] None  Category.Other [] (Year.New 1924) (Isbn.NewEmpty()) None
+            let! addBook = bookService.AddBookAsync book
+            Expect.isOk addBook "should be ok"
+
+            let! userId1 = registerUserTask "test1@example.com" "Password123!"
+
+            let futureTimeSlot = TimeSlot.New (System.DateTime.Now.AddMonths(1)) (System.DateTime.Now.AddMonths(2))
+            let reservation = Reservation.New book.BookId userId1 futureTimeSlot (System.DateTime.Now)
+            let! addReservation = reservationService.AddReservationAsync (reservation, System.DateTime.Now)
+            Expect.isOk addReservation "should be ok"
+
+            let! reservationDetailsResult = (reservationService :> IReservationService).GetReservationDetailsAsync reservation.ReservationId
+            Expect.isOk reservationDetailsResult "should be ok"
+
+            Expect.isTrue (reservationDetailsResult.OkValue.Reservation.ReservationId = reservation.ReservationId) "should contain the reservation"
+            Expect.isTrue (reservationDetailsResult.OkValue.Book.BookId = book.BookId) "should contain the book"
+            Expect.isTrue (reservationDetailsResult.OkValue.UserDetails.User.UserId = userId1) "should contain the user"
+
+            let loan = reservationDetailsResult.OkValue.ToLoan (System.DateTime.Now.AddDays(32))
+            Expect.isOk loan "should be ok"
+            Expect.equal loan.OkValue.BookId book.BookId "should have the same book id"
+            Expect.equal loan.OkValue.UserId userId1 "should have the same user id"
+            Expect.equal loan.OkValue.TimeSlot reservation.TimeSlot "should have the same time slot"
+        }
+
+        testCaseTask "trying to transform a reservation into a loan, if the current time over the reservation time slot, then the operation fails - Ok" <| fun _ -> task {
+            setUp ()
+            let bookService = getBookService()
+            let reservationService = getReservationService()
+            let loanService = getLoanService()
+            let _ = getUserService()
+
+            let book = Book.New (Title.New "the constitution") [] [] [] None  Category.Other [] (Year.New 1924) (Isbn.NewEmpty()) None
+            let! addBook = bookService.AddBookAsync book
+            Expect.isOk addBook "should be ok"
+
+            let! userId1 = registerUserTask "test1@example.com" "Password123!"
+
+            let futureTimeSlot = TimeSlot.New (System.DateTime.Now.AddMonths(1)) (System.DateTime.Now.AddMonths(2))
+            let reservation = Reservation.New book.BookId userId1 futureTimeSlot (System.DateTime.Now)
+            let! addReservation = reservationService.AddReservationAsync (reservation, System.DateTime.Now)
+            Expect.isOk addReservation "should be ok"
+
+            let! reservationDetailsResult = (reservationService :> IReservationService).GetReservationDetailsAsync reservation.ReservationId
+            Expect.isOk reservationDetailsResult "should be ok"
+
+            Expect.isTrue (reservationDetailsResult.OkValue.Reservation.ReservationId = reservation.ReservationId) "should contain the reservation"
+            Expect.isTrue (reservationDetailsResult.OkValue.Book.BookId = book.BookId) "should contain the book"
+            Expect.isTrue (reservationDetailsResult.OkValue.UserDetails.User.UserId = userId1) "should contain the user"
+
+            let loan = reservationDetailsResult.OkValue.ToLoan (System.DateTime.Now.AddMonths(3))
+            Expect.isError loan "should be error"
+        }
+
+        testCaseTask "a reservation is expired if the current time is over the reservation time slot" <| fun _ -> task {
+            setUp ()
+            let bookService = getBookService()
+            let reservationService = getReservationService()
+            let loanService = getLoanService()
+            let _ = getUserService()
+
+            let book = Book.New (Title.New "the constitution") [] [] [] None  Category.Other [] (Year.New 1924) (Isbn.NewEmpty()) None
+            let! addBook = bookService.AddBookAsync book
+            Expect.isOk addBook "should be ok"
+
+            let! userId1 = registerUserTask "test1@example.com" "Password123!"
+
+            let futureTimeSlot = TimeSlot.New (System.DateTime.Now.AddMonths(1)) (System.DateTime.Now.AddMonths(2))
+            let reservation = Reservation.New book.BookId userId1 futureTimeSlot (System.DateTime.Now)
+
+            let isExpired = reservation.IsExpired (System.DateTime.Now.AddMonths(3))
+            Expect.isTrue isExpired "should be expired"
+        }
+
+        testCaseTask "a reservation is not expired if the current time is under the reservation time slot" <| fun _ -> task {
+            setUp ()
+            let bookService = getBookService()
+            let reservationService = getReservationService()
+            let loanService = getLoanService()
+            let _ = getUserService()
+
+            let book = Book.New (Title.New "the constitution") [] [] [] None  Category.Other [] (Year.New 1924) (Isbn.NewEmpty()) None
+            let! addBook = bookService.AddBookAsync book
+            Expect.isOk addBook "should be ok"
+
+            let! userId1 = registerUserTask "test1@example.com" "Password123!"
+
+            let futureTimeSlot = TimeSlot.New (System.DateTime.Now.AddMonths(1)) (System.DateTime.Now.AddMonths(2))
+            let reservation = Reservation.New book.BookId userId1 futureTimeSlot (System.DateTime.Now)
+
+            let isExpired = reservation.IsExpired (System.DateTime.Now.AddMonths(1))
+            Expect.isFalse isExpired "should not be expired"
+        }
+
+        testCaseTask "when a reservation is transformed into a loan and the current time is before the reservation time slot, the loan time slot starts from now plus a minute and the duration is the same of the reservation - Ok" <| fun _ -> task {
+            setUp ()
+            let bookService = getBookService()
+            let reservationService = getReservationService()
+            let loanService = getLoanService()
+            let _ = getUserService()
+
+            let book = Book.New (Title.New "the constitution") [] [] [] None  Category.Other [] (Year.New 1924) (Isbn.NewEmpty()) None
+            let! addBook = bookService.AddBookAsync book
+            Expect.isOk addBook "should be ok"
+
+            let! userId1 = registerUserTask "test1@example.com" "Password123!"
+
+            let futureTimeSlot = TimeSlot.New (System.DateTime.Now.AddMonths(1)) (System.DateTime.Now.AddMonths(2))
+            let reservation = Reservation.New book.BookId userId1 futureTimeSlot (System.DateTime.Now)
+            let! addReservation = reservationService.AddReservationAsync (reservation, System.DateTime.Now)
+            Expect.isOk addReservation "should be ok"
+
+            let! reservationDetailsResult = (reservationService :> IReservationService).GetReservationDetailsAsync reservation.ReservationId
+            Expect.isOk reservationDetailsResult "should be ok"
+
+            Expect.isTrue (reservationDetailsResult.OkValue.Reservation.ReservationId = reservation.ReservationId) "should contain the reservation"
+            Expect.isTrue (reservationDetailsResult.OkValue.Book.BookId = book.BookId) "should contain the book"
+            Expect.isTrue (reservationDetailsResult.OkValue.UserDetails.User.UserId = userId1) "should contain the user"
+
+            let now = System.DateTime.Now   
+
+            let loan = reservationDetailsResult.OkValue.ToLoan now
+
+            Expect.isOk loan "should be ok"
+            Expect.equal loan.OkValue.BookId book.BookId "should have the same book id"
+            Expect.equal loan.OkValue.UserId userId1 "should have the same user id"
+            Expect.equal loan.OkValue.TimeSlot (futureTimeSlot.Shift now) "should have the same time slot"
+        }
+
+        testCaseTask "transform a reservation into an actual loan and the conversion succedds if passing the right reservation code - Ok" <| fun _ -> task {
+            setUp ()
+            let bookService = getBookService()
+            let reservationService = getReservationService()
+            let loanService = getLoanService()
+            let _ = getUserService()
+
+            let book = Book.New (Title.New "the constitution") [] [] [] None  Category.Other [] (Year.New 1924) (Isbn.NewEmpty()) None
+            let! addBook = bookService.AddBookAsync book
+            Expect.isOk addBook "should be ok"
+
+            let! userId1 = registerUserTask "test1@example.com" "Password123!"
+
+            let futureTimeSlot = TimeSlot.New (System.DateTime.Now.AddMonths(1)) (System.DateTime.Now.AddMonths(2))
+            let reservation = Reservation.New book.BookId userId1 futureTimeSlot (System.DateTime.Now)
+            let! addReservation = reservationService.AddReservationAsync (reservation, System.DateTime.Now)
+            Expect.isOk addReservation "should be ok"
+
+            let! reservationDetailsResult = (reservationService :> IReservationService).GetReservationDetailsAsync reservation.ReservationId
+            Expect.isOk reservationDetailsResult "should be ok"
+
+            Expect.isTrue (reservationDetailsResult.OkValue.Reservation.ReservationId = reservation.ReservationId) "should contain the reservation"
+            Expect.isTrue (reservationDetailsResult.OkValue.Book.BookId = book.BookId) "should contain the book"
+            Expect.isTrue (reservationDetailsResult.OkValue.UserDetails.User.UserId = userId1) "should contain the user"
+
+            let now = System.DateTime.Now   
+
+            let loan = reservationDetailsResult.OkValue.ToLoan now
+
+            Expect.isOk loan "should be ok"
+            Expect.equal loan.OkValue.BookId book.BookId "should have the same book id"
+            Expect.equal loan.OkValue.UserId userId1 "should have the same user id"
+            Expect.equal loan.OkValue.TimeSlot (futureTimeSlot.Shift now) "should have the same time slot"
+
+            let! tranformedIntoALoan = (loanService :> ILoanService).TransformReservationIntoLoanAsync (reservation.ReservationId, reservation.ReservationCode, ShortLang.New "en", now)
+            Expect.isOk tranformedIntoALoan "should be ok"
+        }
+
+        testCaseTask "cannot transform a reservation into a loan if the reservation  code fails to match  - Error" <| fun _ -> task {
+            setUp ()
+            let bookService = getBookService()
+            let reservationService = getReservationService()
+            let loanService = getLoanService()
+            let _ = getUserService()
+
+            let book = Book.New (Title.New "the constitution") [] [] [] None  Category.Other [] (Year.New 1924) (Isbn.NewEmpty()) None
+            let! addBook = bookService.AddBookAsync book
+            Expect.isOk addBook "should be ok"
+
+            let! userId1 = registerUserTask "test1@example.com" "Password123!"
+
+            let futureTimeSlot = TimeSlot.New (System.DateTime.Now.AddMonths(1)) (System.DateTime.Now.AddMonths(2))
+            let reservation = Reservation.New book.BookId userId1 futureTimeSlot (System.DateTime.Now)
+            let! addReservation = reservationService.AddReservationAsync (reservation, System.DateTime.Now)
+            Expect.isOk addReservation "should be ok"
+
+            let! reservationDetailsResult = (reservationService :> IReservationService).GetReservationDetailsAsync reservation.ReservationId
+            Expect.isOk reservationDetailsResult "should be ok"
+
+            Expect.isTrue (reservationDetailsResult.OkValue.Reservation.ReservationId = reservation.ReservationId) "should contain the reservation"
+            Expect.isTrue (reservationDetailsResult.OkValue.Book.BookId = book.BookId) "should contain the book"
+            Expect.isTrue (reservationDetailsResult.OkValue.UserDetails.User.UserId = userId1) "should contain the user"
+
+            let now = System.DateTime.Now   
+
+            let loan = reservationDetailsResult.OkValue.ToLoan now
+
+            Expect.isOk loan "should be ok"
+            Expect.equal loan.OkValue.BookId book.BookId "should have the same book id"
+            Expect.equal loan.OkValue.UserId userId1 "should have the same user id"
+            Expect.equal loan.OkValue.TimeSlot (futureTimeSlot.Shift now) "should have the same time slot"
+
+            let! tranformedIntoALoan = (loanService :> ILoanService).TransformReservationIntoLoanAsync (reservation.ReservationId, ReservationCode.EmptyReservationCode, ShortLang.New "en", now)
+            Expect.isError tranformedIntoALoan "should be error"
+        }
+
+        testCaseTask "cannot transform a reservation into a loan if the datenow exceeds the end of the reservation time slot - Error" <| fun _ -> task {
+            setUp ()
+            let bookService = getBookService()
+            let reservationService = getReservationService()
+            let loanService = getLoanService()
+            let _ = getUserService()
+
+            let book = Book.New (Title.New "the constitution") [] [] [] None  Category.Other [] (Year.New 1924) (Isbn.NewEmpty()) None
+            let! addBook = bookService.AddBookAsync book
+            Expect.isOk addBook "should be ok"
+
+            let! userId1 = registerUserTask "test1@example.com" "Password123!"
+
+            let futureTimeSlot = TimeSlot.New (System.DateTime.Now.AddMonths(1)) (System.DateTime.Now.AddMonths(2))
+            let reservation = Reservation.New book.BookId userId1 futureTimeSlot (System.DateTime.Now)
+            let! addReservation = reservationService.AddReservationAsync (reservation, System.DateTime.Now)
+            Expect.isOk addReservation "should be ok"
+
+            let! reservationDetailsResult = (reservationService :> IReservationService).GetReservationDetailsAsync reservation.ReservationId
+            Expect.isOk reservationDetailsResult "should be ok"
+
+            Expect.isTrue (reservationDetailsResult.OkValue.Reservation.ReservationId = reservation.ReservationId) "should contain the reservation"
+            Expect.isTrue (reservationDetailsResult.OkValue.Book.BookId = book.BookId) "should contain the book"
+            Expect.isTrue (reservationDetailsResult.OkValue.UserDetails.User.UserId = userId1) "should contain the user"
+
+            let now = System.DateTime.Now.AddMonths(3)
+
+            let! tranformedIntoALoan = (loanService :> ILoanService).TransformReservationIntoLoanAsync (reservation.ReservationId, reservation.ReservationCode, ShortLang.New "en", now)
+            Expect.isError tranformedIntoALoan "should be error"
+        }
+
+        testCaseTask "cannot transform a reservation into a loan if the book is already loaned" <| fun _ -> task {
+            setUp ()
+            let bookService = getBookService()
+            let reservationService = getReservationService()
+            let loanService = getLoanService()
+            let _ = getUserService()
+
+            let book = Book.New (Title.New "the constitution") [] [] [] None  Category.Other [] (Year.New 1924) (Isbn.NewEmpty()) None
+            let! addBook = bookService.AddBookAsync book
+            Expect.isOk addBook "should be ok"
+
+            let now = DateTime.Now
+            let! userId1 = registerUserTask "test1@example.com" "Password123!"
+            let! userId2 = registerUserTask "test2@example.com" "Password123!"
+            let loan = Loan.New book.BookId userId1 now (TimeSlot.New (System.DateTime.Now.AddMonths(1)) (System.DateTime.Now.AddMonths(2))) 
+            let! addLoan = loanService.AddLoanAsync(loan, ShortLang.New "en", now)
+            Expect.isOk addLoan "should be ok"
+
+            let reservation = Reservation.New book.BookId userId2 (TimeSlot.New (System.DateTime.Now.AddMonths(1)) (System.DateTime.Now.AddMonths(2))) (System.DateTime.Now)
+            let! addReservation = reservationService.AddReservationAsync(reservation, now)
+            Expect.isOk addReservation "should be ok"
+
+            let! reservationDetailsResult = (reservationService :> IReservationService).GetReservationDetailsAsync reservation.ReservationId
+            Expect.isOk reservationDetailsResult "should be ok"
+
+            Expect.isTrue (reservationDetailsResult.OkValue.Reservation.ReservationId = reservation.ReservationId) "should contain the reservation"
+            Expect.isTrue (reservationDetailsResult.OkValue.Book.BookId = book.BookId) "should contain the book"
+            Expect.isTrue (reservationDetailsResult.OkValue.UserDetails.User.UserId = userId2) "should contain the user"
+
+            let now = System.DateTime.Now.AddMonths(1)
+
+            let! tranformedIntoALoan = (loanService :> ILoanService).TransformReservationIntoLoanAsync (reservation.ReservationId, reservation.ReservationCode, ShortLang.New "en", now)
+            Expect.isError tranformedIntoALoan "should be error"
+            let (Error e) = tranformedIntoALoan
+            Expect.equal e "Book is already loaned" "should have the correct error message"
+        }
+
+        ftestCaseTask "transform a reservation into an actual loan. verify that the loan is actually created, and the reservation in a different status - Ok" <| fun _ -> task {
+            setUp ()
+            let bookService = getBookService()
+            let reservationService = getReservationService()
+            let loanService = getLoanService()
+            let userService = getUserService()
+
+            let book = Book.New (Title.New "the constitution") [] [] [] None  Category.Other [] (Year.New 1924) (Isbn.NewEmpty()) None
+            let! addBook = bookService.AddBookAsync book
+            Expect.isOk addBook "should be ok"
+
+            let! userId1 = registerUserTask "test1@example.com" "Password123!"
+
+            let futureTimeSlot = TimeSlot.New (System.DateTime.Now.AddMonths(1)) (System.DateTime.Now.AddMonths(2))
+            let reservation = Reservation.New book.BookId userId1 futureTimeSlot (System.DateTime.Now)
+            let! addReservation = reservationService.AddReservationAsync (reservation, System.DateTime.Now)
+            Expect.isOk addReservation "should be ok"
+
+            let! reservationDetailsResult = (reservationService :> IReservationService).GetReservationDetailsAsync reservation.ReservationId
+            Expect.isOk reservationDetailsResult "should be ok"
+
+            Expect.isTrue (reservationDetailsResult.OkValue.Reservation.ReservationId = reservation.ReservationId) "should contain the reservation"
+            Expect.isTrue (reservationDetailsResult.OkValue.Book.BookId = book.BookId) "should contain the book"
+            Expect.isTrue (reservationDetailsResult.OkValue.UserDetails.User.UserId = userId1) "should contain the user"
+
+            let now = System.DateTime.Now   
+
+            let loan = reservationDetailsResult.OkValue.ToLoan now
+
+            Expect.isOk loan "should be ok"
+            Expect.equal loan.OkValue.BookId book.BookId "should have the same book id"
+            Expect.equal loan.OkValue.UserId userId1 "should have the same user id"
+            Expect.equal loan.OkValue.TimeSlot (futureTimeSlot.Shift now) "should have the same time slot"
+
+            let! tranformedIntoALoan = (loanService :> ILoanService).TransformReservationIntoLoanAsync (reservation.ReservationId, reservation.ReservationCode, ShortLang.New "en", now)
+            Expect.isOk tranformedIntoALoan "should be ok"
+
+            let! loans = loanService.GetLoansAsync()
+            Expect.isOk loans "should be ok"
+            Expect.equal loans.OkValue.Length 1 "should have 1 loan"
+
+            let! reservations = reservationService.GetAllReservationsAsync()
+            Expect.isOk reservations "should be ok"
+            Expect.equal reservations.OkValue.Length 1 "should have 1 reservation"
+            let reservation = reservations.OkValue |> List.find (fun r -> r.ReservationId = reservation.ReservationId)
+            Expect.equal reservation.Status ReservationStatus.Loaned "should have status loaned"
+
+            Expect.isTrue (loans.OkValue |> List.exists (fun l -> l.UserId = userId1)) "should contain the user"
+            Expect.isTrue (loans.OkValue |> List.exists (fun l -> l.BookId = book.BookId)) "should contain the book"
+            Expect.isTrue (loans.OkValue |> List.exists (fun l -> l.TimeSlot = futureTimeSlot.Shift now)) "should contain the time slot"
+            Expect.isTrue (loans.OkValue |> List.exists (fun l -> l.ReservationId = Some reservation.ReservationId)) "should contain the reservation id"
+            Expect.isTrue (loans.OkValue |> List.exists (fun l -> l.LoanStatus.IsInProgress)) "should not be returned"
+
+            let loan = loans.OkValue |> List.head
+
+            let! user = userService.GetUserAsync userId1
+            Expect.isOk user "should be ok"
+            let (user: User) = user |> Result.get
+            Expect.equal (user.CurrentLoans.Length) 1 "should be 1"
+            Expect.equal (user.CurrentLoans |> List.head) loan.LoanId "should contain the loan"
+
+            // let! book = bookService.GetBookAsync book.BookId
+            // Expect.isOk book "should be ok"
+            // let (book: Book) = book |> Result.get
+            // Expect.isTrue book.NoLoan "should not be on loan"
+            // Expect.equal book.CurrentReservations.Length 0 "should have 0 reservations"
+
+
+        }
     ]
     |> testSequenced

@@ -26,6 +26,8 @@ open blazorBookLibrary.Data
 open blazorBookLibrary.Shared.Infrastructure.Services
 open Microsoft.Extensions.Logging
 open BookLibrary.Shared.Services
+open Microsoft.Extensions.Localization
+open blazorBookLibrary.Shared.Resources
 Environment.SetEnvironmentVariable("IsTestEnv", "True")
 Env.Load() |> ignore
 
@@ -112,6 +114,7 @@ let loanViewerAsync = getAggregateStorageFreshStateViewerAsync<Loan, LoanEvent, 
 let userViewerAsync = getAggregateStorageFreshStateViewerAsync<User, UserEvent, string> pgEventStore
 let fakeEmailNotificator: IMailNotificator = new FakeEmailNotificator()
 let fakeReservationService: IReservationService = new FakeReservationService()
+let fakeLocalizer: IStringLocalizer<SharedResources> = new FakeLocalizer<SharedResources>()
 
 let dummyLogger = 
     LoggerFactory.Create(fun builder -> builder.AddConsole() |> ignore).CreateLogger<MailResenderService>()
@@ -154,6 +157,25 @@ let getReservationService () =
         "noreply@blazorbooklibrary.com",
         "Blazor Book Library")
 
+let getLoanService () =
+    LoanService(
+        pgEventStore, 
+        MessageSenders.NoSender, 
+        bookViewerAsync, 
+        authorViewerAsync, 
+        editorViewerAsync, 
+        reservationViewerAsync, 
+        loanViewerAsync,
+        userViewerAsync,
+        getReservationService(),
+        getUserService(),
+        fakeEmailNotificator,
+        3,
+        "noreply@blazorbooklibrary.com",
+        "Blazor Book Library",
+        fakeLocalizer
+        )
+
 let getBookService () = 
     BookService(
         pgEventStore, 
@@ -164,19 +186,8 @@ let getBookService () =
         reservationViewerAsync, 
         loanViewerAsync,
         userViewerAsync,
-        getReservationService())
-
-
-let getLoanService () =
-    LoanService(
-        pgEventStore, 
-        MessageSenders.NoSender, 
-        bookViewerAsync, 
-        authorViewerAsync, 
-        editorViewerAsync, 
-        reservationViewerAsync, 
-        loanViewerAsync,
-        userViewerAsync)
+        getReservationService(),
+        getLoanService())
 
 let getMailResenderService () =
     MailResenderService(

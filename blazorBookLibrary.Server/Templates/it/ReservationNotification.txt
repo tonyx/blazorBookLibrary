@@ -2,5 +2,7 @@ La informiamo che la richiesta di prestito del libro "{bookTitle}" è stata appr
 
 Riceverà una mail quando il libro sarà disponibile per il ritiro.
 
+Prenda questo codice {code} per ritirare il libro.
+
 Cordiali saluti,
 Lo staff della Biblioteca

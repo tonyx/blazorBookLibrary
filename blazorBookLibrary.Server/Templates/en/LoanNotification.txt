@@ -1,0 +1,1 @@
+We certify that you picked up the book "{bookTitle}" at {loanedAt} and it is due at {dueDate}.

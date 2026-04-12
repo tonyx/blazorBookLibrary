@@ -129,13 +129,20 @@ type UserService
                                     |> Async.AwaitTask
                                     |> Async.RunSynchronously
                                     |> Result.map (fun books -> List.zip futureReservations books)
-                                    
+
+                                let! loansAndBooks =
+                                    currentLoans
+                                    |> List.traverseTaskResultM (fun loan -> bookViewerAsync (Some ct) loan.BookId.Value |> TaskResult.map snd)
+                                    |> Async.AwaitTask
+                                    |> Async.RunSynchronously
+                                    |> Result.map (fun books -> List.zip currentLoans books)
+
                                 return 
                                     { 
                                         User = user
                                         ApplicationUser = appUser
                                         FutureReservations = reservationsAndBooks
-                                        CurrentLoans = currentLoans
+                                        CurrentLoans = loansAndBooks
                                     } 
                             }
                     result {
@@ -147,9 +154,10 @@ type UserService
                             } :> Refreshable<RefreshableUserDetails>
                             ,
                             userId.Value :: 
-                            (userDetails.CurrentLoans |> List.map (fun x -> x.LoanId.Value)) @ 
+                            (userDetails.CurrentLoans |> List.map (fun (x,_) -> x.LoanId.Value)) @ 
                             (userDetails.FutureReservations |> List.map (fun (x, _) -> x.ReservationId.Value)) @
-                            (userDetails.FutureReservations |> List.map (fun (_, x) -> x.BookId.Value))
+                            (userDetails.FutureReservations |> List.map (fun (_, x) -> x.BookId.Value)) @
+                            (userDetails.CurrentLoans |> List.map (fun (_, x) -> x.BookId.Value))
                     }
             let key = DetailsCacheKey.OfType typeof<RefreshableUserDetails> userId.Value
             task {

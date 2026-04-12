@@ -76,6 +76,7 @@
   <data name="AvailabilityType" xml:space="preserve"><value>Tipo Disponibilità</value></data>
   <data name="Available" xml:space="preserve"><value>Disponibile</value></data>
   <data name="AvailableForLoan" xml:space="preserve"><value>Disponibile per il Prestito</value></data>
+  <data name="LoanNotification" xml:space="preserve"><value>Notifica Prestito</value></data>
   <data name="Back" xml:space="preserve"><value>Indietro</value></data>
   <data name="BookCover" xml:space="preserve"><value>Copertina Libro</value></data>
   <data name="BookDescriptionPlaceholder" xml:space="preserve"><value>Inserisci una breve descrizione del libro...</value></data>
@@ -118,7 +119,7 @@
   <data name="NoBooksFoundCriteria" xml:space="preserve"><value>Nessun libro trovato con i criteri selezionati.</value></data>
   <data name="NoCoverAvailable" xml:space="preserve"><value>Nessuna copertina disponibile</value></data>
   <data name="NoDescriptionAvailable" xml:space="preserve"><value>Nessuna descrizione disponibile per questo libro.</value></data>
-  <data name="NotAvailable" xml:space="preserve"><value>Non disponibile (In Prestito)</value></data>
+  <data name="NotAvailable" xml:space="preserve"><value>Non disponibile</value></data>
   <data name="OnLoan" xml:space="preserve"><value>In Prestito</value></data>
   <data name="PartialIsbnPlaceholder" xml:space="preserve"><value>ISBN Parziale...</value></data>
   <data name="PleaseLoginToReserve" xml:space="preserve"><value>Effettua il login per prenotare un libro.</value></data>
@@ -562,4 +563,88 @@
   <data name="RevokePhysicalVerification" xml:space="preserve"><value>Revoca Verifica Fisica</value></data>
   <data name="GrantPhysicalVerification" xml:space="preserve"><value>Concedi Verifica Fisica</value></data>
   <data name="EmailDoesNotMatchIdentityRecord" xml:space="preserve"><value>L'email non corrisponde al record d'identità</value></data>
+  <data name="ArchivalCoverImage" xml:space="preserve"><value>Immagine di Copertina Archivistica</value></data>
+  <data name="DiscoveredCoverPreview" xml:space="preserve"><value>Anteprima Copertina Individuata</value></data>
+  <data name="UseThisCover" xml:space="preserve"><value>Usa questa Copertina</value></data>
+  <data name="DiscoverCover" xml:space="preserve"><value>Individua Copertina</value></data>
+  <data name="PasteImageUrl" xml:space="preserve"><value>Incolla URL immagine...</value></data>
+  <data name="LoansManagement" xml:space="preserve">
+    <value>Gestione Prestiti</value>
+  </data>
+  <data name="MonitorAndManageArchivalLoans" xml:space="preserve">
+    <value>Monitora e gestisci i prestiti dell'archivio.</value>
+  </data>
+  <data name="TotalLoans" xml:space="preserve">
+    <value>Prestiti Totali</value>
+  </data>
+  <data name="Book" xml:space="preserve">
+    <value>Libro</value>
+  </data>
+  <data name="Patron" xml:space="preserve">
+    <value>Utente</value>
+  </data>
+  <data name="LoanedAt" xml:space="preserve">
+    <value>Prestato il</value>
+  </data>
+  <data name="DueDate" xml:space="preserve">
+    <value>Data Scadenza</value>
+  </data>
+  <data name="InProgress" xml:space="preserve">
+    <value>In Corso</value>
+  </data>
+  <data name="Returned" xml:space="preserve">
+    <value>Restituito</value>
+  </data>
+  <data name="FilterByBookTitle" xml:space="preserve">
+    <value>Filtra per titolo libro...</value>
+  </data>
+  <data name="FilterByPatron" xml:space="preserve">
+    <value>Filtra per utente...</value>
+  </data>
+  <data name="UnknownBook" xml:space="preserve">
+    <value>Libro Sconosciuto</value>
+  </data>
+  <data name="UnknownUser" xml:space="preserve">
+    <value>Utente Sconosciuto</value>
+  </data>
+  <data name="OverdueLoanWarning" xml:space="preserve">
+    <value>Questo prestito ha superato la data di scadenza!</value>
+  </data>
+  <data name="ConfirmReturnOf" xml:space="preserve">
+    <value>Sei sicuro di voler confermare la restituzione di</value>
+  </data>
+  <data name="LoanReturnedSuccessfully" xml:space="preserve">
+    <value>Prestito restituito con successo.</value>
+  </data>
+  <data name="ErrorReturningLoan" xml:space="preserve">
+    <value>Errore durante la restituzione del prestito: {0}</value>
+  </data>
+  <data name="ErrorLoadingLoans" xml:space="preserve">
+    <value>Errore durante il caricamento dei prestiti: {0}</value>
+  </data>
+  <data name="PendingReservations" xml:space="preserve"><value>Prenotazioni in Sospeso</value></data>
+  <data name="ManageAndConvertReservationsToLoans" xml:space="preserve"><value>Gestisci e converti le prenotazioni in prestiti.</value></data>
+  <data name="ActiveReservations" xml:space="preserve"><value>Prenotazioni Attive</value></data>
+  <data name="Pending" xml:space="preserve"><value>In Sospeso</value></data>
+  <data name="NoPendingReservationsFound" xml:space="preserve"><value>Nessuna prenotazione in sospeso trovata.</value></data>
+  <data name="TimeSlot" xml:space="preserve"><value>Fascia Oraria</value></data>
+  <data name="ConvertToLoan" xml:space="preserve"><value>Converti in Prestito</value></data>
+  <data name="SelectReservationToProceed" xml:space="preserve"><value>Seleziona una prenotazione dalla lista per procedere con la conversione in prestito.</value></data>
+  <data name="Borrower" xml:space="preserve"><value>Mutuatario</value></data>
+  <data name="ReservationCode" xml:space="preserve"><value>Codice Prenotazione</value></data>
+  <data name="EnterReservationCode" xml:space="preserve"><value>Inserisci codice prenotazione...</value></data>
+  <data name="VerifyCodeOnPatronSubmission" xml:space="preserve"><value>Verifica che questo codice corrisponda a quello fornito dall'utente.</value></data>
+  <data name="FinalizeLoan" xml:space="preserve"><value>Finalizza Trasformazione in Prestito</value></data>
+  <data name="CancelSelection" xml:space="preserve"><value>Annulla Selezione</value></data>
+  <data name="QuickTip" xml:space="preserve"><value>Suggerimento Rapido</value></data>
+  <data name="ConversionTipDescription" xml:space="preserve"><value>Assicurati che l'utente fornisca il codice di prenotazione corretto prima di finalizzare. Una volta convertito, lo stato della prenotazione verrà aggiornato automaticamente.</value></data>
+  <data name="ErrorLoadingReservations" xml:space="preserve"><value>Errore nel caricamento delle prenotazioni</value></data>
+  <data name="FatalError" xml:space="preserve"><value>Errore Fatale</value></data>
+  <data name="ReservationCodeRequired" xml:space="preserve"><value>Il codice di prenotazione è obbligatorio.</value></data>
+  <data name="ReservationConvertedSuccess" xml:space="preserve"><value>Prenotazione convertita correttamente in prestito.</value></data>
+  <data name="ConversionError" xml:space="preserve"><value>Errore durante la conversione</value></data>
+  <data name="WaitLoading" xml:space="preserve"><value>Attendere, caricamento...</value></data>
+  <data name="Release" xml:space="preserve">
+    <value>Rilascia</value>
+  </data>
 </root>

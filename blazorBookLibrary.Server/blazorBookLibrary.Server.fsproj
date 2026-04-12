@@ -20,6 +20,10 @@
   <ItemGroup> 
     <None Include="Templates/en/ReservationNotification.txt" CopyToOutputDirectory="PreserveNewest" />
     <None Include="Templates/it/ReservationNotification.txt" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="Templates/en/LoanNotification.txt" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="Templates/it/LoanNotification.txt" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="Templates/en/LoanReturnNotification.txt" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="Templates/it/LoanReturnNotification.txt" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>
@@ -46,13 +50,15 @@
     <Compile Include="CleanServices/MailResenderService.fs" />
     <Compile Include="CleanServices/MailResenderScheduler.fs" />
 
+    <Compile Include="CleanServices/ExpiredReservationsRemovalSchedule.fs" />
+
     <Compile Include="SeedServices/RandomAuthorGeneratorService.fs" />
     <Compile Include="SeedServices/RandomBooksGeneratorService.fs" />
     <Compile Include="Services/UserService.fs" />
     <Compile Include="Services/ReservationService.fs" />
-    <Compile Include="Services/BookService.fs" />
     <Compile Include="Services/AuthorService.fs" />
     <Compile Include="Services/LoanService.fs" />
+    <Compile Include="Services/BookService.fs" />
     <Compile Include="Services/GoogleBooksService.fs" />
     <Compile Include="Services/AuthorsSearchService.fs" />
   </ItemGroup>

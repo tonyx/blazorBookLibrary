@@ -29,3 +29,9 @@ type FakeReservationService() =
         member this.GetReservationDetailsAsync(id, ct) =
             printfn "FakeReservationService: GetReservationDetailsAsync called for id %A" id
             Task.FromResult(Error "GetReservationDetailsAsync not fully implemented in FakeReservationService")
+        member this.RemoveExpiredReservationsAsync (?ct: CancellationToken) = 
+            printfn "FakeReservationService: RemoveExpiredReservationsAsync called"
+            Task.FromResult(Ok ())        
+        member this.GetAllPendingReservationsDetailsAsync(ct: CancellationToken option): Task<Result<List<ReservationDetails>,string>> = 
+            printfn "FakeReservationService: GetAllPendingReservationsDetailsAsync called"
+            Task.FromResult(Ok [])

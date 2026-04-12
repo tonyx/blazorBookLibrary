@@ -93,7 +93,6 @@ type AuthorService
                     let refresher =
                         fun () ->
                             result {
-                                // let ct = defaultArg ct CancellationToken.None
                                 let! author = 
                                     authorViewerAsync ct id.Value |> TaskResult.map snd
                                     |> Async.AwaitTask

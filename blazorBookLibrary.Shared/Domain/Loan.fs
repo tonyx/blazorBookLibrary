@@ -7,7 +7,7 @@ open FsToolkit.ErrorHandling
 open BookLibrary.Shared.Commons
 open System
 
-type Loan = {
+type Loan001 = {
     LoanId: LoanId
     BookId: BookId
     UserId: UserId
@@ -15,6 +15,31 @@ type Loan = {
     LoanedAt: DateTime
     TimeSlot: TimeSlot
     ReturnedAt: DateTime option
+} 
+    with
+        member
+            this.Upcast () = 
+                {
+                    LoanId = this.LoanId;
+                    BookId = this.BookId;
+                    UserId = this.UserId;
+                    ReservationId = this.ReservationId;
+                    LoanedAt = this.LoanedAt;
+                    TimeSlot = this.TimeSlot;
+                    LoanStatus = 
+                        match this.ReturnedAt with
+                        | None -> InProgress
+                        | Some dateTime -> Returned dateTime
+                }
+
+and Loan = {
+    LoanId: LoanId
+    BookId: BookId
+    UserId: UserId
+    ReservationId: Option<ReservationId>
+    LoanedAt: DateTime
+    TimeSlot: TimeSlot
+    LoanStatus: LoanStatus
 } with
     static member New (bookId: BookId) (userId: UserId) (loanedAt: DateTime) (timeSlot: TimeSlot) = 
         {
@@ -24,7 +49,7 @@ type Loan = {
             LoanedAt = loanedAt;
             TimeSlot = timeSlot;
             ReservationId = None;
-            ReturnedAt = None;
+            LoanStatus = InProgress;
         }
     static member NewFromReservation (reservation: Reservation) (loanedAt: DateTime) = 
         {
@@ -34,17 +59,26 @@ type Loan = {
             LoanedAt = loanedAt;
             TimeSlot = reservation.TimeSlot;
             ReservationId = Some reservation.ReservationId;
-            ReturnedAt = None;
+            LoanStatus = InProgress;
         }
+    member this.DueDate = 
+        this.TimeSlot.End
+    member this.IsOverdue (now: DateTime)= 
+        this.DueDate < now
+
+    member this.InProgress = 
+        match this.LoanStatus with
+        | InProgress -> true
+        | _ -> false
+
     member this.Return (dateTime: DateTime) = 
         result
             {
-                do! 
-                    this.ReturnedAt
-                    |> Option.isSome
-                    |> not
-                    |> Result.ofBool "Loan is already returned"
-                return { this with ReturnedAt = Some dateTime } 
+                do!
+                    match this.LoanStatus with
+                    | InProgress -> Ok ()
+                    | Returned _ -> Error "Loan is already returned" 
+                return { this with LoanStatus = Returned dateTime } 
             }
     member this.Id = this.LoanId.Value
     static member SnapshotsInterval = 50
@@ -57,4 +91,9 @@ type Loan = {
             let loan = JsonSerializer.Deserialize<Loan> (data, jsonOptions)
             Ok loan
         with
-            | ex -> Error ex.Message
+            | ex -> 
+                try
+                    let loan001 = JsonSerializer.Deserialize<Loan001> (data, jsonOptions)
+                    Ok (loan001.Upcast ())
+                with
+                    | ex2 -> Error (ex.Message + " " + ex2.Message)

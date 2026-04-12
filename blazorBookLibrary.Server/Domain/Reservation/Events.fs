@@ -11,6 +11,7 @@ type ReservationEvent =
     | CanceledByLibrarian of Cancellation * DateTime
     | ReservationSealed of DateTime
     | ReservationUnsealed of DateTime
+    | ReservationLoaned of DateTime
     interface Event<Reservation> with
         member this.Process (reservation: Reservation) =
             match this with
@@ -22,6 +23,8 @@ type ReservationEvent =
                 reservation.Seal dateTime
             | ReservationUnsealed dateTime ->
                 reservation.Unseal dateTime
+            | ReservationLoaned dateTime ->
+                reservation.Loan dateTime
 
     static member Deserialize (x: string): Result<ReservationEvent, string> =
         try

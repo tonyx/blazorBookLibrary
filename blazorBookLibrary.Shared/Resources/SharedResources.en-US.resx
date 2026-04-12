@@ -126,6 +126,7 @@
   <data name="CurrentLoan" xml:space="preserve"><value>Current Loan</value></data>
   <data name="CurrentlyLoanedOut" xml:space="preserve"><value>Currently Loaned Out</value></data>
   <data name="AvailableForLoan" xml:space="preserve"><value>Available for Loan</value></data>
+  <data name="LoanNotification" xml:space="preserve"><value>Loan Notification</value></data>
   <data name="FutureReservations" xml:space="preserve"><value>Future Reservations</value></data>
   <data name="DangerZone" xml:space="preserve"><value>Danger Zone</value></data>
   <data name="PermanentlyRemoveBook" xml:space="preserve"><value>Permanently Remove Book</value></data>
@@ -392,7 +393,7 @@
     <value>Status &amp; Availability</value>
   </data>
   <data name="NotAvailable" xml:space="preserve">
-    <value>Not Available</value>
+    <value>Not available</value>
   </data>
   <data name="NoAdditionalCategories" xml:space="preserve">
     <value>No additional categories</value>
@@ -661,4 +662,92 @@
   <data name="RevokePhysicalVerification" xml:space="preserve"><value>Revoke Physical Verification</value></data>
   <data name="GrantPhysicalVerification" xml:space="preserve"><value>Grant Physical Verification</value></data>
   <data name="EmailDoesNotMatchIdentityRecord" xml:space="preserve"><value>Email does not match identity record</value></data>
+  <data name="ArchivalCoverImage" xml:space="preserve"><value>Archival Cover Image</value></data>
+  <data name="DiscoveredCoverPreview" xml:space="preserve"><value>Discovered Cover Preview</value></data>
+  <data name="UseThisCover" xml:space="preserve"><value>Use this Cover</value></data>
+  <data name="DiscoverCover" xml:space="preserve"><value>Discover Cover</value></data>
+  <data name="PasteImageUrl" xml:space="preserve"><value>Paste image URL...</value></data>
+  <data name="LoansManagement" xml:space="preserve">
+    <value>Loans Management</value>
+  </data>
+  <data name="MonitorAndManageArchivalLoans" xml:space="preserve">
+    <value>Monitor and manage archival loans.</value>
+  </data>
+  <data name="TotalLoans" xml:space="preserve">
+    <value>Total Loans</value>
+  </data>
+  <data name="Book" xml:space="preserve">
+    <value>Book</value>
+  </data>
+  <data name="Patron" xml:space="preserve">
+    <value>Patron</value>
+  </data>
+  <data name="LoanedAt" xml:space="preserve">
+    <value>Loaned At</value>
+  </data>
+  <data name="DueDate" xml:space="preserve">
+    <value>Due Date</value>
+  </data>
+  <data name="InProgress" xml:space="preserve">
+    <value>In Progress</value>
+  </data>
+  <data name="Returned" xml:space="preserve">
+    <value>Returned</value>
+  </data>
+  <data name="FilterByBookTitle" xml:space="preserve">
+    <value>Filter by book title...</value>
+  </data>
+  <data name="FilterByPatron" xml:space="preserve">
+    <value>Filter by patron...</value>
+  </data>
+  <data name="UnknownBook" xml:space="preserve">
+    <value>Unknown Book</value>
+  </data>
+  <data name="UnknownUser" xml:space="preserve">
+    <value>Unknown User</value>
+  </data>
+  <data name="OverdueLoanWarning" xml:space="preserve">
+    <value>This loan is past its due date!</value>
+  </data>
+  <data name="ConfirmReturnOf" xml:space="preserve">
+    <value>Are you sure you want to return the book</value>
+  </data>
+  <data name="LoanReturnedSuccessfully" xml:space="preserve">
+    <value>Loan returned successfully.</value>
+  </data>
+  <data name="ErrorReturningLoan" xml:space="preserve">
+    <value>Error returning loan: {0}</value>
+  </data>
+  <data name="ErrorLoadingLoans" xml:space="preserve">
+    <value>Error loading loans: {0}</value>
+  </data>
+  <data name="PendingReservations" xml:space="preserve"><value>Pending Reservations</value></data>
+  <data name="ManageAndConvertReservationsToLoans" xml:space="preserve"><value>Manage and convert reservations to loans.</value></data>
+  <data name="ActiveReservations" xml:space="preserve"><value>Active Reservations</value></data>
+  <data name="Pending" xml:space="preserve"><value>Pending</value></data>
+  <data name="NoPendingReservationsFound" xml:space="preserve"><value>No pending reservations found.</value></data>
+  <data name="Book" xml:space="preserve"><value>Book</value></data>
+  <data name="Patron" xml:space="preserve"><value>Patron</value></data>
+  <data name="TimeSlot" xml:space="preserve"><value>Time Slot</value></data>
+  <data name="Actions" xml:space="preserve"><value>Actions</value></data>
+  <data name="Select" xml:space="preserve"><value>Select</value></data>
+  <data name="ConvertToLoan" xml:space="preserve"><value>Convert to Loan</value></data>
+  <data name="SelectReservationToProceed" xml:space="preserve"><value>Select a reservation from the list to proceed with loan conversion.</value></data>
+  <data name="Borrower" xml:space="preserve"><value>Borrower</value></data>
+  <data name="ReservationCode" xml:space="preserve"><value>Reservation Code</value></data>
+  <data name="EnterReservationCode" xml:space="preserve"><value>Enter reservation code...</value></data>
+  <data name="VerifyCodeOnPatronSubmission" xml:space="preserve"><value>Verify this code matches the one provided by the patron.</value></data>
+  <data name="FinalizeLoan" xml:space="preserve"><value>Finalize Loan Transformation</value></data>
+  <data name="CancelSelection" xml:space="preserve"><value>Cancel Selection</value></data>
+  <data name="QuickTip" xml:space="preserve"><value>Quick Tip</value></data>
+  <data name="ConversionTipDescription" xml:space="preserve"><value>Ensure the patron provides the correct reservation code before finalizing. Once converted, the reservation status will be updated automatically.</value></data>
+  <data name="ErrorLoadingReservations" xml:space="preserve"><value>Error loading reservations</value></data>
+  <data name="FatalError" xml:space="preserve"><value>Fatal Error</value></data>
+  <data name="ReservationCodeRequired" xml:space="preserve"><value>Reservation code is required.</value></data>
+  <data name="ReservationConvertedSuccess" xml:space="preserve"><value>Reservation successfully converted to loan.</value></data>
+  <data name="ConversionError" xml:space="preserve"><value>Error during conversion</value></data>
+  <data name="WaitLoading" xml:space="preserve"><value>Wait, loading...</value></data>
+  <data name="Release" xml:space="preserve">
+    <value>Release</value>
+  </data>
 </root>

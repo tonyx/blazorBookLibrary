@@ -76,6 +76,7 @@
   <data name="TitleUpdated" xml:space="preserve"><value>Title updated successfully.</value></data>
   <data name="Available" xml:space="preserve"><value>Available</value></data>
   <data name="AvailableForLoan" xml:space="preserve"><value>Available for Loan</value></data>
+  <data name="LoanNotification" xml:space="preserve"><value>Loan Notification</value></data>
   <data name="Back" xml:space="preserve"><value>Back</value></data>
   <data name="BookCover" xml:space="preserve"><value>Book Cover</value></data>
   <data name="BookDescriptionPlaceholder" xml:space="preserve"><value>Enter a brief description of the book...</value></data>
@@ -118,7 +119,7 @@
   <data name="NoBooksFoundCriteria" xml:space="preserve"><value>No books found matching your criteria.</value></data>
   <data name="NoCoverAvailable" xml:space="preserve"><value>No cover available</value></data>
   <data name="NoDescriptionAvailable" xml:space="preserve"><value>No description available for this book.</value></data>
-  <data name="NotAvailable" xml:space="preserve"><value>Not available (On Loan)</value></data>
+  <data name="NotAvailable" xml:space="preserve"><value>Not available</value></data>
   <data name="OnLoan" xml:space="preserve"><value>On Loan</value></data>
   <data name="PartialIsbnPlaceholder" xml:space="preserve"><value>Partial ISBN...</value></data>
   <data name="PleaseLoginToReserve" xml:space="preserve"><value>Please log in to reserve a book.</value></data>

@@ -1,0 +1,305 @@
+@page "/pending-reservations"
+@using Microsoft.AspNetCore.Authorization
+@using BookLibrary.Shared.Services
+@using BookLibrary.Domain
+@using BookLibrary.Shared
+@using static BookLibrary.Shared.Details
+@using blazorBookLibrary.Shared.Resources
+@using static BookLibrary.Shared.Commons
+@using Microsoft.Extensions.Localization
+@using Microsoft.Extensions.Configuration
+@using System.Threading
+@using System.Globalization
+
+@attribute [Authorize(Roles = "Admin, Manager")]
+@inject IReservationService ReservationService
+@inject ILoanService LoanService
+@inject IConfiguration Configuration
+@inject IStringLocalizer<SharedResources> L
+@inject IJSRuntime JSRuntime
+@inject NavigationManager NavigationManager
+@rendermode InteractiveServer
+
+<PageTitle>@L["PendingReservations"]</PageTitle>
+
+<div class="sanctuary-container">
+    <!-- Header Area -->
+    <div class="d-flex justify-content-between align-items-end mb-5 border-bottom pb-4" style="border-color: var(--outline-variant) !important;">
+        <div>
+            <nav aria-label="breadcrumb" class="mb-2">
+                <ol class="breadcrumb mb-0" style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--secondary);">
+                    <li class="breadcrumb-item"><a href="/" class="text-decoration-none text-reset">@L["Home"]</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">@L["PendingReservations"]</li>
+                </ol>
+            </nav>
+            <h1 class="serif display-5 mb-0" style="font-weight: 800; color: var(--primary);">@L["PendingReservations"]</h1>
+            <p class="text-muted serif italic mt-2">@L["ManageAndConvertReservationsToLoans"]</p>
+        </div>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="d-flex justify-content-center align-items-center" style="min-height: 400px;">
+            <div class="spinner-grow text-primary" role="status">
+                <span class="visually-hidden">@L["WaitLoading"]</span>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="row g-4">
+            <!-- Left Column: List of Pending Reservations -->
+            <div class="col-lg-8">
+                <div class="card-sanctuary">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h5 class="serif mb-0">@L["ActiveReservations"]</h5>
+                        <span class="badge-sanctuary badge-neutral">@pendingReservations.Count @L["Pending"]</span>
+                    </div>
+
+                    @if (!pendingReservations.Any())
+                    {
+                        <div class="text-center py-5">
+                            <i class="bi bi-calendar-x display-1 text-muted opacity-25"></i>
+                            <p class="mt-3 text-muted serif italic">@L["NoPendingReservationsFound"]</p>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="editorial-ledger">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead>
+                                    <tr>
+                                        <th class="ps-0">@L["Book"]</th>
+                                        <th>@L["Patron"]</th>
+                                        <th>@L["TimeSlot"]</th>
+                                        <th class="text-end pe-0">@L["Actions"]</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var res in pendingReservations)
+                                    {
+                                        <tr @onclick="() => SelectReservation(res)" 
+                                            class="clickable-row @(selectedReservation?.Reservation.ReservationId == res.Reservation.ReservationId ? "table-active shadow-sm" : "")"
+                                            style="cursor: pointer; transition: all 0.2s ease;">
+                                            <td class="ps-0 py-3">
+                                                <div class="d-flex align-items-center gap-3">
+                                                    <div class="bg-surface-low rounded flex-shrink-0 d-flex align-items-center justify-content-center" style="width: 40px; height: 56px; overflow: hidden;">
+                                                        @if (Microsoft.FSharp.Core.FSharpOption<Uri>.get_IsSome(res.Book.ImageUrl))
+                                                        {
+                                                            <img src="@res.Book.ImageUrl.Value" class="w-100 h-100" style="object-fit: cover;" />
+                                                        }
+                                                        else
+                                                        {
+                                                            <i class="bi bi-book text-muted"></i>
+                                                        }
+                                                    </div>
+                                                    <div>
+                                                        <div class="fw-bold serif">@res.Book.Title.Value</div>
+                                                        <div class="x-small text-muted font-monospace">@res.Book.Isbn.Value</div>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td class="py-3">
+                                                <div class="fw-bold">@res.UserDetails.ApplicationUser.UserName</div>
+                                                <div class="x-small text-muted">@res.UserDetails.ApplicationUser.CodiceFiscale</div>
+                                            </td>
+                                            <td class="py-3 text-nowrap">
+                                                <div class="small">
+                                                    <span class="text-muted">@L["From"]:</span> @res.Reservation.TimeSlot.Start.ToShortDateString()
+                                                </div>
+                                                <div class="small">
+                                                    <span class="text-muted">@L["To"]:</span> @res.Reservation.TimeSlot.End.ToShortDateString()
+                                                </div>
+                                            </td>
+                                            <td class="text-end pe-0 py-3">
+                                                <button class="btn btn-sm btn-outline-primary rounded-pill px-3" @onclick:stopPropagation @onclick="() => SelectReservation(res)">
+                                                    @L["Select"] <i class="bi bi-chevron-right ms-1"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <!-- Right Column: Conversion Form -->
+            <div class="col-lg-4">
+                <div class="sticky-top" style="top: 2rem; z-index: 100;">
+                    <div class="card-sanctuary shadow-lg border-primary-subtle" style="border: 1px solid rgba(13, 110, 253, 0.1);">
+                        <h5 class="serif mb-4 border-bottom pb-2">@L["ConvertToLoan"]</h5>
+
+                        @if (selectedReservation == null)
+                        {
+                            <div class="text-center py-4 px-3 bg-surface-low rounded-xl">
+                                <i class="bi bi-info-circle text-primary fs-3 mb-2 d-block"></i>
+                                <p class="small text-muted serif italic mb-0">@L["SelectReservationToProceed"]</p>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="animate-fade-in">
+                                <div class="mb-4 p-3 bg-primary-subtle rounded-xl border border-primary-subtle shadow-sm">
+                                    <h6 class="serif fw-bold text-primary mb-1">@selectedReservation.Book.Title.Value</h6>
+                                    <p class="x-small text-muted mb-0">@L["Borrower"]: @selectedReservation.UserDetails.ApplicationUser.UserName</p>
+                                </div>
+
+                                <div class="mb-4">
+                                    <label class="form-label small text-muted text-uppercase fw-bold">@L["ReservationCode"]</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-white border-end-0"><i class="bi bi-qr-code-scan"></i></span>
+                                        <input type="text" 
+                                               id="reservationCodeField"
+                                               class="form-control border-start-0 serif" 
+                                               placeholder="@L["EnterReservationCode"]" 
+                                               @bind="reservationCodeInput" />
+                                    </div>
+                                    <div class="form-text x-small serif italic mt-2">
+                                        @L["VerifyCodeOnPatronSubmission"]
+                                    </div>
+                                </div>
+
+                                <button class="btn btn-primary w-100 py-3 rounded-xl d-flex align-items-center justify-content-center gap-2 shadow"
+                                        @onclick="ProcessConversion"
+                                        disabled="@isProcessing">
+                                    @if (isProcessing)
+                                    {
+                                        <span class="spinner-border spinner-border-sm" role="status"></span>
+                                    }
+                                    else
+                                    {
+                                        <i class="bi bi-arrow-repeat fs-5"></i>
+                                    }
+                                    <span class="fw-bold">@L["FinalizeLoan"]</span>
+                                </button>
+                                
+                                <div class="text-center mt-3">
+                                    <button class="btn btn-link btn-sm text-decoration-none text-muted" @onclick="() => selectedReservation = null">
+                                        @L["CancelSelection"]
+                                    </button>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                    
+                    <div class="card-sanctuary mt-4 bg-surface-low border-0">
+                        <div class="d-flex align-items-start gap-3">
+                            <i class="bi bi-lightning-charge text-warning fs-4"></i>
+                            <div>
+                                <h6 class="serif mb-1">@L["QuickTip"]</h6>
+                                <p class="x-small text-muted serif italic mb-0">
+                                    @L["ConversionTipDescription"]
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private bool isLoading = true;
+    private bool isProcessing = false;
+    private List<ReservationDetails> pendingReservations = new();
+    private ReservationDetails? selectedReservation;
+    private string reservationCodeInput = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadPendingReservations();
+    }
+
+    private async Task LoadPendingReservations()
+    {
+        isLoading = true;
+        try
+        {
+            var result = await ReservationService.GetAllPendingReservationsDetailsAsync(Microsoft.FSharp.Core.FSharpOption<CancellationToken>.None);
+            if (result.IsOk)
+            {
+                pendingReservations = result.ResultValue.ToList();
+            }
+            else
+            {
+                await ShowStatus($"{L["ErrorLoadingReservations"]}: {result.ErrorValue}", "danger");
+            }
+        }
+        catch (Exception ex)
+        {
+            await ShowStatus($"{L["FatalError"]}: {ex.Message}", "danger");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void SelectReservation(ReservationDetails res)
+    {
+        selectedReservation = res;
+        
+        var preFill = Configuration.GetValue<bool>("BooksLibrary:PreFillReservationCode");
+        if (preFill)
+        {
+            reservationCodeInput = res.Reservation.ReservationCode.Value;
+        }
+        else
+        {
+            reservationCodeInput = "";
+        }
+    }
+
+    private async Task ProcessConversion()
+    {
+        if (selectedReservation == null) return;
+
+        if (string.IsNullOrWhiteSpace(reservationCodeInput))
+        {
+            await ShowStatus(L["ReservationCodeRequired"], "warning");
+            return;
+        }
+
+        isProcessing = true;
+        try
+        {
+            var resId = selectedReservation.Reservation.ReservationId;
+            var resCode = ReservationCode.ReservationCode.NewReservationCode(reservationCodeInput);
+            
+            var result = await LoanService.TransformReservationIntoLoanAsync(
+                resId,
+                resCode,
+                ShortLang.New(CultureInfo.CurrentCulture.Name),
+                DateTime.UtcNow,
+                Microsoft.FSharp.Core.FSharpOption<CancellationToken>.None);
+
+            if (result.IsOk)
+            {
+                await ShowStatus(L["ReservationConvertedSuccess"], "success");
+                selectedReservation = null;
+                reservationCodeInput = "";
+                await LoadPendingReservations();
+            }
+            else
+            {
+                await ShowStatus($"{L["ConversionError"]}: {result.ErrorValue}", "danger");
+            }
+        }
+        catch (Exception ex)
+        {
+            await ShowStatus($"{L["FatalError"]}: {ex.Message}", "danger");
+        }
+        finally
+        {
+            isProcessing = false;
+        }
+    }
+
+    private async Task ShowStatus(string message, string type)
+    {
+        await JSRuntime.InvokeVoidAsync("showToast", message, type);
+    }
+}

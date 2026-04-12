@@ -1,0 +1,215 @@
+@page "/loans"
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using BookLibrary.Shared.Services
+@using BookLibrary.Domain
+@using BookLibrary.Shared
+@using System.Globalization
+@using static BookLibrary.Shared.Details
+@using blazorBookLibrary.Shared.Resources
+@using blazorBookLibrary.Data
+@using Microsoft.Extensions.Localization
+@using Microsoft.FSharp.Collections
+
+@attribute [Authorize(Roles = "Admin, Manager")]
+@inject ILoanService LoanService
+@inject IJSRuntime JSRuntime
+@inject IStringLocalizer<SharedResources> L
+@rendermode InteractiveServer
+
+<PageTitle>@L["LoansManagement"] — @L["TheModernArchivist"]</PageTitle>
+
+<div class="sanctuary-container py-5">
+    @* Page Header *@
+    <div class="mb-5">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/" class="text-decoration-none text-muted">@L["Home"]</a></li>
+                <li class="breadcrumb-item active text-serif" aria-current="page">@L["LoansManagement"]</li>
+            </ol>
+        </nav>
+        <div class="d-flex justify-content-between align-items-end">
+            <div>
+                <h1 class="display-4 text-serif mb-2">@L["LoansManagement"]</h1>
+                <p class="text-muted lead mb-0">@L["MonitorAndManageArchivalLoans"]</p>
+            </div>
+            
+            <div class="d-flex gap-3">
+                <div class="badge-sanctuary badge-neutral px-4 py-2">
+                    <span class="text-muted small text-uppercase fw-bold letter-spacing-1 me-2">@L["TotalLoans"]:</span>
+                    <span class="h4 mb-0 fw-bold">@FilteredLoans.Count()</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @* Filters *@
+    <div class="card-sanctuary mb-5 p-4 border-0 shadow-none bg-surface-low">
+        <div class="row g-3">
+            <div class="col-md-6">
+                <div class="input-group">
+                    <span class="input-group-text bg-transparent border-end-0 text-muted"><i class="bi bi-search"></i></span>
+                    <input type="search" class="form-control border-start-0" @bind="bookFilter" @bind:event="oninput" placeholder="@L["FilterByBookTitle"]" />
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="input-group">
+                    <span class="input-group-text bg-transparent border-end-0 text-muted"><i class="bi bi-person"></i></span>
+                    <input type="search" class="form-control border-start-0" @bind="patronFilter" @bind:event="oninput" placeholder="@L["FilterByPatron"]" />
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @* Loans Ledger *@
+    <div class="card-sanctuary p-0 overflow-hidden animate-fade-in">
+        <div class="table-responsive">
+            <QuickGrid Items="@FilteredLoans" Pagination="@pagination" Class="editorial-ledger w-100 align-middle">
+                
+                <TemplateColumn Title="@L["Book"]" SortBy="@sortTitle">
+                    <div class="d-flex align-items-center gap-3 py-2">
+                        @if (context.Book.ImageUrl != null && Microsoft.FSharp.Core.FSharpOption<Uri>.get_IsSome(context.Book.ImageUrl))
+                        {
+                            <img src="@context.Book.ImageUrl.Value" class="rounded shadow-sm" style="width: 40px; height: 60px; object-fit: cover;" />
+                        }
+                        else
+                        {
+                            <div class="bg-surface-neutral rounded d-flex align-items-center justify-content-center" style="width: 40px; height: 60px;">
+                                <i class="bi bi-book text-muted opacity-50"></i>
+                            </div>
+                        }
+                        <div>
+                            <div class="fw-bold text-serif">@context.Book.Title.Value</div>
+                            <div class="small text-muted">@context.Book.Year.Value</div>
+                        </div>
+                    </div>
+                </TemplateColumn>
+
+                <TemplateColumn Title="@L["Patron"]" SortBy="@sortPatron">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-person-circle text-muted"></i>
+                        <span>@context.UserDetails.ApplicationUser.Email</span>
+                    </div>
+                </TemplateColumn>
+
+                <PropertyColumn Property="@(ld => ld.Loan.TimeSlot.Start.ToLocalTime())" Title="@L["LoanedAt"]" Format="yyyy-MM-dd HH:mm" Sortable="true" />
+                
+                <TemplateColumn Title="@L["DueDate"]" SortBy="@sortDueDate">
+                    @{
+                        var isOverdue = context.Loan.IsOverdue(DateTime.UtcNow);
+                    }
+                    <div class="@(isOverdue ? "text-danger fw-bold overdue-pulse" : "")">
+                        @context.Loan.TimeSlot.End.ToLocalTime().ToString("yyyy-MM-dd HH:mm")
+                        @if (isOverdue)
+                        {
+                            <i class="bi bi-exclamation-triangle-fill ms-2 animate-bounce" title="@L["OverdueLoanWarning"]"></i>
+                        }
+                    </div>
+                </TemplateColumn>
+
+                <TemplateColumn Title="@L["Actions"]">
+                    <button class="btn btn-sm btn-outline-primary shadow-sm" @onclick="() => ConfirmReturn(context)">
+                        <i class="bi bi-box-arrow-in-right me-1"></i> @L["Release"]
+                    </button>
+                </TemplateColumn>
+
+            </QuickGrid>
+        </div>
+        <div class="px-4 py-3 bg-surface-container border-top d-flex justify-content-between align-items-center">
+            <div class="small text-muted serif italic">@L["Showing"] @FilteredLoans.Count() @L["Records"]</div>
+            <Paginator State="@pagination" />
+        </div>
+    </div>
+</div>
+
+<style>
+    .overdue-pulse {
+        animation: subtle-pulse 2s infinite;
+    }
+
+    @@keyframes subtle-pulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.02); text-shadow: 0 0 5px rgba(220, 53, 69, 0.2); }
+        100% { transform: scale(1); }
+    }
+
+    .animate-bounce {
+        display: inline-block;
+        animation: bounce 1s infinite;
+    }
+
+    @@keyframes bounce {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-3px); }
+    }
+
+    .editorial-ledger thead th {
+        background-color: var(--surface-container-low);
+        text-transform: uppercase;
+        font-size: 0.75rem;
+        letter-spacing: 0.05em;
+        padding-top: 1rem;
+        padding-bottom: 1rem;
+        border-bottom-width: 2px;
+    }
+
+    .editorial-ledger tbody td {
+        padding-top: 0.75rem;
+        padding-bottom: 0.75rem;
+    }
+</style>
+
+@code {
+    private List<LoanDetails> loanDetailsList = new();
+    private string bookFilter = "";
+    private string patronFilter = "";
+    private PaginationState pagination = new() { ItemsPerPage = 10 };
+
+    private GridSort<LoanDetails> sortTitle = GridSort<LoanDetails>.ByAscending(ld => ld.Book.Title.Value);
+    private GridSort<LoanDetails> sortPatron = GridSort<LoanDetails>.ByAscending(ld => ld.UserDetails.ApplicationUser.Email);
+    private GridSort<LoanDetails> sortDueDate = GridSort<LoanDetails>.ByAscending(ld => ld.Loan.TimeSlot.End);
+
+    private IQueryable<LoanDetails> FilteredLoans => 
+        loanDetailsList.AsQueryable()
+            .Where(ld => ld.Loan.InProgress && 
+                         (string.IsNullOrEmpty(bookFilter) || ld.Book.Title.Value.Contains(bookFilter, StringComparison.OrdinalIgnoreCase)) &&
+                         (string.IsNullOrEmpty(patronFilter) || ld.UserDetails.ApplicationUser.Email.Contains(patronFilter, StringComparison.OrdinalIgnoreCase)))
+            .OrderByDescending(ld => ld.Loan.TimeSlot.Start);
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadLoans();
+    }
+
+    private async Task LoadLoans()
+    {
+        var result = await LoanService.GetLoansDetailsAsync();
+        if (result.IsOk)
+        {
+            loanDetailsList = result.ResultValue.ToList();
+        }
+        else
+        {
+            await JSRuntime.InvokeVoidAsync("showToast", string.Format(L["ErrorLoadingLoans"], result.ErrorValue), "error");
+        }
+    }
+
+    private async Task ConfirmReturn(LoanDetails loanDetails)
+    {
+        var confirmed = await JSRuntime.InvokeAsync<bool>("confirm", $"{L["ConfirmReturnOf"]} {loanDetails.Book.Title.Value}?");
+        if (confirmed)
+        {
+            var result = await LoanService.ReleaseLoanAsync(loanDetails.Loan.LoanId, ShortLang.New(CultureInfo.CurrentCulture.Name), DateTime.UtcNow);
+            if (result.IsOk)
+            {
+                await JSRuntime.InvokeVoidAsync("showToast", L["LoanReturnedSuccessfully"], "success");
+                await LoadLoans();
+            }
+            else
+            {
+                await JSRuntime.InvokeVoidAsync("showToast", string.Format(L["ErrorReturningLoan"], result.ErrorValue), "error");
+            }
+        }
+    }
+}

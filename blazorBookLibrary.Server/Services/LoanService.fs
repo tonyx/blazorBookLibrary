@@ -1,6 +1,7 @@
 
 namespace BookLibrary.Services
 open System.Threading
+open Microsoft.Extensions.Configuration
 open System
 open Sharpino
 open Sharpino.Cache
@@ -19,6 +20,10 @@ open BookLibrary.Domain
 open BookLibrary.Shared.Services
 open BookLibrary.Shared.Commons
 open BookLibrary.Shared.Details
+open BookLibrary.Details.Details
+open blazorBookLibrary.Shared.Infrastructure.Services
+open blazorBookLibrary.Shared.Resources
+open Microsoft.Extensions.Localization
 
 type LoanService 
     (
@@ -29,9 +34,17 @@ type LoanService
         editorViewerAsync: AggregateViewerAsync2<Editor>,
         reservationViewerAsync: AggregateViewerAsync2<Reservation>,
         loanViewerAsync: AggregateViewerAsync2<Loan>,
-        userViewerAsync: AggregateViewerAsync2<User>
+        userViewerAsync: AggregateViewerAsync2<User>,
+        reservationService: IReservationService,
+        usersService: IUserService,
+        mailNotificator: IMailNotificator,
+        maxLoanPerUser: int,
+        fromEmail: string,
+        fromName: string,
+        localizer: IStringLocalizer<SharedResources>
+
     ) =
-    new (eventStore: IEventStore<string>)
+    new (eventStore: IEventStore<string>, reservationService: IReservationService, usersService: IUserService, mailNotificator: IMailNotificator, localizer: IStringLocalizer<SharedResources>, configuration: IConfiguration)
         =
         let messageSenders = MessageSenders.NoSender
         let bookViewerAsync = getAggregateStorageFreshStateViewerAsync<Book, BookEvent, string> eventStore
@@ -40,6 +53,10 @@ type LoanService
         let reservationViewerAsync = getAggregateStorageFreshStateViewerAsync<Reservation, ReservationEvent, string> eventStore
         let loanViewerAsync = getAggregateStorageFreshStateViewerAsync<Loan, LoanEvent, string> eventStore
         let userViewerAsync = getAggregateStorageFreshStateViewerAsync<User, UserEvent, string> eventStore
+        let maxLoanPerUser = configuration.GetValue<int>("BooksLibrary:MaxLoanPerUser", 3)
+        let fromEmail = configuration.GetValue<string>("BooksLibrary:FromEmail", "noreply@blazorbooklibrary.com")
+        let fromName = configuration.GetValue<string>("BooksLibrary:FromName", "Blazor Book Library")
+
         LoanService (
             eventStore,
             messageSenders,
@@ -48,20 +65,37 @@ type LoanService
             editorViewerAsync,
             reservationViewerAsync,
             loanViewerAsync,
-            userViewerAsync
-        )    
-    new (configuration: Microsoft.Extensions.Configuration.IConfiguration) 
-        =
-        let connectionString = configuration.Item("ConnectionStrings::BookLibraryDbConnection")
-        let eventStore = PgStorage.PgEventStore connectionString
-        LoanService(eventStore)
+            userViewerAsync,
+            reservationService,
+            usersService,
+            mailNotificator,
+            maxLoanPerUser,
+            fromEmail,
+            fromName,
+            localizer
+        )
 
-    new (connectionString: string)
+    new (configuration: IConfiguration, reservationService: IReservationService, usersService: IUserService, mailNotificator: IMailNotificator, localizer: IStringLocalizer<SharedResources>) 
+        =
+        let connectionString = configuration.GetConnectionString("BookLibraryDbConnection")
+        let eventStore = PgStorage.PgEventStore connectionString
+        LoanService(eventStore, reservationService, usersService, mailNotificator, localizer, configuration)
+
+    new (connectionString: string, reservationService: IReservationService, usersService: IUserService, mailNotificator: IMailNotificator, localizer: IStringLocalizer<SharedResources>, configuration: IConfiguration)
         =
         let eventStore = PgStorage.PgEventStore connectionString
-        LoanService(eventStore)
+        LoanService(eventStore, reservationService, usersService, mailNotificator, localizer, configuration)
 
-    member this.AddLoanAsync (loan: Loan, dateTime: System.DateTime, ?ct: CancellationToken)= 
+    member private this.GetLocalizedSubject (shortLang: ShortLang) =
+        let culture = new System.Globalization.CultureInfo(shortLang.Value)
+        let oldCulture = System.Globalization.CultureInfo.CurrentUICulture
+        try
+            System.Globalization.CultureInfo.CurrentUICulture <- culture
+            localizer.["LoanNotification"].Value
+        finally
+            System.Globalization.CultureInfo.CurrentUICulture <- oldCulture
+
+    member this.AddLoanAsync (loan: Loan, shortLang: ShortLang, dateTime: System.DateTime, ?ct: CancellationToken)= 
         taskResult
             {
                 let ct = defaultArg ct CancellationToken.None
@@ -73,11 +107,25 @@ type LoanService
                     userViewerAsync (Some ct) loan.UserId.Value
                     |> TaskResult.map snd
                 
+                let! userDetails = 
+                    usersService.GetUserDetailsAsync (user.UserId, ct)
+                
                 let setCurrentLoanCommand = 
                     BookCommand.SetCurrentLoan (loan.LoanId, dateTime)
 
                 let addLoanToUser =     
                     UserCommand.AddLoan (loan.LoanId)
+                
+                let templatePath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Templates", shortLang.Value, "LoanNotification.txt")
+
+                let! emailTextRetrieved = 
+                    task {
+                        try
+                            let! content = System.IO.File.ReadAllTextAsync(templatePath)
+                            return Ok content
+                        with ex ->
+                            return Error (sprintf "Error reading template %s: %s" templatePath ex.Message)
+                    }
 
                 let! result = 
                     runInitAndTwoAggregateCommandsMdAsync<Book, BookEvent, User, UserEvent, string, Loan>
@@ -90,9 +138,24 @@ type LoanService
                         setCurrentLoanCommand
                         addLoanToUser
                         (ct |> Some)
-                        
+
+                let emailBody = emailTextRetrieved.Replace("{bookTitle}",book.Title.Value).Replace("{loanedAt}",dateTime.ToString("dd/MM/yyyy")).Replace("{dueDate}",loan.DueDate.ToString("dd/MM/yyyy"))
+
+                do! 
+                    task {
+                        do! 
+                            mailNotificator.SendEmailAsync(
+                                fromEmail,
+                                fromName,
+                                userDetails.ApplicationUser.Email,
+                                this.GetLocalizedSubject shortLang,
+                                emailBody
+                            )
+                        return Ok ()
+                    } 
                 return result
             }
+
     member this.GetLoanAsync (id: LoanId, ?ct: CancellationToken): TaskResult<Loan, string> = 
         taskResult
             {
@@ -101,7 +164,63 @@ type LoanService
                     loanViewerAsync (Some ct) id.Value
                 return result |> snd
             }
-    member this.ReleaseLoanAsync (loanId: LoanId, dateTime: System.DateTime, ?ct: CancellationToken)= 
+
+    member this.GetRefreshableLoanDetailsAsync (loanId: LoanId, ?ct: CancellationToken): TaskResult<RefreshableLoanDetails, string> = 
+        let detailsBuilder =
+            fun (ct: Option<CancellationToken>) ->
+                let refresher =
+                    fun () ->
+                        result {
+                            let ct = ct |> Option.defaultValue CancellationToken.None
+                            let! loan = 
+                                loanViewerAsync (ct |> Some) loanId.Value |> TaskResult.map snd
+                                |> Async.AwaitTask
+                                |> Async.RunSynchronously    
+                            let! book = 
+                                bookViewerAsync (ct |> Some) loan.BookId.Value |> TaskResult.map snd
+                                |> Async.AwaitTask
+                                |> Async.RunSynchronously    
+                            let! userDetail = 
+                                usersService.GetUserDetailsAsync (loan.UserId,ct)
+                                |> Async.AwaitTask
+                                |> Async.RunSynchronously    
+                            return
+                                { 
+                                    Loan = loan
+                                    Book = book
+                                    UserDetails = userDetail
+                                }
+                        }
+                result {
+                    let! loanDetails = refresher ()
+                    return
+                        {
+                            LoanDetails = loanDetails
+                            Refresher = refresher
+                        } :> Refreshable<RefreshableLoanDetails>
+                        ,
+                        [
+                            loanId.Value;
+                            loanDetails.Book.Id;
+                            loanDetails.UserDetails.User.Id
+                        ]
+                    }
+        let key = DetailsCacheKey.OfType typeof<RefreshableLoanDetails> loanId.Value    
+        task
+            {
+                return StateView.getRefreshableDetailsAsync<RefreshableLoanDetails> (fun ct -> detailsBuilder ct) key ct
+            }
+    member this.GetLoansAsync (?ct: CancellationToken): TaskResult<List<Loan>, string> = 
+        taskResult
+            {
+                let ct = defaultArg ct CancellationToken.None
+                let! result =
+                    StateView.getAllAggregateStatesAsync<Loan, LoanEvent, string> eventStore (ct |> Some)
+                    |> TaskResult.map (fun x -> x |> List.map snd)
+                return result
+            }
+
+    member this.ReleaseLoanAsync (loanId: LoanId, shortLang: ShortLang,  dateTime: System.DateTime, ?ct: CancellationToken)= 
         taskResult
             {
                 let ct = defaultArg ct CancellationToken.None
@@ -120,6 +239,22 @@ type LoanService
                     LoanCommand.Return dateTime
                 let userReleaseLoanCommandr = 
                     UserCommand.ReleaseLoan (loanId)
+                let! userDetails = 
+                    usersService.GetUserDetailsAsync loan.UserId
+                    
+
+                let templatePath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Templates", shortLang.Value, "LoanReturnNotification.txt")
+                let! emailTextRetrieved = 
+                    task
+                        {
+                            try
+                                let! content = System.IO.File.ReadAllTextAsync(templatePath)
+                                return Ok content
+                            with
+                                | ex -> 
+                                    return Error ("Error reading template file: " + ex.Message)
+                        }
+
                 let! result = 
                     runThreeAggregateCommandsMdAsync<Book, BookEvent, Loan, LoanEvent, User, UserEvent, string>
                         book.Id
@@ -132,17 +267,130 @@ type LoanService
                         releaseBookCommand
                         userReleaseLoanCommandr
                         (ct |> Some)
+
+                let emailBody = emailTextRetrieved.Replace("{bookTitle}", book.Title.Value)
+                do!
+                    task
+                        {
+                            do!
+                                mailNotificator.SendEmailAsync (
+                                    fromEmail, 
+                                    fromName, 
+                                    userDetails.ApplicationUser.Email, 
+                                    "Loan Return", 
+                                    emailBody
+                                )
+                            return Ok ()
+                        }
                 return result
             }
-            
+    member this.TransformReservationIntoLoanAsync (reservationId: ReservationId, providedReservationCode: ReservationCode, shortLang: ShortLang, now: DateTime, ?ct: CancellationToken)= 
+        let ct = defaultArg ct CancellationToken.None
+        taskResult
+            {
+                let! reservation = 
+                    reservationViewerAsync (Some ct) reservationId.Value
+                    |> TaskResult.map snd
+                let! reservationDetails =
+                    reservationService.GetReservationDetailsAsync (reservationId, ct)
+
+                let book =
+                    reservationDetails.Book
+
+                do!
+                    book.NoLoan
+                    |> Result.ofBool "Book is already loaned"
+
+                let! matchReservationCode = 
+                    reservation.ReservationCode = providedReservationCode
+                    |> Result.ofBool "Reservation code must match"
+
+                let makeReservationLoaned = 
+                    ReservationCommand.Loan now
+
+                let! loan = 
+                    reservationDetails.ToLoan now
+
+                let setBookLoaned =
+                    BookCommand.SetCurrentLoanFromReservation (reservationId, loan.LoanId, now)
+
+                let makeLoanFromReservation = 
+                    UserCommand.LoanFromReservation (loan.LoanId, reservationId)
+
+                let templatePath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Templates", shortLang.Value, "LoanNotification.txt")
+
+                let! emailTextRetrieved = 
+                    task {
+                        try
+                            let! content = System.IO.File.ReadAllTextAsync(templatePath)
+                            return Ok content
+                        with ex ->
+                            return Error (sprintf "Error reading template %s: %s" templatePath ex.Message)
+                    }
+
+                let! result = 
+                    runInitAndThreeAggregateCommandsMdAsync<Reservation, ReservationEvent, Book, BookEvent, User, UserEvent, string, Loan>
+                        reservation.Id
+                        book.Id
+                        reservationDetails.UserDetails.User.Id
+                        eventStore
+                        messageSenders
+                        loan
+                        ""
+                        makeReservationLoaned
+                        setBookLoaned
+                        makeLoanFromReservation
+                        (ct |> Some)
+
+                let emailBody = emailTextRetrieved.Replace("{bookTitle}",book.Title.Value).Replace("{loanedAt}", now.ToString("dd/MM/yyyy")).Replace("{dueDate}", loan.DueDate.ToString("dd/MM/yyyy"))
+                do! 
+                    task {
+                        do! 
+                             mailNotificator.SendEmailAsync(
+                                fromEmail,
+                                fromName,
+                                reservationDetails.UserDetails.ApplicationUser.Email,
+                                this.GetLocalizedSubject shortLang,
+                                emailBody
+                            )
+                        return Ok ()
+                    } 
+                
+                return result
+            }
 
     interface ILoanService with
-        member this.AddLoanAsync (loan: Loan, ?ct: CancellationToken) =
+        member this.AddLoanAsync (loan: Loan, shortLang:ShortLang, ?ct: CancellationToken) =
             let ct = defaultArg ct CancellationToken.None
-            this.AddLoanAsync (loan, System.DateTime.Now, ct)
+            this.AddLoanAsync (loan, shortLang, System.DateTime.Now, ct)
         member this.GetLoanAsync (id: LoanId, ?ct: CancellationToken) =  
             let ct = defaultArg ct CancellationToken.None
             this.GetLoanAsync (id, ct)
-        member this.ReleaseLoanAsync (loanId: LoanId, ?ct: CancellationToken) =
+        member this.ReleaseLoanAsync (loanId: LoanId, shortLang: ShortLang, now: DateTime, ?ct: CancellationToken) =
             let ct = defaultArg ct CancellationToken.None
-            this.ReleaseLoanAsync (loanId, System.DateTime.Now, ct)
+            this.ReleaseLoanAsync (loanId, shortLang, now, ct)
+        member this.GetLoansAsync (?ct: CancellationToken) =
+            let ct = defaultArg ct CancellationToken.None
+            this.GetLoansAsync ct
+        member this.GetLoanDetailsAsync (loanId: LoanId, ?ct: CancellationToken) =
+            taskResult
+                {
+                    let ct = defaultArg ct CancellationToken.None
+                    let! refreshableLoanDetails = 
+                        this.GetRefreshableLoanDetailsAsync (loanId, ct)
+                    return refreshableLoanDetails.LoanDetails
+                }
+        member this.GetLoansDetailsAsync (?ct: CancellationToken) =
+            taskResult
+                {
+                    let ct = defaultArg ct CancellationToken.None
+                    let! loans = (this :> ILoanService).GetLoansAsync ct
+                    let! details = 
+                        loans
+                        |> List.traverseTaskResultM (fun loan -> (this :> ILoanService).GetLoanDetailsAsync (loan.LoanId, ct))
+                    return details
+                }
+
+        member this.TransformReservationIntoLoanAsync (reservationId: ReservationId, providedReservationCode: ReservationCode, shortLang: ShortLang, now: DateTime, ?ct: CancellationToken) =
+            let ct = defaultArg ct CancellationToken.None
+            this.TransformReservationIntoLoanAsync (reservationId, providedReservationCode, shortLang, now, ct)

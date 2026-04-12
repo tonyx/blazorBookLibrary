@@ -113,14 +113,26 @@
                             <span class="badge-sanctuary badge-neutral">@context.MainCategory.Value()</span>
                         </TemplateColumn>
 
-                        <TemplateColumn Title="@L["ArchivalAvailability"]" SortBy=@sortAvailability Align="Align.End" Class="col-available pe-4">
-                            @if (context.ImmediatelyAvailable)
+                        <TemplateColumn Title="@L["ArchivalStatus"]" SortBy=@sortAvailability Align="Align.End" Class="col-available pe-5">
+                            @if (context.AvailabilityStatus == BookLibrary.Shared.Commons.AvailabilityStatus.Available)
                             {
                                 <span class="text-success small fw-bold"><i class="bi bi-check-circle-fill me-2" style="font-size: 0.5rem;"></i>@L["Available"]</span>
                             }
-                            else
+                            else if (context.AvailabilityStatus == BookLibrary.Shared.Commons.AvailabilityStatus.Reserved)
                             {
-                                <span class="text-danger small fw-bold"><i class="bi bi-circle-fill me-2" style="font-size: 0.5rem;"></i>@L["OnLoan"]</span>
+                                <span class="text-warning small fw-bold"><i class="bi bi-circle-fill me-2" style="font-size: 0.5rem;"></i>@L["Reserved"]</span>
+                            }
+                            else if (context.AvailabilityStatus == BookLibrary.Shared.Commons.AvailabilityStatus.NotAvailable)
+                            {
+                                <span class="text-danger small fw-bold"><i class="bi bi-circle-fill me-2" style="font-size: 0.5rem;"></i>@L["NotAvailable"]</span>
+                            }
+                            else if (context.AvailabilityStatus == BookLibrary.Shared.Commons.AvailabilityStatus.Consultable)
+                            {
+                                <span class="text-info small fw-bold"><i class="bi bi-circle-fill me-2" style="font-size: 0.5rem;"></i>@L["Consultable"]</span>
+                            }
+                            else 
+                            {
+                                <span class="text-muted small fw-bold"><i class="bi bi-circle-fill me-2" style="font-size: 0.5rem;"></i>@L["Unspecified"]</span>
                             }
                         </TemplateColumn>
                     </QuickGrid>
@@ -216,9 +228,52 @@
                                 </div>
                             </div>
 
+                            @* Publication Year *@
                             <div class="col-md-5">
                                 <label class="form-label small text-muted text-uppercase fw-bold mb-2">@L["PublicationYear"]</label>
                                 <InputNumber class="form-control bg-surface-low border-0 py-2 shadow-sm" @bind-Value="newBookYear" placeholder="YYYY" />
+                            </div>
+
+                            @* Cover Image Section *@
+                            <div class="col-12">
+                                <label class="form-label small text-muted text-uppercase fw-bold mb-2">@L["ArchivalCoverImage"]</label>
+                                <div class="input-group shadow-sm rounded-3 overflow-hidden border">
+                                    <span class="input-group-text bg-surface-low border-0"><i class="bi bi-image"></i></span>
+                                    <InputText class="form-control border-0 serif" 
+                                               @bind-Value="newBookImageUrl" 
+                                               placeholder="@L["PasteImageUrl"]" />
+                                    <button type="button" class="btn btn-white border-start d-flex align-items-center gap-2" @onclick="LookupCover" disabled="@(isLookingUpCover || (string.IsNullOrWhiteSpace(newBookTitle) && !IsNewBookIsbnValid))">
+                                        @if (isLookingUpCover) { <span class="spinner-border spinner-border-sm text-primary"></span> }
+                                        <select class="form-select form-select-sm border-0 bg-transparent py-0" @bind="coverSizeLookup" style="width: auto;" @onclick:stopPropagation>
+                                            <option value="Small">S</option>
+                                            <option value="Medium">M</option>
+                                            <option value="Large">L</option>
+                                        </select>
+                                        <i class="bi bi-magic text-primary"></i>@L["DiscoverCover"]
+                                    </button>
+                                </div>
+
+                                @if (coverPreviewUrl != null)
+                                {
+                                    <div class="mt-4 p-4 bg-surface-low rounded-3 border border-primary-subtle shadow-sm animate-fade-in text-center">
+                                        <p class="small text-muted mb-3 italic">@L["DiscoveredCoverPreview"]</p>
+                                        <div class="preview-rect bg-white mx-auto overflow-hidden shadow-sm border border-4 border-white" style="width: 120px; height: 170px;">
+                                            <img src="@coverPreviewUrl" class="w-100 h-100" style="object-fit: contain;" />
+                                        </div>
+                                        <div class="d-flex gap-2 justify-content-center mt-3">
+                                            <button type="button" class="btn btn-primary btn-sm px-4" @onclick="AcceptLookup">@L["UseThisCover"]</button>
+                                            <button type="button" class="btn btn-outline-secondary btn-sm px-4" @onclick="DiscardLookup">@L["Discard"]</button>
+                                        </div>
+                                    </div>
+                                }
+                                else if (!string.IsNullOrWhiteSpace(newBookImageUrl))
+                                {
+                                    <div class="mt-3 text-center">
+                                        <div class="preview-rect bg-white mx-auto shadow-sm border border-2 border-white rounded" style="width: 80px; height: 110px; overflow: hidden;">
+                                            <img src="@newBookImageUrl" class="w-100 h-100" style="object-fit: contain;" />
+                                        </div>
+                                    </div>
+                                }
                             </div>
 
                             @if (showScanner)
@@ -478,6 +533,7 @@
     private string newBookImageUrl = "";
     private string? coverPreviewUrl = null;
     private bool isLookingUpCover = false;
+    private string coverSizeLookup = "Medium";
     private bool showScanner = false;
     private List<string> metadataAuthors = new();
 
@@ -633,7 +689,9 @@
             }
         }
 
-        var book = Book.New(
+        var availability = Availability.FromString(newBookAvailability);
+
+        var book = Book.NewWithAvailability(
             title, 
             ListModule.OfSeq(authorIds),
             ListModule.OfSeq(Enumerable.Empty<AuthorId>()),
@@ -643,7 +701,8 @@
             ListModule.OfSeq(additionalCategories),
             year,
             isbn,
-            resolvedImageUrl
+            resolvedImageUrl,
+            availability
         );
 
         if (!string.IsNullOrWhiteSpace(newBookDescription))
@@ -655,8 +714,6 @@
             }
         }
 
-        var availability = Availability.FromString(newBookAvailability);
-        
         var result = await BookService.AddBookAsync(book);
         if (result.IsOk)
         {
@@ -775,6 +832,9 @@
         // Search and link authors
         await ProcessMetadataAuthors(book.Authors);
         
+        // Discover image
+        await LookupCover();
+        
         await ShowStatus(L["FieldsPopulatedReview"], "success");
     }
 
@@ -794,6 +854,9 @@
                 
                 // Search and link authors
                 await ProcessMetadataAuthors(book.Authors);
+                
+                // Discover image
+                await LookupCover();
                 
                 await ShowStatus(L["MetadataFound"], "success");
             }
@@ -850,6 +913,75 @@
         else
         {
             await ShowStatus(string.Format(L["ErrorAddingAuthor"], result.ErrorValue), "error");
+        }
+    }
+
+    private async Task AcceptLookup()
+    {
+        if (coverPreviewUrl != null)
+        {
+            newBookImageUrl = coverPreviewUrl;
+            coverPreviewUrl = null;
+            await ShowStatus(L["ImageUrlAppliedConfirm"], "info");
+        }
+    }
+
+    private void DiscardLookup()
+    {
+        coverPreviewUrl = null;
+    }
+
+    private async Task LookupCover()
+    {
+        isLookingUpCover = true;
+        coverPreviewUrl = null;
+        StateHasChanged();
+
+        try
+        {
+            FSharpResult<FSharpOption<string>, string> result;
+            string searchMode = "";
+
+            if (IsNewBookIsbnValid)
+            {
+                searchMode = "ISBN";
+                var size = ThumbRoughSize.Medium;
+                if (coverSizeLookup == "Small") size = ThumbRoughSize.Small;
+                else if (coverSizeLookup == "Large") size = ThumbRoughSize.Large;
+
+                result = await GoogleBooksService.LookupCoverImageByIsbnWithOpenApiAndThenGoogleAsync(Isbn.New(newBookIsbn).ResultValue, FSharpOption<ThumbRoughSize>.Some(size));
+            }
+            else
+            {
+                searchMode = "Title/Author";
+                var title = newBookTitle;
+                var firstAuthor = selectedAuthors.FirstOrDefault();
+                var authorName = firstAuthor != null ? FSharpOption<string>.Some(firstAuthor.Name.Value) : FSharpOption<string>.None;
+                
+                result = await GoogleBooksService.LookupGoogleApiCoverImageByTitleAndOptionalAuthorAsync(title, authorName);
+            }
+
+            if (result.IsOk && FSharpOption<string>.get_IsSome(result.ResultValue))
+            {
+                coverPreviewUrl = result.ResultValue.Value;
+                await ShowStatus(string.Format(L["CoverImageFoundVia"], searchMode), "success");
+            }
+            else if (result.IsOk)
+            {
+                await ShowStatus(string.Format(L["NoCoverFoundUsing"], searchMode), "warning");
+            }
+            else
+            {
+                await ShowStatus(string.Format(L["LookupError"], result.ErrorValue), "error");
+            }
+        }
+        catch (Exception ex)
+        {
+            await ShowStatus(string.Format(L["LookupErrorGeneric"], ex.Message), "error");
+        }
+        finally
+        {
+            isLookingUpCover = false;
         }
     }
 }

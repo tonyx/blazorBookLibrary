@@ -11,6 +11,19 @@ open System.Threading.Tasks
 // this conflicts with the one in the libary ouch
 type AggregateViewerAsync2<'A> = Option<CancellationToken> -> Guid -> Task<Result<int * 'A,string>>     
 
+let random = System.Random()
+
+type ReservationCode = 
+    | ReservationCode of string
+    | EmptyReservationCode
+    with
+        static member New() = ReservationCode(random.Next(100000, 999999).ToString())
+        member this.Value = 
+            match this with
+            | ReservationCode v -> v
+            | EmptyReservationCode -> ""
+
+
 let sealTimeoutInMinutes =
     let config = 
         ConfigurationBuilder()
@@ -28,6 +41,23 @@ let timeSlotDurationInDays =
     let v = config.["BookLibrary::TimeSlotLoanDurationInDays"]
     if String.IsNullOrWhiteSpace v then 30 else int v
 
+
+let resendEmailTimeBoxMinutes =
+    let config = 
+        ConfigurationBuilder()
+            .AddJsonFile("appsettings.json", true)
+            .Build()
+    let v = config.["BooksLibrary:ResendEmailTimeBoxMin"]
+    if String.IsNullOrWhiteSpace v then 10 else int v
+
+
+let expiredReservationCleanupTimeBoxHours =
+    let config = 
+        ConfigurationBuilder()
+            .AddJsonFile("appsettings.json", true)
+            .Build()
+    let v = config.["BooksLibrary:ExpiredReservationCleanupTimeBoxHours"]
+    if String.IsNullOrWhiteSpace v then 12 else int v
 
 type BookId =
     | BookId of Guid
@@ -431,6 +461,8 @@ type TimeSlot =
             this.Start > dateNow
         member this.Overlaps (other: TimeSlot) = 
             this.Start < other.End && other.Start < this.End
+        member this.Shift (dateTime: DateTime) = 
+            { this with Start = dateTime; End = dateTime + (this.End - this.Start) }
 let jsonOptions =
     JsonFSharpOptions.Default()
         .ToJsonSerializerOptions()
@@ -464,6 +496,21 @@ type Availability =
             | _ -> Unspecified
         static member AllCases () = 
             [ Circulating; ReferenceOnly; Unspecified ]
+
+type LoanStatus =
+    | InProgress
+    | Returned of DateTime
+
+type ReservationStatus =
+    | Pending
+    | Loaned
+
+type AvailabilityStatus =
+    | Available
+    | NotAvailable
+    | Reserved
+    | Unspecified
+    | Consultable
 
 type YearSearch =
     | Before of int

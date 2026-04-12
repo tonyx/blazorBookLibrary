@@ -16,7 +16,7 @@ module Details =
             User: User
             ApplicationUser: ApplicationUser
             FutureReservations: List<Reservation*Book>
-            CurrentLoans: List<Loan> 
+            CurrentLoans: List<Loan*Book> 
         }
         member this.HasReservedBook (bookId: BookId) =
             this.FutureReservations |> List.exists (fun (reservation, _) -> reservation.BookId = bookId)
@@ -27,17 +27,34 @@ module Details =
             Book: Book
             UserDetails: UserDetails
         }
+        member this.ToLoan (now: DateTime) = 
+            if now > this.Reservation.TimeSlot.End then
+                Error "Reservation time slot has expired"
+            else
+                let loan =
+                    Loan.NewFromReservation (this.Reservation) now
+                if (now > this.Reservation.TimeSlot.Start) then
+                    loan |> Ok
+                else
+                    { loan with TimeSlot = this.Reservation.TimeSlot.Shift now } |> Ok
+
+    type LoanDetails =
+        {
+            Loan: Loan
+            Book: Book
+            UserDetails: UserDetails
+        }
 
     type BookDetails =
         { 
             Authors: List<Author>
             Book: Book
-            CurrentLoan: Option<Loan>
+            CurrentLoan: Option<LoanDetails>
             ReservationsDetails: List<ReservationDetails>
         }
         member this.GetNextAvailableTimeSlot (timeSlotLoanDurationInDays: int, now: DateTime)=
             let currentTimeSlots =
-                (if this.CurrentLoan.IsSome then [this.CurrentLoan.Value.TimeSlot] else []) @ (this.ReservationsDetails |> List.map (fun reservationDetails -> reservationDetails.Reservation.TimeSlot))
+                (if this.CurrentLoan.IsSome then [this.CurrentLoan.Value.Loan.TimeSlot] else []) @ (this.ReservationsDetails |> List.map (fun reservationDetails -> reservationDetails.Reservation.TimeSlot))
             if (currentTimeSlots.IsEmpty) then
                 TimeSlot.New (now.AddHours(1.0)) (now.AddHours(1.0) + TimeSpan.FromDays(float timeSlotLoanDurationInDays))   
             else
@@ -45,6 +62,9 @@ module Details =
                     currentTimeSlots
                     |> List.maxBy (fun timeSlot -> timeSlot.End)
                 TimeSlot.New (maximumTimeSlot.End) (maximumTimeSlot.End + TimeSpan.FromDays(float timeSlotLoanDurationInDays))   
+        member this.PendingReservationsDetails: List<ReservationDetails> =
+            this.ReservationsDetails 
+            |> List.filter (fun reservationDetails -> reservationDetails.Reservation.Status = ReservationStatus.Pending)
 
     type AuthorDetails = {
             Author: Author

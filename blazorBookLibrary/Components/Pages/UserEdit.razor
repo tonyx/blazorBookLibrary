@@ -199,10 +199,14 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @foreach (var loan in userDetails.CurrentLoans)
+                                    @foreach (var tuple in userDetails.CurrentLoans)
                                     {
+                                        var loan = tuple.Item1;
+                                        var book = tuple.Item2;
                                         <tr>
-                                            <td class="small fw-bold">Book ID: @loan.BookId.Value</td>
+                                            <td>
+                                                <div class="fw-bold">@book.Title.Value</div>
+                                            </td>
                                             <td class="small">@loan.TimeSlot.End.ToShortDateString()</td>
                                             <td class="text-end">
                                                 <button class="btn btn-sm btn-outline-primary rounded-pill px-3" @onclick='() => NavigateToBook(loan.BookId.Value.ToString())'>
@@ -325,7 +329,7 @@
 
     private void NavigateToBook(string bookId)
     {
-        NavigationManager.NavigateTo($"/book-view/{bookId}");
+        NavigationManager.NavigateTo($"/book-edit/{bookId}");
     }
 
     private async Task HandleVerify()

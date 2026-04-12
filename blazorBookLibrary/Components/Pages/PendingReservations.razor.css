@@ -1,0 +1,125 @@
+.sanctuary-table-container {
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(10px);
+    border-radius: 12px;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.sanctuary-table {
+    margin-bottom: 0;
+}
+
+.sanctuary-table th {
+    background: rgba(0, 0, 0, 0.02);
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.05em;
+    padding: 1rem;
+    border-bottom: 2px solid rgba(0, 0, 0, 0.05);
+}
+
+.sanctuary-table td {
+    padding: 1rem;
+    vertical-align: middle;
+}
+
+.sanctuary-table tbody tr {
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.sanctuary-table tbody tr:hover {
+    background: rgba(0, 0, 0, 0.02);
+}
+
+.sanctuary-table tr.table-primary {
+    background: rgba(var(--primary-rgb), 0.08) !important;
+}
+
+.sanctuary-card {
+    border-radius: 12px;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    background: white;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+    transition: all 0.3s ease;
+}
+
+.sanctuary-input {
+    border-radius: 8px;
+    padding: 0.6rem 1rem;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    transition: all 0.2s ease;
+}
+
+.sanctuary-input:focus {
+    box-shadow: 0 0 0 3px rgba(var(--primary-rgb), 0.15);
+    border-color: var(--primary);
+}
+
+.sanctuary-btn-primary {
+    background: var(--primary);
+    border: none;
+    padding: 0.6rem 1.5rem;
+    border-radius: 8px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.sanctuary-btn-primary:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(var(--primary-rgb), 0.25);
+}
+
+.sanctuary-btn-secondary {
+    background: rgba(0, 0, 0, 0.05);
+    border: none;
+    color: #444;
+    padding: 0.6rem 1.5rem;
+    border-radius: 8px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.sanctuary-btn-secondary:hover {
+    background: rgba(0, 0, 0, 0.1);
+}
+
+.empty-state {
+    padding: 4rem 2rem;
+    text-align: center;
+    color: #888;
+}
+
+.empty-state i {
+    font-size: 3rem;
+    display: block;
+    margin-bottom: 1rem;
+    opacity: 0.3;
+}
+
+.form-tip {
+    background: #f8faff;
+    border-left: 4px solid #4a90e2;
+    padding: 1rem;
+    border-radius: 4px;
+}
+
+.selected-reservation-banner {
+    background: rgba(var(--primary-rgb), 0.05);
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+    border-left: 4px solid var(--primary);
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.fade-in {
+    animation: fadeIn 0.4s ease-out forwards;
+}

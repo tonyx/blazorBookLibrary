@@ -58,6 +58,22 @@ with
             Sealed = Sealed.New(DateTime.UtcNow)
         } 
 
+    static member NewWithAvailability
+        (title: Title) 
+        (authors: list<AuthorId>) 
+        (translators: list<AuthorId>) 
+        (languages: list<CultureInfo>) 
+        (editor: Option<EditorId>) 
+        (mainCategory: Category) 
+        (additionalCategories: list<Category>) 
+        (year: Year) 
+        (isbn: Isbn) 
+        (imageUrl: Option<Uri>)
+        (availability: Availability)
+        = 
+        { Book.New title authors translators languages editor mainCategory additionalCategories year isbn imageUrl 
+            with Availability = availability }
+
     member this.UpdateTitle 
         (title: Title) 
         (dateTime: DateTime) =
@@ -205,6 +221,27 @@ with
                     |> not
                     |> Result.ofBool "Book is already on loan"
                 return { this with CurrentLoan = Some loanId } 
+            }
+
+    member this.SetCurrentLoanFromReservation 
+        (reservationId: ReservationId) 
+        (loanId: LoanId) 
+        (dateTime: DateTime) = 
+        result
+            {
+                do!
+                    this.CurrentReservations
+                    |> List.contains reservationId
+                    |> Result.ofBool "Reservation not in book"
+                do!
+                    this.CurrentLoan
+                    |> Option.isNone
+                    |> Result.ofBool "Book is already on loan"
+                return
+                    { this with 
+                        CurrentLoan = Some loanId 
+                        CurrentReservations = this.CurrentReservations |> List.filter (fun x -> x <> reservationId)
+                    } 
             }
     member this.ReleaseLoan (loanId: LoanId) (dateTime: DateTime) = 
         result
@@ -366,6 +403,16 @@ with
         this.Available &&
         this.CurrentReservations
         |> List.isEmpty
+
+    member this.AvailabilityStatus =
+        if this.NoLoan && this.NoReservations && this.Availability = Availability.Circulating then
+            Available
+        else if this.NoLoan && this.Availability = Availability.Circulating then
+            Reserved
+        else if this.Availability = Availability.ReferenceOnly then
+            Consultable
+        else
+            NotAvailable
 
     member this.Id = this.BookId.Value
     static member SnapshotsInterval = 50

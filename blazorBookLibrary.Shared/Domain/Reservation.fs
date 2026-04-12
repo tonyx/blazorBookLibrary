@@ -15,6 +15,8 @@ type Reservation =
         TimeSlot: TimeSlot
         ReservedAt: DateTime
         CanceledAt: Option<Cancellation>
+        ReservationCode: ReservationCode
+        Status: ReservationStatus
         Sealed: Sealed
     } with 
         static member New (bookId: BookId) (userId: UserId) (timeSlot: TimeSlot) (dateTime: DateTime)= 
@@ -25,6 +27,8 @@ type Reservation =
                 TimeSlot = timeSlot;
                 ReservedAt = dateTime;
                 CanceledAt = None;
+                ReservationCode = ReservationCode.New();
+                Status = ReservationStatus.Pending;
                 Sealed = Sealed.New(dateTime)
             }
 
@@ -50,6 +54,9 @@ type Reservation =
         member this.IsCancelled () =
             this.CanceledAt.IsSome
 
+        member this.IsExpired (dateTime: DateTime) =
+            this.TimeSlot.End < dateTime
+
         member this.Seal(dateTime: DateTime) =
             result
                 {
@@ -66,6 +73,17 @@ type Reservation =
                         Sealed = this.Sealed.Unseal(dateTime) 
             } 
             |> Ok
+
+        // the datetime is used only for historical event reading
+        member this.Loan (dateTime: DateTime) = 
+            { 
+                this 
+                    with 
+                        Status = ReservationStatus.Loaned 
+            } 
+            |> Ok
+        member this.IsPending =
+            this.Status = ReservationStatus.Pending
 
         member this.Id = this.ReservationId.Value
         static member SnapshotsInterval = 50

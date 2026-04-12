@@ -32,10 +32,11 @@ type BookService
         reservationViewerAsync: AggregateViewerAsync2<Reservation>,
         loanViewerAsync: AggregateViewerAsync2<Loan>,
         userViewerAsync: AggregateViewerAsync2<User>,
-        reservationService: IReservationService
+        reservationService: IReservationService,
+        loanService: ILoanService
     ) =
 
-    new (eventStore: IEventStore<string>, reservationService: IReservationService)
+    new (eventStore: IEventStore<string>, reservationService: IReservationService, loanService: ILoanService)
         =
         let messageSenders = MessageSenders.NoSender
         let bookViewerAsync = getAggregateStorageFreshStateViewerAsync<Book, BookEvent, string> eventStore
@@ -54,13 +55,14 @@ type BookService
             reservationViewerAsync,
             loanViewerAsync,
             userViewerAsync,
-            reservationService
+            reservationService,
+            loanService
         )
-    new (configuration: IConfiguration, reservationService: IReservationService)
+    new (configuration: IConfiguration, reservationService: IReservationService, loanService: ILoanService)
         =
         let connectionString = configuration.GetConnectionString("BookLibraryDbConnection")
         let eventStore = PgStorage.PgEventStore connectionString
-        BookService(eventStore, reservationService)
+        BookService(eventStore, reservationService, loanService)
 
     member private 
         this.GetRefreshableBookDetailsAsync(bookId: BookId, ?ct:CancellationToken): TaskResult<RefreshableBookDetails, string> =
@@ -79,7 +81,7 @@ type BookService
                                     match book.CurrentLoan with
                                     | Some loanId -> 
                                         let loan = 
-                                            loanViewerAsync (Some ct) loanId.Value |> TaskResult.map snd
+                                            loanService.GetLoanDetailsAsync (loanId, ct)
                                             |> Async.AwaitTask
                                             |> Async.RunSynchronously
                                         match loan with
@@ -115,7 +117,7 @@ type BookService
                             } :> Refreshable<RefreshableBookDetails>
                             ,
                             bookId.Value :: 
-                            (if bookDetails.CurrentLoan.IsSome then [bookDetails.CurrentLoan.Value.LoanId.Value] else []) @ 
+                            (if bookDetails.CurrentLoan.IsSome then [bookDetails.CurrentLoan.Value.Loan.LoanId.Value] else []) @ 
                             (bookDetails.ReservationsDetails |> List.map _.Reservation.ReservationId.Value) @
                             (bookDetails.Authors |> List.map _.AuthorId.Value)
                     }
@@ -354,12 +356,12 @@ type BookService
                                     bookIds
                                     |> List.map _.Value
                                     |> List.traverseResultM (fun id -> preExecuteAggregateCommandMd<Book, BookEvent, string> id eventStore MessageSenders.NoSender "" command)
-                                if preExecutedYearUpdateCommands.IsError then
-                                    let (Error e) = preExecutedYearUpdateCommands
+                                match preExecutedYearUpdateCommands with
+                                | Error e ->
                                     printf "Error pre-executing year update command: %A\n" e
                                     None 
-                                else
-                                    Some preExecutedYearUpdateCommands.OkValue
+                                | Ok v ->
+                                    Some v
                             | None -> None
 
                         let preExecutedMainCategoryCommands =
@@ -370,12 +372,12 @@ type BookService
                                     bookIds
                                     |> List.map _.Value
                                     |> List.traverseResultM (fun id -> preExecuteAggregateCommandMd<Book, BookEvent, string> id eventStore MessageSenders.NoSender "" command)
-                                if preExecutedMainCategoryUpdateCommands.IsError then
-                                    let (Error e) = preExecutedMainCategoryUpdateCommands
+                                match preExecutedMainCategoryUpdateCommands with
+                                | Error e ->
                                     printf "Error pre-executing main category update command: %A\n" e
                                     None 
-                                else
-                                    Some preExecutedMainCategoryUpdateCommands.OkValue
+                                | Ok v ->
+                                    Some v
                             | None -> None
 
                         let preExecutedAdditionalCategory =
@@ -386,12 +388,12 @@ type BookService
                                     bookIds
                                     |> List.map _.Value
                                     |> List.traverseResultM (fun id -> preExecuteAggregateCommandMd<Book, BookEvent, string> id eventStore MessageSenders.NoSender "" command)
-                                if preExecutedAdditionalCategoryUpdateCommands.IsError then
-                                    let (Error e) = preExecutedAdditionalCategoryUpdateCommands
+                                match preExecutedAdditionalCategoryUpdateCommands with
+                                | Error e ->
                                     printf "Error pre-executing additional category update command: %A\n" e
                                     None 
-                                else
-                                    Some preExecutedAdditionalCategoryUpdateCommands.OkValue
+                                | Ok v ->
+                                    Some v
                             | None -> None
 
                         let preExecutedAvailabilityEditCommands =
@@ -402,12 +404,12 @@ type BookService
                                     bookIds
                                     |> List.map _.Value
                                     |> List.traverseResultM (fun id -> preExecuteAggregateCommandMd<Book, BookEvent, string> id eventStore MessageSenders.NoSender "" command)
-                                if preExecutedAvailabilityUpdateCommands.IsError then
-                                    let (Error e) = preExecutedAvailabilityUpdateCommands
+                                match preExecutedAvailabilityUpdateCommands with
+                                | Error e ->
                                     printf "Error pre-executing availability update command: %A\n" e
                                     None 
-                                else
-                                    Some preExecutedAvailabilityUpdateCommands.OkValue
+                                | Ok v ->
+                                    Some v
                             | None -> None
 
                         let allPreExecutedCommands =

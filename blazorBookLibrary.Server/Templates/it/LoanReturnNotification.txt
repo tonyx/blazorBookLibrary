@@ -1,0 +1,1 @@
+Hai restituito il libro "{bookTitle}". Grazie.

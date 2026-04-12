@@ -10,6 +10,7 @@ type ReservationCommand =
     | CancelByLibrarian of Cancellation * DateTime
     | Seal of DateTime
     | Unseal of DateTime
+    | Loan of DateTime
     interface AggregateCommand<Reservation, ReservationEvent> with
         member this.Execute (reservation: Reservation) =
             match this with
@@ -25,5 +26,8 @@ type ReservationCommand =
             | Unseal dateTime ->
                 reservation.Unseal dateTime
                 |> Result.map (fun r -> (r, [ReservationUnsealed(dateTime)]))
+            | Loan dateTime ->
+                reservation.Loan dateTime
+                |> Result.map (fun r -> (r, [ReservationLoaned(dateTime)]))
 
         member this.Undoer = None

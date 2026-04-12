@@ -1,0 +1,1 @@
+Certifichiamo che hai preso in prestito il libro "{bookTitle}" il {loanedAt} e dovrà essere restituito entro il {dueDate}.

@@ -4,19 +4,20 @@ open Microsoft.Extensions.Hosting
 open System
 open Microsoft.Extensions.DependencyInjection
 open System.Threading
+open BookLibrary.Shared.Services
 open BookLibrary.CleanServices
 open BookLibrary.Shared
 
-type MailResenderScheduler(scopeFactory: IServiceScopeFactory) =
+type ExpiredReservationsRemovalScheduler(scopeFactory: IServiceScopeFactory) =
     inherit BackgroundService()
 
     override this.ExecuteAsync(stoppingToken: CancellationToken) =
         task {
-            use timer = new PeriodicTimer(TimeSpan.FromMinutes(Commons.resendEmailTimeBoxMinutes |> int64))
+            use timer = new PeriodicTimer(TimeSpan.FromMinutes(Commons.expiredReservationCleanupTimeBoxHours * 60 |> int64))
             while! (timer.WaitForNextTickAsync stoppingToken)
                 do
                     use scope = scopeFactory.CreateScope()
-                    let mailResenderService = scope.ServiceProvider.GetRequiredService<IMailResenderService>()
-                    let! _ = mailResenderService.ReSendPendingItemsAsync stoppingToken
+                    let reservationService = scope.ServiceProvider.GetRequiredService<IReservationService>()
+                    let! _ = reservationService.RemoveExpiredReservationsAsync() |> Async.AwaitTask
                     ()
         }

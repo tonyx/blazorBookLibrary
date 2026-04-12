@@ -134,7 +134,7 @@ type ReservationService
                             addReservationToBookCommand
                             addReservationToUserCommand
 
-                    let emailBody = emailTextRetrieved.Replace("{bookTitle}", book.Title.Value)
+                    let emailBody = emailTextRetrieved.Replace("{bookTitle}", book.Title.Value).Replace("{code}", reservation.ReservationCode.Value)
                     
                     do! 
                         task {
@@ -152,6 +152,16 @@ type ReservationService
                 }
         member this.AddReservationAsync (reservation: Reservation, dateTime: DateTime, ?ct: CancellationToken) =
             this.AddReservationAsync (reservation, dateTime, ShortLang.New "en", ?ct = ct)
+
+        member this.GetAllReservationsAsync (?ct: CancellationToken) = 
+            taskResult
+                {
+                    let ct = defaultArg ct CancellationToken.None
+                    let! reservations =
+                        StateView.getAllAggregateStatesAsync<Reservation, ReservationEvent, string> eventStore (Some ct)
+                        |> TaskResult.map (fun reservations -> reservations |> List.map snd)
+                    return reservations
+                }
 
     member this.GetReservationAsync (id: ReservationId, ?ct: CancellationToken) = 
         taskResult
@@ -249,7 +259,19 @@ type ReservationService
                     |> List.traverseTaskResultM (fun id -> this.GetReservationAsync (id, ct))
                 return result
             }
-
+    member this.RemoveExpiredReservationsAsync (?ct: CancellationToken) = 
+        taskResult
+            {
+                let ct = defaultArg ct CancellationToken.None
+                let now = DateTime.UtcNow
+                let! expiredReservations = 
+                    StateView.getAllFilteredAggregateStatesAsync<Reservation, ReservationEvent, string> (fun reservation -> reservation.IsExpired now) eventStore (Some ct)
+                    |> TaskResult.map (fun reservations -> reservations |> List.map snd)
+                let! result = 
+                    expiredReservations
+                    |> List.traverseTaskResultM (fun reservation -> this.RemoveReservationAsync (reservation.ReservationId, now, ct))
+                return ()
+            }
     interface IReservationService with
         member this.AddReservationAsync (reservation: Reservation, shortLang: ShortLang, ?ct: CancellationToken)= 
             let ct = defaultArg ct CancellationToken.None
@@ -270,4 +292,19 @@ type ReservationService
         member this.GetReservationsAsync(ids: List<ReservationId>, ?ct: CancellationToken)= 
             let ct = defaultArg ct CancellationToken.None
             this.GetReservationsAsync (ids, ct)
-            
+        member this.RemoveExpiredReservationsAsync (?ct: CancellationToken) = 
+            let ct = defaultArg ct CancellationToken.None
+            this.RemoveExpiredReservationsAsync ct
+
+        member this.GetAllPendingReservationsDetailsAsync (?ct: CancellationToken) = 
+            taskResult
+                {
+                    let ct = defaultArg ct CancellationToken.None
+                    let! reservations = 
+                        StateView.getAllFilteredAggregateStatesAsync<Reservation, ReservationEvent, string> (fun reservation -> reservation.IsPending) eventStore (Some ct)
+                        |> TaskResult.map (fun reservations -> reservations |> List.map snd)
+                    let! reservationDetails = 
+                        reservations
+                        |> List.traverseTaskResultM (fun reservation -> (this:>IReservationService).GetReservationDetailsAsync (reservation.ReservationId, ct))
+                    return reservationDetails 
+                }

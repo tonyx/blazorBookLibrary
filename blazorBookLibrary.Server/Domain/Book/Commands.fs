@@ -21,6 +21,7 @@ type BookCommand =
     | AddLanguage of CultureInfo * DateTime
     | RemoveLanguage of CultureInfo * DateTime
     | SetCurrentLoan of LoanId * DateTime
+    | SetCurrentLoanFromReservation of ReservationId * LoanId * DateTime
     | ReleaseLoan of LoanId * DateTime
     | AddReservation of ReservationId * DateTime
     | RemoveReservation of ReservationId * DateTime
@@ -79,6 +80,9 @@ type BookCommand =
             | SetCurrentLoan (loanId, dateTime) ->
                 book.SetCurrentLoan loanId dateTime
                 |> Result.map (fun b -> (b, [CurrentLoanSet(loanId, dateTime)]))
+            | SetCurrentLoanFromReservation (reservationId, loanId, dateTime) ->
+                book.SetCurrentLoanFromReservation reservationId loanId dateTime
+                |> Result.map (fun b -> (b, [CurrentLoanFromReservationSet(reservationId, loanId, dateTime)]))
             | ReleaseLoan (loanId, dateTime) ->
                 book.ReleaseLoan loanId dateTime
                 |> Result.map (fun b -> (b, [LoanReleased(loanId, dateTime)]))

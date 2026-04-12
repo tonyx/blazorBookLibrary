@@ -8,6 +8,8 @@
 @using blazorBookLibrary.Shared.Resources
 @using static BookLibrary.Shared.Commons
 @using Microsoft.FSharp.Core
+@using System.Linq
+@using System.Globalization
 
 @attribute [Authorize(Roles = "Admin, Manager")]
 @inject IBookService BookService
@@ -16,6 +18,8 @@
 @inject NavigationManager NavigationManager
 @inject IGoogleBooksService GoogleBooksService
 @inject IStringLocalizer<SharedResources> L
+@inject ILoanService LoanService
+@inject IConfiguration Configuration
 @rendermode InteractiveServer
 
 <PageTitle>@L["BookDetails"]</PageTitle>
@@ -435,7 +439,7 @@
                     <div class="row g-4">
                         <div class="col-md-6 border-end" style="border-color: var(--surface-container-low) !important;">
                             <label class="form-label small text-muted text-uppercase fw-bold mb-3">@L["CurrentLoanStatus"]</label>
-                            @if (FSharpOption<BookLibrary.Domain.Loan>.get_IsSome(bookDetails.CurrentLoan))
+                            @if (FSharpOption<BookLibrary.Shared.Details.LoanDetails>.get_IsSome(bookDetails.CurrentLoan))
                             {
                                 var loan = bookDetails.CurrentLoan.Value;
                                 <div class="p-4 bg-surface-low rounded-xl border border-warning-subtle">
@@ -443,16 +447,16 @@
                                         <i class="bi bi-journal-minus fs-3 text-warning"></i>
                                         <div>
                                             <h6 class="serif mb-1">@L["ItemCurrentlyWithBorrower"]</h6>
-                                            <p class="small text-muted mb-0">UID: @loan.UserId</p>
+                                            <p class="small text-muted mb-0">UID: @loan.UserDetails.ApplicationUser.UserName</p>
                                         </div>
                                     </div>
                                     <div class="d-flex justify-content-between small border-top pt-2">
-                                        <span>@L["CheckoutDate"]: <strong class="serif">@loan.TimeSlot.Start.ToShortDateString()</strong></span>
-                                        <span>@L["ExpectedReturn"]: <strong class="serif">@loan.TimeSlot.End.ToShortDateString()</strong></span>
+                                        <span>@L["CheckoutDate"]: <strong class="serif">@loan.Loan.TimeSlot.Start.ToShortDateString()</strong></span>
+                                        <span>@L["ExpectedReturn"]: <strong class="serif">@loan.Loan.TimeSlot.End.ToShortDateString()</strong></span>
                                     </div>
                                 </div>
                             }
-                            else if (bookDetails.Book.ImmediatelyAvailable)
+                            else if (bookDetails.Book.Available)
                             {
                                 <div class="p-4 bg-surface-low rounded-xl border border-success-subtle d-flex align-items-center gap-3">
                                     <i class="bi bi-journal-check fs-3 text-success"></i>
@@ -487,8 +491,12 @@
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            @foreach (var res in bookDetails.ReservationsDetails)
+                                            @{
+                                                var pendingRes = bookDetails.PendingReservationsDetails.ToList();
+                                            }
+                                            @for (int i = 0; i < pendingRes.Count; i++)
                                             {
+                                                var res = pendingRes[i];
                                                 <tr>
                                                     <td class="ps-0 py-3">
                                                         <div class="fw-bold serif">@res.UserDetails.ApplicationUser.UserName</div>
@@ -496,6 +504,21 @@
                                                     </td>
                                                     <td class="py-3">
                                                         <div class="small font-monospace">@res.Reservation.TimeSlot.Start.ToShortDateString() — @res.Reservation.TimeSlot.End.ToShortDateString()</div>
+                                                        @if (i == 0)
+                                                        {
+                                                            <div class="mt-3 p-3 bg-light rounded border border-primary-subtle shadow-sm animate-fade-in">
+                                                                <div class="input-group input-group-sm">
+                                                                    <input type="text" 
+                                                                           class="form-control" 
+                                                                           placeholder="Reservation Code" 
+                                                                           @bind="reservationCodeInput" />
+                                                                    <button class="btn btn-primary" @onclick="() => ConvertToLoan(res)">
+                                                                        <i class="bi bi-arrow-repeat me-1"></i>
+                                                                        Convert to Loan
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        }
                                                     </td>
                                                 </tr>
                                             }
@@ -544,6 +567,7 @@
     private Details.BookDetails? bookDetails;
     private string statusMessage = "";
     private string statusClass = "alert-info";
+    private string reservationCodeInput = "";
 
     private string authorSearchInput = "";
     private List<Author> authorSearchResults = new();
@@ -756,7 +780,7 @@
         
         if (isBookSealed)
         {
-            var hasLoans = FSharpOption<BookLibrary.Domain.Loan>.get_IsSome(bookDetails.CurrentLoan);
+            var hasLoans = FSharpOption<BookLibrary.Shared.Details.LoanDetails>.get_IsSome(bookDetails.CurrentLoan);
             var hasReservations = bookDetails.ReservationsDetails.Any();
             
             if (hasLoans || hasReservations)
@@ -1219,6 +1243,15 @@
                 if (result.IsOk)
                 {
                     bookDetails = result.ResultValue;
+                    if (bookDetails.PendingReservationsDetails.Any())
+                    {
+                        var firstRes = bookDetails.PendingReservationsDetails.First();
+                        var preFill = Configuration.GetValue<bool>("BooksLibrary:PreFillReservationCode");
+                        if (preFill)
+                        {
+                            reservationCodeInput = firstRes.Reservation.ReservationCode.Value;
+                        }
+                    }
                 }
                 else
                 {
@@ -1237,6 +1270,42 @@
         finally
         {
             isLoading = false;
+        }
+    }
+
+    private async Task ConvertToLoan(Details.ReservationDetails resDetails)
+    {
+        if (string.IsNullOrWhiteSpace(reservationCodeInput))
+        {
+            await ShowStatus("Please enter a reservation code.", "alert-warning");
+            return;
+        }
+
+        try
+        {
+            @* var resCode = ReservationCode.ReservationCode(reservationCodeInput); *@
+            var resCode = ReservationCode.ReservationCode.NewReservationCode(reservationCodeInput);
+            var result = await LoanService.TransformReservationIntoLoanAsync(
+                resDetails.Reservation.ReservationId, 
+                resCode, 
+                ShortLang.New(CultureInfo.CurrentCulture.Name),
+                DateTime.UtcNow, 
+                FSharpOption<CancellationToken>.None);
+
+            if (result.IsOk)
+            {
+                await ShowStatus("Reservation successfully converted to loan.", "alert-success");
+                await LoadBookDetails();
+                reservationCodeInput = "";
+            }
+            else
+            {
+                await ShowStatus($"Error: {result.ErrorValue}", "alert-danger");
+            }
+        }
+        catch (Exception ex)
+        {
+            await ShowStatus($"An error occurred: {ex.Message}", "alert-danger");
         }
     }
 

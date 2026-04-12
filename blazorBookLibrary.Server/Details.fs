@@ -83,3 +83,21 @@ module Details =
         interface Refreshable<RefreshableAuthorDetails> with
             member this.Refresh () =
                 this.Refresh ()
+
+    type RefreshableLoanDetails =
+        {
+            LoanDetails: LoanDetails
+            Refresher: unit -> Result<LoanDetails, string>
+        }
+        member this.Refresh () =
+            result {
+                let! loanDetails = this.Refresher ()
+                return 
+                    { 
+                        this with
+                            LoanDetails = loanDetails 
+                    }
+            }
+        interface Refreshable<RefreshableLoanDetails> with
+            member this.Refresh () =
+                this.Refresh ()

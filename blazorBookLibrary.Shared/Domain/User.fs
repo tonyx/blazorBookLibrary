@@ -29,6 +29,7 @@ type User =
         member this.ReleaseLoan (loanId: LoanId) = 
             { this with CurrentLoans = this.CurrentLoans |> List.filter (fun id -> id <> loanId) } |> Ok
 
+
         member this.ConvertReservationToLoan (loanId: LoanId) (reservationId: ReservationId) = 
             result
                 {

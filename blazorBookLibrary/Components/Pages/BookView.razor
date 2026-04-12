@@ -135,7 +135,7 @@
                     <div class="d-flex flex-wrap gap-2 mb-4">
                         @foreach (var author in bookDetails.Authors)
                         {
-                            <a href="/author-details/@author.AuthorId.Value" class="text-decoration-none">
+                            <a href="/author-view/@author.AuthorId.Value" class="text-decoration-none">
                                 <span class="badge-sanctuary badge-neutral" style="color: var(--secondary);">
                                     <i class="bi bi-person-fill"></i> @author.Name.Value
                                 </span>

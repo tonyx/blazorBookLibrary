@@ -77,8 +77,8 @@ builder.Services.AddSingleton<IMailNotificator, MailNotificator>();
 
 builder.Services.AddSingleton<IAuthorService, AuthorService>();
 builder.Services.AddSingleton<IReservationService, ReservationService>();
-builder.Services.AddSingleton<IBookService, BookService>();
 builder.Services.AddSingleton<ILoanService, LoanService>();
+builder.Services.AddSingleton<IBookService, BookService>();
 builder.Services.AddSingleton<IGoogleBooksService, GoogleBooksService>();
 builder.Services.AddTransient<CleanUpService>();
 
@@ -101,7 +101,8 @@ builder.Services.Configure<IdentityPasskeyOptions>(options =>
 
 builder.Services.AddSingleton<IEmailSender<ApplicationUser>, IdentityNoOpEmailSender>();
 
-builder.Services.AddHostedService<ScheduledWorker>();
+builder.Services.AddHostedService<MailResenderScheduler>();
+builder.Services.AddHostedService<ExpiredReservationsRemovalScheduler>();
 
 var app = builder.Build();
 
@@ -220,6 +221,7 @@ using (var scope = app.Services.CreateScope())
         }
     }
 
+    // only to setup the mail queue instance at startup if missing
     var mailResenderService = scope.ServiceProvider.GetRequiredService<IMailResenderService>();
     await mailResenderService.CreateInitialMailQueueInstanceAsync(Microsoft.FSharp.Core.FSharpOption<System.Threading.CancellationToken>.None);
 

@@ -66,7 +66,7 @@ let tests =
             let timeSlot = TimeSlot.New (System.DateTime.Now) (System.DateTime.Now.AddDays(timeSlotDurationInDays))
             let loan = Loan.New book.BookId userId (System.DateTime.Now) timeSlot
 
-            let! addLoan = loanService.AddLoanAsync (loan, System.DateTime.Now)
+            let! addLoan = loanService.AddLoanAsync (loan, ShortLang.New "en", System.DateTime.Now)
             Expect.isOk addLoan "should be ok"
 
             let! retrieveLoan = loanService.GetLoanAsync loan.LoanId
@@ -97,7 +97,7 @@ let tests =
             let timeSlot = TimeSlot.New (System.DateTime.Now) (System.DateTime.Now.AddDays(timeSlotDurationInDays))
             let loan = Loan.New book.BookId userId1 (System.DateTime.Now) timeSlot
 
-            let! addLoan = loanService.AddLoanAsync (loan, System.DateTime.Now)
+            let! addLoan = loanService.AddLoanAsync (loan, ShortLang.New "en", System.DateTime.Now)
             Expect.isOk addLoan "should be ok"
 
             let! retrieveLoan = loanService.GetLoanAsync loan.LoanId
@@ -115,7 +115,7 @@ let tests =
             let timeSlot2 = TimeSlot.New (System.DateTime.Now) (System.DateTime.Now.AddDays(timeSlotDurationInDays))
             let loan2 = Loan.New book.BookId userId2 (System.DateTime.Now) timeSlot2
 
-            let! addLoan2 = loanService.AddLoanAsync (loan2, System.DateTime.Now)
+            let! addLoan2 = loanService.AddLoanAsync (loan2, ShortLang.New "en", System.DateTime.Now)
             Expect.isError addLoan2 "should be error"
         }
 
@@ -133,7 +133,7 @@ let tests =
             let timeSlot = TimeSlot.New (System.DateTime.Now) (System.DateTime.Now.AddDays(timeSlotDurationInDays))
             let loan = Loan.New book.BookId userId (System.DateTime.Now) timeSlot
 
-            let! addLoan = loanService.AddLoanAsync (loan, System.DateTime.Now)
+            let! addLoan = loanService.AddLoanAsync (loan, ShortLang.New "en", System.DateTime.Now)
             Expect.isOk addLoan "should be ok"
 
             let! retrieveLoan = loanService.GetLoanAsync loan.LoanId
@@ -148,7 +148,7 @@ let tests =
             let (loanRetrieved: Loan) = retrieveLoan |> Result.get
             Expect.isTrue (loanRetrieved.BookId = book.BookId) "should contain the book"
 
-            let! releaseLoan = loanService.ReleaseLoanAsync (loan.LoanId, System.DateTime.Now)
+            let! releaseLoan = loanService.ReleaseLoanAsync (loan.LoanId, ShortLang.New "en", System.DateTime.Now)
             Expect.isOk releaseLoan "should be ok"
 
             let! retrieveLoan2 = loanService.GetLoanAsync loan.LoanId
@@ -181,7 +181,7 @@ let tests =
             let timeSlot = TimeSlot.New (System.DateTime.Now) (System.DateTime.Now.AddDays(timeSlotDurationInDays))
             let loan = Loan.New book.BookId userId (System.DateTime.Now) timeSlot
 
-            let! addLoan = loanService.AddLoanAsync (loan, System.DateTime.Now)
+            let! addLoan = loanService.AddLoanAsync (loan, ShortLang.New "en", System.DateTime.Now)
             Expect.isOk addLoan "should be ok"
 
             let (bookRetrieved: Book) = retrieveBook |> Result.get
@@ -193,7 +193,7 @@ let tests =
             let (bookDetail: BookDetails) = bookDetail |> Result.get
             Expect.isTrue (bookDetail.Book.CurrentLoan |> Option.isSome) "should contain the loan"
             Expect.isTrue (bookDetail.CurrentLoan |> Option.isSome) "should contain the loan"
-            Expect.isTrue (bookDetail.CurrentLoan.Value.LoanId = loan.LoanId) "should contain the loan"
+            Expect.isTrue ((bookDetail.CurrentLoan.Value).Loan.LoanId = loan.LoanId) "should contain the loan"
             Expect.isTrue (bookDetail.ReservationsDetails |> List.isEmpty) "should not contain reservations"
         }
 
@@ -214,7 +214,7 @@ let tests =
             let timeSlot = TimeSlot.New (System.DateTime.Now) (System.DateTime.Now.AddDays(timeSlotDurationInDays))
             let loan = Loan.New book.BookId userId System.DateTime.Now timeSlot
 
-            let! addLoan = loanService.AddLoanAsync (loan, System.DateTime.Now)
+            let! addLoan = loanService.AddLoanAsync (loan, ShortLang.New "en", System.DateTime.Now)
             Expect.isOk addLoan "should be ok"
 
             let! bookDetail = bookService.GetBookDetailsAsync book.BookId
@@ -223,10 +223,10 @@ let tests =
             let (bookDetail: BookDetails) = bookDetail |> Result.get
             Expect.isTrue (bookDetail.Book.CurrentLoan |> Option.isSome) "should contain the loan"
             Expect.isTrue (bookDetail.CurrentLoan |> Option.isSome) "should contain the loan"
-            Expect.isTrue (bookDetail.CurrentLoan.Value.LoanId = loan.LoanId) "should contain the loan"
+            Expect.isTrue ((bookDetail.CurrentLoan.Value).Loan.LoanId = loan.LoanId) "should contain the loan"
             Expect.isTrue (bookDetail.ReservationsDetails |> List.isEmpty) "should not contain reservations"
 
-            let! releaseLoan = loanService.ReleaseLoanAsync (loan.LoanId, System.DateTime.Now)
+            let! releaseLoan = loanService.ReleaseLoanAsync (loan.LoanId, ShortLang.New "en", System.DateTime.Now)
             Expect.isOk releaseLoan "should be ok"
 
             let! bookDetail2 = bookService.GetBookDetailsAsync book.BookId
@@ -255,7 +255,7 @@ let tests =
             let timeSlot = TimeSlot.New (System.DateTime.Now) (System.DateTime.Now.AddDays(timeSlotDurationInDays))
             let loan = Loan.New book.BookId userId System.DateTime.Now timeSlot
 
-            let! addLoan = loanService.AddLoanAsync (loan, System.DateTime.Now)
+            let! addLoan = loanService.AddLoanAsync (loan, ShortLang.New "en", System.DateTime.Now)
             Expect.isOk addLoan "should be ok"
 
             let! bookDetail = bookService.GetBookDetailsAsync book.BookId
@@ -264,10 +264,10 @@ let tests =
             let (bookDetail: BookDetails) = bookDetail |> Result.get
             Expect.isTrue (bookDetail.Book.CurrentLoan |> Option.isSome) "should contain the loan"
             Expect.isTrue (bookDetail.CurrentLoan |> Option.isSome) "should contain the loan"
-            Expect.isTrue (bookDetail.CurrentLoan.Value.LoanId = loan.LoanId) "should contain the loan"
+            Expect.isTrue ((bookDetail.CurrentLoan.Value).Loan.LoanId = loan.LoanId) "should contain the loan"
             Expect.isTrue (bookDetail.ReservationsDetails |> List.isEmpty) "should not contain reservations"
 
-            let! releaseLoan = loanService.ReleaseLoanAsync (loan.LoanId, System.DateTime.Now)
+            let! releaseLoan = loanService.ReleaseLoanAsync (loan.LoanId, ShortLang.New "en", System.DateTime.Now)
             Expect.isOk releaseLoan "should be ok"
 
             let! bookDetail2 = bookService.GetBookDetailsAsync book.BookId
@@ -907,6 +907,8 @@ let tests =
             let bookAfterRemove = bookAfterRemoveResult |> Result.get
             Expect.equal bookAfterRemove.ImageUrl None "image URL should be removed"
         }
+
+            
     ]
 
     |> testSequenced
