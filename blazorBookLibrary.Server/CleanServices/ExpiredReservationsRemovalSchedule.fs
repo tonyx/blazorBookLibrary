@@ -5,7 +5,6 @@ open System
 open Microsoft.Extensions.DependencyInjection
 open System.Threading
 open BookLibrary.Shared.Services
-open BookLibrary.CleanServices
 open BookLibrary.Shared
 
 type ExpiredReservationsRemovalScheduler(scopeFactory: IServiceScopeFactory) =

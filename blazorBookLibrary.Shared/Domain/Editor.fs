@@ -1,6 +1,5 @@
 
 namespace BookLibrary.Domain
-open Sharpino.Core
 open Sharpino
 open System.Text.Json
 open FsToolkit.ErrorHandling

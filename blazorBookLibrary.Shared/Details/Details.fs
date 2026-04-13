@@ -1,9 +1,5 @@
 
 namespace BookLibrary.Shared
-open Sharpino.Core
-open Sharpino
-open System.Text.Json
-open FsToolkit.ErrorHandling
 open System
 
 module Details =
