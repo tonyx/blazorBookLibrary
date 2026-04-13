@@ -252,7 +252,7 @@
             isLoading = true;
             StateHasChanged();
 
-            int loanDuration = Configuration.GetValue<int>("BooksLibrary::TimeSlotLoanDurationInDays", 30);
+            int loanDuration = Configuration.GetValue<int>("BooksLibrary:TimeSlotLoanDurationInDays", 25);
             var now = DateTime.UtcNow;
             var nextSlot = bookDetails.GetNextAvailableTimeSlot(loanDuration, now);
             

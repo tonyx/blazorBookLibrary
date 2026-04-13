@@ -11,6 +11,7 @@ open System.Threading
 
 [<Tests>]
 let tests =
+    let timeSlotDurationInDays = 30
     testList "books service" [
         testCaseTask "create a book and then attach an author to it  - Ok" <| fun _ -> task {
             setUp ()

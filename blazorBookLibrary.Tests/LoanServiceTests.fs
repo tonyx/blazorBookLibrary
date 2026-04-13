@@ -12,6 +12,7 @@ open Microsoft.AspNetCore.Identity
 
 [<Tests>]
 let tests =
+    let timeSlotDurationInDays = 30
     testList "loan service tests" [
         testCaseTask "loan a book and then release the loan, the book then has no loan and is returned at something, use async - Ok" <| fun _ -> task {
             setUp ()

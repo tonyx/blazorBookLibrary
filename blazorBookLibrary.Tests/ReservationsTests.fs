@@ -12,6 +12,7 @@ open BookLibrary.Shared.Services
 
 [<Tests>]
 let tests =
+    let timeSlotDurationInDays = 30
     testList "reservation service tests" [
         testCaseTask "add an overlapping reservation and verify it will be an error - Error" <| fun _ -> task {
             setUp ()
@@ -857,7 +858,7 @@ let tests =
             Expect.equal e "Book is already loaned" "should have the correct error message"
         }
 
-        ftestCaseTask "transform a reservation into an actual loan. verify that the loan is actually created, and the reservation in a different status - Ok" <| fun _ -> task {
+        testCaseTask "transform a reservation into an actual loan. verify that the loan is actually created, and the reservation in a different status - Ok" <| fun _ -> task {
             setUp ()
             let bookService = getBookService()
             let reservationService = getReservationService()

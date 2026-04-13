@@ -44,7 +44,7 @@ with
             Title = title; 
             Description = None;
             ImageUrl = imageUrl;
-            Availability = Availability.Unspecified;
+            Availability = Availability.Circulating;
             Authors = authors; 
             Translators = translators;
             Languages = languages;

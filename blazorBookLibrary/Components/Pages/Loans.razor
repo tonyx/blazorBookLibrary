@@ -203,7 +203,7 @@
             var result = await LoanService.ReleaseLoanAsync(loanDetails.Loan.LoanId, ShortLang.New(CultureInfo.CurrentCulture.Name), DateTime.UtcNow);
             if (result.IsOk)
             {
-                await JSRuntime.InvokeVoidAsync("showToast", L["LoanReturnedSuccessfully"], "success");
+                await JSRuntime.InvokeVoidAsync("showToast", $"{L["LoanReturnedSuccessfully"]}", "success");
                 await LoadLoans();
             }
             else

@@ -24,41 +24,6 @@ type ReservationCode =
             | EmptyReservationCode -> ""
 
 
-let sealTimeoutInMinutes =
-    let config = 
-        ConfigurationBuilder()
-            .AddJsonFile("appsettings.json", true)
-            .Build()
-    let v = config.["SealTimeoutInMinutes"]
-    if String.IsNullOrWhiteSpace v then 60 else int v
-
-
-let timeSlotDurationInDays =
-    let config = 
-        ConfigurationBuilder()
-            .AddJsonFile("appsettings.json", true)
-            .Build()
-    let v = config.["BookLibrary::TimeSlotLoanDurationInDays"]
-    if String.IsNullOrWhiteSpace v then 30 else int v
-
-
-let resendEmailTimeBoxMinutes =
-    let config = 
-        ConfigurationBuilder()
-            .AddJsonFile("appsettings.json", true)
-            .Build()
-    let v = config.["BooksLibrary:ResendEmailTimeBoxMin"]
-    if String.IsNullOrWhiteSpace v then 10 else int v
-
-
-let expiredReservationCleanupTimeBoxHours =
-    let config = 
-        ConfigurationBuilder()
-            .AddJsonFile("appsettings.json", true)
-            .Build()
-    let v = config.["BooksLibrary:ExpiredReservationCleanupTimeBoxHours"]
-    if String.IsNullOrWhiteSpace v then 12 else int v
-
 type BookId =
     | BookId of Guid
     with
