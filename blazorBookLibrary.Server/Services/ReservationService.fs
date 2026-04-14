@@ -110,8 +110,6 @@ type ReservationService
                     reservationDetails.Reservation.BookId.Value ;
                     reservationDetails.Book.BookId.Value]
                 }
-
-
             
         member this.AddReservationAsync (reservation: Reservation, dateTime: System.DateTime, shortLang: ShortLang, ?ct: CancellationToken) = 
 

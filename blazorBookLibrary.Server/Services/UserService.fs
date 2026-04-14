@@ -64,6 +64,61 @@ type UserService
         let eventStore = PgStorage.PgEventStore connectionString
         UserService(eventStore, scopeFactory)
 
+
+    member this.MakeUserDetailsRefresher(id: UserId, ?ct: CancellationToken) = 
+        fun () -> 
+            use scope = scopeFactory.CreateScope()
+            let userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>()
+            taskResult 
+                {
+                    let ct = ct |> Option.defaultValue CancellationToken.None
+                    let! user = userViewerAsync (Some ct) id.Value |> TaskResult.map snd
+                    let! futurereservations = 
+                        user.Reservations 
+                        |> List.traverseTaskResultM (fun reservationId -> reservationViewerAsync (Some ct) reservationId.Value |> TaskResult.map snd)
+                    let! currentLoans =
+                        user.CurrentLoans
+                        |> List.traverseTaskResultM (fun loanId -> loanViewerAsync (Some ct) loanId.Value |> TaskResult.map snd)
+
+                    let appUser =
+                        try
+                            let appUser = 
+                                userManager.FindByIdAsync(id.Value.ToString()) |> Async.AwaitTask |> Async.RunSynchronously
+                            if appUser = null then
+                                ApplicationUser(UserName = "unknown", CodiceFiscale = "unknown")
+                            else
+                                appUser
+                        with
+                            | ex -> 
+                                printfn "Error getting user: %s" ex.Message
+                                ApplicationUser(UserName = "unknown", CodiceFiscale = "unknown")
+
+                    let! reservedBooks =
+                        futurereservations
+                        |> List.traverseTaskResultM (fun reservation -> bookViewerAsync (Some ct) reservation.BookId.Value |> TaskResult.map snd)
+
+                    let reservationsAndBooks =
+                        List.zip futurereservations reservedBooks
+
+                    let! loansedBooks =
+                        currentLoans
+                        |> List.traverseTaskResultM (fun loan -> bookViewerAsync (Some ct) loan.BookId.Value |> TaskResult.map snd)
+
+                    let loansAndBooks =
+                        List.zip currentLoans loansedBooks
+
+                    return 
+                        {
+                            User = user
+                            ApplicationUser = appUser
+                            FutureReservations = reservationsAndBooks
+                            CurrentLoans = loansAndBooks
+                        }
+                }
+                |> Async.AwaitTask
+                |> Async.RunSynchronously
+
+
     member this.CreateUserAsync (user: User, ?ct: CancellationToken) : Task<Result<unit, string>> =
         taskResult 
             {
@@ -88,62 +143,9 @@ type UserService
         this.GetRefreshableUserDetailsAsync(userId: UserId, ?ct:CancellationToken): TaskResult<RefreshableUserDetails, string> =
             let detailsBuilder =
                 fun (ct: Option<CancellationToken>) ->
-                    let refresher =
-                        fun () ->
-                            use scope = scopeFactory.CreateScope()
-                            let userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>()
-                            result {
-                                let ct = ct |> Option.defaultValue CancellationToken.None
-                                let! user = 
-                                    userViewerAsync (ct |> Some) userId.Value 
-                                    |> Async.AwaitTask
-                                    |> Async.RunSynchronously
-                                    |> Result.map snd
-                                let! futureReservations = 
-                                    user.Reservations
-                                    |> List.traverseTaskResultM (fun reservationId -> reservationViewerAsync (Some ct) reservationId.Value |> TaskResult.map snd)
-                                    |> Async.AwaitTask
-                                    |> Async.RunSynchronously
-                                let! currentLoans = 
-                                    user.CurrentLoans
-                                    |> List.traverseTaskResultM (fun loanId -> loanViewerAsync (Some ct) loanId.Value |> TaskResult.map snd)
-                                    |> Async.AwaitTask
-                                    |> Async.RunSynchronously
-                                let appUser = 
-                                    try
-                                        let appUser = 
-                                            userManager.FindByIdAsync(userId.Value.ToString()) |> Async.AwaitTask |> Async.RunSynchronously
-                                        if appUser = null then
-                                            ApplicationUser(UserName = "unknown", CodiceFiscale = "unknown")
-                                        else
-                                            appUser
-                                    with
-                                        | ex -> 
-                                            printfn "Error getting user: %s" ex.Message
-                                            ApplicationUser(UserName = "unknown", CodiceFiscale = "unknown")
+                    let ct = ct |> Option.defaultValue CancellationToken.None
+                    let refresher = this.MakeUserDetailsRefresher(userId, ct)
 
-                                let! reservationsAndBooks =
-                                    futureReservations
-                                    |> List.traverseTaskResultM (fun reservation -> bookViewerAsync (Some ct) reservation.BookId.Value |> TaskResult.map snd)
-                                    |> Async.AwaitTask
-                                    |> Async.RunSynchronously
-                                    |> Result.map (fun books -> List.zip futureReservations books)
-
-                                let! loansAndBooks =
-                                    currentLoans
-                                    |> List.traverseTaskResultM (fun loan -> bookViewerAsync (Some ct) loan.BookId.Value |> TaskResult.map snd)
-                                    |> Async.AwaitTask
-                                    |> Async.RunSynchronously
-                                    |> Result.map (fun books -> List.zip currentLoans books)
-
-                                return 
-                                    { 
-                                        User = user
-                                        ApplicationUser = appUser
-                                        FutureReservations = reservationsAndBooks
-                                        CurrentLoans = loansAndBooks
-                                    } 
-                            }
                     result {
                         let! userDetails = refresher ()
                         return 
