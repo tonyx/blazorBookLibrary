@@ -80,18 +80,18 @@ type UserService
                         user.CurrentLoans
                         |> List.traverseTaskResultM (fun loanId -> loanViewerAsync (Some ct) loanId.Value |> TaskResult.map snd)
 
-                    let appUser =
+                    let! appUser =
                         try
                             let appUser = 
                                 userManager.FindByIdAsync(id.Value.ToString()) |> Async.AwaitTask |> Async.RunSynchronously
                             if appUser = null then
-                                ApplicationUser(UserName = "unknown", CodiceFiscale = "unknown")
+                                Error "User not found"
                             else
-                                appUser
+                                appUser |> Ok
                         with
                             | ex -> 
                                 printfn "Error getting user: %s" ex.Message
-                                ApplicationUser(UserName = "unknown", CodiceFiscale = "unknown")
+                                Error ex.Message
 
                     let! reservedBooks =
                         futurereservations
