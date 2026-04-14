@@ -77,6 +77,7 @@
   <data name="Available" xml:space="preserve"><value>Disponibile</value></data>
   <data name="AvailableForLoan" xml:space="preserve"><value>Disponibile per il Prestito</value></data>
   <data name="LoanNotification" xml:space="preserve"><value>Notifica Prestito</value></data>
+  <data name="LoanReturnNotification" xml:space="preserve"><value>Notifica Restituzione Prestito</value></data>
   <data name="Back" xml:space="preserve"><value>Indietro</value></data>
   <data name="BookCover" xml:space="preserve"><value>Copertina Libro</value></data>
   <data name="BookDescriptionPlaceholder" xml:space="preserve"><value>Inserisci una breve descrizione del libro...</value></data>

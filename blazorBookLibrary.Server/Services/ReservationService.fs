@@ -39,9 +39,10 @@ type ReservationService
         mailNotificator: IMailNotificator,
         maxReservations: int,
         fromEmail: string,
-        fromName: string
+        fromName: string,
+        mailBodyRetriever: IMailBodyRetriever
     ) =
-    new (eventStore: IEventStore<string>, userService: IUserService, mailNotificator: IMailNotificator, configuration: IConfiguration)
+    new (eventStore: IEventStore<string>, userService: IUserService, mailNotificator: IMailNotificator, configuration: IConfiguration, mailBodyRetriever: IMailBodyRetriever)
         =
         let messageSenders = MessageSenders.NoSender
         let bookViewerAsync = getAggregateStorageFreshStateViewerAsync<Book, BookEvent, string> eventStore
@@ -66,15 +67,16 @@ type ReservationService
             mailNotificator,
             maxReservations,
             fromEmail,
-            fromName
+            fromName,
+            mailBodyRetriever
         )
-    new (configuration: IConfiguration, userService: IUserService, mailNotificator: IMailNotificator) 
+    new (configuration: IConfiguration, userService: IUserService, mailNotificator: IMailNotificator, mailBodyRetriever: IMailBodyRetriever) 
         =
         let connectionString = configuration.GetConnectionString("BookLibraryDbConnection")
         let eventStore = PgStorage.PgEventStore connectionString
-        ReservationService(eventStore, userService, mailNotificator, configuration) 
+        ReservationService(eventStore, userService, mailNotificator, configuration, mailBodyRetriever) 
 
-        member this.AddReservationAsync (reservation: Reservation, dateTime: System.DateTime, shortLang: ShortLang, ?ct: CancellationToken)= 
+        member this.AddReservationAsync (reservation: Reservation, dateTime: System.DateTime, shortLang: ShortLang, ?ct: CancellationToken) = 
 
             taskResult
                 {
@@ -113,15 +115,8 @@ type ReservationService
                     let! userDetails = 
                         usersService.GetUserDetailsAsync (user.UserId, ct)
 
-                    let templatePath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Templates", shortLang.Value, "ReservationNotification.txt")
                     let! emailTextRetrieved = 
-                        task {
-                            try
-                                let! content = System.IO.File.ReadAllTextAsync(templatePath)
-                                return Ok content
-                            with ex ->
-                                return Error (sprintf "Error reading template %s: %s" templatePath ex.Message)
-                        }
+                        mailBodyRetriever.GetReservationNotificationTextMailAsync(shortLang, ct)
 
                     let! result =
                         runInitAndTwoAggregateCommandsMd<Book, BookEvent, User, UserEvent, string, Reservation>

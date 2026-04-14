@@ -1,3 +1,7 @@
 namespace blazorBookLibrary.Shared.Resources
 
-type SharedResources() = class end
+open System.Resources
+
+type SharedResources() = 
+    static member ResourceManager = 
+        new ResourceManager("blazorBookLibrary.Shared.Resources.SharedResources", typeof<SharedResources>.Assembly)

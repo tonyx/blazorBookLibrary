@@ -71,6 +71,7 @@ builder.Services.AddIdentityCore<ApplicationUser>(options =>
     .AddSignInManager()
     .AddDefaultTokenProviders();
 
+builder.Services.AddSingleton<IMailBodyRetriever, MailBodyRetriever>();
 builder.Services.AddSingleton<IMailResenderService, MailResenderService>();
 
 builder.Services.AddSingleton<IMailNotificator, MailNotificator>();

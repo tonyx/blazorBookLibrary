@@ -24,6 +24,7 @@ open BookLibrary.Details.Details
 open blazorBookLibrary.Shared.Infrastructure.Services
 open blazorBookLibrary.Shared.Resources
 open Microsoft.Extensions.Localization
+open System.Globalization
 
 type LoanService 
     (
@@ -41,10 +42,18 @@ type LoanService
         maxLoanPerUser: int,
         fromEmail: string,
         fromName: string,
-        localizer: IStringLocalizer<SharedResources>
+        localizer: IStringLocalizer<SharedResources>,
+        mailBodyRetriever: IMailBodyRetriever
 
     ) =
-    new (eventStore: IEventStore<string>, reservationService: IReservationService, usersService: IUserService, mailNotificator: IMailNotificator, localizer: IStringLocalizer<SharedResources>, configuration: IConfiguration)
+    new 
+        (eventStore: IEventStore<string>, 
+        reservationService: IReservationService, 
+        usersService: IUserService, 
+        mailNotificator: IMailNotificator, 
+        localizer: IStringLocalizer<SharedResources>, 
+        configuration: IConfiguration,
+        mailBodyRetriever: IMailBodyRetriever)
         =
         let messageSenders = MessageSenders.NoSender
         let bookViewerAsync = getAggregateStorageFreshStateViewerAsync<Book, BookEvent, string> eventStore
@@ -72,28 +81,41 @@ type LoanService
             maxLoanPerUser,
             fromEmail,
             fromName,
-            localizer
+            localizer,
+            mailBodyRetriever
         )
 
-    new (configuration: IConfiguration, reservationService: IReservationService, usersService: IUserService, mailNotificator: IMailNotificator, localizer: IStringLocalizer<SharedResources>) 
+    new 
+        (configuration: IConfiguration, 
+        reservationService: IReservationService,
+        usersService: IUserService, 
+        mailNotificator: IMailNotificator, 
+        localizer: IStringLocalizer<SharedResources>,
+        mailBodyRetriever: IMailBodyRetriever) 
         =
         let connectionString = configuration.GetConnectionString("BookLibraryDbConnection")
         let eventStore = PgStorage.PgEventStore connectionString
-        LoanService(eventStore, reservationService, usersService, mailNotificator, localizer, configuration)
+        LoanService(eventStore, reservationService, usersService, mailNotificator, localizer, configuration, mailBodyRetriever)
 
-    new (connectionString: string, reservationService: IReservationService, usersService: IUserService, mailNotificator: IMailNotificator, localizer: IStringLocalizer<SharedResources>, configuration: IConfiguration)
+    new 
+        (connectionString: string, 
+        reservationService: IReservationService, 
+        usersService: IUserService, 
+        mailNotificator: IMailNotificator, 
+        localizer: IStringLocalizer<SharedResources>, 
+        configuration: IConfiguration,
+        mailBodyRetriever: IMailBodyRetriever)
         =
         let eventStore = PgStorage.PgEventStore connectionString
-        LoanService(eventStore, reservationService, usersService, mailNotificator, localizer, configuration)
+        LoanService(eventStore, reservationService, usersService, mailNotificator, localizer, configuration, mailBodyRetriever)
 
-    member private this.GetLocalizedSubject (shortLang: ShortLang) =
-        let culture = new System.Globalization.CultureInfo(shortLang.Value)
-        let oldCulture = System.Globalization.CultureInfo.CurrentUICulture
-        try
-            System.Globalization.CultureInfo.CurrentUICulture <- culture
-            localizer.["LoanNotification"].Value
-        finally
-            System.Globalization.CultureInfo.CurrentUICulture <- oldCulture
+    member private this.GetLocalizedLoanNotificationSubject (shortLang: ShortLang) =
+        let culture = CultureInfo(shortLang.Value)
+        SharedResources.ResourceManager.GetString("LoanNotification", culture)
+
+    member private this.GetLocalizedLoanReturnSubject (shortLang: ShortLang) =
+        let culture = CultureInfo(shortLang.Value)
+        SharedResources.ResourceManager.GetString("LoanReturnNotification", culture)
 
     member this.AddLoanAsync (loan: Loan, shortLang: ShortLang, dateTime: System.DateTime, ?ct: CancellationToken)= 
         taskResult
@@ -115,17 +137,9 @@ type LoanService
 
                 let addLoanToUser =     
                     UserCommand.AddLoan (loan.LoanId)
-                
-                let templatePath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Templates", shortLang.Value, "LoanNotification.txt")
 
                 let! emailTextRetrieved = 
-                    task {
-                        try
-                            let! content = System.IO.File.ReadAllTextAsync(templatePath)
-                            return Ok content
-                        with ex ->
-                            return Error (sprintf "Error reading template %s: %s" templatePath ex.Message)
-                    }
+                    mailBodyRetriever.GetLoanNotificationTextMailAsync(shortLang)
 
                 let! result = 
                     runInitAndTwoAggregateCommandsMdAsync<Book, BookEvent, User, UserEvent, string, Loan>
@@ -141,18 +155,19 @@ type LoanService
 
                 let emailBody = emailTextRetrieved.Replace("{bookTitle}",book.Title.Value).Replace("{loanedAt}",dateTime.ToString("dd/MM/yyyy")).Replace("{dueDate}",loan.DueDate.ToString("dd/MM/yyyy"))
 
-                do! 
+                do!
                     task {
                         do! 
                             mailNotificator.SendEmailAsync(
                                 fromEmail,
                                 fromName,
                                 userDetails.ApplicationUser.Email,
-                                this.GetLocalizedSubject shortLang,
+                                this.GetLocalizedLoanNotificationSubject shortLang,
                                 emailBody
                             )
                         return Ok ()
-                    } 
+                    }
+
                 return result
             }
 
@@ -181,7 +196,7 @@ type LoanService
                                 |> Async.AwaitTask
                                 |> Async.RunSynchronously    
                             let! userDetail = 
-                                usersService.GetUserDetailsAsync (loan.UserId,ct)
+                                usersService.GetUserDetailsAsync (loan.UserId, ct)
                                 |> Async.AwaitTask
                                 |> Async.RunSynchronously    
                             return
@@ -242,18 +257,8 @@ type LoanService
                 let! userDetails = 
                     usersService.GetUserDetailsAsync loan.UserId
                     
-
-                let templatePath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Templates", shortLang.Value, "LoanReturnNotification.txt")
-                let! emailTextRetrieved = 
-                    task
-                        {
-                            try
-                                let! content = System.IO.File.ReadAllTextAsync(templatePath)
-                                return Ok content
-                            with
-                                | ex -> 
-                                    return Error ("Error reading template file: " + ex.Message)
-                        }
+                let! emailTextRetrieved =
+                    mailBodyRetriever.GetReleaseLoanNotificationTextMailAsync(shortLang)
 
                 let! result = 
                     runThreeAggregateCommandsMdAsync<Book, BookEvent, Loan, LoanEvent, User, UserEvent, string>
@@ -277,13 +282,14 @@ type LoanService
                                     fromEmail, 
                                     fromName, 
                                     userDetails.ApplicationUser.Email, 
-                                    "Loan Return", 
+                                    this.GetLocalizedLoanReturnSubject shortLang, 
                                     emailBody
                                 )
                             return Ok ()
                         }
                 return result
             }
+
     member this.TransformReservationIntoLoanAsync (reservationId: ReservationId, providedReservationCode: ReservationCode, shortLang: ShortLang, now: DateTime, ?ct: CancellationToken)= 
         let ct = defaultArg ct CancellationToken.None
         taskResult
@@ -317,16 +323,8 @@ type LoanService
                 let makeLoanFromReservation = 
                     UserCommand.LoanFromReservation (loan.LoanId, reservationId)
 
-                let templatePath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Templates", shortLang.Value, "LoanNotification.txt")
-
-                let! emailTextRetrieved = 
-                    task {
-                        try
-                            let! content = System.IO.File.ReadAllTextAsync(templatePath)
-                            return Ok content
-                        with ex ->
-                            return Error (sprintf "Error reading template %s: %s" templatePath ex.Message)
-                    }
+                let! emailTextRetrieved =
+                    mailBodyRetriever.GetLoanNotificationTextMailAsync(shortLang)
 
                 let! result = 
                     runInitAndThreeAggregateCommandsMdAsync<Reservation, ReservationEvent, Book, BookEvent, User, UserEvent, string, Loan>
@@ -343,18 +341,15 @@ type LoanService
                         (ct |> Some)
 
                 let emailBody = emailTextRetrieved.Replace("{bookTitle}",book.Title.Value).Replace("{loanedAt}", now.ToString("dd/MM/yyyy")).Replace("{dueDate}", loan.DueDate.ToString("dd/MM/yyyy"))
+
                 do! 
-                    task {
-                        do! 
-                             mailNotificator.SendEmailAsync(
-                                fromEmail,
-                                fromName,
-                                reservationDetails.UserDetails.ApplicationUser.Email,
-                                this.GetLocalizedSubject shortLang,
-                                emailBody
-                            )
-                        return Ok ()
-                    } 
+                    mailNotificator.SendEmailAsync(
+                        fromEmail,
+                        fromName,
+                        reservationDetails.UserDetails.ApplicationUser.Email,
+                        this.GetLocalizedLoanNotificationSubject shortLang,
+                        emailBody
+                    )
                 
                 return result
             }

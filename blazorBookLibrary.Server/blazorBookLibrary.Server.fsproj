@@ -54,6 +54,8 @@
 
     <Compile Include="SeedServices/RandomAuthorGeneratorService.fs" />
     <Compile Include="SeedServices/RandomBooksGeneratorService.fs" />
+
+    <Compile Include="Services/MailBodyRetriever.fs" />
     <Compile Include="Services/UserService.fs" />
     <Compile Include="Services/ReservationService.fs" />
     <Compile Include="Services/AuthorService.fs" />

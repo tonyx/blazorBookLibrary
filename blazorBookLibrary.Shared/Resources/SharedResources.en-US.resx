@@ -127,6 +127,7 @@
   <data name="CurrentlyLoanedOut" xml:space="preserve"><value>Currently Loaned Out</value></data>
   <data name="AvailableForLoan" xml:space="preserve"><value>Available for Loan</value></data>
   <data name="LoanNotification" xml:space="preserve"><value>Loan Notification</value></data>
+  <data name="LoanReturnNotification" xml:space="preserve"><value>Loan Notification</value></data>
   <data name="FutureReservations" xml:space="preserve"><value>Future Reservations</value></data>
   <data name="DangerZone" xml:space="preserve"><value>Danger Zone</value></data>
   <data name="PermanentlyRemoveBook" xml:space="preserve"><value>Permanently Remove Book</value></data>

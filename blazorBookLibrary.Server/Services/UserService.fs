@@ -36,7 +36,6 @@ type UserService
         loanViewerAsync: AggregateViewerAsync2<Loan>,
         userViewerAsync: AggregateViewerAsync2<User>,
         scopeFactory: IServiceScopeFactory)
-
     =
     new (eventStore: IEventStore<string>, scopeFactory: IServiceScopeFactory) 
         =

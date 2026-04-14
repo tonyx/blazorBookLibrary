@@ -39,7 +39,7 @@ with
         (isbn: Isbn) 
         (imageUrl: Option<Uri>)
         = 
-        {   
+        {
             BookId = BookId.New(); 
             Title = title; 
             Description = None;
@@ -199,6 +199,7 @@ with
             {
                 return { this with ImageUrl = Some imageUrl } 
             }
+
     member this.RemoveImageUrl 
         (dateTime: DateTime) = 
         result
