@@ -8,9 +8,6 @@ open Sharpino.Cache
 open FSharpPlus.Operators
 open Sharpino.CommandHandler
 open Sharpino.EventBroker
-open Sharpino.Definitions
-open Sharpino.Core
-open Sharpino.EventBroker
 open Sharpino.Storage
 open BookLibrary.Domain
 open BookLibrary.Details
@@ -109,14 +106,6 @@ type LoanService
         let eventStore = PgStorage.PgEventStore connectionString
         LoanService(eventStore, reservationService, usersService, mailNotificator, localizer, configuration, mailBodyRetriever)
 
-    member private this.GetLocalizedLoanNotificationSubject (shortLang: ShortLang) =
-        let culture = CultureInfo(shortLang.Value)
-        SharedResources.ResourceManager.GetString("LoanNotification", culture)
-
-    member private this.GetLocalizedLoanReturnSubject (shortLang: ShortLang) =
-        let culture = CultureInfo(shortLang.Value)
-        SharedResources.ResourceManager.GetString("LoanReturnNotification", culture)
-
     member this.AddLoanAsync (loan: Loan, shortLang: ShortLang, dateTime: System.DateTime, ?ct: CancellationToken)= 
         taskResult
             {
@@ -162,7 +151,7 @@ type LoanService
                                 fromEmail,
                                 fromName,
                                 userDetails.ApplicationUser.Email,
-                                this.GetLocalizedLoanNotificationSubject shortLang,
+                                mailBodyRetriever.GetLoanNotificationSubject shortLang,
                                 emailBody
                             )
                         return Ok ()
@@ -282,7 +271,7 @@ type LoanService
                                     fromEmail, 
                                     fromName, 
                                     userDetails.ApplicationUser.Email, 
-                                    this.GetLocalizedLoanReturnSubject shortLang, 
+                                    mailBodyRetriever.GetReleaseLoanNotificationSubject shortLang, 
                                     emailBody
                                 )
                             return Ok ()
@@ -347,7 +336,7 @@ type LoanService
                         fromEmail,
                         fromName,
                         reservationDetails.UserDetails.ApplicationUser.Email,
-                        this.GetLocalizedLoanNotificationSubject shortLang,
+                        mailBodyRetriever.GetLoanNotificationSubject shortLang,
                         emailBody
                     )
                 

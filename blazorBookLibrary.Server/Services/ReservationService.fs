@@ -137,7 +137,7 @@ type ReservationService
                                     fromEmail,
                                     fromName,
                                     userDetails.ApplicationUser.Email,
-                                    "Book Reservation Confirmation",
+                                    mailBodyRetriever.GetReservationNotificationSubject shortLang,
                                     emailBody
                                 )
                             return Ok ()

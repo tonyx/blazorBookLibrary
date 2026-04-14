@@ -137,6 +137,7 @@
   <data name="ReservationFailedMessage" xml:space="preserve"><value>Reservation failed: {0}</value></data>
   <data name="ReservationSuccessMessage" xml:space="preserve"><value>Book successfully reserved!</value></data>
   <data name="Reservations" xml:space="preserve"><value>Reservations</value></data>
+  <data name="BookReservationConfirmation" xml:space="preserve"><value>Book Reservation Confirmation</value></data>
   <data name="Search" xml:space="preserve"><value>Search</value></data>
   <data name="SearchApi" xml:space="preserve"><value>Search API</value></data>
   <data name="SearchAuthors" xml:space="preserve"><value>Search Authors</value></data>

@@ -137,6 +137,7 @@
   <data name="ReservationFailedMessage" xml:space="preserve"><value>Prenotazione fallita: {0}</value></data>
   <data name="ReservationSuccessMessage" xml:space="preserve"><value>Libro prenotato con successo!</value></data>
   <data name="Reservations" xml:space="preserve"><value>Prenotazioni</value></data>
+  <data name="BookReservationConfirmation" xml:space="preserve"><value>Conferma Prenotazione Libro</value></data>
   <data name="Search" xml:space="preserve"><value>Cerca</value></data>
   <data name="SearchApi" xml:space="preserve"><value>Cerca API</value></data>
   <data name="SearchAuthors" xml:space="preserve"><value>Cerca Autori</value></data>
