@@ -11,6 +11,7 @@ module Details =
 
     open BookLibrary.Domain
     open BookLibrary.Shared.Commons
+    open System.Threading
 
     type RefreshableReservationDetails =
         {

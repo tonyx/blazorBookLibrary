@@ -76,6 +76,43 @@ type ReservationService
         let eventStore = PgStorage.PgEventStore connectionString
         ReservationService(eventStore, userService, mailNotificator, configuration, mailBodyRetriever) 
 
+        member private this.MakeReservationRefresher(id: ReservationId, ?ct:CancellationToken) = 
+            fun () ->
+                taskResult
+                    {
+                        let ct = ct |> Option.defaultValue CancellationToken.None
+                        let! reservation = 
+                            reservationViewerAsync (ct |> Some) id.Value |> TaskResult.map snd
+                        let! book = 
+                            bookViewerAsync (ct |> Some) reservation.BookId.Value |> TaskResult.map snd
+                        let! userDetails = 
+                            usersService.GetUserDetailsAsync (reservation.UserId, ct)
+                        return 
+                            {
+                                Reservation = reservation
+                                Book = book
+                                UserDetails = userDetails
+                            }
+                    }
+                |> Async.AwaitTask
+                |> Async.RunSynchronously
+
+        member this.MakeReservationDetailsBuilder(id: ReservationId, refresher: unit -> Result<ReservationDetails, string>) = 
+            result {
+                let! reservationDetails = refresher()
+                return 
+                    {
+                        ReservationDetails = reservationDetails    
+                        Refresher = refresher
+                    } :> Refreshable<RefreshableReservationDetails>
+                    ,
+                    [id.Value ;
+                    reservationDetails.Reservation.BookId.Value ;
+                    reservationDetails.Book.BookId.Value]
+                }
+
+
+            
         member this.AddReservationAsync (reservation: Reservation, dateTime: System.DateTime, shortLang: ShortLang, ?ct: CancellationToken) = 
 
             taskResult
@@ -171,41 +208,9 @@ type ReservationService
         let detailsBuilder =
             fun (ct: Option<CancellationToken>) ->
                 let refresher = 
-                    fun () ->
-                        result
-                            {
-                                let ct = ct |> Option.defaultValue CancellationToken.None
-                                let! reservation = 
-                                    reservationViewerAsync (ct |> Some) id.Value |> TaskResult.map snd
-                                    |> Async.AwaitTask
-                                    |> Async.RunSynchronously
-                                let! book = 
-                                    bookViewerAsync (ct |> Some) reservation.BookId.Value |> TaskResult.map snd
-                                    |> Async.AwaitTask
-                                    |> Async.RunSynchronously
-                                let! userDetails = 
-                                    usersService.GetUserDetailsAsync (reservation.UserId, ct)
-                                    |> Async.AwaitTask
-                                    |> Async.RunSynchronously
-                                return 
-                                    {
-                                        Reservation = reservation
-                                        Book = book
-                                        UserDetails = userDetails
-                                    }
-                            }
-                result {
-                    let! reservationDetails = refresher()
-                    return 
-                        {
-                            ReservationDetails = reservationDetails    
-                            Refresher = refresher
-                        } :> Refreshable<RefreshableReservationDetails>
-                        ,
-                        [id.Value ;
-                        reservationDetails.Reservation.BookId.Value ;
-                        reservationDetails.Book.BookId.Value]
-                    }
+                    this.MakeReservationRefresher(id, ct|> Option.defaultValue CancellationToken.None) 
+                this.MakeReservationDetailsBuilder(id, refresher)
+
         let key = DetailsCacheKey.OfType typeof<RefreshableReservationDetails> id.Value
         task
             {
