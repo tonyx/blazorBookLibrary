@@ -28,6 +28,7 @@ open Microsoft.Extensions.Logging
 open BookLibrary.Shared.Services
 open Microsoft.Extensions.Localization
 open blazorBookLibrary.Shared.Resources
+open BookLibrary.Utils
 Environment.SetEnvironmentVariable("IsTestEnv", "True")
 Env.Load() |> ignore
 
@@ -84,6 +85,9 @@ let getServiceScopeFactory () =
     services.AddIdentityCore<ApplicationUser>()
         .AddEntityFrameworkStores<ApplicationDbContext>()
         .AddDefaultTokenProviders() |> ignore
+    services.AddSingleton<BookLibrary.Utils.SecretsReader>(fun _ -> new BookLibrary.Utils.SecretsReader(config)) |> ignore
+
+    services.AddSingleton<IMailBodyRetriever, MailBodyRetriever>(fun _ -> new MailBodyRetriever()) |> ignore
     
     let serviceProvider = services.BuildServiceProvider()
     serviceProvider.GetRequiredService<IServiceScopeFactory>()
@@ -105,6 +109,17 @@ let getUserManager () =
     let serviceScopeFacotry = getServiceScopeFactory()
     let scope = serviceScopeFacotry.CreateScope()
     scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>()
+
+let getSecretReader () =
+    let serviceScopeFacotry = getServiceScopeFactory()
+    let scope = serviceScopeFacotry.CreateScope()
+    scope.ServiceProvider.GetRequiredService<BookLibrary.Utils.SecretsReader>()
+
+let getMailBodyRetriever () =
+    let serviceScopeFacotry = getServiceScopeFactory()
+    let scope = serviceScopeFacotry.CreateScope()
+    scope.ServiceProvider.GetRequiredService<IMailBodyRetriever>()
+
 
 let bookViewerAsync = getAggregateStorageFreshStateViewerAsync<Book, BookEvent, string> pgEventStore
 let authorViewerAsync = getAggregateStorageFreshStateViewerAsync<Author, AuthorEvent, string> pgEventStore
@@ -128,7 +143,8 @@ let getAuthorService () =
         authorViewerAsync, 
         editorViewerAsync, 
         reservationViewerAsync, 
-        loanViewerAsync)
+        loanViewerAsync,
+        getSecretReader())
 let getUserService () =
     UserService(
         pgEventStore, 
@@ -155,7 +171,8 @@ let getReservationService () =
         fakeEmailNotificator,
         3,
         "noreply@blazorbooklibrary.com",
-        "Blazor Book Library")
+        "Blazor Book Library",
+        getMailBodyRetriever())
 
 let getLoanService () =
     LoanService(
@@ -173,8 +190,8 @@ let getLoanService () =
         3,
         "noreply@blazorbooklibrary.com",
         "Blazor Book Library",
-        fakeLocalizer
-        )
+        fakeLocalizer,
+        getMailBodyRetriever())
 
 let getBookService () = 
     BookService(

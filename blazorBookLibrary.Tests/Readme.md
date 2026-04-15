@@ -1,0 +1,1 @@
+remember to have a copy of appsettings.json in this test directory as well. Take inspiration from appsettingsTEMPLATE in the main directory.
