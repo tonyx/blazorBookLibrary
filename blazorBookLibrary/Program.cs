@@ -13,6 +13,7 @@ using BookLibrary.Shared.Services;
 using BookLibrary.Services;
 using blazorBookLibrary.Shared.Infrastructure.Services;
 using BookLibrary.Domain;
+using BookLibrary.Utils;
 
 using static BookLibrary.Shared.Commons; 
 using static BookLibrary.CleanServices.CleanUpServices;
@@ -41,6 +42,9 @@ builder.Services.AddControllers()
             factory.Create(typeof(blazorBookLibrary.Shared.Resources.SharedResources));
     });
 
+
+builder.Services.AddSingleton<BookLibrary.Utils.SecretsReader>();
+
 builder.Services.AddCascadingAuthenticationState();
 builder.Services.AddScoped<IdentityRedirectManager>();
 builder.Services.AddScoped<AuthenticationStateProvider, IdentityRevalidatingAuthenticationStateProvider>();
@@ -55,7 +59,15 @@ builder.Services.AddAuthentication(options =>
         options.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"] ?? "PLACEHOLDER_GOOGLE_SECRET";
     }).AddIdentityCookies();
 
-var usersDbConnection = builder.Configuration.GetConnectionString("UsersDbConnection") ?? throw new InvalidOperationException("Connection string 'UsersDbConnection' not found.");
+
+// var usersDbConnection = SecretReader.getAspUsersConnectionString(builder.Configuration) ?? throw new InvalidOperationException("failed UsersDbConnection string lookup.");
+
+var usersDbConnection = "";
+using (var scope = builder.Services.BuildServiceProvider().CreateScope())
+{
+    var secretsManager = scope.ServiceProvider.GetRequiredService<BookLibrary.Utils.SecretsReader>();
+    usersDbConnection = secretsManager.GetAspUsersConnectionString();
+}
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(usersDbConnection));

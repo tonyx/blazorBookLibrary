@@ -5,6 +5,11 @@
     "BookLibraryDbConnection": "Server=....;Database=....;User Id=....;Password=...."
   },
 
+  "Environment": "Development", // "Production". If it is set to "Production" then it will use Azure Key Vault to get the connection strings.
+  "keyVaultUrl": "https://....",
+  "usersDbSecretname": "booksLibraryUsersDb",
+  "booksLibraryDbSecretname": "booksLibraryDb",
+
   "syncUsersOnStartup": false,
 
   "SealTimeoutInMinutes": 10,

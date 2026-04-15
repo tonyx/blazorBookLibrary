@@ -24,6 +24,7 @@ open Microsoft.Extensions.Configuration
 open BookLibrary.Details.Details
 open System.Globalization
 open blazorBookLibrary.Shared.Infrastructure.Services
+open BookLibrary.Utils
 
 type ReservationService
     (
@@ -70,9 +71,9 @@ type ReservationService
             fromName,
             mailBodyRetriever
         )
-    new (configuration: IConfiguration, userService: IUserService, mailNotificator: IMailNotificator, mailBodyRetriever: IMailBodyRetriever) 
+    new (configuration: IConfiguration, userService: IUserService, mailNotificator: IMailNotificator, mailBodyRetriever: IMailBodyRetriever, secretsReader: SecretsReader) 
         =
-        let connectionString = configuration.GetConnectionString("BookLibraryDbConnection")
+        let connectionString = secretsReader.GetBookLibraryConnectionString ()
         let eventStore = PgStorage.PgEventStore connectionString
         ReservationService(eventStore, userService, mailNotificator, configuration, mailBodyRetriever) 
 

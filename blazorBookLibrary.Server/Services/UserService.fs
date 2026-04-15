@@ -58,12 +58,11 @@ type UserService
             scopeFactory
         )    
 
-    new (configuration: IConfiguration, scopeFactory: IServiceScopeFactory)
+    new (configuration: IConfiguration, scopeFactory: IServiceScopeFactory, secretsReader: BookLibrary.Utils.SecretsReader)
         =
-        let connectionString = configuration.GetConnectionString("BookLibraryDbConnection")
+        let connectionString = secretsReader.GetBookLibraryConnectionString ()
         let eventStore = PgStorage.PgEventStore connectionString
         UserService(eventStore, scopeFactory)
-
 
     member this.MakeUserDetailsRefresher(id: UserId, ?ct: CancellationToken) = 
         fun () -> 
@@ -117,7 +116,6 @@ type UserService
                 }
                 |> Async.AwaitTask
                 |> Async.RunSynchronously
-
 
     member this.CreateUserAsync (user: User, ?ct: CancellationToken) : Task<Result<unit, string>> =
         taskResult 

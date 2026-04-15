@@ -22,6 +22,7 @@ open blazorBookLibrary.Shared.Infrastructure.Services
 open blazorBookLibrary.Shared.Resources
 open Microsoft.Extensions.Localization
 open System.Globalization
+open BookLibrary.Utils
 
 type LoanService 
     (
@@ -88,9 +89,10 @@ type LoanService
         usersService: IUserService, 
         mailNotificator: IMailNotificator, 
         localizer: IStringLocalizer<SharedResources>,
-        mailBodyRetriever: IMailBodyRetriever) 
+        mailBodyRetriever: IMailBodyRetriever,
+        secretsReader: SecretsReader) 
         =
-        let connectionString = configuration.GetConnectionString("BookLibraryDbConnection")
+        let connectionString = secretsReader.GetBookLibraryConnectionString ()
         let eventStore = PgStorage.PgEventStore connectionString
         LoanService(eventStore, reservationService, usersService, mailNotificator, localizer, configuration, mailBodyRetriever)
 

@@ -21,6 +21,7 @@ open BookLibrary.Shared.Details
 open BookLibrary.Details.Details
 open Microsoft.Extensions.Configuration
 open BookLibrary.Shared
+open BookLibrary.Utils
 
 type BookService
     (
@@ -58,9 +59,9 @@ type BookService
             reservationService,
             loanService
         )
-    new (configuration: IConfiguration, reservationService: IReservationService, loanService: ILoanService)
+    new (secretsReader: SecretsReader, reservationService: IReservationService, loanService: ILoanService)
         =
-        let connectionString = configuration.GetConnectionString("BookLibraryDbConnection")
+        let connectionString = secretsReader.GetBookLibraryConnectionString ()
         let eventStore = PgStorage.PgEventStore connectionString
         BookService(eventStore, reservationService, loanService)
 

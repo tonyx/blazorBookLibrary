@@ -25,6 +25,7 @@ open BookLibrary.Shared.Services
 open BookLibrary.Shared.Commons
 open BookLibrary.Shared.Details
 open Microsoft.Extensions.Configuration
+open BookLibrary.Utils
 
 type AuthorService 
     (
@@ -34,9 +35,10 @@ type AuthorService
         authorViewerAsync: AggregateViewerAsync2<Author>,
         editorViewerAsync: AggregateViewerAsync2<Editor>,
         reservationViewerAsync: AggregateViewerAsync2<Reservation>,
-        loanViewerAsync: AggregateViewerAsync2<Loan>
+        loanViewerAsync: AggregateViewerAsync2<Loan>,
+        secretsReader: SecretsReader
     ) =
-    new (eventStore: IEventStore<string>) =
+    new (eventStore: IEventStore<string>, secretsReader: SecretsReader) =
         let messageSenders = MessageSenders.NoSender
         let bookViewerAsync = getAggregateStorageFreshStateViewerAsync<Book, BookEvent, string> eventStore
         let authorViewerAsync = getAggregateStorageFreshStateViewerAsync<Author, AuthorEvent, string> eventStore
@@ -50,13 +52,14 @@ type AuthorService
             authorViewerAsync,
             editorViewerAsync,
             reservationViewerAsync,
-            loanViewerAsync
+            loanViewerAsync,
+            secretsReader
         )
-    new (configuration: IConfiguration)
+    new (secretsReader: SecretsReader)
         =   
-        let connectionString = configuration.GetConnectionString("BookLibraryDbConnection")
+        let connectionString = secretsReader.GetBookLibraryConnectionString ()
         let eventStore = PgStorage.PgEventStore connectionString
-        AuthorService(eventStore)
+        AuthorService(eventStore, secretsReader)
 
     member this.AddAuthorAsync(author: Author, ?ct: CancellationToken) = 
         taskResult
