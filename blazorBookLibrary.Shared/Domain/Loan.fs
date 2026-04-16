@@ -5,32 +5,7 @@ open FsToolkit.ErrorHandling
 open BookLibrary.Shared.Commons
 open System
 
-type Loan001 = {
-    LoanId: LoanId
-    BookId: BookId
-    UserId: UserId
-    ReservationId: Option<ReservationId>
-    LoanedAt: DateTime
-    TimeSlot: TimeSlot
-    ReturnedAt: DateTime option
-} 
-    with
-        member
-            this.Upcast () = 
-                {
-                    LoanId = this.LoanId;
-                    BookId = this.BookId;
-                    UserId = this.UserId;
-                    ReservationId = this.ReservationId;
-                    LoanedAt = this.LoanedAt;
-                    TimeSlot = this.TimeSlot;
-                    LoanStatus = 
-                        match this.ReturnedAt with
-                        | None -> InProgress
-                        | Some dateTime -> Returned dateTime
-                }
-
-and Loan = {
+type Loan = {
     LoanId: LoanId
     BookId: BookId
     UserId: UserId
@@ -90,8 +65,4 @@ and Loan = {
             Ok loan
         with
             | ex -> 
-                try
-                    let loan001 = JsonSerializer.Deserialize<Loan001> (data, jsonOptions)
-                    Ok (loan001.Upcast ())
-                with
-                    | ex2 -> Error (ex.Message + " " + ex2.Message)
+                Error ex.Message

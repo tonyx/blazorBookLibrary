@@ -5,24 +5,7 @@ open FsToolkit.ErrorHandling
 open BookLibrary.Shared.Commons
 open System
 
-type Author001 = {
-    AuthorId: AuthorId
-    Name: Name
-    Isni: Isni
-    Sealed: Sealed
-    Books: List<BookId>
-}
-with member this.Upcast (): Author = 
-            {
-                AuthorId = this.AuthorId
-                Name = this.Name
-                Isni = this.Isni
-                ImageUri = None
-                Sealed = this.Sealed
-                Books = this.Books
-            }
-
-and Author = {
+type Author = {
     AuthorId: AuthorId
     Name: Name
     Isni: Isni
@@ -150,5 +133,4 @@ and Author = {
             Ok author
         with
             | ex -> 
-                let author001 = JsonSerializer.Deserialize<Author001> (data, jsonOptions)
-                Ok (author001.Upcast ())
+                Error ex.Message
