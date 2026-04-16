@@ -22,7 +22,7 @@ type SecretsReader(configuration: IConfiguration) =
 
                 let secretName = configuration.GetValue<string>("usersDbSecretname", "unexisting")
                 if (secretName = "unexisting") then
-                    failwith "SecretName not found in appSettings.json"
+                    failwith "users db SecretName not found in appSettings.json"
 
                 try
                     let options = SecretClientOptions()
@@ -54,9 +54,9 @@ type SecretsReader(configuration: IConfiguration) =
                 if (keyVaultUrl = "unexisting") then
                     failwith "KeyVaultUrl not found in appSettings.json"
 
-                let secretName = configuration.GetValue<string>("bookLibraryDbSecretName", "unexisting")
+                let secretName = configuration.GetValue<string>("booksLibraryDbSecretName", "unexisting")
                 if (secretName = "unexisting") then
-                    failwith "SecretName not found in appSettings.json"
+                    failwith "booksLibraryDbSecretName SecretName not found in appSettings.json"
 
                 try
                     let options = SecretClientOptions()

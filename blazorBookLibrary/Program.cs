@@ -60,8 +60,6 @@ builder.Services.AddAuthentication(options =>
     }).AddIdentityCookies();
 
 
-// var usersDbConnection = SecretReader.getAspUsersConnectionString(builder.Configuration) ?? throw new InvalidOperationException("failed UsersDbConnection string lookup.");
-
 var usersDbConnection = "";
 using (var scope = builder.Services.BuildServiceProvider().CreateScope())
 {
