@@ -7,7 +7,6 @@ open System.Threading.Tasks
 open System.Runtime.InteropServices
 open BookLibrary.Domain
 open BookLibrary.Shared.Commons
-open BookLibrary.Shared.Details
 
 type BookSearchCriteria = delegate of Book -> bool
 
@@ -43,8 +42,7 @@ type IBookService =
     abstract member RemoveAuthorFromBookAsync : authorId: AuthorId * bookId: BookId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<unit, string>>
     abstract member RemoveBookAsync : bookId: BookId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<unit, string>>
     abstract member GetBookAsync : id: BookId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<Book, string>>
-    abstract member GetBookDetailsAsync : bookId: BookId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<BookDetails, string>>
-    abstract member GetBooksDetailsAsync: List<BookId> * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<List<BookDetails>, string>>
+
     abstract member RemoveImageUrlAsync: bookId: BookId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<unit, string>>
     abstract member SetImageUrlAsync: bookId: BookId * imageUrl: Uri * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<unit, string>>
     abstract member SetAvailabilityAsync: availability: Availability * bookId: BookId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<unit, string>>

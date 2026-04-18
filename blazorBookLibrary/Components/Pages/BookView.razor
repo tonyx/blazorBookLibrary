@@ -13,6 +13,7 @@
 @inject IReservationService ReservationService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject IConfiguration Configuration
+@inject IDetailsService DetailsService
 @inject IJSRuntime JSRuntime
 @using Microsoft.Extensions.Localization
 @using blazorBookLibrary.Shared.Resources
@@ -298,7 +299,7 @@
             if (Guid.TryParse(BookIdStr, out var guid))
             {
                 var bookId = BookId.NewBookId(guid);
-                var result = await BookService.GetBookDetailsAsync(bookId, FSharpOption<CancellationToken>.None);
+                var result = await DetailsService.GetBookDetailsAsync(bookId, FSharpOption<CancellationToken>.None);
 
                 if (result.IsOk)
                 {
@@ -337,8 +338,9 @@
                 if (!string.IsNullOrEmpty(userIdStr) && Guid.TryParse(userIdStr, out var userGuid))
                 {
                     var sharpinoUserId = UserId.NewUserId(userGuid);
-                    var result = await UserService.GetUserDetailsAsync(sharpinoUserId, FSharpOption<System.Threading.CancellationToken>.None);
-                    
+                    // var result = await UserService.GetUserDetailsAsync(sharpinoUserId, FSharpOption<System.Threading.CancellationToken>.None);
+                    var result = await DetailsService.GetUserDetailsAsync(sharpinoUserId, FSharpOption<System.Threading.CancellationToken>.None);
+
                     if (result.IsOk)
                     {
                         loggedInUserDetails = result.ResultValue;

@@ -120,13 +120,14 @@ let getMailBodyRetriever () =
     let scope = serviceScopeFacotry.CreateScope()
     scope.ServiceProvider.GetRequiredService<IMailBodyRetriever>()
 
-
 let bookViewerAsync = getAggregateStorageFreshStateViewerAsync<Book, BookEvent, string> pgEventStore
 let authorViewerAsync = getAggregateStorageFreshStateViewerAsync<Author, AuthorEvent, string> pgEventStore
 let editorViewerAsync = getAggregateStorageFreshStateViewerAsync<Editor, EditorEvent, string> pgEventStore
 let reservationViewerAsync = getAggregateStorageFreshStateViewerAsync<Reservation, ReservationEvent, string> pgEventStore
 let loanViewerAsync = getAggregateStorageFreshStateViewerAsync<Loan, LoanEvent, string> pgEventStore
 let userViewerAsync = getAggregateStorageFreshStateViewerAsync<User, UserEvent, string> pgEventStore
+let reviewViewerAsync = getAggregateStorageFreshStateViewerAsync<Review, ReviewEvent, string> pgEventStore
+
 let fakeEmailNotificator: IMailNotificator = new FakeEmailNotificator()
 let fakeReservationService: IReservationService = new FakeReservationService()
 let fakeLocalizer: IStringLocalizer<SharedResources> = new FakeLocalizer<SharedResources>()
@@ -145,6 +146,20 @@ let getAuthorService () =
         reservationViewerAsync, 
         loanViewerAsync,
         getSecretReader())
+
+let getReviewService () =
+    ReviewService(
+        pgEventStore, 
+        MessageSenders.NoSender, 
+        reviewViewerAsync,
+        authorViewerAsync, 
+        editorViewerAsync, 
+        bookViewerAsync,
+        reservationViewerAsync, 
+        loanViewerAsync,
+        userViewerAsync,
+        getServiceScopeFactory())
+
 let getUserService () =
     UserService(
         pgEventStore, 
@@ -155,6 +170,8 @@ let getUserService () =
         reservationViewerAsync, 
         loanViewerAsync,
         userViewerAsync,
+        reviewViewerAsync,
+        getReviewService(),
         getServiceScopeFactory())
 
 let getReservationService () =
@@ -202,9 +219,22 @@ let getBookService () =
         editorViewerAsync, 
         reservationViewerAsync, 
         loanViewerAsync,
+        userViewerAsync)
+
+let getDetailsService () =
+    DetailsService(
+        pgEventStore,
+        MessageSenders.NoSender,
+        bookViewerAsync,
+        authorViewerAsync,
+        editorViewerAsync,
+        reservationViewerAsync,
+        loanViewerAsync,
         userViewerAsync,
+        reviewViewerAsync,
+        getLoanService(),
         getReservationService(),
-        getLoanService())
+        getServiceScopeFactory())
 
 let getMailResenderService () =
     MailResenderService(

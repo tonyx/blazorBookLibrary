@@ -39,6 +39,8 @@
     <Compile Include="Domain/Loan/Commands.fs" />
     <Compile Include="Domain/User/Events.fs" />
     <Compile Include="Domain/User/Commands.fs" />
+    <Compile Include="Domain/Review/Events.fs" />
+    <Compile Include="Domain/Review/Commands.fs" />
 
     <Compile Include="Utils/SecretReader.fs" />
     
@@ -58,6 +60,7 @@
     <Compile Include="SeedServices/RandomBooksGeneratorService.fs" />
 
     <Compile Include="Services/MailBodyRetriever.fs" />
+    <Compile Include="Services/ReviewService.fs" />
     <Compile Include="Services/UserService.fs" />
     <Compile Include="Services/ReservationService.fs" />
     <Compile Include="Services/AuthorService.fs" />
@@ -65,6 +68,7 @@
     <Compile Include="Services/BookService.fs" />
     <Compile Include="Services/GoogleBooksService.fs" />
     <Compile Include="Services/AuthorsSearchService.fs" />
+    <Compile Include="Services/DetailsService.fs" />
   </ItemGroup>
 
   <ItemGroup>

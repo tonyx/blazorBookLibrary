@@ -17,6 +17,7 @@ let tests =
         testCaseTask "add an overlapping reservation and verify it will be an error - Error" <| fun _ -> task {
             setUp ()
             let bookService = getBookService()
+            let detailsService = getDetailsService()
             let _ = getAuthorService()
             let reservationService = getReservationService()
             let _ = getUserService()
@@ -40,7 +41,7 @@ let tests =
             let! addOverlappingReservation = reservationService.AddReservationAsync (overlappingReservation, System.DateTime.Now)
             Expect.isError addOverlappingReservation "should be an error"
             
-            let! bookDetailResult = bookService.GetBookDetailsAsync book.BookId
+            let! bookDetailResult = detailsService.GetBookDetailsAsync book.BookId
             Expect.isOk bookDetailResult "should be ok"
             let (bookDetail: BookDetails) = bookDetailResult |> Result.get
             Expect.equal bookDetail.ReservationsDetails.Length 1 "should contain one reservation"
@@ -49,6 +50,7 @@ let tests =
         testCaseTask "add a non overlapping reservation and verify it will be ok, expect then two reservation on that book - Ok" <| fun _ -> task {
             setUp ()
             let bookService = getBookService()
+            let detailsService = getDetailsService()
             let _ = getAuthorService()
             let reservationService = getReservationService()
             let _ = getUserService()
@@ -73,7 +75,7 @@ let tests =
             let! addNonOverlappingReservation = reservationService.AddReservationAsync (nonOverlappingReservation, System.DateTime.Now)
             Expect.isOk addNonOverlappingReservation "should be ok"
 
-            let! bookDetailResult = bookService.GetBookDetailsAsync book.BookId
+            let! bookDetailResult = detailsService.GetBookDetailsAsync book.BookId
             Expect.isOk bookDetailResult "should be ok"
 
             let (bookDetail: BookDetails) = bookDetailResult |> Result.get
@@ -122,6 +124,7 @@ let tests =
         testCaseTask "should be able to add a reservation to a book and then retrieve the bookdetails containing the reservation" <| fun _ -> task {
             setUp ()
             let bookService = getBookService()
+            let detailsService = getDetailsService()
             let _ = getAuthorService()
             let _ = getUserService()
             let reservationService = getReservationService()
@@ -139,7 +142,7 @@ let tests =
             let! addLoan = loanService.AddLoanAsync (loan, ShortLang.New "en", System.DateTime.Now)
             Expect.isOk addLoan "should be ok"
 
-            let! bookDetailResult = bookService.GetBookDetailsAsync book.BookId 
+            let! bookDetailResult = detailsService.GetBookDetailsAsync book.BookId 
             Expect.isOk bookDetailResult "should be ok"
 
             let (bookDetail: BookDetails) = bookDetailResult |> Result.get
@@ -151,7 +154,7 @@ let tests =
             let! releaseLoan = loanService.ReleaseLoanAsync(loan.LoanId, ShortLang.New "en", System.DateTime.Now)
             Expect.isOk releaseLoan "should be ok"
 
-            let! bookDetail2Result = bookService.GetBookDetailsAsync book.BookId
+            let! bookDetail2Result = detailsService.GetBookDetailsAsync book.BookId
             Expect.isOk bookDetail2Result "should be ok"
 
             let (bookDetail2: BookDetails) = bookDetail2Result |> Result.get
@@ -167,7 +170,7 @@ let tests =
             let! addReservation = reservationService.AddReservationAsync (reservation, System.DateTime.Now)
             Expect.isOk addReservation "should be ok"
 
-            let! bookDetail3Result = bookService.GetBookDetailsAsync book.BookId
+            let! bookDetail3Result = detailsService.GetBookDetailsAsync book.BookId
             Expect.isOk bookDetail3Result "should be ok"
 
             let (bookDetail3: BookDetails) = bookDetail3Result |> Result.get
@@ -179,6 +182,7 @@ let tests =
         testCaseTask "should be able to add a reservation to a book and then retrieve the bookdetails containing the reservation 2" <| fun _ -> task {
             setUp ()
             let bookService = getBookService()
+            let detailsService = getDetailsService()
             let _ = getAuthorService()
             let reservationService = getReservationService()
             let loanService = getLoanService()
@@ -189,14 +193,13 @@ let tests =
 
             let! userId = registerUserTask "test@example.com" "Password123!"
 
-            let! _ = bookService.GetBookAsync book.BookId
             let timeSlot = TimeSlot.New (System.DateTime.Now) (System.DateTime.Now.AddDays(timeSlotDurationInDays))
             let loan = Loan.New book.BookId userId System.DateTime.Now timeSlot
 
             let! addLoan = loanService.AddLoanAsync (loan, ShortLang.New "en", System.DateTime.Now)
             Expect.isOk addLoan "should be ok"
 
-            let! bookDetailResult = bookService.GetBookDetailsAsync book.BookId 
+            let! bookDetailResult = detailsService.GetBookDetailsAsync book.BookId 
             Expect.isOk bookDetailResult "should be ok"
 
             let (bookDetail: BookDetails) = bookDetailResult |> Result.get
@@ -208,7 +211,7 @@ let tests =
             let! releaseLoan = loanService.ReleaseLoanAsync(loan.LoanId, ShortLang.New "en", System.DateTime.Now)
             Expect.isOk releaseLoan "should be ok"
 
-            let! bookDetail2Result = bookService.GetBookDetailsAsync book.BookId
+            let! bookDetail2Result = detailsService.GetBookDetailsAsync book.BookId
             Expect.isOk bookDetail2Result "should be ok"
 
             let (bookDetail2: BookDetails) = bookDetail2Result |> Result.get
@@ -224,7 +227,7 @@ let tests =
             let! addReservation = reservationService.AddReservationAsync (reservation, System.DateTime.Now)
             Expect.isOk addReservation "should be ok"
 
-            let! bookDetail3Result = bookService.GetBookDetailsAsync book.BookId
+            let! bookDetail3Result = detailsService.GetBookDetailsAsync book.BookId
             Expect.isOk bookDetail3Result "should be ok"
 
             let (bookDetail3: BookDetails) = bookDetail3Result |> Result.get
@@ -236,10 +239,9 @@ let tests =
         testCaseTask "should be able to add a reservation to a book and then retrieve the bookdetails containing the reservation async" <| fun _ -> task {
             setUp ()
             let bookService = getBookService()
-            let _ = getAuthorService()
+            let detailsService = getDetailsService()
             let reservationService = getReservationService()
             let loanService = getLoanService()
-            let _ = getUserService()
 
             let book = Book.New (Title.New "the constitution") [] [] [] None  Category.Other [] (Year.New 1924) (Isbn.NewEmpty()) None
             let! addBook = bookService.AddBookAsync book
@@ -255,7 +257,7 @@ let tests =
             let! addLoan = loanService.AddLoanAsync (loan, ShortLang.New "en", System.DateTime.Now)
             Expect.isOk addLoan "should be ok"
 
-            let! bookDetailResult = bookService.GetBookDetailsAsync book.BookId
+            let! bookDetailResult = detailsService.GetBookDetailsAsync book.BookId
             Expect.isOk bookDetailResult "should be ok"
 
             let (bookDetail: BookDetails) = bookDetailResult |> Result.get
@@ -267,7 +269,7 @@ let tests =
             let! releaseLoan = loanService.ReleaseLoanAsync(loan.LoanId, ShortLang.New "en", System.DateTime.Now)
             Expect.isOk releaseLoan "should be ok"
 
-            let! bookDetail2Result = bookService.GetBookDetailsAsync book.BookId
+            let! bookDetail2Result = detailsService.GetBookDetailsAsync book.BookId
             Expect.isOk bookDetail2Result "should be ok"
 
             let (bookDetail2: BookDetails) = bookDetail2Result |> Result.get
@@ -281,7 +283,7 @@ let tests =
             let! addReservation = reservationService.AddReservationAsync (reservation, System.DateTime.Now)
             Expect.isOk addReservation "should be ok"
 
-            let! bookDetail3Result = bookService.GetBookDetailsAsync book.BookId
+            let! bookDetail3Result = detailsService.GetBookDetailsAsync book.BookId
             Expect.isOk bookDetail3Result "should be ok"
 
             let (bookDetail3: BookDetails) = bookDetail3Result |> Result.get
@@ -293,10 +295,9 @@ let tests =
         testCaseTask "should be able to add more than one reservation to a book and then retrieve the bookdetails containing the reservations" <| fun _ -> task {
             setUp ()
             let bookService = getBookService()
-            let _ = getAuthorService()
+            let detailsService = getDetailsService()
             let reservationService = getReservationService()
             let loanService = getLoanService()
-            let _ = getUserService()
 
             let book = Book.New (Title.New "the constitution") [] [] [] None  Category.Other [] (Year.New 1924) (Isbn.NewEmpty()) None
             let! addBook = bookService.AddBookAsync book
@@ -313,7 +314,7 @@ let tests =
             let! addLoan = loanService.AddLoanAsync (loan, ShortLang.New "en", System.DateTime.Now)
             Expect.isOk addLoan "should be ok"
 
-            let! bookDetailResult = bookService.GetBookDetailsAsync book.BookId
+            let! bookDetailResult = detailsService.GetBookDetailsAsync book.BookId
             Expect.isOk bookDetailResult "should be ok"
 
             let (bookDetail: BookDetails) = bookDetailResult |> Result.get
@@ -325,7 +326,7 @@ let tests =
             let! releaseLoan = loanService.ReleaseLoanAsync(loan.LoanId, ShortLang.New "en", System.DateTime.Now)
             Expect.isOk releaseLoan "should be ok"
 
-            let! bookDetail2Result = bookService.GetBookDetailsAsync book.BookId
+            let! bookDetail2Result = detailsService.GetBookDetailsAsync book.BookId
             Expect.isOk bookDetail2Result "should be ok"
 
             let (bookDetail2: BookDetails) = bookDetail2Result |> Result.get
@@ -339,7 +340,7 @@ let tests =
             let! addReservation = reservationService.AddReservationAsync (reservation, System.DateTime.Now)
             Expect.isOk addReservation "should be ok"
 
-            let! bookDetail3Result = bookService.GetBookDetailsAsync book.BookId
+            let! bookDetail3Result = detailsService.GetBookDetailsAsync book.BookId
             Expect.isOk bookDetail3Result "should be ok"
 
             let (bookDetail3: BookDetails) = bookDetail3Result |> Result.get
@@ -353,7 +354,7 @@ let tests =
             let! addSecondReservation = reservationService.AddReservationAsync (secondReservation, System.DateTime.Now)
             Expect.isOk addSecondReservation "should be ok"
 
-            let! bookDetail4Result = bookService.GetBookDetailsAsync book.BookId
+            let! bookDetail4Result = detailsService.GetBookDetailsAsync book.BookId
             Expect.isOk bookDetail4Result "should be ok"
 
             let (bookDetail4: BookDetails) = bookDetail4Result |> Result.get
@@ -365,10 +366,9 @@ let tests =
         testCaseTask "should be able to add more than one reservation to a book and then retrieve the bookdetails containing the reservations async - Ok" <| fun _ -> task {
             setUp ()
             let bookService = getBookService()
-            let _ = getAuthorService()
+            let detailsService = getDetailsService()
             let reservationService = getReservationService()
             let loanService = getLoanService()
-            let _ = getUserService()
 
             let book = Book.New (Title.New "the constitution") [] [] [] None  Category.Other [] (Year.New 1924) (Isbn.NewEmpty()) None
             let! addBook = bookService.AddBookAsync book
@@ -385,7 +385,7 @@ let tests =
             let! addLoan = loanService.AddLoanAsync (loan, ShortLang.New "en", System.DateTime.Now)
             Expect.isOk addLoan "should be ok"
 
-            let! bookDetailResult = bookService.GetBookDetailsAsync book.BookId
+            let! bookDetailResult = detailsService.GetBookDetailsAsync book.BookId
             Expect.isOk bookDetailResult "should be ok"
 
             let (bookDetail: BookDetails) = bookDetailResult |> Result.get
@@ -397,7 +397,7 @@ let tests =
             let! releaseLoan = loanService.ReleaseLoanAsync(loan.LoanId, ShortLang.New "en", System.DateTime.Now)
             Expect.isOk releaseLoan "should be ok"
 
-            let! bookDetail2Result = bookService.GetBookDetailsAsync book.BookId
+            let! bookDetail2Result = detailsService.GetBookDetailsAsync book.BookId
             Expect.isOk bookDetail2Result "should be ok"
 
             let (bookDetail2: BookDetails) = bookDetail2Result |> Result.get
@@ -411,7 +411,7 @@ let tests =
             let! addReservation = reservationService.AddReservationAsync (reservation, System.DateTime.Now)
             Expect.isOk addReservation "should be ok"
 
-            let! bookDetail3Result = bookService.GetBookDetailsAsync book.BookId
+            let! bookDetail3Result = detailsService.GetBookDetailsAsync book.BookId
             Expect.isOk bookDetail3Result "should be ok"
 
             let (bookDetail3: BookDetails) = bookDetail3Result |> Result.get
@@ -425,7 +425,7 @@ let tests =
             let! addSecondReservation = reservationService.AddReservationAsync (secondReservation, System.DateTime.Now)
             Expect.isOk addSecondReservation "should be ok"
 
-            let! bookDetail4Result = bookService.GetBookDetailsAsync book.BookId
+            let! bookDetail4Result = detailsService.GetBookDetailsAsync book.BookId
             Expect.isOk bookDetail4Result "should be ok"
 
             let (bookDetail4: BookDetails) = bookDetail4Result |> Result.get
@@ -437,10 +437,8 @@ let tests =
         testCaseTask "cannot add a reservation that overlaps an existing reservation " <| fun _ -> task {
             setUp ()
             let bookService = getBookService()
-            let _ = getAuthorService()
+            let detailsService = getDetailsService()
             let reservationService = getReservationService()
-            let _ = getLoanService()
-            let _ = getUserService()
 
             let book = Book.New (Title.New "the constitution") [] [] [] None  Category.Other [] (Year.New 1924) (Isbn.NewEmpty()) None
             let! addBook = bookService.AddBookAsync book
@@ -455,7 +453,7 @@ let tests =
             let! addReservation = reservationService.AddReservationAsync (reservation, System.DateTime.Now)
             Expect.isOk addReservation "should be ok"
 
-            let! bookDetail3Result = bookService.GetBookDetailsAsync (book.BookId, CancellationToken.None)
+            let! bookDetail3Result = detailsService.GetBookDetailsAsync book.BookId
             Expect.isOk bookDetail3Result "should be ok"
 
             let (bookDetail3: BookDetails) = bookDetail3Result |> Result.get
@@ -473,14 +471,12 @@ let tests =
         testCaseTask "when there is no loan and no reservation the bookDetails should return a timeSlot that starts from now and ends in 30 days" <| fun _ -> task {
             setUp ()
             let bookService = getBookService()
-            let _ = getAuthorService()
-            let _ = getReservationService()
-            let _ = getLoanService()
+            let detailsService = getDetailsService()
             let book = Book.New (Title.New "the constitution") [] [] [] None  Category.Other [] (Year.New 1924) (Isbn.NewEmpty()) None
             let! addBook = bookService.AddBookAsync book
             Expect.isOk addBook "should be ok"
 
-            let! bookDetailResult = bookService.GetBookDetailsAsync book.BookId
+            let! bookDetailResult = detailsService.GetBookDetailsAsync book.BookId
             Expect.isOk bookDetailResult "should be ok"
 
             let (bookDetail: BookDetails) = bookDetailResult |> Result.get
@@ -557,7 +553,8 @@ let tests =
             setUp ()
             let bookService = getBookService()
             let reservationService = getReservationService()
-            let _ = getUserService()
+            let detailsService = getDetailsService()
+            let userService = getUserService()
 
             let book = Book.New (Title.New "the constitution") [] [] [] None  Category.Other [] (Year.New 1924) (Isbn.NewEmpty()) None
             let! addBook = bookService.AddBookAsync book
@@ -570,7 +567,8 @@ let tests =
             let! addReservation = reservationService.AddReservationAsync (reservation, System.DateTime.Now)
             Expect.isOk addReservation "should be ok"
 
-            let! reservationDetailsResult = (reservationService :> IReservationService).GetReservationDetailsAsync reservation.ReservationId
+            let! reservationDetailsResult = detailsService.GetReservationDetailsAsync(reservation.ReservationId)
+
             Expect.isOk reservationDetailsResult "should be ok"
 
             Expect.isTrue (reservationDetailsResult.OkValue.Reservation.ReservationId = reservation.ReservationId) "should contain the reservation"
@@ -582,8 +580,8 @@ let tests =
             setUp ()
             let bookService = getBookService()
             let reservationService = getReservationService()
+            let detailsService = getDetailsService()
             let loanService = getLoanService()
-            let _ = getUserService()
 
             let book = Book.New (Title.New "the constitution") [] [] [] None  Category.Other [] (Year.New 1924) (Isbn.NewEmpty()) None
             let! addBook = bookService.AddBookAsync book
@@ -596,7 +594,7 @@ let tests =
             let! addReservation = reservationService.AddReservationAsync (reservation, System.DateTime.Now)
             Expect.isOk addReservation "should be ok"
 
-            let! reservationDetailsResult = (reservationService :> IReservationService).GetReservationDetailsAsync reservation.ReservationId
+            let! reservationDetailsResult = detailsService.GetReservationDetailsAsync(reservation.ReservationId)
             Expect.isOk reservationDetailsResult "should be ok"
 
             Expect.isTrue (reservationDetailsResult.OkValue.Reservation.ReservationId = reservation.ReservationId) "should contain the reservation"
@@ -614,6 +612,7 @@ let tests =
             setUp ()
             let bookService = getBookService()
             let reservationService = getReservationService()
+            let detailsService = getDetailsService()
             let loanService = getLoanService()
             let _ = getUserService()
 
@@ -628,7 +627,7 @@ let tests =
             let! addReservation = reservationService.AddReservationAsync (reservation, System.DateTime.Now)
             Expect.isOk addReservation "should be ok"
 
-            let! reservationDetailsResult = (reservationService :> IReservationService).GetReservationDetailsAsync reservation.ReservationId
+            let! reservationDetailsResult = detailsService.GetReservationDetailsAsync(reservation.ReservationId)
             Expect.isOk reservationDetailsResult "should be ok"
 
             Expect.isTrue (reservationDetailsResult.OkValue.Reservation.ReservationId = reservation.ReservationId) "should contain the reservation"
@@ -644,7 +643,6 @@ let tests =
             let bookService = getBookService()
             let reservationService = getReservationService()
             let loanService = getLoanService()
-            let _ = getUserService()
 
             let book = Book.New (Title.New "the constitution") [] [] [] None  Category.Other [] (Year.New 1924) (Isbn.NewEmpty()) None
             let! addBook = bookService.AddBookAsync book
@@ -683,8 +681,7 @@ let tests =
             setUp ()
             let bookService = getBookService()
             let reservationService = getReservationService()
-            let loanService = getLoanService()
-            let _ = getUserService()
+            let detailsService = getDetailsService()
 
             let book = Book.New (Title.New "the constitution") [] [] [] None  Category.Other [] (Year.New 1924) (Isbn.NewEmpty()) None
             let! addBook = bookService.AddBookAsync book
@@ -697,7 +694,7 @@ let tests =
             let! addReservation = reservationService.AddReservationAsync (reservation, System.DateTime.Now)
             Expect.isOk addReservation "should be ok"
 
-            let! reservationDetailsResult = (reservationService :> IReservationService).GetReservationDetailsAsync reservation.ReservationId
+            let! reservationDetailsResult = detailsService.GetReservationDetailsAsync(reservation.ReservationId)
             Expect.isOk reservationDetailsResult "should be ok"
 
             Expect.isTrue (reservationDetailsResult.OkValue.Reservation.ReservationId = reservation.ReservationId) "should contain the reservation"
@@ -719,7 +716,7 @@ let tests =
             let bookService = getBookService()
             let reservationService = getReservationService()
             let loanService = getLoanService()
-            let _ = getUserService()
+            let detailsService = getDetailsService()
 
             let book = Book.New (Title.New "the constitution") [] [] [] None  Category.Other [] (Year.New 1924) (Isbn.NewEmpty()) None
             let! addBook = bookService.AddBookAsync book
@@ -732,7 +729,7 @@ let tests =
             let! addReservation = reservationService.AddReservationAsync (reservation, System.DateTime.Now)
             Expect.isOk addReservation "should be ok"
 
-            let! reservationDetailsResult = (reservationService :> IReservationService).GetReservationDetailsAsync reservation.ReservationId
+            let! reservationDetailsResult = detailsService.GetReservationDetailsAsync(reservation.ReservationId)
             Expect.isOk reservationDetailsResult "should be ok"
 
             Expect.isTrue (reservationDetailsResult.OkValue.Reservation.ReservationId = reservation.ReservationId) "should contain the reservation"
@@ -757,7 +754,7 @@ let tests =
             let bookService = getBookService()
             let reservationService = getReservationService()
             let loanService = getLoanService()
-            let _ = getUserService()
+            let detailsService = getDetailsService()
 
             let book = Book.New (Title.New "the constitution") [] [] [] None  Category.Other [] (Year.New 1924) (Isbn.NewEmpty()) None
             let! addBook = bookService.AddBookAsync book
@@ -770,7 +767,7 @@ let tests =
             let! addReservation = reservationService.AddReservationAsync (reservation, System.DateTime.Now)
             Expect.isOk addReservation "should be ok"
 
-            let! reservationDetailsResult = (reservationService :> IReservationService).GetReservationDetailsAsync reservation.ReservationId
+            let! reservationDetailsResult = detailsService.GetReservationDetailsAsync(reservation.ReservationId)
             Expect.isOk reservationDetailsResult "should be ok"
 
             Expect.isTrue (reservationDetailsResult.OkValue.Reservation.ReservationId = reservation.ReservationId) "should contain the reservation"
@@ -826,6 +823,7 @@ let tests =
             let bookService = getBookService()
             let reservationService = getReservationService()
             let loanService = getLoanService()
+            let detailsService = getDetailsService()
             let _ = getUserService()
 
             let book = Book.New (Title.New "the constitution") [] [] [] None  Category.Other [] (Year.New 1924) (Isbn.NewEmpty()) None
@@ -843,7 +841,7 @@ let tests =
             let! addReservation = reservationService.AddReservationAsync(reservation, now)
             Expect.isOk addReservation "should be ok"
 
-            let! reservationDetailsResult = (reservationService :> IReservationService).GetReservationDetailsAsync reservation.ReservationId
+            let! reservationDetailsResult = detailsService.GetReservationDetailsAsync(reservation.ReservationId)
             Expect.isOk reservationDetailsResult "should be ok"
 
             Expect.isTrue (reservationDetailsResult.OkValue.Reservation.ReservationId = reservation.ReservationId) "should contain the reservation"
@@ -864,6 +862,7 @@ let tests =
             let reservationService = getReservationService()
             let loanService = getLoanService()
             let userService = getUserService()
+            let detailsService = getDetailsService()
 
             let book = Book.New (Title.New "the constitution") [] [] [] None  Category.Other [] (Year.New 1924) (Isbn.NewEmpty()) None
             let! addBook = bookService.AddBookAsync book
@@ -876,7 +875,7 @@ let tests =
             let! addReservation = reservationService.AddReservationAsync (reservation, System.DateTime.Now)
             Expect.isOk addReservation "should be ok"
 
-            let! reservationDetailsResult = (reservationService :> IReservationService).GetReservationDetailsAsync reservation.ReservationId
+            let! reservationDetailsResult = detailsService.GetReservationDetailsAsync(reservation.ReservationId)
             Expect.isOk reservationDetailsResult "should be ok"
 
             Expect.isTrue (reservationDetailsResult.OkValue.Reservation.ReservationId = reservation.ReservationId) "should contain the reservation"

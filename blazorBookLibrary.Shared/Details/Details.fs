@@ -6,13 +6,15 @@ module Details =
     open BookLibrary.Domain
     open Commons
     open blazorBookLibrary.Data
+    open System.Threading.Tasks
 
     type UserDetails =
         {
             User: User
             ApplicationUser: ApplicationUser
             FutureReservations: List<Reservation*Book>
-            CurrentLoans: List<Loan*Book> 
+            CurrentLoans: List<Loan * Book> 
+            BooksAndReviews: List<Book * Review>
         }
         member this.HasReservedBook (bookId: BookId) =
             this.FutureReservations |> List.exists (fun (reservation, _) -> reservation.BookId = bookId)

@@ -116,6 +116,37 @@ let tests =
             let (userRetrieved: User) = userRetrievedResult |> Result.get
             Expect.isFalse (userRetrieved.CurrentLoans |> List.contains loan.LoanId) "should not contain the loan"
         }
-            
+
+        testCaseTask "loan a book and then release it. the book is in the history of loans - Ok" <| fun _ -> task {
+            setUp ()
+            let loanService = getLoanService()
+            let userService = getUserService()
+            let bookService = getBookService()
+            let book = Book.New (Title.New "the constitution") [] [] [] None  Category.Other [] (Year.New 1924) (Isbn.NewEmpty()) None
+            let! addBook = bookService.AddBookAsync book
+            Expect.isOk addBook "should be ok"
+            let! userId = registerUserTask "test@example.com" "Password123!"
+
+            let timeSlot = TimeSlot.New (System.DateTime.Now) (System.DateTime.Now.AddDays(timeSlotDurationInDays))
+            let loan = Loan.New book.BookId userId (System.DateTime.Now) timeSlot
+
+            let! addLoan = loanService.AddLoanAsync (loan, ShortLang.New "en", System.DateTime.Now)
+            Expect.isOk addLoan "should be ok"
+
+            let! releaseLoan = loanService.ReleaseLoanAsync (loan.LoanId, ShortLang.New "en", System.DateTime.Now)
+            Expect.isOk releaseLoan "should be ok"
+
+            let! bookRetrievedResult = bookService.GetBookAsync book.BookId
+            Expect.isOk bookRetrievedResult "should be ok"
+
+            let! userRetrievedResult = userService.GetUserAsync userId
+            Expect.isOk userRetrievedResult "should be ok"
+
+            let! loanHistoryResult = loanService.GetHistoryLoansOfUserAsync userId
+            Expect.isOk loanHistoryResult "should be ok"
+
+            let (loanHistory: list<Loan>) = loanHistoryResult |> Result.get
+            Expect.isTrue (loanHistory |> List.exists (fun l -> l.LoanId = loan.LoanId)) "should contain the loan"
+        }
     ]
     |> testSequenced

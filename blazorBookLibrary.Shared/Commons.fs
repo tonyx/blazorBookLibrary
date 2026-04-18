@@ -32,6 +32,14 @@ type BookId =
             match this with
             | BookId v -> v
 
+type ReviewId =
+    | ReviewId of Guid
+    with
+        static member New() = ReviewId(Guid.NewGuid())
+        member this.Value = 
+            match this with
+            | ReviewId v -> v
+
 type ReservationId =
     | ReservationId of Guid
     with
@@ -117,6 +125,17 @@ type PhoneNumber =
             match this with
             | InvalidPhoneNumber _ -> true
             | _ -> false
+
+type ApprovalStatus =
+    | Pending
+    | Approved of DateTime
+    | Rejected of DateTime
+    with
+        member this.Value = 
+            match this with
+            | Pending -> "Pending"
+            | Approved _ -> "Approved"
+            | Rejected _ -> "Rejected"
 
 type FiscalCode = 
     | FiscalCode of string

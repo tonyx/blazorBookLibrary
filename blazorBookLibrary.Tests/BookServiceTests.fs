@@ -170,6 +170,7 @@ let tests =
             let bookService = getBookService()
             let loanService = getLoanService()
             let userService = getUserService()
+            let detailsService = getDetailsService()
             let book = Book.New (Title.New "the constitution") [] [] [] None  Category.Other [] (Year.New 1924) (Isbn.NewEmpty()) None
             let! addBook = bookService.AddBookAsync book
             Expect.isOk addBook "should be ok"
@@ -188,7 +189,7 @@ let tests =
             let (bookRetrieved: Book) = retrieveBook |> Result.get
             Expect.isTrue (bookRetrieved.CurrentLoan |> Option.isNone) "should not contain the loan"
 
-            let! bookDetail = bookService.GetBookDetailsAsync book.BookId
+            let! bookDetail = detailsService.GetBookDetailsAsync book.BookId
             Expect.isOk bookDetail "should be ok"
 
             let (bookDetail: BookDetails) = bookDetail |> Result.get
@@ -203,6 +204,7 @@ let tests =
             let bookService = getBookService()
             let loanService = getLoanService()
             let userService = getUserService()
+            let detailsService = getDetailsService()
             let book = Book.New (Title.New "the constitution") [] [] [] None  Category.Other [] (Year.New 1924) (Isbn.NewEmpty()) None
             let! addBook = bookService.AddBookAsync book
             Expect.isOk addBook "should be ok"
@@ -218,7 +220,7 @@ let tests =
             let! addLoan = loanService.AddLoanAsync (loan, ShortLang.New "en", System.DateTime.Now)
             Expect.isOk addLoan "should be ok"
 
-            let! bookDetail = bookService.GetBookDetailsAsync book.BookId
+            let! bookDetail = detailsService.GetBookDetailsAsync book.BookId
             Expect.isOk bookDetail "should be ok"
 
             let (bookDetail: BookDetails) = bookDetail |> Result.get
@@ -230,7 +232,7 @@ let tests =
             let! releaseLoan = loanService.ReleaseLoanAsync (loan.LoanId, ShortLang.New "en", System.DateTime.Now)
             Expect.isOk releaseLoan "should be ok"
 
-            let! bookDetail2 = bookService.GetBookDetailsAsync book.BookId
+            let! bookDetail2 = detailsService.GetBookDetailsAsync book.BookId
             Expect.isOk bookDetail2 "should be ok"
 
             let (bookDetail2: BookDetails) = bookDetail2 |> Result.get
@@ -244,6 +246,7 @@ let tests =
             let bookService = getBookService()
             let loanService = getLoanService()
             let userService = getUserService()
+            let detailsService = getDetailsService()
             let book = Book.New (Title.New "the constitution") [] [] [] None  Category.Other [] (Year.New 1924) (Isbn.NewEmpty()) None
             let! addBook = bookService.AddBookAsync book
             Expect.isOk addBook "should be ok"
@@ -259,7 +262,7 @@ let tests =
             let! addLoan = loanService.AddLoanAsync (loan, ShortLang.New "en", System.DateTime.Now)
             Expect.isOk addLoan "should be ok"
 
-            let! bookDetail = bookService.GetBookDetailsAsync book.BookId
+            let! bookDetail = detailsService.GetBookDetailsAsync book.BookId
             Expect.isOk bookDetail "should be ok"
 
             let (bookDetail: BookDetails) = bookDetail |> Result.get
@@ -271,7 +274,7 @@ let tests =
             let! releaseLoan = loanService.ReleaseLoanAsync (loan.LoanId, ShortLang.New "en", System.DateTime.Now)
             Expect.isOk releaseLoan "should be ok"
 
-            let! bookDetail2 = bookService.GetBookDetailsAsync book.BookId
+            let! bookDetail2 = detailsService.GetBookDetailsAsync book.BookId
             Expect.isOk bookDetail2 "should be ok"
 
             let (bookDetail2: BookDetails) = bookDetail2 |> Result.get

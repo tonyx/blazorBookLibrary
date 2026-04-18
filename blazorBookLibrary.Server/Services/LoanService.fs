@@ -280,6 +280,18 @@ type LoanService
                         }
                 return result
             }
+    member this.GetHistoryLoansOfUserAsync (userId: UserId, ?ct: CancellationToken) = 
+        let ct = defaultArg ct CancellationToken.None
+        taskResult
+            {
+                let! loans = 
+                    StateView.getAllFilteredAggregateStatesAsync<Loan, LoanEvent, string> 
+                        (fun loan -> loan.UserId = userId)
+                        eventStore
+                        (ct |> Some)
+                    |> TaskResult.map (fun x -> x |> List.map snd)
+                return loans
+            }
 
     member this.TransformReservationIntoLoanAsync (reservationId: ReservationId, providedReservationCode: ReservationCode, shortLang: ShortLang, now: DateTime, ?ct: CancellationToken)= 
         let ct = defaultArg ct CancellationToken.None
@@ -358,25 +370,9 @@ type LoanService
         member this.GetLoansAsync (?ct: CancellationToken) =
             let ct = defaultArg ct CancellationToken.None
             this.GetLoansAsync ct
-        member this.GetLoanDetailsAsync (loanId: LoanId, ?ct: CancellationToken) =
-            taskResult
-                {
-                    let ct = defaultArg ct CancellationToken.None
-                    let! refreshableLoanDetails = 
-                        this.GetRefreshableLoanDetailsAsync (loanId, ct)
-                    return refreshableLoanDetails.LoanDetails
-                }
-        member this.GetLoansDetailsAsync (?ct: CancellationToken) =
-            taskResult
-                {
-                    let ct = defaultArg ct CancellationToken.None
-                    let! loans = (this :> ILoanService).GetLoansAsync ct
-                    let! details = 
-                        loans
-                        |> List.traverseTaskResultM (fun loan -> (this :> ILoanService).GetLoanDetailsAsync (loan.LoanId, ct))
-                    return details
-                }
-
+        member this.GetHistoryLoansOfUserAsync (userId: UserId, ?ct: CancellationToken) =
+            let ct = defaultArg ct CancellationToken.None
+            this.GetHistoryLoansOfUserAsync (userId, ct)
         member this.TransformReservationIntoLoanAsync (reservationId: ReservationId, providedReservationCode: ReservationCode, shortLang: ShortLang, now: DateTime, ?ct: CancellationToken) =
             let ct = defaultArg ct CancellationToken.None
             this.TransformReservationIntoLoanAsync (reservationId, providedReservationCode, shortLang, now, ct)

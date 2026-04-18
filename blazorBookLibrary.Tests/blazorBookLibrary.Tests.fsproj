@@ -19,6 +19,7 @@
     <Compile Include="GoogleBooksTests.fs" />
     <Compile Include="AuthorsSearchTests.fs" />
     <Compile Include="IsbnRegistryTests.fs" />
+    <Compile Include="ReviewsServiceTests.fs" />
     <Compile Include="Main.fs" />
   </ItemGroup>
 

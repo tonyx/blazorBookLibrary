@@ -14,6 +14,7 @@
 
 @attribute [Authorize(Roles = "Admin, Manager")]
 @inject ILoanService LoanService
+@inject IDetailsService DetailsService
 @inject IJSRuntime JSRuntime
 @inject IStringLocalizer<SharedResources> L
 @rendermode InteractiveServer
@@ -184,7 +185,8 @@
 
     private async Task LoadLoans()
     {
-        var result = await LoanService.GetLoansDetailsAsync();
+        @* var result = await LoanService.GetLoansDetailsAsync(); *@
+        var result = await DetailsService.GetAllLoansDetailsAsync();
         if (result.IsOk)
         {
             loanDetailsList = result.ResultValue.ToList();

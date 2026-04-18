@@ -13,6 +13,7 @@
 
 @attribute [Authorize(Roles = "Admin, Manager")]
 @inject IBookService BookService
+@inject IDetailsService DetailsService
 @inject IAuthorService AuthorService
 @inject IJSRuntime JSRuntime
 @inject NavigationManager NavigationManager
@@ -1238,7 +1239,7 @@
             if (Guid.TryParse(BookIdStr, out var guid))
             {
                 var bookId = BookId.NewBookId(guid);
-                var result = await BookService.GetBookDetailsAsync(bookId, FSharpOption<CancellationToken>.None);
+                var result = await DetailsService.GetBookDetailsAsync(bookId, FSharpOption<CancellationToken>.None);
 
                 if (result.IsOk)
                 {

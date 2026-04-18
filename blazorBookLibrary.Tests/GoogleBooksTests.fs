@@ -104,7 +104,7 @@ module GoogleBooksTests =
             }
 
             // service may be down
-            ftestCaseTask "can lookup cover image from Google API" <| fun _ -> task {
+            ptestCaseTask "can lookup cover image from Google API" <| fun _ -> task {
                 let isbnStr = "9780132350884" // Clean Code
                 let isbn = Isbn isbnStr
                 let! result = googleService.LookupGoogleApiCoverImageByIsbnAsync(isbn)

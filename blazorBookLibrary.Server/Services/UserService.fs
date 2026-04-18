@@ -35,9 +35,11 @@ type UserService
         reservationViewerAsync: AggregateViewerAsync2<Reservation>,
         loanViewerAsync: AggregateViewerAsync2<Loan>,
         userViewerAsync: AggregateViewerAsync2<User>,
+        reviewsViewerAsync: AggregateViewerAsync2<Review>,
+        reviewService: IReviewService,
         scopeFactory: IServiceScopeFactory)
     =
-    new (eventStore: IEventStore<string>, scopeFactory: IServiceScopeFactory) 
+    new (eventStore: IEventStore<string>, scopeFactory: IServiceScopeFactory, reviewService: IReviewService) 
         =
         let messageSenders = MessageSenders.NoSender
         let bookViewerAsync = getAggregateStorageFreshStateViewerAsync<Book, BookEvent, string> eventStore
@@ -46,6 +48,7 @@ type UserService
         let reservationViewerAsync = getAggregateStorageFreshStateViewerAsync<Reservation, ReservationEvent, string> eventStore
         let loanViewerAsync = getAggregateStorageFreshStateViewerAsync<Loan, LoanEvent, string> eventStore
         let userViewerAsync = getAggregateStorageFreshStateViewerAsync<User, UserEvent, string> eventStore
+        let reviewsViewerAsync = getAggregateStorageFreshStateViewerAsync<Review, ReviewEvent, string> eventStore
         UserService (
             eventStore,
             messageSenders,
@@ -55,19 +58,22 @@ type UserService
             reservationViewerAsync,
             loanViewerAsync,
             userViewerAsync,
+            reviewsViewerAsync,
+            reviewService,
             scopeFactory
         )    
 
-    new (configuration: IConfiguration, scopeFactory: IServiceScopeFactory, secretsReader: BookLibrary.Utils.SecretsReader)
+    new (configuration: IConfiguration, scopeFactory: IServiceScopeFactory, secretsReader: BookLibrary.Utils.SecretsReader, reviewService: IReviewService)
         =
         let connectionString = secretsReader.GetBookLibraryConnectionString ()
         let eventStore = PgStorage.PgEventStore connectionString
-        UserService(eventStore, scopeFactory)
+        UserService(eventStore, scopeFactory, reviewService)
 
     member this.MakeUserDetailsRefresher(id: UserId, ?ct: CancellationToken) = 
         fun () -> 
             use scope = scopeFactory.CreateScope()
             let userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>()
+
             taskResult 
                 {
                     let ct = ct |> Option.defaultValue CancellationToken.None
@@ -106,12 +112,16 @@ type UserService
                     let loansAndBooks =
                         List.zip currentLoans loansedBooks
 
+                    let! booksAndReviews =
+                        reviewService.GetReviewsOfUserAsync(id, ct)
+                        
                     return 
                         {
                             User = user
                             ApplicationUser = appUser
                             FutureReservations = reservationsAndBooks
                             CurrentLoans = loansAndBooks
+                            BooksAndReviews = booksAndReviews
                         }
                 }
                 |> Async.AwaitTask
@@ -210,6 +220,17 @@ type UserService
     member this.UnSetIsPhysicallyIdentifiedAsync (userId: UserId, ?ct: CancellationToken) : Task<Result<unit, string>> =
         this.UpdateAppUserPropertyAsync(userId, fun u -> u.IsIdentifiedPhysically <- false)
 
+    member this.AddReviewOfBookAsync (userId: UserId, bookId: BookId, comment: string, ?ct: CancellationToken) : Task<Result<unit, string>> =
+        let ct = defaultArg ct CancellationToken.None
+        taskResult
+            {
+                // let! userDetails = this.GetUserDetailsAsync(userId, ct)
+                // let! userHasLoanedBookInThePast =
+                //     userDetails.
+                return ()
+            }
+                
+
     interface IUserService with
         member this.CreateUserAsync (user: User, ?ct: CancellationToken) : Task<Result<unit, string>> =
             let ct = defaultArg ct CancellationToken.None
@@ -238,4 +259,7 @@ type UserService
         member this.UnSetIsPhysicallyIdentifiedAsync (userId: UserId, ?ct: CancellationToken) : Task<Result<unit, string>> =
             let ct = defaultArg ct CancellationToken.None
             this.UnSetIsPhysicallyIdentifiedAsync(userId, ct)
+        member this.AddReviewOfBookAsync (userId: UserId, bookId: BookId, comment: string, ?ct: CancellationToken) : Task<Result<unit, string>> =
+            let ct = defaultArg ct CancellationToken.None
+            this.AddReviewOfBookAsync(userId, bookId, comment, ct)
                  

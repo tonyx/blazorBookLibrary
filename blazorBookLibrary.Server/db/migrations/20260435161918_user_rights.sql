@@ -46,5 +46,12 @@ GRANT ALL ON SEQUENCE public.aggregate_events_01_MailQueue_id_seq to safe;
 GRANT ALL ON TABLE public.events_01_MailQueue to safe;
 GRANT ALL ON TABLE public.snapshots_01_MailQueue to safe;
 GRANT ALL ON SEQUENCE public.snapshots_01_MailQueue_id_seq to safe;
+
+GRANT ALL ON TABLE public.aggregate_events_01_Review TO safe;
+GRANT ALL ON SEQUENCE public.aggregate_events_01_Review_id_seq to safe;
+GRANT ALL ON TABLE public.events_01_Review to safe;
+GRANT ALL ON TABLE public.snapshots_01_Review to safe;
+GRANT ALL ON SEQUENCE public.snapshots_01_Review_id_seq to safe;
+
 -- migrate:down
 

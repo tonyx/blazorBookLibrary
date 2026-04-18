@@ -90,14 +90,16 @@ builder.Services.AddSingleton<IAuthorService, AuthorService>();
 builder.Services.AddSingleton<IReservationService, ReservationService>();
 builder.Services.AddSingleton<ILoanService, LoanService>();
 builder.Services.AddSingleton<IBookService, BookService>();
+builder.Services.AddSingleton<IReviewService, ReviewService>();
 builder.Services.AddSingleton<IGoogleBooksService, GoogleBooksService>();
-builder.Services.AddTransient<CleanUpService>();
 
 builder.Services.AddSingleton<IUserService, UserService>();
 builder.Services.AddHttpClient<IAuthorsSearchService, AuthorsSearchService>(client =>
 {
     client.DefaultRequestHeaders.Add("User-Agent", "BlazorBookLibrary/1.0");
 });
+
+builder.Services.AddTransient<CleanUpService>();
 builder.Services.AddHttpClient();
 
 builder.Services.AddScoped<RandomAuthorGeneratorService>();
@@ -111,6 +113,8 @@ builder.Services.Configure<IdentityPasskeyOptions>(options =>
 });
 
 builder.Services.AddSingleton<IEmailSender<ApplicationUser>, IdentityNoOpEmailSender>();
+
+builder.Services.AddSingleton<IDetailsService, DetailsService>();
 
 builder.Services.AddHostedService<MailResenderScheduler>();
 builder.Services.AddHostedService<ExpiredReservationsRemovalScheduler>();

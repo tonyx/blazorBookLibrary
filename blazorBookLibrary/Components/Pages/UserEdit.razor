@@ -14,6 +14,7 @@
 
 @attribute [Authorize(Roles = "Admin, Manager")]
 @inject IUserService UserService
+@inject IDetailsService DetailsService
 @inject UserManager<ApplicationUser> UserManager
 @inject IJSRuntime JSRuntime
 @inject NavigationManager NavigationManager
@@ -300,7 +301,8 @@
             if (Guid.TryParse(UserIdStr, out var guid))
             {
                 var sharpinoUserId = UserId.NewUserId(guid);
-                var result = await UserService.GetUserDetailsAsync(sharpinoUserId, FSharpOption<System.Threading.CancellationToken>.None);
+                @* var result = await UserService.GetUserDetailsAsync(sharpinoUserId, FSharpOption<System.Threading.CancellationToken>.None); *@
+                var result = await DetailsService.GetUserDetailsAsync(sharpinoUserId, FSharpOption<System.Threading.CancellationToken>.None);
 
                 if (result.IsOk)
                 {

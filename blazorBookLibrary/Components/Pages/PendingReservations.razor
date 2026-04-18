@@ -13,6 +13,7 @@
 
 @attribute [Authorize(Roles = "Admin, Manager")]
 @inject IReservationService ReservationService
+@inject IDetailsService DetailsService
 @inject ILoanService LoanService
 @inject IConfiguration Configuration
 @inject IStringLocalizer<SharedResources> L
@@ -218,7 +219,7 @@
         isLoading = true;
         try
         {
-            var result = await ReservationService.GetAllPendingReservationsDetailsAsync(Microsoft.FSharp.Core.FSharpOption<CancellationToken>.None);
+            var result = await DetailsService.GetAllPendingReservationsDetailsAsync(Microsoft.FSharp.Core.FSharpOption<CancellationToken>.None);
             if (result.IsOk)
             {
                 pendingReservations = result.ResultValue.ToList();

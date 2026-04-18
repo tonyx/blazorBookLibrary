@@ -15,6 +15,7 @@
 @inject NavigationManager NavigationManager
 @inject IStringLocalizer<SharedResources> L
 @inject IJSRuntime JSRuntime
+@inject IDetailsService DetailsService
 @rendermode InteractiveServer
 
 <PageTitle>@L["AuthorDetails"]</PageTitle>
@@ -651,7 +652,7 @@
             if (Guid.TryParse(AuthorIdStr, out var guid))
             {
                 var authorId = AuthorId.NewAuthorId(guid);
-                var result = await AuthorService.GetAuthorDetailsAsync(authorId);
+                var result = await DetailsService.GetAuthorDetailsAsync(authorId);
 
                 if (result.IsOk)
                 {
