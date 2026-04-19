@@ -1,0 +1,334 @@
+@page "/add-review/{bookIdGuid:guid}"
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Identity
+@using BookLibrary.Shared.Services
+@using BookLibrary.Domain
+@using BookLibrary.Shared
+@using System.Globalization
+@using static BookLibrary.Shared.Details
+@using blazorBookLibrary.Shared.Resources
+@using blazorBookLibrary.Security
+@using blazorBookLibrary.Data
+@using Microsoft.Extensions.Localization
+@using Microsoft.FSharp.Collections
+@using static BookLibrary.Shared.Commons
+
+@attribute [Authorize]
+@inject IReviewService ReviewService
+@inject IBookService BookService
+@inject IDetailsService DetailsService
+@inject NavigationManager NavigationManager
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject BotScoreService BotScoreService
+@inject ILogger<AddReview> Logger
+@inject IConfiguration Configuration
+@inject IJSRuntime JSRuntime
+@inject IStringLocalizer<SharedResources> L
+@rendermode InteractiveServer
+
+<PageTitle>@L["WriteYourReview"] — @L["TheModernArchivist"]</PageTitle>
+
+<div class="sanctuary-container py-5">
+    @if (isLoading)
+    {
+        <div class="d-flex justify-content-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">@L["Loading"]...</span>
+            </div>
+        </div>
+    }
+    else if (!isAllowed)
+    {
+        <div class="alert alert-danger shadow-sm border-0 rounded-xl p-4 animate-fade-in">
+            <div class="d-flex align-items-center gap-3">
+                <i class="bi bi-exclamation-octagon-fill h2 mb-0"></i>
+                <div>
+                    <h4 class="alert-heading mb-1">@L["AccessDenied"]</h4>
+                    <p class="mb-0">@(string.IsNullOrEmpty(errorMessage) ? L["LoanRequiredToReview"] : errorMessage)</p>
+                </div>
+            </div>
+            <hr>
+            <div class="d-flex justify-content-end">
+                <button class="btn btn-outline-danger" @onclick="GoBack">@L["Back"]</button>
+            </div>
+        </div>
+    }
+    else if (book == null)
+    {
+        <div class="alert alert-warning">@L["BookNotFound"]</div>
+    }
+    else
+    {
+        <div class="animate-fade-in">
+            <div class="mb-5">
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb">
+                        <li class="breadcrumb-item"><a href="/" class="text-decoration-none text-muted">@L["Home"]</a></li>
+                        <li class="breadcrumb-item"><a href="/book-view/@bookIdGuid" class="text-decoration-none text-muted">@book.Title.Value</a></li>
+                        <li class="breadcrumb-item active text-serif" aria-current="page">@L["AddReview"]</li>
+                    </ol>
+                </nav>
+                <h1 class="display-5 text-serif mb-2">@string.Format(L["ReviewTitle"], book.Title.Value)</h1>
+                <p class="text-muted italic">@L["ShareYourThoughtsWithTheCommunity"]</p>
+            </div>
+
+            <div class="row g-5">
+                <div class="col-lg-8">
+                    <div class="card-sanctuary p-4 p-md-5">
+                        <div class="mb-4">
+                            <label for="reviewComment" class="form-label fw-bold text-serif h5 mb-3">@L["WriteYourReview"]</label>
+                            <textarea id="reviewComment" 
+                                      class="form-control review-textarea" 
+                                      rows="10" 
+                                      @bind="comment" 
+                                      placeholder="@L["ReviewPlaceholder"]"
+                                      disabled="@isSubmitting"></textarea>
+                            <div class="form-text mt-2 italic small">
+                                <i class="bi bi-info-circle me-1"></i>
+                                @L["EmoticonsSupportedTip"]
+                            </div>
+                        </div>
+
+                        @if (!string.IsNullOrEmpty(errorMessage))
+                        {
+                            <div class="alert alert-danger mb-4">@errorMessage</div>
+                        }
+
+                        <div class="d-flex flex-wrap gap-3 mt-5">
+                            <button class="btn btn-success px-4 py-2 shadow-sm" 
+                                    @onclick="SubmitOrdinary" 
+                                    disabled="@(isSubmitting || string.IsNullOrWhiteSpace(comment))">
+                                <i class="bi bi-send-fill me-2"></i> @L["SubmitReview"]
+                            </button>
+                            <button class="btn btn-outline-neutral px-4 py-2 shadow-sm" 
+                                    @onclick="SubmitHidden" 
+                                    disabled="@(isSubmitting || string.IsNullOrWhiteSpace(comment))">
+                                <i class="bi bi-eye-slash-fill me-2"></i> @L["SaveAsDraft"]
+                            </button>
+                            <button class="btn btn-link text-muted ms-auto" @onclick="GoBack" disabled="@isSubmitting">@L["Cancel"]</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-4">
+                    <div class="card-sanctuary p-4 bg-surface-low border-0">
+                        <h4 class="h5 text-serif mb-4">@L["BookDetails"]</h4>
+                        <div class="d-flex gap-3 mb-4">
+                            @if (book.ImageUrl != null && Microsoft.FSharp.Core.FSharpOption<Uri>.get_IsSome(book.ImageUrl))
+                            {
+                                <img src="@book.ImageUrl.Value" class="rounded shadow shadow-hover" style="width: 80px; height: 120px; object-fit: cover;" />
+                            }
+                            else
+                            {
+                                <div class="bg-surface-neutral rounded d-flex align-items-center justify-content-center" style="width: 80px; height: 120px;">
+                                    <i class="bi bi-book text-muted opacity-50 h2"></i>
+                                </div>
+                            }
+                            <div>
+                                <div class="fw-bold">@book.Title.Value</div>
+                                <div class="small text-muted mb-2">@book.Year.Value</div>
+                                <span class="badge-sanctuary badge-neutral px-2 py-1 small">@book.MainCategory.Value()</span>
+                            </div>
+                        </div>
+                        <div class="small text-muted italic p-3 bg-surface-container rounded-lg">
+                            <i class="bi bi-shield-check me-2"></i>
+                            @L["ReviewVerificationNotice"]
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+<style>
+    .review-textarea {
+        border: 2px solid var(--surface-neutral);
+        border-radius: 12px;
+        padding: 1.5rem;
+        font-family: var(--font-serif), serif;
+        font-size: 1.1rem;
+        line-height: 1.6;
+        background-color: var(--surface-low);
+        transition: all 0.3s ease;
+    }
+
+    .review-textarea:focus {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 0.25rem var(--primary-low);
+        background-color: var(--surface);
+    }
+
+    .review-textarea::placeholder {
+        color: var(--text-muted);
+        opacity: 0.5;
+        font-style: italic;
+    }
+
+    .btn-outline-neutral {
+        border: 1px solid var(--surface-neutral);
+        color: var(--text-main);
+    }
+
+    .btn-outline-neutral:hover {
+        background-color: var(--surface-neutral);
+    }
+</style>
+
+@code {
+    [Parameter] public Guid bookIdGuid { get; set; }
+    
+    private Book? book;
+    private string comment = "";
+    private bool isLoading = true;
+    private bool isAllowed = false;
+    private bool isSubmitting = false;
+    private string errorMessage = "";
+    private UserId? currentUserId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await InitializePage();
+    }
+
+    private async Task InitializePage()
+    {
+        try 
+        {
+            isLoading = true;
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+
+            if (user.Identity?.IsAuthenticated != true)
+            {
+                NavigationManager.NavigateTo($"Account/Login?returnUrl={Uri.EscapeDataString(NavigationManager.Uri)}");
+                return;
+            }
+
+            var userIdStr = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdStr) || !Guid.TryParse(userIdStr, out var userGuid))
+            {
+                NavigationManager.NavigateTo("/");
+                return;
+            }
+
+            currentUserId = UserId.NewUserId(userGuid);
+            var reviewSystemEnabled = Configuration.GetValue<bool>("BooksLibrary:ReviewSytemEnabled");
+            if (!reviewSystemEnabled)
+            {
+                isAllowed = false;
+                errorMessage = L["ReviewSystemDisabled"];
+                isLoading = false;
+                return;
+            }
+
+            var bookId = BookId.NewBookId(bookIdGuid);
+
+            // Check if user has loaned the book at least once
+            var loanCheckResult = await BookService.LoanedByUserAtLeastOnceAsync(bookId, currentUserId, CancellationToken.None);
+            if (loanCheckResult.IsError || !loanCheckResult.ResultValue)
+            {
+                isAllowed = false;
+                isLoading = false;
+                return;
+            }
+
+            // Check if user already has an approved review
+            var userDetailsResult = await DetailsService.GetUserDetailsAsync(currentUserId, CancellationToken.None);
+            if (userDetailsResult.IsOk && userDetailsResult.ResultValue.HasAnApprovedReviewOfBook(bookId))
+            {
+                isAllowed = false;
+                errorMessage = L["AlreadyHasApprovedReview"];
+                isLoading = false;
+                return;
+            }
+
+            isAllowed = true;
+
+            // Fetch book details
+            var bookResult = await BookService.GetBookAsync(bookId, CancellationToken.None);
+            if (bookResult.IsOk)
+            {
+                book = bookResult.ResultValue;
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.Message;
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task SubmitOrdinary()
+    {
+        await SaveReview(false);
+    }
+
+    private async Task SubmitHidden()
+    {
+        await SaveReview(true);
+    }
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        var siteKey = Configuration["Authentication:Recaptcha:SiteKey"];
+        if (siteKey is null)
+            {
+                Logger.LogWarning("Recaptcha SiteKey is not configured");
+                return;
+            }
+        if (firstRender)
+        {
+            var token = await JSRuntime.InvokeAsync<string>("generateRecaptchaToken", siteKey, "book_view");
+            var score = await BotScoreService.GetBotScoreAsync(token);
+            if (score < 0.7) 
+            {
+                Logger.LogInformation($"suspect bot interaction. Score: {score}");
+                await BotScoreService.ApplyBotDelayAsync(score);
+            }
+        }
+    }
+
+    private async Task SaveReview(bool isHidden)
+    {
+        if (currentUserId == null || book == null) return;
+
+        isSubmitting = true;
+        errorMessage = "";
+
+        try
+        {
+            var bookId = BookId.NewBookId(bookIdGuid);
+            var review = isHidden 
+                ? Review.NewHidden(bookId, currentUserId, comment, DateTime.UtcNow)
+                : Review.New(bookId, currentUserId, comment, DateTime.UtcNow);
+
+            var result = await ReviewService.AddReviewAsync(review, CancellationToken.None);
+            if (result.IsOk)
+            {
+                var notice = isHidden ? L["ReviewHiddenNotice"] : L["ReviewPendingNotice"];
+                await JSRuntime.InvokeVoidAsync("alert", notice.Value);
+                NavigationManager.NavigateTo($"/book-view/{bookIdGuid}");
+            }
+            else
+            {
+                errorMessage = result.ErrorValue;
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.Message;
+        }
+        finally
+        {
+            isSubmitting = false;
+        }
+    }
+
+    private void GoBack()
+    {
+        NavigationManager.NavigateTo($"/book-view/{bookIdGuid}");
+    }
+}

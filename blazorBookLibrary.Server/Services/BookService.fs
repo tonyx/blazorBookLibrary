@@ -816,6 +816,19 @@ type BookService
                         return booksWithId |> List.ofSeq |> List.map snd
                     }
 
+            member this.LoanedByUserAtLeastOnceAsync (bookId: BookId, userId: UserId, ?ct: CancellationToken) = 
+                let ct = defaultArg ct CancellationToken.None
+                taskResult
+                    {
+                        let! loans =
+                            StateView.getAllFilteredAggregateStatesAsync<Loan, LoanEvent, string> 
+                                (fun loan -> loan.BookId = bookId && loan.UserId = userId && loan.LoanStatus.IsReturned)
+                                eventStore
+                                (Some ct)
+                            |> TaskResult.map (fun x -> x |> List.ofSeq |> List.map snd)
+                        return not loans.IsEmpty
+                    }
+
         interface IBookService with                
             member this.AddAuthorToBookAsync(authorId: AuthorId, bookId: BookId, ?ct: CancellationToken ) =
                 let ct = defaultArg ct CancellationToken.None
@@ -961,8 +974,11 @@ type BookService
             member this.SetAvailabilityAsync(availability: Availability, bookId: BookId, ?ct: CancellationToken) = 
                 let ct = defaultArg ct CancellationToken.None
                 this.SetAvailabilityAsync(availability, bookId, ct)
-
             member this.BulkEditAsync(bookIds: List<BookId>, editCriteria: BulkBookEdit, ?ct: CancellationToken) = 
                 let ct = defaultArg ct CancellationToken.None
                 this.BulkEditAsync(bookIds, editCriteria, ct)
+            member this.LoanedByUserAtLeastOnceAsync(bookId: BookId, userId: UserId, ?ct: CancellationToken) = 
+                let ct = defaultArg ct CancellationToken.None
+                this.LoanedByUserAtLeastOnceAsync(bookId, userId, ct)
+                
                     

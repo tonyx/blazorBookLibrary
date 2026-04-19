@@ -751,4 +751,70 @@
   <data name="Release" xml:space="preserve">
     <value>Release</value>
   </data>
+  <data name="AddReview" xml:space="preserve">
+    <value>Add Review</value>
+  </data>
+  <data name="ReviewRestrictionMessage" xml:space="preserve">
+    <value>You must have borrowed this book at least once to leave a review.</value>
+  </data>
+  <data name="ReviewsManagement" xml:space="preserve"><value>Reviews Management</value></data>
+  <data name="ManageAndModerateReviews" xml:space="preserve"><value>Monitor and moderate patron reviews across the collection.</value></data>
+  <data name="Approve" xml:space="preserve"><value>Approve</value></data>
+  <data name="Reject" xml:space="preserve"><value>Reject</value></data>
+  <data name="Reviewer" xml:space="preserve"><value>Reviewer</value></data>
+  <data name="ErrorLoadingReviews" xml:space="preserve"><value>Error loading reviews: {0}</value></data>
+  <data name="ApproveSuccess" xml:space="preserve"><value>Review approved successfully.</value></data>
+  <data name="RejectSuccess" xml:space="preserve"><value>Review rejected successfully.</value></data>
+  <data name="TotalReviews" xml:space="preserve"><value>Total Reviews</value></data>
+  <data name="Approved" xml:space="preserve"><value>Approved</value></data>
+  <data name="Rejected" xml:space="preserve"><value>Rejected</value></data>
+  <data name="Pending" xml:space="preserve"><value>Pending</value></data>
+  <data name="ReviewModeration" xml:space="preserve"><value>Review Moderation</value></data>
+  <data name="Moderation" xml:space="preserve"><value>Moderation</value></data>
+  <data name="BackToLedger" xml:space="preserve"><value>Back to Ledger</value></data>
+  <data name="Context" xml:space="preserve"><value>Context</value></data>
+  <data name="ModerationStatus" xml:space="preserve"><value>Moderation Status</value></data>
+  <data name="ApproveReview" xml:space="preserve"><value>Approve Review</value></data>
+  <data name="RejectReview" xml:space="preserve"><value>Reject Review</value></data>
+  <data name="PatronReview" xml:space="preserve"><value>Patron Review</value></data>
+  <data name="ModerationGuidelineTip" xml:space="preserve"><value>Reviews should follow community guidelines. Approving a review makes it visible to all patrons on the book page.</value></data>
+  <data name="ReviewAndModeratePatronFeedback" xml:space="preserve"><value>Carefully review the feedback provided by patrons to ensure it aligns with library standards.</value></data>
+  <data name="ErrorLoadingReview" xml:space="preserve"><value>Error loading review details: {0}</value></data>
+  <data name="Date" xml:space="preserve"><value>Date</value></data>
+  <data name="WriteYourReview" xml:space="preserve"><value>Write Your Review</value></data>
+  <data name="SubmitReview" xml:space="preserve"><value>Submit for Approval</value></data>
+  <data name="SaveAsDraft" xml:space="preserve"><value>Save as Draft (Hidden)</value></data>
+  <data name="ReviewPlaceholder" xml:space="preserve"><value>Share your thoughts about this book... (emoticons welcome! 😊)</value></data>
+  <data name="LoanRequiredToReview" xml:space="preserve"><value>Access Denied: You must have borrowed this book at least once to leave a review.</value></data>
+  <data name="ReviewHiddenNotice" xml:space="preserve"><value>Your review has been saved in a hidden state. You can edit it later and submit it for approval whenever you're ready.</value></data>
+  <data name="ReviewPendingNotice" xml:space="preserve"><value>Thank you! Your review has been submitted. It will be reviewed by our archivists and published soon.</value></data>
+  <data name="ReviewDraftSuccess" xml:space="preserve"><value>Draft saved successfully.</value></data>
+  <data name="ReviewSubmitSuccess" xml:space="preserve"><value>Review submitted successfully.</value></data>
+  <data name="ReviewTitle" xml:space="preserve"><value>Review for {0}</value></data>
+  <data name="EditReview" xml:space="preserve"><value>Edit Review</value></data>
+  <data name="Hide" xml:space="preserve"><value>Hide</value></data>
+  <data name="Show" xml:space="preserve"><value>Show</value></data>
+  <data name="UnsavedChangesWarning" xml:space="preserve"><value>You have unsaved changes. Are you sure you want to leave?</value></data>
+  <data name="ReviewSavedSuccessfully" xml:space="preserve"><value>Review updated successfully.</value></data>
+  <data name="Information" xml:space="preserve"><value>Information</value></data>
+  <data name="LastUpdated" xml:space="preserve"><value>Last Updated</value></data>
+  <data name="SaveChanges" xml:space="preserve"><value>Save Changes</value></data>
+  <data name="Visible" xml:space="preserve"><value>Visible</value></data>
+  <data name="ToggleVisibility" xml:space="preserve"><value>Toggle Visibility</value></data>
+  <data name="HiddenStatusInfo" xml:space="preserve"><value>This review is currently hidden. Only you can see it. You must hide a review to edit its content.</value></data>
+  <data name="VisibleStatusInfo" xml:space="preserve"><value>This review is currently visible. Hide it if you wish to make further edits.</value></data>
+  <data name="CannotEditVisibleReview" xml:space="preserve"><value>Reviews must be hidden before they can be edited.</value></data>
+  <data name="ShareYourThoughtsWithTheCommunity" xml:space="preserve"><value>Your insights help other archivists and patrons discover the magic within these pages.</value></data>
+  <data name="EmoticonsSupportedTip" xml:space="preserve"><value>Rich text is supported, including emoticons (😊, 📚, ✨).</value></data>
+  <data name="BookDetails" xml:space="preserve"><value>Book Details</value></data>
+  <data name="ReviewVerificationNotice" xml:space="preserve"><value>Verified reviews are only allowed for patrons who have previously borrowed the physical copy from our sanctuary.</value></data>
+  <data name="AlreadyHasApprovedReview" xml:space="preserve"><value>Access Denied: You have already submitted an approved review for this book. Each patron is limited to one published review per title.</value></data>
+  <data name="EditYourReview" xml:space="preserve"><value>Edit Your Review</value></data>
+  <data name="PatronReflections" xml:space="preserve"><value>Patron Reflections</value></data>
+  <data name="ShowReviews" xml:space="preserve"><value>Read Patron Reviews</value></data>
+  <data name="HideReviews" xml:space="preserve"><value>Hide Reviews</value></data>
+  <data name="NextReview" xml:space="preserve"><value>Next</value></data>
+  <data name="PreviousReview" xml:space="preserve"><value>Previous</value></data>
+  <data name="ReviewsDisclaimer" xml:space="preserve"><value>Note: Reviews are submitted by patrons and reflect their personal opinions only.</value></data>
+  <data name="ReviewBy" xml:space="preserve"><value>Review by {0}</value></data>
 </root>

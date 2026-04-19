@@ -355,7 +355,7 @@
                                 <!-- Main -->
                                 <span class="badge-sanctuary badge-neutral p-2 d-flex align-items-center @((bookDetails?.Book.Editable ?? false) ? "clickable" : "")" @onclick="StartEditCategory">
                                     <i class="bi bi-bookmark-fill me-2 opacity-50"></i>
-                                    @bookDetails.Book.MainCategory.Value()
+                                    @bookDetails!.Book.MainCategory.Value()
                                     @if (bookDetails.Book.Editable) { <i class="bi bi-pencil-fill ms-2 ps-2 border-start x-small"></i> }
                                 </span>
                                 <!-- Additions -->

@@ -102,3 +102,21 @@ module Details =
         interface Refreshable<RefreshableLoanDetails> with
             member this.Refresh () =
                 this.Refresh ()
+
+    type RefreshableReviewDetails =
+        {
+            ReviewDetails: ReviewDetails
+            Refresher: unit -> Result<ReviewDetails, string>
+        }
+        member this.Refresh () =
+            result {
+                let! reviewDetails = this.Refresher ()
+                return 
+                    { 
+                        this with
+                            ReviewDetails = reviewDetails 
+                    }
+            }
+        interface Refreshable<RefreshableReviewDetails> with
+            member this.Refresh () =
+                this.Refresh ()

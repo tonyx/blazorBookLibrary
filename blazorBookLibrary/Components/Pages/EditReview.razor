@@ -1,0 +1,352 @@
+@page "/edit-review/{reviewIdGuid:guid}"
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Identity
+@using BookLibrary.Shared.Services
+@using BookLibrary.Domain
+@using BookLibrary.Shared
+@using System.Globalization
+@using static BookLibrary.Shared.Details
+@using blazorBookLibrary.Shared.Resources
+@using blazorBookLibrary.Data
+@using blazorBookLibrary.Security
+@using Microsoft.Extensions.Localization
+@using Microsoft.FSharp.Collections
+@using static BookLibrary.Shared.Commons
+@using Microsoft.AspNetCore.Components.Routing
+
+@attribute [Authorize]
+@inject IReviewService ReviewService
+@inject IBookService BookService
+@inject IDetailsService DetailsService
+@inject NavigationManager NavigationManager
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject BotScoreService BotScoreService
+@inject Logger<AddReview> Logger
+@inject IConfiguration Configuration
+@inject IJSRuntime JSRuntime
+@inject IStringLocalizer<SharedResources> L
+@rendermode InteractiveServer
+
+<PageTitle>@L["EditReview"] — @L["TheModernArchivist"]</PageTitle>
+
+<NavigationLock ConfirmExternalNavigation="@hasUnsavedChanges" 
+                OnBeforeInternalNavigation="ConfirmInternalNavigation" />
+
+<div class="sanctuary-container py-5">
+    @if (isLoading)
+    {
+        <div class="d-flex justify-content-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">@L["Loading"]...</span>
+            </div>
+        </div>
+    }
+    else if (reviewDetails == null)
+    {
+        <div class="alert alert-warning animate-fade-in">@L["ReviewNotFound"]</div>
+    }
+    else
+    {
+        <div class="animate-fade-in">
+            <div class="mb-5">
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb">
+                        <li class="breadcrumb-item"><a href="/" class="text-decoration-none text-muted">@L["Home"]</a></li>
+                        <li class="breadcrumb-item"><a href="/book-view/@reviewDetails.Book.BookId.Value" class="text-decoration-none text-muted">@reviewDetails.Book.Title.Value</a></li>
+                        <li class="breadcrumb-item active text-serif" aria-current="page">@L["EditReview"]</li>
+                    </ol>
+                </nav>
+                <h1 class="display-5 text-serif mb-2">@L["EditReview"]</h1>
+                <p class="text-muted italic">@reviewDetails.Book.Title.Value</p>
+            </div>
+
+            <div class="row g-5">
+                <div class="col-lg-8">
+                    <div class="card-sanctuary p-4 p-md-5">
+                        <div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom">
+                            <h3 class="h5 text-serif mb-0">@L["Content"]</h3>
+                            <div class="d-flex align-items-center gap-3">
+                                @if (reviewDetails.Review.Hidden)
+                                {
+                                    <span class="badge-sanctuary badge-neutral px-2 py-1 small">
+                                        <i class="bi bi-eye-slash me-1"></i> @L["Hidden"]
+                                    </span>
+                                    <button class="btn btn-sm btn-outline-success shadow-sm" @onclick="ShowReview" disabled="@isSubmitting">
+                                        <i class="bi bi-eye me-1"></i> @L["Show"]
+                                    </button>
+                                }
+                                else
+                                {
+                                    <span class="badge-sanctuary badge-success px-2 py-1 small">
+                                        <i class="bi bi-eye me-1"></i> @L["Visible"]
+                                    </span>
+                                    <button class="btn btn-sm btn-outline-neutral shadow-sm" @onclick="HideReview" disabled="@isSubmitting">
+                                        <i class="bi bi-eye-slash me-1"></i> @L["Hide"]
+                                    </button>
+                                }
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            @if (!reviewDetails.Review.Hidden)
+                            {
+                                <div class="alert alert-info small mb-3 animate-fade-in">
+                                    <i class="bi bi-info-circle me-2"></i> @L["CannotEditVisibleReview"]
+                                </div>
+                            }
+                            
+                            <textarea id="reviewComment" 
+                                      class="form-control review-textarea" 
+                                      rows="10" 
+                                      @bind="editedComment" 
+                                      @bind:event="oninput"
+                                      placeholder="@L["ReviewPlaceholder"]"
+                                      disabled="@(!reviewDetails.Review.Hidden || isSubmitting)"></textarea>
+                        </div>
+
+                        @if (!string.IsNullOrEmpty(errorMessage))
+                        {
+                            <div class="alert alert-danger mb-4">@errorMessage</div>
+                        }
+
+                        <div class="d-flex flex-wrap gap-3 mt-5">
+                            <button class="btn btn-primary px-4 py-2 shadow-sm" 
+                                    @onclick="SaveReview" 
+                                    disabled="@(!hasUnsavedChanges || isSubmitting || !reviewDetails.Review.Hidden)">
+                                <i class="bi bi-save-fill me-2"></i> @L["SaveChanges"]
+                            </button>
+                            <button class="btn btn-link text-muted ms-auto" @onclick="GoBack" disabled="@isSubmitting">@L["Cancel"]</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-4">
+                    <div class="card-sanctuary p-4 bg-surface-low border-0">
+                        <h4 class="h5 text-serif mb-4">@L["Information"]</h4>
+                        
+                        <div class="mb-4">
+                            <label class="small text-muted text-uppercase fw-bold letter-spacing-1 d-block mb-1">@L["Status"]</label>
+                            @{
+                                var status = reviewDetails.Review.ApprovalStatus;
+                                var badgeClass = status.IsApproved ? "badge-success" : (status.IsRejected ? "badge-danger" : "badge-warning");
+                                var statusLabel = status.IsApproved ? L["Approved"] : (status.IsRejected ? L["Rejected"] : L["Pending"]);
+                            }
+                            <span class="badge-sanctuary @badgeClass px-2 py-1">@statusLabel</span>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="small text-muted text-uppercase fw-bold letter-spacing-1 d-block mb-1">@L["LastUpdated"]</label>
+                            <div class="small">@reviewDetails.Review.Date.ToLocalTime().ToString("f")</div>
+                        </div>
+
+                        <div class="p-3 bg-surface-container rounded-lg small italic text-muted">
+                            <i class="bi bi-lightbulb me-2"></i>
+                            @(reviewDetails.Review.Hidden ? L["HiddenStatusInfo"] : L["VisibleStatusInfo"])
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+<style>
+    .review-textarea {
+        border: 2px solid var(--surface-neutral);
+        border-radius: 12px;
+        padding: 1.5rem;
+        font-family: var(--font-serif), serif;
+        font-size: 1.1rem;
+        line-height: 1.6;
+        background-color: var(--surface-low);
+        transition: all 0.3s ease;
+    }
+
+    .review-textarea:focus {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 0.25rem var(--primary-low);
+        background-color: var(--surface);
+    }
+
+    .review-textarea:disabled {
+        opacity: 0.7;
+        background-color: var(--surface-neutral);
+        cursor: not-allowed;
+    }
+
+    .badge-success { background-color: #d1e7dd; color: #0f5132; border: 1px solid #badbcc; }
+    .badge-danger { background-color: #f8d7da; color: #842029; border: 1px solid #f5c2c7; }
+    .badge-warning { background-color: #fff3cd; color: #664d03; border: 1px solid #ffecb5; }
+</style>
+
+@code {
+    [Parameter] public Guid reviewIdGuid { get; set; }
+    
+    private ReviewDetails? reviewDetails;
+    private string editedComment = "";
+    private string originalComment = "";
+    private bool isLoading = true;
+    private bool isSubmitting = false;
+    private string errorMessage = "";
+    private UserId? currentUserId;
+
+    private bool hasUnsavedChanges => editedComment != originalComment;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadReview();
+    }
+
+    private async Task LoadReview()
+    {
+        try 
+        {
+            isLoading = true;
+            var reviewSystemEnabled = Configuration.GetValue<bool>("BooksLibrary:ReviewSytemEnabled", true);
+            if (!reviewSystemEnabled)
+            {
+                NavigationManager.NavigateTo("/");
+                return;
+            }
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+
+            if (user.Identity?.IsAuthenticated != true)
+            {
+                NavigationManager.NavigateTo($"Account/Login?returnUrl={Uri.EscapeDataString(NavigationManager.Uri)}");
+                return;
+            }
+
+            var userIdStr = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdStr) || !Guid.TryParse(userIdStr, out var userGuid))
+            {
+                NavigationManager.NavigateTo("/");
+                return;
+            }
+
+            currentUserId = UserId.NewUserId(userGuid);
+            var reviewId = ReviewId.NewReviewId(reviewIdGuid);
+
+            var result = await DetailsService.GetReviewDetailsAsync(reviewId);
+            if (result.IsOk)
+            {
+                var details = result.ResultValue;
+                // Verify ownership
+                if (details.Review.UserId.Value != userGuid)
+                {
+                    NavigationManager.NavigateTo("/");
+                    return;
+                }
+
+                reviewDetails = details;
+                originalComment = details.Review.Comment;
+                editedComment = details.Review.Comment;
+            }
+            else
+            {
+                errorMessage = result.ErrorValue;
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.Message;
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task SaveReview()
+    {
+        if (reviewDetails == null) return;
+        isSubmitting = true;
+        errorMessage = "";
+
+        try
+        {
+            var result = await ReviewService.EditReviewAsync(reviewDetails.Review.ReviewId, editedComment, CancellationToken.None);
+            if (result.IsOk)
+            {
+                originalComment = editedComment;
+                await JSRuntime.InvokeVoidAsync("showToast", L["ReviewSavedSuccessfully"].Value, "success");
+                await LoadReview();
+            }
+            else
+            {
+                errorMessage = result.ErrorValue;
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.Message;
+        }
+        finally
+        {
+            isSubmitting = false;
+        }
+    }
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        var siteKey = Configuration["Authentication:Recaptcha:SiteKey"];
+        if (siteKey is null)
+            {
+                Logger.LogWarning("Recaptcha SiteKey is not configured");
+                return;
+            }
+        if (firstRender)
+        {
+            var token = await JSRuntime.InvokeAsync<string>("generateRecaptchaToken", siteKey, "book_view");
+            var score = await BotScoreService.GetBotScoreAsync(token);
+            if (score < 0.7) 
+            {
+                Logger.LogInformation($"suspect bot interaction. Score: {score}");
+                await BotScoreService.ApplyBotDelayAsync(score);
+            }
+        }
+    }
+
+    private async Task HideReview()
+    {
+        if (reviewDetails == null) return;
+        var result = await ReviewService.HideAsync(reviewDetails.Review.ReviewId, CancellationToken.None);
+        if (result.IsOk)
+        {
+            await LoadReview();
+        }
+    }
+
+    private async Task ShowReview()
+    {
+        if (reviewDetails == null) return;
+        var result = await ReviewService.ShowAsync(reviewDetails.Review.ReviewId, CancellationToken.None);
+        if (result.IsOk)
+        {
+            await LoadReview();
+        }
+    }
+
+    private async Task ConfirmInternalNavigation(LocationChangingContext context)
+    {
+        if (hasUnsavedChanges)
+        {
+            var confirmed = await JSRuntime.InvokeAsync<bool>("confirm", L["UnsavedChangesWarning"].Value);
+            if (!confirmed)
+            {
+                context.PreventNavigation();
+            }
+        }
+    }
+
+    private void GoBack()
+    {
+        if (reviewDetails != null)
+        {
+            NavigationManager.NavigateTo($"/book-view/{reviewDetails.Book.BookId.Value}");
+        }
+        else
+        {
+            NavigationManager.NavigateTo("/");
+        }
+    }
+}

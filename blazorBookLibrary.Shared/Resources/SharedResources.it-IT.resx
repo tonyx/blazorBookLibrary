@@ -649,4 +649,75 @@
   <data name="Release" xml:space="preserve">
     <value>Rilascia</value>
   </data>
+  <data name="AddReview" xml:space="preserve">
+    <value>Aggiungi recensione</value>
+  </data>
+  <data name="ReviewRestrictionMessage" xml:space="preserve">
+    <value>Devi aver preso in prestito questo libro almeno una volta per lasciare una recensione.</value>
+  </data>
+  <data name="ReviewsManagement" xml:space="preserve"><value>Gestione Recensioni</value></data>
+  <data name="ManageAndModerateReviews" xml:space="preserve"><value>Monitora e modera le recensioni degli utenti sulla collezione.</value></data>
+  <data name="Approve" xml:space="preserve"><value>Approva</value></data>
+  <data name="Reject" xml:space="preserve"><value>Rifiuta</value></data>
+  <data name="Reviewer" xml:space="preserve"><value>Recensore</value></data>
+  <data name="ErrorLoadingReviews" xml:space="preserve"><value>Errore nel caricamento delle recensioni: {0}</value></data>
+  <data name="ApproveSuccess" xml:space="preserve"><value>Recensione approvata con successo.</value></data>
+  <data name="RejectSuccess" xml:space="preserve"><value>Recensione rifiutata con successo.</value></data>
+  <data name="TotalReviews" xml:space="preserve"><value>Recensioni Totali</value></data>
+  <data name="Approved" xml:space="preserve"><value>Approvata</value></data>
+  <data name="Rejected" xml:space="preserve"><value>Rifiutata</value></data>
+  <data name="ReviewModeration" xml:space="preserve"><value>Moderazione Recensione</value></data>
+  <data name="Moderation" xml:space="preserve"><value>Moderazione</value></data>
+  <data name="BackToLedger" xml:space="preserve"><value>Torna al Registro</value></data>
+  <data name="Context" xml:space="preserve"><value>Contesto</value></data>
+  <data name="ModerationStatus" xml:space="preserve"><value>Stato Moderazione</value></data>
+  <data name="ApproveReview" xml:space="preserve"><value>Approva Recensione</value></data>
+  <data name="RejectReview" xml:space="preserve"><value>Rifiuta Recensione</value></data>
+  <data name="PatronReview" xml:space="preserve"><value>Recensione Utente</value></data>
+  <data name="ModerationGuidelineTip" xml:space="preserve"><value>Le recensioni devono seguire le linee guida della comunità. L'approvazione di una recensione la rende visibile a tutti gli utenti nella pagina del libro.</value></data>
+  <data name="ReviewAndModeratePatronFeedback" xml:space="preserve"><value>Esamina attentamente il feedback fornito dagli utenti per assicurarti che sia conforme agli standard della biblioteca.</value></data>
+  <data name="ErrorLoadingReview" xml:space="preserve"><value>Errore nel caricamento dei dettagli della recensione: {0}</value></data>
+  <data name="Date" xml:space="preserve"><value>Data</value></data>
+  <data name="WriteYourReview" xml:space="preserve"><value>Scrivi la tua Recensione</value></data>
+  <data name="SubmitReview" xml:space="preserve"><value>Invia per Approvazione</value></data>
+  <data name="SaveAsDraft" xml:space="preserve"><value>Salva come Bozza (Nascosta)</value></data>
+  <data name="ReviewPlaceholder" xml:space="preserve"><value>Condividi i tuoi pensieri su questo libro... (le emoticons sono benvenute! 😊)</value></data>
+  <data name="LoanRequiredToReview" xml:space="preserve"><value>Accesso Negato: Devi aver preso in prestito questo libro almeno una volta per lasciare una recensione.</value></data>
+  <data name="ReviewHiddenNotice" xml:space="preserve"><value>La tua recensione è stata salvata in stato nascosto. Potrai modificarla in seguito e inviarla per l'approvazione quando sarai pronto.</value></data>
+  <data name="ReviewPendingNotice" xml:space="preserve"><value>Grazie! La tua recensione è stata inviata. Verrà esaminata dai nostri archivisti e pubblicata al più presto.</value></data>
+  <data name="ReviewDraftSuccess" xml:space="preserve"><value>Bozza salvata con successo.</value></data>
+  <data name="ReviewSubmitSuccess" xml:space="preserve"><value>Recensione inviata con successo.</value></data>
+  <data name="ReviewTitle" xml:space="preserve"><value>Recensione per {0}</value></data>
+  <data name="EditReview" xml:space="preserve"><value>Modifica Recensione</value></data>
+  <data name="Hide" xml:space="preserve"><value>Nascondi</value></data>
+  <data name="Show" xml:space="preserve"><value>Mostra</value></data>
+  <data name="UnsavedChangesWarning" xml:space="preserve"><value>Hai delle modifiche non salvate. Sei sicuro di voler uscire?</value></data>
+  <data name="ReviewSavedSuccessfully" xml:space="preserve"><value>Recensione aggiornata con successo.</value></data>
+  <data name="Information" xml:space="preserve"><value>Informazioni</value></data>
+  <data name="LastUpdated" xml:space="preserve"><value>Ultimo Aggiornamento</value></data>
+  <data name="SaveChanges" xml:space="preserve"><value>Salva Modifiche</value></data>
+  <data name="Visible" xml:space="preserve"><value>Visibile</value></data>
+  <data name="ToggleVisibility" xml:space="preserve"><value>Cambia Visibilità</value></data>
+  <data name="HiddenStatusInfo" xml:space="preserve"><value>Questa recensione è attualmente nascosta. Solo tu puoi vederla. Devi nascondere una recensione per poterne modificare il contenuto.</value></data>
+  <data name="VisibleStatusInfo" xml:space="preserve"><value>Questa recensione è attualmente visibile. Nascondila se desideri apportare ulteriori modifiche.</value></data>
+  <data name="CannotEditVisibleReview" xml:space="preserve"><value>Le recensioni devono essere nascoste prima di poter essere modificate.</value></data>
+  <data name="ShareYourThoughtsWithTheCommunity" xml:space="preserve"><value>Le tue riflessioni aiutano altri archivisti e utenti a scoprire la magia tra queste pagine.</value></data>
+  <data name="EmoticonsSupportedTip" xml:space="preserve"><value>Il testo supporta caratteri speciali, incluse le emoticons (😊, 📚, ✨).</value></data>
+  <data name="BookDetails" xml:space="preserve"><value>Dettagli Libro</value></data>
+  <data name="ReviewVerificationNotice" xml:space="preserve"><value>Le recensioni verificate sono permesse solo agli utenti che hanno precedentemente preso in prestito la copia fisica dal nostro santuario.</value></data>
+  <data name="AlreadyHasApprovedReview" xml:space="preserve"><value>Accesso Negato: Hai già inviato una recensione approvata per questo libro. Ogni utente è limitato a una recensione pubblicata per titolo.</value></data>
+  <data name="EditYourReview" xml:space="preserve"><value>Modifica la tua Recensione</value></data>
+  <data name="PatronReflections" xml:space="preserve"><value>Riflessioni degli Utenti</value></data>
+  <data name="ShowReviews" xml:space="preserve"><value>Leggi le Recensioni degli Utenti</value></data>
+  <data name="HideReviews" xml:space="preserve"><value>Nascondi Recensioni</value></data>
+  <data name="NextReview" xml:space="preserve"><value>Successiva</value></data>
+  <data name="PreviousReview" xml:space="preserve"><value>Precedente</value></data>
+  <data name="ReviewsDisclaimer" xml:space="preserve"><value>Nota: Le recensioni sono inviate dagli utenti e riflettono esclusivamente le loro opinioni personali.</value></data>
+  <data name="ReviewBy" xml:space="preserve"><value>Recensione di {0}</value></data>
+  <data name="AccessDenied" xml:space="preserve">
+    <value>Accesso Negato</value>
+  </data>
+  <data name="ReviewSystemDisabled" xml:space="preserve">
+    <value>Il sistema di recensioni è attualmente disabilitato.</value>
+  </data>
 </root>

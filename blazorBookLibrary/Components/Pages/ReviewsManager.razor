@@ -1,0 +1,192 @@
+@page "/reviews-manager"
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using BookLibrary.Shared.Services
+@using BookLibrary.Domain
+@using BookLibrary.Shared
+@using System.Globalization
+@using static BookLibrary.Shared.Details
+@using blazorBookLibrary.Shared.Resources
+@using blazorBookLibrary.Data
+@using Microsoft.Extensions.Localization
+@using Microsoft.FSharp.Collections
+@using static BookLibrary.Shared.Commons
+
+@attribute [Authorize(Roles = "Admin, Manager")]
+@inject IReviewService ReviewService
+@inject IDetailsService DetailsService
+@inject NavigationManager NavigationManager
+@inject IStringLocalizer<SharedResources> L
+@rendermode InteractiveServer
+
+<PageTitle>@L["ReviewsManagement"] — @L["TheModernArchivist"]</PageTitle>
+
+<div class="sanctuary-container py-5">
+    @* Page Header *@
+    <div class="mb-5">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/" class="text-decoration-none text-muted">@L["Home"]</a></li>
+                <li class="breadcrumb-item active text-serif" aria-current="page">@L["ReviewsManagement"]</li>
+            </ol>
+        </nav>
+        <div class="d-flex justify-content-between align-items-end">
+            <div>
+                <h1 class="display-4 text-serif mb-2">@L["ReviewsManagement"]</h1>
+                <p class="text-muted lead mb-0">@L["ManageAndModerateReviews"]</p>
+            </div>
+            
+            <div class="d-flex gap-3">
+                <div class="badge-sanctuary badge-neutral px-4 py-2">
+                    <span class="text-muted small text-uppercase fw-bold letter-spacing-1 me-2">@L["TotalReviews"]:</span>
+                    <span class="h4 mb-0 fw-bold">@FilteredReviews.Count()</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @* Reviews Ledger *@
+    <div class="card-sanctuary p-0 overflow-hidden animate-fade-in">
+        <div class="table-responsive">
+            <QuickGrid Items="@FilteredReviews" Pagination="@pagination" Class="editorial-ledger w-100 align-middle">
+                
+                <TemplateColumn Title="@L["Book"]" SortBy="@sortTitle">
+                    <div class="d-flex align-items-center gap-3 py-2 cursor-pointer" @onclick="() => NavigateToModeration(context)">
+                        @if (context.Book.ImageUrl != null && Microsoft.FSharp.Core.FSharpOption<Uri>.get_IsSome(context.Book.ImageUrl))
+                        {
+                            <img src="@context.Book.ImageUrl.Value" class="rounded shadow-sm" style="width: 40px; height: 60px; object-fit: cover;" />
+                        }
+                        else
+                        {
+                            <div class="bg-surface-neutral rounded d-flex align-items-center justify-content-center" style="width: 40px; height: 60px;">
+                                <i class="bi bi-book text-muted opacity-50"></i>
+                            </div>
+                        }
+                        <div>
+                            <div class="fw-bold text-serif">@context.Book.Title.Value</div>
+                            <div class="small text-muted">
+                                @string.Join(", ", context.Authors.Select(a => a.Name.Value))
+                            </div>
+                        </div>
+                    </div>
+                </TemplateColumn>
+
+                <TemplateColumn Title="@L["Reviewer"]" SortBy="@sortReviewer">
+                    <div class="d-flex align-items-center gap-2 cursor-pointer" @onclick="() => NavigateToModeration(context)">
+                        <i class="bi bi-person-circle text-muted"></i>
+                        <span>@context.ApplicationUser.Email</span>
+                    </div>
+                </TemplateColumn>
+
+                <TemplateColumn Title="@L["Comment"]">
+                    <div class="review-comment-preview cursor-pointer" @onclick="() => NavigateToModeration(context)">
+                        @GetPreview(context.Review.Comment)
+                    </div>
+                </TemplateColumn>
+
+                <TemplateColumn Title="@L["Status"]" SortBy="@sortStatus">
+                    @{
+                        var status = context.Review.ApprovalStatus;
+                        var badgeClass = status.IsApproved ? "badge-success" : (status.IsRejected ? "badge-danger" : "badge-warning");
+                        var statusLabel = status.IsApproved ? L["Approved"] : (status.IsRejected ? L["Rejected"] : L["Pending"]);
+                    }
+                    <div class="cursor-pointer" @onclick="() => NavigateToModeration(context)">
+                        <span class="badge-sanctuary @badgeClass px-2 py-1 small">
+                            @statusLabel
+                        </span>
+                    </div>
+                </TemplateColumn>
+
+                <TemplateColumn Title="@L["Date"]" SortBy="@sortDate">
+                    <div class="small text-muted cursor-pointer" @onclick="() => NavigateToModeration(context)">
+                        @context.Review.Date.ToLocalTime().ToString("yyyy-MM-dd")
+                    </div>
+                </TemplateColumn>
+
+            </QuickGrid>
+        </div>
+        <div class="px-4 py-3 bg-surface-container border-top d-flex justify-content-between align-items-center">
+            <div class="small text-muted serif italic">@L["Showing"] @FilteredReviews.Count() @L["Records"]</div>
+            <Paginator State="@pagination" />
+        </div>
+    </div>
+</div>
+
+<style>
+    .review-comment-preview {
+        max-width: 200px;
+        font-size: 0.875rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        color: var(--text-main);
+        font-style: italic;
+    }
+
+    .cursor-pointer {
+        cursor: pointer;
+    }
+
+    .badge-success { background-color: #d1e7dd; color: #0f5132; border: 1px solid #badbcc; }
+    .badge-danger { background-color: #f8d7da; color: #842029; border: 1px solid #f5c2c7; }
+    .badge-warning { background-color: #fff3cd; color: #664d03; border: 1px solid #ffecb5; }
+
+    .editorial-ledger thead th {
+        background-color: var(--surface-container-low);
+        text-transform: uppercase;
+        font-size: 0.75rem;
+        letter-spacing: 0.05em;
+        padding-top: 1rem;
+        padding-bottom: 1rem;
+        border-bottom-width: 2px;
+    }
+
+    .editorial-ledger tbody tr {
+        transition: background-color 0.2s ease;
+    }
+
+    .editorial-ledger tbody tr:hover {
+        background-color: var(--surface-low);
+    }
+</style>
+
+@code {
+    private List<ReviewDetails> reviewDetailsList = new();
+    private PaginationState pagination = new() { ItemsPerPage = 10 };
+
+    private GridSort<ReviewDetails> sortTitle = GridSort<ReviewDetails>.ByAscending(r => r.Book.Title.Value);
+    private GridSort<ReviewDetails> sortReviewer = GridSort<ReviewDetails>.ByAscending(r => r.ApplicationUser.Email);
+    private GridSort<ReviewDetails> sortDate = GridSort<ReviewDetails>.ByAscending(r => r.Review.Date);
+    private GridSort<ReviewDetails> sortStatus = GridSort<ReviewDetails>.ByAscending(r => r.Review.ApprovalStatus.Value);
+
+    private IQueryable<ReviewDetails> FilteredReviews => 
+        reviewDetailsList.AsQueryable();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadReviews();
+    }
+
+    private async Task LoadReviews()
+    {
+        var result = await DetailsService.GetAllReviewsDetailsAsync();
+        if (result.IsOk)
+        {
+            reviewDetailsList = result.ResultValue.ToList();
+        }
+    }
+
+    private void NavigateToModeration(ReviewDetails details)
+    {
+        NavigationManager.NavigateTo($"/review-manager/{details.Review.ReviewId.Value}");
+    }
+
+    private string GetPreview(string comment)
+    {
+        if (string.IsNullOrEmpty(comment)) return "";
+        var words = comment.Split(' ');
+        if (words.Length <= 8) return comment;
+        return string.Join(" ", words.Take(8)) + "...";
+    }
+}

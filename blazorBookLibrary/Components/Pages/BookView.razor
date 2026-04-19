@@ -1,5 +1,6 @@
 @page "/book-view/{BookIdStr}"
 @using System.Globalization
+@using System.Threading
 @using BookLibrary.Shared.Services
 @using BookLibrary.Domain
 @using BookLibrary.Shared
@@ -14,6 +15,8 @@
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject IConfiguration Configuration
 @inject IDetailsService DetailsService
+@inject IReviewService ReviewService
+@inject NavigationManager NavManager
 @inject IJSRuntime JSRuntime
 @using Microsoft.Extensions.Localization
 @using blazorBookLibrary.Shared.Resources
@@ -125,6 +128,33 @@
                             }
                         </div>
                     }
+
+                    <div class="mt-4 pt-4 border-top text-start" style="border-color: var(--outline-variant) !important;">
+                         @if (isReviewSystemEnabled)
+                         {
+                            <button class="btn-sanctuary-outline w-100 justify-content-center" disabled="@(!canAddReview)" @onclick="AddReview">
+                                <i class="bi bi-pencil-square me-2"></i> @L["AddReview"]
+                            </button>
+                            
+                            @if (userReview != null)
+                            {
+                                <button class="btn btn-outline-primary w-100 justify-content-center mt-2 shadow-sm" @onclick="EditReview">
+                                    <i class="bi bi-pencil-fill me-2"></i> @L["EditYourReview"]
+                                </button>
+                            }
+                         }
+
+                         @if (isReviewSystemEnabled && !canAddReview && loggedInUserDetails != null)
+                        {
+                            var restrictionMessage = !hasLoaned 
+                                ? L["ReviewRestrictionMessage"] 
+                                : L["AlreadyHasApprovedReview"];
+                                
+                            <div class="mt-3 p-3 bg-surface-low rounded border-start border-3 border-secondary small text-muted">
+                                <i class="bi bi-info-circle me-1"></i> @restrictionMessage
+                            </div>
+                        }
+                    </div>
                 </div>
             </div>
 
@@ -189,6 +219,68 @@
                                 </dl>
                             </div>
                         </div>
+
+                        @if (shuffledReviews != null && shuffledReviews.Any())
+                        {
+                            <div class="mt-5 pt-4 border-top" style="border-color: var(--outline-variant) !important;">
+                                <div class="d-flex justify-content-between align-items-center mb-4">
+                                    <h3 class="h4 text-serif mb-0">@L["PatronReflections"]</h3>
+                                    <button class="btn btn-sm btn-outline-neutral shadow-sm" @onclick="ToggleReviews">
+                                        <i class="bi @(showReviews ? "bi-eye-slash" : "bi-eye") me-2"></i>
+                                        @(showReviews ? L["HideReviews"] : L["ShowReviews"])
+                                    </button>
+                                </div>
+
+                                @if (showReviews)
+                                {
+                                    <div class="review-frame p-4 bg-surface-low rounded shadow-sm animate-fade-in border border-neutral">
+                                        <div class="small text-muted italic mb-4 p-2 border-start border-3 border-neutral bg-surface-container">
+                                            <i class="bi bi-info-circle me-1"></i> @L["ReviewsDisclaimer"]
+                                        </div>
+
+                                        @{
+                                            var review = shuffledReviews[currentReviewIndex];
+                                        }
+
+                                        <div class="review-content mb-4">
+                                            <div class="d-flex justify-content-between align-items-start mb-3">
+                                                <div>
+                                                    <div class="fw-bold text-serif h5 mb-0">@string.Format(L["ReviewBy"], review.ApplicationUser.UserName)</div>
+                                                    <div class="small text-muted">@review.Review.Date.ToLocalTime().ToString("D")</div>
+                                                </div>
+                                                <div class="review-index badge bg-neutral text-muted px-2 py-1 small">
+                                                    @(currentReviewIndex + 1) / @shuffledReviews.Count
+                                                </div>
+                                            </div>
+                                            <div class="review-text-container p-3 bg-surface rounded-lg shadow-inner mt-2">
+                                                <p class="review-text text-serif italic mb-0" style="font-size: 1.1rem; line-height: 1.7; color: var(--text-main);">
+                                                    “@review.Review.Comment”
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        <div class="d-flex justify-content-between align-items-center mt-4">
+                                            <button class="btn btn-sm btn-neutral px-3" 
+                                                    @onclick="PrevReview" 
+                                                    disabled="@(shuffledReviews.Count <= 1)">
+                                                <i class="bi bi-chevron-left me-1"></i> @L["PreviousReview"]
+                                            </button>
+                                            <div class="review-dots d-flex gap-1">
+                                                @for (int i = 0; i < shuffledReviews.Count; i++)
+                                                {
+                                                    <div class="dot @(i == currentReviewIndex ? "active" : "")" style="width: 8px; height: 8px; border-radius: 50%; background-color: var(--surface-neutral); opacity: @(i == currentReviewIndex ? "1" : "0.3");"></div>
+                                                }
+                                            </div>
+                                            <button class="btn btn-sm btn-neutral px-3" 
+                                                    @onclick="NextReview" 
+                                                    disabled="@(shuffledReviews.Count <= 1)">
+                                                @L["NextReview"] <i class="bi bi-chevron-right ms-1"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        }
                     </div>
                 </div>
             </div>
@@ -201,8 +293,15 @@
     public string BookIdStr { get; set; } = "";
 
     private bool isLoading = true;
+    private bool showReviews = false;
+    private int currentReviewIndex = 0;
+    private bool isReviewSystemEnabled = true;
+    private List<Details.ReviewDetails> shuffledReviews = new();
     private Details.BookDetails? bookDetails;
     private Details.UserDetails? loggedInUserDetails;
+    private bool canAddReview = false;
+    private bool hasLoaned = false;
+    private Review? userReview;
     private Reservation? userReservation;
     private string statusMessage = "";
     private string statusClass = "alert-info";
@@ -285,6 +384,7 @@
 
     protected override async Task OnInitializedAsync()
     {
+        isReviewSystemEnabled = Configuration.GetValue<bool>("BooksLibrary:ReviewSytemEnabled", true);
         await LoadBookDetails();
         await LoadUserReservation();
     }
@@ -304,6 +404,7 @@
                 if (result.IsOk)
                 {
                     bookDetails = result.ResultValue;
+                    shuffledReviews = bookDetails.ApprovedVisibleReviewsInRandomOrder().ToList();
                 }
                 else
                 {
@@ -338,7 +439,6 @@
                 if (!string.IsNullOrEmpty(userIdStr) && Guid.TryParse(userIdStr, out var userGuid))
                 {
                     var sharpinoUserId = UserId.NewUserId(userGuid);
-                    // var result = await UserService.GetUserDetailsAsync(sharpinoUserId, FSharpOption<System.Threading.CancellationToken>.None);
                     var result = await DetailsService.GetUserDetailsAsync(sharpinoUserId, FSharpOption<System.Threading.CancellationToken>.None);
 
                     if (result.IsOk)
@@ -346,9 +446,20 @@
                         loggedInUserDetails = result.ResultValue;
                         if (bookDetails != null)
                         {
+                            userReview = loggedInUserDetails.BooksAndReviews
+                                .Select(br => br.Item2)
+                                .FirstOrDefault(r => r.BookId.Value == bookDetails.Book.BookId.Value);
+
                             userReservation = loggedInUserDetails.FutureReservations
                                 .Select(t => t.Item1)
                                 .FirstOrDefault(r => r.BookId.Value == bookDetails.Book.BookId.Value);
+
+                            var reviewResult = await BookService.LoanedByUserAtLeastOnceAsync(bookDetails.Book.BookId, sharpinoUserId, FSharpOption<CancellationToken>.None);
+                            if (reviewResult.IsOk)
+                            {
+                                hasLoaned = reviewResult.ResultValue;
+                                canAddReview = hasLoaned && !loggedInUserDetails.HasAnApprovedReviewOfBook(bookDetails.Book.BookId);
+                            }
                         }
                     }
                 }
@@ -356,9 +467,10 @@
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error loading user reservation: {ex.Message}");
+            Logger.LogError("Error loading user reservation: {Message}", ex.Message);
         }
     }
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         var siteKey = Configuration["Authentication:Recaptcha:SiteKey"];
@@ -376,6 +488,44 @@
                 Logger.LogInformation($"suspect bot interaction. Score: {score}");
                 await BotScoreService.ApplyBotDelayAsync(score);
             }
+        }
+    }
+
+    private void AddReview()
+    {
+        if (bookDetails != null)
+        {
+            NavManager.NavigateTo($"/add-review/{bookDetails.Book.BookId.Value}");
+        }
+    }
+
+    private void EditReview()
+    {
+        if (userReview != null)
+        {
+            NavManager.NavigateTo($"/edit-review/{userReview.ReviewId.Value}");
+        }
+    }
+
+    private void ToggleReviews()
+    {
+        showReviews = !showReviews;
+        currentReviewIndex = 0;
+    }
+
+    private void NextReview()
+    {
+        if (shuffledReviews != null && shuffledReviews.Any())
+        {
+            currentReviewIndex = (currentReviewIndex + 1) % shuffledReviews.Count;
+        }
+    }
+
+    private void PrevReview()
+    {
+        if (shuffledReviews != null && shuffledReviews.Any())
+        {
+            currentReviewIndex = (currentReviewIndex - 1 + shuffledReviews.Count) % shuffledReviews.Count;
         }
     }
 

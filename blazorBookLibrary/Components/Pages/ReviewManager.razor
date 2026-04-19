@@ -1,0 +1,210 @@
+@page "/review-manager/{reviewIdGuid:guid}"
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using BookLibrary.Shared.Services
+@using BookLibrary.Domain
+@using BookLibrary.Shared
+@using System.Globalization
+@using static BookLibrary.Shared.Details
+@using blazorBookLibrary.Shared.Resources
+@using blazorBookLibrary.Data
+@using Microsoft.Extensions.Localization
+@using Microsoft.FSharp.Collections
+@using static BookLibrary.Shared.Commons
+
+@attribute [Authorize(Roles = "Admin, Manager")]
+@inject IReviewService ReviewService
+@inject IDetailsService DetailsService
+@inject IJSRuntime JSRuntime
+@inject IStringLocalizer<SharedResources> L
+@rendermode InteractiveServer
+
+<PageTitle>@L["ReviewModeration"] — @L["TheModernArchivist"]</PageTitle>
+
+<div class="sanctuary-container py-5">
+    @* Page Header *@
+    <div class="mb-5">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/" class="text-decoration-none text-muted">@L["Home"]</a></li>
+                <li class="breadcrumb-item"><a href="/reviews-manager" class="text-decoration-none text-muted">@L["ReviewsManagement"]</a></li>
+                <li class="breadcrumb-item active text-serif" aria-current="page">@L["Moderation"]</li>
+            </ol>
+        </nav>
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h1 class="display-4 text-serif mb-2">@L["ReviewModeration"]</h1>
+                <p class="text-muted lead mb-0">@L["ReviewAndModeratePatronFeedback"]</p>
+            </div>
+            <a href="/reviews-manager" class="btn btn-outline-neutral shadow-sm">
+                <i class="bi bi-arrow-left me-2"></i> @L["BackToLedger"]
+            </a>
+        </div>
+    </div>
+
+    @if (details == null)
+    {
+        <div class="d-flex justify-content-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">@L["Loading"]...</span>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="row g-4 animate-fade-in">
+            @* Left Column: Book & User Info *@
+            <div class="col-lg-4">
+                <div class="card-sanctuary p-4 mb-4">
+                    <h3 class="h5 text-serif mb-4 pb-2 border-bottom">@L["Context"]</h3>
+                    
+                    <div class="d-flex gap-3 mb-4">
+                        @if (details.Book.ImageUrl != null && Microsoft.FSharp.Core.FSharpOption<Uri>.get_IsSome(details.Book.ImageUrl))
+                        {
+                            <img src="@details.Book.ImageUrl.Value" class="rounded shadow shadow-hover" style="width: 80px; height: 120px; object-fit: cover;" />
+                        }
+                        else
+                        {
+                            <div class="bg-surface-neutral rounded d-flex align-items-center justify-content-center" style="width: 80px; height: 120px;">
+                                <i class="bi bi-book text-muted opacity-50 h2"></i>
+                            </div>
+                        }
+                        <div>
+                            <h4 class="h6 fw-bold mb-1">@details.Book.Title.Value</h4>
+                            <p class="small text-muted mb-2">@string.Join(", ", details.Authors.Select(a => a.Name.Value))</p>
+                            <span class="badge-sanctuary badge-neutral px-2 py-1 small">@details.Book.Year.Value</span>
+                        </div>
+                    </div>
+
+                    <div class="bg-surface-low rounded p-3">
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <i class="bi bi-person-circle text-primary"></i>
+                            <span class="fw-bold small">@L["Patron"]</span>
+                        </div>
+                        <div class="small text-truncate">@details.ApplicationUser.Email</div>
+                        <div class="text-muted smallest mt-1">@details.Review.Date.ToLocalTime().ToString("f")</div>
+                    </div>
+                </div>
+
+                <div class="card-sanctuary p-4">
+                    <h3 class="h5 text-serif mb-4 pb-2 border-bottom">@L["ModerationStatus"]</h3>
+                    <div class="mb-4">
+                        @{
+                            var status = details.Review.ApprovalStatus;
+                            var badgeClass = status.IsApproved ? "badge-success" : (status.IsRejected ? "badge-danger" : "badge-warning");
+                            var statusLabel = status.IsApproved ? L["Approved"] : (status.IsRejected ? L["Rejected"] : L["Pending"]);
+                        }
+                        <div class="d-flex align-items-center gap-3">
+                            <span class="badge-sanctuary @badgeClass px-3 py-2">
+                                @statusLabel
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-success shadow-sm py-2" 
+                                @onclick="ApproveReview" 
+                                disabled="@details.Review.ApprovalStatus.IsApproved">
+                            <i class="bi bi-check-circle-fill me-2"></i> @L["ApproveReview"]
+                        </button>
+                        <button class="btn btn-danger shadow-sm py-2" 
+                                @onclick="RejectReview" 
+                                disabled="@details.Review.ApprovalStatus.IsRejected">
+                            <i class="bi bi-x-circle-fill me-2"></i> @L["RejectReview"]
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            @* Right Column: Review Content *@
+            <div class="col-lg-8">
+                <div class="card-sanctuary h-100 p-5">
+                    <div class="d-flex justify-content-between align-items-start mb-4">
+                        <h3 class="h4 text-serif">@L["PatronReview"]</h3>
+                        <i class="bi bi-quote display-1 text-surface-neutral opacity-25"></i>
+                    </div>
+                    <div class="review-full-content lead text-serif italic">
+                        "@details.Review.Comment"
+                    </div>
+                    <div class="mt-auto pt-5 border-top-neutral">
+                        <p class="text-muted small">
+                            <i class="bi bi-info-circle me-1"></i>
+                            @L["ModerationGuidelineTip"]
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+<style>
+    .review-full-content {
+        line-height: 1.8;
+        color: var(--text-main);
+        white-space: pre-wrap;
+    }
+
+    .smallest { font-size: 0.75rem; }
+
+    .badge-success { background-color: #d1e7dd; color: #0f5132; border: 1px solid #badbcc; }
+    .badge-danger { background-color: #f8d7da; color: #842029; border: 1px solid #f5c2c7; }
+    .badge-warning { background-color: #fff3cd; color: #664d03; border: 1px solid #ffecb5; }
+
+    .border-top-neutral { border-top: 1px solid var(--surface-neutral); }
+</style>
+
+@code {
+    [Parameter] public Guid reviewIdGuid { get; set; }
+    private ReviewDetails? details;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadReview();
+    }
+
+    private async Task LoadReview()
+    {
+        var reviewId = ReviewId.NewReviewId(reviewIdGuid);
+        var result = await DetailsService.GetReviewDetailsAsync(reviewId);
+        if (result.IsOk)
+        {
+            details = result.ResultValue;
+        }
+        else
+        {
+            await JSRuntime.InvokeVoidAsync("showToast", string.Format(L["ErrorLoadingReview"], result.ErrorValue), "error");
+        }
+    }
+
+    private async Task ApproveReview()
+    {
+        if (details == null) return;
+        var result = await ReviewService.ApproveAsync(details.Review.ReviewId, CancellationToken.None);
+        if (result.IsOk)
+        {
+            await JSRuntime.InvokeVoidAsync("showToast", L["ApproveSuccess"].Value, "success");
+            await LoadReview();
+        }
+        else
+        {
+            await JSRuntime.InvokeVoidAsync("showToast", result.ErrorValue, "error");
+        }
+    }
+
+    private async Task RejectReview()
+    {
+        if (details == null) return;
+        var result = await ReviewService.RejectAsync(details.Review.ReviewId, CancellationToken.None);
+        if (result.IsOk)
+        {
+            await JSRuntime.InvokeVoidAsync("showToast", L["RejectSuccess"].Value, "success");
+            await LoadReview();
+        }
+        else
+        {
+            await JSRuntime.InvokeVoidAsync("showToast", result.ErrorValue, "error");
+        }
+    }
+}

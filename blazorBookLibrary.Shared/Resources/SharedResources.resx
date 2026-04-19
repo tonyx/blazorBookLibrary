@@ -252,4 +252,16 @@
   <data name="RevokePhysicalVerification" xml:space="preserve"><value>Revoke Physical Verification</value></data>
   <data name="GrantPhysicalVerification" xml:space="preserve"><value>Grant Physical Verification</value></data>
   <data name="EmailDoesNotMatchIdentityRecord" xml:space="preserve"><value>Email does not match identity record</value></data>
+  <data name="AddReview" xml:space="preserve">
+    <value>Add Review</value>
+  </data>
+  <data name="ReviewRestrictionMessage" xml:space="preserve">
+    <value>You must have borrowed this book at least once to leave a review.</value>
+  </data>
+  <data name="AccessDenied" xml:space="preserve">
+    <value>Access Denied</value>
+  </data>
+  <data name="ReviewSystemDisabled" xml:space="preserve">
+    <value>The review system is currently disabled.</value>
+  </data>
 </root>

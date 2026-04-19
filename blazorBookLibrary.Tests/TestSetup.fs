@@ -234,6 +234,7 @@ let getDetailsService () =
         reviewViewerAsync,
         getLoanService(),
         getReservationService(),
+        getReviewService(),
         getServiceScopeFactory())
 
 let getMailResenderService () =

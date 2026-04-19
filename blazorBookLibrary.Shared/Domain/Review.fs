@@ -27,6 +27,17 @@ type Review =
                 Edited = false;
                 ApprovalStatus = ApprovalStatus.Pending
             }
+        static member NewHidden (bookId: BookId) (userId: UserId) (comment: string) (dateTime: DateTime) = 
+            {   
+                ReviewId = ReviewId.New();
+                BookId = bookId;
+                UserId = userId;
+                Comment = comment;
+                Date = dateTime;
+                Hidden = true;
+                Edited = false;
+                ApprovalStatus = ApprovalStatus.Pending
+            }
 
         member this.Edit (comment: string) = 
             { this with Comment = comment; Edited = true } |> Ok

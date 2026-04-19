@@ -89,4 +89,5 @@ type IBookService =
     abstract member SearchByAuthorsAndYearAndCategoriesAsync: authors: List<AuthorId> * year: YearSearch * categories: List<Category> * [<Optional; DefaultParameterValue(null)>] ?criteria: BookSearchCriteria * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<List<Book>, string>>
     abstract member SearchByTitleAndAuthorsAndYearAndCategoriesAsync: title: Title * authors: List<AuthorId> * year: YearSearch * categories: List<Category> * [<Optional; DefaultParameterValue(null)>] ?criteria: BookSearchCriteria * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<List<Book>, string>>
     
+    abstract member LoanedByUserAtLeastOnceAsync : bookId: BookId * userId:UserId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<bool, string>>
 

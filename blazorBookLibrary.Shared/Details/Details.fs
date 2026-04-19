@@ -8,6 +8,8 @@ module Details =
     open blazorBookLibrary.Data
     open System.Threading.Tasks
 
+    let random = System.Random()
+
     type UserDetails =
         {
             User: User
@@ -18,6 +20,10 @@ module Details =
         }
         member this.HasReservedBook (bookId: BookId) =
             this.FutureReservations |> List.exists (fun (reservation, _) -> reservation.BookId = bookId)
+        member this.HasAnApprovedReviewOfBook (bookId: BookId) =
+            this.BooksAndReviews |> List.exists (fun (_, review) -> review.BookId = bookId && review.ApprovalStatus.IsApproved)
+        member this.HasAHiddenReviewOfBook (bookId: BookId) =
+            this.BooksAndReviews |> List.exists (fun (_, review) -> review.BookId = bookId && review.Hidden)
 
     type ReservationDetails =
         { 
@@ -43,12 +49,20 @@ module Details =
             UserDetails: UserDetails
         }
 
+    type ReviewDetails =  {
+        ApplicationUser: ApplicationUser
+        Book: Book
+        Authors: List<Author>
+        Review: Review
+    }
+
     type BookDetails =
         { 
             Authors: List<Author>
             Book: Book
             CurrentLoan: Option<LoanDetails>
             ReservationsDetails: List<ReservationDetails>
+            ApprovedVisibleReviews: List<ReviewDetails>
         }
         member this.GetNextAvailableTimeSlot (timeSlotLoanDurationInDays: int, now: DateTime)=
             let currentTimeSlots =
@@ -60,6 +74,16 @@ module Details =
                     currentTimeSlots
                     |> List.maxBy (fun timeSlot -> timeSlot.End)
                 TimeSlot.New (maximumTimeSlot.End) (maximumTimeSlot.End + TimeSpan.FromDays(float timeSlotLoanDurationInDays))   
+        member this.ApprovedVisibleReviewsInRandomOrder () =
+            let reviews = this.ApprovedVisibleReviews |> List.toArray
+            let n = reviews.Length
+            for i in n - 1 .. -1 .. 1 do
+                let j = random.Next(i + 1)
+                let temp = reviews.[i]
+                reviews.[i] <- reviews.[j]
+                reviews.[j] <- temp
+            reviews |> Array.toList
+
         member this.PendingReservationsDetails: List<ReservationDetails> =
             this.ReservationsDetails 
             |> List.filter (fun reservationDetails -> reservationDetails.Reservation.Status = ReservationStatus.Pending)
@@ -75,6 +99,5 @@ module Details =
                     this.Books |> List.forall (fun book -> book.NoLoan && book.NoReservations)
             member this.UnSealable = 
                 this.Books |> List.forall (fun book -> book.NoLoan && book.NoReservations)
-
 
     type AdditionalBookSearchFilter = Book -> bool

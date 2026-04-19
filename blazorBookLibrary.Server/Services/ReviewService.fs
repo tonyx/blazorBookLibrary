@@ -14,6 +14,8 @@ open BookLibrary.Utils
 open Microsoft.Extensions.DependencyInjection
 open Microsoft.AspNetCore.Identity
 open blazorBookLibrary.Data
+open Sharpino.Cache
+open BookLibrary.Details.Details
 
 type ReviewService
     (
@@ -89,6 +91,11 @@ type ReviewService
         let ct = ct |> Option.defaultValue CancellationToken.None
         taskResult
             {
+                let! user = 
+                    userViewerAsync (Some ct) comment.UserId.Value |> TaskResult.map snd
+                let! book = 
+                    bookViewerAsync (Some ct) comment.BookId.Value |> TaskResult.map snd
+
                 let! loans = 
                     taskResult {
                         let! loans = 
@@ -115,42 +122,35 @@ type ReviewService
                             messageSenders
                             comment
                             (Some ct)
+
+                    let bookKey = DetailsCacheKey.OfType typeof<RefreshableBookDetails> (book.BookId.Value)
+                    DetailsCache.Instance.UpdateMultipleAggregateIdAssociation [|comment.Id|] bookKey
+
+                    let reviewKey = DetailsCacheKey.OfType typeof<RefreshableReviewDetails> (comment.Id)
+                    DetailsCache.Instance.UpdateMultipleAggregateIdAssociation [|comment.Id|] reviewKey
+
                     return result
             }
-
-
-
-        // todo: see how to deal with this smell
-        // let loanService = scope.ServiceProvider.GetRequiredService<ILoanService>()
-
-        // taskResult {
-        //     let! loanshistory = loanService.GetHistoryLoansOfUserAsync (comment.UserId, ct)
-        //     let loan = loanshistory |> List.tryFind (fun loan -> loan.BookId = comment.BookId)
-        //     match loan with
-        //     | None -> 
-        //         return! Error "User has not borrowed this book"
-        //     | Some loan -> 
-        //         let! result =
-        //             runInitAsync<Review, ReviewEvent, string> 
-        //                 eventStore 
-        //                 messageSenders
-        //                 comment
-        //                 (Some ct)
-        //         return result
-        // }
 
     member this.EditReviewAsync (commentId: ReviewId, editedComment: string, ?ct: CancellationToken) = 
         let ct = ct |> Option.defaultValue CancellationToken.None
         let now = DateTime.UtcNow // todo: review and clarify the policies of dates "now"/"utc now"
-        let! result =
-            CommandHandler.runAggregateCommandMdAsync<Review, ReviewEvent, string> 
-                commentId.Value
-                eventStore
-                messageSenders
-                ""
-                (CommentCommand.Edit (editedComment, now))
-                (Some ct)
-        result
+        taskResult {
+            let! review =
+                reviewViewerAsync (Some ct) commentId.Value |> TaskResult.map snd
+            let! result =
+                CommandHandler.runAggregateCommandMdAsync<Review, ReviewEvent, string> 
+                    commentId.Value
+                    eventStore
+                    messageSenders
+                    ""
+                    (CommentCommand.Edit (editedComment, now))
+                    (Some ct)
+
+            DetailsCache.Instance.RefreshDependentDetails commentId.Value 
+
+            return result
+        }
 
     member this.ApproveAsync (commentId: ReviewId, ?ct: CancellationToken) = 
         let ct = ct |> Option.defaultValue CancellationToken.None
@@ -177,24 +177,45 @@ type ReviewService
     member this.ShowAsync (commentId: ReviewId, ?ct: CancellationToken) = 
         let ct = ct |> Option.defaultValue CancellationToken.None
         let now = DateTime.UtcNow // todo: review and clarify the policies of dates "now"/"utc now"
-        CommandHandler.runAggregateCommandMdAsync<Review, ReviewEvent, string> 
-            commentId.Value
-            eventStore
-            messageSenders
-            ""
-            (CommentCommand.Show now)
-            (Some ct)
+        taskResult {
+            let! review =
+                reviewViewerAsync (Some ct) commentId.Value |> TaskResult.map snd
+            let! result =
+                CommandHandler.runAggregateCommandMdAsync<Review, ReviewEvent, string> 
+                    commentId.Value
+                    eventStore
+                    messageSenders
+                    ""
+                    (CommentCommand.Show now)
+                    (Some ct)
+            return result
+        }
 
     member this.HideAsync (commentId: ReviewId, ?ct: CancellationToken) = 
         let ct = ct |> Option.defaultValue CancellationToken.None
         let now = DateTime.UtcNow // todo: review and clarify the policies of dates "now"/"utc now"
-        CommandHandler.runAggregateCommandMdAsync<Review, ReviewEvent, string> 
-            commentId.Value
-            eventStore
-            messageSenders
-            ""
-            (CommentCommand.Hide now)
-            (Some ct)
+        taskResult {    
+            let! review =
+                reviewViewerAsync (Some ct) commentId.Value |> TaskResult.map snd
+            let! result =
+                CommandHandler.runAggregateCommandMdAsync<Review, ReviewEvent, string> 
+                    commentId.Value
+                    eventStore
+                    messageSenders
+                    ""
+                    (CommentCommand.Hide now)
+                    (Some ct)
+            let reviewKey = DetailsCacheKey.OfType typeof<RefreshableReviewDetails> (commentId.Value)
+            DetailsCache.Instance.UpdateMultipleAggregateIdAssociation 
+                [|commentId.Value; review.UserId.Value; review.BookId.Value|] reviewKey
+            let bookKey = DetailsCacheKey.OfType typeof<RefreshableBookDetails> (review.BookId.Value)
+            DetailsCache.Instance.UpdateMultipleAggregateIdAssociation 
+                [|review.BookId.Value; review.UserId.Value|] bookKey
+            let userKey = DetailsCacheKey.OfType typeof<RefreshableUserDetails> (review.UserId.Value)
+            DetailsCache.Instance.UpdateMultipleAggregateIdAssociation 
+                [|review.UserId.Value; review.BookId.Value|] userKey
+            return result
+        }
 
     member this.GetReviewsOfBookAsync (bookId: BookId, ?ct: CancellationToken) = 
         let ct = ct |> Option.defaultValue CancellationToken.None
@@ -216,11 +237,30 @@ type ReviewService
                 return result
             }
 
+    member this.GetApprovedVisibleReviewsOfBookAsync (bookId: BookId, ?ct: CancellationToken) = 
+        let ct = ct |> Option.defaultValue CancellationToken.None
+        use scope = scopeFactory.CreateScope()
+        let userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>()
+
+        taskResult
+            {
+
+                let! reviews = 
+                    StateView.getAllFilteredAggregateStates<Review, ReviewEvent, string> (fun review -> review.BookId = bookId && review.ApprovalStatus.IsApproved && not review.Hidden) eventStore  |> Result.map (fun x -> x |> List.map snd)
+
+                let users =
+                    reviews
+                    |> List.map (fun review -> Async.AwaitTask (userManager.FindByIdAsync (review.UserId.Value.ToString())) |> Async.RunSynchronously)
+
+                let result =
+                    List.zip users reviews
+                return result
+            }
+
     member this.GetReviewsOfUserAsync (userId: UserId, ?ct: CancellationToken) = 
         let ct = ct |> Option.defaultValue CancellationToken.None
         taskResult
             {
-                // need to use getAllFilteredAggregateStates instead of getAllFilteredAggregateStatesAsync because of a (possible) bug in the library     
                 let! reviews = 
                     StateView.getAllFilteredAggregateStates<Review, ReviewEvent, string> (fun review -> review.UserId = userId) eventStore 
                 let reviews = 
@@ -278,6 +318,10 @@ type ReviewService
         member this.GetReviewsOfUserAsync (userId: UserId, ?ct: CancellationToken) = 
             let ct = ct |> Option.defaultValue CancellationToken.None
             this.GetReviewsOfUserAsync (userId, ct)
+
+        member this.GetApprovedVisibleReviewsOfBookAsync (bookId: BookId, ?ct: CancellationToken) = 
+            let ct = ct |> Option.defaultValue CancellationToken.None
+            this.GetApprovedVisibleReviewsOfBookAsync (bookId, ct)
 
         
 

@@ -175,7 +175,7 @@
         loanDetailsList.AsQueryable()
             .Where(ld => ld.Loan.InProgress && 
                          (string.IsNullOrEmpty(bookFilter) || ld.Book.Title.Value.Contains(bookFilter, StringComparison.OrdinalIgnoreCase)) &&
-                         (string.IsNullOrEmpty(patronFilter) || ld.UserDetails.ApplicationUser.Email.Contains(patronFilter, StringComparison.OrdinalIgnoreCase)))
+                         (string.IsNullOrEmpty(patronFilter) || (ld.UserDetails.ApplicationUser.Email != null && ld.UserDetails.ApplicationUser.Email.Contains(patronFilter, StringComparison.OrdinalIgnoreCase))))
             .OrderByDescending(ld => ld.Loan.TimeSlot.Start);
 
     protected override async Task OnInitializedAsync()

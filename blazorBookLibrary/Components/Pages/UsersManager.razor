@@ -254,13 +254,13 @@
         if (assign)
         {
             result = await UserManager.AddToRoleAsync(user, "Manager");
-            var message = result.Succeeded ? L["AssignedManagerRoleTo", user.Email].Value : $"{L["Error"]}: {string.Join(", ", result.Errors.Select(e => e.Description))}";
+            var message = result.Succeeded ? L["AssignedManagerRoleTo", user.Email ?? "user"].Value : $"{L["Error"]}: {string.Join(", ", result.Errors.Select(e => e.Description))}";
             await ShowStatus(message, result.Succeeded ? "success" : "error");
         }
         else
         {
             result = await UserManager.RemoveFromRoleAsync(user, "Manager");
-            var message = result.Succeeded ? L["RevokedManagerRoleFrom", user.Email].Value : $"{L["Error"]}: {string.Join(", ", result.Errors.Select(e => e.Description))}";
+            var message = result.Succeeded ? L["RevokedManagerRoleFrom", user.Email ?? "user"].Value : $"{L["Error"]}: {string.Join(", ", result.Errors.Select(e => e.Description))}";
             await ShowStatus(message, result.Succeeded ? "success" : "error");
         }
 

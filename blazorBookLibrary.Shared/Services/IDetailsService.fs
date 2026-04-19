@@ -17,4 +17,8 @@ type IDetailsService =
     abstract member GetAllPendingReservationsDetailsAsync: [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<List<ReservationDetails>,string>>
     abstract member GetUserDetailsAsync: id: UserId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<UserDetails,string>>
     abstract member GetAuthorDetailsAsync: id: AuthorId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<AuthorDetails,string>>
+    abstract member GetReviewDetailsAsync: id: ReviewId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<ReviewDetails,string>>
+    abstract member GetAllReviewsDetailsAsync: [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<List<ReviewDetails>,string>>
+    abstract member GetApprovedVisibleReviewsOfBookAsync: bookId:BookId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<List<ReviewDetails>,string>>
+
     
