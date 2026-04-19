@@ -19,6 +19,6 @@ type IUserService =
     abstract member SetPhoneNumberAsync: userId:UserId * phoneNumber:PhoneNumber * [<Optional; DefaultParameterValue(null)>] ?ct:CancellationToken -> Task<Result<unit, string>>
     abstract member SetIsPhysicallyIdentifiedAsync: userId:UserId * [<Optional; DefaultParameterValue(null)>] ?ct:CancellationToken -> Task<Result<unit, string>>
     abstract member UnSetIsPhysicallyIdentifiedAsync: userId:UserId * [<Optional; DefaultParameterValue(null)>] ?ct:CancellationToken -> Task<Result<unit, string>>
-    abstract member AddReviewOfBookAsync: userId:UserId * bookId:BookId * comment:string * [<Optional; DefaultParameterValue(null)>] ?ct:CancellationToken -> Task<Result<unit, string>>
+    // abstract member AddReviewOfBookAsync: userId:UserId * bookId:BookId * comment:string * [<Optional; DefaultParameterValue(null)>] ?ct:CancellationToken -> Task<Result<unit, string>>
 
     

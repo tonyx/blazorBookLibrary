@@ -219,16 +219,6 @@ type UserService
 
     member this.UnSetIsPhysicallyIdentifiedAsync (userId: UserId, ?ct: CancellationToken) : Task<Result<unit, string>> =
         this.UpdateAppUserPropertyAsync(userId, fun u -> u.IsIdentifiedPhysically <- false)
-
-    member this.AddReviewOfBookAsync (userId: UserId, bookId: BookId, comment: string, ?ct: CancellationToken) : Task<Result<unit, string>> =
-        let ct = defaultArg ct CancellationToken.None
-        taskResult
-            {
-                // let! userDetails = this.GetUserDetailsAsync(userId, ct)
-                // let! userHasLoanedBookInThePast =
-                //     userDetails.
-                return ()
-            }
                 
 
     interface IUserService with
@@ -259,7 +249,4 @@ type UserService
         member this.UnSetIsPhysicallyIdentifiedAsync (userId: UserId, ?ct: CancellationToken) : Task<Result<unit, string>> =
             let ct = defaultArg ct CancellationToken.None
             this.UnSetIsPhysicallyIdentifiedAsync(userId, ct)
-        member this.AddReviewOfBookAsync (userId: UserId, bookId: BookId, comment: string, ?ct: CancellationToken) : Task<Result<unit, string>> =
-            let ct = defaultArg ct CancellationToken.None
-            this.AddReviewOfBookAsync(userId, bookId, comment, ct)
                  

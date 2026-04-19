@@ -55,6 +55,11 @@
 
   "BooksLibrary": 
   {
+    "ReviewSytemEnabled": false,
+    "TimeSlotLoanDurationInDays": 15,
+    "MaxReservationsPerUser": 20,
+    "MaxLoansPerUser": 10,
+    "EmailNotificationEnabled": true,
     "TimeSlotLoanDurationInDays": 30,
     "MaxReservationsPerUser": 10,
     "EmailNotificationEnabled": true,
