@@ -720,4 +720,18 @@
   <data name="ReviewSystemDisabled" xml:space="preserve">
     <value>Il sistema di recensioni è attualmente disabilitato.</value>
   </data>
+  <data name="Export" xml:space="preserve"><value>Esporta</value></data>
+  <data name="Exporting" xml:space="preserve"><value>Esportazione in corso...</value></data>
+  <data name="ExportSuccessful" xml:space="preserve"><value>Libri esportati con successo!</value></data>
+  <data name="ExportError" xml:space="preserve"><value>Errore durante l'esportazione: {0}</value></data>
+  <data name="ExportErrorGeneric" xml:space="preserve"><value>Si è verificato un errore imprevisto durante l'esportazione: {0}</value></data>
+  <data name="Import" xml:space="preserve"><value>Importa</value></data>
+  <data name="Importing" xml:space="preserve"><value>Importazione in corso...</value></data>
+  <data name="ImportSucceeded" xml:space="preserve"><value>Importazione completata con successo.</value></data>
+  <data name="ImportFailed" xml:space="preserve"><value>Importazione fallita: {0}</value></data>
+  <data name="AllowDuplicates" xml:space="preserve"><value>Consenti duplicati</value></data>
+  <data name="GenerateUnknownAuthors" xml:space="preserve"><value>Genera autori sconosciuti</value></data>
+  <data name="ImportSummary" xml:space="preserve"><value>Risultati importazione: {0} riusciti, {1} falliti/saltati</value></data>
+  <data name="ImportProgress" xml:space="preserve"><value>Progresso importazione</value></data>
+  <data name="EstimatedTimeRemaining" xml:space="preserve"><value>Tempo rimanente stimato</value></data>
 </root>

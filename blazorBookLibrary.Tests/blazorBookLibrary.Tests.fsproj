@@ -12,6 +12,8 @@
     <Compile Include="MockServices/FakeReservationService.fs" />
     <Compile Include="TestSetup.fs" />
     <Compile Include="RandomGenerationsTests.fs" />
+    <Compile Include="UtilitiesTests.fs" />
+    <Compile Include="ImportExportDataTest.fs" />
     <Compile Include="AuthorsServiceTests.fs" />
     <Compile Include="BookServiceTests.fs" />
     <Compile Include="LoanServiceTests.fs" />

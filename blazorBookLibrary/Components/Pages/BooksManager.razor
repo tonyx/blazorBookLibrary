@@ -8,9 +8,12 @@
 @using Microsoft.FSharp.Collections
 @using System.Threading
 @using BlazorBarcodeScanner.ZXing.JS
+@using static BookLibrary.Shared.Commons
+@using BookLibrary.Utils
 
 @attribute [Authorize(Roles = "Admin, Manager")]
 @inject IBookService BookService
+@inject IDataExportService DataExportService
 @inject IAuthorService AuthorService
 @inject IJSRuntime JSRuntime
 @inject IGoogleBooksService GoogleBooksService
@@ -37,6 +40,48 @@
             </div>
             
             <div class="d-flex gap-3">
+                <div class="dropdown">
+                    <button class="btn btn-outline-sanctuary dropdown-toggle" type="button" id="exportDropdown" data-bs-toggle="dropdown" aria-expanded="false" disabled="@(isExporting || isImporting)">
+                        @if (isExporting)
+                        {
+                            <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                            @L["Exporting"]
+                        }
+                        else
+                        {
+                            <i class="bi bi-download me-2"></i> @L["Export"]
+                        }
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0" aria-labelledby="exportDropdown">
+                        <li><a class="dropdown-item py-2" href="javascript:void(0)" @onclick="() => ExportBooks(ExportFormat.Json)"><i class="bi bi-filetype-json me-2 text-primary"></i> JSON</a></li>
+                        <li><a class="dropdown-item py-2" href="javascript:void(0)" @onclick="() => ExportBooks(ExportFormat.Csv)"><i class="bi bi-filetype-csv me-2 text-success"></i> CSV</a></li>
+                    </ul>
+                </div>
+                
+                <div class="d-flex align-items-center gap-3 border-start ps-3 me-1">
+                    <div class="form-check form-switch mb-0" style="font-size: 0.7rem;">
+                        <input class="form-check-input" type="checkbox" id="allowDuplicatesSwitch" @bind="importAllowDuplicates">
+                        <label class="form-check-label text-muted" for="allowDuplicatesSwitch">@L["AllowDuplicates"]</label>
+                    </div>
+                    <div class="form-check form-switch mb-0" style="font-size: 0.7rem;">
+                        <input class="form-check-input" type="checkbox" id="generateAuthorsSwitch" @bind="importGenerateAuthors">
+                        <label class="form-check-label text-muted" for="generateAuthorsSwitch">@L["GenerateUnknownAuthors"]</label>
+                    </div>
+                </div>
+
+                <label for="importFileInput" class="btn btn-outline-sanctuary mb-0 @(isImporting || isExporting ? "disabled" : "")">
+                    @if (isImporting)
+                    {
+                        <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                        @L["Importing"]
+                    }
+                    else
+                    {
+                        <i class="bi bi-file-earmark-arrow-up me-2"></i> @L["Import"]
+                    }
+                </label>
+                <InputFile id="importFileInput" OnChange="HandleImportFile" style="display:none" accept=".txt,.csv" />
+                
                 <button class="btn btn-sanctuary @(showAddSection ? "active" : "")" @onclick="() => showAddSection = !showAddSection">
                     <i class="bi @(showAddSection ? "bi-dash-lg" : "bi-plus-lg") me-2"></i>
                     @(showAddSection ? L["CloseEntryForm"] : L["AddNewBookEntry"])
@@ -44,6 +89,28 @@
             </div>
         </div>
     </div>
+    
+    @if (isImporting && currentProgress != null)
+    {
+        <div class="card card-sanctuary mb-5 p-4 border-0 shadow-sm bg-surface-low animate-fade-in">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <span class="text-muted fw-bold">@L["ImportProgress"]: @currentProgress.Current / @currentProgress.Total</span>
+                @if (FSharpOption<TimeSpan>.get_IsSome(currentProgress.EstimatedRemainingTime))
+                {
+                    <span class="text-primary small fw-bold">
+                        <i class="bi bi-clock-history me-1"></i>
+                        @L["EstimatedTimeRemaining"]: @FormatTimeSpan(currentProgress.EstimatedRemainingTime.Value)
+                    </span>
+                }
+            </div>
+            <div class="progress" style="height: 10px; border-radius: 5px; background-color: var(--surface-high);">
+                <div class="progress-bar progress-bar-striped progress-bar-animated bg-sanctuary" 
+                     role="progressbar" 
+                     style="width: @(GetProgressPercentage())%; transition: width 0.3s ease;">
+                </div>
+            </div>
+        </div>
+    }
 
     @* Search & Filter Toolbar *@
     <div class="card-sanctuary mb-5 p-4 border-0 shadow-none bg-surface-low">
@@ -536,6 +603,10 @@
     private string coverSizeLookup = "Medium";
     private bool showScanner = false;
     private List<string> metadataAuthors = new();
+    private bool isExporting = false;
+    private bool isImporting = false;
+    private bool importAllowDuplicates = false;
+    private bool importGenerateAuthors = true;
 
     private void ToggleScanner()
     {
@@ -983,6 +1054,102 @@
         {
             isLookingUpCover = false;
         }
+    }
+
+    private async Task ExportBooks(ExportFormat format)
+    {
+        if (isExporting) return;
+        
+        isExporting = true;
+        try
+        {
+            var result = await DataExportService.ExportAllBooksAsync(format, CancellationToken.None);
+            if (result.IsOk)
+            {
+                var fileName = $"books_export_{DateTime.Now:yyyyMMdd_HHmmss}{format.Extension}";
+                await JSRuntime.InvokeVoidAsync("downloadFile", fileName, result.ResultValue);
+                await ShowStatus(L["ExportSuccessful"], "success");
+            }
+            else
+            {
+                await ShowStatus(string.Format(L["ExportError"], result.ErrorValue), "error");
+            }
+        }
+        catch (Exception ex)
+        {
+            await ShowStatus(string.Format(L["ExportErrorGeneric"], ex.Message), "error");
+        }
+        finally
+        {
+            isExporting = false;
+        }
+    }
+
+    private async Task HandleImportFile(InputFileChangeEventArgs e)
+    {
+        if (isImporting) return;
+        
+        var file = e.File;
+        if (file == null) return;
+
+        isImporting = true;
+        try
+        {
+            // Set a reasonable limit for bulk ISBN files (e.g., 512KB)
+            using var stream = file.OpenReadStream(maxAllowedSize: 512 * 1024);
+            using var reader = new System.IO.StreamReader(stream);
+            var content = await reader.ReadToEndAsync();
+            
+            var isbns = ConverterUtils.parseIsbns(content);
+            if (isbns.Length == 0)
+            {
+                await ShowStatus("No valid ISBNs found in file.", "warning");
+                return;
+            }
+
+            // We use FSharpList directly as returned by parseIsbns
+            var progress = new Progress<ImportProgress>(p => 
+            {
+                currentProgress = p;
+                StateHasChanged();
+            });
+
+            var result = await DataExportService.ImportFromIsbns(isbns, !importAllowDuplicates, importGenerateAuthors, progress, CancellationToken.None);
+            
+            if (result.IsOk)
+            {
+                var (successCount, failureCount) = result.ResultValue;
+                await ShowStatus(string.Format(L["ImportSummary"], successCount, failureCount), "success");
+            }
+            else
+            {
+                await ShowStatus(string.Format(L["ImportFailed"], result.ErrorValue), "error");
+            }
+        }
+        catch (Exception ex)
+        {
+            await ShowStatus(string.Format(L["ImportFailed"], ex.Message), "error");
+        }
+        finally
+        {
+            isImporting = false;
+        }
+    }
+    private ImportProgress? currentProgress;
+    
+    private double GetProgressPercentage()
+    {
+        if (currentProgress == null || currentProgress.Total == 0) return 0;
+        return (double)currentProgress.Current / currentProgress.Total * 100;
+    }
+
+    private string FormatTimeSpan(TimeSpan ts)
+    {
+        if (ts.TotalHours >= 1)
+            return $"{(int)ts.TotalHours}h {ts.Minutes}m {ts.Seconds}s";
+        if (ts.TotalMinutes >= 1)
+            return $"{(int)ts.TotalMinutes}m {ts.Seconds}s";
+        return $"{(int)ts.TotalSeconds}s";
     }
 }
 

@@ -1,0 +1,30 @@
+/Users/antoniolucca/github/blazorBookLibrary/blazorBookLibrary/blazorBookLibrary.csproj : warning NU1608: Detected package version outside of dependency constraint: Expecto.FsCheck 10.2.3 requires FsCheck (>= 2.16.5 && < 3.0.0) but version FsCheck 3.3.2 was resolved. [/Users/antoniolucca/github/blazorBookLibrary/blazorBookLibrary.Tests/blazorBookLibrary.Tests.fsproj]
+/Users/antoniolucca/github/blazorBookLibrary/blazorBookLibrary.Server/blazorBookLibrary.Server.fsproj : warning NU1510: PackageReference Microsoft.Extensions.Configuration will not be pruned. Consider removing this package from your dependencies, as it is likely unnecessary. [/Users/antoniolucca/github/blazorBookLibrary/blazorBookLibrary.Tests/blazorBookLibrary.Tests.fsproj]
+/Users/antoniolucca/github/blazorBookLibrary/blazorBookLibrary.Tests/blazorBookLibrary.Tests.fsproj : warning NU1608: Detected package version outside of dependency constraint: Expecto.FsCheck 10.2.3 requires FsCheck (>= 2.16.5 && < 3.0.0) but version FsCheck 3.3.2 was resolved.
+/Users/antoniolucca/github/blazorBookLibrary/blazorBookLibrary.Server/blazorBookLibrary.Server.fsproj : warning NU1510: PackageReference Microsoft.Extensions.Configuration.Json will not be pruned. Consider removing this package from your dependencies, as it is likely unnecessary. [/Users/antoniolucca/github/blazorBookLibrary/blazorBookLibrary.Tests/blazorBookLibrary.Tests.fsproj]
+/Users/antoniolucca/github/blazorBookLibrary/blazorBookLibrary.Tests/blazorBookLibrary.Tests.fsproj : warning NU1903: Package 'System.Security.Cryptography.Xml' 10.0.5 has a known high severity vulnerability, https://github.com/advisories/GHSA-37gx-xxp4-5rgx
+/Users/antoniolucca/github/blazorBookLibrary/blazorBookLibrary.Server/blazorBookLibrary.Server.fsproj : warning NU1608: Detected package version outside of dependency constraint: Expecto.FsCheck 10.2.3 requires FsCheck (>= 2.16.5 && < 3.0.0) but version FsCheck 3.3.2 was resolved. [/Users/antoniolucca/github/blazorBookLibrary/blazorBookLibrary.Tests/blazorBookLibrary.Tests.fsproj]
+/Users/antoniolucca/github/blazorBookLibrary/blazorBookLibrary.Tests/blazorBookLibrary.Tests.fsproj : warning NU1903: Package 'System.Security.Cryptography.Xml' 10.0.5 has a known high severity vulnerability, https://github.com/advisories/GHSA-w3x6-4m5h-cxqf
+/Users/antoniolucca/github/blazorBookLibrary/blazorBookLibrary.Tests/blazorBookLibrary.Tests.fsproj : warning NU1608: Detected package version outside of dependency constraint: Expecto.FsCheck 10.2.3 requires FsCheck (>= 2.16.5 && < 3.0.0) but version FsCheck 3.3.2 was resolved.
+/Users/antoniolucca/github/blazorBookLibrary/blazorBookLibrary.Tests/blazorBookLibrary.Tests.fsproj : warning NU1903: Package 'System.Security.Cryptography.Xml' 10.0.5 has a known high severity vulnerability, https://github.com/advisories/GHSA-37gx-xxp4-5rgx
+/Users/antoniolucca/github/blazorBookLibrary/blazorBookLibrary.Tests/blazorBookLibrary.Tests.fsproj : warning NU1903: Package 'System.Security.Cryptography.Xml' 10.0.5 has a known high severity vulnerability, https://github.com/advisories/GHSA-w3x6-4m5h-cxqf
+/Users/antoniolucca/github/blazorBookLibrary/blazorBookLibrary/blazorBookLibrary.csproj : warning NU1608: Detected package version outside of dependency constraint: Expecto.FsCheck 10.2.3 requires FsCheck (>= 2.16.5 && < 3.0.0) but version FsCheck 3.3.2 was resolved.
+/Users/antoniolucca/github/blazorBookLibrary/blazorBookLibrary.Server/blazorBookLibrary.Server.fsproj : warning NU1510: PackageReference Microsoft.Extensions.Configuration will not be pruned. Consider removing this package from your dependencies, as it is likely unnecessary.
+/Users/antoniolucca/github/blazorBookLibrary/blazorBookLibrary.Server/blazorBookLibrary.Server.fsproj : warning NU1510: PackageReference Microsoft.Extensions.Configuration.Json will not be pruned. Consider removing this package from your dependencies, as it is likely unnecessary.
+/Users/antoniolucca/github/blazorBookLibrary/blazorBookLibrary.Server/blazorBookLibrary.Server.fsproj : warning NU1608: Detected package version outside of dependency constraint: Expecto.FsCheck 10.2.3 requires FsCheck (>= 2.16.5 && < 3.0.0) but version FsCheck 3.3.2 was resolved.
+[37m[[37m12:46:34 [37mINF[37m] [37mEXPECTO? Running tests...[37m [37m<[37mExpecto[37m>[37m
+[0m[1000D[?25hinfo: Sharpino.Cache[0]
+      [Cache] Config: L2SqlCacheEnabled = false
+[0m[1000D[?25hinfo: Sharpino.Cache[0]
+      [Cache] Service Bus Backplane is disabled.
+[0m[1000D[?25hFake. Email sent to test+2454701196fc45c086dafd9be3fd9388@example.com with subject Loan Notification has been sent
+[0m[1000D[?25hFake. Email sent to test+2454701196fc45c086dafd9be3fd9388@example.com with subject Loan Notification has been sent
+[0m[1000D[?25hXXXX 100 refresher is called
+[0m[1000D[?25hXXXX 2000. Got review
+[0m[1000D[?25hXXXX 100 refresher is called
+[0m[1000D[?25hXXXX 2000. Got review
+[0m[1000D[?25hXXXX 100 refresher is called
+[0m[1000D[?25hXXXX 2000. Got review
+[0m[1000D[?25h[37m[[37m12:46:35 [37mINF[37m] [37mStarting sequenced tests...[37m [37m<[37mExpecto[37m>[37m
+[0m[1000D[?25h[37m[[37m12:46:35 [37mINF[37m] [37mEXPECTO! [36m1[37m tests run in [32m00:00:01.8301090[37m for [36mmiscellaneous[37m – [36m1[37m passed, [36m104[37m ignored, [36m0[37m failed, [36m0[37m errored. [36mSuccess![37m [37m<[37mExpecto[37m>[37m
+[0m

@@ -29,6 +29,7 @@
     <Compile Include="Services/IUserService.fs" />
     <Compile Include="Services/IReviewService.fs" />
     <Compile Include="Services/IDetailsService.fs" />
+    <Compile Include="Services/IDataExportService.fs" />
     <Compile Include="SearchCriteria.fs" />
     <Compile Include="Infrastructure/Services/IMailNotificator.fs" />
     <Compile Include="Resources/SharedResources.fs" />

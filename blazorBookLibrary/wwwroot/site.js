@@ -64,3 +64,14 @@ window.showToast = (message, type) => {
         setTimeout(() => toast.remove(), 450);
     }, 4000);
 };
+
+window.downloadFile = (fileName, content) => {
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = window.URL.createObjectURL(blob);
+    const anchorElement = document.createElement('a');
+    anchorElement.href = url;
+    anchorElement.download = fileName ?? '';
+    anchorElement.click();
+    anchorElement.remove();
+    window.URL.revokeObjectURL(url);
+}

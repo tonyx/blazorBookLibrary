@@ -2,6 +2,7 @@
 module TestSetup
 
 open System
+open System.Net.Http
 open DotNetEnv
 open Sharpino.PgStorage
 open BookLibrary.Domain
@@ -236,6 +237,33 @@ let getDetailsService () =
         getReservationService(),
         getReviewService(),
         getServiceScopeFactory())
+
+let getGoogleBooksService () =
+    let httpClient = new HttpClient()
+    httpClient.DefaultRequestHeaders.Add("User-Agent", "BlazorBookLibraryTest/1.0")
+    GoogleBooksService(httpClient, config) :> IGoogleBooksService
+
+let getAuthorsSearchService () =
+    let httpClient = new HttpClient()
+    httpClient.DefaultRequestHeaders.Add("User-Agent", "BlazorBookLibraryTest/1.0")
+    AuthorsSearchService(httpClient) :> IAuthorsSearchService
+
+let getDataExportService () =
+    DataExportService(
+        pgEventStore,
+        MessageSenders.NoSender,
+        bookViewerAsync,
+        authorViewerAsync,
+        editorViewerAsync,
+        reservationViewerAsync,
+        loanViewerAsync,
+        userViewerAsync,
+        getBookService(),
+        getAuthorService(),
+        getDetailsService(),
+        getGoogleBooksService(),
+        getAuthorsSearchService()
+    )
 
 let getMailResenderService () =
     MailResenderService(

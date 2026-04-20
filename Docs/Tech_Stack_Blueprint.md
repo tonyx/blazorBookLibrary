@@ -1,6 +1,19 @@
 # Tech Stack Blueprint — F# Event-Sourced Blazor Solution
 
 > This document serves as a general architectural reference for any solution built on F#, Sharpino (event sourcing), Blazor, and PostgreSQL. Use it as a blueprint when creating or extending features.
+>
+> All concrete code examples in this document are drawn from the **blazorBookLibrary** reference implementation. When starting from an empty repository, an agentic assistant should consult this repository for working examples of every pattern described here.
+
+## Reference Repository
+
+| | |
+|---|---|
+| **URL** | https://github.com/tonyx/blazorBookLibrary |
+| **Purpose** | Full working implementation of every pattern in this blueprint |
+| **When to use** | Browse this repo whenever a pattern description alone is insufficient — check a real aggregate, migration, service, or Razor page for a concrete, compilable example |
+
+> [!IMPORTANT]
+> If you are an AI assistant bootstrapping a **new** solution from scratch, treat the reference repository as your primary source of truth for implementation details. The blueprints sections below describe the *patterns*; the repository contains *working code* for each one.
 
 ---
 
@@ -290,7 +303,7 @@ The table and function names are composed from `Version + StorageName` of the ag
 |---|---|
 | `Version` | `"_01"` |
 | `StorageName` | `"_Review"` |
-| **Resulting table prefix** | `01_Review` |
+| **Resulting table prefix** | `_01_Review` |
 
 **Tables created:**
 - `events_01_Review` — append-only event log

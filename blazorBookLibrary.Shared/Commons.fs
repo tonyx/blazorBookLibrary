@@ -13,6 +13,22 @@ type AggregateViewerAsync2<'A> = Option<CancellationToken> -> Guid -> Task<Resul
 
 let random = System.Random()
 
+
+
+type ExportFormat = 
+    | Csv
+    | Json
+    with
+        member this.Extension = 
+            match this with
+            | Csv -> ".csv"
+            | Json -> ".json"
+        member this.Name = 
+            match this with
+            | Csv -> "CSV"
+            | Json -> "JSON"
+        static member All() = [Csv; Json]
+
 type ReservationCode = 
     | ReservationCode of string
     | EmptyReservationCode

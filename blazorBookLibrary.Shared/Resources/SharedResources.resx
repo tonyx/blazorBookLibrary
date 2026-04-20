@@ -264,4 +264,16 @@
   <data name="ReviewSystemDisabled" xml:space="preserve">
     <value>The review system is currently disabled.</value>
   </data>
+  <data name="Export" xml:space="preserve"><value>Export</value></data>
+  <data name="Exporting" xml:space="preserve"><value>Exporting...</value></data>
+  <data name="ExportSuccessful" xml:space="preserve"><value>Books exported successfully!</value></data>
+  <data name="Import" xml:space="preserve"><value>Import</value></data>
+  <data name="Importing" xml:space="preserve"><value>Importing...</value></data>
+  <data name="ImportSucceeded" xml:space="preserve"><value>Import succeeded.</value></data>
+  <data name="ImportFailed" xml:space="preserve"><value>Import failed: {0}</value></data>
+  <data name="AllowDuplicates" xml:space="preserve"><value>Allow Duplicates</value></data>
+  <data name="GenerateUnknownAuthors" xml:space="preserve"><value>Generate Unknown Authors</value></data>
+  <data name="ImportSummary" xml:space="preserve"><value>Import results: {0} success, {1} failed/skipped</value></data>
+  <data name="ImportProgress" xml:space="preserve"><value>Import Progress</value></data>
+  <data name="EstimatedTimeRemaining" xml:space="preserve"><value>Estimated remaining time</value></data>
 </root>

@@ -43,6 +43,7 @@
     <Compile Include="Domain/Review/Commands.fs" />
 
     <Compile Include="Utils/SecretReader.fs" />
+    <Compile Include="Utils/ConverterUtils.fs" />
     
     <Compile Include="MessagesScheduler/MailsQueue/MailQueue.fs" />
     <Compile Include="MessagesScheduler/MailsQueue/Events.fs" />
@@ -69,6 +70,7 @@
     <Compile Include="Services/GoogleBooksService.fs" />
     <Compile Include="Services/AuthorsSearchService.fs" />
     <Compile Include="Services/DetailsService.fs" />
+    <Compile Include="Services/DataExportService.fs" />
   </ItemGroup>
 
   <ItemGroup>

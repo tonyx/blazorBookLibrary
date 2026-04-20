@@ -93,6 +93,7 @@ builder.Services.AddSingleton<IBookService, BookService>();
 builder.Services.AddSingleton<IReviewService, ReviewService>();
 builder.Services.AddSingleton<IGoogleBooksService, GoogleBooksService>();
 
+
 builder.Services.AddSingleton<IUserService, UserService>();
 builder.Services.AddHttpClient<IAuthorsSearchService, AuthorsSearchService>(client =>
 {
@@ -115,6 +116,7 @@ builder.Services.Configure<IdentityPasskeyOptions>(options =>
 builder.Services.AddSingleton<IEmailSender<ApplicationUser>, IdentityNoOpEmailSender>();
 
 builder.Services.AddSingleton<IDetailsService, DetailsService>();
+builder.Services.AddScoped<IDataExportService, DataExportService>();
 
 builder.Services.AddHostedService<MailResenderScheduler>();
 builder.Services.AddHostedService<ExpiredReservationsRemovalScheduler>();
