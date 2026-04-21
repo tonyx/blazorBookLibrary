@@ -512,9 +512,7 @@ type DetailsService (
                     |> List.traverseTaskResultM 
                         (fun review -> 
                             let res = this.GetReviewDetailsAsync (review.ReviewId, ct)
-                            printf "XXXX 2000. Got review\n"
                             res)
-                            // this.GetReviewDetailsAsync (review.ReviewId, ct))
                 return reviewDetails 
             }
 
