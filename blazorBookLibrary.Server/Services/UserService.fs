@@ -219,6 +219,44 @@ type UserService
 
     member this.UnSetIsPhysicallyIdentifiedAsync (userId: UserId, ?ct: CancellationToken) : Task<Result<unit, string>> =
         this.UpdateAppUserPropertyAsync(userId, fun u -> u.IsIdentifiedPhysically <- false)
+
+    member this.GhostUserAsync (userId: UserId, ?ct: CancellationToken) : Task<Result<unit, string>> =
+        taskResult {
+            let ct = defaultArg ct CancellationToken.None
+            // 1. Ghost the F# aggregate
+            // Note: after GDPR processing, there is no need to ghost event. All sensible data are in the application User. 
+            // The user is already anonymized by the anonymization of the application User.
+
+            // let! _ = 
+            //     runAggregateCommandMdAsync<User, UserEvent, string>
+            //         userId.Value
+            //         eventStore
+            //         messageSenders
+            //         ""
+            //         GdprGhost
+            //         (Some ct)
+            
+            // 2. Anonymize the ApplicationUser
+            let! anonymizeResult = 
+                this.UpdateAppUserPropertyAsync(userId, fun u -> 
+                    let ghostId = Guid.NewGuid().ToString().Substring(0, 8)
+                    let ghostName = sprintf "ghosted_%s" ghostId
+                    let ghostEmail = sprintf "ghosted_%s@example.com" ghostId
+                    u.UserName <- ghostName
+                    u.NormalizedUserName <- ghostName.ToUpper()
+                    u.Email <- ghostEmail
+                    u.NormalizedEmail <- ghostEmail.ToUpper()
+                    u.Nome <- "Ghosted"
+                    u.Cognome <- "Ghosted"
+                    u.CodiceFiscale <- "GHOSTED"
+                    u.PhoneNumber <- null
+                    u.PasswordHash <- null
+                    u.LockoutEnabled <- true
+                    u.LockoutEnd <- Nullable<DateTimeOffset>(DateTimeOffset.MaxValue)
+                )
+            
+            return anonymizeResult
+        }
                 
 
     interface IUserService with
@@ -249,4 +287,7 @@ type UserService
         member this.UnSetIsPhysicallyIdentifiedAsync (userId: UserId, ?ct: CancellationToken) : Task<Result<unit, string>> =
             let ct = defaultArg ct CancellationToken.None
             this.UnSetIsPhysicallyIdentifiedAsync(userId, ct)
+        member this.GhostUserAsync (userId: UserId, ?ct: CancellationToken) : Task<Result<unit, string>> =
+            let ct = defaultArg ct CancellationToken.None
+            this.GhostUserAsync(userId, ct)
                  

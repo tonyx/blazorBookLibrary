@@ -29,7 +29,6 @@ type User =
         member this.ReleaseLoan (loanId: LoanId) = 
             { this with CurrentLoans = this.CurrentLoans |> List.filter (fun id -> id <> loanId) } |> Ok
 
-
         member this.ConvertReservationToLoan (loanId: LoanId) (reservationId: ReservationId) = 
             result
                 {
@@ -50,12 +49,18 @@ type User =
                         }
                 }
 
+        member this.GdprGhost () =
+            this |> Ok
+
+
         member this.HasFutureReservation (reservationId: ReservationId) = 
             this.Reservations |> List.contains reservationId
     
         member this.HasCurrentLoan (loanId: LoanId) = 
             this.CurrentLoans |> List.contains loanId
 
+        static member GdprEmptyVersion () = 
+            { UserId = UserId.UserId (Guid.Empty); Reservations = []; CurrentLoans = [] }
 
         member this.Id = this.UserId.Value
         static member StorageName = "_User"

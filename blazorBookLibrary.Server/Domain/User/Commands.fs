@@ -11,6 +11,7 @@ type UserCommand =
     | AddLoan of LoanId
     | ReleaseLoan of LoanId
     | LoanFromReservation of LoanId * ReservationId
+    | GdprGhost
     interface AggregateCommand<User, UserEvent> with
         member this.Execute (user: User) =
             match this with
@@ -29,5 +30,8 @@ type UserCommand =
             | LoanFromReservation (loanId, reservationId) ->
                 user.ConvertReservationToLoan loanId reservationId
                 |> Result.map (fun u -> (u, [LoanTakenFromReservation(loanId, reservationId)]))
+            | GdprGhost ->
+                user.GdprGhost()
+                |> Result.map (fun u -> (u, [GdprGhosted]))
 
         member this.Undoer = None

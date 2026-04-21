@@ -12,6 +12,7 @@ type UserEvent =
     | LoanAdded of LoanId
     | LoanReleased of LoanId
     | LoanTakenFromReservation of LoanId * ReservationId
+    | GdprGhosted 
     interface Event<User> with
         member this.Process (user: User) : Result<User, string> =
             match this with
@@ -25,6 +26,8 @@ type UserEvent =
                 user.ReleaseLoan loanId
             | LoanTakenFromReservation (loanId, reservationId) ->
                 user.ConvertReservationToLoan loanId reservationId
+            | GdprGhosted ->
+                user.GdprGhost()
 
     static member Deserialize (x: string): Result<UserEvent, string> =
         try

@@ -1,23 +1,26 @@
-﻿@page "/Account/Manage/DeletePersonalData"
+@page "/Account/Manage/DeletePersonalData"
 
 @using System.ComponentModel.DataAnnotations
 @using Microsoft.AspNetCore.Identity
 @using blazorBookLibrary.Data
 
+@using BookLibrary.Shared.Services
+@using static BookLibrary.Shared.Commons
 @inject UserManager<ApplicationUser> UserManager
 @inject SignInManager<ApplicationUser> SignInManager
 @inject IdentityRedirectManager RedirectManager
 @inject ILogger<DeletePersonalData> Logger
+@inject IUserService UserService
 
 <PageTitle>Delete Personal Data</PageTitle>
 
 <StatusMessage Message="@message" />
 
-<h3>Delete Personal Data</h3>
+<h3>Anonymize Personal Data</h3>
 
 <div class="alert alert-warning" role="alert">
     <p>
-        <strong>Deleting this data will permanently remove your account, and this cannot be recovered.</strong>
+        <strong>Anonymizing this data will permanently disable your account and remove your personal information. This cannot be recovered.</strong>
     </p>
 </div>
 
@@ -33,7 +36,7 @@
                 <ValidationMessage For="() => Input.Password" class="text-danger" />
             </div>
         }
-        <button class="w-100 btn btn-lg btn-danger" type="submit">Delete data and close my account</button>
+        <button class="w-100 btn btn-lg btn-danger" type="submit">Anonymize data and close my account</button>
     </EditForm>
 </div>
 
@@ -75,16 +78,22 @@
             return;
         }
 
-        var result = await UserManager.DeleteAsync(user);
-        if (!result.Succeeded)
+        var userIdStr = await UserManager.GetUserIdAsync(user);
+        if (!Guid.TryParse(userIdStr, out var userGuid))
         {
-            throw new InvalidOperationException("Unexpected error occurred deleting user.");
+            throw new InvalidOperationException("Invalid user ID.");
+        }
+
+        var result = await UserService.GhostUserAsync(UserId.NewUserId(userGuid));
+        if (!result.IsOk)
+        {
+            message = $"Error: {result.ErrorValue}";
+            return;
         }
 
         await SignInManager.SignOutAsync();
 
-        var userId = await UserManager.GetUserIdAsync(user);
-        Logger.LogInformation("User with ID '{UserId}' deleted themselves.", userId);
+        Logger.LogInformation("User with ID '{UserId}' anonymized themselves.", userIdStr);
 
         RedirectManager.RedirectToCurrentPage();
     }
