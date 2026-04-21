@@ -11,11 +11,12 @@
 
   <p>La ringraziamo per l'interesse nel servizio di biblioteca digitale e la aspettiamo con ansia. Le forniamo delle brevi informazioni sul trattaemnto dei dati personali ai sensi dell'art. 13 del Regolamento UE 2016/679 (GDPR). </p>
 
-  <p>Ecco un riepilogo:</p>
+  <p> Ecco un riepilogo:</p>
   <ul>
     <li><strong>Sicurezza e privacy dei dati</strong>: I Suoi dati saranno trattati in modo sicuro e utilizzati solo quando necessario per fornire i nostri servizi.</li>
     <li><strong>Proprietà e accesso ai dati</strong>: Lei conserva il pieno diritto di accedere per rivedere i Suoi dati in qualsiasi momento.</li>
     <li><strong>Annullamento e cancellazione dei dati</strong>: Lei può annullare l'iscrizione in qualsiasi momento e, per Sua comodità, puo' cancellare definitivamente i Suoi dati</li>
+    <li><strong>Nel caso abbia pubblicato anche una recensione questa resterà comunque visibile in forma anonima</li>
   </ul>
 
   <p>Benché il sistema adotti le migliori pratiche per salvaguardare i dati con backup regolari, non possiamo garantire una protezione completa contro la perdita o il danneggiamento dei dati per cause che non siano sotto il nostro controllo</p>
