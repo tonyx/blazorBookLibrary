@@ -61,6 +61,18 @@ This document outlines the core functionality of the Blazor Book Library applica
     - Seal a book to prevent accidental edits or during specific administrative phases.
     - Unseal a book when updates are required.
 
+### **As a Manager, I want to export the library catalog in JSON or CSV format so that I have a portable backup of the archival data.**
+- **Criteria**:
+    - Trigger an export from the Books Manager ledger.
+    - Choose between JSON and CSV formats.
+    - The downloaded file should contain all relevant book metadata.
+
+### **As a Manager, I want to bulk import books using a list of ISBNs so that I can quickly populate the catalog from existing collections.**
+- **Criteria**:
+    - Provide a list of ISBNs via text input or file upload.
+    - The system should resolve metadata (Title, Authors, Cover) for each valid ISBN automatically.
+    - Real-time progress reporting should be visible during the process.
+
 ---
 
 ## 3. Author Management (Librarians & Admins)
@@ -93,3 +105,13 @@ This document outlines the core functionality of the Blazor Book Library applica
     - Promote a standard user to the "Manager" role to grant them catalog management permissions.
     - Revoke the "Manager" role to return a user to standard member status.
     - View a user's current roles and basic account information.
+
+---
+
+## 6. Data Privacy & GDPR (Members)
+### **As a Member, I want to exercise my "Right to be Forgotten" by anonymizing my account while ensuring the library's data integrity remains intact.**
+- **Criteria**:
+    - Request account anonymization from the user profile settings.
+    - Personal identifiable information (Email, Name, Fiscal Code) is cleared and randomized.
+    - All existing connections to borrowed books or reviews remain as anonymized "ghost" records for historical accuracy.
+    - The account is permanently disabled and cannot be used for future logins.

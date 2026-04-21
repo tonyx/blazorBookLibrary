@@ -22,6 +22,8 @@ See the [LICENSE](LICENSE) file for the full legal text.
 - **Unified Image Management**: A consistent and interactive portrait/cover management workflow with camera badges, pulse animations, and real-time archival previews.
 - **F# Core Domain Architecture**: Leveraging the power of F# for bulletproof domain modeling, ensuring safe and reliable archival data processing.
 - **Event-Sourcing Architecture**: Leveraging the power of Event-Sourcing for robust and reliable data management with [Sharpino](https://github.com/sharpino/sharpino).
+- **GDPR-Compliant Anonymization**: A robust "Ghosting" workflow that anonymizes user records while preserving event stream integrity, ensuring privacy compliance without breaking historical archival relationships.
+- **Advanced Bulk Operations**: High-performance JSON/CSV archival export and intelligent ISBN-based bulk import with real-time progress tracking and automated metadata resolution.
 
 ---
 

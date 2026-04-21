@@ -110,6 +110,16 @@ Risparmia tempo con gli aggiornamenti di massa:
 - Seleziona più libri nel registro del **Gestore Libri**.
 - Clicca su **"Modifica Massiva"** per aggiornare simultaneamente anni di pubblicazione, categorie o stato di disponibilità per l'intera selezione.
 
+<a name="importazione-ed-esportazione"></a>
+### Importazione ed Esportazione Archivio
+Il **Gestore Libri** offre potenti strumenti per la gestione massiva dei dati.
+- **Esportazione dell'Archivio**: Usa il menu a discesa **"Esporta"** per scaricare l'intero catalogo della biblioteca nei formati **JSON** o **CSV**. Questo è ideale per backup o analisi esterne.
+- **Importazione Massiva via ISBN**: 
+    - Clicca su **"Importa"** per aprire lo strumento di registrazione massiva.
+    - Incolla un elenco di codici ISBN (uno per riga) o carica un file di testo.
+    - **Risoluzione Intelligente**: Il sistema ricerca automaticamente i metadati per ogni ISBN tramite API globali.
+    - **Monitoraggio Avanzamento**: Una barra di avanzamento in tempo reale mostra lo stato corrente e il tempo stimato rimanente per le importazioni di grandi dimensioni.
+
 ---
 
 <a name="gestione-utenti"></a>
@@ -119,6 +129,12 @@ Risparmia tempo con gli aggiornamenti di massa:
 Gli amministratori gestiscono gli accessi tramite il **Gestore Utenti**.
 - **Assegnazione Ruoli**: Promuovi gli utenti ai ruoli di **Manager** o **Bibliotecario** per concedere l'accesso al catalogo.
 - **Controllo Account**: Cerca gli utenti per email o nome utente per revisionare il loro stato e i loro ruoli.
+
+### Anonimizzazione GDPR e "Diritto all'Oblio"
+Gli utenti possono richiedere la cancellazione dell'account tramite le impostazioni del profilo (**Gestisci i tuoi dati**).
+- **Flusso di Anonimizzazione**: Per conformarsi al GDPR preservando al contempo i record storici della biblioteca (come prestiti e recensioni passati), il sistema esegue l'**Anonimizzazione** invece della cancellazione fisica.
+- **Disabilitazione Account**: I dettagli personali dell'utente (Email, Nome, Codice Fiscale) vengono cancellati definitivamente e sostituiti con identificatori casuali. L'account viene quindi bloccato in modo permanente.
+- **Preservazione dei Record**: Tutte le interazioni storiche (es. che un libro è stato preso in prestito dall'*Utente X*) rimangono intatte per l'integrità dell'archivio, ma l'*Utente X* non è più identificabile.
 
 <a name="affidabilità-del-servizio-email"></a>
 ### Affidabilità del Servizio Email

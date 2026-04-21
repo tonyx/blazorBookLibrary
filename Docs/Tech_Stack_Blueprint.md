@@ -656,3 +656,13 @@ if (!featureEnabled) {
 - [ ] Update `DetailsService.fs` if the new aggregate participates in any details composition
 - [ ] Register the service in `Program.cs` (DI container)
 - [ ] Add localization keys to all `.resx` files for any new UI strings
+
+---
+
+## 15. GDPR Anonymization Pattern (Ghosting)
+
+When users must be removed from the system while preserving the integrity of historical event streams (e.g., loans, reviews, reservations), use the **Anonymization (Ghosting) Pattern** instead of physical deletion.
+
+1. **Identity Layer**: Clear PII from the ASP.NET Identity record (`ApplicationUser`). Set `UserName` and `Email` to randomized strings (e.g., `ghosted_abc123`), clear fields like `Nome`, `Cognome`, and `CodiceFiscale`, and permanently lock the account.
+2. **Domain Layer**: The `User` aggregate remains in the event store. Other aggregates that reference the `UserId` (like `Loan` or `Review`) remain valid and resolvable, ensuring historical consistency.
+3. **Execution**: Use `IUserService.GhostUserAsync` to coordinate the identity anonymization and the domain ghosting event.

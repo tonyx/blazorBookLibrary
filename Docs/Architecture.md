@@ -68,3 +68,8 @@ graph TB
 - **Identity & OAuth**: Integrated with Microsoft Identity and Google OAuth for secure authentication.
 - **Bot Protection**: Implements `Recaptcha v3` and a custom `BotScoreService` to mitigate automated abuse.
 - **Localization**: Full support for `it-IT` and `en-US` via standard .NET localization patterns (`IStringLocalizer`).
+
+### 6. GDPR & Anonymization (Ghosting Pattern)
+- **Anonymization Strategy**: To honor GDPR "Right to be Forgotten" while maintaining event stream integrity, the system implements a "Ghosting" pattern.
+- **Identity Anonymization**: The ASP.NET Identity record is anonymized (email/username randomized, personal fields cleared) and permanently disabled.
+- **Event Integrity**: The underlying F# aggregates (e.g., `User`) remain resolvable by their IDs, ensuring that historical records like loans or reservations don't "break" when a user departs.

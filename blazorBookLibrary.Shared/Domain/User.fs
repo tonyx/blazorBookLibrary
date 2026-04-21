@@ -49,18 +49,16 @@ type User =
                         }
                 }
 
+        // this was meant to replace the entire stream of events with GdprGhosted events (identity event) 
+        // but it is not needed anymore as anonymizing ApplicationUser is enough
         member this.GdprGhost () =
             this |> Ok
-
 
         member this.HasFutureReservation (reservationId: ReservationId) = 
             this.Reservations |> List.contains reservationId
     
         member this.HasCurrentLoan (loanId: LoanId) = 
             this.CurrentLoans |> List.contains loanId
-
-        static member GdprEmptyVersion () = 
-            { UserId = UserId.UserId (Guid.Empty); Reservations = []; CurrentLoans = [] }
 
         member this.Id = this.UserId.Value
         static member StorageName = "_User"

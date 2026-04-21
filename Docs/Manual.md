@@ -110,6 +110,16 @@ Save time with mass updates:
 - Select multiple books in the **Books Manager** ledger.
 - Click **"Bulk Edit"** to simultaneously update publication years, categories, or availability status for the entire selection.
 
+<a name="import--export"></a>
+### Archival Import & Export
+The **Books Manager** provides powerful tools for mass data handling.
+- **Exporting the Archive**: Use the **"Export"** dropdown to download your entire library catalog in **JSON** or **CSV** formats. This is ideal for backups or external analysis.
+- **ISBN Bulk Import**: 
+    - Click **"Import"** to open the bulk registration tool.
+    - Paste a list of ISBNs (one per line) or upload a text file.
+    - **Intelligent Resolution**: The system automatically looks up metadata for each ISBN via global APIs.
+    - **Progress Tracking**: A real-time progress bar shows the current status and estimated time remaining for large imports.
+
 ---
 
 <a name="system-administration"></a>
@@ -120,6 +130,12 @@ Save time with mass updates:
 Administrators manage access via the **Users Manager**.
 - **Role Assignment**: Promote users to **Manager** or **Librarian** roles to grant catalog access.
 - **Account Control**: Search for users by email or username to review their status and roles.
+
+### GDPR Anonymization & "Right to be Forgotten"
+Users can request account deletion via their profile settings (**Manage Your Data**). 
+- **Anonymization Flow**: To comply with GDPR while preserving the library's historical records (like past loans and reviews), the system performs **Anonymization** instead of hard deletion.
+- **Account Disabling**: The user's personal details (Email, Name, Fiscal Code) are permanently cleared and replaced with randomized identifiers. The account is then permanently locked.
+- **Record Preservation**: All historical interactions (e.g., that a book was borrowed by *User X*) remain intact for archival integrity, but *User X* can no longer be identified.
 
 <a name="email-service-reliability"></a>
 ### Email Service Reliability
