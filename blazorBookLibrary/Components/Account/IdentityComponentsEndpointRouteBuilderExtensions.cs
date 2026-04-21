@@ -10,6 +10,8 @@ using Microsoft.Extensions.Primitives;
 using blazorBookLibrary.Components.Account.Pages;
 using blazorBookLibrary.Components.Account.Pages.Manage;
 using blazorBookLibrary.Data;
+using BookLibrary.Shared.Services;
+using static BookLibrary.Shared.Commons;
 
 namespace Microsoft.AspNetCore.Routing;
 
@@ -113,6 +115,7 @@ internal static class IdentityComponentsEndpointRouteBuilderExtensions
 
         manageGroup.MapPost("/DownloadPersonalData", async (
             HttpContext context,
+            [FromServices] IReviewService reviewService,
             [FromServices] UserManager<ApplicationUser> userManager,
             [FromServices] AuthenticationStateProvider authenticationStateProvider) =>
         {
@@ -125,6 +128,16 @@ internal static class IdentityComponentsEndpointRouteBuilderExtensions
             var userId = await userManager.GetUserIdAsync(user);
             downloadLogger.LogInformation("User with ID '{UserId}' asked for their personal data.", userId);
 
+            var booksAndReviews = await reviewService.GetReviewsOfUserAsync(UserId.NewUserId(Guid.Parse(userId)), CancellationToken.None);
+            if (booksAndReviews.IsError)
+                {
+                    throw new InvalidOperationException($"Unable to get reviews for user with ID '{userId}'.");
+                }
+            var okValue = booksAndReviews.ResultValue;
+            var onlyReviews = okValue.ToList()
+                .Select(x => new { Title = x.Item1.Title.Value, Isbn = x.Item1.Isbn.Value, Comment = x.Item2.Comment, Date = x.Item2.Date, ApprovalStatus = x.Item2.ApprovalStatus })
+                .ToList();
+
             // Only include personal data for download
             var personalData = new Dictionary<string, string>();
             var personalDataProps = typeof(ApplicationUser).GetProperties().Where(
@@ -134,6 +147,11 @@ internal static class IdentityComponentsEndpointRouteBuilderExtensions
                 personalData.Add(p.Name, p.GetValue(user)?.ToString() ?? "null");
             }
 
+            foreach (var r in onlyReviews)
+            {
+                personalData.Add($"Book: {r.Title}, ISBN: {r.Isbn}, rndId: {Guid.NewGuid().ToString().Substring(0,5)} ", $"Comment: {r.Comment}\nDate: {r.Date}\nApproval Status: {r.ApprovalStatus}");
+            }
+
             var logins = await userManager.GetLoginsAsync(user);
             foreach (var l in logins)
             {
@@ -141,7 +159,13 @@ internal static class IdentityComponentsEndpointRouteBuilderExtensions
             }
 
             personalData.Add("Authenticator Key", (await userManager.GetAuthenticatorKeyAsync(user))!);
-            var fileBytes = JsonSerializer.SerializeToUtf8Bytes(personalData);
+            
+            var downloadOptions = new JsonSerializerOptions(jsonOptions)
+            {
+                Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+                WriteIndented = true
+            };
+            var fileBytes = JsonSerializer.SerializeToUtf8Bytes(personalData, downloadOptions);
 
             context.Response.Headers.TryAdd("Content-Disposition", "attachment; filename=PersonalData.json");
             return TypedResults.File(fileBytes, contentType: "application/json", fileDownloadName: "PersonalData.json");

@@ -276,4 +276,6 @@
   <data name="ImportSummary" xml:space="preserve"><value>Import results: {0} success, {1} failed/skipped</value></data>
   <data name="ImportProgress" xml:space="preserve"><value>Import Progress</value></data>
   <data name="EstimatedTimeRemaining" xml:space="preserve"><value>Estimated remaining time</value></data>
+  <data name="MyReviews" xml:space="preserve"><value>My Reviews</value></data>
+  <data name="NoReviewsFound" xml:space="preserve"><value>No reviews found.</value></data>
 </root>

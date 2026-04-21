@@ -22,8 +22,4 @@ type IReviewService =
     abstract member GetApprovedVisibleReviewsOfBookAsync: bookId:BookId * [<Optional; DefaultParameterValue(null)>] ?ct:CancellationToken -> Task<Result<list<ApplicationUser * Review>, string>>
     abstract member GetReviewsOfUserAsync: userId:UserId * [<Optional; DefaultParameterValue(null)>] ?ct:CancellationToken -> Task<Result<list<Book * Review>, string>>
     
-
     
-
-    
-        
