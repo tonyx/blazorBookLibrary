@@ -389,5 +389,5 @@ let tests =
             let reviewContentAfterUpdate = bookDetailAfterUpdate.ApprovedVisibleReviews.[0].Review.Comment
             Expect.equal reviewContentAfterUpdate newContent "should have the same content as the review"
         }
-
     ]
+    |> testSequenced
