@@ -128,6 +128,8 @@ type PhoneNumber =
             if PhoneNumber.IsValid(phoneNumber) then Ok (PhoneNumber phoneNumber)
             else if String.IsNullOrWhiteSpace(phoneNumber) then Error "Empty phone number"
             else Error "Invalid phone number"
+        static member NewEmpty () = EmptyPhoneNumber
+        static member NewInvalid (phoneNumber: string) = InvalidPhoneNumber phoneNumber
         member this.Value = 
             match this with
             | PhoneNumber v -> v
@@ -363,6 +365,30 @@ type UserId =
         member this.Value = 
             match this with
             | UserId v -> v
+
+type AppUserInfo =
+    {
+        Id: string
+        UserName: string
+        Email: string
+        CodiceFiscale: string
+        IsIdentifiedPhysically: bool
+        PhoneNumber: string
+        Nome: string
+        Cognome: string
+    }
+    static member 
+        NewEmpty (userId: UserId) = 
+            {
+                Id = userId.Value.ToString()
+                UserName = ""
+                Email = ""
+                CodiceFiscale = ""
+                IsIdentifiedPhysically = false
+                PhoneNumber = ""
+                Nome = ""
+                Cognome = ""
+            }
 
 type Name =
     | Name of string

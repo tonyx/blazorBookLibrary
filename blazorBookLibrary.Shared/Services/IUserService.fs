@@ -20,6 +20,6 @@ type IUserService =
     abstract member SetIsPhysicallyIdentifiedAsync: userId:UserId * [<Optional; DefaultParameterValue(null)>] ?ct:CancellationToken -> Task<Result<unit, string>>
     abstract member UnSetIsPhysicallyIdentifiedAsync: userId:UserId * [<Optional; DefaultParameterValue(null)>] ?ct:CancellationToken -> Task<Result<unit, string>>
     abstract member GhostUserAsync: userId:UserId * [<Optional; DefaultParameterValue(null)>] ?ct:CancellationToken -> Task<Result<unit, string>>
-    // abstract member AddReviewOfBookAsync: userId:UserId * bookId:BookId * comment:string * [<Optional; DefaultParameterValue(null)>] ?ct:CancellationToken -> Task<Result<unit, string>>
+    abstract member GetUser: userId:UserId * [<Optional; DefaultParameterValue(null)>] ?ct:CancellationToken -> Task<Result<User, string>>
 
     

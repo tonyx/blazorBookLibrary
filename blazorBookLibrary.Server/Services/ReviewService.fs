@@ -14,6 +14,7 @@ open BookLibrary.Utils
 open Microsoft.Extensions.DependencyInjection
 open Microsoft.AspNetCore.Identity
 open blazorBookLibrary.Data
+open BookLibrary.Services.UserMapping
 open Sharpino.Cache
 open BookLibrary.Details.Details
 
@@ -147,8 +148,6 @@ type ReviewService
                     (CommentCommand.Edit (editedComment, now))
                     (Some ct)
 
-            DetailsCache.Instance.RefreshDependentDetails commentId.Value 
-
             return result
         }
 
@@ -219,8 +218,6 @@ type ReviewService
 
     member this.GetReviewsOfBookAsync (bookId: BookId, ?ct: CancellationToken) = 
         let ct = ct |> Option.defaultValue CancellationToken.None
-        use scope = scopeFactory.CreateScope()
-        let userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>()
 
         taskResult
             {
@@ -228,36 +225,34 @@ type ReviewService
                     StateView.getAllFilteredAggregateStatesAsync<Review, ReviewEvent, string> (fun review -> review.BookId = bookId) eventStore (Some ct)
                     |> TaskResult.map (fun x -> x |> List.map snd)
 
-                let users =
+                let! users =
                     reviews
-                    |> List.map (fun review -> Async.AwaitTask (userManager.FindByIdAsync (review.UserId.Value.ToString())) |> Async.RunSynchronously)
+                    |> List.traverseTaskResultM (fun review -> userViewerAsync (Some ct) review.UserId.Value |> TaskResult.map (fun x -> x |> snd))
 
                 let result =
-                    List.zip users reviews
+                    List.zip (users |> List.map (fun user -> user.AppUserInfo)) reviews
                 return result
             }
 
     member this.GetApprovedVisibleReviewsOfBookAsync (bookId: BookId, ?ct: CancellationToken) = 
         let ct = ct |> Option.defaultValue CancellationToken.None
-        use scope = scopeFactory.CreateScope()
-        let userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>()
 
         taskResult
             {
                 let! reviews = 
-                    StateView.getAllFilteredAggregateStates<Review, ReviewEvent, string> (fun review -> review.BookId = bookId && review.ApprovalStatus.IsApproved && not review.Hidden) eventStore  |> Result.map (fun x -> x |> List.map snd)
-                    
-                // todo: fix the library so that follwowing will work without starvation (hint: the Async.RunSynchronously is to be blamed)
-                // let! reviews = 
-                //     StateView.getAllFilteredAggregateStatesAsync<Review, ReviewEvent, string> 
-                //         (fun review -> review.BookId = bookId && review.ApprovalStatus.IsApproved && not review.Hidden) eventStore  (Some ct)|> TaskResult.map (fun x -> x |> List.map snd)
+                    StateView.getAllFilteredAggregateStatesAsync<Review, ReviewEvent, string> 
+                        (fun review -> review.BookId = bookId && review.ApprovalStatus.IsApproved && not review.Hidden) eventStore (Some ct)
+                    |> TaskResult.map (fun x -> x |> List.map snd)
 
-                let users =
+                let! users =
                     reviews
-                    |> List.map (fun review -> Async.AwaitTask (userManager.FindByIdAsync (review.UserId.Value.ToString())) |> Async.RunSynchronously)
+                    |> List.traverseTaskResultM (
+                        fun review -> 
+                            userViewerAsync (Some ct) review.UserId.Value |> TaskResult.map snd
+                    )
 
                 let result =
-                    List.zip users reviews
+                    List.zip (users |> List.map (fun user -> user.AppUserInfo)) reviews
                 return result
             }
 
@@ -265,10 +260,11 @@ type ReviewService
         let ct = ct |> Option.defaultValue CancellationToken.None
         taskResult
             {
-                let! reviews = 
-                    StateView.getAllFilteredAggregateStates<Review, ReviewEvent, string> (fun review -> review.UserId = userId) eventStore 
+                let! reviewsWithId = 
+                    StateView.getAllFilteredAggregateStatesAsync<Review, ReviewEvent, string> (fun review -> review.UserId = userId) eventStore (Some ct)
                 let reviews = 
-                    reviews
+                    reviewsWithId
+                    |> List.ofSeq
                     |> List.map snd
                 let! booksInvolved =
                     reviews

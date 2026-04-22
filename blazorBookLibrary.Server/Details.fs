@@ -16,107 +16,107 @@ module Details =
     type RefreshableReservationDetails =
         {
             ReservationDetails: ReservationDetails
-            Refresher: unit -> Result<ReservationDetails, string>
+            Refresher: Option<CancellationToken> -> TaskResult<ReservationDetails, string>
         }
-        member this.Refresh () =
-            result {
-                let! reservationDetails = this.Refresher ()
+        member this.RefreshAsync ct =
+            taskResult {
+                let! reservationDetails = this.Refresher ct
                 return 
                     { 
                         this with
                             ReservationDetails = reservationDetails 
                     }
             }
-        interface Refreshable<RefreshableReservationDetails> with
-            member this.Refresh () =
-                this.Refresh ()
+        interface RefreshableAsync<RefreshableReservationDetails> with
+            member this.RefreshAsync ct =
+                this.RefreshAsync ct
 
     type RefreshableUserDetails =
         {
             UserDetails: UserDetails
-            Refresher: unit -> Result<UserDetails, string>
+            Refresher: Option<CancellationToken> -> TaskResult<UserDetails, string>
         }
-        member this.Refresh () =
-            result {
-                let! userDetails = this.Refresher ()
+        member this.RefreshAsync ct =
+            taskResult {
+                let! userDetails = this.Refresher ct
                 return 
                     { 
                         this with
                             UserDetails = userDetails 
                     }
             }
-        interface Refreshable<RefreshableUserDetails> with
-            member this.Refresh () =
-                this.Refresh ()
+        interface RefreshableAsync<RefreshableUserDetails> with
+            member this.RefreshAsync ct =
+                this.RefreshAsync ct
     
     type RefreshableBookDetails =
         {
             BookDetails: BookDetails
-            Refresher: unit -> Result<BookDetails, string>
+            Refresher: Option<CancellationToken> -> TaskResult<BookDetails, string>
         }
-        member this.Refresh () =
-            result {
-                let! bookDetails = this.Refresher ()
+        member this.RefreshAsync ct =
+            taskResult {
+                let! bookDetails = this.Refresher ct
                 return 
                     { 
                         this with
                             BookDetails = bookDetails 
                     }
             }
-        interface Refreshable<RefreshableBookDetails> with
-            member this.Refresh () =
-                this.Refresh ()
+        interface RefreshableAsync<RefreshableBookDetails> with
+            member this.RefreshAsync ct =
+                this.RefreshAsync ct
 
     type RefreshableAuthorDetails =
         {
             AuthorDetails: AuthorDetails
-            Refresher: unit -> Result<AuthorDetails, string>
+            Refresher: Option<CancellationToken> -> TaskResult<AuthorDetails, string>
         }
-        member this.Refresh () =
-            result {
-                let! authorDetails = this.Refresher ()
+        member this.RefreshAsync ct =
+            taskResult {
+                let! authorDetails = this.Refresher ct
                 return 
                     { 
                         this with
                             AuthorDetails = authorDetails 
                     }
             }
-        interface Refreshable<RefreshableAuthorDetails> with
-            member this.Refresh () =
-                this.Refresh ()
+        interface RefreshableAsync<RefreshableAuthorDetails> with
+            member this.RefreshAsync ct =
+                this.RefreshAsync ct
 
     type RefreshableLoanDetails =
         {
             LoanDetails: LoanDetails
-            Refresher: unit -> Result<LoanDetails, string>
+            Refresher: Option<CancellationToken> -> TaskResult<LoanDetails, string>
         }
-        member this.Refresh () =
-            result {
-                let! loanDetails = this.Refresher ()
+        member this.RefreshAsync ct =
+            taskResult {
+                let! loanDetails = this.Refresher ct
                 return 
                     { 
                         this with
                             LoanDetails = loanDetails 
                     }
             }
-        interface Refreshable<RefreshableLoanDetails> with
-            member this.Refresh () =
-                this.Refresh ()
+        interface RefreshableAsync<RefreshableLoanDetails> with
+            member this.RefreshAsync ct =
+                this.RefreshAsync ct
 
     type RefreshableReviewDetails =
         {
             ReviewDetails: ReviewDetails
-            Refresher: unit -> Result<ReviewDetails, string>
+            Refresher: Option<CancellationToken> -> TaskResult<ReviewDetails, string>
         }
-        member this.Refresh () =
-            result {
-                let! reviewDetails = this.Refresher ()
+        member this.RefreshAsync ct =
+            taskResult {
+                let! reviewDetails = this.Refresher ct
                 return 
                     { 
                         this with
                             ReviewDetails = reviewDetails 
                     }
             }
-        interface Refreshable<RefreshableReviewDetails> with
-            member this.Refresh () =
-                this.Refresh ()
+        interface RefreshableAsync<RefreshableReviewDetails> with
+            member this.RefreshAsync ct =
+                this.RefreshAsync ct

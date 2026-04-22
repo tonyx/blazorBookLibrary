@@ -7,19 +7,71 @@ open BookLibrary.Shared.Commons
 open System
 open System.Globalization
 
-type User =
+type User001 =
     {
         UserId: UserId
         Reservations: List<ReservationId>
         CurrentLoans: List<LoanId>
     }
+    member this.Upcast(): User =
+        { 
+            UserId = this.UserId 
+            AppUserInfo = AppUserInfo.NewEmpty(this.UserId)
+            Reservations = this.Reservations 
+            CurrentLoans = this.CurrentLoans 
+        }
+
+and  User =
+    {
+        UserId: UserId
+        AppUserInfo: AppUserInfo
+        Reservations: List<ReservationId>
+        CurrentLoans: List<LoanId>
+    }
     with
         static member New (userId: UserId) = 
-            { UserId = userId; Reservations = []; CurrentLoans = [] }
+            { 
+                UserId = userId
+                AppUserInfo = AppUserInfo.NewEmpty(userId)
+                Reservations = []
+                CurrentLoans = [] 
+            }
     
         member this.AddReservation (reservationId: ReservationId) = 
             { this with Reservations = reservationId :: this.Reservations } |> Ok
-    
+        member this.SetCodiceFiscale (fiscalCode: FiscalCode) = 
+            { this with AppUserInfo = { this.AppUserInfo with CodiceFiscale = fiscalCode.Value } } |> Ok
+
+        member this.GetCodiceFiscale () =
+            match this.AppUserInfo.CodiceFiscale with
+            | "" -> FiscalCode.NewEmpty () |> Ok
+            | x  when FiscalCode.IsValid x -> FiscalCode.New x
+            | x -> FiscalCode.NewInvalid x |> Ok
+
+        member this.SetPhoneNumber (phoneNumber: PhoneNumber) = 
+            { this with AppUserInfo = { this.AppUserInfo with PhoneNumber = phoneNumber.Value } } |> Ok
+
+        member this.GetPhoneNumber () =
+            match this.AppUserInfo.PhoneNumber with
+            | "" -> PhoneNumber.NewEmpty () |> Ok
+            | x  when PhoneNumber.IsValid x -> PhoneNumber.New x
+            | x -> PhoneNumber.NewInvalid x |> Ok
+
+        member this.SetIsIdentifiedPhysically() = 
+            { this with AppUserInfo = { this.AppUserInfo with IsIdentifiedPhysically = true } } |> Ok
+
+        member this.UnsetIdentifiedPhysically() = 
+            { this with AppUserInfo = { this.AppUserInfo with IsIdentifiedPhysically = false } } |> Ok
+
+        member this.SetNome (nome: string) = 
+            { this with AppUserInfo = { this.AppUserInfo with Nome = nome } } |> Ok
+
+        member this.SetCognome (cognome: string) = 
+            { this with AppUserInfo = { this.AppUserInfo with Cognome = cognome } } |> Ok
+
+        member this.GetAppUserInfo () =
+            this.AppUserInfo
+
         member this.RemoveReservation (reservationId: ReservationId) = 
             { this with Reservations = this.Reservations |> List.filter (fun id -> id <> reservationId) } |> Ok
 
@@ -70,5 +122,12 @@ type User =
             try
                 (json, jsonOptions) |> JsonSerializer.Deserialize<User> |> Ok
             with
-                | ex -> Error (ex.Message)
+                | ex -> 
+                    try
+                        let user001 = 
+                            (json, jsonOptions) |> JsonSerializer.Deserialize<User001> 
+                        user001.Upcast() |> Ok
+                    with
+                    | ex2 -> Error (ex.Message + "; " + ex2.Message)
+
     

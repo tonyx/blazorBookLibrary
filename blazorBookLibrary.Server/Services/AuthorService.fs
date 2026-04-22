@@ -94,38 +94,32 @@ type AuthorService
             let detailsBuilder =
                 fun (ct: Option<CancellationToken>) ->
                     let refresher =
-                        fun () ->
-                            result {
+                        fun (ct: Option<CancellationToken>) ->
+                            taskResult {
                                 let! author = 
                                     authorViewerAsync ct id.Value |> TaskResult.map snd
-                                    |> Async.AwaitTask
-                                    |> Async.RunSynchronously
                                 let! books = 
                                     author.Books
                                     |> List.traverseTaskResultM (fun bookId -> bookViewerAsync ct bookId.Value |> TaskResult.map snd)
-                                    |> Async.AwaitTask
-                                    |> Async.RunSynchronously
                                 return
                                     {
                                         Author = author
                                         Books = books
                                     }
                             }
-                    result {
-                        let! authorDetails = refresher()
+                    taskResult {
+                        let! authorDetails = refresher ct
                         return
                             {
                                 AuthorDetails = authorDetails
                                 Refresher = refresher
-                            } :> Refreshable<RefreshableAuthorDetails>
+                            } :> RefreshableAsync<RefreshableAuthorDetails>
                             ,
                             id.Value :: (authorDetails.Author.Books |> List.map _.Value)
                     }
             let key = DetailsCacheKey.OfType typeof<RefreshableAuthorDetails> id.Value
-            task
-                {
-                    return StateView.getRefreshableDetailsAsync<RefreshableAuthorDetails> (fun ct -> detailsBuilder ct) key ct
-                }
+            StateView.getRefreshableDetailsTaskResultAsync<RefreshableAuthorDetails> (fun ct -> detailsBuilder ct) key ct
+
     member this.GetAuthorDetailsAsync (authorId: AuthorId, ?ct: CancellationToken) = 
         taskResult
             {

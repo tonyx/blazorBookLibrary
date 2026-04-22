@@ -53,8 +53,6 @@ module CleanUpServices =
                     use cts = new CancellationTokenSource(delay = TimeSpan.FromMinutes(10.0))
                     let! ids = 
                         bookEventStore.GetUndeletedAggregateIdsAsync (Book.Version, Book.StorageName, cts.Token)
-                        |> Async.AwaitTask
-                        |> Async.RunSynchronously
 
                     let! result =
                         ids 
@@ -71,8 +69,6 @@ module CleanUpServices =
                     use cts = new CancellationTokenSource(delay = TimeSpan.FromMinutes(10.0))
                     let! ids = 
                         bookEventStore.GetUndeletedAggregateIdsAsync (Author.Version, Author.StorageName, cts.Token)
-                        |> Async.AwaitTask
-                        |> Async.RunSynchronously
 
                     let! result =
                         ids 
@@ -88,8 +84,6 @@ module CleanUpServices =
                     use cts = new CancellationTokenSource(delay = TimeSpan.FromMinutes(10.0))
                     let! ids = 
                         bookEventStore.GetUndeletedAggregateIdsAsync (Editor.Version, Editor.StorageName, cts.Token)
-                        |> Async.AwaitTask
-                        |> Async.RunSynchronously
 
                     let! result =
                         ids 
@@ -105,8 +99,6 @@ module CleanUpServices =
                     use cts = new CancellationTokenSource(delay = TimeSpan.FromMinutes(10.0))
                     let! ids = 
                         bookEventStore.GetUndeletedAggregateIdsAsync (Loan.Version, Loan.StorageName, cts.Token)
-                        |> Async.AwaitTask
-                        |> Async.RunSynchronously
 
                     let! result =
                         ids 
@@ -122,8 +114,6 @@ module CleanUpServices =
                     use cts = new CancellationTokenSource(delay = TimeSpan.FromMinutes(10.0))
                     let! ids = 
                         bookEventStore.GetUndeletedAggregateIdsAsync (Reservation.Version, Reservation.StorageName, cts.Token)
-                        |> Async.AwaitTask
-                        |> Async.RunSynchronously
 
                     let! result =
                         ids 
@@ -139,8 +129,6 @@ module CleanUpServices =
                     use cts = new CancellationTokenSource(delay = TimeSpan.FromMinutes(10.0))
                     let! ids = 
                         bookEventStore.GetUndeletedAggregateIdsAsync (User.Version, User.StorageName, cts.Token)
-                        |> Async.AwaitTask
-                        |> Async.RunSynchronously
 
                     let! result =
                         ids 

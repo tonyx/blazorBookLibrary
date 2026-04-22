@@ -477,8 +477,8 @@ module Details =
 ## 9. Refreshable Details — `Server/Details.fs`
 
 The Server project wraps every `XxxDetails` type into a `RefreshableXxxDetails` record. These types:
-1. Hold a `Refresher: unit -> Result<XxxDetails, string>` function closure
-2. Implement the `Refreshable<RefreshableXxxDetails>` interface (required by `DetailsCache`)
+1. Hold a `Refresher: Option<CancellationToken> -> TaskResult<XxxDetails, string>` function closure
+2. Implement the `RefreshableAsync<RefreshableXxxDetails>` interface (required by `DetailsCache`)
 3. Enable cache invalidation and lazy refresh without rebuilding from scratch
 
 ### Pattern
@@ -490,15 +490,15 @@ module Details =
     type RefreshableBookDetails =
         {
             BookDetails: BookDetails
-            Refresher: unit -> Result<BookDetails, string>
+            Refresher: Option<CancellationToken> -> TaskResult<BookDetails, string>
         }
-        member this.Refresh () =
-            result {
-                let! bookDetails = this.Refresher ()
+        member this.RefreshAsync (ct: Option<CancellationToken>) =
+            taskResult {
+                let! bookDetails = this.Refresher ct
                 return { this with BookDetails = bookDetails }
             }
-        interface Refreshable<RefreshableBookDetails> with
-            member this.Refresh () = this.Refresh ()
+        interface RefreshableAsync<RefreshableBookDetails> with
+            member this.RefreshAsync ct = this.RefreshAsync ct
 ```
 
 One `RefreshableXxxDetails` type exists per details type:
@@ -518,29 +518,30 @@ One `RefreshableXxxDetails` type exists per details type:
 For each details type, the service defines a private `GetRefreshableXxxDetailsAsync` method:
 
 ```fsharp
-member private this.GetRefreshableBookDetailsAsync(bookId: BookId, ?ct) =
+member private this.GetRefreshableBookDetailsAsync(bookId: BookId, ?ct: CancellationToken) =
+    let ct = defaultArg ct CancellationToken.None
     let detailsBuilder =
         fun (ct: Option<CancellationToken>) ->
+            let ct = ct |> Option.defaultValue CancellationToken.None
             let refresher =
-                fun () ->
-                    // Synchronous taskResult block that reads all viewers
+                fun (ct: Option<CancellationToken>) ->
                     taskResult {
-                        let! book = bookViewerAsync (Some ct_) bookId.Value |> TaskResult.map snd
+                        let ct = ct |> Option.defaultValue CancellationToken.None
+                        let! book = bookViewerAsync (Some ct) bookId.Value |> TaskResult.map snd
                         let! authors = ...
                         return { Book = book; Authors = authors; ... }
                     }
-                    |> Async.AwaitTask |> Async.RunSynchronously
-            result {
-                let! bookDetails = refresher ()
+            taskResult {
+                let! bookDetails = refresher (Some ct)
                 return
                     { BookDetails = bookDetails; Refresher = refresher }
-                    :> Refreshable<RefreshableBookDetails>
+                    :> RefreshableAsync<RefreshableBookDetails>
                     ,
                     // Cache dependency keys (invalidate cache if any of these aggregate IDs change):
                     bookId.Value :: (bookDetails.Authors |> List.map _.AuthorId.Value)
             }
     let key = DetailsCacheKey.OfType typeof<RefreshableBookDetails> bookId.Value
-    task { return StateView.getRefreshableDetailsAsync<RefreshableBookDetails> (fun ct -> detailsBuilder ct) key ct }
+    StateView.getRefreshableDetailsTaskResultAsync<RefreshableBookDetails> (fun ct -> detailsBuilder ct) key ct
 ```
 
 The public `GetBookDetailsAsync` unwraps the refreshable wrapper:

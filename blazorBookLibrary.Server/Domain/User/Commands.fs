@@ -12,6 +12,12 @@ type UserCommand =
     | ReleaseLoan of LoanId
     | LoanFromReservation of LoanId * ReservationId
     | GdprGhost
+    | SetCodiceFiscale of FiscalCode
+    | SetPhoneNumber of PhoneNumber
+    | SetPhysicalIdentification
+    | UnsetPhysicalIdentification
+    | SetNome of string
+    | SetCognome of string
     interface AggregateCommand<User, UserEvent> with
         member this.Execute (user: User) =
             match this with
@@ -33,5 +39,23 @@ type UserCommand =
             | GdprGhost ->
                 user.GdprGhost()
                 |> Result.map (fun u -> (u, [GdprGhosted]))
+            | SetCodiceFiscale fiscalCode ->
+                user.SetCodiceFiscale fiscalCode
+                |> Result.map (fun u -> (u, [CodiceFiscaleSet(fiscalCode)]))
+            | SetPhoneNumber phoneNumber ->
+                user.SetPhoneNumber phoneNumber
+                |> Result.map (fun u -> (u, [PhoneNumberSet(phoneNumber)]))
+            | SetPhysicalIdentification ->
+                user.SetIsIdentifiedPhysically()
+                |> Result.map (fun u -> (u, [PhysicalIdentificationSet]))
+            | UnsetPhysicalIdentification ->
+                user.UnsetIdentifiedPhysically()
+                |> Result.map (fun u -> (u, [PhysicalIdentificationUnset]))
+            | SetNome nome ->
+                user.SetNome nome
+                |> Result.map (fun u -> (u, [NomeSet(nome)]))
+            | SetCognome cognome ->
+                user.SetCognome cognome
+                |> Result.map (fun u -> (u, [CognomeSet(cognome)]))
 
         member this.Undoer = None

@@ -21,6 +21,6 @@ type ExpiredReservationsRemovalScheduler(scopeFactory: IServiceScopeFactory, con
                 do
                     use scope = scopeFactory.CreateScope()
                     let reservationService = scope.ServiceProvider.GetRequiredService<IReservationService>()
-                    let! _ = reservationService.RemoveExpiredReservationsAsync() |> Async.AwaitTask
+                    let! _ = reservationService.RemoveExpiredReservationsAsync()
                     ()
         }

@@ -206,6 +206,48 @@ using (var scope = app.Services.CreateScope())
             }
         }
     }
+    if (app.Configuration.GetValue<bool>("UpdateUsersOnStartup", false))
+    {
+        var userService = scope.ServiceProvider.GetRequiredService<BookLibrary.Shared.Services.IUserService>();
+        var allIdentityUsers = await userManager.Users.ToListAsync();
+
+        foreach (var identityUser in allIdentityUsers)
+        {
+            if (Guid.TryParse(identityUser.Id, out var userGuid))
+            {
+                var sharpinoUserId = UserId.NewUserId(userGuid);
+                var sharpinoUserResult = await userService.GetUserAsync(sharpinoUserId, FSharpOption<CancellationToken>.None);
+                
+                if (sharpinoUserResult.IsOk)
+                {
+                    if (!string.IsNullOrWhiteSpace(identityUser.CodiceFiscale))
+                    {
+                        var fcResult = FiscalCode.New(identityUser.CodiceFiscale);
+                        if (fcResult.IsOk)
+                            await userService.SetFiscalCodeAsync(sharpinoUserId, fcResult.ResultValue, FSharpOption<CancellationToken>.None);
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(identityUser.Nome))
+                        await userService.SetNameAsync(sharpinoUserId, identityUser.Nome, FSharpOption<CancellationToken>.None);
+
+                    if (!string.IsNullOrWhiteSpace(identityUser.Cognome))
+                        await userService.SetSurnameAsync(sharpinoUserId, identityUser.Cognome, FSharpOption<CancellationToken>.None);
+
+                    if (!string.IsNullOrWhiteSpace(identityUser.PhoneNumber))
+                    {
+                        var phResult = PhoneNumber.New(identityUser.PhoneNumber);
+                        if (phResult.IsOk)
+                            await userService.SetPhoneNumberAsync(sharpinoUserId, phResult.ResultValue, FSharpOption<CancellationToken>.None);
+                    }
+
+                    if (identityUser.IsIdentifiedPhysically)
+                        await userService.SetIsPhysicallyIdentifiedAsync(sharpinoUserId, FSharpOption<CancellationToken>.None);
+                    else
+                        await userService.UnSetIsPhysicallyIdentifiedAsync(sharpinoUserId, FSharpOption<CancellationToken>.None);
+                }
+            }
+        }
+    }
 
     // Invoke CleanUpService to force snapshots on startup if configured
     // CleanUpService cleanUpService = scope.ServiceProvider.GetRequiredService<BookLibrary.CleanServices.CleanUpServices.CleanUpService>();

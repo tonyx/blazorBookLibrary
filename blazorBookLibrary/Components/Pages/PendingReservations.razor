@@ -101,8 +101,8 @@
                                                 </div>
                                             </td>
                                             <td class="py-3">
-                                                <div class="fw-bold">@res.UserDetails.ApplicationUser.UserName</div>
-                                                <div class="x-small text-muted">@res.UserDetails.ApplicationUser.CodiceFiscale</div>
+                                                <div class="fw-bold">@res.UserDetails.AppUser.UserName</div>
+                                                <div class="x-small text-muted">@res.UserDetails.AppUser.CodiceFiscale</div>
                                             </td>
                                             <td class="py-3 text-nowrap">
                                                 <div class="small">
@@ -144,7 +144,7 @@
                             <div class="animate-fade-in">
                                 <div class="mb-4 p-3 bg-primary-subtle rounded-xl border border-primary-subtle shadow-sm">
                                     <h6 class="serif fw-bold text-primary mb-1">@selectedReservation.Book.Title.Value</h6>
-                                    <p class="x-small text-muted mb-0">@L["Borrower"]: @selectedReservation.UserDetails.ApplicationUser.UserName</p>
+                                    <p class="x-small text-muted mb-0">@L["Borrower"]: @selectedReservation.UserDetails.AppUser.UserName</p>
                                 </div>
 
                                 <div class="mb-4">

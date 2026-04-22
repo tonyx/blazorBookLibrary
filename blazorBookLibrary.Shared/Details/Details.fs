@@ -10,10 +10,11 @@ module Details =
 
     let random = System.Random()
 
+
     type UserDetails =
         {
             User: User
-            ApplicationUser: ApplicationUser
+            AppUser: AppUserInfo
             FutureReservations: List<Reservation*Book>
             CurrentLoans: List<Loan * Book> 
             BooksAndReviews: List<Book * Review>
@@ -50,7 +51,7 @@ module Details =
         }
 
     type ReviewDetails =  {
-        ApplicationUser: ApplicationUser
+        AppUser: AppUserInfo
         Book: Book
         Authors: List<Author>
         Review: Review
