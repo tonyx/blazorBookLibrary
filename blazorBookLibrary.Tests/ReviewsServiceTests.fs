@@ -301,7 +301,7 @@ let tests =
             Expect.equal reviewContent "this is a very good book" "should have the same content as the review"
         }
 
-        ftestCaseTask "add a review, save it as not hidden, approve it, then change is content, and verify that the details of the book has been updated accordingly " <| fun _ -> task {
+        testCaseTask "add a review, save it as not hidden, approve it, then change is content, and verify that the details of the book has been updated accordingly " <| fun _ -> task {
             setUp()
             let reviewService = getReviewService()
             let bookService = getBookService()
@@ -389,5 +389,5 @@ let tests =
             let reviewContentAfterUpdate = bookDetailAfterUpdate.ApprovedVisibleReviews.[0].Review.Comment
             Expect.equal reviewContentAfterUpdate newContent "should have the same content as the review"
         }
-
     ]
+    |> testSequenced
