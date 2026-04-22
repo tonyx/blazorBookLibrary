@@ -78,7 +78,7 @@ type ReservationService
         ReservationService(eventStore, userService, mailNotificator, configuration, mailBodyRetriever) 
 
         member private this.MakeReservationRefresher(id: ReservationId, ?ct:CancellationToken) = 
-            fun () ->
+            fun (ct: Option<CancellationToken>) ->
                 taskResult
                     {
                         let ct = ct |> Option.defaultValue CancellationToken.None
@@ -95,17 +95,15 @@ type ReservationService
                                 UserDetails = userDetails
                             }
                     }
-                |> Async.AwaitTask
-                |> Async.RunSynchronously
 
-        member this.MakeReservationDetailsBuilder(id: ReservationId, refresher: unit -> Result<ReservationDetails, string>) = 
-            result {
-                let! reservationDetails = refresher()
+        member this.MakeReservationDetailsBuilder(id: ReservationId, refresher: Option<CancellationToken> -> TaskResult<ReservationDetails, string>) = 
+            taskResult {
+                let! reservationDetails = refresher (Some CancellationToken.None)
                 return 
                     {
                         ReservationDetails = reservationDetails    
                         Refresher = refresher
-                    } :> Refreshable<RefreshableReservationDetails>
+                    } :> RefreshableAsync<RefreshableReservationDetails>
                     ,
                     [id.Value ;
                     reservationDetails.Reservation.BookId.Value ;
@@ -172,7 +170,7 @@ type ReservationService
                             do! mailNotificator.SendEmailAsync(
                                     fromEmail,
                                     fromName,
-                                    userDetails.ApplicationUser.Email,
+                                    userDetails.AppUser.Email,
                                     mailBodyRetriever.GetReservationNotificationSubject shortLang,
                                     emailBody
                                 )
@@ -206,15 +204,12 @@ type ReservationService
     member this.GetRefreshableReservationDetailsAsync (id: ReservationId, ?ct: CancellationToken) = 
         let detailsBuilder =
             fun (ct: Option<CancellationToken>) ->
-                let refresher = 
-                    this.MakeReservationRefresher(id, ct|> Option.defaultValue CancellationToken.None) 
-                this.MakeReservationDetailsBuilder(id, refresher)
+                this.MakeReservationRefresher(id, ct|> Option.defaultValue CancellationToken.None) 
+                |> fun refresher -> this.MakeReservationDetailsBuilder(id, refresher)
 
         let key = DetailsCacheKey.OfType typeof<RefreshableReservationDetails> id.Value
-        task
-            {
-                return StateView.getRefreshableDetailsAsync<RefreshableReservationDetails> (fun ct -> detailsBuilder ct) key ct
-            }
+        StateView.getRefreshableDetailsTaskResultAsync<RefreshableReservationDetails> (fun ct -> detailsBuilder ct) key ct
+            
 
     member this.RemoveReservationAsync (reservationId: ReservationId, dateTime: System.DateTime, ?ct:CancellationToken)= 
         taskResult

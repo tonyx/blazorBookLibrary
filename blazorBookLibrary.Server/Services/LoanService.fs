@@ -152,7 +152,7 @@ type LoanService
                             mailNotificator.SendEmailAsync(
                                 fromEmail,
                                 fromName,
-                                userDetails.ApplicationUser.Email,
+                                userDetails.AppUser.Email,
                                 mailBodyRetriever.GetLoanNotificationSubject shortLang,
                                 emailBody
                             )
@@ -174,22 +174,17 @@ type LoanService
     member this.GetRefreshableLoanDetailsAsync (loanId: LoanId, ?ct: CancellationToken): TaskResult<RefreshableLoanDetails, string> = 
         let detailsBuilder =
             fun (ct: Option<CancellationToken>) ->
+                let ct = ct |> Option.defaultValue CancellationToken.None
                 let refresher =
-                    fun () ->
-                        result {
+                    fun (ct: Option<CancellationToken>) ->
+                        taskResult {
                             let ct = ct |> Option.defaultValue CancellationToken.None
                             let! loan = 
                                 loanViewerAsync (ct |> Some) loanId.Value |> TaskResult.map snd
-                                |> Async.AwaitTask
-                                |> Async.RunSynchronously    
                             let! book = 
                                 bookViewerAsync (ct |> Some) loan.BookId.Value |> TaskResult.map snd
-                                |> Async.AwaitTask
-                                |> Async.RunSynchronously    
                             let! userDetail = 
                                 usersService.GetUserDetailsAsync (loan.UserId, ct)
-                                |> Async.AwaitTask
-                                |> Async.RunSynchronously    
                             return
                                 { 
                                     Loan = loan
@@ -197,13 +192,13 @@ type LoanService
                                     UserDetails = userDetail
                                 }
                         }
-                result {
-                    let! loanDetails = refresher ()
+                taskResult {
+                    let! loanDetails = refresher (Some ct)
                     return
                         {
                             LoanDetails = loanDetails
                             Refresher = refresher
-                        } :> Refreshable<RefreshableLoanDetails>
+                        } :> RefreshableAsync<RefreshableLoanDetails>
                         ,
                         [
                             loanId.Value;
@@ -212,10 +207,7 @@ type LoanService
                         ]
                     }
         let key = DetailsCacheKey.OfType typeof<RefreshableLoanDetails> loanId.Value    
-        task
-            {
-                return StateView.getRefreshableDetailsAsync<RefreshableLoanDetails> (fun ct -> detailsBuilder ct) key ct
-            }
+        StateView.getRefreshableDetailsTaskResultAsync<RefreshableLoanDetails> (fun ct -> detailsBuilder ct) key ct
     member this.GetLoansAsync (?ct: CancellationToken): TaskResult<List<Loan>, string> = 
         taskResult
             {
@@ -272,7 +264,7 @@ type LoanService
                                 mailNotificator.SendEmailAsync (
                                     fromEmail, 
                                     fromName, 
-                                    userDetails.ApplicationUser.Email, 
+                                    userDetails.AppUser.Email, 
                                     mailBodyRetriever.GetReleaseLoanNotificationSubject shortLang, 
                                     emailBody
                                 )
@@ -349,7 +341,7 @@ type LoanService
                     mailNotificator.SendEmailAsync(
                         fromEmail,
                         fromName,
-                        reservationDetails.UserDetails.ApplicationUser.Email,
+                        reservationDetails.UserDetails.AppUser.Email,
                         mailBodyRetriever.GetLoanNotificationSubject shortLang,
                         emailBody
                     )

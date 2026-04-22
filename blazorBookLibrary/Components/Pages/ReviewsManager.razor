@@ -75,7 +75,7 @@
                 <TemplateColumn Title="@L["Reviewer"]" SortBy="@sortReviewer">
                     <div class="d-flex align-items-center gap-2 cursor-pointer" @onclick="() => NavigateToModeration(context)">
                         <i class="bi bi-person-circle text-muted"></i>
-                        <span>@context.ApplicationUser.Email</span>
+                        <span>@context.AppUser.Email</span>
                     </div>
                 </TemplateColumn>
 
@@ -156,7 +156,7 @@
     private PaginationState pagination = new() { ItemsPerPage = 10 };
 
     private GridSort<ReviewDetails> sortTitle = GridSort<ReviewDetails>.ByAscending(r => r.Book.Title.Value);
-    private GridSort<ReviewDetails> sortReviewer = GridSort<ReviewDetails>.ByAscending(r => r.ApplicationUser.Email);
+    private GridSort<ReviewDetails> sortReviewer = GridSort<ReviewDetails>.ByAscending(r => r.AppUser.Email);
     private GridSort<ReviewDetails> sortDate = GridSort<ReviewDetails>.ByAscending(r => r.Review.Date);
     private GridSort<ReviewDetails> sortStatus = GridSort<ReviewDetails>.ByAscending(r => r.Review.ApprovalStatus.Value);
 

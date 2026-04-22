@@ -90,7 +90,7 @@
                 <TemplateColumn Title="@L["Patron"]" SortBy="@sortPatron">
                     <div class="d-flex align-items-center gap-2">
                         <i class="bi bi-person-circle text-muted"></i>
-                        <span>@context.UserDetails.ApplicationUser.Email</span>
+                        <span>@context.UserDetails.AppUser.Email</span>
                     </div>
                 </TemplateColumn>
 
@@ -168,14 +168,14 @@
     private PaginationState pagination = new() { ItemsPerPage = 10 };
 
     private GridSort<LoanDetails> sortTitle = GridSort<LoanDetails>.ByAscending(ld => ld.Book.Title.Value);
-    private GridSort<LoanDetails> sortPatron = GridSort<LoanDetails>.ByAscending(ld => ld.UserDetails.ApplicationUser.Email);
+    private GridSort<LoanDetails> sortPatron = GridSort<LoanDetails>.ByAscending(ld => ld.UserDetails.AppUser.Email);
     private GridSort<LoanDetails> sortDueDate = GridSort<LoanDetails>.ByAscending(ld => ld.Loan.TimeSlot.End);
 
     private IQueryable<LoanDetails> FilteredLoans => 
         loanDetailsList.AsQueryable()
             .Where(ld => ld.Loan.InProgress && 
                          (string.IsNullOrEmpty(bookFilter) || ld.Book.Title.Value.Contains(bookFilter, StringComparison.OrdinalIgnoreCase)) &&
-                         (string.IsNullOrEmpty(patronFilter) || (ld.UserDetails.ApplicationUser.Email != null && ld.UserDetails.ApplicationUser.Email.Contains(patronFilter, StringComparison.OrdinalIgnoreCase))))
+                         (string.IsNullOrEmpty(patronFilter) || (ld.UserDetails.AppUser.Email != null && ld.UserDetails.AppUser.Email.Contains(patronFilter, StringComparison.OrdinalIgnoreCase))))
             .OrderByDescending(ld => ld.Loan.TimeSlot.Start);
 
     protected override async Task OnInitializedAsync()

@@ -75,55 +75,55 @@
                             <i class="bi bi-person-badge h3 mb-0"></i>
                         </div>
                         <div>
-                            <h2 class="h5 text-serif mb-0">@userDetails.ApplicationUser.Nome @userDetails.ApplicationUser.Cognome</h2>
-                            <p class="text-muted small mb-0">@userDetails.ApplicationUser.Email</p>
+                            <h2 class="h5 text-serif mb-0">@userDetails.AppUser.Nome @userDetails.AppUser.Cognome</h2>
+                            <p class="text-muted small mb-0">@userDetails.AppUser.Email</p>
                         </div>
                     </div>
 
                     <div class="credential-ledger">
                         <div class="ledger-item">
                             <label>@L["FullName"]</label>
-                            <div class="value">@userDetails.ApplicationUser.Nome @userDetails.ApplicationUser.Cognome</div>
+                            <div class="value">@userDetails.AppUser.Nome @userDetails.AppUser.Cognome</div>
                         </div>
                         <div class="ledger-item">
                             <label>@L["EmailAddress"]</label>
-                            <div class="value">@userDetails.ApplicationUser.Email</div>
+                            <div class="value">@userDetails.AppUser.Email</div>
                         </div>
                         <div class="ledger-item">
                             <label>@L["CodiceFiscale"]</label>
                             <div class="value">
-                                @if (string.IsNullOrWhiteSpace(userDetails.ApplicationUser.CodiceFiscale))
+                                @if (string.IsNullOrWhiteSpace(userDetails.AppUser.CodiceFiscale))
                                 {
                                     <span class="text-muted italic"><i class="bi bi-person-vcard me-1"></i> @L["NotSpecified"]</span>
                                 }
-                                else if (BookLibrary.Shared.Commons.FiscalCode.IsValid(userDetails.ApplicationUser.CodiceFiscale))
+                                else if (BookLibrary.Shared.Commons.FiscalCode.IsValid(userDetails.AppUser.CodiceFiscale))
                                 {
-                                    <span class="text-success">@userDetails.ApplicationUser.CodiceFiscale <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill ms-2 small">@L["Valid"]</span></span>
+                                    <span class="text-success">@userDetails.AppUser.CodiceFiscale <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill ms-2 small">@L["Valid"]</span></span>
                                 }
                                 else
                                 {
-                                    <span class="text-danger">@userDetails.ApplicationUser.CodiceFiscale <span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill ms-2 small">@L["Invalid"]</span></span>
+                                    <span class="text-danger">@userDetails.AppUser.CodiceFiscale <span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill ms-2 small">@L["Invalid"]</span></span>
                                 }
                             </div>
                         </div>
                         <div class="ledger-item">
                             <label>@L["PhoneNumber"]</label>
                             <div class="value">
-                                @if (string.IsNullOrWhiteSpace(userDetails.ApplicationUser.PhoneNumber))
+                                @if (string.IsNullOrWhiteSpace(userDetails.AppUser.PhoneNumber))
                                 {
                                     <span class="text-muted italic"><i class="bi bi-telephone-x me-1"></i> @L["Missing"]</span>
                                 }
-                                else if (BookLibrary.Shared.Commons.PhoneNumber.IsValid(userDetails.ApplicationUser.PhoneNumber))
+                                else if (BookLibrary.Shared.Commons.PhoneNumber.IsValid(userDetails.AppUser.PhoneNumber))
                                 {
                                     <span class="text-success">
-                                        <i class="bi bi-telephone me-1"></i> @userDetails.ApplicationUser.PhoneNumber 
+                                        <i class="bi bi-telephone me-1"></i> @userDetails.AppUser.PhoneNumber 
                                         <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill ms-2 small">@L["Valid"]</span>
                                     </span>
                                 }
                                 else
                                 {
                                     <span class="text-danger">
-                                        <i class="bi bi-telephone me-1"></i> @userDetails.ApplicationUser.PhoneNumber 
+                                        <i class="bi bi-telephone me-1"></i> @userDetails.AppUser.PhoneNumber 
                                         <span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill ms-2 small">@L["Invalid"]</span>
                                     </span>
                                 }
@@ -132,7 +132,7 @@
                         <div class="ledger-item">
                             <label>@L["PhysicalIdentification"]</label>
                             <div class="value">
-                                @if (userDetails.ApplicationUser.IsIdentifiedPhysically)
+                                @if (userDetails.AppUser.IsIdentifiedPhysically)
                                 {
                                     <span class="text-success"><i class="bi bi-patch-check-fill me-1"></i> @L["Identified"]</span>
                                 }
@@ -154,7 +154,7 @@
                                 <label for="emailConfirmInput" class="small">@L["ConfirmUserEmailToProceed"]</label>
                             </div>
                             
-                            @if (userDetails.ApplicationUser.IsIdentifiedPhysically)
+                            @if (userDetails.AppUser.IsIdentifiedPhysically)
                             {
                                 <button class="btn btn-warning w-100 rounded-pill py-2 shadow-sm fw-bold" @onclick="HandleUnverify" disabled="@(!CanVerify)">
                                     <i class="bi bi-person-dash me-2"></i> @L["RevokePhysicalVerification"]
@@ -287,7 +287,7 @@
 
     private bool CanVerify => !string.IsNullOrEmpty(emailConfirmation) && 
                               userDetails != null && 
-                              emailConfirmation.Trim().Equals(userDetails.ApplicationUser.Email.Trim(), StringComparison.OrdinalIgnoreCase);
+                              emailConfirmation.Trim().Equals(userDetails.AppUser.Email.Trim(), StringComparison.OrdinalIgnoreCase);
 
     protected override async Task OnInitializedAsync()
     {
