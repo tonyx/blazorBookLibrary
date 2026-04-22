@@ -244,9 +244,13 @@ type ReviewService
 
         taskResult
             {
-
                 let! reviews = 
                     StateView.getAllFilteredAggregateStates<Review, ReviewEvent, string> (fun review -> review.BookId = bookId && review.ApprovalStatus.IsApproved && not review.Hidden) eventStore  |> Result.map (fun x -> x |> List.map snd)
+                    
+                // todo: fix the library so that follwowing will work without starvation (hint: the Async.RunSynchronously is to be blamed)
+                // let! reviews = 
+                //     StateView.getAllFilteredAggregateStatesAsync<Review, ReviewEvent, string> 
+                //         (fun review -> review.BookId = bookId && review.ApprovalStatus.IsApproved && not review.Hidden) eventStore  (Some ct)|> TaskResult.map (fun x -> x |> List.map snd)
 
                 let users =
                     reviews

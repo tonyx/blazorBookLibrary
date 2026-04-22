@@ -352,7 +352,6 @@ type DetailsService (
                     fun (ct: Option<CancellationToken>) ->
                         let refresher =
                             fun () ->
-                                printf "XXXX 100 refresher is called\n"
                                 taskResult {
                                     let ct = ct |> Option.defaultValue CancellationToken.None
                                     let! book = 
