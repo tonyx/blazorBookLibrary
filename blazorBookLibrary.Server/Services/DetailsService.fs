@@ -93,7 +93,6 @@ type DetailsService (
         member private 
             this.MakeUserDetailsRefresher(id: UserId, ?ct: CancellationToken) = 
                 fun (ct: Option<CancellationToken>) -> 
-
                     taskResult 
                         {
                             let ct = ct |> Option.defaultValue CancellationToken.None
@@ -172,13 +171,12 @@ type DetailsService (
                     let refresher =
                         fun (ct: Option<CancellationToken>) ->
                             taskResult {
-                                let ct = ct |> Option.defaultValue CancellationToken.None
                                 let! loan = 
-                                    loanViewerAsync (ct |> Some) loanId.Value |> TaskResult.map snd
+                                    loanViewerAsync ct loanId.Value |> TaskResult.map snd
                                 let! book = 
-                                    bookViewerAsync (ct |> Some) loan.BookId.Value |> TaskResult.map snd
+                                    bookViewerAsync ct loan.BookId.Value |> TaskResult.map snd
                                 let! userDetail = 
-                                    this.GetUserDetailsAsync (loan.UserId, ct)
+                                    this.GetUserDetailsAsync (loan.UserId, ct |> Option.defaultValue CancellationToken.None)
                                 return
                                     { 
                                         Loan = loan
@@ -202,7 +200,6 @@ type DetailsService (
                         }
             let key = DetailsCacheKey.OfType typeof<RefreshableLoanDetails> loanId.Value    
             StateView.getRefreshableDetailsTaskResultAsync<RefreshableLoanDetails> (fun ct -> detailsBuilder ct) key ct
-        
 
         member this.GetLoanDetailsAsync (loanId: LoanId, ?ct: CancellationToken): TaskResult<LoanDetails, string> = 
             let ct = defaultArg ct CancellationToken.None
