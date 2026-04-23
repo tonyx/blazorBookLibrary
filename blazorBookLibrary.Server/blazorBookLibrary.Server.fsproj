@@ -83,7 +83,7 @@
     <PackageReference Include="Microsoft.Extensions.Configuration" Version="10.0.5" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.0.5" />
 
-    <PackageReference Include="Sharpino" Version="5.0.0" />
+    <PackageReference Include="Sharpino" Version="5.0.1" />
 
   </ItemGroup>
 
