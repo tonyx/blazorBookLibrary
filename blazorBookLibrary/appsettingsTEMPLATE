@@ -46,6 +46,7 @@
 
   "IsTestEnv": false,
   "CancellationTokenSourceExpiration": 100000,
+  "GoogleVectorApiKey": "....",
   "EventStoreTimeout": 10000,
   "PgSqlJsonFormat": "PlainText",
   "MailBoxCommandProcessorsSize": 100,

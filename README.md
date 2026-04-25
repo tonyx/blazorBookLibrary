@@ -24,6 +24,15 @@ See the [LICENSE](LICENSE) file for the full legal text.
 - **Event-Sourcing Architecture**: Leveraging the power of Event-Sourcing for robust and reliable data management with [Sharpino](https://github.com/sharpino/sharpino).
 - **GDPR-Compliant Anonymization**: A robust "Ghosting" workflow that anonymizes user records while preserving event stream integrity, ensuring privacy compliance without breaking historical archival relationships.
 - **Advanced Bulk Operations**: High-performance JSON/CSV archival export and intelligent ISBN-based bulk import with real-time progress tracking and automated metadata resolution.
+- **AI-Powered Semantic Discovery**: Intelligent meaning-based search using **PostgreSQL pgvector** embeddings. Discover literature through thematic descriptions and plot summaries, moving beyond traditional keyword-only matching.
+
+## 📖 Documentation
+Detailed guides and architectural references are available in the [Docs](./Docs) folder:
+- [User Manual (English)](./Docs/Manual.md) / [Manuale Utente (Italiano)](./Docs/Manual_it.md)
+- [Technical Stack Blueprint](./Docs/Tech_Stack_Blueprint.md)
+- [Architecture Overview](./Docs/Architecture.md)
+- [User Stories](./Docs/UserStories.md)
+- [Elevator Pitch](./Docs/ElevatorPitch.md)
 
 ---
 
