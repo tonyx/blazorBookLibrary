@@ -3,6 +3,7 @@
   "ConnectionStrings": {
     "UsersDbConnection": "Host=....;Database=....;Username=....;Password=....",
     "BookLibraryDbConnection": "Server=....;Database=....;User Id=....;Password=....;Maximum Pool Size=60"
+    "VectorDbConnection": "Server=....;Database=....;User Id=....;Password=...."
   },
 
   "Environment": "Development", // "Production". If it is set to "Production" then it will use Azure Key Vault to get the connection strings.
