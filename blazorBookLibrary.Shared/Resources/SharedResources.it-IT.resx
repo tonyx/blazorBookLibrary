@@ -736,4 +736,35 @@
   <data name="EstimatedTimeRemaining" xml:space="preserve"><value>Tempo rimanente stimato</value></data>
   <data name="MyReviews" xml:space="preserve"><value>Le mie Recensioni</value></data>
   <data name="NoReviewsFound" xml:space="preserve"><value>Nessuna recensione trovata.</value></data>
+  <data name="AISemanticDiscovery" xml:space="preserve"><value>Scoperta Semantica AI</value></data>
+  <data name="ConceptualDescription" xml:space="preserve"><value>Descrizione Concettuale</value></data>
+  <data name="SemanticSearchPlaceholder" xml:space="preserve"><value>es. Un romanzo distopico sulla sorveglianza e il totalitarismo...</value></data>
+  <data name="MaxResults" xml:space="preserve"><value>Risultati Max</value></data>
+  <data name="SemanticSearchHelp" xml:space="preserve"><value>Questo utilizza l'IA per trovare libri per significato invece di parole chiave esatte. Combinalo con i filtri sotto per una scoperta precisa.</value></data>
+  <data name="SemanticAnalysisFailed" xml:space="preserve"><value>Analisi semantica fallita</value></data>
+  <data name="VectorSearchFailed" xml:space="preserve"><value>Ricerca vettoriale fallita</value></data>
+  <data name="ErrorRetrievingBooks" xml:space="preserve"><value>Recupero libri fallito</value></data>
+  <data name="UnexpectedSearchError" xml:space="preserve"><value>Errore di ricerca inaspettato</value></data>
+  <data name="AIVectorDataMissing" xml:space="preserve"><value>Dati Vettoriali AI Mancanti</value></data>
+  <data name="NoVectorDataNote" xml:space="preserve"><value>Non sono presenti dati vettorializzati per questa descrizione. La ricerca semantica non includerà questo elemento.</value></data>
+  <data name="GenerateEmbedding" xml:space="preserve"><value>Genera Embedding</value></data>
+  <data name="SemanticSanityCheck" xml:space="preserve"><value>Verifica di Sanità Semantica</value></data>
+  <data name="VerifyAIUnderstandingNote" xml:space="preserve"><value>Verifica la comprensione dell'IA fornendo una descrizione che ritieni semanticamente simile a questo libro.</value></data>
+  <data name="TestQueryDescription" xml:space="preserve"><value>Descrizione della Query di Test</value></data>
+  <data name="CheckSemanticAccuracy" xml:space="preserve"><value>Verifica Accuratezza Semantica</value></data>
+  <data name="SemanticResults" xml:space="preserve"><value>Risultati Semantici</value></data>
+  <data name="PrimaryMatchFound" xml:space="preserve"><value>Corrispondenza Primaria Trovata!</value></data>
+  <data name="SecondaryMatchFound" xml:space="preserve"><value>Corrispondenza Secondaria Trovata</value></data>
+  <data name="NoMatchFound" xml:space="preserve"><value>Nessuna Corrispondenza Trovata</value></data>
+  <data name="TopSemanticResult" xml:space="preserve"><value>Questo libro è il primo risultato semantico.</value></data>
+  <data name="FoundInTopResults" xml:space="preserve"><value>Trovato nei primi risultati, ma non come primo.</value></data>
+  <data name="NotInTopResults" xml:space="preserve"><value>Questo libro non è apparso nei primi risultati.</value></data>
+  <data name="CurrentBook" xml:space="preserve"><value>Libro Corrente</value></data>
+  <data name="PerformSanityCheck" xml:space="preserve"><value>Esegui Verifica di Sanità</value></data>
+  <data name="RemoveEmbedding" xml:space="preserve"><value>Rimuovi Embedding</value></data>
+  <data name="EmbeddingRemoved" xml:space="preserve"><value>Embedding rimosso con successo.</value></data>
+  <data name="ErrorRemovingEmbedding" xml:space="preserve"><value>Errore durante la rimozione dell'embedding: {0}</value></data>
+  <data name="VectorDbRemovalFailed" xml:space="preserve"><value>Embedding rimosso dal libro ma fallita la rimozione dal database vettoriale. Ripristino del riferimento.</value></data>
+  <data name="UpdateEmbeddingAdvice" xml:space="preserve"><value>Hai aggiornato la descrizione. Si consiglia di aggiornare anche l'embedding per un'efficace allineamento semantico.</value></data>
+  <data name="ConfirmRemoveEmbedding" xml:space="preserve"><value>Sei sicuro di voler rimuovere l'embedding semantico per questo libro?</value></data>
 </root>

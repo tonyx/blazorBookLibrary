@@ -30,6 +30,7 @@ open BookLibrary.Shared.Services
 open Microsoft.Extensions.Localization
 open blazorBookLibrary.Shared.Resources
 open BookLibrary.Utils
+open Npgsql
 Environment.SetEnvironmentVariable("IsTestEnv", "True")
 Env.Load() |> ignore
 
@@ -43,7 +44,7 @@ let timeSlotDurationInDays =
     config.GetValue<int>("BookLibrary::TimeSlotLoanDurationInDays", 30)
 
 let connection =
-    "Host=127.0.0.1;Database=sharpino_booklibrary_test;Username=postgres;Password=postgres"
+    config.GetConnectionString("BookLibraryDbConnection")
 
 let pgEventStore:Sharpino.Storage.IEventStore<string> = PgEventStore connection
 
@@ -55,6 +56,13 @@ let getDbContext () =
             .UseNpgsql(usersDbConnection)
             .Options
     new ApplicationDbContext(options)
+
+let truncateVectorDb () =
+    let connStr = config.GetConnectionString "VectorDbConnection"
+    use conn = new NpgsqlConnection(connStr)
+    conn.Open()
+    use cmd = new NpgsqlCommand("TRUNCATE TABLE item_embeddings_projections", conn)
+    cmd.ExecuteNonQuery() |> ignore
 
 let setUp () =
     pgEventStore.Reset Book.Version Book.StorageName
@@ -76,6 +84,7 @@ let setUp () =
         context.Database.EnsureCreated() |> ignore
     with
     | ex -> printfn "Warning: Could not wipe identity database: %s" ex.Message
+    truncateVectorDb ()
 
 let getServiceScopeFactory () =
     let services = ServiceCollection()
@@ -273,6 +282,13 @@ let getMailResenderService () =
         dummyMailJetClient,
         dummyLogger
     )
+
+let getTextEmbeddingService () =
+    let httpClient = new HttpClient()
+    TextEmbeddingService(config, httpClient, getDetailsService(), getSecretReader()) :> ITextEmbeddingService
+
+let getVectorDbService () =
+    VectorDbService(config, getSecretReader()) :> IVectorDbService
 
 let registerUser (email: string) (password: string) =
     // ensure unique email to avoid parallel test conflicts

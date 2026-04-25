@@ -32,10 +32,11 @@ type BookService
         editorViewerAsync: AggregateViewerAsync2<Editor>,
         reservationViewerAsync: AggregateViewerAsync2<Reservation>,
         loanViewerAsync: AggregateViewerAsync2<Loan>,
-        userViewerAsync: AggregateViewerAsync2<User>
+        userViewerAsync: AggregateViewerAsync2<User>,
+        vectorDbService: IVectorDbService
     ) =
 
-    new (eventStore: IEventStore<string>)
+    new (eventStore: IEventStore<string>, vectorDbService: IVectorDbService)
         =
         let messageSenders = MessageSenders.NoSender
         let bookViewerAsync = getAggregateStorageFreshStateViewerAsync<Book, BookEvent, string> eventStore
@@ -54,55 +55,85 @@ type BookService
             editorViewerAsync,
             reservationViewerAsync,
             loanViewerAsync,
-            userViewerAsync
+            userViewerAsync,
+            vectorDbService
         )
-    new (secretsReader: SecretsReader)
+    new (secretsReader: SecretsReader, vectorDbService: IVectorDbService)
         =
         let connectionString = secretsReader.GetBookLibraryConnectionString ()
         let eventStore = PgStorage.PgEventStore connectionString
-        BookService(eventStore)
+        let messageSenders = MessageSenders.NoSender
+        let bookViewerAsync = getAggregateStorageFreshStateViewerAsync<Book, BookEvent, string> eventStore
+        let authorViewerAsync = getAggregateStorageFreshStateViewerAsync<Author, AuthorEvent, string> eventStore
+        let editorViewerAsync = getAggregateStorageFreshStateViewerAsync<Editor, EditorEvent, string> eventStore
+        let reservationViewerAsync = getAggregateStorageFreshStateViewerAsync<Reservation, ReservationEvent, string> eventStore
+        let loanViewerAsync = getAggregateStorageFreshStateViewerAsync<Loan, LoanEvent, string> eventStore
+        let userViewerAsync = getAggregateStorageFreshStateViewerAsync<User, UserEvent, string> eventStore
 
-            member this.AddBookAsync (book: Book, ?ct: CancellationToken) =
-                taskResult
-                    {
-                        let ct = defaultArg ct CancellationToken.None
-                        let! authors: List<Author> = 
-                            book.Authors
-                            |> List.traverseTaskResultM 
-                                (fun authorId -> authorViewerAsync (Some ct) authorId.Value  |> TaskResult.map snd )
+        BookService (
+            eventStore,
+            messageSenders,
+            bookViewerAsync,
+            authorViewerAsync,
+            editorViewerAsync,
+            reservationViewerAsync,
+            loanViewerAsync,
+            userViewerAsync,
+            vectorDbService
+        )
 
-                        let authorAddBooks: List<AggregateCommand<Author, AuthorEvent>> = 
-                            authors
-                            |> List.map (fun _ -> AuthorCommand.AddBook book.BookId)
+    member this.AddBookAsync (book: Book, ?ct: CancellationToken) =
+        taskResult
+            {
+                let ct = defaultArg ct CancellationToken.None
+                let! authors: List<Author> = 
+                    book.Authors
+                    |> List.traverseTaskResultM 
+                        (fun authorId -> authorViewerAsync (Some ct) authorId.Value  |> TaskResult.map snd )
 
-                        return!
-                            runInitAndNAggregateCommandsMdAsync<Author, AuthorEvent, Book, string>
-                            (book.Authors |>> (fun authorId -> authorId.Value))
-                            eventStore
-                            messageSenders
-                            book
-                            ""
-                            authorAddBooks
-                            (Some ct)
-                    }
+                let authorAddBooks: List<AggregateCommand<Author, AuthorEvent>> = 
+                    authors
+                    |> List.map (fun _ -> AuthorCommand.AddBook book.BookId)
 
-            member this.AddBooksAsync (books: List<Book>, ?ct: CancellationToken) = 
-                taskResult
-                    {
-                        let ct = defaultArg ct CancellationToken.None
-                        let! result =
-                            books
-                            |> List.traverseTaskResultM (fun book -> this.AddBookAsync(book, ct))
-                        return () 
-                    }
+                return!
+                    runInitAndNAggregateCommandsMdAsync<Author, AuthorEvent, Book, string>
+                    (book.Authors |>> (fun authorId -> authorId.Value))
+                    eventStore
+                    messageSenders
+                    book
+                    ""
+                    authorAddBooks
+                    (Some ct)
+            }
+
+    member this.AddBooksAsync (books: List<Book>, ?ct: CancellationToken) = 
+        taskResult
+            {
+                let ct = defaultArg ct CancellationToken.None
+                let! result =
+                    books
+                    |> List.traverseTaskResultM (fun book -> this.AddBookAsync(book, ct))
+                return () 
+            }
 
             member this.RemoveBookAsync (bookId: BookId, ?ct: CancellationToken) = 
                 taskResult
                     {
                         let ct = defaultArg ct CancellationToken.None
-                        let! book = 
-                            bookViewerAsync (Some ct) bookId.Value |> TaskResult.map snd
+                        let! (v, book) = 
+                            bookViewerAsync (Some ct) bookId.Value 
 
+                        // 3-Phase removal for consistency
+                        match book.OptionalEmbedding with
+                        | Some embeddingId ->
+                            // Phase 1: Remove from Vector database
+                            let! _ = vectorDbService.RemoveEmbeddingAsync(embeddingId, ct)
+                            // Phase 2: Remove association from Book (event)
+                            let! _ = this.RemoveEmbeddingAsync(bookId, ct)
+                            ()
+                        | None -> ()
+
+                        // Phase 3: Remove the Book itself
                         let! result = 
                             runDeleteAsync<Book, BookEvent, string>
                                 eventStore
@@ -197,6 +228,45 @@ type BookService
                                 messageSenders
                                 ""
                                 bookRemoveDescriptionCommand
+                                (Some ct)
+                        return result
+                    }
+            member this.EmbedDescriptionAsync (bookId: BookId, embeddingId: EmbeddingDataId, ?ct: CancellationToken) = 
+                taskResult
+                    {
+                        let ct = defaultArg ct CancellationToken.None
+                        let! book = 
+                            bookViewerAsync (Some ct) bookId.Value |> TaskResult.map snd
+                        let dateTime = System.DateTime.UtcNow
+                        let bookEmbedDescriptionCommand = 
+                            BookCommand.EmbedDescription (embeddingId, dateTime)
+                        let! result = 
+                            runAggregateCommandMdAsync<Book, BookEvent, string>
+                                book.Id
+                                eventStore
+                                messageSenders
+                                ""
+                                bookEmbedDescriptionCommand
+                                (Some ct)
+                        return result
+                    }
+
+            member this.RemoveEmbeddingAsync (bookId: BookId, ?ct: CancellationToken) = 
+                taskResult
+                    {
+                        let ct = defaultArg ct CancellationToken.None
+                        let! book = 
+                            bookViewerAsync (Some ct) bookId.Value |> TaskResult.map snd
+                        let dateTime = System.DateTime.UtcNow
+                        let bookRemoveEmbeddingCommand = 
+                            BookCommand.RemoveEmbedding (dateTime)
+                        let! result = 
+                            runAggregateCommandMdAsync<Book, BookEvent, string>
+                                book.Id
+                                eventStore
+                                messageSenders
+                                ""
+                                bookRemoveEmbeddingCommand
                                 (Some ct)
                         return result
                     }
@@ -409,6 +479,15 @@ type BookService
                         let! result = 
                             bookViewerAsync (Some ct) id.Value 
                         return result |> snd
+                    }
+
+            member this.GetBooksAsync (bookIds: List<BookId>, ?ct: CancellationToken): Task<Result<List<Book>, string>> =
+                taskResult
+                    {
+                        let ct = defaultArg ct CancellationToken.None
+                        return! 
+                            bookIds 
+                            |> List.traverseTaskResultM (fun id -> bookViewerAsync (Some ct) id.Value |> TaskResult.map snd)
                     }
 
             member this.GetAllBooksAsync(?criteria: BookSearchCriteria, ?ct: CancellationToken) = 
@@ -843,6 +922,9 @@ type BookService
             member this.GetBookAsync(id: BookId, ?ct: CancellationToken) =
                 let ct = defaultArg ct CancellationToken.None
                 this.GetBookAsync(id, ct)
+            member this.GetBooksAsync(bookIds: List<BookId>, ?ct: CancellationToken) =
+                let ct = defaultArg ct CancellationToken.None
+                this.GetBooksAsync(bookIds, ct)
             member this.GetAllAsync(?criteria: BookSearchCriteria, ?ct: CancellationToken) = 
                 let criteria = defaultArg (criteria |> Option.bind Option.ofObj) SearchCriteria.searchAllBooks
                 let ct = defaultArg ct CancellationToken.None
@@ -890,9 +972,18 @@ type BookService
             member this.RemoveDescriptionAsync(bookId: BookId, ?ct: CancellationToken) = 
                 let ct = defaultArg ct CancellationToken.None
                 this.RemoveDescriptionAsync(bookId, ct)
+            member this.EmbedDescriptionAsync (bookId: BookId, embeddingId: EmbeddingDataId, ?ct: CancellationToken) =
+                let ct = defaultArg ct CancellationToken.None
+                this.EmbedDescriptionAsync(bookId, embeddingId, ct)
+
+            member this.RemoveEmbeddingAsync (bookId: BookId, ?ct: CancellationToken) = 
+                let ct = defaultArg ct CancellationToken.None
+                this.RemoveEmbeddingAsync(bookId, ct)
+
             member this.UpdateIsbnAsync(isbn: Isbn, bookId: BookId, ?ct: CancellationToken) = 
                 let ct = defaultArg ct CancellationToken.None
                 this.UpdateIsbnAsync(isbn, bookId, ct)
+
             member this.SearchByYearAsync(year: YearSearch, ?criteria: BookSearchCriteria, ?ct: CancellationToken) = 
                 let criteria = defaultArg (criteria |> Option.bind Option.ofObj) SearchCriteria.searchAllBooks
                 let ct = defaultArg ct CancellationToken.None

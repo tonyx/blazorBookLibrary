@@ -642,7 +642,56 @@ if (!featureEnabled) {
 
 ---
 
-## 14. Checklist — Adding a New Aggregate
+## 14. Vector Database & AI Semantic Search
+
+To enable **semantic discovery**, the system utilizes a **Vector Database** powered by the PostgreSQL `pgvector` extension. This database stores high-dimensional embeddings of book descriptions, allowing for meaning-based searches.
+
+### Key Architectural Principle: Separation of Concerns
+- **EventStore**: Source of truth for domain state and archival consistency. Stores the `EmbeddingDataId` reference.
+- **Vector Database**: A specialized projection for similarity search. Stores the raw vector data and is optimized for the `<=>` (cosine distance) operator.
+
+### 1. Database Setup
+The vector database requires the `pgvector` extension.
+
+**Local Installation (Mac OS / Homebrew):**
+```bash
+brew install pgvector
+# In postgres:
+# CREATE EXTENSION IF NOT EXISTS vector;
+```
+
+**Azure Instance:**
+Consult your Azure documentation for enabling the `pgvector` extension on Azure Database for PostgreSQL (usually available in the "Server parameters" or "Extensions" section).
+
+### 2. Creation Script
+The table and index for embeddings are defined in:
+`/blazorBookLibrary.Server/vectorDbSetup/create.sql`
+
+```sql
+CREATE TABLE item_embeddings_projections (
+    id uuid PRIMARY KEY,      
+    book_id uuid NOT NULL,
+    vector_data vector(1536),     
+    model_name text,             
+    last_updated_at timestamp   
+);
+
+CREATE INDEX ON item_embeddings_projections 
+USING hnsw (vector_data vector_cosine_ops);
+```
+
+### 3. Implementation — `IVectorDbService`
+The service handles the storage and retrieval of embeddings and performs similarity searches:
+
+```fsharp
+let sql = "SELECT book_id FROM item_embeddings_projections 
+           ORDER BY vector_data <=> @vector_data::real[]::vector
+           LIMIT @limit"
+```
+
+---
+
+## 15. Checklist — Adding a New Aggregate
 
 - [ ] Add `NewAggId` (single-case DU wrapping `Guid`) to `Shared/Commons.fs`
 - [ ] Add any new domain value objects to `Shared/Commons.fs` (string wrappers, enumerations, composite value objects)

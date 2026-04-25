@@ -20,6 +20,13 @@ This document outlines the core functionality of the Blazor Book Library applica
     - Combine multiple search criteria (e.g., Title + Year).
     - Results should display book details, categories, and real-time availability.
 
+### **As a Visitor or Member, I want to search for books by their meaning or topic (AI Semantic Search) so that I can discover relevant literature even without knowing exact titles or keywords.**
+- **Criteria**:
+    - Enter a natural language query describing a topic or plot (e.g., "stories about robots learning to love").
+    - Specify the maximum number of results (limit) to return.
+    - Results are ordered by semantic similarity to the query.
+    - Semantic search can be combined with other filters (like categories or authors) to narrow down AI-driven discoveries.
+
 ### **As a Visitor or Member, I want to view detailed information about a specific book, including its description and authors.**
 - **Criteria**:
     - View book title, authors, publication year, and categories.
@@ -45,6 +52,14 @@ This document outlines the core functionality of the Blazor Book Library applica
     - Add or remove authors and translators from a book record.
     - Update or remove the book's cover image URL.
     - Set the book's base availability type (Circulating vs. Reference Only).
+
+### **As a Manager, I want to manage AI embeddings for book descriptions so that I can ensure the accuracy and discoverability of the library's semantic search.**
+- **Criteria**:
+    - Identify books that are missing vector data (embeddings) for their descriptions.
+    - Generate a new embedding for a book's description using an AI service.
+    - Perform a "Sanity Check" by testing if the book is correctly retrieved by a query similar to its own description.
+    - Remove or update an embedding manually when a book's description changes.
+    - The system automatically handles embedding cleanup when a book is deleted to maintain vector database integrity.
 
 ### **As a Librarian, I want to perform bulk updates on multiple books to save time on repetitive tasks.**
 - **Criteria**:

@@ -55,6 +55,9 @@ The **Library Search** page is your primary tool for finding literature.
     - **Categories**: Filter by genre or classification (e.g., Fiction, Science, History).
     - **Timeline**: Search for books published in a specific year or within a range.
     - **Availability**: Filter to show only books that are immediately available for loan.
+- **AI Semantic Discovery**:
+    - Enter a descriptive phrase (e.g., "a dystopian novel about surveillance") to find books with similar meanings, even if they don't contain the exact keywords searched.
+    - Specify the maximum number of results desired to fine-tune your discovery.
 
 <a name="viewing-book-details"></a>
 ### Viewing Book Details
@@ -91,6 +94,11 @@ Managers use the **Books Manager** to maintain the library's excellence.
 - **Adding Books**: Click **"Add New Book Entry"** to open the registration form.
 - **Google Books Integration**: Enter a title and click **"Search API"** to automatically pull metadata (description, year, authors) from global records.
 - **Editing Records**: Click any title in the manager list to modify its details, including categories and archival notes.
+- **AI Embedding Management**:
+    - To enable semantic search, every book must have an "embedding" (vector data) associated with its description.
+    - In the book edit page, if vector data is missing, click **"Generate Embedding"**. The system will use AI to convert the description into searchable vector data.
+    - **Sanity Check**: Once generated, you can perform a **"Sanity Check"** by entering text similar to the description and verifying that the book correctly appears at the top of the semantic search results.
+    - You can remove or update the embedding at any time, which is recommended after significantly updating the book's description.
 
 <a name="barcode-scanning"></a>
 ### Barcode Scanning

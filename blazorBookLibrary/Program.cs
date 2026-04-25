@@ -89,9 +89,11 @@ builder.Services.AddSingleton<IMailNotificator, MailNotificator>();
 builder.Services.AddSingleton<IAuthorService, AuthorService>();
 builder.Services.AddSingleton<IReservationService, ReservationService>();
 builder.Services.AddSingleton<ILoanService, LoanService>();
+builder.Services.AddSingleton<IVectorDbService, VectorDbService>();
 builder.Services.AddSingleton<IBookService, BookService>();
 builder.Services.AddSingleton<IReviewService, ReviewService>();
 builder.Services.AddSingleton<IGoogleBooksService, GoogleBooksService>();
+builder.Services.AddSingleton<ITextEmbeddingService, TextEmbeddingService>();
 
 
 builder.Services.AddSingleton<IUserService, UserService>();

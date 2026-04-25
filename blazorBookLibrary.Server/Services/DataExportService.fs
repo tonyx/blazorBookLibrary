@@ -232,6 +232,7 @@ type DataExportService
                                         Title = Title.New metadata.Title
                                         ImageUrl = imageUrl
                                         Description = metadata.Description
+                                        OptionalEmbedding = None
                                         Availability = Availability.Circulating
                                         Authors = finalAuthorIds
                                         Translators = []

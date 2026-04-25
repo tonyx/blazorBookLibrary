@@ -154,7 +154,6 @@
     private GridSort<Book> sortAvailability = GridSort<Book>.ByAscending(b => b.ImmediatelyAvailable);    
     private GridSort<Book> sortTaxonomy = GridSort<Book>.ByAscending(b => b.MainCategory.Value());
 
-
     private string statusMessage = "";
 
     protected override async Task OnAfterRenderAsync(bool firstRender)

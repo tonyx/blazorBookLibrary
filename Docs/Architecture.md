@@ -25,6 +25,7 @@ graph TB
     subgraph "Infrastructure & Data"
         PGC["PostgreSQL (Identity DB)<br/>(EF Core Context)"]
         PGE["PostgreSQL (Event Store)<br/>(Sharpino.PgStorage)"]
+        PGV["PostgreSQL (Vector DB)<br/>(pgvector)"]
         SNAP["Snapshots Cabinet"]
     end
 
@@ -39,6 +40,7 @@ graph TB
     VIEWER --> SNAP
     SNAP --> PGE
     PGC --- UI
+    SVC --> PGV
 ```
 
 ---
@@ -63,6 +65,7 @@ graph TB
 - **Dual Database Strategy**:
     - **Identity DB**: Uses standard SQL (via EF Core) to manage ASP.NET Identity users, roles, and security tokens.
     - **Event Store**: Uses PostgreSQL to persist JSON-serialized events and snapshots, ensuring high consistency and scalability.
+    - **Vector Database**: A specialized PostgreSQL projection utilizing the **pgvector** extension. It stores high-dimensional embeddings of book descriptions to enable semantic similarity searches.
 
 ### 5. Security & Infrastructure
 - **Identity & OAuth**: Integrated with Microsoft Identity and Google OAuth for secure authentication.
