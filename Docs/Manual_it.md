@@ -55,6 +55,9 @@ La pagina di **Ricerca Biblioteca** è lo strumento principale per trovare lette
     - **Categorie**: Filtra per genere o classificazione (es. Fiction, Scienza, Storia).
     - **Cronologia**: Cerca libri pubblicati in un anno specifico o in un intervallo.
     - **Disponibilità**: Filtra per mostrare solo i libri immediatamente disponibili per il prestito.
+- **Scoperta Semantica AI**:
+    - Inserisci una descrizione testuale (es. "un romanzo distopico sulla sorveglianza") per trovare libri con significati simili, anche se non contengono le parole esatte cercate.
+    - Specifica il numero massimo di risultati desiderati per affinare la tua scoperta.
 
 <a name="visualizzazione-dettagli-libro"></a>
 ### Visualizzazione Dettagli Libro
@@ -91,6 +94,11 @@ I manager utilizzano il **Gestore Libri** per mantenere l'eccellenza della bibli
 - **Aggiunta Libri**: Clicca su **"Aggiungi Nuovo Libro"** per aprire il modulo di registrazione.
 - **Integrazione Google Books**: Inserisci un titolo e clicca su **"Cerca tramite API"** per recuperare automaticamente i metadati (descrizione, anno, autori) dai record globali.
 - **Modifica Record**: Clicca su qualsiasi titolo nell'elenco per modificarne i dettagli, incluse le categorie e le note d'archivio.
+- **Gestione Embedding AI**:
+    - Per abilitare la ricerca semantica, ogni libro deve avere un "embedding" (vettore di dati) associato alla sua descrizione.
+    - Nella pagina di modifica del libro, se manca il dato vettoriale, clicca su **"Genera Embedding"**. Il sistema utilizzerà l'intelligenza artificiale per convertire la descrizione in dati vettoriali.
+    - **Controllo di Integrità**: Una volta generato, puoi eseguire un **"Sanity Check"** inserendo un testo simile alla descrizione e verificando se il libro appare correttamente tra i primi risultati della ricerca semantica.
+    - È possibile rimuovere o aggiornare l'embedding in qualsiasi momento, ad esempio dopo aver modificato drasticamente la descrizione del libro.
 
 <a name="scansione-barcode"></a>
 ### Scansione Barcode

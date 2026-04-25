@@ -6,12 +6,53 @@ open BookLibrary.Shared.Commons
 open System
 open System.Globalization
 
-type Book =
+type Book001 =
     {
         BookId: BookId
         Title: Title
         ImageUrl: Option<Uri>   
         Description: Option<string>
+        Availability: Availability
+        Authors: List<AuthorId>
+        Translators: List<AuthorId>
+        Languages: List<CultureInfo>
+        CurrentReservations: List<ReservationId>
+        CurrentLoan: Option<LoanId>
+        Editor: Option<EditorId>
+        MainCategory: Category
+        AdditionalCategories: List<Category>
+        Year: Year
+        Isbn: Isbn
+        Sealed: Sealed
+    }
+    member this.Upcast(): Book = 
+        { 
+            BookId = this.BookId; 
+            Title = this.Title; 
+            ImageUrl = this.ImageUrl; 
+            Description = this.Description; 
+            OptionalEmbedding = None;
+            Availability = this.Availability; 
+            Authors = this.Authors; 
+            Translators = this.Translators; 
+            Languages = this.Languages; 
+            CurrentReservations = this.CurrentReservations; 
+            CurrentLoan = this.CurrentLoan; 
+            Editor = this.Editor; 
+            MainCategory = this.MainCategory; 
+            AdditionalCategories = this.AdditionalCategories; 
+            Year = this.Year; 
+            Isbn = this.Isbn; 
+            Sealed = this.Sealed  
+        } 
+
+and Book =
+    {
+        BookId: BookId
+        Title: Title
+        ImageUrl: Option<Uri>   
+        Description: Option<string>
+        OptionalEmbedding: Option<EmbeddingDataId>
         Availability: Availability
         Authors: List<AuthorId>
         Translators: List<AuthorId>
@@ -43,6 +84,7 @@ with
             BookId = BookId.New(); 
             Title = title; 
             Description = None;
+            OptionalEmbedding = None;
             ImageUrl = imageUrl;
             Availability = Availability.Circulating;
             Authors = authors; 
@@ -104,6 +146,27 @@ with
                     |> not
                     |> Result.ofBool "Book is sealed"
                 return { this with Description = None } 
+            }
+
+    member this.EmbedDescription 
+        (embeddingId: EmbeddingDataId) 
+        (dateTime: DateTime) = 
+        result
+            {
+                do! 
+                    this.Sealed.IsSealed(dateTime)
+                    |> not
+                    |> Result.ofBool "Book is sealed"
+                return { this with OptionalEmbedding = Some embeddingId } 
+            }
+    member this.RemoveEmbedding (dateTime: DateTime) = 
+        result
+            {
+                do! 
+                    this.Sealed.IsSealed(dateTime)
+                    |> not
+                    |> Result.ofBool "Book is sealed"
+                return { this with OptionalEmbedding = None } 
             }
 
     member this.SetAvailability 
@@ -426,4 +489,11 @@ with
             let book = JsonSerializer.Deserialize<Book> (data, jsonOptions)
             Ok book
         with
-            | ex -> Error (ex.Message)
+            | ex -> 
+                try
+                    let book001 = JsonSerializer.Deserialize<Book001> (data, jsonOptions)
+                    let book = book001.Upcast()
+                    Ok book
+                with
+                    | ex2 -> Error (ex2.Message + ". " + ex.Message)
+

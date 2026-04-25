@@ -18,6 +18,8 @@
 @inject IJSRuntime JSRuntime
 @inject NavigationManager NavigationManager
 @inject IGoogleBooksService GoogleBooksService
+@inject ITextEmbeddingService TextEmbeddingService
+@inject IVectorDbService VectorDbService
 @inject IStringLocalizer<SharedResources> L
 @inject ILoanService LoanService
 @inject IConfiguration Configuration
@@ -425,6 +427,113 @@
                         <div class="serif italic text-muted lh-lg" style="font-size: 1.1rem; white-space: pre-wrap;">
                             @(FSharpOption<string>.get_IsSome(bookDetails.Book.Description) ? bookDetails.Book.Description.Value : L["NoDescriptionProvided"])
                         </div>
+
+                        @if (FSharpOption<string>.get_IsSome(bookDetails.Book.Description) && FSharpOption<EmbeddingDataId>.get_IsNone(bookDetails.Book.OptionalEmbedding) && bookDetails.Book.Editable)
+                        {
+                            <div class="mt-4 p-3 bg-surface-low rounded-xl border border-warning-subtle animate-fade-in shadow-sm d-flex align-items-center gap-3">
+                                <div class="p-2 bg-warning-subtle rounded-circle text-warning">
+                                    <i class="bi bi-cpu fs-5"></i>
+                                </div>
+                                <div class="flex-grow-1">
+                                    <h6 class="serif mb-1 small fw-bold text-warning-emphasis">@L["AIVectorDataMissing"]</h6>
+                                    <p class="small text-muted mb-0 serif italic">@L["NoVectorDataNote"]</p>
+                                </div>
+                                <button class="btn btn-sm btn-primary px-3 rounded-pill" @onclick="GenerateEmbedding" disabled="@isGeneratingEmbedding">
+                                    @if (isGeneratingEmbedding)
+                                    {
+                                        <span class="spinner-border spinner-border-sm me-2"></span>
+                                        <span>@L["Wait"]...</span>
+                                    }
+                                    else
+                                    {
+                                        <i class="bi bi-magic me-1"></i>
+                                        <span>@L["GenerateEmbedding"]</span>
+                                    }
+                                </button>
+                            </div>
+                        }
+
+                        @if (FSharpOption<EmbeddingDataId>.get_IsSome(bookDetails.Book.OptionalEmbedding))
+                        {
+                            <div class="mt-4 p-4 bg-surface-low rounded-xl border border-primary-subtle shadow-sm animate-fade-in">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div class="p-2 bg-primary-subtle rounded-circle text-primary">
+                                            <i class="bi bi-shield-check fs-5"></i>
+                                        </div>
+                                        <h6 class="serif mb-0 fw-bold">@L["SemanticSanityCheck"]</h6>
+                                    </div>
+                                    <div class="d-flex gap-2">
+                                        <button class="btn btn-sm btn-outline-danger px-3" @onclick="RemoveEmbedding" disabled="@isRemovingEmbedding">
+                                            @if (isRemovingEmbedding) { <span class="spinner-border spinner-border-sm me-1"></span> }
+                                            else { <i class="bi bi-trash me-1"></i> }
+                                            @L["RemoveEmbedding"]
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-primary px-3" @onclick="() => showSanityCheckForm = !showSanityCheckForm">
+                                            <i class="bi @(showSanityCheckForm ? "bi-chevron-up" : "bi-chevron-down") me-1"></i>
+                                            @(showSanityCheckForm ? L["Hide"] : L["PerformSanityCheck"])
+                                        </button>
+                                    </div>
+                                </div>
+
+                                @if (showSanityCheckForm)
+                                {
+                                    <div class="sanity-check-form animate-fade-in mt-3">
+                                        <p class="small text-muted mb-3 italic">@L["VerifyAIUnderstandingNote"]</p>
+                                        
+                                        <div class="mb-3">
+                                            <label class="form-label x-small text-uppercase fw-bold text-muted">@L["TestQueryDescription"]</label>
+                                            <textarea class="form-control serif bg-white border shadow-sm" @bind="sanityCheckQuery" rows="3" placeholder="@L["SemanticSearchPlaceholder"]"></textarea>
+                                        </div>
+
+                                        <div class="d-flex align-items-end gap-3 mb-4">
+                                            <div style="width: 100px;">
+                                                <label class="form-label x-small text-uppercase fw-bold text-muted">@L["MaxResults"]</label>
+                                                <input type="number" class="form-control" @bind="sanityCheckLimit" min="1" max="10" />
+                                            </div>
+                                            <button class="btn btn-primary px-4 shadow-sm" @onclick="PerformSanityCheck" disabled="@(string.IsNullOrWhiteSpace(sanityCheckQuery) || isPerformingSanityCheck)">
+                                                @if (isPerformingSanityCheck) { <span class="spinner-border spinner-border-sm me-2"></span> }
+                                                <i class="bi bi-search me-1"></i> @L["CheckSemanticAccuracy"]
+                                            </button>
+                                        </div>
+
+                                        @if (sanityCheckResults != null)
+                                        {
+                                            <div class="results-area p-3 bg-white rounded border animate-fade-in shadow-sm">
+                                                <h6 class="serif border-bottom pb-2 mb-3">Semantic Results</h6>
+                                                
+                                                <div class="d-flex align-items-center gap-3 mb-4">
+                                                    @{
+                                                        var matchesPrimary = sanityCheckResults.Any() && sanityCheckResults.First().Id.Value == bookDetails.Book.BookId.Value;
+                                                        var inResults = sanityCheckResults.Any(r => r.Id.Value == bookDetails.Book.BookId.Value);
+                                                    }
+                                                    <div class="badge-sanctuary @(matchesPrimary ? "badge-available" : (inResults ? "badge-neutral" : "badge-borrowed")) p-3 d-flex align-items-center gap-3 flex-grow-1 border">
+                                                        <i class="bi @(matchesPrimary ? "bi-check-circle-fill" : (inResults ? "bi-info-circle-fill" : "bi-exclamation-triangle-fill")) fs-4"></i>
+                                                        <div>
+                                                            <div class="fw-bold">@(matchesPrimary ? L["PrimaryMatchFound"] : (inResults ? L["SecondaryMatchFound"] : L["NoMatchFound"]))</div>
+                                                            <div class="small opacity-75">@(matchesPrimary ? L["TopSemanticResult"] : (inResults ? L["FoundInTopResults"] : L["NotInTopResults"]))</div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div class="list-group list-group-flush border-top">
+                                                    @foreach (var res in sanityCheckResults)
+                                                    {
+                                                        <a href="/book-edit/@res.Id.Value" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-3 rounded">
+                                                            <div class="serif @(res.Id.Value == bookDetails.Book.BookId.Value ? "fw-bold text-primary" : "")">
+                                                                @res.Title
+                                                                @if (res.Id.Value == bookDetails.Book.BookId.Value) { <span class="ms-2 badge bg-primary-subtle text-primary small">@L["CurrentBook"]</span> }
+                                                            </div>
+                                                            <i class="bi bi-chevron-right text-muted"></i>
+                                                        </a>
+                                                    }
+                                                </div>
+                                            </div>
+                                        }
+                                    </div>
+                                }
+                            </div>
+                        }
                     }
                 </div>
 
@@ -575,6 +684,20 @@
     private bool showAuthorSearchResults = false;
     private Author? selectedAuthorForAdd = null;
     private bool isLoadingAuthors = false;
+    private bool isGeneratingEmbedding = false;
+    private bool isRemovingEmbedding = false;
+
+    private bool showSanityCheckForm = false;
+    private string sanityCheckQuery = "";
+    private int sanityCheckLimit = 3;
+    private bool isPerformingSanityCheck = false;
+    private List<SanityCheckResult>? sanityCheckResults = null;
+
+    public class SanityCheckResult
+    {
+        public BookId Id { get; set; } = null!;
+        public string Title { get; set; } = "";
+    }
 
     private bool isEditingImageUrl = false;
     private string editedImageUrl = "";
@@ -923,6 +1046,7 @@
         
         try 
         {
+            // The service now handles the 3-phase removal (Vector DB cleanup, association removal, and book deletion)
             var result = await BookService.RemoveBookAsync(bookDetails.Book.BookId, FSharpOption<CancellationToken>.None);
             if (result.IsOk)
             {
@@ -1124,7 +1248,14 @@
             else
             {
                 result = await BookService.UpdateDescriptionAsync(editedDescription, bookDetails.Book.BookId, FSharpOption<System.Threading.CancellationToken>.None);
-                if (result.IsOk) await ShowStatus(L["DescriptionUpdated"], "alert-success");
+                if (result.IsOk) 
+                {
+                    await ShowStatus(L["DescriptionUpdated"], "alert-success");
+                    if (FSharpOption<EmbeddingDataId>.get_IsSome(bookDetails.Book.OptionalEmbedding))
+                    {
+                        await ShowStatus(L["UpdateEmbeddingAdvice"], "alert-warning");
+                    }
+                }
             }
             
             if (result.IsOk)
@@ -1140,6 +1271,102 @@
         catch (Exception ex)
         {
             await ShowStatus(string.Format(L["ErrorUpdatingDescriptionGeneric"], ex.Message), "alert-danger");
+        }
+    }
+
+    private async Task GenerateEmbedding()
+    {
+        if (bookDetails == null || FSharpOption<string>.get_IsNone(bookDetails.Book.Description)) return;
+        
+        isGeneratingEmbedding = true;
+        try
+        {
+            var text = bookDetails.Book.Description.Value;
+            var embeddingResult = await TextEmbeddingService.GetEmbeddingAsync(text); //, FSharpOption<System.Threading.CancellationToken>.None);
+            
+            if (!embeddingResult.IsOk)
+            {
+                await ShowStatus($"Embedding generation failed: {embeddingResult.ErrorValue}", "alert-danger");
+                return;
+            }
+
+            var embeddingId = EmbeddingDataId.New();
+            var storeResult = await VectorDbService.StoreEmbeddingAsync(embeddingId, bookDetails.Book.BookId, embeddingResult.ResultValue, FSharpOption<System.Threading.CancellationToken>.None);
+            
+            if (!storeResult.IsOk)
+            {
+                await ShowStatus($"Vector storage failed: {storeResult.ErrorValue}", "alert-danger");
+                return;
+            }
+
+            var embedResult = await BookService.EmbedDescriptionAsync(bookDetails.Book.BookId, embeddingId, FSharpOption<System.Threading.CancellationToken>.None);
+            
+            if (embedResult.IsOk)
+            {
+                await ShowStatus("AI embedding generated and associated successfully.", "alert-success");
+                await LoadBookDetails();
+            }
+            else
+            {
+                await ShowStatus($"Failed to link embedding to book: {embedResult.ErrorValue}", "alert-danger");
+            }
+        }
+        catch (Exception ex)
+        {
+            await ShowStatus($"An unexpected error occurred: {ex.Message}", "alert-danger");
+        }
+        finally
+        {
+            isGeneratingEmbedding = false;
+        }
+    }
+
+    private async Task PerformSanityCheck()
+    {
+        if (string.IsNullOrWhiteSpace(sanityCheckQuery) || bookDetails == null) return;
+        
+        isPerformingSanityCheck = true;
+        sanityCheckResults = null;
+        try
+        {
+            var embeddingResult = await TextEmbeddingService.GetEmbeddingAsync(sanityCheckQuery);
+            if (!embeddingResult.IsOk)
+            {
+                await ShowStatus($"Query embedding failed: {embeddingResult.ErrorValue}", "alert-danger");
+                return;
+            }
+
+            var searchResult = await VectorDbService.SearchSimilarEmbeddingsAsync(embeddingResult.ResultValue, sanityCheckLimit);
+            if (!searchResult.IsOk)
+            {
+                await ShowStatus($"Semantic search failed: {searchResult.ErrorValue}", "alert-danger");
+                return;
+            }
+
+            var results = new List<SanityCheckResult>();
+            foreach (var item in searchResult.ResultValue)
+            {
+                var bookId = item.Item2;
+                // Fetch title for each book
+                var details = await DetailsService.GetBookDetailsAsync(bookId, FSharpOption<CancellationToken>.None);
+                if (details.IsOk)
+                {
+                    results.Add(new SanityCheckResult { Id = bookId, Title = details.ResultValue.Book.Title.Value });
+                }
+                else
+                {
+                    results.Add(new SanityCheckResult { Id = bookId, Title = "Unknown Title" });
+                }
+            }
+            sanityCheckResults = results;
+        }
+        catch (Exception ex)
+        {
+            await ShowStatus($"Sanity check error: {ex.Message}", "alert-danger");
+        }
+        finally
+        {
+            isPerformingSanityCheck = false;
         }
     }
 
@@ -1321,5 +1548,54 @@
         else if (cssClass.Contains("warning")) type = "warning";
 
         await JSRuntime.InvokeVoidAsync("showToast", message, type);
+    }
+
+    private async Task RemoveEmbedding()
+    {
+        if (bookDetails == null || FSharpOption<EmbeddingDataId>.get_IsNone(bookDetails.Book.OptionalEmbedding)) return;
+
+        bool confirm = await JSRuntime.InvokeAsync<bool>("confirm", L["ConfirmRemoveEmbedding"]);
+        if (!confirm) return;
+
+        isRemovingEmbedding = true;
+        var embeddingId = bookDetails.Book.OptionalEmbedding.Value;
+
+        try
+        {
+            // 1. Remove from Book object via BookService
+            var bookResult = await BookService.RemoveEmbeddingAsync(bookDetails.Book.BookId);
+            if (!bookResult.IsOk)
+            {
+                await ShowStatus(string.Format(L["ErrorRemovingEmbedding"], bookResult.ErrorValue), "alert-danger");
+                return;
+            }
+
+            // 2. Remove from Vector DB
+            var vectorResult = await VectorDbService.RemoveEmbeddingAsync(embeddingId);
+            if (!vectorResult.IsOk)
+            {
+                // Inform user and restore the reference in the Book object for consistency
+                await ShowStatus(L["VectorDbRemovalFailed"], "alert-warning");
+                var restoreResult = await BookService.EmbedDescriptionAsync(bookDetails.Book.BookId, embeddingId);
+                if (!restoreResult.IsOk)
+                {
+                    await ShowStatus(string.Format(L["ErrorRestoringEmbedding"], restoreResult.ErrorValue), "alert-danger");
+                }
+            }
+            else
+            {
+                await ShowStatus(L["EmbeddingRemoved"], "alert-success");
+            }
+
+            await LoadBookDetails();
+        }
+        catch (Exception ex)
+        {
+            await ShowStatus(string.Format(L["ErrorRemovingEmbedding"], ex.Message), "alert-danger");
+        }
+        finally
+        {
+            isRemovingEmbedding = false;
+        }
     }
 }

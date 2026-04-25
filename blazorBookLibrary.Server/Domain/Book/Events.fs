@@ -11,6 +11,8 @@ type BookEvent =
     | TitleUpdated of Title * DateTime
     | DescriptionUpdated of string * DateTime
     | DescriptionRemoved of DateTime
+    | DescriptionEmbedded of EmbeddingDataId * DateTime
+    | DescriptionEmbeddingRemoved of DateTime
     | AuthorsUpdated of list<AuthorId> * DateTime
     | EditorUpdated of EditorId * DateTime
     | YearUpdated of Year * DateTime
@@ -45,6 +47,10 @@ type BookEvent =
                 book.UpdateDescription description dateTime
             | DescriptionRemoved dateTime ->
                 book.RemoveDescription dateTime
+            | DescriptionEmbedded (embeddingId, dateTime) ->
+                book.EmbedDescription embeddingId dateTime
+            | DescriptionEmbeddingRemoved dateTime ->
+                book.RemoveEmbedding dateTime
             | AuthorsUpdated (authors, dateTime) ->
                 book.UpdateAuthors authors dateTime
             | EditorUpdated (editor, dateTime) ->

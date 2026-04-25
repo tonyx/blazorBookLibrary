@@ -16,7 +16,10 @@ Stop typing. Our engine uses barcodes and title-based discovery to fetch metadat
 ### 2. Bulletproof Archival Integrity
 Built on **F# and Event Sourcing (Sharpino)**, every change in your library is tracked and traceable. We don't just store "current state"; we store the entire history of your archive, providing an immutable audit trail that prevents data loss and ensures reliability.
 
-### 3. Seamless Member Experience
+### 3. AI-Powered Semantic Discovery
+Finding the right book shouldn't require knowing the exact title. Our **Semantic Search Engine** uses AI to understand the meaning behind your queries. Search for "a story about a lonely robot" or "historical fiction set in 17th century Paris" and discover relevant titles even if those exact words aren't in the metadata.
+
+### 4. Seamless Member Experience
 The library isn't just for curators; it's a sanctuary for readers. 
 - **Elegant Browsing**: High-fidelity catalog views with smart filtering by title, ISBN, or category make finding the next great read a pleasure.
 - **Frictionless Loans**: Clear, real-time availability status and intuitive workflows for borrowing and returning books.

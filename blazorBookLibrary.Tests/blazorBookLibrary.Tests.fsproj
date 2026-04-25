@@ -22,6 +22,7 @@
     <Compile Include="AuthorsSearchTests.fs" />
     <Compile Include="IsbnRegistryTests.fs" />
     <Compile Include="ReviewsServiceTests.fs" />
+    <Compile Include="TextEmbeddingServiceTests.fs" />
     <Compile Include="Main.fs" />
   </ItemGroup>
 
@@ -39,8 +40,8 @@
   <ItemGroup>
     <ProjectReference Include="../blazorBookLibrary.Server/blazorBookLibrary.Server.fsproj" />
     <ProjectReference Include="../blazorBookLibrary.Shared/blazorBookLibrary.Shared.fsproj" />
-    <ProjectReference Include="..\blazorBookLibrary\blazorBookLibrary.csproj" />
-    <ProjectReference Include="..\blazorBookLibrary.Data\blazorBookLibrary.Data.csproj" />
+    <ProjectReference Include="../blazorBookLibrary/blazorBookLibrary.csproj" />
+    <ProjectReference Include="../blazorBookLibrary.Data/blazorBookLibrary.Data.csproj" />
   </ItemGroup>
 
   <ItemGroup>

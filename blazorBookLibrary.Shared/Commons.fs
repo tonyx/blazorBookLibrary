@@ -6,14 +6,56 @@ open Microsoft.Extensions.Configuration
 open System.Threading
 open System.Threading.Tasks
 
-
 // Guid must be the AggregateId and int the EventId
 // this conflicts with the one in the libary ouch
 type AggregateViewerAsync2<'A> = Option<CancellationToken> -> Guid -> Task<Result<int * 'A,string>>     
 
+type EmbeddingDataId =
+    | EmbeddingDataId of Guid
+    with
+        static member New() = EmbeddingDataId(Guid.NewGuid())
+        member this.Value = 
+            match this with
+            | EmbeddingDataId v -> v
+
+type EmbeddingData = 
+    {
+        Model: string
+        Vector: float32[]        
+    }
+    member this.Similarity (other: EmbeddingData) = 
+        if this.Model = other.Model then
+            let dotProduct = Seq.zip this.Vector other.Vector |> Seq.map (fun (a, b) -> float a * float b) |> Seq.sum
+            let thisMagnitude = Math.Sqrt (this.Vector |> Seq.map (fun v -> float v * float v) |> Seq.sum)
+            let otherMagnitude = Math.Sqrt (other.Vector |> Seq.map (fun v -> float v * float v) |> Seq.sum)
+            dotProduct / (thisMagnitude * otherMagnitude) |> Ok
+        else
+            Error "The model used to generate the embeddings is different"
+
+    member this.Similarity2 (other: EmbeddingData) =
+        if this.Model = other.Model then
+            let a = this.Vector
+            let b = other.Vector
+            let mutable dot = 0.0f
+            let mutable magA = 0.0f
+            let mutable magB = 0.0f
+            for i in 0 .. a.Length - 1 do
+                dot <- dot + (a.[i] * b.[i])
+                magA <- magA + (a.[i] * a.[i])
+                magB <- magB + (b.[i] * b.[i])
+            float (dot / (sqrt(magA) * sqrt(magB))) |> Ok
+        else    
+            Error "The model used to generate the embeddings is different"
+
+
+    member this.Distance (other: EmbeddingData) = 
+        result {
+            let! similarity = this.Similarity other
+            return 1.0 - similarity
+        }
+        
+
 let random = System.Random()
-
-
 
 type ExportFormat = 
     | Csv
@@ -38,7 +80,6 @@ type ReservationCode =
             match this with
             | ReservationCode v -> v
             | EmptyReservationCode -> ""
-
 
 type BookId =
     | BookId of Guid

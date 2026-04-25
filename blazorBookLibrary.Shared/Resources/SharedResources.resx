@@ -278,4 +278,35 @@
   <data name="EstimatedTimeRemaining" xml:space="preserve"><value>Estimated remaining time</value></data>
   <data name="MyReviews" xml:space="preserve"><value>My Reviews</value></data>
   <data name="NoReviewsFound" xml:space="preserve"><value>No reviews found.</value></data>
+  <data name="AISemanticDiscovery" xml:space="preserve"><value>AI Semantic Discovery</value></data>
+  <data name="ConceptualDescription" xml:space="preserve"><value>Conceptual Description</value></data>
+  <data name="SemanticSearchPlaceholder" xml:space="preserve"><value>e.g. A dystopian novel about surveillance and totalitarism...</value></data>
+  <data name="MaxResults" xml:space="preserve"><value>Max Results</value></data>
+  <data name="SemanticSearchHelp" xml:space="preserve"><value>This uses AI to find books by meaning rather than exact keywords. Combine with filters below for precise discovery.</value></data>
+  <data name="SemanticAnalysisFailed" xml:space="preserve"><value>Semantic analysis failed</value></data>
+  <data name="VectorSearchFailed" xml:space="preserve"><value>Vector search failed</value></data>
+  <data name="ErrorRetrievingBooks" xml:space="preserve"><value>Failed to retrieve books</value></data>
+  <data name="UnexpectedSearchError" xml:space="preserve"><value>Unexpected search error</value></data>
+  <data name="AIVectorDataMissing" xml:space="preserve"><value>AI Vector Data Missing</value></data>
+  <data name="NoVectorDataNote" xml:space="preserve"><value>No vectorized data is present for that description. Semantic search will not include this item.</value></data>
+  <data name="GenerateEmbedding" xml:space="preserve"><value>Generate Embedding</value></data>
+  <data name="SemanticSanityCheck" xml:space="preserve"><value>Semantic Sanity Check</value></data>
+  <data name="VerifyAIUnderstandingNote" xml:space="preserve"><value>Verify the AI's understanding by providing a description you believe is semantically similar to this book.</value></data>
+  <data name="TestQueryDescription" xml:space="preserve"><value>Test Query Description</value></data>
+  <data name="CheckSemanticAccuracy" xml:space="preserve"><value>Check Semantic Accuracy</value></data>
+  <data name="SemanticResults" xml:space="preserve"><value>Semantic Results</value></data>
+  <data name="PrimaryMatchFound" xml:space="preserve"><value>Primary Match Found!</value></data>
+  <data name="SecondaryMatchFound" xml:space="preserve"><value>Secondary Match Found</value></data>
+  <data name="NoMatchFound" xml:space="preserve"><value>No Match Found</value></data>
+  <data name="TopSemanticResult" xml:space="preserve"><value>This book is the top semantic result.</value></data>
+  <data name="FoundInTopResults" xml:space="preserve"><value>Found in top results, but not first.</value></data>
+  <data name="NotInTopResults" xml:space="preserve"><value>This book did not appear in the top results.</value></data>
+  <data name="CurrentBook" xml:space="preserve"><value>Current Book</value></data>
+  <data name="PerformSanityCheck" xml:space="preserve"><value>Perform Sanity Check</value></data>
+  <data name="RemoveEmbedding" xml:space="preserve"><value>Remove Embedding</value></data>
+  <data name="EmbeddingRemoved" xml:space="preserve"><value>Embedding removed successfully.</value></data>
+  <data name="ErrorRemovingEmbedding" xml:space="preserve"><value>Error removing embedding: {0}</value></data>
+  <data name="VectorDbRemovalFailed" xml:space="preserve"><value>Embedding removed from book but failed to remove from vector database. Restoring book reference.</value></data>
+  <data name="UpdateEmbeddingAdvice" xml:space="preserve"><value>You have updated the description. It is recommended to update the embedding as well for effective semantic alignment.</value></data>
+  <data name="ConfirmRemoveEmbedding" xml:space="preserve"><value>Are you sure you want to remove the semantic embedding for this book?</value></data>
 </root>

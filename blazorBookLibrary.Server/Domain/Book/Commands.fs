@@ -10,6 +10,8 @@ type BookCommand =
     | UpdateTitle of Title * DateTime
     | UpdateDescription of string * DateTime
     | RemoveDescription of DateTime
+    | EmbedDescription of EmbeddingDataId * DateTime
+    | RemoveEmbedding of DateTime
     | UpdateAuthors of list<AuthorId> * DateTime
     | UpdateEditor of EditorId * DateTime
     | UpdateYear of Year * DateTime
@@ -47,6 +49,12 @@ type BookCommand =
             | RemoveDescription dateTime ->
                 book.RemoveDescription dateTime
                 |> Result.map (fun b -> (b, [DescriptionRemoved(dateTime)]))
+            | EmbedDescription (embeddingId, dateTime) ->
+                book.EmbedDescription embeddingId dateTime
+                |> Result.map (fun b -> (b, [DescriptionEmbedded(embeddingId, dateTime)]))
+            | RemoveEmbedding dateTime ->
+                book.RemoveEmbedding dateTime
+                |> Result.map (fun b -> (b, [DescriptionEmbeddingRemoved(dateTime)]))
             | UpdateAuthors (authors, dateTime) ->
                 book.UpdateAuthors authors dateTime
                 |> Result.map (fun b -> (b, [AuthorsUpdated(authors, dateTime)]))

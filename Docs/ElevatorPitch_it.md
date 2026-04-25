@@ -16,7 +16,10 @@ Smettete di digitare. Il nostro motore utilizza codici a barre e la ricerca basa
 ### 2. Integrità archivistica a prova di errore
 Costruito su **F# ed Event Sourcing (Sharpino)**, ogni cambiamento nella vostra biblioteca è monitorato e tracciabile. Non ci limitiamo a memorizzare lo “stato attuale”; conserviamo l'intera cronologia del tuo archivio, fornendo una traccia di audit immutabile che previene la perdita di dati e garantisce l'affidabilità.
 
-### 3. Esperienza Utente Senza Confini
+### 3. Scoperta Semantica Alimentata dall'IA
+Trovare il libro giusto non dovrebbe richiedere la conoscenza del titolo esatto. Il nostro **Motore di Ricerca Semantica** utilizza l'intelligenza artificiale per comprendere il significato dietro le tue ricerche. Cerca "una storia su un robot solitario" o "narrativa storica ambientata nella Parigi del XVII secolo" e scopri titoli pertinenti anche se quelle parole esatte non sono presenti nei metadati.
+
+### 4. Esperienza Utente Senza Confini
 La biblioteca non è solo per i curatori; è un santuario per i lettori. 
 - **Navigazione Elegante**: Visualizzazioni del catalogo ad alta fedeltà con filtri intelligenti per titolo, ISBN o categoria, rendendo la scoperta del prossimo libro un vero piacere.
 - **Prestiti Semplificati**: Stato di disponibilità chiaro in tempo reale e flussi di lavoro intuitivi per il prestito e la restituzione dei volumi.
