@@ -39,4 +39,3 @@ Detailed guides and architectural references are available in the [Docs](./Docs)
 *“To catalog is to preserve; to curate is to honor.”*
 
 **Try it on line**:  https://bookslibrary.azurewebsites.net (will be on line for 1 month or so)
-**Note**: some features are still in progress. More info will come next.
