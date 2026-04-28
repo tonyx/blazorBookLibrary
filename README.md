@@ -35,6 +35,8 @@ Detailed guides and architectural references are available in the [Docs](./Docs)
 - [User Stories](./Docs/UserStories.md)
 - [Elevator Pitch](./Docs/ElevatorPitch.md)
 
+- [Short Video](https://youtu.be/cxt-Vl8QHTI?si=dwF3hD_XT_CK7Ge5)
+
 ---
 
 *“To catalog is to preserve; to curate is to honor.”*
