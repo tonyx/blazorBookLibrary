@@ -221,27 +221,35 @@ type LoanService
     member this.ReleaseLoanAsync (loanId: LoanId, shortLang: ShortLang,  dateTime: System.DateTime, ?ct: CancellationToken)= 
         taskResult
             {
+                printf "XXXXX 300 - Releasing loan %A\n" loanId
                 let ct = defaultArg ct CancellationToken.None
                 let! loan = 
                     loanViewerAsync (Some ct) loanId.Value 
                     |> TaskResult.map snd
+                printf "XXXXX 301 - Releasing loan %A\n" loan
                 let! book = 
                     bookViewerAsync (Some ct) loan.BookId.Value
                     |> TaskResult.map snd
+                printf "XXXXX 302 - Releasing loan %A\n" book
                 let! user =
                     userViewerAsync (Some ct) loan.UserId.Value
                     |> TaskResult.map snd
+                printf "XXXXX 303 - Releasing loan %A\n" user
                 let releaseLoanCommand = 
                     BookCommand.ReleaseLoan (loanId, dateTime)
+                printf "XXXXX 304 - Releasing loan %A\n" releaseLoanCommand
                 let releaseBookCommand =
                     LoanCommand.Return dateTime
+                printf "XXXXX 305 - Releasing loan %A\n" releaseBookCommand
                 let userReleaseLoanCommandr = 
                     UserCommand.ReleaseLoan (loanId)
+                printf "XXXXX 306 - Releasing loan %A\n" userReleaseLoanCommandr
                 let! userDetails = 
                     usersService.GetUserDetailsAsync loan.UserId
-                    
+                printf "XXXXX 307 - Releasing loan %A\n" userDetails
                 let! emailTextRetrieved =
                     mailBodyRetriever.GetReleaseLoanNotificationTextMailAsync(shortLang)
+                printf "XXXXX 308 - Releasing loan %A\n" emailTextRetrieved
 
                 let! result = 
                     runThreeAggregateCommandsMdAsync<Book, BookEvent, Loan, LoanEvent, User, UserEvent, string>
@@ -255,8 +263,10 @@ type LoanService
                         releaseBookCommand
                         userReleaseLoanCommandr
                         (ct |> Some)
+                printf "XXXXX 309 - Releasing loan %A\n" result
 
                 let emailBody = emailTextRetrieved.Replace("{bookTitle}", book.Title.Value)
+                printf "XXXXX 310 - Releasing loan %A\n" emailBody
                 do!
                     task
                         {

@@ -137,6 +137,31 @@ h1, h2, h3, h4, .serif {
     color: var(--secondary);
 }
 
+/* Alerts */
+.alert-sanctuary {
+    padding: var(--spacing-4) var(--spacing-6);
+    border-radius: var(--radius-lg);
+    font-family: var(--font-sans);
+    display: flex;
+    align-items: flex-start;
+    gap: var(--spacing-4);
+    margin-bottom: var(--spacing-6);
+    border-left: 4px solid transparent;
+    animation: slideDown 0.4s ease-out;
+}
+
+.alert-sanctuary-info {
+    background-color: var(--surface-container-low);
+    color: var(--on-secondary-fixed);
+    border-left-color: var(--secondary);
+    border: 1px solid var(--outline-variant);
+}
+
+@keyframes slideDown {
+    from { transform: translateY(-10px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
 /* Cards */
 .card-sanctuary {
     background-color: var(--surface-container-lowest);

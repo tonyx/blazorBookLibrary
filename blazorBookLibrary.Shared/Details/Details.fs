@@ -10,7 +10,6 @@ module Details =
 
     let random = System.Random()
 
-
     type UserDetails =
         {
             User: User

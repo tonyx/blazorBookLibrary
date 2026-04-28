@@ -1,4 +1,4 @@
-﻿@page "/Account/ExternalLogin"
+@page "/Account/ExternalLogin"
 
 @using System.ComponentModel.DataAnnotations
 @using System.Security.Claims
@@ -7,6 +7,12 @@
 @using Microsoft.AspNetCore.Identity
 @using Microsoft.AspNetCore.WebUtilities
 @using blazorBookLibrary.Data
+@using BookLibrary.Shared.Services
+@using BookLibrary.Domain
+@using BookLibrary.Services
+@using blazorBookLibrary.Shared.Resources
+@using Microsoft.Extensions.Localization
+@using static BookLibrary.Shared.Commons
 
 @inject SignInManager<ApplicationUser> SignInManager
 @inject UserManager<ApplicationUser> UserManager
@@ -15,6 +21,8 @@
 @inject NavigationManager NavigationManager
 @inject IdentityRedirectManager RedirectManager
 @inject ILogger<ExternalLogin> Logger
+@inject IUserService UserService
+@inject IStringLocalizer<SharedResources> L
 
 <PageTitle>Register</PageTitle>
 
@@ -158,6 +166,32 @@
             if (result.Succeeded)
             {
                 Logger.LogInformation("User created an account using {Name} provider.", externalLoginInfo.LoginProvider);
+
+                // Synchronize with Sharpino
+                if (Guid.TryParse(user.Id, out var userGuid))
+                {
+                    var sharpinoUserId = UserId.NewUserId(userGuid);
+                    var sharpinoUser = User.New(sharpinoUserId);
+                    var sharpinoResult = await UserService.CreateUserAsync(sharpinoUser, CancellationToken.None);
+
+                    if (sharpinoResult.IsOk)
+                    {
+                        // Populate UserInfo
+                        var appUserInfo = UserMapping.toAppUserInfo(user);
+                        var userInfoResult = await UserService.SetAppUserInfoAsync(sharpinoUserId, appUserInfo, CancellationToken.None);
+                        if (userInfoResult.IsError)
+                        {
+                            Logger.LogWarning("Failed to set AppUserInfo for Sharpino user {email}: {error}", Input.Email, userInfoResult.ErrorValue);
+                        }
+                    }
+                    else
+                    {
+                        Logger.LogError("Failed to create Sharpino user for {email}: {error}", Input.Email, sharpinoResult.ErrorValue);
+                        await UserManager.DeleteAsync(user);
+                        message = $"Error: {L["RegistrationFinalizationError"]}";
+                        return;
+                    }
+                }
 
                 var userId = await UserManager.GetUserIdAsync(user);
                 var code = await UserManager.GenerateEmailConfirmationTokenAsync(user);

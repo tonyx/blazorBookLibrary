@@ -80,7 +80,6 @@ public sealed partial class MailNotificator : IMailNotificator
         }
     }
 
-    // a.i. generated optimization
     [LoggerMessage(Level = LogLevel.Information, Message = "Sending email to {EmailRecipient}")]
     private partial void LogSendingEmail(string emailRecipient);
 

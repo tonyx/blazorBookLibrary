@@ -36,6 +36,13 @@ and  User =
                 Reservations = []
                 CurrentLoans = [] 
             }
+        static member NewWithUserInfo(userId: UserId, appUserInfo: AppUserInfo) = 
+            { 
+                UserId = userId
+                AppUserInfo = appUserInfo
+                Reservations = []
+                CurrentLoans = [] 
+            }
     
         member this.AddReservation (reservationId: ReservationId) = 
             { this with Reservations = reservationId :: this.Reservations } |> Ok
@@ -71,6 +78,9 @@ and  User =
 
         member this.GetAppUserInfo () =
             this.AppUserInfo
+
+        member this.SetAppUserInfo (appUserInfo: AppUserInfo) =
+            { this with AppUserInfo = appUserInfo } |> Ok
 
         member this.RemoveReservation (reservationId: ReservationId) = 
             { this with Reservations = this.Reservations |> List.filter (fun id -> id <> reservationId) } |> Ok

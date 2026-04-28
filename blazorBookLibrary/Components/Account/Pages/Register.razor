@@ -10,6 +10,7 @@
 @using BookLibrary.Domain
 @using blazorBookLibrary.Security
 @using static BookLibrary.Shared.Commons
+@using BookLibrary.Services
 
 @inject UserManager<ApplicationUser> UserManager
 @inject IUserStore<ApplicationUser> UserStore
@@ -146,7 +147,7 @@
         if (Guid.TryParse(user.Id, out var userGuid))
         {
             var sharpinoUserId = UserId.NewUserId(userGuid);
-            var sharpinoUser = User.New(sharpinoUserId);
+            var sharpinoUser = User.NewWithUserInfo(sharpinoUserId, UserMapping.toAppUserInfo(user));
             var sharpinoResult = await UserService.CreateUserAsync(sharpinoUser, CancellationToken.None);
 
             if (sharpinoResult.IsError)
@@ -156,6 +157,7 @@
                 identityErrors = new List<IdentityError> { new IdentityError { Description = L["RegistrationFinalizationError"] } };
                 return;
             }
+
         }
 
         var userId = await UserManager.GetUserIdAsync(user);

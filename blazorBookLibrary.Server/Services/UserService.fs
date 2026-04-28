@@ -243,6 +243,23 @@ type UserService
                 let! user = userViewerAsync (ct |> Some) userId.Value |> TaskResult.map snd
                 return user
             }
+    
+    member this.SetAppUserInfoAsync (userId: UserId, appUserInfo: AppUserInfo, ?ct: CancellationToken) : Task<Result<unit, string>> =
+        let ct = defaultArg ct CancellationToken.None
+        taskResult
+            {
+                let setAppUserInfoCommand = UserCommand.SetAppUserInfo appUserInfo
+                let result =
+                    runAggregateCommandMdAsync 
+                        userId.Value
+                        eventStore
+                        messageSenders
+                        ""
+                        setAppUserInfoCommand
+                        (ct |> Some)
+
+                return! result
+            }
 
     interface IUserService with
         member this.CreateUserAsync (user: User, ?ct: CancellationToken) : Task<Result<unit, string>> =
@@ -279,3 +296,7 @@ type UserService
         member this.GetUser (userId: UserId, ?ct: CancellationToken) : Task<Result<User, string>> =
             let ct = defaultArg ct CancellationToken.None
             this.GetUser(userId, ct)
+            
+        member this.SetAppUserInfoAsync (userId: UserId, appUserInfo: AppUserInfo, ?ct: CancellationToken) : Task<Result<unit, string>> =
+            let ct = defaultArg ct CancellationToken.None
+            this.SetAppUserInfoAsync(userId, appUserInfo, ct)

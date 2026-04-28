@@ -21,5 +21,6 @@ type IUserService =
     abstract member UnSetIsPhysicallyIdentifiedAsync: userId:UserId * [<Optional; DefaultParameterValue(null)>] ?ct:CancellationToken -> Task<Result<unit, string>>
     abstract member GhostUserAsync: userId:UserId * [<Optional; DefaultParameterValue(null)>] ?ct:CancellationToken -> Task<Result<unit, string>>
     abstract member GetUser: userId:UserId * [<Optional; DefaultParameterValue(null)>] ?ct:CancellationToken -> Task<Result<User, string>>
+    abstract member SetAppUserInfoAsync: userId:UserId * appUserInfo:AppUserInfo * [<Optional; DefaultParameterValue(null)>] ?ct:CancellationToken -> Task<Result<unit, string>>
 
     

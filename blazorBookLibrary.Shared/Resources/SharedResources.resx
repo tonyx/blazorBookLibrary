@@ -309,4 +309,6 @@
   <data name="VectorDbRemovalFailed" xml:space="preserve"><value>Embedding removed from book but failed to remove from vector database. Restoring book reference.</value></data>
   <data name="UpdateEmbeddingAdvice" xml:space="preserve"><value>You have updated the description. It is recommended to update the embedding as well for effective semantic alignment.</value></data>
   <data name="ConfirmRemoveEmbedding" xml:space="preserve"><value>Are you sure you want to remove the semantic embedding for this book?</value></data>
+  <data name="RegistrationServiceProblem" xml:space="preserve"><value>The registration service is experiencing temporary issues.</value></data>
+  <data name="ContinueBrowsingWithoutLogin" xml:space="preserve"><value>You can continue browsing the library without logging in.</value></data>
 </root>

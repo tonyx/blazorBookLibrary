@@ -18,6 +18,7 @@ type UserCommand =
     | UnsetPhysicalIdentification
     | SetNome of string
     | SetCognome of string
+    | SetAppUserInfo of AppUserInfo
     interface AggregateCommand<User, UserEvent> with
         member this.Execute (user: User) =
             match this with
@@ -57,5 +58,8 @@ type UserCommand =
             | SetCognome cognome ->
                 user.SetCognome cognome
                 |> Result.map (fun u -> (u, [CognomeSet(cognome)]))
+            | SetAppUserInfo appUserInfo ->
+                user.SetAppUserInfo appUserInfo
+                |> Result.map (fun u -> (u, [AppUserInfoSet(appUserInfo)]))
 
         member this.Undoer = None

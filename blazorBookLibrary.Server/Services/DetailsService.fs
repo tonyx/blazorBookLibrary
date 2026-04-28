@@ -156,6 +156,7 @@ type DetailsService (
                         }
                 let key = DetailsCacheKey.OfType typeof<RefreshableUserDetails> userId.Value
                 StateView.getRefreshableDetailsTaskResultAsync<RefreshableUserDetails> (fun ct -> detailsBuilder ct) key ct
+
         member  this.GetUserDetailsAsync (userId: UserId, ?ct: CancellationToken) = 
             let ct = defaultArg ct CancellationToken.None
             taskResult {

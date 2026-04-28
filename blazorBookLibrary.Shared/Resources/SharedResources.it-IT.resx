@@ -767,4 +767,6 @@
   <data name="VectorDbRemovalFailed" xml:space="preserve"><value>Embedding rimosso dal libro ma fallita la rimozione dal database vettoriale. Ripristino del riferimento.</value></data>
   <data name="UpdateEmbeddingAdvice" xml:space="preserve"><value>Hai aggiornato la descrizione. Si consiglia di aggiornare anche l'embedding per un'efficace allineamento semantico.</value></data>
   <data name="ConfirmRemoveEmbedding" xml:space="preserve"><value>Sei sicuro di voler rimuovere l'embedding semantico per questo libro?</value></data>
+  <data name="RegistrationServiceProblem" xml:space="preserve"><value>Il servizio di registrazione sta riscontrando problemi temporanei.</value></data>
+  <data name="ContinueBrowsingWithoutLogin" xml:space="preserve"><value>Puoi continuare a sfogliare la biblioteca senza effettuare l'accesso.</value></data>
 </root>

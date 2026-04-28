@@ -23,6 +23,7 @@ using BookLibrary.Server.SeedServices;
 using blazorBookLibrary.Security;
 using blazorBookLibrary.Infrastructure.Services;
 using BookLibrary.CleanServices;
+using BookLibrary.Services;
 using BookLibrary.Server.CleanServices;
 using Microsoft.FSharp.Core;
 
@@ -210,6 +211,7 @@ using (var scope = app.Services.CreateScope())
     }
     if (app.Configuration.GetValue<bool>("UpdateUsersOnStartup", false))
     {
+        Console.WriteLine("XXX: 100 - Syncing users on startup...");
         var userService = scope.ServiceProvider.GetRequiredService<BookLibrary.Shared.Services.IUserService>();
         var allIdentityUsers = await userManager.Users.ToListAsync();
 
@@ -218,34 +220,18 @@ using (var scope = app.Services.CreateScope())
             if (Guid.TryParse(identityUser.Id, out var userGuid))
             {
                 var sharpinoUserId = UserId.NewUserId(userGuid);
+                // Console.WriteLine($"XXXXXX: 200 - Syncing user: {identityUser.UserName}");
+                // Console.WriteLine($"XXXXXX: 201 - {sharpinoUserId}");
                 var sharpinoUserResult = await userService.GetUserAsync(sharpinoUserId, FSharpOption<CancellationToken>.None);
                 
                 if (sharpinoUserResult.IsOk)
                 {
-                    if (!string.IsNullOrWhiteSpace(identityUser.CodiceFiscale))
-                    {
-                        var fcResult = FiscalCode.New(identityUser.CodiceFiscale);
-                        if (fcResult.IsOk)
-                            await userService.SetFiscalCodeAsync(sharpinoUserId, fcResult.ResultValue, FSharpOption<CancellationToken>.None);
-                    }
-
-                    if (!string.IsNullOrWhiteSpace(identityUser.Nome))
-                        await userService.SetNameAsync(sharpinoUserId, identityUser.Nome, FSharpOption<CancellationToken>.None);
-
-                    if (!string.IsNullOrWhiteSpace(identityUser.Cognome))
-                        await userService.SetSurnameAsync(sharpinoUserId, identityUser.Cognome, FSharpOption<CancellationToken>.None);
-
-                    if (!string.IsNullOrWhiteSpace(identityUser.PhoneNumber))
-                    {
-                        var phResult = PhoneNumber.New(identityUser.PhoneNumber);
-                        if (phResult.IsOk)
-                            await userService.SetPhoneNumberAsync(sharpinoUserId, phResult.ResultValue, FSharpOption<CancellationToken>.None);
-                    }
-
-                    if (identityUser.IsIdentifiedPhysically)
-                        await userService.SetIsPhysicallyIdentifiedAsync(sharpinoUserId, FSharpOption<CancellationToken>.None);
-                    else
-                        await userService.UnSetIsPhysicallyIdentifiedAsync(sharpinoUserId, FSharpOption<CancellationToken>.None);
+                    var sharpinoId = UserId.NewUserId(new Guid(identityUser.Id));
+                    await userService.SetAppUserInfoAsync(sharpinoId, UserMapping.toAppUserInfo(identityUser), FSharpOption<CancellationToken>.None);
+                } 
+                else
+                {
+                    Console.WriteLine($"XXXXXX: 201 - User not found: {identityUser.UserName}");
                 }
             }
         }

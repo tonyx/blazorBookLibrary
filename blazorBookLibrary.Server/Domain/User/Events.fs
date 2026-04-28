@@ -19,6 +19,7 @@ type UserEvent =
     | PhysicalIdentificationUnset
     | NomeSet of string
     | CognomeSet of string
+    | AppUserInfoSet of AppUserInfo
     interface Event<User> with
         member this.Process (user: User) : Result<User, string> =
             match this with
@@ -46,6 +47,8 @@ type UserEvent =
                 user.SetNome nome
             | CognomeSet cognome ->
                 user.SetCognome cognome
+            | AppUserInfoSet appUserInfo ->
+                user.SetAppUserInfo appUserInfo
 
     static member Deserialize (x: string): Result<UserEvent, string> =
         try
