@@ -49,7 +49,6 @@ type VectorDbService(connection: string, ?cancellationTokenSourceExpiration: int
                 use cts = CancellationTokenSource.CreateLinkedTokenSource (ct)
                 cts.CancelAfter(cancellationTokenSourceExpiration)
 
-                // todo can't handle token yet
                 let! result = 
                     connection
                     |> Sql.connect

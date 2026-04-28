@@ -164,6 +164,33 @@
         await LoadReview();
     }
 
+    private async Task WaitForCacheUpdateAsync(Func<ReviewDetails, bool> condition)
+    {
+        if (details == null) return;
+        
+        int retries = 20;
+        var reviewId = ReviewId.NewReviewId(reviewIdGuid);
+        while (retries > 0)
+        {
+            await Task.Delay(100);
+            var freshResult = await DetailsService.GetReviewDetailsAsync(reviewId);
+            if (freshResult.IsOk)
+            {
+                var freshDetails = freshResult.ResultValue;
+                if (condition(freshDetails))
+                {
+                    details = freshDetails;
+                    StateHasChanged();
+                    return;
+                }
+            }
+            retries--;
+        }
+
+        // Fallback
+        await LoadReview();
+    }
+
     private async Task LoadReview()
     {
         var reviewId = ReviewId.NewReviewId(reviewIdGuid);
@@ -185,7 +212,7 @@
         if (result.IsOk)
         {
             await JSRuntime.InvokeVoidAsync("showToast", L["ApproveSuccess"].Value, "success");
-            await LoadReview();
+            await WaitForCacheUpdateAsync(d => d.Review.ApprovalStatus.IsApproved);
         }
         else
         {
@@ -200,7 +227,7 @@
         if (result.IsOk)
         {
             await JSRuntime.InvokeVoidAsync("showToast", L["RejectSuccess"].Value, "success");
-            await LoadReview();
+            await WaitForCacheUpdateAsync(d => d.Review.ApprovalStatus.IsRejected);
         }
         else
         {

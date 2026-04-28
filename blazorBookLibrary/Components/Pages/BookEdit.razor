@@ -776,11 +776,14 @@
         
         try
         {
-            var result = await BookService.AddAuthorToBookAsync(selectedAuthorForAdd.AuthorId, bookDetails.Book.BookId, FSharpOption<CancellationToken>.None);
+            var authorId = selectedAuthorForAdd.AuthorId;
+            var result = await BookService.AddAuthorToBookAsync(authorId, bookDetails.Book.BookId, FSharpOption<CancellationToken>.None);
             if (result.IsOk)
             {
                 var addedName = selectedAuthorForAdd.Name.Value;
-                await LoadBookDetails();
+                
+                await WaitForCacheUpdateAsync(d => d.Authors.Any(a => a.AuthorId.Value == authorId.Value));
+                
                 authorSearchInput = "";
                 selectedAuthorForAdd = null;
                 await ShowStatus($"{L["Author"]} '{addedName}' {L["HasBeenAdded"]}.", "alert-success");
@@ -808,7 +811,7 @@
             var result = await BookService.RemoveAuthorFromBookAsync(author.AuthorId, bookDetails.Book.BookId, FSharpOption<CancellationToken>.None);
             if (result.IsOk)
             {
-                await LoadBookDetails();
+                await WaitForCacheUpdateAsync(d => !d.Authors.Any(a => a.AuthorId.Value == author.AuthorId.Value));
                 await ShowStatus($"{L["Author"]} '{author.Name.Value}' {L["Removed"]}.", "alert-success");
             }
             else
@@ -848,7 +851,7 @@
             var result = await BookService.AddAdditionalCategoryAsync(category, bookDetails.Book.BookId, FSharpOption<CancellationToken>.None);
             if (result.IsOk)
             {
-                await LoadBookDetails();
+                await WaitForCacheUpdateAsync(d => d.Book.AdditionalCategories.Contains(category));
                 await ShowStatus($"{L["Category"]} '{category.Value()}' {L["HasBeenAdded"]}", "alert-success");
             }
             else
@@ -871,7 +874,7 @@
             var result = await BookService.RemoveAdditionalCategoryAsync(category, bookDetails.Book.BookId, FSharpOption<CancellationToken>.None);
             if (result.IsOk)
             {
-                await LoadBookDetails();
+                await WaitForCacheUpdateAsync(d => !d.Book.AdditionalCategories.Contains(category));
                 await ShowStatus($"{L["Category"]} '{category.Value()}' {L["Removed"]}", "alert-success");
             }
             else
@@ -920,7 +923,8 @@
             
         if (result.IsOk)
         {
-            await LoadBookDetails();
+            var expectedSeal = !isBookSealed;
+            await WaitForCacheUpdateAsync(d => d.Book.Sealed.IsSealed(DateTime.UtcNow) == expectedSeal);
             isEditingTitle = false;
         }
         else
@@ -961,7 +965,7 @@
             var result = await BookService.ChangeMainCategoryAsync(category, bookDetails.Book.BookId, FSharpOption<CancellationToken>.None);
             if (result.IsOk)
             {
-                await LoadBookDetails();
+                await WaitForCacheUpdateAsync(d => d.Book.MainCategory.Value() == editedCategory);
                 isEditingCategory = false;
                 await ShowStatus($"{L["Category"]} {L["HasBeenUpdated"]}.", "alert-success");
             }
@@ -1003,7 +1007,7 @@
             var result = await BookService.SetAvailabilityAsync(availability, bookDetails.Book.BookId, FSharpOption<CancellationToken>.None);
             if (result.IsOk)
             {
-                await LoadBookDetails();
+                await WaitForCacheUpdateAsync(d => d.Book.Availability.ToString() == editedAvailability);
                 isEditingAvailability = false;
                 await ShowStatus($"{L["Availability"]} {L["HasBeenUpdated"]}.", "alert-success");
             }
@@ -1078,7 +1082,8 @@
             
             if (result.IsOk)
             {
-                await LoadBookDetails();
+                await WaitForCacheUpdateAsync(d => d.Book.Title.Value == editedTitle);
+                
                 isEditingTitle = false;
                 await ShowStatus(L["TitleUpdated"], "alert-success");
             }
@@ -1112,7 +1117,7 @@
                 {
                     await ShowStatus(L["ImageUrlUpdated"], "alert-success");
                     isEditingImageUrl = false;
-                    await LoadBookDetails();
+                    await WaitForCacheUpdateAsync(d => FSharpOption<Uri>.get_IsSome(d.Book.ImageUrl) && d.Book.ImageUrl.Value.ToString() == uri.ToString());
                 }
                 else
                 {
@@ -1144,7 +1149,7 @@
             {
                 await ShowStatus(L["ImageCoverRemoved"], "alert-info");
                 isEditingImageUrl = false;
-                await LoadBookDetails();
+                await WaitForCacheUpdateAsync(d => FSharpOption<Uri>.get_IsNone(d.Book.ImageUrl));
             }
             else
             {
@@ -1260,7 +1265,14 @@
             
             if (result.IsOk)
             {
-                await LoadBookDetails();
+                if (string.IsNullOrWhiteSpace(editedDescription))
+                {
+                    await WaitForCacheUpdateAsync(d => FSharpOption<string>.get_IsNone(d.Book.Description));
+                }
+                else
+                {
+                    await WaitForCacheUpdateAsync(d => FSharpOption<string>.get_IsSome(d.Book.Description) && d.Book.Description.Value == editedDescription);
+                }
                 isEditingDescription = false;
             }
             else
@@ -1304,7 +1316,7 @@
             if (embedResult.IsOk)
             {
                 await ShowStatus("AI embedding generated and associated successfully.", "alert-success");
-                await LoadBookDetails();
+                await WaitForCacheUpdateAsync(d => FSharpOption<EmbeddingDataId>.get_IsSome(d.Book.OptionalEmbedding));
             }
             else
             {
@@ -1436,7 +1448,7 @@
             var result = await BookService.UpdateIsbnAsync(isbn, bookDetails.Book.BookId, FSharpOption<CancellationToken>.None);
             if (result.IsOk)
             {
-                await LoadBookDetails();
+                await WaitForCacheUpdateAsync(d => d.Book.Isbn.Value == isbn.Value);
                 isEditingIsbn = false;
                 await ShowStatus(L["IsbnUpdated"], "alert-success");
             }
@@ -1449,6 +1461,32 @@
         {
             await ShowStatus(string.Format(L["ErrorUpdatingIsbnGeneric"], ex.Message), "alert-danger");
         }
+    }
+
+    private async Task WaitForCacheUpdateAsync(Func<Details.BookDetails, bool> condition)
+    {
+        if (bookDetails == null) return;
+
+        int retries = 20;
+        while (retries > 0)
+        {
+            await Task.Delay(100);
+            var freshDetailsResult = await DetailsService.GetBookDetailsAsync(bookDetails.Book.BookId, FSharpOption<CancellationToken>.None);
+            if (freshDetailsResult.IsOk)
+            {
+                var freshDetails = freshDetailsResult.ResultValue;
+                if (condition(freshDetails))
+                {
+                    bookDetails = freshDetails;
+                    StateHasChanged();
+                    return;
+                }
+            }
+            retries--;
+        }
+
+        // Fallback if polling times out
+        await LoadBookDetails();
     }
 
     protected override async Task OnInitializedAsync()
@@ -1523,7 +1561,7 @@
             if (result.IsOk)
             {
                 await ShowStatus("Reservation successfully converted to loan.", "alert-success");
-                await LoadBookDetails();
+                await WaitForCacheUpdateAsync(d => !d.PendingReservationsDetails.Any(r => r.Reservation.ReservationId.Value == resDetails.Reservation.ReservationId.Value));
                 reservationCodeInput = "";
             }
             else
@@ -1587,7 +1625,7 @@
                 await ShowStatus(L["EmbeddingRemoved"], "alert-success");
             }
 
-            await LoadBookDetails();
+            await WaitForCacheUpdateAsync(d => FSharpOption<EmbeddingDataId>.get_IsNone(d.Book.OptionalEmbedding));
         }
         catch (Exception ex)
         {
