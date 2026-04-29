@@ -146,7 +146,7 @@ let dummyLogger =
     LoggerFactory.Create(fun builder -> builder.AddConsole() |> ignore).CreateLogger<MailResenderService>()
 let dummyMailJetClient = new Mailjet.Client.MailjetClient("", "")
 
-let getAuthorService () = 
+let getAuthorService () : IAuthorService = 
     AuthorService(
         pgEventStore, 
         MessageSenders.NoSender, 
@@ -155,9 +155,9 @@ let getAuthorService () =
         editorViewerAsync, 
         reservationViewerAsync, 
         loanViewerAsync,
-        getSecretReader())
+        getSecretReader()) :> IAuthorService
 
-let getReviewService () =
+let getReviewService () : IReviewService =
     ReviewService(
         pgEventStore, 
         MessageSenders.NoSender, 
@@ -168,9 +168,9 @@ let getReviewService () =
         reservationViewerAsync, 
         loanViewerAsync,
         userViewerAsync,
-        getServiceScopeFactory())
+        getServiceScopeFactory()) :> IReviewService
 
-let getUserService () =
+let getUserService () : IUserService =
     UserService(
         pgEventStore, 
         MessageSenders.NoSender, 
@@ -182,9 +182,9 @@ let getUserService () =
         userViewerAsync,
         reviewViewerAsync,
         getReviewService(),
-        getServiceScopeFactory())
+        getServiceScopeFactory()) :> IUserService
 
-let getReservationService () =
+let getReservationService () : IReservationService =
     ReservationService(
         pgEventStore, 
         MessageSenders.NoSender, 
@@ -199,9 +199,9 @@ let getReservationService () =
         3,
         "noreply@blazorbooklibrary.com",
         "Blazor Book Library",
-        getMailBodyRetriever())
+        getMailBodyRetriever()) :> IReservationService
 
-let getLoanService () =
+let getLoanService () : ILoanService =
     LoanService(
         pgEventStore, 
         MessageSenders.NoSender, 
@@ -218,20 +218,8 @@ let getLoanService () =
         "noreply@blazorbooklibrary.com",
         "Blazor Book Library",
         fakeLocalizer,
-        getMailBodyRetriever())
-
-let getBookService () = 
-    BookService(
-        pgEventStore, 
-        MessageSenders.NoSender, 
-        bookViewerAsync, 
-        authorViewerAsync, 
-        editorViewerAsync, 
-        reservationViewerAsync, 
-        loanViewerAsync,
-        userViewerAsync)
-
-let getDetailsService () =
+        getMailBodyRetriever()) :> ILoanService
+let getDetailsService () : IDetailsService =
     DetailsService(
         pgEventStore,
         MessageSenders.NoSender,
@@ -245,7 +233,29 @@ let getDetailsService () =
         getLoanService(),
         getReservationService(),
         getReviewService(),
-        getServiceScopeFactory())
+        getServiceScopeFactory()) :> IDetailsService
+
+let getTextEmbeddingService () =
+    let httpClient = new HttpClient()
+    TextEmbeddingService(config, httpClient, getDetailsService(), getSecretReader()) :> ITextEmbeddingService
+
+let getVectorDbService () =
+    VectorDbService(config, getSecretReader()) :> IVectorDbService
+
+
+let getBookService () : IBookService = 
+    BookService(
+        pgEventStore, 
+        MessageSenders.NoSender, 
+        bookViewerAsync, 
+        authorViewerAsync, 
+        editorViewerAsync, 
+        reservationViewerAsync, 
+        loanViewerAsync,
+        userViewerAsync,
+        getVectorDbService()) :> IBookService
+
+
 
 let getGoogleBooksService () =
     let httpClient = new HttpClient()
@@ -257,7 +267,7 @@ let getAuthorsSearchService () =
     httpClient.DefaultRequestHeaders.Add("User-Agent", "BlazorBookLibraryTest/1.0")
     AuthorsSearchService(httpClient) :> IAuthorsSearchService
 
-let getDataExportService () =
+let getDataExportService () : IDataExportService =
     DataExportService(
         pgEventStore,
         MessageSenders.NoSender,
@@ -271,8 +281,9 @@ let getDataExportService () =
         getAuthorService(),
         getDetailsService(),
         getGoogleBooksService(),
-        getAuthorsSearchService()
-    )
+        getAuthorsSearchService(),
+        getTextEmbeddingService()
+    ) :> IDataExportService
 
 let getMailResenderService () =
     MailResenderService(
@@ -283,12 +294,7 @@ let getMailResenderService () =
         dummyLogger
     )
 
-let getTextEmbeddingService () =
-    let httpClient = new HttpClient()
-    TextEmbeddingService(config, httpClient, getDetailsService(), getSecretReader()) :> ITextEmbeddingService
 
-let getVectorDbService () =
-    VectorDbService(config, getSecretReader()) :> IVectorDbService
 
 let registerUser (email: string) (password: string) =
     // ensure unique email to avoid parallel test conflicts

@@ -93,7 +93,7 @@ let tests =
                 let bookId = BookId.New()
                 let! _ = vectorDbService.StoreEmbeddingAsync(id, bookId, embedding)
                 
-                let! deleteResult = vectorDbService.DeleteEmbeddingAsync id
+                let! deleteResult = vectorDbService.RemoveEmbeddingAsync id
                 Expect.isOk deleteResult "delete should be ok"
                 
                 let! readResult = vectorDbService.ReadEmbeddingAsync id

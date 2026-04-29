@@ -211,7 +211,6 @@ using (var scope = app.Services.CreateScope())
     }
     if (app.Configuration.GetValue<bool>("UpdateUsersOnStartup", false))
     {
-        Console.WriteLine("XXX: 100 - Syncing users on startup...");
         var userService = scope.ServiceProvider.GetRequiredService<BookLibrary.Shared.Services.IUserService>();
         var allIdentityUsers = await userManager.Users.ToListAsync();
 
@@ -220,8 +219,6 @@ using (var scope = app.Services.CreateScope())
             if (Guid.TryParse(identityUser.Id, out var userGuid))
             {
                 var sharpinoUserId = UserId.NewUserId(userGuid);
-                // Console.WriteLine($"XXXXXX: 200 - Syncing user: {identityUser.UserName}");
-                // Console.WriteLine($"XXXXXX: 201 - {sharpinoUserId}");
                 var sharpinoUserResult = await userService.GetUserAsync(sharpinoUserId, FSharpOption<CancellationToken>.None);
                 
                 if (sharpinoUserResult.IsOk)
@@ -231,7 +228,7 @@ using (var scope = app.Services.CreateScope())
                 } 
                 else
                 {
-                    Console.WriteLine($"XXXXXX: 201 - User not found: {identityUser.UserName}");
+                    Console.WriteLine($"201 - User not found: {identityUser.UserName}");
                 }
             }
         }

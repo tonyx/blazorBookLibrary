@@ -111,33 +111,23 @@ type ReservationService
                 }
             
         member this.AddReservationAsync (reservation: Reservation, dateTime: System.DateTime, shortLang: ShortLang, ?ct: CancellationToken) = 
-            printf "XXXXX 100 - Adding reservation \n"
-
-            // AggregateCache3.Instance.Clear() |> ignore
-            // DetailsCache.Instance.Clear() |> ignore
 
             taskResult
                 {
-                    printf "XXXXX 110 - Adding reservation \n"
                     let ct = defaultArg ct CancellationToken.None
-                    printf "XXXXX 120 - Adding reservation \n"
                     let! book =
                         bookViewerAsync (Some ct) reservation.BookId.Value
                         |> TaskResult.map snd
-                    printf "XXXXX 130 - Adding reservation \n"
                     let! user =
                         userViewerAsync (Some ct) reservation.UserId.Value
                         |> TaskResult.map snd
-                    printf "XXXXX 140 - Adding reservation \n"
 
                     let! userHasEnoughReservations = 
                         user.Reservations.Length < maxReservations
                         |> Result.ofBool "Already reached maximum number of reservations"
-                    printf "XXXXX 150 - Adding reservation \n"
                     do!
                         reservation.TimeSlot.IsFutureOf(dateTime)
                         |> Result.ofBool "Reservation time slot must be in the future"
-                    printf "XXXXX 160 - Adding reservation \n"
 
                     let! alreadyExistingReservations =
                         this.GetReservationsAsync book.CurrentReservations
@@ -146,21 +136,17 @@ type ReservationService
                         alreadyExistingReservations
                         |> List.forall (fun r -> not (r.TimeSlot.Overlaps(reservation.TimeSlot)))
                         |> Result.ofBool "Reservation overlaps with existing reservation"
-                    printf "XXXXX 170 - Adding reservation \n"
 
                     let addReservationToBookCommand = 
                         BookCommand.AddReservation (reservation.ReservationId, dateTime)
 
                     let addReservationToUserCommand = 
                         UserCommand.AddReservation reservation.ReservationId
-                    printf "XXXXX 180 - Adding reservation \n"
 
                     let! userDetails = 
                         usersService.GetUserDetailsAsync (user.UserId, ct)
-                    printf "XXXXX 190 - Adding reservation \n"
                     let! emailTextRetrieved = 
                         mailBodyRetriever.GetReservationNotificationTextMailAsync(shortLang, ct)
-                    printf "XXXXX 200 - Adding reservation \n"
                     let! result =
                         runInitAndTwoAggregateCommandsMdAsync<Book, BookEvent, User, UserEvent, string, Reservation>
                             book.Id
@@ -173,16 +159,10 @@ type ReservationService
                             addReservationToUserCommand
                             (Some ct)
 
-
-                    printf "XXXXX 205 - Adding reservation \n"
-                    printf "XXXXXX 206 - Adding reservation result %A" result
-
                     let emailBody = emailTextRetrieved.Replace("{bookTitle}", book.Title.Value).Replace("{code}", reservation.ReservationCode.Value)
-                    printf "XXXXX 210 - Adding reservation \n"
                     
                     do! 
                         task {
-                            printf "XXXXX 211 - Adding reservation \n"
                             do! mailNotificator.SendEmailAsync(
                                     fromEmail,
                                     fromName,
@@ -193,7 +173,6 @@ type ReservationService
 
                             return Ok ()
                         }
-                    printf "XXXXX 220 - Adding reservation - email sent\n"
 
                     return result
                 }

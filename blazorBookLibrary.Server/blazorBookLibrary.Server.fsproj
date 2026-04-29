@@ -72,8 +72,8 @@
     <Compile Include="Services/GoogleBooksService.fs" />
     <Compile Include="Services/AuthorsSearchService.fs" />
     <Compile Include="Services/DetailsService.fs" />
-    <Compile Include="Services/DataExportService.fs" />
     <Compile Include="Services/TextEmbeddingService.fs" />
+    <Compile Include="Services/DataExportService.fs" />
   </ItemGroup>
 
   <ItemGroup>

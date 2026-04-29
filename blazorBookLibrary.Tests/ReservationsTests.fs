@@ -32,13 +32,13 @@ let tests =
             let timeSlot = TimeSlot.New (System.DateTime.Now.AddDays(1)) (System.DateTime.Now.AddDays(timeSlotDurationInDays))
             let reservation = Reservation.New book.BookId userId1 timeSlot System.DateTime.UtcNow
 
-            let! addReservation = reservationService.AddReservationAsync (reservation, System.DateTime.Now)
+            let! addReservation = reservationService.AddReservationAsync (reservation, ShortLang.New "en")
             Expect.isOk addReservation "should be ok"
 
             let overlappingTimeSlot = TimeSlot.New (System.DateTime.Now.AddDays(5)) (System.DateTime.Now.AddDays(timeSlotDurationInDays))
             let overlappingReservation = Reservation.New book.BookId userId2 overlappingTimeSlot System.DateTime.UtcNow
 
-            let! addOverlappingReservation = reservationService.AddReservationAsync (overlappingReservation, System.DateTime.Now)
+            let! addOverlappingReservation = reservationService.AddReservationAsync (overlappingReservation, ShortLang.New "en")
             Expect.isError addOverlappingReservation "should be an error"
             
             let! bookDetailResult = detailsService.GetBookDetailsAsync book.BookId
@@ -66,13 +66,13 @@ let tests =
 
             let reservation = Reservation.New book.BookId userId1 timeSlot System.DateTime.UtcNow
 
-            let! addReservation = reservationService.AddReservationAsync (reservation, System.DateTime.Now)
+            let! addReservation = reservationService.AddReservationAsync (reservation, ShortLang.New "en")
             Expect.isOk addReservation "should be ok"
 
             let nonOverlappingTimeSlot = TimeSlot.New (System.DateTime.Now.AddDays((float)timeSlotDurationInDays + 1.0)) (System.DateTime.Now.AddDays( 2.0 * (float)timeSlotDurationInDays + 1.0))
             let nonOverlappingReservation = Reservation.New book.BookId userId2 nonOverlappingTimeSlot System.DateTime.UtcNow
 
-            let! addNonOverlappingReservation = reservationService.AddReservationAsync (nonOverlappingReservation, System.DateTime.Now)
+            let! addNonOverlappingReservation = reservationService.AddReservationAsync (nonOverlappingReservation, ShortLang.New "en")
             Expect.isOk addNonOverlappingReservation "should be ok"
 
             let! bookDetailResult = detailsService.GetBookDetailsAsync book.BookId
@@ -100,7 +100,7 @@ let tests =
             let timeSlot = TimeSlot.New (System.DateTime.Now.AddDays(1)) (System.DateTime.Now.AddDays(timeSlotDurationInDays))
             let reservation = Reservation.New book.BookId userId timeSlot System.DateTime.UtcNow
 
-            let! addReservation = reservationService.AddReservationAsync (reservation, System.DateTime.Now)
+            let! addReservation = reservationService.AddReservationAsync (reservation, ShortLang.New "en")
             Expect.isOk addReservation "should be ok"
             
             let! bookRetrievedResult = bookService.GetBookAsync (book.BookId, CancellationToken.None)
@@ -109,7 +109,7 @@ let tests =
             let (bookRetrieved: Book) = bookRetrievedResult |> Result.get
             Expect.equal (bookRetrieved.CurrentReservations |> List.length) 1 "should contain one reservation"
 
-            let! removeReservation = reservationService.RemoveReservationAsync (reservation.ReservationId, System.DateTime.Now)
+            let! removeReservation = reservationService.RemoveReservationAsync (reservation.ReservationId)
             Expect.isOk removeReservation "should be ok"
 
             let! retrieveReservation = reservationService.GetReservationAsync (reservation.ReservationId)
@@ -139,7 +139,7 @@ let tests =
             let timeSlot = TimeSlot.New (System.DateTime.Now) (System.DateTime.Now.AddDays(timeSlotDurationInDays))
             let loan = Loan.New book.BookId (userId) System.DateTime.Now timeSlot
 
-            let! addLoan = loanService.AddLoanAsync (loan, ShortLang.New "en", System.DateTime.Now)
+            let! addLoan = loanService.AddLoanAsync (loan, ShortLang.New "en")
             Expect.isOk addLoan "should be ok"
 
             let! bookDetailResult = detailsService.GetBookDetailsAsync book.BookId 
@@ -167,7 +167,7 @@ let tests =
             let futureTimeSlot = TimeSlot.New (System.DateTime.Now.AddMonths(1)) (System.DateTime.Now.AddMonths(2))
             let reservation = Reservation.New book.BookId userId2 futureTimeSlot (System.DateTime.Now)
 
-            let! addReservation = reservationService.AddReservationAsync (reservation, System.DateTime.Now)
+            let! addReservation = reservationService.AddReservationAsync (reservation, ShortLang.New "en")
             Expect.isOk addReservation "should be ok"
 
             let! bookDetail3Result = detailsService.GetBookDetailsAsync book.BookId
@@ -196,7 +196,7 @@ let tests =
             let timeSlot = TimeSlot.New (System.DateTime.Now) (System.DateTime.Now.AddDays(timeSlotDurationInDays))
             let loan = Loan.New book.BookId userId System.DateTime.Now timeSlot
 
-            let! addLoan = loanService.AddLoanAsync (loan, ShortLang.New "en", System.DateTime.Now)
+            let! addLoan = loanService.AddLoanAsync (loan, ShortLang.New "en")
             Expect.isOk addLoan "should be ok"
 
             let! bookDetailResult = detailsService.GetBookDetailsAsync book.BookId 
@@ -224,7 +224,7 @@ let tests =
             let futureTimeSlot = TimeSlot.New (System.DateTime.Now.AddMonths(1)) (System.DateTime.Now.AddMonths(2))
             let reservation = Reservation.New book.BookId userId2 futureTimeSlot (System.DateTime.Now)
 
-            let! addReservation = reservationService.AddReservationAsync (reservation, System.DateTime.Now)
+            let! addReservation = reservationService.AddReservationAsync (reservation, ShortLang.New "en")
             Expect.isOk addReservation "should be ok"
 
             let! bookDetail3Result = detailsService.GetBookDetailsAsync book.BookId
@@ -254,7 +254,7 @@ let tests =
             let timeSlot = TimeSlot.New (System.DateTime.Now) (System.DateTime.Now.AddDays(timeSlotDurationInDays))
             let loan = Loan.New book.BookId userId1 System.DateTime.Now timeSlot
 
-            let! addLoan = loanService.AddLoanAsync (loan, ShortLang.New "en", System.DateTime.Now)
+            let! addLoan = loanService.AddLoanAsync (loan, ShortLang.New "en")
             Expect.isOk addLoan "should be ok"
 
             let! bookDetailResult = detailsService.GetBookDetailsAsync book.BookId
@@ -280,7 +280,7 @@ let tests =
             let futureTimeSlot = TimeSlot.New (System.DateTime.Now.AddMonths(1)) (System.DateTime.Now.AddMonths(2))
             let reservation = Reservation.New book.BookId userId2 futureTimeSlot (System.DateTime.Now)
 
-            let! addReservation = reservationService.AddReservationAsync (reservation, System.DateTime.Now)
+            let! addReservation = reservationService.AddReservationAsync (reservation, ShortLang.New "en")
             Expect.isOk addReservation "should be ok"
 
             let! bookDetail3Result = detailsService.GetBookDetailsAsync book.BookId
@@ -311,7 +311,7 @@ let tests =
             let timeSlot = TimeSlot.New (System.DateTime.Now) (System.DateTime.Now.AddDays(timeSlotDurationInDays))
             let loan = Loan.New book.BookId userId1 System.DateTime.Now timeSlot
 
-            let! addLoan = loanService.AddLoanAsync (loan, ShortLang.New "en", System.DateTime.Now)
+            let! addLoan = loanService.AddLoanAsync (loan, ShortLang.New "en")
             Expect.isOk addLoan "should be ok"
 
             let! bookDetailResult = detailsService.GetBookDetailsAsync book.BookId
@@ -337,7 +337,7 @@ let tests =
             let futureTimeSlot = TimeSlot.New (System.DateTime.Now.AddMonths(1)) (System.DateTime.Now.AddMonths(2))
             let reservation = Reservation.New book.BookId userId2 futureTimeSlot (System.DateTime.Now)
 
-            let! addReservation = reservationService.AddReservationAsync (reservation, System.DateTime.Now)
+            let! addReservation = reservationService.AddReservationAsync (reservation, ShortLang.New "en")
             Expect.isOk addReservation "should be ok"
 
             let! bookDetail3Result = detailsService.GetBookDetailsAsync book.BookId
@@ -351,7 +351,7 @@ let tests =
             let secondFutureTimeSlot = TimeSlot.New (System.DateTime.Now.AddMonths(2)) (System.DateTime.Now.AddMonths(3))
             let secondReservation = Reservation.New book.BookId userId3 secondFutureTimeSlot (System.DateTime.Now)
 
-            let! addSecondReservation = reservationService.AddReservationAsync (secondReservation, System.DateTime.Now)
+            let! addSecondReservation = reservationService.AddReservationAsync (secondReservation, ShortLang.New "en")
             Expect.isOk addSecondReservation "should be ok"
 
             let! bookDetail4Result = detailsService.GetBookDetailsAsync book.BookId
@@ -382,7 +382,7 @@ let tests =
             let timeSlot = TimeSlot.New (System.DateTime.Now) (System.DateTime.Now.AddDays(timeSlotDurationInDays))
             let loan = Loan.New book.BookId userId1 System.DateTime.Now timeSlot
 
-            let! addLoan = loanService.AddLoanAsync (loan, ShortLang.New "en", System.DateTime.Now)
+            let! addLoan = loanService.AddLoanAsync (loan, ShortLang.New "en")
             Expect.isOk addLoan "should be ok"
 
             let! bookDetailResult = detailsService.GetBookDetailsAsync book.BookId
@@ -408,7 +408,7 @@ let tests =
             let futureTimeSlot = TimeSlot.New (System.DateTime.Now.AddMonths(1)) (System.DateTime.Now.AddMonths(2))
             let reservation = Reservation.New book.BookId userId2 futureTimeSlot (System.DateTime.Now)
 
-            let! addReservation = reservationService.AddReservationAsync (reservation, System.DateTime.Now)
+            let! addReservation = reservationService.AddReservationAsync (reservation, ShortLang.New "en")
             Expect.isOk addReservation "should be ok"
 
             let! bookDetail3Result = detailsService.GetBookDetailsAsync book.BookId
@@ -422,7 +422,7 @@ let tests =
             let secondFutureTimeSlot = TimeSlot.New (System.DateTime.Now.AddMonths(2)) (System.DateTime.Now.AddMonths(3))
             let secondReservation = Reservation.New book.BookId userId3 secondFutureTimeSlot (System.DateTime.Now)
 
-            let! addSecondReservation = reservationService.AddReservationAsync (secondReservation, System.DateTime.Now)
+            let! addSecondReservation = reservationService.AddReservationAsync (secondReservation, ShortLang.New "en")
             Expect.isOk addSecondReservation "should be ok"
 
             let! bookDetail4Result = detailsService.GetBookDetailsAsync book.BookId
@@ -450,7 +450,7 @@ let tests =
             let futureTimeSlot = TimeSlot.New (System.DateTime.Now.AddMonths(1)) (System.DateTime.Now.AddMonths(2))
             let reservation = Reservation.New book.BookId userId1 futureTimeSlot (System.DateTime.Now)
 
-            let! addReservation = reservationService.AddReservationAsync (reservation, System.DateTime.Now)
+            let! addReservation = reservationService.AddReservationAsync (reservation, ShortLang.New "en")
             Expect.isOk addReservation "should be ok"
 
             let! bookDetail3Result = detailsService.GetBookDetailsAsync book.BookId
@@ -464,7 +464,7 @@ let tests =
             let overlappingTimeSlot = TimeSlot.New (System.DateTime.Now.AddMonths(1)) (System.DateTime.Now.AddMonths(2))
             let overlappingReservation = Reservation.New book.BookId userId2 overlappingTimeSlot (System.DateTime.Now)
 
-            let! addOverlappingReservation = reservationService.AddReservationAsync (overlappingReservation, System.DateTime.Now)
+            let! addOverlappingReservation = reservationService.AddReservationAsync (overlappingReservation, ShortLang.New "en")
             Expect.isError addOverlappingReservation "should not be ok"
         }
             
@@ -509,7 +509,7 @@ let tests =
 
             let futureTimeSlot = TimeSlot.New (System.DateTime.Now.AddMonths(1)) (System.DateTime.Now.AddMonths(2))
             let reservation = Reservation.New book.BookId userId1 futureTimeSlot (System.DateTime.Now)
-            let! addReservation = reservationService.AddReservationAsync (reservation, System.DateTime.Now)
+            let! addReservation = reservationService.AddReservationAsync (reservation, ShortLang.New "en")
             Expect.isOk addReservation "should be ok"
 
             let! userResult = userService.GetUserAsync userId1
@@ -532,7 +532,7 @@ let tests =
 
             let futureTimeSlot = TimeSlot.New (System.DateTime.Now.AddMonths(1)) (System.DateTime.Now.AddMonths(2))
             let reservation = Reservation.New book.BookId userId1 futureTimeSlot (System.DateTime.Now)
-            let! addReservation = reservationService.AddReservationAsync (reservation, System.DateTime.Now)
+            let! addReservation = reservationService.AddReservationAsync (reservation, ShortLang.New "en")
             Expect.isOk addReservation "should be ok"
 
             let! userResult = userService.GetUserAsync userId1
@@ -540,7 +540,7 @@ let tests =
 
             Expect.isTrue (userResult.OkValue.Reservations |> List.length = 1) "should contain the reservation"
 
-            let! removeReservation = reservationService.RemoveReservationAsync (reservation.ReservationId, System.DateTime.Now)
+            let! removeReservation = reservationService.RemoveReservationAsync (reservation.ReservationId)
             Expect.isOk removeReservation "should be ok"
 
             let! user2Result = userService.GetUserAsync userId1
@@ -564,7 +564,7 @@ let tests =
 
             let futureTimeSlot = TimeSlot.New (System.DateTime.Now.AddMonths(1)) (System.DateTime.Now.AddMonths(2))
             let reservation = Reservation.New book.BookId userId1 futureTimeSlot (System.DateTime.Now)
-            let! addReservation = reservationService.AddReservationAsync (reservation, System.DateTime.Now)
+            let! addReservation = reservationService.AddReservationAsync (reservation, ShortLang.New "en")
             Expect.isOk addReservation "should be ok"
 
             let! reservationDetailsResult = detailsService.GetReservationDetailsAsync(reservation.ReservationId)
@@ -591,7 +591,7 @@ let tests =
 
             let futureTimeSlot = TimeSlot.New (System.DateTime.Now.AddMonths(1)) (System.DateTime.Now.AddMonths(2))
             let reservation = Reservation.New book.BookId userId1 futureTimeSlot (System.DateTime.Now)
-            let! addReservation = reservationService.AddReservationAsync (reservation, System.DateTime.Now)
+            let! addReservation = reservationService.AddReservationAsync (reservation, ShortLang.New "en")
             Expect.isOk addReservation "should be ok"
 
             let! reservationDetailsResult = detailsService.GetReservationDetailsAsync(reservation.ReservationId)
@@ -624,7 +624,7 @@ let tests =
 
             let futureTimeSlot = TimeSlot.New (System.DateTime.Now.AddMonths(1)) (System.DateTime.Now.AddMonths(2))
             let reservation = Reservation.New book.BookId userId1 futureTimeSlot (System.DateTime.Now)
-            let! addReservation = reservationService.AddReservationAsync (reservation, System.DateTime.Now)
+            let! addReservation = reservationService.AddReservationAsync (reservation, ShortLang.New "en")
             Expect.isOk addReservation "should be ok"
 
             let! reservationDetailsResult = detailsService.GetReservationDetailsAsync(reservation.ReservationId)
@@ -691,7 +691,7 @@ let tests =
 
             let futureTimeSlot = TimeSlot.New (System.DateTime.Now.AddMonths(1)) (System.DateTime.Now.AddMonths(2))
             let reservation = Reservation.New book.BookId userId1 futureTimeSlot (System.DateTime.Now)
-            let! addReservation = reservationService.AddReservationAsync (reservation, System.DateTime.Now)
+            let! addReservation = reservationService.AddReservationAsync (reservation, ShortLang.New "en")
             Expect.isOk addReservation "should be ok"
 
             let! reservationDetailsResult = detailsService.GetReservationDetailsAsync(reservation.ReservationId)
@@ -726,7 +726,7 @@ let tests =
 
             let futureTimeSlot = TimeSlot.New (System.DateTime.Now.AddMonths(1)) (System.DateTime.Now.AddMonths(2))
             let reservation = Reservation.New book.BookId userId1 futureTimeSlot (System.DateTime.Now)
-            let! addReservation = reservationService.AddReservationAsync (reservation, System.DateTime.Now)
+            let! addReservation = reservationService.AddReservationAsync (reservation, ShortLang.New "en")
             Expect.isOk addReservation "should be ok"
 
             let! reservationDetailsResult = detailsService.GetReservationDetailsAsync(reservation.ReservationId)
@@ -764,7 +764,7 @@ let tests =
 
             let futureTimeSlot = TimeSlot.New (System.DateTime.Now.AddMonths(1)) (System.DateTime.Now.AddMonths(2))
             let reservation = Reservation.New book.BookId userId1 futureTimeSlot (System.DateTime.Now)
-            let! addReservation = reservationService.AddReservationAsync (reservation, System.DateTime.Now)
+            let! addReservation = reservationService.AddReservationAsync (reservation, ShortLang.New "en")
             Expect.isOk addReservation "should be ok"
 
             let! reservationDetailsResult = detailsService.GetReservationDetailsAsync(reservation.ReservationId)
@@ -802,10 +802,10 @@ let tests =
 
             let futureTimeSlot = TimeSlot.New (System.DateTime.Now.AddMonths(1)) (System.DateTime.Now.AddMonths(2))
             let reservation = Reservation.New book.BookId userId1 futureTimeSlot (System.DateTime.Now)
-            let! addReservation = reservationService.AddReservationAsync (reservation, System.DateTime.Now)
+            let! addReservation = reservationService.AddReservationAsync (reservation, ShortLang.New "en")
             Expect.isOk addReservation "should be ok"
 
-            let! reservationDetailsResult = (reservationService :> IReservationService).GetReservationDetailsAsync reservation.ReservationId
+            let! (reservationDetailsResult: Result<ReservationDetails, string>) = (reservationService :> IReservationService).GetReservationDetailsAsync reservation.ReservationId
             Expect.isOk reservationDetailsResult "should be ok"
 
             Expect.isTrue (reservationDetailsResult.OkValue.Reservation.ReservationId = reservation.ReservationId) "should contain the reservation"
@@ -834,14 +834,14 @@ let tests =
             let! userId1 = registerUserTask "test1@example.com" "Password123!"
             let! userId2 = registerUserTask "test2@example.com" "Password123!"
             let loan = Loan.New book.BookId userId1 now (TimeSlot.New (System.DateTime.Now.AddMonths(1)) (System.DateTime.Now.AddMonths(2))) 
-            let! addLoan = loanService.AddLoanAsync(loan, ShortLang.New "en", now)
+            let! addLoan = loanService.AddLoanAsync(loan, ShortLang.New "en")
             Expect.isOk addLoan "should be ok"
 
             let reservation = Reservation.New book.BookId userId2 (TimeSlot.New (System.DateTime.Now.AddMonths(1)) (System.DateTime.Now.AddMonths(2))) (System.DateTime.Now)
-            let! addReservation = reservationService.AddReservationAsync(reservation, now)
+            let! addReservation = reservationService.AddReservationAsync(reservation, ShortLang.New "en")
             Expect.isOk addReservation "should be ok"
 
-            let! reservationDetailsResult = detailsService.GetReservationDetailsAsync(reservation.ReservationId)
+            let! (reservationDetailsResult: Result<ReservationDetails, string>) = detailsService.GetReservationDetailsAsync(reservation.ReservationId)
             Expect.isOk reservationDetailsResult "should be ok"
 
             Expect.isTrue (reservationDetailsResult.OkValue.Reservation.ReservationId = reservation.ReservationId) "should contain the reservation"
@@ -872,10 +872,10 @@ let tests =
 
             let futureTimeSlot = TimeSlot.New (System.DateTime.Now.AddMonths(1)) (System.DateTime.Now.AddMonths(2))
             let reservation = Reservation.New book.BookId userId1 futureTimeSlot (System.DateTime.Now)
-            let! addReservation = reservationService.AddReservationAsync (reservation, System.DateTime.Now)
+            let! addReservation = reservationService.AddReservationAsync (reservation, ShortLang.New "en")
             Expect.isOk addReservation "should be ok"
 
-            let! reservationDetailsResult = detailsService.GetReservationDetailsAsync(reservation.ReservationId)
+            let! (reservationDetailsResult: Result<ReservationDetails, string>) = detailsService.GetReservationDetailsAsync(reservation.ReservationId)
             Expect.isOk reservationDetailsResult "should be ok"
 
             Expect.isTrue (reservationDetailsResult.OkValue.Reservation.ReservationId = reservation.ReservationId) "should contain the reservation"
@@ -898,10 +898,9 @@ let tests =
             Expect.isOk loans "should be ok"
             Expect.equal loans.OkValue.Length 1 "should have 1 loan"
 
-            let! reservations = reservationService.GetAllReservationsAsync()
-            Expect.isOk reservations "should be ok"
-            Expect.equal reservations.OkValue.Length 1 "should have 1 reservation"
-            let reservation = reservations.OkValue |> List.find (fun r -> r.ReservationId = reservation.ReservationId)
+            let! (getReservationResult: Result<Reservation, string>) = reservationService.GetReservationAsync(reservation.ReservationId)
+            Expect.isOk getReservationResult "should be ok"
+            let reservation = getReservationResult.OkValue
             Expect.equal reservation.Status ReservationStatus.Loaned "should have status loaned"
 
             Expect.isTrue (loans.OkValue |> List.exists (fun l -> l.UserId = userId1)) "should contain the user"

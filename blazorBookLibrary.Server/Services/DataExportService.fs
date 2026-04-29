@@ -41,7 +41,8 @@ type DataExportService
             authorService: IAuthorService,
             detailsService: IDetailsService,
             googleBooksService: IGoogleBooksService,
-            authorsSearchService: IAuthorsSearchService  
+            authorsSearchService: IAuthorsSearchService,  
+            textEmbeddingService: ITextEmbeddingService
     ) =
 
     new (
@@ -50,7 +51,8 @@ type DataExportService
         authorService: IAuthorService,
         detailsService: IDetailsService, 
         googleBooksService: IGoogleBooksService,
-        authorsSearchService: IAuthorsSearchService
+        authorsSearchService: IAuthorsSearchService,
+        textEmbeddingService: ITextEmbeddingService
         ) =
         let connectionString = secretsReader.GetBookLibraryConnectionString ()
         let eventStore = PgStorage.PgEventStore connectionString
@@ -76,7 +78,8 @@ type DataExportService
             authorService,
             detailsService,
             googleBooksService,
-            authorsSearchService
+            authorsSearchService,
+            textEmbeddingService
         )
     
     interface IDataExportService with
