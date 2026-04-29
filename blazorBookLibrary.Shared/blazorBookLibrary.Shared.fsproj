@@ -64,8 +64,4 @@
     <ProjectReference Include="..\blazorBookLibrary.Data\blazorBookLibrary.Data.csproj" />
   </ItemGroup>
 
-  <!-- <ItemGroup>
-    <ProjectReference Include="..\..\realsharpino\Sharpino\Sharpino.Lib\Sharpino.Lib.fsproj" />
-  </ItemGroup> -->
-
 </Project>

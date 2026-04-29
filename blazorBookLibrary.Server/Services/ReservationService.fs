@@ -206,7 +206,6 @@ type ReservationService
 
         let key = DetailsCacheKey.OfType typeof<RefreshableReservationDetails> id.Value
         StateView.getRefreshableDetailsTaskResultAsync<RefreshableReservationDetails> (fun ct -> detailsBuilder ct) key ct
-            
 
     member this.RemoveReservationAsync (reservationId: ReservationId, dateTime: System.DateTime, ?ct:CancellationToken)= 
         taskResult
