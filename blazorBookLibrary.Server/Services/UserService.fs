@@ -188,7 +188,7 @@ type UserService
         taskResult {
             let ct = defaultArg ct CancellationToken.None
             let! res = this.UpdateAppUserPropertyAsync(userId, updateAction, ct)
-            let cmd = 
+            let! _ = 
                 runAggregateCommandMdAsync<User, UserEvent, string>
                     userId.Value
                     eventStore
@@ -196,7 +196,7 @@ type UserService
                     ""
                     command
                     (Some ct)
-
+            
             return res
         }
 
