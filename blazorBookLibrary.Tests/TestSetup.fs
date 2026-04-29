@@ -282,7 +282,8 @@ let getDataExportService () : IDataExportService =
         getDetailsService(),
         getGoogleBooksService(),
         getAuthorsSearchService(),
-        getTextEmbeddingService()
+        getTextEmbeddingService(),
+        getVectorDbService()
     ) :> IDataExportService
 
 let getMailResenderService () =

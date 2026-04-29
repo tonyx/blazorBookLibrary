@@ -42,7 +42,8 @@ type DataExportService
             detailsService: IDetailsService,
             googleBooksService: IGoogleBooksService,
             authorsSearchService: IAuthorsSearchService,  
-            textEmbeddingService: ITextEmbeddingService
+            textEmbeddingService: ITextEmbeddingService,
+            vectorDbService: IVectorDbService
     ) =
 
     new (
@@ -52,7 +53,8 @@ type DataExportService
         detailsService: IDetailsService, 
         googleBooksService: IGoogleBooksService,
         authorsSearchService: IAuthorsSearchService,
-        textEmbeddingService: ITextEmbeddingService
+        textEmbeddingService: ITextEmbeddingService,
+        vectorDbService: IVectorDbService
         ) =
         let connectionString = secretsReader.GetBookLibraryConnectionString ()
         let eventStore = PgStorage.PgEventStore connectionString
@@ -79,7 +81,8 @@ type DataExportService
             detailsService,
             googleBooksService,
             authorsSearchService,
-            textEmbeddingService
+            textEmbeddingService,
+            vectorDbService
         )
     
     interface IDataExportService with
@@ -113,7 +116,7 @@ type DataExportService
                     return csv
             }
 
-        member this.ImportFromIsbns (isbns: List<Isbn>, preventDuplicates: bool, generateUnknownAuthors: bool, progress: IProgress<ImportProgress>, ct: CancellationToken) =
+        member this.ImportFromIsbns (isbns: List<Isbn>, preventDuplicates: bool, generateUnknownAuthors: bool, generateEmbeddings: bool, progress: IProgress<ImportProgress>, ct: CancellationToken) =
             task {
                 let progressReporter = Option.ofObj progress
                 let mutable success = 0
@@ -249,7 +252,36 @@ type DataExportService
                                         Isbn = isbn
                                         Sealed = Sealed.New(DateTime.UtcNow)
                                     }
-                                let! _ = bookService.AddBookAsync(book, ct = ct)
+
+                                let! finalBook = 
+                                    taskResult {
+                                        if generateEmbeddings then
+                                            let textToEmbed = 
+                                                match metadata.Description with
+                                                | Some d when not (String.IsNullOrWhiteSpace d) -> 
+                                                    sprintf "%s %s" metadata.Title d
+                                                | _ -> metadata.Title
+                                            
+                                            let rec getEmbeddingWithRetry (text: string) (retries: int) =
+                                                task {
+                                                    let! res = textEmbeddingService.GetEmbeddingAsync(text)
+                                                    match res with
+                                                    | Error e when (e.Contains("429") || e.Contains("quota") || e.Contains("limit") || e.Contains("503")) && retries > 0 ->
+                                                        do! Task.Delay(2000)
+                                                        return! getEmbeddingWithRetry text (retries - 1)
+                                                    | _ -> return res
+                                                }
+                                            
+                                            let! (embeddingResult: EmbeddingData) = getEmbeddingWithRetry textToEmbed 3
+                                            let embeddingId = EmbeddingDataId.New()
+                                            let! _ = vectorDbService.StoreEmbeddingAsync(embeddingId, book.BookId, embeddingResult, ct)
+                                            return { book with OptionalEmbedding = Some embeddingId }
+                                        else
+                                            return book
+                                    }
+                                    |> Task.map (fun r -> match r with | Ok b -> b | _ -> book)
+
+                                let! _ = bookService.AddBookAsync(finalBook, ct = ct)
                                 return ()
                             | None -> 
                                 return! Error "Metadata not found"

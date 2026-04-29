@@ -21,7 +21,7 @@ let tests =
             let isbn = Isbn "9780593135211"
             
             // Import
-            let! result = dataExportService.ImportFromIsbns([isbn], true, true, null, CancellationToken.None)
+            let! result = dataExportService.ImportFromIsbns([isbn], true, true, false, null, CancellationToken.None)
             Expect.isOk result "Import should be successful"
             // Verify Book
             let! booksResult = bookService.SearchByIsbnAsync isbn
@@ -51,7 +51,7 @@ let tests =
             let isbn = Isbn "9791259767349"
             
             // Import
-            let! result = dataExportService.ImportFromIsbns([isbn], true, true, null, CancellationToken.None)
+            let! result = dataExportService.ImportFromIsbns([isbn], true, true, false, null, CancellationToken.None)
             Expect.isOk result "Import should be successful even if author picture lookup fails"
             
             // Verify Book
@@ -78,7 +78,7 @@ let tests =
             let dataExportService = (getDataExportService () :> IDataExportService)
             let isbn = Isbn "9999999999999"
             
-            let! result = dataExportService.ImportFromIsbns([isbn], true, true, null, CancellationToken.None)
+            let! result = dataExportService.ImportFromIsbns([isbn], true, true, false, null, CancellationToken.None)
             Expect.isOk result "Import should succeed (by skipping unresolvable ISBN)"
             
             let bookService = (getBookService () :> IBookService)
@@ -92,7 +92,7 @@ let tests =
             let dataExportService = (getDataExportService () :> IDataExportService)
             let isbn = Isbn "123"
             
-            let! result = dataExportService.ImportFromIsbns([isbn], true, true, null, CancellationToken.None)
+            let! result = dataExportService.ImportFromIsbns([isbn], true, true, false, null, CancellationToken.None)
             Expect.isOk result "Import should succeed (by skipping invalid ISBN)"
             
             let bookService = (getBookService () :> IBookService)
@@ -104,7 +104,7 @@ let tests =
         testCaseTask "Import from empty ISBN list" <| fun _ -> task {
             setUp ()
             let dataExportService = (getDataExportService () :> IDataExportService)
-            let! result = dataExportService.ImportFromIsbns([], true, true, null, CancellationToken.None)
+            let! result = dataExportService.ImportFromIsbns([], true, true, false, null, CancellationToken.None)
             Expect.isOk result "Import should succeed for empty list"
         }
 
@@ -125,7 +125,7 @@ let tests =
             let isbns = isbnsStr |> List.map Isbn
             
             // Import
-            let! result = dataExportService.ImportFromIsbns(isbns, true, true, null, CancellationToken.None)
+            let! result = dataExportService.ImportFromIsbns(isbns, true, true, false, null, CancellationToken.None)
             Expect.isOk result "Massive import should be successful"
             let (success, failure) = result |> Result.get
             Expect.equal success (List.length isbnsStr) "All ISBNs should have been successfully imported"
@@ -154,7 +154,7 @@ let tests =
             let validIsbn = Isbn "9780593135211" // Project Hail Mary
             let unresolvableIsbn = Isbn "9999999999999"
             
-            let! result = dataExportService.ImportFromIsbns([validIsbn; unresolvableIsbn], true, true, null, CancellationToken.None)
+            let! result = dataExportService.ImportFromIsbns([validIsbn; unresolvableIsbn], true, true, false, null, CancellationToken.None)
             Expect.isOk result "Import should be successful"
             let (success, failure) = result |> Result.get
             Expect.equal success 1 "Should have 1 successful import"
@@ -167,7 +167,7 @@ let tests =
             let validIsbn = Isbn "9780593135211" // Project Hail Mary
             let unresolvableIsbn = Isbn "9999999999999"
             
-            let! result = dataExportService.ImportFromIsbns([validIsbn; unresolvableIsbn], true, true, null, CancellationToken.None)
+            let! result = dataExportService.ImportFromIsbns([validIsbn; unresolvableIsbn], true, true, false, null, CancellationToken.None)
             Expect.isOk result "Import should be successful"
             
             let bookService = (getBookService () :> IBookService)
@@ -187,7 +187,7 @@ let tests =
                     member _.Report(p) = reportedProgress <- p :: reportedProgress
                 }
             
-            let! result = dataExportService.ImportFromIsbns(isbns, true, true, progress, CancellationToken.None)
+            let! result = dataExportService.ImportFromIsbns(isbns, true, true, false, progress, CancellationToken.None)
             Expect.isOk result "Import should be successful"
             
             Expect.equal (List.length reportedProgress) 2 "Should have reported progress twice"

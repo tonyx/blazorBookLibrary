@@ -17,4 +17,4 @@ type ImportProgress =
 
 type IDataExportService =
     abstract member ExportAllBooksAsync: exportFormat: ExportFormat * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<string, string>>
-    abstract member ImportFromIsbns: isdns: List<Isbn> * preventDuplicates:bool * generateUnknownAuthors: bool * [<Optional; DefaultParameterValue(null)>] progress: IProgress<ImportProgress> * [<Optional; DefaultParameterValue(null)>] ct: CancellationToken -> Task<Result<int*int, string>>
+    abstract member ImportFromIsbns: isdns: List<Isbn> * preventDuplicates:bool * generateUnknownAuthors: bool * [<Optional; DefaultParameterValue(false)>]generateEmbeddings: bool * [<Optional; DefaultParameterValue(null)>] progress: IProgress<ImportProgress> * [<Optional; DefaultParameterValue(null)>] ct: CancellationToken -> Task<Result<int*int, string>>

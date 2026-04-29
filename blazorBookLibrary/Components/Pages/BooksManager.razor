@@ -67,6 +67,10 @@
                         <input class="form-check-input" type="checkbox" id="generateAuthorsSwitch" @bind="importGenerateAuthors">
                         <label class="form-check-label text-muted" for="generateAuthorsSwitch">@L["GenerateUnknownAuthors"]</label>
                     </div>
+                    <div class="form-check form-switch mb-0" style="font-size: 0.7rem;">
+                        <input class="form-check-input" type="checkbox" id="generateEmbeddingsSwitch" @bind="importGenerateEmbeddings">
+                        <label class="form-check-label text-muted" for="generateEmbeddingsSwitch">@L["GenerateEmbeddings"]</label>
+                    </div>
                 </div>
 
                 <label for="importFileInput" class="btn btn-outline-sanctuary mb-0 @(isImporting || isExporting ? "disabled" : "")">
@@ -607,6 +611,7 @@
     private bool isImporting = false;
     private bool importAllowDuplicates = false;
     private bool importGenerateAuthors = true;
+    private bool importGenerateEmbeddings = false;
 
     private void ToggleScanner()
     {
@@ -1114,7 +1119,7 @@
                 StateHasChanged();
             });
 
-            var result = await DataExportService.ImportFromIsbns(isbns, !importAllowDuplicates, importGenerateAuthors, progress, CancellationToken.None);
+            var result = await DataExportService.ImportFromIsbns(isbns, !importAllowDuplicates, importGenerateAuthors, importGenerateEmbeddings, progress, CancellationToken.None);
             
             if (result.IsOk)
             {
