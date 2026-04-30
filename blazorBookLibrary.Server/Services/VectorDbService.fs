@@ -177,6 +177,41 @@ type VectorDbService(connection: string, ?cancellationTokenSourceExpiration: int
             | ex -> return Error ex.Message
         }
 
+    member this.SearchSimilarEmbeddingsWithScoreAsync (embeddingData: EmbeddingData, limit: int, ?threshold: float, ?ct: CancellationToken) : Task<Result<seq<EmbeddingData * BookId * float>, string>> =
+        let threshold = defaultArg threshold -1.0 // default to no threshold (score is in [ -1, 1 ] for cosine similarity, actually [0, 2] distance so [-1, 1] similarity)
+        let sql = "SELECT (vector_data::real[])::float8[] as vector_data, model_name, book_id, 
+                   (1 - (vector_data <=> @vector_data::real[]::vector)) as score
+                   FROM item_embeddings_projections 
+                   WHERE (1 - (vector_data <=> @vector_data::real[]::vector)) >= @threshold
+                   ORDER BY vector_data <=> @vector_data::real[]::vector
+                   LIMIT @limit"
+        task {
+            try
+                let ct = defaultArg ct CancellationToken.None
+                use cts = CancellationTokenSource.CreateLinkedTokenSource (ct)
+                cts.CancelAfter(cancellationTokenSourceExpiration)
+
+                let! result = 
+                    connection
+                    |> Sql.connect
+                    |> Sql.query sql
+                    |> Sql.parameters [ 
+                        "vector_data", Sql.doubleArray (embeddingData.Vector |> Array.map float)
+                        "limit", Sql.int limit
+                        "threshold", Sql.double threshold
+                    ]
+                    |> Sql.executeAsync (fun read ->
+                        {
+                            Model = read.string "model_name"
+                            Vector = read.doubleArray "vector_data" |> Array.map float32
+                        }, BookId (read.uuid "book_id"), read.double "score"
+                    )
+                
+                return Ok (result |> Seq.ofList)
+            with
+            | ex -> return Error ex.Message
+        }
+
     member this.SearchSimilarEmbeddingsFilteringByBookIdsAsync (embeddingData: EmbeddingData, bookIds: List<BookId>, limit: int, ?ct: CancellationToken) : Task<Result<seq<EmbeddingData * BookId>, string>> =
         let sql = "SELECT (vector_data::real[])::float8[] as vector_data, model_name, book_id 
                    FROM item_embeddings_projections 
@@ -210,6 +245,45 @@ type VectorDbService(connection: string, ?cancellationTokenSourceExpiration: int
             | ex -> return Error ex.Message
         }
 
+    member this.SearchSimilarEmbeddingsWithScoreFilteringByBookIdsAsync (embeddingData: EmbeddingData, bookIds: List<BookId>, limit: int, ?threshold: float, ?ct: CancellationToken) : Task<Result<seq<EmbeddingData * BookId * float>, string>> =
+        let threshold = defaultArg threshold -1.0
+        let sql = "SELECT (vector_data::real[])::float8[] as vector_data, model_name, book_id, 
+                   (1 - (vector_data <=> @vector_data::real[]::vector)) as score
+                   FROM item_embeddings_projections 
+                   WHERE book_id = ANY(@book_ids)
+                   AND (1 - (vector_data <=> @vector_data::real[]::vector)) >= @threshold
+                   ORDER BY vector_data <=> @vector_data::real[]::vector
+                   LIMIT @limit"
+        task {
+            try
+                let ct = defaultArg ct CancellationToken.None
+                use cts = CancellationTokenSource.CreateLinkedTokenSource (ct)
+                cts.CancelAfter(cancellationTokenSourceExpiration)
+
+                let! result = 
+                    connection
+                    |> Sql.connect
+                    |> Sql.query sql
+                    |> Sql.parameters [ 
+                        "book_ids", Sql.uuidArray (bookIds |> List.map (fun b -> b.Value) |> Array.ofList)
+                        "vector_data", Sql.doubleArray (embeddingData.Vector |> Array.map float)
+                        "limit", Sql.int limit
+                        "threshold", Sql.double threshold
+                    ]
+                    |> Sql.executeAsync (fun read ->
+                        {
+                            Model = read.string "model_name"
+                            Vector = read.doubleArray "vector_data" |> Array.map float32
+                        }, BookId (read.uuid "book_id"), read.double "score"
+                    )
+                
+                return Ok (result |> Seq.ofList)
+            with
+            | ex -> return Error ex.Message
+        }
+
+
+
     interface IVectorDbService with
         member this.StoreEmbeddingAsync (embeddingDataId: EmbeddingDataId, bookId: BookId, embeddingData: EmbeddingData, ?ct: CancellationToken) : Task<Result<unit, string>> =
             let ct = defaultArg ct CancellationToken.None
@@ -231,8 +305,16 @@ type VectorDbService(connection: string, ?cancellationTokenSourceExpiration: int
             let ct = defaultArg ct CancellationToken.None
             this.SearchSimilarEmbeddingsAsync (embeddingData, limit, ct)
 
+        member this.SearchSimilarEmbeddingsWithScoreAsync (embeddingData: EmbeddingData, limit: int, ?threshold: float, ?ct: CancellationToken) : Task<Result<seq<EmbeddingData * BookId * float>, string>> =
+            let ct = defaultArg ct CancellationToken.None
+            this.SearchSimilarEmbeddingsWithScoreAsync (embeddingData, limit, ?threshold = threshold, ct = ct)
+
         member this.SearchSimilarEmbeddingsFilteringByBookIdsAsync (embeddingData: EmbeddingData, bookIds: List<BookId>, limit: int, ?ct: CancellationToken) : Task<Result<seq<EmbeddingData * BookId>, string>> =
             let ct = defaultArg ct CancellationToken.None
             this.SearchSimilarEmbeddingsFilteringByBookIdsAsync (embeddingData, bookIds, limit, ct)
+
+        member this.SearchSimilarEmbeddingsWithScoreFilteringByBookIdsAsync (embeddingData: EmbeddingData, bookIds: List<BookId>, limit: int, ?threshold: float, ?ct: CancellationToken) : Task<Result<seq<EmbeddingData * BookId * float>, string>> =
+            let ct = defaultArg ct CancellationToken.None
+            this.SearchSimilarEmbeddingsWithScoreFilteringByBookIdsAsync (embeddingData, bookIds, limit, ?threshold = threshold, ct = ct)
 
 

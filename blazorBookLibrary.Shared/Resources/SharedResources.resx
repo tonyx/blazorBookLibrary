@@ -311,4 +311,15 @@
   <data name="ConfirmRemoveEmbedding" xml:space="preserve"><value>Are you sure you want to remove the semantic embedding for this book?</value></data>
   <data name="RegistrationServiceProblem" xml:space="preserve"><value>The registration service is experiencing temporary issues.</value></data>
   <data name="ContinueBrowsingWithoutLogin" xml:space="preserve"><value>You can continue browsing the library without logging in.</value></data>
+  <data name="ExcellentMatch" xml:space="preserve"><value>Excellent Match</value></data>
+  <data name="GoodMatch" xml:space="preserve"><value>Good Match</value></data>
+  <data name="PotentialMatch" xml:space="preserve"><value>Potential Match</value></data>
+  <data name="ExplainMatch" xml:space="preserve"><value>Explain match</value></data>
+  <data name="ExplanationFailed" xml:space="preserve"><value>Explanation failed</value></data>
+  <data name="GenerateEmbeddingAutomatically" xml:space="preserve"><value>Generate embedding automatically</value></data>
+  <data name="EmbeddingGeneratedSuccessfully" xml:space="preserve"><value>Embedding generated successfully.</value></data>
+  <data name="EmbeddingLinkFailed" xml:space="preserve"><value>Embedding link failed</value></data>
+  <data name="EmbeddingStorageFailed" xml:space="preserve"><value>Embedding storage failed</value></data>
+  <data name="EmbeddingGenerationFailed" xml:space="preserve"><value>Embedding generation failed</value></data>
+  <data name="EmbeddingError" xml:space="preserve"><value>Embedding error</value></data>
 </root>

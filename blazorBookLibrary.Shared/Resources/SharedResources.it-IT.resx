@@ -769,4 +769,9 @@
   <data name="ConfirmRemoveEmbedding" xml:space="preserve"><value>Sei sicuro di voler rimuovere l'embedding semantico per questo libro?</value></data>
   <data name="RegistrationServiceProblem" xml:space="preserve"><value>Il servizio di registrazione sta riscontrando problemi temporanei.</value></data>
   <data name="ContinueBrowsingWithoutLogin" xml:space="preserve"><value>Puoi continuare a sfogliare la biblioteca senza effettuare l'accesso.</value></data>
+  <data name="ExcellentMatch" xml:space="preserve"><value>Match Eccellente</value></data>
+  <data name="GoodMatch" xml:space="preserve"><value>Buon Match</value></data>
+  <data name="PotentialMatch" xml:space="preserve"><value>Match Potenziale</value></data>
+  <data name="ExplainMatch" xml:space="preserve"><value>Spiega il match</value></data>
+  <data name="ExplanationFailed" xml:space="preserve"><value>Spiegazione fallita</value></data>
 </root>

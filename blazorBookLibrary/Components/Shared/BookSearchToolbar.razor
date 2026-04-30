@@ -6,6 +6,7 @@
 @using Microsoft.FSharp.Core
 @using Microsoft.FSharp.Collections
 @using static BookLibrary.Shared.SearchCriteria
+@using BookLibrary.Shared
 @using System.Threading
 @using Microsoft.Extensions.Localization
 @inject IBookService BookService
@@ -14,6 +15,7 @@
 @inject IVectorDbService VectorDbService
 @inject IJSRuntime JSRuntime
 @inject IStringLocalizer<SharedResources> L
+@inject ILogger<BookSearchToolbar> Logger
 
 @if (_isLoading || isLoadingAuthors)
 {
@@ -28,8 +30,16 @@
             <div class="position-relative mb-4 mb-md-5">
                 <InputText class="search-entryway" @bind-Value="searchBookTitle" placeholder="@L["SearchByTitlePlaceholder"]" />
                 <button type="submit" class="btn-sanctuary-primary position-absolute d-flex align-items-center justify-content-center" 
-                        style="top: 50%; right: 8px; transform: translateY(-50%); padding: 0.6rem 1rem;">
-                    <i class="bi bi-search @(string.IsNullOrEmpty(L["Search"]) ? "" : "me-md-2")"></i> 
+                        style="top: 50%; right: 8px; transform: translateY(-50%); padding: 0.6rem 1rem;"
+                        disabled="@_isLoading">
+                    @if (_isLoading)
+                    {
+                        <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                    }
+                    else
+                    {
+                        <i class="bi bi-search @(string.IsNullOrEmpty(L["Search"]) ? "" : "me-md-2")"></i> 
+                    }
                     <span class="d-none d-md-inline">@L["Search"]</span>
                 </button>
             </div>
@@ -178,7 +188,7 @@
 </div>
 
 @code {
-    [Parameter] public EventCallback<List<Book>> OnSearchResultsFound { get; set; }
+    [Parameter] public EventCallback<List<BookSearchResult>> OnSearchResultsFound { get; set; }
     [Parameter] public EventCallback<string> OnError { get; set; }
     [Parameter] public EventCallback<bool> OnSearchStarted { get; set; }
 
@@ -200,6 +210,7 @@
     private string selectedCategoryForFilter = "";
     private List<Category> searchCategoriesCriteria = new();
 
+    public string CurrentSemanticQuery => semanticSearchText;
     private string semanticSearchText = "";
     private int semanticSearchLimit = 10;
 
@@ -331,7 +342,7 @@
                     return;
                 }
 
-                IEnumerable<BookId> targetIds;
+                IEnumerable<(BookId, double)> targetResults;
                 if (AreOtherFiltersActive)
                 {
                     var filterResult = await ExecuteStandardSearch();
@@ -344,11 +355,11 @@
                     
                     if (!filteredIds.Any())
                     {
-                        await OnSearchResultsFound.InvokeAsync(new List<Book>());
+                        await OnSearchResultsFound.InvokeAsync(new List<BookSearchResult>());
                         return;
                     }
 
-                    var vectorResult = await VectorDbService.SearchSimilarEmbeddingsFilteringByBookIdsAsync(
+                    var vectorResult = await VectorDbService.SearchSimilarEmbeddingsWithScoreFilteringByBookIdsAsync(
                         embeddingResult.ResultValue, 
                         ListModule.OfSeq(filteredIds), 
                         semanticSearchLimit);
@@ -358,11 +369,11 @@
                         await OnError.InvokeAsync($"{L["VectorSearchFailed"]}: {vectorResult.ErrorValue}");
                         return;
                     }
-                    targetIds = vectorResult.ResultValue.Select(r => r.Item2);
+                    targetResults = vectorResult.ResultValue.Select(r => (r.Item2, r.Item3));
                 }
                 else
                 {
-                    var vectorResult = await VectorDbService.SearchSimilarEmbeddingsAsync(
+                    var vectorResult = await VectorDbService.SearchSimilarEmbeddingsWithScoreAsync(
                         embeddingResult.ResultValue, 
                         semanticSearchLimit);
                     
@@ -371,23 +382,33 @@
                         await OnError.InvokeAsync($"{L["VectorSearchFailed"]}: {vectorResult.ErrorValue}");
                         return;
                     }
-                    targetIds = vectorResult.ResultValue.Select(r => r.Item2);
+                    targetResults = vectorResult.ResultValue.Select(r => (r.Item2, r.Item3));
                 }
 
-                var bookIdList = targetIds.ToList();
+                var targetResultsList = targetResults.ToList();
+                var bookIdList = targetResultsList.Select(r => r.Item1).ToList();
                 if (!bookIdList.Any())
                 {
-                    await OnSearchResultsFound.InvokeAsync(new List<Book>());
+                    await OnSearchResultsFound.InvokeAsync(new List<BookSearchResult>());
                     return;
                 }
 
                 var booksResult = await BookService.GetBooksAsync(ListModule.OfSeq(bookIdList));
                 if (booksResult.IsOk)
                 {
-                    var sortedBooks = booksResult.ResultValue
-                        .OrderBy(b => bookIdList.IndexOf(b.BookId))
-                        .ToList();
-                    await OnSearchResultsFound.InvokeAsync(sortedBooks);
+                    var booksDict = booksResult.ResultValue.ToDictionary(b => b.BookId, b => b);
+                    var sortedResults = new List<BookSearchResult>();
+                    
+                    for (int i = 0; i < targetResultsList.Count; i++)
+                    {
+                        var r = targetResultsList[i];
+                        if (booksDict.ContainsKey(r.Item1))
+                        {
+                            var book = booksDict[r.Item1];
+                            sortedResults.Add(new BookSearchResult(book, FSharpOption<double>.Some(r.Item2), FSharpOption<string>.None));
+                        }
+                    }
+                    await OnSearchResultsFound.InvokeAsync(sortedResults);
                 }
                 else
                 {
@@ -399,7 +420,10 @@
                 var result = await ExecuteStandardSearch();
                 if (result.IsOk)
                 {
-                    await OnSearchResultsFound.InvokeAsync(result.ResultValue.ToList());
+                    var results = result.ResultValue
+                        .Select(b => new BookSearchResult(b, FSharpOption<double>.None, FSharpOption<string>.None))
+                        .ToList();
+                    await OnSearchResultsFound.InvokeAsync(results);
                 }
                 else
                 {

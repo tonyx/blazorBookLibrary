@@ -11,3 +11,4 @@ open blazorBookLibrary.Data
 
 type ITextEmbeddingService = 
     abstract member GetEmbeddingAsync: string -> Task<Result<EmbeddingData,string>>
+    abstract member GetMatchExplanationAsync: string -> string -> Task<Result<string,string>>

@@ -17,6 +17,7 @@
     <Compile Include="Domain/Loan.fs" />
     <Compile Include="Domain/IsbnRegistry.fs" />
     <Compile Include="Domain/Review.fs" />
+    <Compile Include="SearchModels.fs" />
     <Compile Include="Details/Details.fs" />
     <Compile Include="Services/IMailBodyRetriever.fs" />
     <Compile Include="Services/IAuthorService.fs" />

@@ -4,17 +4,18 @@
 @using Microsoft.AspNetCore.Components.QuickGrid
 @using BookLibrary.Shared.Services
 @using Microsoft.Extensions.Configuration
+@using BookLibrary.Shared
 @using blazorBookLibrary.Security
 @using BookLibrary.Domain
 @using static BookLibrary.Shared.Commons
 @using Microsoft.FSharp.Core
 @using Microsoft.FSharp.Collections
-@using BookLibrary.Shared.Services
 @using static  BookLibrary.Shared.SearchCriteria
 @using System.Threading
 @using static BookLibrary.Shared.Details
 @inject BotScoreService BotScoreService
 @inject IBookService BookService
+@inject ITextEmbeddingService TextEmbeddingService
 @inject IAuthorService AuthorService
 @inject IConfiguration Configuration
 @inject ILogger<BookSearch> Logger
@@ -34,7 +35,7 @@
 
     @* Search Toolbar *@
     <div class="card-sanctuary mb-5 p-4 border-0 shadow-none bg-surface-low rounded-pill-sm">
-        <BookSearchToolbar OnSearchResultsFound="HandleSearchResultsFound" OnError="ShowSearchError" OnSearchStarted="HandleSearchStarted" />
+        <BookSearchToolbar @ref="searchToolbar" OnSearchResultsFound="HandleSearchResultsFound" OnError="ShowSearchError" OnSearchStarted="HandleSearchStarted" />
     </div>
 
     @if (searchBooksPerformed)
@@ -57,12 +58,12 @@
                         @if (showImagePreview)
                         {
                             <TemplateColumn Title="@L["VisualRef"]" Class="col-preview ps-5">
-                                <a href="/book-view/@context.Id" class="d-inline-block text-decoration-none transition-hover shadow-sm rounded overflow-hidden" 
-                                   title="@L["BookDetails"]: @context.Title.Value">
+                                <a href="/book-view/@context.Book.Id" class="d-inline-block text-decoration-none transition-hover shadow-sm rounded overflow-hidden" 
+                                   title="@L["BookDetails"]: @context.Book.Title.Value">
                                     <div class="bg-surface-low rounded p-1" style="width: 48px; height: 68px; display: flex; align-items: center; justify-content: center;">
-                                        @if (context.ImageUrl != null && FSharpOption<Uri>.get_IsSome(context.ImageUrl))
+                                        @if (context.Book.ImageUrl != null && FSharpOption<Uri>.get_IsSome(context.Book.ImageUrl))
                                         {
-                                            <img src="@context.ImageUrl.Value.ToString()" style="max-width: 100%; max-height: 100%; object-fit: contain;" alt="@context.Title.Value" />
+                                            <img src="@context.Book.ImageUrl.Value.ToString()" style="max-width: 100%; max-height: 100%; object-fit: contain;" alt="@context.Book.Title.Value" />
                                         }
                                         else
                                         {
@@ -84,33 +85,68 @@
                                     </div>
                                 </div>
                             </ColumnOptions>
-                            <ChildContent>
-                                <a href="/book-view/@context.Id" class="text-decoration-none text-reset transition-hover py-2 d-block">
-                                    @context.Title.Value
+                             <ChildContent>
+                                <a href="/book-view/@context.Book.Id" class="text-decoration-none text-reset transition-hover py-2 d-block">
+                                    <div class="fw-bold mb-1">@context.Book.Title.Value</div>
+                                    @if (FSharpOption<string>.get_IsSome(context.Explanation))
+                                    {
+                                        <div class="small text-primary italic mt-1 fw-normal animate-fade-in" style="font-size: 0.75rem;">
+                                            <i class="bi bi-stars me-1"></i> @context.Explanation.Value
+                                        </div>
+                                    }
+                                    else if (loadingExplanations.Contains(context.Book.BookId))
+                                    {
+                                        <div class="spinner-border spinner-border-sm text-primary mt-1" role="status" style="width: 10px; height: 10px;">
+                                            <span class="visually-hidden">@L["Loading"]...</span>
+                                        </div>
+                                    }
+                                    else if (enableAIExplanations && FSharpOption<double>.get_IsSome(context.Score))
+                                    {
+                                        <button class="btn btn-link btn-sm p-0 text-decoration-none mt-1 opacity-50 hover-opacity-100" 
+                                                @onclick:stopPropagation="true" @onclick="() => FetchExplanation(context)" title="@L["ExplainMatch"]">
+                                            <i class="bi bi-question-circle text-primary" style="font-size: 0.7rem;"></i>
+                                        </button>
+                                    }
                                 </a>
-                            </ChildContent>
+                             </ChildContent>
                         </TemplateColumn>
 
-                        <PropertyColumn Property="@(b => b.Year.Value)" Title="@L["Year"]" Sortable="true" Class="col-year text-muted small px-3" />
+                        @if (foundBooks.Any(b => FSharpOption<double>.get_IsSome(b.Score)))
+                        {
+                            <TemplateColumn Title="@L["Match"]" SortBy="@sortScore" Class="col-score text-center">
+                                @{
+                                    var isTop = topBookId != null && context.Book.BookId.Equals(topBookId);
+                                    var color = isTop ? topMatchColor : "bg-secondary opacity-50";
+                                }
+                                <div class="d-flex justify-content-center align-items-center h-100">
+                                    <span class="d-inline-block rounded-circle @color shadow-sm" 
+                                          style="width: 12px; height: 12px;" 
+                                          title="@(isTop && color == "bg-success" ? L["ExcellentMatch"] : isTop && color == "bg-warning" ? L["GoodMatch"] : L["PotentialMatch"])">
+                                    </span>
+                                </div>
+                            </TemplateColumn>
+                        }
+
+                        <PropertyColumn Property="@(b => b.Book.Year.Value)" Title="@L["Year"]" Sortable="true" Class="col-year text-muted small px-3" />
                         
                         <TemplateColumn Title="@L["Taxonomy"]" sortBy="@sortTaxonomy" Class="col-category small">
-                            <span class="badge-sanctuary badge-neutral">@context.MainCategory.Value()</span>
+                            <span class="badge-sanctuary badge-neutral">@context.Book.MainCategory.Value()</span>
                         </TemplateColumn>
 
                         <TemplateColumn Title="@L["ArchivalStatus"]" SortBy=@sortAvailability Align="Align.End" Class="col-available pe-5">
-                            @if (context.AvailabilityStatus == BookLibrary.Shared.Commons.AvailabilityStatus.Available)
+                            @if (context.Book.AvailabilityStatus == BookLibrary.Shared.Commons.AvailabilityStatus.Available)
                             {
                                 <span class="text-success small fw-bold"><i class="bi bi-check-circle-fill me-2" style="font-size: 0.5rem;"></i>@L["Available"]</span>
                             }
-                            else if (context.AvailabilityStatus == BookLibrary.Shared.Commons.AvailabilityStatus.Reserved)
+                            else if (context.Book.AvailabilityStatus == BookLibrary.Shared.Commons.AvailabilityStatus.Reserved)
                             {
                                 <span class="text-warning small fw-bold"><i class="bi bi-circle-fill me-2" style="font-size: 0.5rem;"></i>@L["Reserved"]</span>
                             }
-                            else if (context.AvailabilityStatus == BookLibrary.Shared.Commons.AvailabilityStatus.NotAvailable)
+                            else if (context.Book.AvailabilityStatus == BookLibrary.Shared.Commons.AvailabilityStatus.NotAvailable)
                             {
                                 <span class="text-danger small fw-bold"><i class="bi bi-circle-fill me-2" style="font-size: 0.5rem;"></i>@L["NotAvailable"]</span>
                             }
-                            else if (context.AvailabilityStatus == BookLibrary.Shared.Commons.AvailabilityStatus.Consultable)
+                            else if (context.Book.AvailabilityStatus == BookLibrary.Shared.Commons.AvailabilityStatus.Consultable)
                             {
                                 <span class="text-info small fw-bold"><i class="bi bi-circle-fill me-2" style="font-size: 0.5rem;"></i>@L["Consultable"]</span>
                             }
@@ -141,27 +177,35 @@
 
 @code {
     private bool _isLoading = false;
-    private List<Book> foundBooks = new();
+    private List<BookSearchResult> foundBooks = new();
     private string titleRefinementFilter = "";
-    private IQueryable<Book> FilteredBooks => 
+    private IQueryable<BookSearchResult> FilteredBooks => 
         foundBooks.AsQueryable()
             .Where(b => string.IsNullOrEmpty(titleRefinementFilter) || 
-                        b.Title.Value.Contains(titleRefinementFilter, StringComparison.OrdinalIgnoreCase));
+                        b.Book.Title.Value.Contains(titleRefinementFilter, StringComparison.OrdinalIgnoreCase));
 
     private bool showImagePreview = true;
     private bool searchBooksPerformed = false;
     private PaginationState bookPagination = new() { ItemsPerPage = 12 };
-    private GridSort<Book> sortTitle = GridSort<Book>.ByAscending(b => b.Title.Value);
-    private GridSort<Book> sortAvailability = GridSort<Book>.ByAscending(b => b.ImmediatelyAvailable);    
-    private GridSort<Book> sortTaxonomy = GridSort<Book>.ByAscending(b => b.MainCategory.Value());
+    private GridSort<BookSearchResult> sortTitle = GridSort<BookSearchResult>.ByAscending(b => b.Book.Title.Value);
+    private GridSort<BookSearchResult> sortAvailability = GridSort<BookSearchResult>.ByAscending(b => b.Book.ImmediatelyAvailable);    
+    private GridSort<BookSearchResult> sortTaxonomy = GridSort<BookSearchResult>.ByAscending(b => b.Book.MainCategory.Value());
+    private GridSort<BookSearchResult> sortScore = GridSort<BookSearchResult>.ByDescending(b => FSharpOption<double>.get_IsSome(b.Score) ? b.Score.Value : 0f);
+    private bool enableAIExplanations = false;
 
     private string statusMessage = "";
+    private string topMatchColor = "bg-secondary";
+    private BookId? topBookId;
+    private BookSearchToolbar searchToolbar;
+    private HashSet<BookId> loadingExplanations = new();
+    private static readonly SemaphoreSlim explanationSemaphore = new(1, 1);
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         var siteKey = Configuration["Authentication:Recaptcha:SiteKey"];
         if (firstRender)
         {
+            enableAIExplanations = Configuration.GetValue<bool>("BooksLibrary:EnableAIExtendedExplanations");
             try 
             {
                 var token = await JSRuntime.InvokeAsync<string>("generateRecaptchaToken", siteKey, "book_browser");
@@ -187,9 +231,29 @@
         statusMessage = "";
     }
 
-    private void HandleSearchResultsFound(List<Book> books)
+    private void HandleSearchResultsFound(List<BookSearchResult> results)
     {
-        foundBooks = books;
+        foundBooks = results;
+        topBookId = null;
+        topMatchColor = "bg-secondary";
+
+        if (results.Count > 0 && FSharpOption<double>.get_IsSome(results[0].Score))
+        {
+            var first = results[0];
+            var firstScore = first.Score.Value;
+            var secondScore = (results.Count > 1 && FSharpOption<double>.get_IsSome(results[1].Score)) ? results[1].Score.Value : 0.0;
+            
+            topBookId = first.Book.BookId;
+            
+            if (firstScore > 0.65 && (firstScore - secondScore) > 0.07)
+            {
+                topMatchColor = "bg-success";
+            }
+            else if (firstScore > 0.60 && (firstScore - secondScore) > 0.04)
+            {
+                topMatchColor = "bg-warning";
+            }
+        }
     }
 
     private async Task ShowSearchError(string error)
@@ -201,5 +265,49 @@
     {
         statusMessage = message;
         await JSRuntime.InvokeVoidAsync("showToast", message, type);
+    }
+
+    private async Task FetchExplanation(BookSearchResult res)
+    {
+        if (FSharpOption<string>.get_IsSome(res.Explanation) || loadingExplanations.Contains(res.Book.BookId)) return;
+        
+        var query = searchToolbar.CurrentSemanticQuery;
+        if (string.IsNullOrWhiteSpace(query)) return;
+
+        await explanationSemaphore.WaitAsync();
+        try 
+        {
+            if (FSharpOption<string>.get_IsSome(res.Explanation)) return;
+
+            loadingExplanations.Add(res.Book.BookId);
+            StateHasChanged();
+            
+            var desc = FSharpOption<string>.get_IsSome(res.Book.Description) ? res.Book.Description.Value : "";
+            var bookText = $"{res.Book.Title.Value}. {desc}";
+            var explanationResult = await TextEmbeddingService.GetMatchExplanationAsync(query, bookText);
+            if (explanationResult.IsOk)
+            {
+                var newRes = new BookSearchResult(res.Book, res.Score, FSharpOption<string>.Some(explanationResult.ResultValue));
+                var index = foundBooks.IndexOf(res);
+                if (index != -1)
+                {
+                    foundBooks[index] = newRes;
+                }
+            }
+            else 
+            {
+                await ShowStatus($"{L["ExplanationFailed"]}: {explanationResult.ErrorValue}", "warning");
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error fetching match explanation");
+        }
+        finally 
+        {
+            loadingExplanations.Remove(res.Book.BookId);
+            explanationSemaphore.Release();
+            StateHasChanged();
+        }
     }
 }

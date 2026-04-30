@@ -862,4 +862,9 @@
   <data name="VectorDbRemovalFailed" xml:space="preserve"><value>Embedding removed from book but failed to remove from vector database. Restoring book reference.</value></data>
   <data name="UpdateEmbeddingAdvice" xml:space="preserve"><value>You have updated the description. It is recommended to update the embedding as well for effective semantic alignment.</value></data>
   <data name="ConfirmRemoveEmbedding" xml:space="preserve"><value>Are you sure you want to remove the semantic embedding for this book?</value></data>
+  <data name="ExcellentMatch" xml:space="preserve"><value>Excellent Match</value></data>
+  <data name="GoodMatch" xml:space="preserve"><value>Good Match</value></data>
+  <data name="PotentialMatch" xml:space="preserve"><value>Potential Match</value></data>
+  <data name="ExplainMatch" xml:space="preserve"><value>Explain match</value></data>
+  <data name="ExplanationFailed" xml:space="preserve"><value>Explanation failed</value></data>
 </root>

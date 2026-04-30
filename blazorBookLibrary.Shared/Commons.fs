@@ -283,8 +283,10 @@ type Isbn =
                 else
                     false
 
+        static member StripExtraChars(isbn: string) = 
+            isbn.Replace("-", "").Replace(" ", "")
         static member New (isbn: string) =
-            if Isbn.IsValid(isbn) then Ok (Isbn isbn)
+            if Isbn.IsValid(isbn) then Ok (Isbn (isbn.Replace("-", "").Replace(" ", "")))
             else Error "Invalid ISBN"
         static member NewInvalid (isbn: string) =
             InvalidIsbn isbn
