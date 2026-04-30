@@ -372,6 +372,7 @@ let tests =
 
             let newContent = "this was a very good book"
             let! updateReview = reviewService.EditReviewAsync (review.ReviewId, newContent)
+            Async.Sleep 100 |> Async.RunSynchronously
 
             Expect.isOk updateReview "should be ok"
 
