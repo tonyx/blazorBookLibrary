@@ -120,7 +120,7 @@ module GoogleBooksTests =
                     failwith e
             }
 
-            ftestCaseTask "can identify book from cover image (Gemini)" <| fun _ -> task {
+            ptestCaseTask "can identify book from cover image (Gemini)" <| fun _ -> task {
                 let embeddingService = TestSetup.getTextEmbeddingService()
                 let imgPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "testImgData", "sampleCover.jpg")
                 
@@ -129,7 +129,7 @@ module GoogleBooksTests =
                     let fallbackPath = Path.Combine("..", "..", "..", "testImgData", "sampleCover.jpg")
                     if File.Exists fallbackPath then
                         let base64Image = System.Convert.ToBase64String(File.ReadAllBytes fallbackPath)
-                        let! result = embeddingService.GetPartialBookMatchByCoverImage base64Image "image/jpeg"
+                        let! result = embeddingService.GetPartialBookMatchByCoverImage(base64Image, "image/jpeg")
                         match result with
                         | Ok matchData -> 
                             printfn "Identified Book: %A" matchData
@@ -139,7 +139,7 @@ module GoogleBooksTests =
                         failwithf "Test image not found at %s or %s" imgPath fallbackPath
                 else
                     let base64Image = System.Convert.ToBase64String(File.ReadAllBytes imgPath)
-                    let! result = embeddingService.GetPartialBookMatchByCoverImage base64Image "image/jpeg"
+                    let! result = embeddingService.GetPartialBookMatchByCoverImage(base64Image, "image/jpeg")
                     match result with
                     | Ok matchData ->
                         printfn "Identified Book: %A" matchData

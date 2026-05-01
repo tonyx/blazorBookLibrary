@@ -100,13 +100,6 @@
                                             <span class="visually-hidden">@L["Loading"]...</span>
                                         </div>
                                     }
-                                    else if (enableAIExplanations && FSharpOption<double>.get_IsSome(context.Score))
-                                    {
-                                        <button class="btn btn-link btn-sm p-0 text-decoration-none mt-1 opacity-50 hover-opacity-100" 
-                                                @onclick:stopPropagation="true" @onclick="() => FetchExplanation(context)" title="@L["ExplainMatch"]">
-                                            <i class="bi bi-question-circle text-primary" style="font-size: 0.7rem;"></i>
-                                        </button>
-                                    }
                                 </a>
                              </ChildContent>
                         </TemplateColumn>

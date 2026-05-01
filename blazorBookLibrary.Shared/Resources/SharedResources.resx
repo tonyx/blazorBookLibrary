@@ -335,4 +335,22 @@
   <data name="Cancelling" xml:space="preserve"><value>Cancelling</value></data>
   <data name="ImportInterruptedSummary" xml:space="preserve"><value>Import interrupted. Results so far: {0} success, {1} failed/skipped</value></data>
   <data name="ImportCancelled" xml:space="preserve"><value>Import cancelled.</value></data>
+  <data name="ImportSummaryTitle" xml:space="preserve"><value>Bulk Import Review</value></data>
+  <data name="Failures" xml:space="preserve"><value>Failures</value></data>
+  <data name="Success" xml:space="preserve"><value>Success</value></data>
+  <data name="Failure" xml:space="preserve"><value>Failure</value></data>
+  <data name="Duplicate" xml:space="preserve"><value>Duplicate</value></data>
+  <data name="Interrupted" xml:space="preserve"><value>Interrupted</value></data>
+  <data name="CopyFailedIsbns" xml:space="preserve"><value>Copy Failed ISBNs</value></data>
+  <data name="FailedIsbnsCopied" xml:space="preserve"><value>Failed ISBNs copied to clipboard.</value></data>
+  <data name="NoFailedIsbnsToCopy" xml:space="preserve"><value>No failed ISBNs to copy.</value></data>
+  <data name="ImportSettings" xml:space="preserve"><value>Import Settings</value></data>
+  <data name="SelectFileAndImport" xml:space="preserve"><value>Select File &amp; Import</value></data>
+  <data name="AllowDuplicatesHelp" xml:space="preserve"><value>Permit books with the same ISBN to be added multiple times.</value></data>
+  <data name="GenerateAuthorsHelp" xml:space="preserve"><value>Create author profiles automatically if they don't exist in the database.</value></data>
+  <data name="GenerateEmbeddingsHelp" xml:space="preserve"><value>Generate AI semantic descriptions for each book (slower import).</value></data>
+  <data name="Duplicates" xml:space="preserve"><value>Duplicates</value></data>
+  <data name="Total" xml:space="preserve"><value>Total</value></data>
+  <data name="GenerateMissingDescriptions" xml:space="preserve"><value>Generate Missing Descriptions</value></data>
+  <data name="GenerateDescriptionsHelp" xml:space="preserve"><value>Use AI to generate a book description if it's missing from the library metadata.</value></data>
 </root>

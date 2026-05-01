@@ -407,19 +407,44 @@
                 <div class="card-sanctuary p-5">
                     <div class="d-flex justify-content-between align-items-baseline mb-4 border-bottom pb-3" style="border-color: var(--outline-variant) !important;">
                         <h5 class="serif mb-0">@L["NarrativeAbstract"]</h5>
-                        @if (bookDetails.Book.Editable && !isEditingDescription)
-                        {
-                            <button class="btn btn-sm btn-white border" @onclick="StartEditDescription"><i class="bi bi-pencil-square me-1"></i> @L["EditNarrative"]</button>
-                        }
+                        <div class="d-flex gap-2">
+                            @if (bookDetails.Book.Editable && !isEditingDescription)
+                            {
+                                @if (previousDescription != null)
+                                {
+                                    <button class="btn btn-sm btn-outline-secondary" @onclick="UndoDescriptionChange"><i class="bi bi-arrow-counterclockwise me-1"></i> @L["Undo"]</button>
+                                }
+                                <button class="btn btn-sm btn-outline-primary" @onclick="GenerateAIDescription" disabled="@isGeneratingDescription">
+                                    @if (isGeneratingDescription) { <span class="spinner-border spinner-border-sm me-1"></span> }
+                                    else { <i class="bi bi-magic me-1"></i> }
+                                    @L["AutoGenerate"]
+                                </button>
+                                <button class="btn btn-sm btn-white border" @onclick="StartEditDescription"><i class="bi bi-pencil-square me-1"></i> @L["EditNarrative"]</button>
+                            }
+                        </div>
                     </div>
 
                     @if (isEditingDescription)
                     {
                         <div class="p-4 bg-surface-low rounded-xl">
                             <textarea class="form-control border-0 serif bg-transparent mb-3" @bind="editedDescription" rows="10" placeholder="@L["WriteDescription"]"></textarea>
-                            <div class="d-flex gap-3">
+                            <div class="d-flex gap-3 align-items-center">
                                 <button class="btn btn-primary px-4" @onclick="UpdateDescription">@L["Save"]</button>
                                 <button class="btn btn-white border px-4" @onclick="CancelEditDescription">@L["Cancel"]</button>
+                                
+                                <div class="ms-auto d-flex gap-2">
+                                    @if (previousDescription != null)
+                                    {
+                                        <button class="btn btn-outline-secondary" @onclick="UndoDescriptionChange">
+                                            <i class="bi bi-arrow-counterclockwise me-2"></i> @L["Undo"]
+                                        </button>
+                                    }
+                                    <button class="btn btn-outline-primary" @onclick="GenerateAIDescription" disabled="@isGeneratingDescription">
+                                        @if (isGeneratingDescription) { <span class="spinner-border spinner-border-sm me-2"></span> }
+                                        else { <i class="bi bi-magic me-2"></i> }
+                                        @L["GenerateWithAI"]
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     }
@@ -520,41 +545,47 @@
                                                 <div class="list-group list-group-flush border-top">
                                                     @foreach (var res in sanityCheckResults)
                                                     {
-                                                        <a href="/book-edit/@res.Id.Value" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-3 rounded">
-                                                            <div class="d-flex flex-column">
+                                                        <div class="d-flex align-items-stretch border rounded mb-2 transition-all bg-surface-low hover-bg-surface-lowest shadow-sm overflow-hidden">
+                                                            <a href="/book-edit/@res.Id.Value" class="flex-grow-1 text-decoration-none text-reset p-3 d-flex flex-column gap-1">
                                                                 <div class="serif @(res.Id.Value == bookDetails.Book.BookId.Value ? "fw-bold text-primary" : "")">
                                                                     @res.Title
                                                                     @if (res.Id.Value == bookDetails.Book.BookId.Value) { <span class="ms-2 badge bg-primary-subtle text-primary small">@L["CurrentBook"]</span> }
                                                                 </div>
-                                                                <div class="small text-muted mt-1 d-flex align-items-center gap-2">
+                                                                <div class="small text-muted d-flex align-items-center gap-2">
                                                                     <span><i class="bi bi-bullseye me-1"></i> Match: @((res.Score * 100).ToString("F1"))%</span>
-                                                                    @if (enableAIExplanations && string.IsNullOrEmpty(res.Explanation) && !res.IsLoadingExplanation)
-                                                                    {
-                                                                        <button class="btn btn-link btn-sm p-0 text-decoration-none" @onclick:stopPropagation="true" @onclick="() => FetchExplanation(res)" title="@L["ExplainMatch"]">
-                                                                            <i class="bi bi-question-circle text-primary" style="font-size: 0.85rem;"></i>
-                                                                        </button>
-                                                                    }
-                                                                    @if (res.IsLoadingExplanation)
-                                                                    {
-                                                                        <div class="spinner-border spinner-border-sm text-primary" role="status" style="width: 10px; height: 10px;">
-                                                                            <span class="visually-hidden">@L["Loading"]...</span>
-                                                                        </div>
-                                                                    }
                                                                 </div>
                                                                 @if (!string.IsNullOrEmpty(res.Explanation))
                                                                 {
-                                                                    <div class="small text-primary italic mt-2 p-2 bg-light rounded shadow-sm animate-fade-in" style="font-size: 0.8rem; border-left: 3px solid var(--bs-primary);">
+                                                                    <div class="small text-primary italic mt-2 p-2 bg-primary-subtle rounded animate-fade-in" style="font-size: 0.8rem; border-left: 3px solid var(--primary);">
                                                                         <div class="d-flex justify-content-between align-items-start">
                                                                             <span><i class="bi bi-chat-left-text me-2"></i> @res.Explanation</span>
-                                                                            <button class="btn btn-link btn-sm p-0 ms-2 text-muted" @onclick:stopPropagation="true" @onclick="() => { res.Explanation = null; }">
-                                                                                <i class="bi bi-x-circle"></i>
+                                                                            <button type="button" class="btn btn-link btn-sm p-0 ms-2 text-muted" @onclick:stopPropagation="true" @onclick="() => { res.Explanation = null; }">
+                                                                                <i class="bi bi-x-circle-fill" style="font-size: 1rem;"></i>
                                                                             </button>
                                                                         </div>
                                                                     </div>
                                                                 }
+                                                            </a>
+                                                            
+                                                            <div class="d-flex flex-column justify-content-center px-3 border-start bg-surface-container-low" style="min-width: 60px;">
+                                                                @if (enableAIExplanations && string.IsNullOrEmpty(res.Explanation) && !res.IsLoadingExplanation)
+                                                                {
+                                                                    <button type="button" class="btn btn-primary-subtle rounded-circle p-0 d-flex align-items-center justify-content-center shadow-sm mx-auto" 
+                                                                            @onclick="() => FetchExplanation(res)" 
+                                                                            title="@L["ExplainMatch"]"
+                                                                            style="width: 32px; height: 32px; border: 1px solid var(--primary-container);">
+                                                                        <i class="bi bi-question text-primary fs-5"></i>
+                                                                    </button>
+                                                                }
+                                                                @if (res.IsLoadingExplanation)
+                                                                {
+                                                                    <div class="spinner-border spinner-border-sm text-primary mx-auto" role="status">
+                                                                        <span class="visually-hidden">@L["Loading"]...</span>
+                                                                    </div>
+                                                                }
+                                                                <i class="bi bi-chevron-right text-muted mx-auto mt-2 opacity-25"></i>
                                                             </div>
-                                                            <i class="bi bi-chevron-right text-muted"></i>
-                                                        </a>
+                                                        </div>
                                                     }
                                                 </div>
                                             </div>
@@ -722,6 +753,8 @@
     private string sanityCheckQuery = "";
     private int sanityCheckLimit = 3;
     private bool isPerformingSanityCheck = false;
+    private bool isGeneratingDescription = false;
+    private string? previousDescription = null;
     private List<SanityCheckResult>? sanityCheckResults = null;
     private bool enableAIExplanations = false;
 
@@ -1270,6 +1303,7 @@
     private void CancelEditDescription()
     {
         isEditingDescription = false;
+        previousDescription = null;
     }
 
     private async Task UpdateDescription()
@@ -1309,6 +1343,7 @@
                     await WaitForCacheUpdateAsync(d => FSharpOption<string>.get_IsSome(d.Book.Description) && d.Book.Description.Value == editedDescription);
                 }
                 isEditingDescription = false;
+                previousDescription = null;
             }
             else
             {
@@ -1712,6 +1747,57 @@
         finally
         {
             isRemovingEmbedding = false;
+        }
+    }
+
+    private async Task GenerateAIDescription()
+    {
+        if (bookDetails == null) return;
+        
+        isGeneratingDescription = true;
+        StateHasChanged();
+        try
+        {
+            var title = bookDetails.Book.Title.Value;
+            var authors = bookDetails.Authors.Select(a => a.Name.Value).ToList();
+            var isbn = bookDetails.Book.Isbn.Value;
+            
+            var authorsFSharp = Microsoft.FSharp.Collections.ListModule.OfSeq(authors);
+            var partialData = PartialBookDataMatch.NewAll(isbn, title, authorsFSharp);
+            
+            var result = await TextEmbeddingService.GetBookDescriptionAsync(partialData, FSharpOption<CancellationToken>.None);
+            if (result.IsOk)
+            {
+                // Capture current state for undo
+                previousDescription = isEditingDescription ? editedDescription : (FSharpOption<string>.get_IsSome(bookDetails.Book.Description) ? bookDetails.Book.Description.Value : "");
+                
+                isEditingDescription = true;
+                editedDescription = result.ResultValue;
+                await ShowStatus(L["DescriptionGenerated"], "alert-success");
+            }
+            else
+            {
+                await ShowStatus($"{L["ErrorGeneratingDescription"]}: {result.ErrorValue}", "alert-danger");
+            }
+        }
+        catch (Exception ex)
+        {
+            await ShowStatus($"{L["ErrorGeneratingDescription"]}: {ex.Message}", "alert-danger");
+        }
+        finally
+        {
+            isGeneratingDescription = false;
+            StateHasChanged();
+        }
+    }
+
+    private void UndoDescriptionChange()
+    {
+        if (previousDescription != null)
+        {
+            editedDescription = previousDescription;
+            previousDescription = null;
+            isEditingDescription = true;
         }
     }
 }

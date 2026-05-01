@@ -788,4 +788,30 @@
   <data name="Cancelling" xml:space="preserve"><value>Annullamento in corso</value></data>
   <data name="ImportInterruptedSummary" xml:space="preserve"><value>Importazione interrotta. Risultati finora: {0} successi, {1} falliti/saltati</value></data>
   <data name="ImportCancelled" xml:space="preserve"><value>Importazione annullata.</value></data>
+  <data name="AutoGenerate" xml:space="preserve"><value>Genera Automaticamente</value></data>
+  <data name="GenerateDescriptionWithAi" xml:space="preserve"><value>Genera descrizione con IA</value></data>
+  <data name="UndoLastDescriptionChange" xml:space="preserve"><value>Annulla l'ultima modifica della descrizione</value></data>
+  <data name="DescriptionGenerationLimitReached" xml:space="preserve"><value>Limite di generazione raggiunto (max 3 per sessione)</value></data>
+  <data name="ProvideTitleOrIsbnForDescription" xml:space="preserve"><value>Fornisci almeno un Titolo o ISBN per generare una descrizione.</value></data>
+  <data name="DescriptionGenerated" xml:space="preserve"><value>Descrizione generata con successo.</value></data>
+  <data name="Undo" xml:space="preserve"><value>Annulla</value></data>
+  <data name="Cancel" xml:space="preserve"><value>Annulla</value></data>
+  <data name="ImportSummaryTitle" xml:space="preserve"><value>Revisione Importazione Massiva</value></data>
+  <data name="Failures" xml:space="preserve"><value>Fallimenti</value></data>
+  <data name="Success" xml:space="preserve"><value>Successo</value></data>
+  <data name="Failure" xml:space="preserve"><value>Fallimento</value></data>
+  <data name="Duplicate" xml:space="preserve"><value>Duplicato</value></data>
+  <data name="Interrupted" xml:space="preserve"><value>Interrotto</value></data>
+  <data name="CopyFailedIsbns" xml:space="preserve"><value>Copia ISBN Falliti</value></data>
+  <data name="FailedIsbnsCopied" xml:space="preserve"><value>ISBN falliti copiati negli appunti.</value></data>
+  <data name="NoFailedIsbnsToCopy" xml:space="preserve"><value>Nessun ISBN fallito da copiare.</value></data>
+  <data name="ImportSettings" xml:space="preserve"><value>Impostazioni Importazione</value></data>
+  <data name="SelectFileAndImport" xml:space="preserve"><value>Seleziona File e Importa</value></data>
+  <data name="AllowDuplicatesHelp" xml:space="preserve"><value>Permette di aggiungere libri con lo stesso ISBN più volte.</value></data>
+  <data name="GenerateAuthorsHelp" xml:space="preserve"><value>Crea automaticamente i profili autore se non presenti nel database.</value></data>
+  <data name="GenerateEmbeddingsHelp" xml:space="preserve"><value>Genera descrizioni semantiche AI per ogni libro (importazione più lenta).</value></data>
+  <data name="Duplicates" xml:space="preserve"><value>Duplicati</value></data>
+  <data name="Total" xml:space="preserve"><value>Totale</value></data>
+  <data name="GenerateMissingDescriptions" xml:space="preserve"><value>Genera Descrizioni Mancanti</value></data>
+  <data name="GenerateDescriptionsHelp" xml:space="preserve"><value>Usa l'IA per generare una descrizione del libro se manca nei metadati della biblioteca.</value></data>
 </root>

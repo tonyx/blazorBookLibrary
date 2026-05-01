@@ -61,32 +61,54 @@
                     </ul>
                 </div>
                 
-                <div class="d-flex align-items-center gap-3 border-start ps-3 me-1">
-                    <div class="form-check form-switch mb-0" style="font-size: 0.7rem;">
-                        <input class="form-check-input" type="checkbox" id="allowDuplicatesSwitch" @bind="importAllowDuplicates">
-                        <label class="form-check-label text-muted" for="allowDuplicatesSwitch">@L["AllowDuplicates"]</label>
-                    </div>
-                    <div class="form-check form-switch mb-0" style="font-size: 0.7rem;">
-                        <input class="form-check-input" type="checkbox" id="generateAuthorsSwitch" @bind="importGenerateAuthors">
-                        <label class="form-check-label text-muted" for="generateAuthorsSwitch">@L["GenerateUnknownAuthors"]</label>
-                    </div>
-                    <div class="form-check form-switch mb-0" style="font-size: 0.7rem;">
-                        <input class="form-check-input" type="checkbox" id="generateEmbeddingsSwitch" @bind="importGenerateEmbeddings">
-                        <label class="form-check-label text-muted" for="generateEmbeddingsSwitch">@L["GenerateEmbeddings"]</label>
+                <div class="dropdown border-start ps-3">
+                    <button class="btn btn-outline-sanctuary dropdown-toggle @(isImporting || isExporting ? "disabled" : "")" type="button" id="importDropdown" data-bs-toggle="dropdown" aria-expanded="false" data-bs-auto-close="outside">
+                        @if (isImporting)
+                        {
+                            <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                            @L["Importing"]
+                        }
+                        else
+                        {
+                            <i class="bi bi-file-earmark-arrow-up me-2"></i> @L["Import"]
+                        }
+                    </button>
+                    <div class="dropdown-menu dropdown-menu-end shadow-lg border-0 p-3" aria-labelledby="importDropdown" style="min-width: 280px;">
+                        <h6 class="dropdown-header px-0 mb-3 text-primary fw-bold border-bottom pb-2">
+                            <i class="bi bi-gear-fill me-2"></i>@L["ImportSettings"]
+                        </h6>
+                        
+                        <div class="form-check form-switch mb-3">
+                            <input class="form-check-input" type="checkbox" id="allowDuplicatesSwitch" @bind="importAllowDuplicates">
+                            <label class="form-check-label small fw-bold" for="allowDuplicatesSwitch">@L["AllowDuplicates"]</label>
+                            <div class="form-text mt-0 small opacity-75">@L["AllowDuplicatesHelp"]</div>
+                        </div>
+                        
+                        <div class="form-check form-switch mb-3">
+                            <input class="form-check-input" type="checkbox" id="generateAuthorsSwitch" @bind="importGenerateAuthors">
+                            <label class="form-check-label small fw-bold" for="generateAuthorsSwitch">@L["GenerateUnknownAuthors"]</label>
+                            <div class="form-text mt-0 small opacity-75">@L["GenerateAuthorsHelp"]</div>
+                        </div>
+                        
+                        <div class="form-check form-switch mb-3">
+                            <input class="form-check-input" type="checkbox" id="generateDescriptionsSwitch" @bind="importGenerateMissingDescriptions">
+                            <label class="form-check-label small fw-bold" for="generateDescriptionsSwitch">@L["GenerateMissingDescriptions"]</label>
+                            <div class="form-text mt-0 small opacity-75">@L["GenerateDescriptionsHelp"]</div>
+                        </div>
+                        
+                        <div class="form-check form-switch mb-4">
+                            <input class="form-check-input" type="checkbox" id="generateEmbeddingsSwitch" @bind="importGenerateEmbeddings">
+                            <label class="form-check-label small fw-bold" for="generateEmbeddingsSwitch">@L["GenerateEmbeddings"]</label>
+                            <div class="form-text mt-0 small opacity-75">@L["GenerateEmbeddingsHelp"]</div>
+                        </div>
+                        
+                        <div class="pt-2">
+                            <label for="importFileInput" class="btn btn-sanctuary w-100 mb-0 shadow-sm py-2">
+                                <i class="bi bi-file-earmark-arrow-up me-2"></i> @L["SelectFileAndImport"]
+                            </label>
+                        </div>
                     </div>
                 </div>
-
-                <label for="importFileInput" class="btn btn-outline-sanctuary mb-0 @(isImporting || isExporting ? "disabled" : "")">
-                    @if (isImporting)
-                    {
-                        <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                        @L["Importing"]
-                    }
-                    else
-                    {
-                        <i class="bi bi-file-earmark-arrow-up me-2"></i> @L["Import"]
-                    }
-                </label>
                 <InputFile id="importFileInput" OnChange="HandleImportFile" style="display:none" accept=".txt,.csv" />
                 
                 <button class="btn btn-sanctuary @(showAddSection ? "active" : "")" @onclick="() => showAddSection = !showAddSection">
@@ -127,6 +149,12 @@
                      style="width: @(GetProgressPercentage())%; transition: width 0.3s ease;">
                 </div>
             </div>
+            @if (FSharpOption<string>.get_IsSome(currentProgress.CurrentItemLabel))
+            {
+                <div class="mt-2 text-muted small italic animate-fade-in">
+                    <i class="bi bi-info-circle me-1"></i> @currentProgress.CurrentItemLabel.Value
+                </div>
+            }
         </div>
     }
 
@@ -445,13 +473,44 @@
                                 </div>
                             }
 
-                            @* Description / Narrative Abstract *@
-                            <div class="col-12">
-                                <label class="form-label small text-muted text-uppercase fw-bold mb-2">@L["NarrativeAbstract"]</label>
-                                <InputTextArea class="form-control bg-surface-low border-0 shadow-sm p-4 serif" 
-                                               @bind-Value="newBookDescription" rows="5" 
-                                               placeholder="@L["BookDescriptionPlaceholder"]" />
-                            </div>
+                             @* Description / Narrative Abstract *@
+                             <div class="col-12">
+                                 <div class="d-flex justify-content-between align-items-end mb-2">
+                                     <label class="form-label small text-muted text-uppercase fw-bold mb-0">@L["NarrativeAbstract"]</label>
+                                     <div class="d-flex gap-2">
+                                         @if (previousDescriptionBuffer != null)
+                                         {
+                                             <button type="button" class="btn btn-link btn-sm text-decoration-none p-0 animate-fade-in" @onclick="UndoDescription" title="@L["UndoLastDescriptionChange"]">
+                                                 <i class="bi bi-arrow-counterclockwise me-1"></i> @L["Undo"]
+                                             </button>
+                                         }
+                                         <button type="button" class="btn btn-link btn-sm text-decoration-none p-0" 
+                                                 @onclick="GenerateDescription" 
+                                                 disabled="@(isGeneratingDescription || descriptionGenerationCount >= 3)"
+                                                 title="@(descriptionGenerationCount >= 3 ? L["DescriptionGenerationLimitReached"] : L["GenerateDescriptionWithAi"])">
+                                             @if (isGeneratingDescription)
+                                             {
+                                                 <span class="spinner-border spinner-border-sm me-1"></span>
+                                             }
+                                             else
+                                             {
+                                                 <i class="bi bi-magic me-1"></i>
+                                             }
+                                             @L["AutoGenerate"]
+                                         </button>
+                                         @if (isGeneratingDescription)
+                                         {
+                                             <button type="button" class="btn btn-link btn-sm text-danger text-decoration-none p-0 animate-fade-in" 
+                                                     @onclick="CancelDescriptionGeneration" title="@L["Cancel"]">
+                                                 <i class="bi bi-x-circle me-1"></i> @L["Cancel"]
+                                             </button>
+                                         }
+                                     </div>
+                                 </div>
+                                 <InputTextArea class="form-control bg-surface-low border-0 shadow-sm p-4 serif" 
+                                                @bind-Value="newBookDescription" rows="5" 
+                                                placeholder="@L["BookDescriptionPlaceholder"]" />
+                             </div>
 
                             <div class="col-12 mt-2">
                                 <div class="form-check form-switch p-3 bg-surface-low rounded-3 border">
@@ -710,7 +769,14 @@
     private bool importAllowDuplicates = false;
     private bool importGenerateAuthors = true;
     private bool importGenerateEmbeddings = false;
+    private bool importGenerateMissingDescriptions = false;
     private CancellationTokenSource? importCts;
+    private string? previousDescriptionBuffer = null;
+    private int descriptionGenerationCount = 0;
+    private bool isGeneratingDescription = false;
+    private CancellationTokenSource? descriptionGenerationCts;
+    private ImportSummary? lastImportSummary = null;
+    private bool showImportSummaryModal = false;
 
     private void CancelImport()
     {
@@ -1048,6 +1114,11 @@
         metadataAuthors.Clear();
         lookupResults.Clear();
         selectedLookupIndex = -1;
+        previousDescriptionBuffer = null;
+        descriptionGenerationCount = 0;
+        isGeneratingDescription = false;
+        lastImportSummary = null;
+        showImportSummaryModal = false;
     }
 
     private async Task ShowStatus(string message, string type)
@@ -1354,11 +1425,14 @@
             });
 
             importCts = new CancellationTokenSource();
-            var result = await DataExportService.ImportFromIsbns(isbns, !importAllowDuplicates, importGenerateAuthors, importGenerateEmbeddings, progress, importCts.Token);
+            var result = await DataExportService.ImportFromIsbns(isbns, !importAllowDuplicates, importGenerateAuthors, importGenerateEmbeddings, importGenerateMissingDescriptions, progress, importCts.Token);
             
             if (result.IsOk)
             {
-                var (successCount, failureCount) = result.ResultValue;
+                lastImportSummary = result.ResultValue;
+                var successCount = lastImportSummary.SuccessCount;
+                var failureCount = lastImportSummary.FailureCount;
+                
                 if (importCts.IsCancellationRequested)
                 {
                     await ShowStatus(string.Format(L["ImportInterruptedSummary"], successCount, failureCount), "info");
@@ -1367,6 +1441,8 @@
                 {
                     await ShowStatus(string.Format(L["ImportSummary"], successCount, failureCount), "success");
                 }
+                
+                showImportSummaryModal = true;
             }
             else
             {
@@ -1407,7 +1483,214 @@
             return $"{(int)ts.TotalMinutes}m {ts.Seconds}s";
         return $"{(int)ts.TotalSeconds}s";
     }
+
+    private async Task GenerateDescription()
+    {
+        if (descriptionGenerationCount >= 3) return;
+        
+        PartialBookDataMatch? bookData = null;
+        var authors = selectedAuthors.Select(a => a.Name.Value).ToList();
+        var fsAuthors = ListModule.OfSeq(authors);
+        
+        if (!string.IsNullOrWhiteSpace(newBookIsbn) && !string.IsNullOrWhiteSpace(newBookTitle))
+            bookData = PartialBookDataMatch.NewAll(newBookIsbn, newBookTitle, fsAuthors);
+        else if (!string.IsNullOrWhiteSpace(newBookIsbn))
+            bookData = PartialBookDataMatch.NewAuthorAndIsbn(newBookIsbn, fsAuthors);
+        else if (!string.IsNullOrWhiteSpace(newBookTitle))
+            bookData = PartialBookDataMatch.NewTitleAndAuthor(newBookTitle, fsAuthors);
+
+        if (bookData == null)
+        {
+            await ShowStatus(L["ProvideTitleOrIsbnForDescription"], "warning");
+            return;
+        }
+
+        isGeneratingDescription = true;
+        descriptionGenerationCts = new CancellationTokenSource();
+        StateHasChanged();
+
+        try
+        {
+            var result = await TextEmbeddingService.GetBookDescriptionAsync(bookData, descriptionGenerationCts.Token);
+            if (result.IsOk)
+            {
+                previousDescriptionBuffer = newBookDescription;
+                newBookDescription = result.ResultValue;
+                descriptionGenerationCount++;
+                await ShowStatus(L["DescriptionGenerated"], "success");
+            }
+            else
+            {
+                // Handle cancellation specifically if needed, but the service returns a Result
+                if (!descriptionGenerationCts.IsCancellationRequested)
+                {
+                    await ShowStatus(result.ErrorValue, "error");
+                }
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // Handled via Result check or catch
+        }
+        finally
+        {
+            isGeneratingDescription = false;
+            descriptionGenerationCts?.Dispose();
+            descriptionGenerationCts = null;
+            StateHasChanged();
+        }
+    }
+
+    private void CancelDescriptionGeneration()
+    {
+        descriptionGenerationCts?.Cancel();
+    }
+
+    private void UndoDescription()
+    {
+        if (previousDescriptionBuffer != null)
+        {
+            var current = newBookDescription;
+            newBookDescription = previousDescriptionBuffer;
+            previousDescriptionBuffer = current;
+        }
+    }
+
+    private async Task CopyFailedIsbns()
+    {
+        if (lastImportSummary == null) return;
+        
+        var failedIsbns = lastImportSummary.Details
+            .Where(d => d.Status.IsFailure)
+            .Select(d => d.Isbn.Value)
+            .ToList();
+        
+        if (failedIsbns.Any())
+        {
+            var text = string.Join(Environment.NewLine, failedIsbns);
+            await JSRuntime.InvokeVoidAsync("navigator.clipboard.writeText", text);
+            await ShowStatus(L["FailedIsbnsCopied"], "success");
+        }
+        else
+        {
+            await ShowStatus(L["NoFailedIsbnsToCopy"], "info");
+        }
+    }
 }
+
+    @if (showImportSummaryModal && lastImportSummary != null)
+    {
+        <div class="modal-backdrop fade show"></div>
+        <div class="modal fade show d-block" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+                <div class="modal-content border-0 shadow-lg bg-surface-lowest">
+                    <div class="modal-header border-bottom-0 p-4">
+                        <h5 class="modal-title serif h3 text-primary">@L["ImportSummaryTitle"]</h5>
+                        <button type="button" class="btn-close" @onclick="() => showImportSummaryModal = false"></button>
+                    </div>
+                    <div class="modal-body p-4 pt-0">
+                        <div class="row g-3 mb-4">
+                            <div class="col">
+                                <div class="p-3 bg-success-subtle rounded-3 text-center border border-success-subtle h-100 d-flex flex-column justify-content-center">
+                                    <div class="h3 mb-0 text-success">@lastImportSummary.SuccessCount</div>
+                                    <div class="small text-success-emphasis text-uppercase fw-bold" style="font-size: 0.65rem;">@L["Success"]</div>
+                                </div>
+                            </div>
+                            <div class="col">
+                                <div class="p-3 bg-danger-subtle rounded-3 text-center border border-danger-subtle h-100 d-flex flex-column justify-content-center">
+                                    <div class="h3 mb-0 text-danger">@lastImportSummary.FailureCount</div>
+                                    <div class="small text-danger-emphasis text-uppercase fw-bold" style="font-size: 0.65rem;">@L["Failures"]</div>
+                                </div>
+                            </div>
+                            <div class="col">
+                                <div class="p-3 bg-warning-subtle rounded-3 text-center border border-warning-subtle h-100 d-flex flex-column justify-content-center">
+                                    <div class="h3 mb-0 text-warning-emphasis">@lastImportSummary.DuplicateCount</div>
+                                    <div class="small text-warning-emphasis text-uppercase fw-bold" style="font-size: 0.65rem;">@L["Duplicates"]</div>
+                                </div>
+                            </div>
+                            @if (lastImportSummary.InterruptedCount > 0)
+                            {
+                                <div class="col">
+                                    <div class="p-3 bg-secondary-subtle rounded-3 text-center border border-secondary-subtle h-100 d-flex flex-column justify-content-center">
+                                        <div class="h3 mb-0 text-secondary">@lastImportSummary.InterruptedCount</div>
+                                        <div class="small text-secondary-emphasis text-uppercase fw-bold" style="font-size: 0.65rem;">@L["Interrupted"]</div>
+                                    </div>
+                                </div>
+                            }
+                            <div class="col">
+                                <div class="p-3 bg-primary-subtle rounded-3 text-center border border-primary-subtle h-100 d-flex flex-column justify-content-center">
+                                    <div class="h3 mb-0 text-primary">@lastImportSummary.TotalProcessed</div>
+                                    <div class="small text-primary-emphasis text-uppercase fw-bold" style="font-size: 0.65rem;">@L["Total"]</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="table-responsive rounded-3 border overflow-auto" style="max-height: 400px;">
+                            <table class="table table-editorial align-middle mb-0">
+                                <thead class="bg-surface-low sticky-top">
+                                    <tr>
+                                        <th class="small text-uppercase fw-bold p-3">ISBN</th>
+                                        <th class="small text-uppercase fw-bold p-3">@L["Title"]</th>
+                                        <th class="small text-uppercase fw-bold p-3">@L["Status"]</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var detail in lastImportSummary.Details)
+                                    {
+                                        <tr>
+                                            <td class="p-3 font-monospace small">@detail.Isbn.Value</td>
+                                            <td class="p-3">
+                                                @if (FSharpOption<string>.get_IsSome(detail.Title))
+                                                {
+                                                    <span class="text-serif">@detail.Title.Value</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="text-muted small italic">@L["MetadataNotFound"]</span>
+                                                }
+                                            </td>
+                                            <td class="p-3">
+                                                @if (detail.Status.IsSuccess)
+                                                {
+                                                    <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill">
+                                                        <i class="bi bi-check-circle-fill me-1"></i> @L["Success"]
+                                                    </span>
+                                                }
+                                                else if (detail.Status.IsDuplicate)
+                                                {
+                                                    <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle rounded-pill">
+                                                        <i class="bi bi-intersect me-1"></i> @L["Duplicate"]
+                                                    </span>
+                                                }
+                                                else if (detail.Status.IsInterrupted)
+                                                {
+                                                    <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle rounded-pill">
+                                                        <i class="bi bi-stop-circle-fill me-1"></i> @L["Interrupted"]
+                                                    </span>
+                                                }
+                                                else if (detail.Status is ImportStatus.Failure f)
+                                                {
+                                                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill" title="@f.reason">
+                                                        <i class="bi bi-exclamation-triangle-fill me-1"></i> @L["Failure"]
+                                                    </span>
+                                                }
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="modal-footer border-top-0 p-4 gap-2">
+                        <button type="button" class="btn btn-outline-primary flex-grow-1" @onclick="CopyFailedIsbns">
+                            <i class="bi bi-clipboard me-2"></i>@L["CopyFailedIsbns"]
+                        </button>
+                        <button type="button" class="btn btn-sanctuary flex-grow-1" @onclick="() => showImportSummaryModal = false">@L["Close"]</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
 
 <style>
     .editorial-ledger td { vertical-align: middle; }
