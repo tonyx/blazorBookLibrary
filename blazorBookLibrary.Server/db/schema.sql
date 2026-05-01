@@ -1,7 +1,7 @@
-\restrict HYt9gsqlxLb7zrehrZwduadyUdyM9ldGwz9cIUpYuSYpfJyhKqc21J19madpCQD
+\restrict 9NONyheiNqgFfKqIJACw9ykTAkzlQgJ7aCWxRKLfejUdc7qr73GdakibsfVEP9h
 
--- Dumped from database version 16.12
--- Dumped by pg_dump version 18.0
+-- Dumped from database version 17.9 (Homebrew)
+-- Dumped by pg_dump version 17.9 (Homebrew)
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -14,13 +14,6 @@ SET check_function_bodies = false;
 SET xmloption = content;
 SET client_min_messages = warning;
 SET row_security = off;
-
---
--- Name: public; Type: SCHEMA; Schema: -; Owner: -
---
-
--- *not* creating schema, since initdb creates it
-
 
 --
 -- Name: insert_01_author_event_and_return_id(text, uuid); Type: FUNCTION; Schema: public; Owner: -
@@ -1981,19 +1974,11 @@ CREATE INDEX ix_01_snapshots_user_timestamp ON public.snapshots_01_user USING bt
 
 
 --
--- Name: aggregate_events_01_loan aggregate_events_01_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: aggregate_events_01_author aggregate_events_01_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.aggregate_events_01_loan
-    ADD CONSTRAINT aggregate_events_01_fk FOREIGN KEY (event_id) REFERENCES public.events_01_loan(id) MATCH FULL ON DELETE CASCADE;
-
-
---
--- Name: aggregate_events_01_editor aggregate_events_01_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.aggregate_events_01_editor
-    ADD CONSTRAINT aggregate_events_01_fk FOREIGN KEY (event_id) REFERENCES public.events_01_editor(id) MATCH FULL ON DELETE CASCADE;
+ALTER TABLE ONLY public.aggregate_events_01_author
+    ADD CONSTRAINT aggregate_events_01_fk FOREIGN KEY (event_id) REFERENCES public.events_01_author(id) MATCH FULL ON DELETE CASCADE;
 
 
 --
@@ -2005,27 +1990,11 @@ ALTER TABLE ONLY public.aggregate_events_01_book
 
 
 --
--- Name: aggregate_events_01_author aggregate_events_01_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: aggregate_events_01_editor aggregate_events_01_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.aggregate_events_01_author
-    ADD CONSTRAINT aggregate_events_01_fk FOREIGN KEY (event_id) REFERENCES public.events_01_author(id) MATCH FULL ON DELETE CASCADE;
-
-
---
--- Name: aggregate_events_01_reservation aggregate_events_01_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.aggregate_events_01_reservation
-    ADD CONSTRAINT aggregate_events_01_fk FOREIGN KEY (event_id) REFERENCES public.events_01_reservation(id) MATCH FULL ON DELETE CASCADE;
-
-
---
--- Name: aggregate_events_01_user aggregate_events_01_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.aggregate_events_01_user
-    ADD CONSTRAINT aggregate_events_01_fk FOREIGN KEY (event_id) REFERENCES public.events_01_user(id) MATCH FULL ON DELETE CASCADE;
+ALTER TABLE ONLY public.aggregate_events_01_editor
+    ADD CONSTRAINT aggregate_events_01_fk FOREIGN KEY (event_id) REFERENCES public.events_01_editor(id) MATCH FULL ON DELETE CASCADE;
 
 
 --
@@ -2037,6 +2006,14 @@ ALTER TABLE ONLY public.aggregate_events_01_isbnregistry
 
 
 --
+-- Name: aggregate_events_01_loan aggregate_events_01_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.aggregate_events_01_loan
+    ADD CONSTRAINT aggregate_events_01_fk FOREIGN KEY (event_id) REFERENCES public.events_01_loan(id) MATCH FULL ON DELETE CASCADE;
+
+
+--
 -- Name: aggregate_events_01_mailqueue aggregate_events_01_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -2045,11 +2022,27 @@ ALTER TABLE ONLY public.aggregate_events_01_mailqueue
 
 
 --
+-- Name: aggregate_events_01_reservation aggregate_events_01_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.aggregate_events_01_reservation
+    ADD CONSTRAINT aggregate_events_01_fk FOREIGN KEY (event_id) REFERENCES public.events_01_reservation(id) MATCH FULL ON DELETE CASCADE;
+
+
+--
 -- Name: aggregate_events_01_review aggregate_events_01_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.aggregate_events_01_review
     ADD CONSTRAINT aggregate_events_01_fk FOREIGN KEY (event_id) REFERENCES public.events_01_review(id) MATCH FULL ON DELETE CASCADE;
+
+
+--
+-- Name: aggregate_events_01_user aggregate_events_01_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.aggregate_events_01_user
+    ADD CONSTRAINT aggregate_events_01_fk FOREIGN KEY (event_id) REFERENCES public.events_01_user(id) MATCH FULL ON DELETE CASCADE;
 
 
 --
@@ -2128,7 +2121,7 @@ ALTER TABLE ONLY public.snapshots_01_user
 -- PostgreSQL database dump complete
 --
 
-\unrestrict HYt9gsqlxLb7zrehrZwduadyUdyM9ldGwz9cIUpYuSYpfJyhKqc21J19madpCQD
+\unrestrict 9NONyheiNqgFfKqIJACw9ykTAkzlQgJ7aCWxRKLfejUdc7qr73GdakibsfVEP9h
 
 
 --

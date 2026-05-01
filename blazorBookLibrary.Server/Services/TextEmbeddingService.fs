@@ -98,7 +98,7 @@ type TextEmbeddingService
         member this.GetMatchExplanationAsync(query: string) (itemText: string) =
             task {
                 try
-                    let modelName = "gemini-2.0-flash"
+                    let modelName = "gemini-2.5-flash-lite"
                     let url = $"https://generativelanguage.googleapis.com/v1beta/models/{modelName}:generateContent?key={apiKey}"
                     
                     let prompt = $"Explain concisely why the following query matches the provided text. Use the same language as the query.\n\nQuery: {query}\n\nText: {itemText}\n\nExplanation:"
