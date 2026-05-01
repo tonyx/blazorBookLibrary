@@ -99,6 +99,15 @@
   </data>
   <data name="BookDetails" xml:space="preserve"><value>Book Details</value></data>
   <data name="Back" xml:space="preserve"><value>Back</value></data>
+  <data name="BarCodeScan" xml:space="preserve"><value>BarCode Scan</value></data>
+  <data name="CoverScan" xml:space="preserve"><value>Cover Scan</value></data>
+  <data name="CoverScannerActive" xml:space="preserve"><value>Cover Scanner Active</value></data>
+  <data name="PositionCoverInsideFrameNote" xml:space="preserve"><value>Position the entire book cover inside the frame and click capture.</value></data>
+  <data name="CaptureCoverPhoto" xml:space="preserve"><value>Capture Cover Photo</value></data>
+  <data name="IsbnIdentified" xml:space="preserve"><value>ISBN identified: {0}. You can now complete the metadata search.</value></data>
+  <data name="TitleIdentified" xml:space="preserve"><value>Title identified: {0}. You can now search via API.</value></data>
+  <data name="NoMatchFoundCover" xml:space="preserve"><value>No clear match found from the cover image.</value></data>
+  <data name="IdentifyingCover" xml:space="preserve"><value>Identifying cover...</value></data>
   <data name="BackToBooks" xml:space="preserve"><value>Back to Books</value></data>
   <data name="GeneralInformation" xml:space="preserve"><value>General Information</value></data>
   <data name="LockedSealed" xml:space="preserve"><value>Locked (Sealed)</value></data>
@@ -653,7 +662,7 @@
   <data name="InvalidFiscalCodeUpdated" xml:space="preserve"><value>Invalid fiscal code updated</value></data>
   <data name="NameUpdated" xml:space="preserve"><value>Name updated</value></data>
   <data name="SurnameUpdated" xml:space="preserve"><value>Surname updated</value></data>
-  <data name="Name" xml:space="preserve"><value>Name</value></data>
+
   <data name="Surname" xml:space="preserve"><value>Surname</value></data>
   <data name="Valid" xml:space="preserve"><value>Valid</value></data>
   <data name="Invalid" xml:space="preserve"><value>Invalid</value></data>
@@ -867,4 +876,8 @@
   <data name="PotentialMatch" xml:space="preserve"><value>Potential Match</value></data>
   <data name="ExplainMatch" xml:space="preserve"><value>Explain match</value></data>
   <data name="ExplanationFailed" xml:space="preserve"><value>Explanation failed</value></data>
+  <data name="Reset" xml:space="preserve"><value>Reset</value></data>
+  <data name="Cancelling" xml:space="preserve"><value>Cancelling</value></data>
+  <data name="ImportInterruptedSummary" xml:space="preserve"><value>Import interrupted. Results so far: {0} success, {1} failed/skipped</value></data>
+  <data name="ImportCancelled" xml:space="preserve"><value>Import cancelled.</value></data>
 </root>

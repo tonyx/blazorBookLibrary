@@ -75,3 +75,51 @@ window.downloadFile = (fileName, content) => {
     anchorElement.remove();
     window.URL.revokeObjectURL(url);
 }
+
+window.captureVideoFrame = (videoSelector) => {
+    return new Promise((resolve) => {
+        let attempts = 0;
+        const maxAttempts = 20; // Up to 4 seconds total
+        
+        const capture = () => {
+            try {
+                const video = document.querySelector(videoSelector);
+                if (!video) {
+                    if (attempts < maxAttempts) {
+                        attempts++;
+                        setTimeout(capture, 200);
+                        return;
+                    }
+                    console.warn("captureVideoFrame: Video element not found:", videoSelector);
+                    resolve(null);
+                    return;
+                }
+                
+                // Check if video is playing and has dimensions
+                if (video.readyState < 2 || video.videoWidth === 0) {
+                    if (attempts < maxAttempts) {
+                        attempts++;
+                        setTimeout(capture, 200);
+                        return;
+                    }
+                    console.warn("captureVideoFrame: Video not ready after max attempts.");
+                    resolve(null);
+                    return;
+                }
+
+                const canvas = document.createElement('canvas');
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+                resolve(dataUrl);
+            } catch (e) {
+                console.error("captureVideoFrame failed:", e);
+                resolve(null);
+            }
+        };
+        
+        capture();
+    });
+};

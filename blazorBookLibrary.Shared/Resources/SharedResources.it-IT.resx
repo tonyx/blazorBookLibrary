@@ -61,6 +61,15 @@
   <data name="Active" xml:space="preserve"><value>Attivo</value></data>
   <data name="Add" xml:space="preserve"><value>Aggiungi</value></data>
   <data name="AddAuthor" xml:space="preserve"><value>Aggiungi Autore</value></data>
+  <data name="BarCodeScan" xml:space="preserve"><value>Scansione Barcode</value></data>
+  <data name="CoverScan" xml:space="preserve"><value>Scansione Copertina</value></data>
+  <data name="CoverScannerActive" xml:space="preserve"><value>Scanner Copertina Attivo</value></data>
+  <data name="PositionCoverInsideFrameNote" xml:space="preserve"><value>Posiziona l'intera copertina del libro nel riquadro e clicca cattura.</value></data>
+  <data name="CaptureCoverPhoto" xml:space="preserve"><value>Cattura Foto Copertina</value></data>
+  <data name="IsbnIdentified" xml:space="preserve"><value>ISBN identificato: {0}. Ora puoi completare la ricerca dei metadati.</value></data>
+  <data name="TitleIdentified" xml:space="preserve"><value>Titolo identificato: {0}. Ora puoi cercare tramite API.</value></data>
+  <data name="NoMatchFoundCover" xml:space="preserve"><value>Nessuna corrispondenza chiara trovata dall'immagine della copertina.</value></data>
+  <data name="IdentifyingCover" xml:space="preserve"><value>Identificazione copertina...</value></data>
   <data name="AddNewAuthor" xml:space="preserve"><value>Aggiungi Nuovo Autore</value></data>
   <data name="AddNewBook" xml:space="preserve"><value>Aggiungi Nuovo Libro</value></data>
   <data name="AddNewBookEntry" xml:space="preserve"><value>Aggiungi Nuova Voce Libro</value></data>
@@ -555,7 +564,7 @@
   <data name="InvalidFiscalCodeUpdated" xml:space="preserve"><value>Codice fiscale non valido aggiornato</value></data>
   <data name="NameUpdated" xml:space="preserve"><value>Nome aggiornato</value></data>
   <data name="SurnameUpdated" xml:space="preserve"><value>Cognome aggiornato</value></data>
-  <data name="Name" xml:space="preserve"><value>Nome</value></data>
+
   <data name="Surname" xml:space="preserve"><value>Cognome</value></data>
   <data name="Valid" xml:space="preserve"><value>Valido</value></data>
   <data name="Invalid" xml:space="preserve"><value>Non Valido</value></data>
@@ -641,7 +650,8 @@
   <data name="QuickTip" xml:space="preserve"><value>Suggerimento Rapido</value></data>
   <data name="ConversionTipDescription" xml:space="preserve"><value>Assicurati che l'utente fornisca il codice di prenotazione corretto prima di finalizzare. Una volta convertito, lo stato della prenotazione verrà aggiornato automaticamente.</value></data>
   <data name="ErrorLoadingReservations" xml:space="preserve"><value>Errore nel caricamento delle prenotazioni</value></data>
-  <data name="FatalError" xml:space="preserve"><value>Errore Fatale</value></data>
+  <data name="EmbeddingError" xml:space="preserve"><value>Errore embedding</value></data>
+
   <data name="ReservationCodeRequired" xml:space="preserve"><value>Il codice di prenotazione è obbligatorio.</value></data>
   <data name="ReservationConvertedSuccess" xml:space="preserve"><value>Prenotazione convertita correttamente in prestito.</value></data>
   <data name="ConversionError" xml:space="preserve"><value>Errore durante la conversione</value></data>
@@ -774,4 +784,8 @@
   <data name="PotentialMatch" xml:space="preserve"><value>Match Potenziale</value></data>
   <data name="ExplainMatch" xml:space="preserve"><value>Spiega il match</value></data>
   <data name="ExplanationFailed" xml:space="preserve"><value>Spiegazione fallita</value></data>
+  <data name="Reset" xml:space="preserve"><value>Reimposta</value></data>
+  <data name="Cancelling" xml:space="preserve"><value>Annullamento in corso</value></data>
+  <data name="ImportInterruptedSummary" xml:space="preserve"><value>Importazione interrotta. Risultati finora: {0} successi, {1} falliti/saltati</value></data>
+  <data name="ImportCancelled" xml:space="preserve"><value>Importazione annullata.</value></data>
 </root>

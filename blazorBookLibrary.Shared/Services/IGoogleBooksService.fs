@@ -1,7 +1,9 @@
 namespace BookLibrary.Shared.Services
 
+open System.Threading
 open System.Threading.Tasks
 open System.Collections.Generic
+open System.Runtime.InteropServices
 open BookLibrary.Shared.Commons
 
 type GoogleBookMetadata = {
@@ -14,10 +16,10 @@ type GoogleBookMetadata = {
 }
 
 type IGoogleBooksService =
-    abstract member LookupByIsbnAsync : isbn: string -> Task<Result<GoogleBookMetadata option, string>>
-    abstract member LookupByTitleAsync : title: string -> Task<Result<GoogleBookMetadata option, string>>
-    abstract member LookupMultipleByTitleAsync : title: string -> Task<Result<GoogleBookMetadata list, string>>
-    abstract member LookupCoverImageByIsbnAsync : isbn: Isbn * ?thumbRoughSize: ThumbRoughSize -> Task<Result<string option, string>>
-    abstract member LookupGoogleApiCoverImageByIsbnAsync : isbn: Isbn -> Task<Result<string option, string>>
-    abstract member LookupCoverImageByIsbnWithOpenApiAndThenGoogleAsync : isbn: Isbn * ?thumbRoughSize: ThumbRoughSize -> Task<Result<string option, string>>
-    abstract member LookupGoogleApiCoverImageByTitleAndOptionalAuthorAsync : title: string * ?author: string -> Task<Result<string option, string>>
+    abstract member LookupByIsbnAsync : isbn: string * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<GoogleBookMetadata option, string>>
+    abstract member LookupByTitleAsync : title: string * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<GoogleBookMetadata option, string>>
+    abstract member LookupMultipleByTitleAsync : title: string * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<GoogleBookMetadata list, string>>
+    abstract member LookupCoverImageByIsbnAsync : isbn: Isbn * [<Optional; DefaultParameterValue(null)>] ?thumbRoughSize: ThumbRoughSize * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<string option, string>>
+    abstract member LookupGoogleApiCoverImageByIsbnAsync : isbn: Isbn * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<string option, string>>
+    abstract member LookupCoverImageByIsbnWithOpenApiAndThenGoogleAsync : isbn: Isbn * [<Optional; DefaultParameterValue(null)>] ?thumbRoughSize: ThumbRoughSize * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<string option, string>>
+    abstract member LookupGoogleApiCoverImageByTitleAndOptionalAuthorAsync : title: string * [<Optional; DefaultParameterValue(null)>] ?author: string * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<string option, string>>

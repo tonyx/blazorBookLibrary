@@ -26,15 +26,19 @@ type OpenLibraryAuthorDetails = {
     [<JsonPropertyName("remote_ids")>] RemoteIds: OpenLibraryRemoteIds
 }
 
+open System.Threading
+open System.Runtime.InteropServices
+
 type AuthorsSearchService(httpClient: HttpClient) =
     interface IAuthorsSearchService with
-        member this.LookupByNameAsync(name: string) =
+        member this.LookupByNameAsync(name: string, [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken) =
+            let ct = defaultArg ct CancellationToken.None
             task {
                 try
                     // URL encode the name
                     let encodedName = System.Web.HttpUtility.UrlEncode(name)
                     let url = $"https://openlibrary.org/search/authors.json?q={encodedName}"
-                    let! response = httpClient.GetFromJsonAsync<OpenLibraryAuthorSearchResponse>(url)
+                    let! response = httpClient.GetFromJsonAsync<OpenLibraryAuthorSearchResponse>(url, ct)
                     
                     if isNull (box response) || isNull (box response.Docs) || response.Docs.Length = 0 then
                         return Error "Author not found"
@@ -47,7 +51,7 @@ type AuthorsSearchService(httpClient: HttpClient) =
                         try
                             // Optional secondary call to fetch remote ids (like ISNI) if present
                             let detailsUrl = $"https://openlibrary.org/authors/{authorKey}.json"
-                            let! details = httpClient.GetFromJsonAsync<OpenLibraryAuthorDetails>(detailsUrl)
+                            let! details = httpClient.GetFromJsonAsync<OpenLibraryAuthorDetails>(detailsUrl, ct)
                             if not (isNull (box details)) && not (isNull (box details.RemoteIds)) && not (System.String.IsNullOrWhiteSpace(details.RemoteIds.Isni)) then
                                 isniOpt <- Some details.RemoteIds.Isni
                         with
@@ -58,7 +62,8 @@ type AuthorsSearchService(httpClient: HttpClient) =
                 | ex -> return Error ex.Message
             }
 
-        member this.LookupImageUrlByNameAndThumbSizeAsync(name: string, ?pitThumbSize: int) =
+        member this.LookupImageUrlByNameAndThumbSizeAsync(name: string, [<Optional; DefaultParameterValue(null)>] ?pitThumbSize: int, [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken) =
+            let ct = defaultArg ct CancellationToken.None
             task {
                 let thumbSize = defaultArg pitThumbSize 100
                 try
@@ -67,7 +72,7 @@ type AuthorsSearchService(httpClient: HttpClient) =
                     // Using Italian Wikipedia as per the example provided
                     let url = $"https://it.wikipedia.org/w/api.php?action=query&titles={encodedName}&prop=pageimages&format=json&pithumbsize={thumbSize}"
                     
-                    let! jsonDoc = httpClient.GetFromJsonAsync<System.Text.Json.JsonDocument>(url)
+                    let! jsonDoc = httpClient.GetFromJsonAsync<System.Text.Json.JsonDocument>(url, ct)
                     
                     let root = jsonDoc.RootElement
                     match root.TryGetProperty("query") with

@@ -126,7 +126,7 @@ type DataExportService
                 
                 for i in 0 .. isbns.Length - 1 do
                     let isbn = isbns.[i]
-                    do! Task.Delay(1000)
+                    do! Task.Delay(1000, ct)
                     
                     let! bookImportResult = taskResult {
                         let! skip = 
@@ -144,10 +144,10 @@ type DataExportService
                         else
                             let rec lookupWithRetry (isbn: string) (retries: int) =
                                 task {
-                                    let! res = googleBooksService.LookupByIsbnAsync(isbn)
+                                    let! res = googleBooksService.LookupByIsbnAsync(isbn, ct = ct)
                                     match res with
                                     | Error e when e.Contains("503") && retries > 0 ->
-                                        do! Task.Delay(5000)
+                                        do! Task.Delay(5000, ct)
                                         return! lookupWithRetry isbn (retries - 1)
                                     | _ -> return res
                                 }
@@ -157,7 +157,7 @@ type DataExportService
                             match metadataOpt with
                             | Some metadata ->
                                 let! (coverImageOpt: string option) = 
-                                    googleBooksService.LookupCoverImageByIsbnWithOpenApiAndThenGoogleAsync(isbn)
+                                    googleBooksService.LookupCoverImageByIsbnWithOpenApiAndThenGoogleAsync(isbn, ct = ct)
                                     |> Task.map (fun r -> match r with | Ok s -> Ok s | _ -> Ok None)
                                 
                                 let imageUrl = 
@@ -182,14 +182,14 @@ type DataExportService
                                                 return Some localAuthors.[0].AuthorId
                                             elif generateUnknownAuthors then
                                                 let! authorMeta = 
-                                                    authorsSearchService.LookupByNameAsync authorName
+                                                    authorsSearchService.LookupByNameAsync(authorName, ct = ct)
                                                     |> Task.map (fun r -> 
                                                         match r with
                                                         | Ok m -> Ok (Some m)
                                                         | Error _ -> Ok None)
                                                 
                                                 let! authorPic = 
-                                                    authorsSearchService.LookupImageUrlByNameAndThumbSizeAsync authorName
+                                                    authorsSearchService.LookupImageUrlByNameAndThumbSizeAsync(authorName, ct = ct)
                                                     |> Task.map (fun r -> 
                                                         match r with
                                                         | Ok s when not (String.IsNullOrEmpty s) -> 
@@ -264,10 +264,10 @@ type DataExportService
                                             
                                             let rec getEmbeddingWithRetry (text: string) (retries: int) =
                                                 task {
-                                                    let! res = textEmbeddingService.GetEmbeddingAsync(text)
+                                                    let! res = textEmbeddingService.GetEmbeddingAsync(text, ct = ct)
                                                     match res with
                                                     | Error e when (e.Contains("429") || e.Contains("quota") || e.Contains("limit") || e.Contains("503")) && retries > 0 ->
-                                                        do! Task.Delay(2000)
+                                                        do! Task.Delay(2000, ct)
                                                         return! getEmbeddingWithRetry text (retries - 1)
                                                     | _ -> return res
                                                 }

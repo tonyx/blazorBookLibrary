@@ -101,14 +101,25 @@
     {
         <div class="card card-sanctuary mb-5 p-4 border-0 shadow-sm bg-surface-low animate-fade-in">
             <div class="d-flex justify-content-between align-items-center mb-2">
-                <span class="text-muted fw-bold">@L["ImportProgress"]: @currentProgress.Current / @currentProgress.Total</span>
-                @if (FSharpOption<TimeSpan>.get_IsSome(currentProgress.EstimatedRemainingTime))
-                {
-                    <span class="text-primary small fw-bold">
-                        <i class="bi bi-clock-history me-1"></i>
-                        @L["EstimatedTimeRemaining"]: @FormatTimeSpan(currentProgress.EstimatedRemainingTime.Value)
-                    </span>
-                }
+                <div>
+                    <span class="text-muted fw-bold">@L["ImportProgress"]: @currentProgress.Current / @currentProgress.Total</span>
+                    @if (importCts != null && importCts.IsCancellationRequested)
+                    {
+                        <span class="badge bg-warning text-dark ms-2">@L["Cancelling"]...</span>
+                    }
+                </div>
+                <div class="d-flex align-items-center gap-3">
+                    @if (FSharpOption<TimeSpan>.get_IsSome(currentProgress.EstimatedRemainingTime))
+                    {
+                        <span class="text-primary small fw-bold">
+                            <i class="bi bi-clock-history me-1"></i>
+                            @L["EstimatedTimeRemaining"]: @FormatTimeSpan(currentProgress.EstimatedRemainingTime.Value)
+                        </span>
+                    }
+                    <button class="btn btn-outline-danger btn-sm rounded-pill px-3" @onclick="CancelImport" disabled="@(importCts == null || importCts.IsCancellationRequested)">
+                        <i class="bi bi-x-circle me-1"></i> @L["Cancel"]
+                    </button>
+                </div>
             </div>
             <div class="progress" style="height: 10px; border-radius: 5px; background-color: var(--surface-high);">
                 <div class="progress-bar progress-bar-striped progress-bar-animated bg-sanctuary" 
@@ -308,8 +319,11 @@
                                     <InputText @ref="isbnInput" class="form-control border-0 font-monospace" 
                                                @bind-Value="newBookIsbn" 
                                                placeholder="@L["IsbnExamplePlaceholder"]" />
-                                    <button type="button" class="btn btn-white border-start" @onclick="ToggleScanner">
-                                        <i class="bi bi-camera me-1"></i> <span class="d-none d-sm-inline">@(showScanner ? L["Close"] : L["Scan"])</span>
+                                    <button type="button" class="btn btn-white border-start" @onclick="ToggleScanner" title="@L["BarCodeScan"]">
+                                        <i class="bi bi-upc-scan text-primary"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-white border-start" @onclick="ToggleCoverScanner" title="@L["CoverScan"]">
+                                        <i class="bi bi-camera text-primary"></i>
                                     </button>
                                     <button type="button" class="btn btn-white border-start text-primary" @onclick="LookupMetadataByIsbn" disabled="@(!IsNewBookIsbnValid || isLookingUpMetadata)">
                                         <i class="bi bi-search"></i>
@@ -395,6 +409,42 @@
                                 </div>
                             }
 
+                            @if (showCoverScanner)
+                            {
+                                <div class="col-12 animate-fade-in mt-2">
+                                    <div class="barcode-scanner-container p-4 bg-dark rounded-4 shadow-lg text-white">
+                                        <div class="d-flex justify-content-between align-items-center mb-3">
+                                            <h6 class="mb-0 text-primary text-serif"><i class="bi bi-journal-medical me-2"></i>@L["CoverScannerActive"]</h6>
+                                            <button type="button" class="btn btn-link text-white p-0" @onclick="ToggleCoverScanner">@L["Close"]</button>
+                                        </div>
+                                        <div id="cover-scanner-wrapper" class="scanner-preview-wrapper rounded-3 overflow-hidden position-relative bg-black" style="min-height: 300px;">
+                                            <BarcodeReader 
+                                                OnBarcodeReceived="(args) => { }" 
+                                                Title=""
+                                                StartCameraAutomatically="true"
+                                                ShowStart="false"
+                                                ShowReset="false"
+                                                ShowVideoDeviceList="true"
+                                            />
+                                            <div class="d-flex justify-content-center position-absolute bottom-0 w-100 p-4" style="z-index: 10;">
+                                                <button type="button" class="btn btn-primary btn-lg rounded-pill px-5 shadow-lg" @onclick="CaptureCoverPhoto" disabled="@isIdentifyingCover">
+                                                    @if (isIdentifyingCover)
+                                                    {
+                                                        <span class="spinner-border spinner-border-sm me-2"></span>
+                                                        @L["IdentifyingCover"]
+                                                    }
+                                                    else
+                                                    {
+                                                        <i class="bi bi-camera-fill me-2"></i> @L["CaptureCoverPhoto"]
+                                                    }
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <p class="small text-muted mt-3 text-center mb-0 serif italic">@L["PositionCoverInsideFrameNote"]</p>
+                                    </div>
+                                </div>
+                            }
+
                             @* Description / Narrative Abstract *@
                             <div class="col-12">
                                 <label class="form-label small text-muted text-uppercase fw-bold mb-2">@L["NarrativeAbstract"]</label>
@@ -469,6 +519,9 @@
                                 <div class="d-flex gap-3">
                                     <button type="submit" class="btn btn-sanctuary btn-lg flex-grow-1 py-3 shadow-sm shadow-hover">
                                         <i class="bi bi-journal-plus me-2"></i> @L["FinalizeArchivalRegistration"]
+                                    </button>
+                                    <button type="button" class="btn btn-outline-warning btn-lg px-4" @onclick="ResetForm">
+                                        <i class="bi bi-eraser me-2"></i> @L["Reset"]
                                     </button>
                                     <button type="button" class="btn btn-outline-secondary btn-lg px-4" @onclick="() => showAddSection = false">
                                         @L["Discard"]
@@ -626,7 +679,19 @@
     private Microsoft.AspNetCore.Components.Forms.InputText? isbnInput;
     private string newBookTitle = "";
     private string newBookIsbn = "";
-    private string newBookDescription = "";
+    private string _newBookDescription = "";
+    private string newBookDescription
+    {
+        get => _newBookDescription;
+        set
+        {
+            _newBookDescription = value;
+            if (string.IsNullOrWhiteSpace(_newBookDescription))
+            {
+                generateEmbeddingAfterAdd = false;
+            }
+        }
+    }
     private bool allowInvalidIsbn = false;
     private bool isLookingUpMetadata = false;
     private int? newBookYear = DateTime.Now.Year;
@@ -645,10 +710,95 @@
     private bool importAllowDuplicates = false;
     private bool importGenerateAuthors = true;
     private bool importGenerateEmbeddings = false;
+    private CancellationTokenSource? importCts;
+
+    private void CancelImport()
+    {
+        importCts?.Cancel();
+    }
 
     private void ToggleScanner()
     {
         showScanner = !showScanner;
+        if (showScanner) showCoverScanner = false;
+    }
+
+    private bool showCoverScanner = false;
+    private bool isIdentifyingCover = false;
+
+    private void ToggleCoverScanner()
+    {
+        showCoverScanner = !showCoverScanner;
+        if (showCoverScanner) showScanner = false;
+    }
+
+    private async Task CaptureCoverPhoto()
+    {
+        if (isIdentifyingCover) return;
+        
+        isIdentifyingCover = true;
+        StateHasChanged();
+        
+        try
+        {
+            Console.WriteLine("CaptureCoverPhoto: Starting...");
+            // Small delay to ensure UI is stable
+            await Task.Delay(300);
+
+            // Capture frame from the video element rendered by BarcodeReader specifically in the cover scanner
+            var base64Data = await JSRuntime.InvokeAsync<string>("captureVideoFrame", "#cover-scanner-wrapper video");
+            
+            if (string.IsNullOrEmpty(base64Data))
+            {
+                Console.WriteLine("CaptureCoverPhoto: Failed to capture base64Data.");
+                await ShowStatus("Failed to capture image from camera.", "warning");
+                return;
+            }
+
+            Console.WriteLine("CaptureCoverPhoto: Image captured, length: " + base64Data.Length);
+            // Extract base64 part
+            var base64Content = base64Data.Split(',')[1];
+            var mimeType = "image/jpeg";
+
+            Console.WriteLine("CaptureCoverPhoto: Calling TextEmbeddingService...");
+            var result = await TextEmbeddingService.GetPartialBookMatchByCoverImage(base64Content, mimeType);
+            Console.WriteLine("CaptureCoverPhoto: Service returned. Success: " + result.IsOk);
+            
+            if (result.IsOk)
+            {
+                var match = result.ResultValue;
+
+                if (match.IsValidIsbn)
+                {
+                    newBookIsbn = match.ValidIsbn.Value;
+                    await ShowStatus(string.Format(L["IsbnIdentified"], newBookIsbn), "success");
+                    showCoverScanner = false;
+                }
+                else if (match.IsValidTitle)
+                {
+                    newBookTitle = match.ValidTitle.Value;
+                    await ShowStatus(string.Format(L["TitleIdentified"], newBookTitle), "info");
+                    showCoverScanner = false;
+                }
+                else
+                {
+                    await ShowStatus(L["NoMatchFoundCover"], "warning");
+                }
+            }
+            else
+            {
+                await ShowStatus($"Identification error: {result.ErrorValue}", "error");
+            }
+        }
+        catch (Exception ex)
+        {
+            await ShowStatus($"Error during cover capture: {ex.Message}", "error");
+        }
+        finally
+        {
+            isIdentifyingCover = false;
+            StateHasChanged();
+        }
     }
 
     private async Task HandleBarcodeReceived(BarcodeReceivedEventArgs args)
@@ -722,7 +872,7 @@
     private GridSort<BookSearchResult> sortScore = GridSort<BookSearchResult>.ByDescending(b => FSharpOption<double>.get_IsSome(b.Score) ? b.Score.Value : 0f);
 
     private string statusMessage = "";
-    private bool generateEmbeddingAfterAdd = true;
+    private bool generateEmbeddingAfterAdd = false;
     private Category mainCategory = Category.Other;
     private List<Category> additionalCategories = new();
     private Category categoryToAdd = Category.Other;
@@ -889,7 +1039,10 @@
         newBookIsbn = "";
         newBookDescription = "";
         newBookImageUrl = "";
-        generateEmbeddingAfterAdd = true;
+        newBookYear = DateTime.Now.Year;
+        newBookAvailability = "Circulating";
+        mainCategoryString = Category.Other.Value();
+        generateEmbeddingAfterAdd = false;
         coverPreviewUrl = null;
         selectedAuthors.Clear();
         metadataAuthors.Clear();
@@ -1200,16 +1353,31 @@
                 StateHasChanged();
             });
 
-            var result = await DataExportService.ImportFromIsbns(isbns, !importAllowDuplicates, importGenerateAuthors, importGenerateEmbeddings, progress, CancellationToken.None);
+            importCts = new CancellationTokenSource();
+            var result = await DataExportService.ImportFromIsbns(isbns, !importAllowDuplicates, importGenerateAuthors, importGenerateEmbeddings, progress, importCts.Token);
             
             if (result.IsOk)
             {
                 var (successCount, failureCount) = result.ResultValue;
-                await ShowStatus(string.Format(L["ImportSummary"], successCount, failureCount), "success");
+                if (importCts.IsCancellationRequested)
+                {
+                    await ShowStatus(string.Format(L["ImportInterruptedSummary"], successCount, failureCount), "info");
+                }
+                else
+                {
+                    await ShowStatus(string.Format(L["ImportSummary"], successCount, failureCount), "success");
+                }
             }
             else
             {
-                await ShowStatus(string.Format(L["ImportFailed"], result.ErrorValue), "error");
+                if (importCts.IsCancellationRequested)
+                {
+                     await ShowStatus(L["ImportCancelled"], "info");
+                }
+                else
+                {
+                    await ShowStatus(string.Format(L["ImportFailed"], result.ErrorValue), "error");
+                }
             }
         }
         catch (Exception ex)
@@ -1219,6 +1387,8 @@
         finally
         {
             isImporting = false;
+            importCts?.Dispose();
+            importCts = null;
         }
     }
     private ImportProgress? currentProgress;

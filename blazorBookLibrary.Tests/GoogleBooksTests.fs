@@ -1,5 +1,6 @@
 namespace BookLibrary.Tests
 
+open System
 open Expecto
 open Microsoft.Extensions.Configuration
 open System.Net.Http
@@ -24,8 +25,8 @@ module GoogleBooksTests =
     [<Tests>]
     let tests =
         // test pending as Google Books API may be down
-        ptestList "Google Books Service Tests" [
-            testCaseTask "can lookup book by ISBN and populate Description" <| fun _ -> task {
+        testList "Google Books Service Tests" [
+            ptestCaseTask "can lookup book by ISBN and populate Description" <| fun _ -> task {
                 let isbn = "9780132350884" // Clean Code
                 let! result = googleService.LookupByIsbnAsync(isbn)
                 match result with
@@ -40,7 +41,7 @@ module GoogleBooksTests =
                 | Error e ->
                     failwith e
             }
-            testCaseTask "can lookup book by Title" <| fun _ -> task {
+            ptestCaseTask "can lookup book by Title" <| fun _ -> task {
                 let title = "The Lord of the Rings"
                 let! result = googleService.LookupByTitleAsync(title)
                 match result with
@@ -53,7 +54,7 @@ module GoogleBooksTests =
                 | Error e ->
                     failwith e
             }
-            testCaseTask "can lookup multiple books by Title" <| fun _ -> task {
+            ptestCaseTask "can lookup multiple books by Title" <| fun _ -> task {
                 let title = "The Lord of the Rings"
                 let! result = googleService.LookupMultipleByTitleAsync(title)
                 match result with
@@ -63,7 +64,7 @@ module GoogleBooksTests =
                 | Error e ->
                     failwith e
             }
-            testCaseTask "can lookup cover image by ISBN (Open Library)" <| fun _ -> task {
+            ptestCaseTask "can lookup cover image by ISBN (Open Library)" <| fun _ -> task {
                 let isbnStr = "9788804668237"
                 let isbn = Isbn isbnStr
                 
@@ -95,7 +96,7 @@ module GoogleBooksTests =
                     Expect.isTrue (url.Contains("archive.org")) "Large cover should also point to archive.org"
                 | _ -> failwith "Failed to lookup Large cover"
             }
-            testCaseTask "returns error for invalid ISBN in cover lookup" <| fun _ -> task {
+            ptestCaseTask "returns error for invalid ISBN in cover lookup" <| fun _ -> task {
                 let isbn = InvalidIsbn "123"
                 let! result = googleService.LookupCoverImageByIsbnAsync(isbn)
                 match result with
@@ -117,5 +118,33 @@ module GoogleBooksTests =
                     failwith "Should have found a cover for Clean Code"
                 | Error e ->
                     failwith e
+            }
+
+            ftestCaseTask "can identify book from cover image (Gemini)" <| fun _ -> task {
+                let embeddingService = TestSetup.getTextEmbeddingService()
+                let imgPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "testImgData", "sampleCover.jpg")
+                
+                if not (File.Exists imgPath) then
+                    // Fallback for some test runners that don't copy properly or run from different CWD
+                    let fallbackPath = Path.Combine("..", "..", "..", "testImgData", "sampleCover.jpg")
+                    if File.Exists fallbackPath then
+                        let base64Image = System.Convert.ToBase64String(File.ReadAllBytes fallbackPath)
+                        let! result = embeddingService.GetPartialBookMatchByCoverImage base64Image "image/jpeg"
+                        match result with
+                        | Ok matchData -> 
+                            printfn "Identified Book: %A" matchData
+                            Expect.isTrue (matchData.IsValidTitle || matchData.IsValidIsbn) "Should identify metadata"
+                        | Error e -> failwith e
+                    else
+                        failwithf "Test image not found at %s or %s" imgPath fallbackPath
+                else
+                    let base64Image = System.Convert.ToBase64String(File.ReadAllBytes imgPath)
+                    let! result = embeddingService.GetPartialBookMatchByCoverImage base64Image "image/jpeg"
+                    match result with
+                    | Ok matchData ->
+                        printfn "Identified Book: %A" matchData
+                        Expect.isTrue (matchData.IsValidTitle || matchData.IsValidIsbn) "Should identify either title or ISBN from cover"
+                    | Error e ->
+                        failwith e
             }
         ]

@@ -9,6 +9,8 @@ open BookLibrary.Shared.Services
 open BookLibrary.Shared.Commons
 open System.Text.Json.Serialization
 open System.Collections.Generic
+open System.Threading
+open System.Runtime.InteropServices
 
 type IndustryIdentifier = {
     [<JsonPropertyName("type")>] Type: string
@@ -87,10 +89,12 @@ type GoogleBooksService(httpClient: HttpClient, configuration: IConfiguration) =
         }
 
     interface IGoogleBooksService with
-        member this.LookupByIsbnAsync(isbn: string) =
-            withTimeout (fun ct -> task {
+        member this.LookupByIsbnAsync(isbn: string, [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken) =
+            let ct = defaultArg ct CancellationToken.None
+            withTimeout (fun internalCt -> task {
+                use linkedCts = CancellationTokenSource.CreateLinkedTokenSource(ct, internalCt)
                 let url = $"https://www.googleapis.com/books/v1/volumes?q=isbn:{isbn}&key={apiKey}"
-                let! response = httpClient.GetFromJsonAsync<GoogleBooksResponse>(url, ct)
+                let! response = httpClient.GetFromJsonAsync<GoogleBooksResponse>(url, linkedCts.Token)
                 
                 if isNull (box response) || isNull (box response.Items) || response.Items.Length = 0 then
                     return Ok None
@@ -100,11 +104,13 @@ type GoogleBooksService(httpClient: HttpClient, configuration: IConfiguration) =
                     return Ok (Some metadataWithActualIsbn)
             })
 
-        member this.LookupByTitleAsync(title: string) =
-            withTimeout (fun ct -> task {
+        member this.LookupByTitleAsync(title: string, [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken) =
+            let ct = defaultArg ct CancellationToken.None
+            withTimeout (fun internalCt -> task {
+                use linkedCts = CancellationTokenSource.CreateLinkedTokenSource(ct, internalCt)
                 let encodedTitle = System.Web.HttpUtility.UrlEncode(title)
                 let url = $"https://www.googleapis.com/books/v1/volumes?q=intitle:{encodedTitle}&key={apiKey}"
-                let! response = httpClient.GetFromJsonAsync<GoogleBooksResponse>(url, ct)
+                let! response = httpClient.GetFromJsonAsync<GoogleBooksResponse>(url, linkedCts.Token)
                 
                 if isNull (box response) || isNull (box response.Items) || response.Items.Length = 0 then
                     return Ok None
@@ -113,11 +119,13 @@ type GoogleBooksService(httpClient: HttpClient, configuration: IConfiguration) =
                     return Ok (Some metadata)
             })
 
-        member this.LookupMultipleByTitleAsync(title: string) =
-            withTimeout (fun ct -> task {
+        member this.LookupMultipleByTitleAsync(title: string, [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken) =
+            let ct = defaultArg ct CancellationToken.None
+            withTimeout (fun internalCt -> task {
+                use linkedCts = CancellationTokenSource.CreateLinkedTokenSource(ct, internalCt)
                 let encodedTitle = System.Web.HttpUtility.UrlEncode(title)
                 let url = $"https://www.googleapis.com/books/v1/volumes?q=intitle:{encodedTitle}&key={apiKey}"
-                let! response = httpClient.GetFromJsonAsync<GoogleBooksResponse>(url, ct)
+                let! response = httpClient.GetFromJsonAsync<GoogleBooksResponse>(url, linkedCts.Token)
                 
                 if isNull (box response) || isNull (box response.Items) then
                     return Ok []
@@ -129,18 +137,20 @@ type GoogleBooksService(httpClient: HttpClient, configuration: IConfiguration) =
                     return Ok results
             })
 
-        member this.LookupCoverImageByIsbnAsync(isbn: Isbn, ?thumbRoughSize: ThumbRoughSize) =
-            withTimeout (fun ct -> task {
+        member this.LookupCoverImageByIsbnAsync(isbn: Isbn, [<Optional; DefaultParameterValue(null)>] ?thumbRoughSize: ThumbRoughSize, [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken) =
+            let ct = defaultArg ct CancellationToken.None
+            withTimeout (fun internalCt -> task {
+                use linkedCts = CancellationTokenSource.CreateLinkedTokenSource(ct, internalCt)
                 let size = defaultArg thumbRoughSize ThumbRoughSize.Medium
                 let sizeStr = size.ShortPrint
                 
                 match isbn with
                 | Isbn value ->
                     let url = $"https://covers.openlibrary.org/b/isbn/{value}-{sizeStr}.jpg"
-                    let! response = httpClient.GetAsync(url, ct)
+                    let! response = httpClient.GetAsync(url, linkedCts.Token)
                     if response.IsSuccessStatusCode then
                         let finalUrl = response.RequestMessage.RequestUri.ToString()
-                        let! content = response.Content.ReadAsByteArrayAsync(ct)
+                        let! content = response.Content.ReadAsByteArrayAsync(linkedCts.Token)
                         if content.Length > 1000 && not (finalUrl.Contains("blank")) && finalUrl <> url then
                             return Ok (Some finalUrl)
                         else
@@ -153,13 +163,15 @@ type GoogleBooksService(httpClient: HttpClient, configuration: IConfiguration) =
                     return Ok None
             })
 
-        member this.LookupGoogleApiCoverImageByIsbnAsync(isbn: Isbn) =
-            withTimeout (fun ct -> task {
+        member this.LookupGoogleApiCoverImageByIsbnAsync(isbn: Isbn, [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken) =
+            let ct = defaultArg ct CancellationToken.None
+            withTimeout (fun internalCt -> task {
+                use linkedCts = CancellationTokenSource.CreateLinkedTokenSource(ct, internalCt)
                 let isbnStr = isbn.Value
                 if String.IsNullOrWhiteSpace isbnStr then return Ok None
                 else
                     let url = $"https://www.googleapis.com/books/v1/volumes?q=isbn:{isbnStr}&key={apiKey}"
-                    let! response = httpClient.GetFromJsonAsync<GoogleBooksResponse>(url, ct)
+                    let! response = httpClient.GetFromJsonAsync<GoogleBooksResponse>(url, linkedCts.Token)
                     
                     if isNull (box response) || isNull (box response.Items) || response.Items.Length = 0 then
                         return Ok None
@@ -171,20 +183,23 @@ type GoogleBooksService(httpClient: HttpClient, configuration: IConfiguration) =
                             return Ok None
             })
 
-        member this.LookupCoverImageByIsbnWithOpenApiAndThenGoogleAsync(isbn: Isbn, ?thumbRoughSize: ThumbRoughSize) =
+        member this.LookupCoverImageByIsbnWithOpenApiAndThenGoogleAsync(isbn: Isbn, [<Optional; DefaultParameterValue(null)>] ?thumbRoughSize: ThumbRoughSize, [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken) =
+            let ct = defaultArg ct CancellationToken.None
             task {
                 let size = defaultArg thumbRoughSize ThumbRoughSize.Medium
-                let! openLibraryResult = (this :> IGoogleBooksService).LookupCoverImageByIsbnAsync(isbn, size)
+                let! openLibraryResult = (this :> IGoogleBooksService).LookupCoverImageByIsbnAsync(isbn, size, ct)
                 
                 match openLibraryResult with
                 | Ok (Some url) -> return Ok (Some url)
                 | _ -> 
                     // If Open Library fails or returns None, try Google API
-                    return! (this :> IGoogleBooksService).LookupGoogleApiCoverImageByIsbnAsync(isbn)
+                    return! (this :> IGoogleBooksService).LookupGoogleApiCoverImageByIsbnAsync(isbn, ct)
             }
 
-        member this.LookupGoogleApiCoverImageByTitleAndOptionalAuthorAsync(title: string, ?author: string) =
-            withTimeout (fun ct -> task {
+        member this.LookupGoogleApiCoverImageByTitleAndOptionalAuthorAsync(title: string, [<Optional; DefaultParameterValue(null)>] ?author: string, [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken) =
+            let ct = defaultArg ct CancellationToken.None
+            withTimeout (fun internalCt -> task {
+                use linkedCts = CancellationTokenSource.CreateLinkedTokenSource(ct, internalCt)
                 if String.IsNullOrWhiteSpace title then return Ok None
                 else
                     let encodedTitle = System.Web.HttpUtility.UrlEncode(title)
@@ -196,7 +211,7 @@ type GoogleBooksService(httpClient: HttpClient, configuration: IConfiguration) =
                         | _ -> ""
                     
                     let url = $"https://www.googleapis.com/books/v1/volumes?q=intitle:{encodedTitle}{authorPart}&key={apiKey}"
-                    let! response = httpClient.GetFromJsonAsync<GoogleBooksResponse>(url, ct)
+                    let! response = httpClient.GetFromJsonAsync<GoogleBooksResponse>(url, linkedCts.Token)
                     
                     if isNull (box response) || isNull (box response.Items) || response.Items.Length = 0 then
                         return Ok None

@@ -46,6 +46,7 @@
 
   <ItemGroup>
     <None Include="appSettings.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="testImgData\*" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

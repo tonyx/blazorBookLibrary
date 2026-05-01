@@ -5,6 +5,7 @@ open TestSetup
 open BookLibrary.Shared.Services
 open FsToolkit.ErrorHandling
 open BookLibrary.Shared.Commons
+open System.Threading
 open System.Threading.Tasks
 
 [<Tests>]
@@ -13,7 +14,7 @@ let tests =
         testCaseTask "get embedding for a simple text - Ok" <| fun _ -> task {
             let textEmbeddingService = getTextEmbeddingService()
             let text = "The Constitution of the United States is the supreme law of the United States of America."
-            let! result = textEmbeddingService.GetEmbeddingAsync text
+            let! result = textEmbeddingService.GetEmbeddingAsync(text)
             
             match result with
             | Ok embedding ->
@@ -30,7 +31,7 @@ let tests =
             let vectorDbService = getVectorDbService()
             let text = "Deep Learning is a subset of machine learning."
             
-            let! embeddingResult = textEmbeddingService.GetEmbeddingAsync text
+            let! embeddingResult = textEmbeddingService.GetEmbeddingAsync(text)
             match embeddingResult with
             | Error e -> failwithf "embedding failed: %s" e
             | Ok embedding ->
@@ -57,7 +58,7 @@ let tests =
             let text1 = "Machine Learning"
             let text2 = "Deep Learning"
             
-            let! embedding1Result = textEmbeddingService.GetEmbeddingAsync text1
+            let! embedding1Result = textEmbeddingService.GetEmbeddingAsync(text1)
             match embedding1Result with
             | Error e -> failwithf "embedding 1 failed: %s" e
             | Ok embedding1 ->
@@ -65,7 +66,7 @@ let tests =
                 let bookId = BookId.New()
                 let! _ = vectorDbService.StoreEmbeddingAsync(id, bookId, embedding1)
                 
-                let! embedding2Result = textEmbeddingService.GetEmbeddingAsync text2
+                let! embedding2Result = textEmbeddingService.GetEmbeddingAsync(text2)
                 match embedding2Result with
                 | Error e -> failwithf "embedding 2 failed: %s" e
                 | Ok embedding2 ->
@@ -85,7 +86,7 @@ let tests =
             let vectorDbService = getVectorDbService()
             let text = "To be deleted"
             
-            let! embeddingResult = textEmbeddingService.GetEmbeddingAsync text
+            let! embeddingResult = textEmbeddingService.GetEmbeddingAsync(text)
             match embeddingResult with
             | Error e -> failwithf "embedding failed: %s" e
             | Ok embedding ->
@@ -104,7 +105,7 @@ let tests =
             let textEmbeddingService = getTextEmbeddingService()
             let text = "Artificial Intelligence is transforming the world."
             
-            let! embeddingResult = textEmbeddingService.GetEmbeddingAsync text
+            let! embeddingResult = textEmbeddingService.GetEmbeddingAsync(text)
             match embeddingResult with
             | Error e -> failwithf "embedding failed: %s" e
             | Ok embedding ->
@@ -119,7 +120,7 @@ let tests =
             let textEmbeddingService = getTextEmbeddingService()
             let text = "Artificial Intelligence is transforming the world."
             
-            let! embeddingResult = textEmbeddingService.GetEmbeddingAsync text
+            let! embeddingResult = textEmbeddingService.GetEmbeddingAsync(text)
             match embeddingResult with
             | Error e -> failwithf "embedding failed: %s" e
             | Ok embedding ->
@@ -141,7 +142,7 @@ let tests =
 
             let! results = 
                 [| textA; textB; textC; textQuery |]
-                |> Array.map textEmbeddingService.GetEmbeddingAsync
+                |> Array.map (fun t -> textEmbeddingService.GetEmbeddingAsync(t))
                 |> Array.toList
                 |> Task.WhenAll
             
@@ -174,6 +175,22 @@ let tests =
                 let containsA = items |> List.exists (fun (item, bid) -> item.Vector = embeddings.[0].Vector && bid = bookIdA)
                 let containsB = items |> List.exists (fun (item, bid) -> item.Vector = embeddings.[1].Vector && bid = bookIdB)
                 Expect.isTrue (containsA && containsB) "both physics statements (A and B) should be found with their correct book ids"
+        }
+        testCaseTask "get embedding - Cancelled" <| fun _ -> task {
+            let (textEmbeddingService: ITextEmbeddingService) = getTextEmbeddingService()
+            let text = "This task will be cancelled."
+            use cts = new CancellationTokenSource()
+            cts.Cancel()
+            
+            let! (result: Result<EmbeddingData, string>) = textEmbeddingService.GetEmbeddingAsync(text, ?ct = Some cts.Token)
+            
+            match result with
+            | Error e when e.Contains("A task was canceled") || e.Contains("The operation was canceled") -> 
+                () // Success: it was cancelled
+            | Ok _ -> 
+                failwith "Should have failed with cancellation error but succeeded"
+            | Error e -> 
+                failwithf "Should have failed with cancellation error but failed with: %s" e
         }
     ]
     |> testSequenced

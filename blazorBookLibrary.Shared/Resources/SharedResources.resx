@@ -61,6 +61,15 @@
   <data name="Active" xml:space="preserve"><value>Active</value></data>
   <data name="Add" xml:space="preserve"><value>Add</value></data>
   <data name="AddAuthor" xml:space="preserve"><value>Add Author</value></data>
+  <data name="BarCodeScan" xml:space="preserve"><value>BarCode Scan</value></data>
+  <data name="CoverScan" xml:space="preserve"><value>Cover Scan</value></data>
+  <data name="CoverScannerActive" xml:space="preserve"><value>Cover Scanner Active</value></data>
+  <data name="PositionCoverInsideFrameNote" xml:space="preserve"><value>Position the entire book cover inside the frame and click capture.</value></data>
+  <data name="CaptureCoverPhoto" xml:space="preserve"><value>Capture Cover Photo</value></data>
+  <data name="IsbnIdentified" xml:space="preserve"><value>ISBN identified: {0}. You can now complete the metadata search.</value></data>
+  <data name="TitleIdentified" xml:space="preserve"><value>Title identified: {0}. You can now search via API.</value></data>
+  <data name="NoMatchFoundCover" xml:space="preserve"><value>No clear match found from the cover image.</value></data>
+  <data name="IdentifyingCover" xml:space="preserve"><value>Identifying cover...</value></data>
   <data name="AddNewAuthor" xml:space="preserve"><value>Add New Author</value></data>
   <data name="AddNewBook" xml:space="preserve"><value>Add New Book</value></data>
   <data name="AddNewBookEntry" xml:space="preserve"><value>Add New Book Entry</value></data>
@@ -242,7 +251,7 @@
   <data name="InvalidFiscalCodeUpdated" xml:space="preserve"><value>Invalid fiscal code updated</value></data>
   <data name="NameUpdated" xml:space="preserve"><value>Name updated</value></data>
   <data name="SurnameUpdated" xml:space="preserve"><value>Surname updated</value></data>
-  <data name="Name" xml:space="preserve"><value>Name</value></data>
+
   <data name="Surname" xml:space="preserve"><value>Surname</value></data>
   <data name="Valid" xml:space="preserve"><value>Valid</value></data>
   <data name="Invalid" xml:space="preserve"><value>Invalid</value></data>
@@ -322,4 +331,8 @@
   <data name="EmbeddingStorageFailed" xml:space="preserve"><value>Embedding storage failed</value></data>
   <data name="EmbeddingGenerationFailed" xml:space="preserve"><value>Embedding generation failed</value></data>
   <data name="EmbeddingError" xml:space="preserve"><value>Embedding error</value></data>
+  <data name="Cancel" xml:space="preserve"><value>Cancel</value></data>
+  <data name="Cancelling" xml:space="preserve"><value>Cancelling</value></data>
+  <data name="ImportInterruptedSummary" xml:space="preserve"><value>Import interrupted. Results so far: {0} success, {1} failed/skipped</value></data>
+  <data name="ImportCancelled" xml:space="preserve"><value>Import cancelled.</value></data>
 </root>
