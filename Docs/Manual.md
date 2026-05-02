@@ -94,6 +94,9 @@ Managers use the **Books Manager** to maintain the library's excellence.
 - **Adding Books**: Click **"Add New Book Entry"** to open the registration form.
 - **Google Books Integration**: Enter a title and click **"Search API"** to automatically pull metadata (description, year, authors) from global records.
 - **Editing Records**: Click any title in the manager list to modify its details, including categories and archival notes.
+- **AI-Powered Enrichment**:
+    - **Generate Missing Descriptions**: If a book lacks a summary, use the **"Generate Description"** tool. The system leverages AI to synthesize a high-quality abstract based on the title and existing metadata.
+    - **Narrative Undo**: If you're not satisfied with the AI-generated text, use the **"Undo"** button to revert to the previous version instantly.
 - **AI Embedding Management**:
     - To enable semantic search, every book must have an "embedding" (vector data) associated with its description.
     - In the book edit page, if vector data is missing, click **"Generate Embedding"**. The system will use AI to convert the description into searchable vector data.
@@ -125,8 +128,14 @@ The **Books Manager** provides powerful tools for mass data handling.
 - **ISBN Bulk Import**: 
     - Click **"Import"** to open the bulk registration tool.
     - Paste a list of ISBNs (one per line) or upload a text file.
-    - **Intelligent Resolution**: The system automatically looks up metadata for each ISBN via global APIs.
+    - **Configuration Options**:
+        - **Generate missing authors**: Automatically create author profiles for unrecognized creators.
+        - **Allow duplicate ISBNs**: Enable this to permit multiple entries of the same ISBN.
+        - **Generate missing descriptions**: Use AI to synthesize summaries for books where global APIs provide none.
+        - **Generate automatically embedding**: Instantly prepare the book for semantic search upon import.
+    - **Intelligent Resolution**: The system automatically looks up metadata for each ISBN via global APIs and AI services.
     - **Progress Tracking**: A real-time progress bar shows the current status and estimated time remaining for large imports.
+    - **Post-Import Summary**: Upon completion, a detailed report displays successful imports, warnings, and errors. You can easily copy the ISBNs of failed records to retry them later.
 
 ---
 

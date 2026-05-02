@@ -13,12 +13,16 @@ The chatbot returns a clean list in seconds. I've already copied that list into 
 Let's move back to our **Books Manager** and click on the **Import** feature. This is where the platform really shines. I've uploaded my text file, and now we're going to configure the import flags. To ensure our metadata is as rich as possible, we'll toggle these three settings:
 
 1.  **Generate associated authors when missing**: This flag ensures the system fetches and creates author profiles automatically.
-2.  **Allow duplicated ISBN entries**: We'll enable this to ensure the import doesn't stall if there are overlaps.
+2.  **Allow duplicated ISBN entries**: We'll enable this if we want to allow entering a book with a ISBN already existing in our database.
 3.  **Generate automatically embedding**: This is the most critical step. It ensures every book is instantly discoverable via semantic search.
+5. **Generate missing descriptions**: This will allow A.I. to generate a description for the book if it's missing.
+
 
 I'll hit the **"Start Import"** button now. 
 
 > *[Note: this is the actual time for importing]*
+We will see a window showing the progress of the import. Let's see how long it will take.
+After finished, we can also see a nice summary of the imported books, including the total number of books imported, the number of books with errors, and the number of books with warnings. We can copy the ISBNs of the errored books or the ones not found and try again.
 
 ### Step 3: Sanity Check and Semantic Power
 Now that the import has finished, let's enter the **Books** section. As you can see, all 100 books appear here, fully populated with metadata.

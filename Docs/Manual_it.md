@@ -94,6 +94,9 @@ I manager utilizzano il **Gestore Libri** per mantenere l'eccellenza della bibli
 - **Aggiunta Libri**: Clicca su **"Aggiungi Nuovo Libro"** per aprire il modulo di registrazione.
 - **Integrazione Google Books**: Inserisci un titolo e clicca su **"Cerca tramite API"** per recuperare automaticamente i metadati (descrizione, anno, autori) dai record globali.
 - **Modifica Record**: Clicca su qualsiasi titolo nell'elenco per modificarne i dettagli, incluse le categorie e le note d'archivio.
+- **Arricchimento tramite IA**:
+    - **Generazione Descrizioni Mancanti**: Se un libro non ha un riassunto, usa lo strumento **"Genera Descrizione"**. Il sistema utilizza l'IA per sintetizzare un abstract di alta qualità basato sul titolo e sui metadati esistenti.
+    - **Annullamento Narrativo (Undo)**: Se non sei soddisfatto del testo generato dall'IA, usa il pulsante **"Annulla"** per ripristinare istantaneamente la versione precedente.
 - **Gestione Embedding AI**:
     - Per abilitare la ricerca semantica, ogni libro deve avere un "embedding" (vettore di dati) associato alla sua descrizione.
     - Nella pagina di modifica del libro, se manca il dato vettoriale, clicca su **"Genera Embedding"**. Il sistema utilizzerà l'intelligenza artificiale per convertire la descrizione in dati vettoriali.
@@ -125,8 +128,14 @@ Il **Gestore Libri** offre potenti strumenti per la gestione massiva dei dati.
 - **Importazione Massiva via ISBN**: 
     - Clicca su **"Importa"** per aprire lo strumento di registrazione massiva.
     - Incolla un elenco di codici ISBN (uno per riga) o carica un file di testo.
-    - **Risoluzione Intelligente**: Il sistema ricerca automaticamente i metadati per ogni ISBN tramite API globali.
+    - **Opzioni di Configurazione**:
+        - **Genera autori mancanti**: Crea automaticamente i profili autore per i creatori non riconosciuti.
+        - **Consenti ISBN duplicati**: Abilita questa opzione per permettere più voci con lo stesso ISBN.
+        - **Genera descrizioni mancanti**: Usa l'IA per sintetizzare riassunti per i libri dove le API globali non ne forniscono alcuno.
+        - **Genera embedding automaticamente**: Prepara istantaneamente il libro per la ricerca semantica al momento dell'importazione.
+    - **Risoluzione Intelligente**: Il sistema ricerca automaticamente i metadati per ogni ISBN tramite API globali e servizi di IA.
     - **Monitoraggio Avanzamento**: Una barra di avanzamento in tempo reale mostra lo stato corrente e il tempo stimato rimanente per le importazioni di grandi dimensioni.
+    - **Riepilogo Post-Importazione**: Al termine, un report dettagliato mostra le importazioni riuscite, gli avvisi e gli errori. Puoi copiare facilmente gli ISBN dei record falliti per riprovare in seguito.
 
 ---
 

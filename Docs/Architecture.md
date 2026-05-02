@@ -60,7 +60,7 @@ graph TB
 
 ### 3. Service Layer
 - **Domain Services**: Thin wrappers in F# that orchestrate command execution and state retrieval.
-- **External Services**: Integrates with the **Google Books API** to enrich local data with global metadata.
+- **External Services**: Integrates with the **Google Books API** for metadata lookup and uses **Gemini AI** for synthetic description generation and high-performance vector embedding creation.
 
 ### 4. Data Persistence
 - **Dual Database Strategy**:

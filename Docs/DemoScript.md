@@ -46,7 +46,17 @@
 
 ---
 
-## Part 4: The Archival Backbone
+## Part 4: Scaling Up (Bulk Import & AI Enrichment)
+
+**[Scene: Bulk Import Page]**
+"Sometimes I have a massive list of ISBNs to import all at once—like the Guardian's top 100 novels. I'll just paste my list here. But here's the cool part: I can toggle these AI enrichment flags. I'll tell the system to automatically generate missing authors, and more importantly, use AI to **synthesize descriptions** if they're missing from global records. I'll also enable 'Auto-Generate Embeddings' so they're instantly searchable."
+
+**[Action: Click Start Import, progress bar moves]**
+"Look at that progress! The system is working through the list, fetching metadata and using AI to fill in the gaps. Once it's done, I get a full summary. If any ISBNs failed, I can just copy them and try again later. This is how you build a world-class library in minutes, not days."
+
+---
+
+## Part 5: The Archival Backbone
 
 **[Scene: Export/Import or Authors Manager]**
 "As a manager, I also care about the long-term health of our data. I can export our entire catalog to CSV or JSON with one click for external analysis. And if I need to manage authors, I can use the **Authors Manager** to fetch portraits and biographies directly from Wikipedia, keeping our creators' profiles as vivid as their books."
