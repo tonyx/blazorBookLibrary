@@ -1,6 +1,6 @@
-\restrict VEGU9aHpgnAOkGVMkMhcj9NSz8nlLraS1ThJFNlMKEIB8EuYMOqLn4H4lfsuN4O
+\restrict R6N1qtmxPVLVqUijxEIQMGmBFab46UkyR4QwGuvm6wetaUyLopn6heFhnyDHlhV
 
--- Dumped from database version 17.9 (Homebrew)
+-- Dumped from database version 16.12
 -- Dumped by pg_dump version 18.0
 
 SET statement_timeout = 0;
@@ -14,6 +14,13 @@ SET check_function_bodies = false;
 SET xmloption = content;
 SET client_min_messages = warning;
 SET row_security = off;
+
+--
+-- Name: public; Type: SCHEMA; Schema: -; Owner: -
+--
+
+-- *not* creating schema, since initdb creates it
+
 
 --
 -- Name: insert_01_author_event_and_return_id(text, uuid); Type: FUNCTION; Schema: public; Owner: -
@@ -165,6 +172,23 @@ DECLARE
 inserted_id integer;
 BEGIN
 INSERT INTO events_01_Review(event, aggregate_id, timestamp)
+VALUES(event_in::text, aggregate_id,  now()) RETURNING id INTO inserted_id;
+return inserted_id;
+END;
+$$;
+
+
+--
+-- Name: insert_01_tags_event_and_return_id(text, uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.insert_01_tags_event_and_return_id(event_in text, aggregate_id uuid) RETURNS integer
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+inserted_id integer;
+BEGIN
+INSERT INTO events_01_Tags(event, aggregate_id, timestamp)
 VALUES(event_in::text, aggregate_id,  now()) RETURNING id INTO inserted_id;
 return inserted_id;
 END;
@@ -485,6 +509,43 @@ $$;
 
 
 --
+-- Name: insert_md_01_tags_aggregate_event_and_return_id(text, uuid, integer, text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.insert_md_01_tags_aggregate_event_and_return_id(event_in text, aggregate_id uuid, distance_from_latest_snapshot integer, md text) RETURNS integer
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+inserted_id integer;
+    event_id integer;
+BEGIN
+    event_id := insert_md_01_Tags_event_and_return_id(event_in, aggregate_id, distance_from_latest_snapshot, md);
+
+INSERT INTO aggregate_events_01_Tags(aggregate_id, event_id)
+VALUES(aggregate_id, event_id) RETURNING id INTO inserted_id;
+return event_id;
+END;
+$$;
+
+
+--
+-- Name: insert_md_01_tags_event_and_return_id(text, uuid, integer, text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.insert_md_01_tags_event_and_return_id(event_in text, aggregate_id uuid, distance_from_latest_snapshot integer, md text) RETURNS integer
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+inserted_id integer;
+BEGIN
+INSERT INTO events_01_Tags(event, aggregate_id, distance_from_latest_snapshot, timestamp, md)
+VALUES(event_in::text, aggregate_id, distance_from_latest_snapshot, now(), md) RETURNING id INTO inserted_id;
+return inserted_id;
+END;
+$$;
+
+
+--
 -- Name: insert_md_01_user_aggregate_event_and_return_id(text, uuid, integer, text); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -704,6 +765,29 @@ CREATE SEQUENCE public.aggregate_events_01_review_id_seq
 
 CREATE TABLE public.aggregate_events_01_review (
     id integer DEFAULT nextval('public.aggregate_events_01_review_id_seq'::regclass) NOT NULL,
+    aggregate_id uuid NOT NULL,
+    event_id integer
+);
+
+
+--
+-- Name: aggregate_events_01_tags_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.aggregate_events_01_tags_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: aggregate_events_01_tags; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.aggregate_events_01_tags (
+    id integer DEFAULT nextval('public.aggregate_events_01_tags_id_seq'::regclass) NOT NULL,
     aggregate_id uuid NOT NULL,
     event_id integer
 );
@@ -965,6 +1049,35 @@ ALTER TABLE public.events_01_review ALTER COLUMN id ADD GENERATED ALWAYS AS IDEN
 
 
 --
+-- Name: events_01_tags; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.events_01_tags (
+    id integer NOT NULL,
+    aggregate_id uuid NOT NULL,
+    event text NOT NULL,
+    published boolean DEFAULT false NOT NULL,
+    "timestamp" timestamp without time zone NOT NULL,
+    distance_from_latest_snapshot integer,
+    md text
+);
+
+
+--
+-- Name: events_01_tags_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+ALTER TABLE public.events_01_tags ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.events_01_tags_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+--
 -- Name: events_01_user; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -1211,6 +1324,32 @@ CREATE TABLE public.snapshots_01_review (
 
 
 --
+-- Name: snapshots_01_tags_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.snapshots_01_tags_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: snapshots_01_tags; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.snapshots_01_tags (
+    id integer DEFAULT nextval('public.snapshots_01_tags_id_seq'::regclass) NOT NULL,
+    snapshot text NOT NULL,
+    event_id integer,
+    aggregate_id uuid NOT NULL,
+    "timestamp" timestamp without time zone NOT NULL,
+    is_deleted boolean DEFAULT false NOT NULL
+);
+
+
+--
 -- Name: snapshots_01_user_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
@@ -1365,6 +1504,22 @@ ALTER TABLE ONLY public.aggregate_events_01_review
 
 
 --
+-- Name: aggregate_events_01_tags aggregate_events_01_tags_event_id_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.aggregate_events_01_tags
+    ADD CONSTRAINT aggregate_events_01_tags_event_id_key UNIQUE (event_id);
+
+
+--
+-- Name: aggregate_events_01_tags aggregate_events_01_tags_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.aggregate_events_01_tags
+    ADD CONSTRAINT aggregate_events_01_tags_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: aggregate_events_01_user aggregate_events_01_user_event_id_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1442,6 +1597,14 @@ ALTER TABLE ONLY public.events_01_reservation
 
 ALTER TABLE ONLY public.events_01_review
     ADD CONSTRAINT events_review_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: events_01_tags events_tags_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.events_01_tags
+    ADD CONSTRAINT events_tags_pkey PRIMARY KEY (id);
 
 
 --
@@ -1525,6 +1688,14 @@ ALTER TABLE ONLY public.snapshots_01_review
 
 
 --
+-- Name: snapshots_01_tags snapshots_tags_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.snapshots_01_tags
+    ADD CONSTRAINT snapshots_tags_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: snapshots_01_user snapshots_user_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1586,6 +1757,13 @@ CREATE INDEX ix_01_aggregate_events_reservation_id ON public.aggregate_events_01
 --
 
 CREATE INDEX ix_01_aggregate_events_review_id ON public.aggregate_events_01_review USING btree (aggregate_id);
+
+
+--
+-- Name: ix_01_aggregate_events_tags_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX ix_01_aggregate_events_tags_id ON public.aggregate_events_01_tags USING btree (aggregate_id);
 
 
 --
@@ -1705,6 +1883,20 @@ CREATE INDEX ix_01_events_review_id ON public.events_01_review USING btree (aggr
 --
 
 CREATE INDEX ix_01_events_review_timestamp ON public.events_01_review USING btree ("timestamp");
+
+
+--
+-- Name: ix_01_events_tags_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX ix_01_events_tags_id ON public.events_01_tags USING btree (aggregate_id);
+
+
+--
+-- Name: ix_01_events_tags_timestamp; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX ix_01_events_tags_timestamp ON public.events_01_tags USING btree ("timestamp");
 
 
 --
@@ -1890,6 +2082,27 @@ CREATE INDEX ix_01_snapshot_review_id ON public.snapshots_01_review USING btree 
 
 
 --
+-- Name: ix_01_snapshot_tags_aggregate_id_and_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX ix_01_snapshot_tags_aggregate_id_and_id ON public.snapshots_01_tags USING btree (aggregate_id, id DESC);
+
+
+--
+-- Name: ix_01_snapshot_tags_event_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX ix_01_snapshot_tags_event_id ON public.snapshots_01_tags USING btree (event_id);
+
+
+--
+-- Name: ix_01_snapshot_tags_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX ix_01_snapshot_tags_id ON public.snapshots_01_tags USING btree (aggregate_id);
+
+
+--
 -- Name: ix_01_snapshot_user_aggregate_id_and_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -1964,6 +2177,13 @@ CREATE INDEX ix_01_snapshots_reservation_timestamp ON public.snapshots_01_reserv
 --
 
 CREATE INDEX ix_01_snapshots_review_timestamp ON public.snapshots_01_review USING btree ("timestamp");
+
+
+--
+-- Name: ix_01_snapshots_tags_timestamp; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX ix_01_snapshots_tags_timestamp ON public.snapshots_01_tags USING btree ("timestamp");
 
 
 --
@@ -2046,6 +2266,14 @@ ALTER TABLE ONLY public.aggregate_events_01_review
 
 
 --
+-- Name: aggregate_events_01_tags aggregate_events_01_tags_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.aggregate_events_01_tags
+    ADD CONSTRAINT aggregate_events_01_tags_fk FOREIGN KEY (event_id) REFERENCES public.events_01_tags(id) MATCH FULL ON DELETE CASCADE;
+
+
+--
 -- Name: snapshots_01_author event_01_author_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -2110,6 +2338,14 @@ ALTER TABLE ONLY public.snapshots_01_review
 
 
 --
+-- Name: snapshots_01_tags event_01_tags_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.snapshots_01_tags
+    ADD CONSTRAINT event_01_tags_fk FOREIGN KEY (event_id) REFERENCES public.events_01_tags(id) MATCH FULL ON DELETE CASCADE;
+
+
+--
 -- Name: snapshots_01_user event_01_user_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -2121,7 +2357,7 @@ ALTER TABLE ONLY public.snapshots_01_user
 -- PostgreSQL database dump complete
 --
 
-\unrestrict VEGU9aHpgnAOkGVMkMhcj9NSz8nlLraS1ThJFNlMKEIB8EuYMOqLn4H4lfsuN4O
+\unrestrict R6N1qtmxPVLVqUijxEIQMGmBFab46UkyR4QwGuvm6wetaUyLopn6heFhnyDHlhV
 
 
 --
@@ -2138,4 +2374,5 @@ INSERT INTO public.schema_migrations (version) VALUES
     ('20260405081914'),
     ('20260408164638'),
     ('20260416091649'),
-    ('20260435161918');
+    ('20260435161918'),
+    ('20260503132502');

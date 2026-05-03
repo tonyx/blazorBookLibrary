@@ -281,6 +281,7 @@ type DataExportService
                                             Editor = None
                                             MainCategory = mainCategory
                                             AdditionalCategories = additionalCategories
+                                            Tags = []
                                             Year = year
                                             Isbn = isbn
                                             Sealed = Sealed.New(DateTime.UtcNow)

@@ -492,6 +492,8 @@
   <data name="PositionBarcodeInsideFrameNote" xml:space="preserve">
     <value>Position the barcode inside the frame to scan it.</value>
   </data>
+  
+  <data name="ErrorSearchingBooks" xml:space="preserve"><value>Error searching books</value></data>
   <data name="ErrorSearchingAuthors" xml:space="preserve"><value>Error searching authors: {0}</value></data>
   <data name="InvalidIsniValue" xml:space="preserve"><value>Invalid ISBN value: {0}</value></data>
   <data name="ErrorCreatingBook" xml:space="preserve"><value>Error creating book: {0}</value></data>
@@ -579,6 +581,7 @@
   <data name="ArchivalAvailability" xml:space="preserve"><value>Archival Availability</value></data>
   <data name="CatalogedAuthors" xml:space="preserve"><value>Cataloged Author(s)</value></data>
   <data name="AddAuthorToRecord" xml:space="preserve"><value>Search to associate an author...</value></data>
+  <data name="AddAdditionalCategory" xml:space="preserve"><value>Add Additional Category</value></data>
   <data name="AddArchivalTag" xml:space="preserve"><value>Add Archival Tag</value></data>
   <data name="EditorialAccountLedger" xml:space="preserve"><value>Editorial Account Ledger</value></data>
   <data name="PatronDirectory" xml:space="preserve"><value>Patron Directory</value></data>
@@ -906,4 +909,26 @@
   <data name="Total" xml:space="preserve"><value>Total</value></data>
   <data name="GenerateMissingDescriptions" xml:space="preserve"><value>Generate Missing Descriptions</value></data>
   <data name="GenerateDescriptionsHelp" xml:space="preserve"><value>Use AI to generate a book description if it's missing from the library metadata.</value></data>
+  <data name="TagManagement" xml:space="preserve"><value>Tag Management</value></data>
+  <data name="TagType" xml:space="preserve"><value>Tag Type</value></data>
+  <data name="TagName" xml:space="preserve"><value>Tag Name</value></data>
+  <data name="BookTag" xml:space="preserve"><value>Book</value></data>
+  <data name="AuthorTag" xml:space="preserve"><value>Author</value></data>
+  <data name="GeneralTag" xml:space="preserve"><value>General</value></data>
+  <data name="PersonTag" xml:space="preserve"><value>Person</value></data>
+  <data name="GenericTag" xml:space="preserve"><value>Generic</value></data>
+  <data name="EnterTagName" xml:space="preserve"><value>Enter tag name...</value></data>
+  <data name="AddTag" xml:space="preserve"><value>Add Tag</value></data>
+  <data name="ArchivalTags" xml:space="preserve"><value>Archival Tags</value></data>
+  <data name="Selected" xml:space="preserve"><value>Selected</value></data>
+  <data name="SelectTagToAdd" xml:space="preserve"><value>Select tag to add</value></data>
+  <data name="NoTagsSelectedNote" xml:space="preserve"><value>No tags selected for this record.</value></data>
+  <data name="NoTagsAvailable" xml:space="preserve"><value>No tags available to add.</value></data>
+  <data name="Tag" xml:space="preserve"><value>Tag</value></data>
+  <data name="ErrorAddingTag" xml:space="preserve"><value>Error adding tag: {0}</value></data>
+  <data name="ErrorAddingTagGeneric" xml:space="preserve"><value>Error adding tag: {0}</value></data>
+  <data name="ErrorRemovingTag" xml:space="preserve"><value>Error removing tag: {0}</value></data>
+  <data name="ErrorRemovingTagGeneric" xml:space="preserve"><value>Error removing tag: {0}</value></data>
+  <data name="FilterByTags" xml:space="preserve"><value>Filter by Tags</value></data>
+  <data name="SelectTagPlaceholder" xml:space="preserve"><value>Select tag...</value></data>
 </root>

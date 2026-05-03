@@ -12,6 +12,7 @@ type BookCommand =
     | RemoveDescription of DateTime
     | EmbedDescription of EmbeddingDataId * DateTime
     | RemoveEmbedding of DateTime
+    | ForceRemoveEmbedding 
     | UpdateAuthors of list<AuthorId> * DateTime
     | UpdateEditor of EditorId * DateTime
     | UpdateYear of Year * DateTime
@@ -33,6 +34,10 @@ type BookCommand =
     | AddAdditionalCategory of Category * DateTime
     | RemoveAdditionalCategory of Category * DateTime
     | ReplaceAdditionalCategories of List<Category> * DateTime
+    | AddTag of Tag * DateTime
+    | RemoveTag of Tag * DateTime
+    | ClearTags of DateTime
+
     | SetImageUrl of Uri * DateTime
     | RemoveImageUrl of DateTime
     | SetAvailability of Availability * DateTime
@@ -55,6 +60,9 @@ type BookCommand =
             | RemoveEmbedding dateTime ->
                 book.RemoveEmbedding dateTime
                 |> Result.map (fun b -> (b, [DescriptionEmbeddingRemoved(dateTime)]))
+            | ForceRemoveEmbedding ->
+                book.ForceRemoveEmbedding()
+                |> Result.map (fun b -> (b, [DescriptionEmbeddingForceRemoved]))
             | UpdateAuthors (authors, dateTime) ->
                 book.UpdateAuthors authors dateTime
                 |> Result.map (fun b -> (b, [AuthorsUpdated(authors, dateTime)]))
@@ -118,6 +126,15 @@ type BookCommand =
             | ReplaceAdditionalCategories (additionalCategories, dateTime) ->
                 book.ReplaceAdditionalCategories additionalCategories dateTime
                 |> Result.map (fun b -> (b, [AdditionalCategoriesReplaced(additionalCategories, dateTime)]))
+            | AddTag (tag, dateTime) ->
+                book.AddTag tag dateTime
+                |> Result.map (fun b -> (b, [TagAdded(tag, dateTime)]))
+            | RemoveTag (tag, dateTime) ->
+                book.RemoveTag tag dateTime
+                |> Result.map (fun b -> (b, [TagRemoved(tag, dateTime)]))
+            | ClearTags dateTime ->
+                book.ClearTags dateTime
+                |> Result.map (fun b -> (b, [TagsCleared(dateTime)]))
             | SetImageUrl (imageUrl, dateTime) ->
                 book.SetImageUrl imageUrl dateTime
                 |> Result.map (fun b -> (b, [ImageUrlSet(imageUrl, dateTime)]))

@@ -18,6 +18,7 @@
 @inject IJSRuntime JSRuntime
 @inject NavigationManager NavigationManager
 @inject IGoogleBooksService GoogleBooksService
+@inject ITagService TagService
 @inject ITextEmbeddingService TextEmbeddingService
 @inject IVectorDbService VectorDbService
 @inject IStringLocalizer<SharedResources> L
@@ -79,6 +80,25 @@
         50% { transform: scale(1.05); }
         100% { transform: scale(1); }
     }
+
+    .tag-chip {
+        padding: 0.4rem 1rem;
+        border-radius: 2rem;
+        font-size: 0.85rem;
+        font-weight: 500;
+        white-space: nowrap;
+        transition: all 0.2s ease;
+    }
+    .tag-chip .btn-close {
+        filter: invert(1) grayscale(100%) brightness(200%);
+        padding: 0.25rem;
+        font-size: 0.5rem;
+    }
+    .type-book { background-color: #3b82f6; color: white; }
+    .type-author { background-color: #10b981; color: white; }
+    .type-general { background-color: #f59e0b; color: white; }
+    .type-person { background-color: #06b6d4; color: white; }
+    .type-generic { background-color: #6b7280; color: white; }
 </style>
 
 <div class="sanctuary-container">
@@ -376,28 +396,79 @@
                             
                             @if (bookDetails.Book.Editable)
                             {
-                                <button class="btn btn-sm btn-white border rounded-pill px-3" @onclick="() => showAddDropdown = !showAddDropdown">
-                                    <i class="bi bi-plus-lg me-1"></i> @L["AddArchivalTag"]
-                                </button>
-                                @if (showAddDropdown)
-                                {
-                                    <div class="position-absolute shadow-lg border rounded-lg bg-white p-3 mt-1" style="z-index: 1000; min-width: 250px; left: 15px;">
-                                        <div class="small fw-bold mb-3 border-bottom pb-2">@L["SelectCategory"]</div>
-                                        <div class="row g-1">
-                                            @foreach (var cat in Category.AllCases())
-                                            {
-                                                if (cat != bookDetails.Book.MainCategory && !bookDetails.Book.AdditionalCategories.Contains(cat))
+                                <div class="position-relative d-inline-block">
+                                    <button class="btn btn-sm btn-white border rounded-pill px-3" @onclick="() => showAddDropdown = !showAddDropdown">
+                                        <i class="bi bi-plus-lg me-1"></i> @L["AddAdditionalCategory"]
+                                    </button>
+                                    @if (showAddDropdown)
+                                    {
+                                        <div class="position-absolute shadow-lg border rounded-lg bg-white p-3 mt-1" style="z-index: 1000; min-width: 250px; left: 0;">
+                                            <div class="small fw-bold mb-3 border-bottom pb-2">@L["SelectCategory"]</div>
+                                            <div class="row g-1">
+                                                @foreach (var cat in Category.AllCases())
                                                 {
-                                                    <div class="col-6">
-                                                        <div class="dropdown-item py-1 px-2 small rounded text-truncate border mb-1" style="cursor: pointer;" @onclick="() => AddAdditionalCategoryWrapper(cat)">
-                                                            @cat.Value()
+                                                    if (cat != bookDetails.Book.MainCategory && !bookDetails.Book.AdditionalCategories.Contains(cat))
+                                                    {
+                                                        <div class="col-6">
+                                                            <div class="dropdown-item py-1 px-2 small rounded text-truncate border mb-1" style="cursor: pointer;" @onclick="() => AddAdditionalCategoryWrapper(cat)">
+                                                                @cat.Value()
+                                                            </div>
                                                         </div>
-                                                    </div>
+                                                    }
                                                 }
-                                            }
+                                            </div>
                                         </div>
+                                    }
+                                </div>
+                            }
+
+                            @* Archival Tags Section *@
+                            <label class="form-label small text-muted text-uppercase fw-bold mb-3 mt-4 d-block">@L["ArchivalTags"]</label>
+                            <div class="d-flex flex-wrap gap-2 mb-3">
+                                @foreach (var tag in bookDetails.Book.Tags)
+                                {
+                                    <div class="tag-chip @GetTagColorClass(GetTagTypeName(tag)) d-inline-flex align-items-center animate-fade-in shadow-sm">
+                                        <span class="me-2 small">@tag.TagName</span>
+                                        @if (bookDetails.Book.Editable)
+                                        {
+                                            <button type="button" class="btn-close btn-close-white small" style="font-size: 0.5rem" 
+                                                    @onclick="() => RemoveTagFromBook(tag)"></button>
+                                        }
                                     </div>
                                 }
+                            </div>
+
+                            @if (bookDetails.Book.Editable)
+                            {
+                                <div class="position-relative d-inline-block">
+                                    <button class="btn btn-sm btn-white border rounded-pill px-3" @onclick="() => showAddTagDropdown = !showAddTagDropdown">
+                                        <i class="bi bi-plus-lg me-1"></i> @L["AddArchivalTag"]
+                                    </button>
+                                    @if (showAddTagDropdown)
+                                    {
+                                        <div class="position-absolute shadow-lg border rounded-lg bg-white p-3 mt-1" style="z-index: 1000; min-width: 280px; left: 0;">
+                                            <div class="small fw-bold mb-3 border-bottom pb-2">@L["SelectTagToAdd"]</div>
+                                            <div class="row g-1 overflow-auto" style="max-height: 300px;">
+                                                @foreach (var tag in allAvailableTags)
+                                                {
+                                                    if (!bookDetails.Book.Tags.Contains(tag))
+                                                    {
+                                                        <div class="col-12">
+                                                            <div class="dropdown-item py-1 px-2 small rounded text-truncate border mb-1 d-flex justify-content-between align-items-center" style="cursor: pointer;" @onclick="() => AddTagWrapper(tag)">
+                                                                <span>@tag.TagName</span>
+                                                                <span class="badge @GetTagColorClass(GetTagTypeName(tag)) x-small opacity-75">@GetTagTypeName(tag)</span>
+                                                            </div>
+                                                        </div>
+                                                    }
+                                                }
+                                                @if (!allAvailableTags.Any(t => !bookDetails.Book.Tags.Contains(t)))
+                                                {
+                                                    <div class="col-12 text-center text-muted py-2 small">@L["NoTagsAvailable"]</div>
+                                                }
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
                             }
                         </div>
                     </div>
@@ -902,6 +973,8 @@
     private string editedDescription = "";
     private bool isEditingAvailability = false;
     private string editedAvailability = "";
+    private bool showAddTagDropdown = false;
+    private List<Tag> allAvailableTags = new();
     private bool isBookSealed => bookDetails != null && bookDetails.Book.Sealed.IsSealed(DateTime.UtcNow);
 
     private async Task AddAdditionalCategoryWrapper(Category category)
@@ -954,6 +1027,79 @@
         {
             await ShowStatus(string.Format(L["ErrorRemovingCategoryGeneric"], ex.Message), "alert-danger");
         }
+    }
+
+    private async Task AddTagWrapper(Tag tag)
+    {
+        showAddTagDropdown = false;
+        await AddTagToBook(tag);
+    }
+
+    private async Task AddTagToBook(Tag tag)
+    {
+        if (bookDetails == null) return;
+        try
+        {
+            var result = await BookService.AddTagToBookAsync(tag, bookDetails.Book.BookId, FSharpOption<CancellationToken>.None);
+            if (result.IsOk)
+            {
+                await WaitForCacheUpdateAsync(d => d.Book.Tags.Contains(tag));
+                await ShowStatus($"{L["Tag"]} '{tag.TagName}' {L["HasBeenAdded"]}", "alert-success");
+            }
+            else
+            {
+                await ShowStatus(string.Format(L["ErrorAddingTag"], result.ErrorValue), "alert-danger");
+            }
+        }
+        catch (Exception ex)
+        {
+            await ShowStatus(string.Format(L["ErrorAddingTagGeneric"], ex.Message), "alert-danger");
+        }
+    }
+
+    private async Task RemoveTagFromBook(Tag tag)
+    {
+        if (bookDetails == null) return;
+        try
+        {
+            var result = await BookService.RemoveTagFromBookAsync(tag, bookDetails.Book.BookId, FSharpOption<CancellationToken>.None);
+            if (result.IsOk)
+            {
+                await WaitForCacheUpdateAsync(d => !d.Book.Tags.Contains(tag));
+                await ShowStatus($"{L["Tag"]} '{tag.TagName}' {L["Removed"]}", "alert-success");
+            }
+            else
+            {
+                await ShowStatus(string.Format(L["ErrorRemovingTag"], result.ErrorValue), "alert-danger");
+            }
+        }
+        catch (Exception ex)
+        {
+            await ShowStatus(string.Format(L["ErrorRemovingTagGeneric"], ex.Message), "alert-danger");
+        }
+    }
+
+    private string GetTagTypeName(Tag tag)
+    {
+        if (tag.IsBookTag) return "Book";
+        if (tag.IsAuthorTag) return "Author";
+        if (tag.IsGeneralTag) return "General";
+        if (tag.IsPersonTag) return "Person";
+        if (tag.IsGenericTag) return "Generic";
+        return "Generic";
+    }
+
+    private string GetTagColorClass(string type)
+    {
+        return type switch
+        {
+            "Book" => "type-book",
+            "Author" => "type-author",
+            "General" => "type-general",
+            "Person" => "type-person",
+            "Generic" => "type-generic",
+            _ => "type-generic"
+        };
     }
 
     private async Task StartEdit()
@@ -1605,6 +1751,12 @@
     {
         enableAIExplanations = Configuration.GetValue<bool>("BooksLibrary:EnableAIExtendedExplanations");
         await LoadBookDetails();
+        
+        var tagsResult = await TagService.GetBookTypeTagsAsync();
+        if (tagsResult.IsOk)
+        {
+            allAvailableTags = tagsResult.ResultValue.ToList();
+        }
     }
 
     private async Task LoadBookDetails()

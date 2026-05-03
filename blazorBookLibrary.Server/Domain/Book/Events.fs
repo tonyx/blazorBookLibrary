@@ -13,6 +13,7 @@ type BookEvent =
     | DescriptionRemoved of DateTime
     | DescriptionEmbedded of EmbeddingDataId * DateTime
     | DescriptionEmbeddingRemoved of DateTime
+    | DescriptionEmbeddingForceRemoved 
     | AuthorsUpdated of list<AuthorId> * DateTime
     | EditorUpdated of EditorId * DateTime
     | YearUpdated of Year * DateTime
@@ -34,6 +35,9 @@ type BookEvent =
     | AdditionalCategoryAdded of Category * DateTime
     | AdditionalCategoryRemoved of Category * DateTime
     | AdditionalCategoriesReplaced of List<Category> * DateTime
+    | TagAdded of Tag * DateTime
+    | TagRemoved of Tag * DateTime
+    | TagsCleared of DateTime
     | ImageUrlSet of Uri * DateTime
     | ImageUrlRemoved of DateTime
     | AvailabilitySet of Availability * DateTime
@@ -51,6 +55,8 @@ type BookEvent =
                 book.EmbedDescription embeddingId dateTime
             | DescriptionEmbeddingRemoved dateTime ->
                 book.RemoveEmbedding dateTime
+            | DescriptionEmbeddingForceRemoved ->
+                book.ForceRemoveEmbedding()
             | AuthorsUpdated (authors, dateTime) ->
                 book.UpdateAuthors authors dateTime
             | EditorUpdated (editor, dateTime) ->
@@ -93,13 +99,18 @@ type BookEvent =
                 book.RemoveAdditionalCategory category dateTime
             | AdditionalCategoriesReplaced (additionalCategories, dateTime) ->
                 book.ReplaceAdditionalCategories additionalCategories dateTime
+            | TagAdded (tag, dateTime) ->
+                book.AddTag tag dateTime
+            | TagRemoved (tag, dateTime) ->
+                book.RemoveTag tag dateTime
+            | TagsCleared dateTime ->
+                book.ClearTags dateTime
             | ImageUrlSet (imageUrl, dateTime) ->
                 book.SetImageUrl imageUrl dateTime
             | ImageUrlRemoved dateTime ->
                 book.RemoveImageUrl dateTime
             | AvailabilitySet (availability, dateTime) ->
                 book.SetAvailability availability dateTime
-
 
     static member Deserialize (x: string): Result<BookEvent, string> =
         try

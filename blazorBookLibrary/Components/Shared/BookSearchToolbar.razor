@@ -11,6 +11,7 @@
 @using Microsoft.Extensions.Localization
 @inject IBookService BookService
 @inject IAuthorService AuthorService
+@inject ITagService TagService
 @inject ITextEmbeddingService TextEmbeddingService
 @inject IVectorDbService VectorDbService
 @inject IJSRuntime JSRuntime
@@ -96,6 +97,35 @@
                                     <span class="badge-sanctuary badge-neutral">
                                         @category.Value()
                                         <i class="bi bi-x-circle-fill ms-2" style="cursor: pointer" @onclick="() => RemoveCategoryFromSearchCriteria(category)"></i>
+                                    </span>
+                                }
+                            </div>
+                        </div>
+
+                        <div class="mt-4">
+                            <label class="form-label small text-muted text-uppercase fw-bold mb-2">@L["FilterByTags"]</label>
+                            <div class="d-flex gap-2">
+                                <select class="form-select bg-surface-lowest border-0 rounded-lg shadow-sm py-2" @bind="selectedTagNameForFilter">
+                                    <option value="">@L["SelectTagPlaceholder"]</option>
+                                    @foreach (var tag in allBookTags)
+                                    {
+                                        if (!searchTagsCriteria.Contains(tag))
+                                        {
+                                            <option value="@tag.TagName">@tag.TagName</option>
+                                        }
+                                    }
+                                </select>
+                                <button type="button" class="btn-sanctuary-outline bg-surface-lowest px-3" @onclick="AddTagToSearchCriteria" disabled="@(string.IsNullOrEmpty(selectedTagNameForFilter))">
+                                    <i class="bi bi-plus-lg"></i>
+                                </button>
+                            </div>
+                            
+                            <div class="mt-3 d-flex flex-wrap gap-2">
+                                @foreach (var tag in searchTagsCriteria)
+                                {
+                                    <span class="badge-sanctuary badge-neutral">
+                                        @tag.TagName
+                                        <i class="bi bi-x-circle-fill ms-2" style="cursor: pointer" @onclick="() => RemoveTagFromSearchCriteria(tag)"></i>
                                     </span>
                                 }
                             </div>
@@ -214,12 +244,26 @@
     private string semanticSearchText = "";
     private int semanticSearchLimit = 10;
 
+    private List<Tag> allBookTags = new();
+    private List<Tag> searchTagsCriteria = new();
+    private string selectedTagNameForFilter = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        var result = await TagService.GetBookTypeTagsAsync();
+        if (result.IsOk)
+        {
+            allBookTags = result.ResultValue.ToList();
+        }
+    }
+
     private bool AreOtherFiltersActive => 
         !string.IsNullOrWhiteSpace(searchBookTitle) || 
         !string.IsNullOrWhiteSpace(searchBookIsbn) || 
         searchBookYear.HasValue || 
         searchAuthorsCriteria.Any() || 
         searchCategoriesCriteria.Any() ||
+        searchTagsCriteria.Any() ||
         searchBookAvailability != "All";
 
     private bool IsIsbnSearchActive => !string.IsNullOrWhiteSpace(searchBookIsbn);
@@ -231,16 +275,27 @@
     {
         get 
         {
-            if (string.IsNullOrEmpty(searchBookAvailability) || searchBookAvailability == "All")
-                return _ => true;
-            
-            if (searchBookAvailability == "ImmediatelyAvailable")
-                return book => book.ImmediatelyAvailable;
-            
-            return book => 
-                (searchBookAvailability == "Circulating" && book.Availability.IsCirculating) || 
-                (searchBookAvailability == "ReferenceOnly" && book.Availability.IsReferenceOnly) ||
-                (searchBookAvailability == "Unspecified" && book.Availability.IsUnspecified);
+            return book => {
+                bool availabilityMatch = true;
+                if (!string.IsNullOrEmpty(searchBookAvailability) && searchBookAvailability != "All")
+                {
+                    if (searchBookAvailability == "ImmediatelyAvailable")
+                        availabilityMatch = book.ImmediatelyAvailable;
+                    else
+                        availabilityMatch = 
+                            (searchBookAvailability == "Circulating" && book.Availability.IsCirculating) || 
+                            (searchBookAvailability == "ReferenceOnly" && book.Availability.IsReferenceOnly) ||
+                            (searchBookAvailability == "Unspecified" && book.Availability.IsUnspecified);
+                }
+
+                bool tagsMatch = true;
+                if (searchTagsCriteria.Any())
+                {
+                    tagsMatch = searchTagsCriteria.Any(t => book.Tags.Contains(t));
+                }
+
+                return availabilityMatch && tagsMatch;
+            };
         }
     }
 
@@ -324,6 +379,22 @@
     private void RemoveCategoryFromSearchCriteria(Category category)
     {
         searchCategoriesCriteria.Remove(category);
+    }
+
+    private void AddTagToSearchCriteria()
+    {
+        if (string.IsNullOrEmpty(selectedTagNameForFilter)) return;
+        var tag = allBookTags.FirstOrDefault(t => t.TagName == selectedTagNameForFilter);
+        if (tag != null && !searchTagsCriteria.Contains(tag))
+        {
+            searchTagsCriteria.Add(tag);
+        }
+        selectedTagNameForFilter = "";
+    }
+
+    private void RemoveTagFromSearchCriteria(Tag tag)
+    {
+        searchTagsCriteria.Remove(tag);
     }
 
     private async Task HandleBookSearch()
@@ -412,7 +483,8 @@
                 }
                 else
                 {
-                    await OnError.InvokeAsync($"{L["ErrorRetrievingBooks"]}: {booksResult.ErrorValue}");
+                    Logger.LogError($"{L["ErrorRetrievingBooks"]}: {booksResult.ErrorValue}");
+                    await OnError.InvokeAsync($"{L["ErrorSearchingBooks"]}");
                 }
             }
             else

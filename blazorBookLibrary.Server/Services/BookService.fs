@@ -270,6 +270,26 @@ type BookService
                                 (Some ct)
                         return result
                     }
+            member this.ForceBulkRemoveEmbeddingsAsync (bookIds: List<BookId>, ?ct: CancellationToken) = 
+                taskResult
+                    {
+                        let ct = defaultArg ct CancellationToken.None
+                        //todo: this will fail if one of them fails. Consider later being more "forcing" on the failures (logging more and keep going)
+                        let! _ =
+                            bookIds
+                            |> List.traverseTaskResultM (fun bookId -> 
+                                let bookRemoveEmbeddingCommand = 
+                                    BookCommand.ForceRemoveEmbedding 
+                                runAggregateCommandMdAsync<Book, BookEvent, string>
+                                    bookId.Value
+                                    eventStore
+                                    messageSenders
+                                    ""
+                                    bookRemoveEmbeddingCommand
+                                    (Some ct)
+                            )
+                        return ()
+                    }
 
             member this.UpdateIsbnAsync (isbn: Isbn, bookId: BookId, ?ct: CancellationToken) = 
                 taskResult
@@ -723,6 +743,32 @@ type BookService
                                 command
                                 ct
                     }
+            member this.AddTagToBookAsync(tag: Tag, bookId: BookId, ?ct: CancellationToken) = 
+                taskResult
+                    {
+                        let command = BookCommand.AddTag (tag, System.DateTime.Now)
+                        return!
+                            runAggregateCommandMdAsync<Book, BookEvent, string>
+                                bookId.Value
+                                eventStore
+                                messageSenders
+                                ""
+                                command
+                                ct
+                    }
+            member this.RemoveTagFromBookAsync(tag: Tag, bookId: BookId, ?ct: CancellationToken) = 
+                taskResult
+                    {
+                        let command = BookCommand.RemoveTag (tag, System.DateTime.Now)
+                        return!
+                            runAggregateCommandMdAsync<Book, BookEvent, string>
+                                bookId.Value
+                                eventStore
+                                messageSenders
+                                ""
+                                command
+                                ct
+                    }
             member this.SealAsync(bookId: BookId, ?ct: CancellationToken) = 
                 taskResult
                     {
@@ -975,11 +1021,12 @@ type BookService
             member this.EmbedDescriptionAsync (bookId: BookId, embeddingId: EmbeddingDataId, ?ct: CancellationToken) =
                 let ct = defaultArg ct CancellationToken.None
                 this.EmbedDescriptionAsync(bookId, embeddingId, ct)
-
+            member this.ForceBulkRemoveEmbeddingsAsync (bookIds: List<BookId>, ?ct: CancellationToken) = 
+                let ct = defaultArg ct CancellationToken.None
+                this.ForceBulkRemoveEmbeddingsAsync(bookIds, ct)
             member this.RemoveEmbeddingAsync (bookId: BookId, ?ct: CancellationToken) = 
                 let ct = defaultArg ct CancellationToken.None
                 this.RemoveEmbeddingAsync(bookId, ct)
-
             member this.UpdateIsbnAsync(isbn: Isbn, bookId: BookId, ?ct: CancellationToken) = 
                 let ct = defaultArg ct CancellationToken.None
                 this.UpdateIsbnAsync(isbn, bookId, ct)
@@ -1071,5 +1118,11 @@ type BookService
             member this.LoanedByUserAtLeastOnceAsync(bookId: BookId, userId: UserId, ?ct: CancellationToken) = 
                 let ct = defaultArg ct CancellationToken.None
                 this.LoanedByUserAtLeastOnceAsync(bookId, userId, ct)
+            member this.AddTagToBookAsync(tag: Tag, bookId: BookId, ?ct: CancellationToken) = 
+                let ct = defaultArg ct CancellationToken.None
+                this.AddTagToBookAsync(tag, bookId, ct)
+            member this.RemoveTagFromBookAsync(tag: Tag, bookId: BookId, ?ct: CancellationToken) = 
+                let ct = defaultArg ct CancellationToken.None
+                this.RemoveTagFromBookAsync(tag, bookId, ct)
                 
                     

@@ -140,13 +140,21 @@ The **Books Manager** provides powerful tools for mass data handling.
 ---
 
 <a name="system-administration"></a>
-## 6. System Administration
+## System Administration
 
 <a name="user-management"></a>
 ### User Management
 Administrators manage access via the **Users Manager**.
 - **Role Assignment**: Promote users to **Manager** or **Librarian** roles to grant catalog access.
 - **Account Control**: Search for users by email or username to review their status and roles.
+
+<a name="control-panel"></a>
+### Admin Control Panel & Reconciliation
+The **Control Panel** provides critical maintenance tools for system integrity.
+- **Vector Database Reconciliation**: 
+    - **Purge Orphan Vectors**: Removes embeddings from the vector store that are no longer linked to active books in the archive. Use this to keep the vector database lean and accurate.
+    - **Sync Book States**: Detects books that reference an embedding that has been lost or deleted from the vector store. It automatically resets the book's state to ensure it no longer claims to have a valid embedding.
+- **Future Extensibility**: This panel is designed to host upcoming features such as real-time event auditing and automated task scheduling.
 
 ### GDPR Anonymization & "Right to be Forgotten"
 Users can request account deletion via their profile settings (**Manage Your Data**). 

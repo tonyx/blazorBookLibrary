@@ -145,6 +145,27 @@ type VectorDbService(connection: string, ?cancellationTokenSourceExpiration: int
             with
             | ex -> return Error ex.Message
         }
+    member this.RemoveEmbeddingsAsync (embeddingDataIds: seq<EmbeddingDataId>, ?ct: CancellationToken) : Task<Result<unit, string>> =
+        let sql = "DELETE FROM item_embeddings_projections WHERE id = ANY(@ids)"
+        task {
+            try
+                let ct = defaultArg ct CancellationToken.None
+                use cts = CancellationTokenSource.CreateLinkedTokenSource (ct)
+                cts.CancelAfter(cancellationTokenSourceExpiration)
+
+                let! result = 
+                    connection
+                    |> Sql.connect
+                    |> Sql.query sql
+                    |> Sql.parameters [ "ids", Sql.uuidArray (embeddingDataIds |> Seq.map (fun id -> id.Value) |> Array.ofSeq) ]
+                    |> Sql.executeNonQueryAsync // cts.Token
+                    |> TaskResult.ofTask
+                    |> TaskResult.mapError (fun e -> e.Message)
+                
+                return Ok ()
+            with
+            | ex -> return Error ex.Message
+        }
 
     member this.SearchSimilarEmbeddingsAsync (embeddingData: EmbeddingData, limit: int, ?ct: CancellationToken) : Task<Result<seq<EmbeddingData * BookId>, string>> =
         let sql = "SELECT (vector_data::real[])::float8[] as vector_data, model_name, book_id 
@@ -281,8 +302,48 @@ type VectorDbService(connection: string, ?cancellationTokenSourceExpiration: int
             with
             | ex -> return Error ex.Message
         }
+    member this.ReadAllEmbeddingIdsWithBookIdsAsync(?ct: CancellationToken): Task<Result< seq<EmbeddingDataId * BookId>, string>> = 
+        let sql = "SELECT id, book_id FROM item_embeddings_projections"
+        task {
+            try
+                let ct = defaultArg ct CancellationToken.None
+                use cts = CancellationTokenSource.CreateLinkedTokenSource (ct)
+                cts.CancelAfter(cancellationTokenSourceExpiration)
+                let! result = 
+                    connection
+                    |> Sql.connect
+                    |> Sql.query sql
+                    |> Sql.executeAsync (fun read ->
+                        EmbeddingDataId (read.uuid "id"), BookId (read.uuid "book_id")
+                    )
+                return Ok (result |> Seq.ofList)
+            with
+            | ex -> return Error ex.Message
+        }
 
-
+    member this.EnquiryForMissingEmbeddingsAsync (embeddingDataIds: List<EmbeddingDataId>, ?ct: CancellationToken): Task<Result<List<EmbeddingDataId>, string>> = 
+        let sql = "SELECT id FROM item_embeddings_projections WHERE id = ANY(@embedding_data_ids)"
+        task {
+            try
+                let ct = defaultArg ct CancellationToken.None
+                use cts = CancellationTokenSource.CreateLinkedTokenSource (ct)
+                cts.CancelAfter(cancellationTokenSourceExpiration)
+                let! existingIdsList = 
+                    connection
+                    |> Sql.connect
+                    |> Sql.query sql
+                    |> Sql.parameters [ "embedding_data_ids", Sql.uuidArray (embeddingDataIds |> Seq.map (fun id -> id.Value) |> Array.ofSeq) ]
+                    |> Sql.executeAsync (fun read ->
+                        EmbeddingDataId (read.uuid "id")
+                    )
+                let existingIds = existingIdsList |> Set.ofList
+                let missingIds = 
+                    embeddingDataIds 
+                    |> List.filter (fun id -> not (existingIds.Contains id))
+                return Ok missingIds
+            with
+            | ex -> return Error ex.Message
+        }
 
     interface IVectorDbService with
         member this.StoreEmbeddingAsync (embeddingDataId: EmbeddingDataId, bookId: BookId, embeddingData: EmbeddingData, ?ct: CancellationToken) : Task<Result<unit, string>> =
@@ -294,12 +355,14 @@ type VectorDbService(connection: string, ?cancellationTokenSourceExpiration: int
             this.ReadEmbeddingAsync (embeddingDataId, ct)
 
         member this.UpdateEmbeddingAsync (embeddingDataId: EmbeddingDataId, embeddingData: EmbeddingData, ?ct: CancellationToken) : Task<Result<unit, string>> =
-            let ct = defaultArg ct CancellationToken.None
-            this.UpdateEmbeddingAsync (embeddingDataId, embeddingData, ct)
+            this.UpdateEmbeddingAsync (embeddingDataId, embeddingData, ?ct = ct)
 
         member this.RemoveEmbeddingAsync (embeddingDataId: EmbeddingDataId, ?ct: CancellationToken) : Task<Result<unit, string>> =
             let ct = defaultArg ct CancellationToken.None
             this.RemoveEmbeddingAsync (embeddingDataId, ct)
+
+        member this.RemoveEmbeddingsAsync (embeddingDataIds: seq<EmbeddingDataId>, ?ct: CancellationToken) : Task<Result<unit, string>> =
+            this.RemoveEmbeddingsAsync (embeddingDataIds, ?ct = ct)
 
         member this.SearchSimilarEmbeddingsAsync (embeddingData: EmbeddingData, limit: int, ?ct: CancellationToken) : Task<Result<seq<EmbeddingData * BookId>, string>> =
             let ct = defaultArg ct CancellationToken.None
@@ -315,6 +378,12 @@ type VectorDbService(connection: string, ?cancellationTokenSourceExpiration: int
 
         member this.SearchSimilarEmbeddingsWithScoreFilteringByBookIdsAsync (embeddingData: EmbeddingData, bookIds: List<BookId>, limit: int, ?threshold: float, ?ct: CancellationToken) : Task<Result<seq<EmbeddingData * BookId * float>, string>> =
             let ct = defaultArg ct CancellationToken.None
-            this.SearchSimilarEmbeddingsWithScoreFilteringByBookIdsAsync (embeddingData, bookIds, limit, ?threshold = threshold, ct = ct)
+            this.SearchSimilarEmbeddingsWithScoreFilteringByBookIdsAsync (embeddingData, bookIds, limit, ?threshold = threshold, ct = ct)        
+        member this.ReadAllEmbeddingIdsWithBookIdsAsync(?ct: CancellationToken): Task<Result<(EmbeddingDataId * BookId) seq,string>> = 
+            let ct = defaultArg ct CancellationToken.None
+            this.ReadAllEmbeddingIdsWithBookIdsAsync ct
+
+        member this.EnquiryForMissingEmbeddingsAsync (embeddingDataIds: List<EmbeddingDataId>, ?ct: CancellationToken) : Task<Result<List<EmbeddingDataId>, string>> =
+            this.EnquiryForMissingEmbeddingsAsync (embeddingDataIds, ?ct = ct)
 
 

@@ -147,6 +147,14 @@ Gli amministratori gestiscono gli accessi tramite il **Gestore Utenti**.
 - **Assegnazione Ruoli**: Promuovi gli utenti ai ruoli di **Manager** o **Bibliotecario** per concedere l'accesso al catalogo.
 - **Controllo Account**: Cerca gli utenti per email o nome utente per revisionare il loro stato e i loro ruoli.
 
+<a name="control-panel"></a>
+### Pannello di Controllo Admin e Riconciliazione
+Il **Pannello di Controllo** fornisce strumenti di manutenzione critici per l'integrità del sistema.
+- **Riconciliazione Database Vettoriale**: 
+    - **Pulisci Vettori Orfani**: Rimuove gli embedding dal database vettoriale che non sono più collegati a libri attivi nell'archivio. Usa questo strumento per mantenere il database vettoriale efficiente e accurato.
+    - **Sincronizzazione Stati Libri**: Rileva i libri che fanno riferimento a un embedding che è stato perso o eliminato dal database vettoriale. Ripristina automaticamente lo stato del libro per garantire che non dichiari più di avere un embedding valido.
+- **Estensibilità Futura**: Questo pannello è progettato per ospitare funzionalità future come l'audit degli eventi in tempo reale e la pianificazione automatizzata dei task.
+
 ### Anonimizzazione GDPR e "Diritto all'Oblio"
 Gli utenti possono richiedere la cancellazione dell'account tramite le impostazioni del profilo (**Gestisci i tuoi dati**).
 - **Flusso di Anonimizzazione**: Per conformarsi al GDPR preservando al contempo i record storici della biblioteca (come prestiti e recensioni passati), il sistema esegue l'**Anonimizzazione** invece della cancellazione fisica.

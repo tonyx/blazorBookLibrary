@@ -53,9 +53,17 @@ type EmbeddingData =
             let! similarity = this.Similarity other
             return 1.0 - similarity
         }
-        
 
 let random = System.Random()
+
+type TagsId =
+    | TagsId of Guid
+    with
+        static member New() = TagsId(Guid.NewGuid())
+        static member UniqueTagId = TagsId(Guid.Parse("27ce5da6-2a03-4afd-bf3f-43ce258ead4c"))
+        member this.Value = 
+            match this with
+            | TagsId v -> v
 
 type ExportFormat = 
     | Csv

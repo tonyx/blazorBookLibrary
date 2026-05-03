@@ -94,7 +94,14 @@ type LoanService
         =
         let connectionString = secretsReader.GetBookLibraryConnectionString ()
         let eventStore = PgStorage.PgEventStore connectionString
-        LoanService(eventStore, reservationService, usersService, mailNotificator, localizer, configuration, mailBodyRetriever)
+        LoanService
+            (eventStore, 
+            reservationService, 
+            usersService, 
+            mailNotificator, 
+            localizer, 
+            configuration, 
+            mailBodyRetriever)
 
     new 
         (connectionString: string, 

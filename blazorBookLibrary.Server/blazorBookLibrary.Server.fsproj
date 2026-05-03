@@ -41,6 +41,8 @@
     <Compile Include="Domain/User/Commands.fs" />
     <Compile Include="Domain/Review/Events.fs" />
     <Compile Include="Domain/Review/Commands.fs" />
+    <Compile Include="Domain/Tags/Events.fs" />
+    <Compile Include="Domain/Tags/Commands.fs" />
 
     <Compile Include="Utils/SecretReader.fs" />
     <Compile Include="Utils/ConverterUtils.fs" />
@@ -61,6 +63,7 @@
     <Compile Include="SeedServices/RandomBooksGeneratorService.fs" />
 
     <Compile Include="Services/MailBodyRetriever.fs" />
+    <Compile Include="Services/TagService.fs" />
     <Compile Include="Services/UserMapping.fs" />
     <Compile Include="Services/ReviewService.fs" />
     <Compile Include="Services/UserService.fs" />
@@ -74,6 +77,7 @@
     <Compile Include="Services/DetailsService.fs" />
     <Compile Include="Services/TextEmbeddingService.fs" />
     <Compile Include="Services/DataExportService.fs" />
+    <Compile Include="Services/AdminService.fs" />
   </ItemGroup>
 
   <ItemGroup>

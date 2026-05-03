@@ -9,6 +9,7 @@
   <ItemGroup>
     <Compile Include="Library.fs" />
     <Compile Include="Commons.fs" />
+    <Compile Include="Domain/Tags.fs" />
     <Compile Include="Domain/Book.fs" />
     <Compile Include="Domain/Author.fs" />
     <Compile Include="Domain/Editor.fs" />
@@ -20,6 +21,7 @@
     <Compile Include="SearchModels.fs" />
     <Compile Include="Details/Details.fs" />
     <Compile Include="Services/IMailBodyRetriever.fs" />
+    <Compile Include="Services/ITagService.fs" />
     <Compile Include="Services/IAuthorService.fs" />
     <Compile Include="Services/IVectorDbService.fs" />
     <Compile Include="Services/IBookService.fs" />
@@ -33,6 +35,7 @@
     <Compile Include="Services/IDetailsService.fs" />
     <Compile Include="Services/IDataExportService.fs" />
     <Compile Include="Services/ITextEmbeddingService.fs" />
+    <Compile Include="Services/IAdminService.fs" />
 
     <Compile Include="SearchCriteria.fs" />
     <Compile Include="Infrastructure/Services/IMailNotificator.fs" />

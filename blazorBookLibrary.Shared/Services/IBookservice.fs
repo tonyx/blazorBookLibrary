@@ -47,10 +47,12 @@ type IBookService =
     abstract member RemoveImageUrlAsync: bookId: BookId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<unit, string>>
     abstract member SetImageUrlAsync: bookId: BookId * imageUrl: Uri * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<unit, string>>
     abstract member SetAvailabilityAsync: availability: Availability * bookId: BookId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<unit, string>>
+    abstract member AddTagToBookAsync: tag: Tag * bookId: BookId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<unit, string>>
+    abstract member RemoveTagFromBookAsync: tag: Tag * bookId: BookId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<unit, string>>
 
     abstract member BulkEditAsync: bookIds: List<BookId> * editCriteria: BulkBookEdit * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<unit, string>>
-
     abstract member GetAllAsync : [<Optional; DefaultParameterValue(null)>] ?criteria: BookSearchCriteria * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<Book list, string>>
+
     abstract member SearchByTitleAsync : title: Title * [<Optional; DefaultParameterValue(null)>] ?criteria: BookSearchCriteria * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<List<Book>, string>>
     abstract member SearchByIsbnAsync : isbn: Isbn * [<Optional; DefaultParameterValue(null)>] ?criteria: BookSearchCriteria * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<List<Book>, string>>
 
@@ -64,6 +66,7 @@ type IBookService =
     abstract member RemoveDescriptionAsync: bookId: BookId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<unit, string>>
     abstract member EmbedDescriptionAsync: bookId: BookId * EmbeddingDataId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<unit, string>>
     abstract member RemoveEmbeddingAsync: bookId: BookId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<unit, string>>
+    abstract member ForceBulkRemoveEmbeddingsAsync : bookIds: List<BookId> * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<unit, string>>
 
     abstract member UpdateIsbnAsync: isbn: Isbn * bookId: BookId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<unit, string>>
 

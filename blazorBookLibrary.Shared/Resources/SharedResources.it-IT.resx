@@ -175,6 +175,7 @@
   <data name="Year" xml:space="preserve"><value>Anno</value></data>
   <data name="YearValue" xml:space="preserve"><value>Valore anno</value></data>
   <data name="overActivity" xml:space="preserve"><value>Potresti avere troppa attività, riprova più tardi</value></data>
+  <data name="ErrorSearchingBooks" xml:space="preserve"><value>Errore durante la ricerca dei libri</value></data>
   <data name="ErrorSearchingAuthors" xml:space="preserve"><value>Errore nella ricerca degli autori: {0}</value></data>
   <data name="InvalidIsniValue" xml:space="preserve"><value>Valore ISBN non valido: {0}</value></data>
   <data name="ErrorCreatingBook" xml:space="preserve"><value>Errore nella creazione del libro: {0}</value></data>
@@ -481,6 +482,7 @@
   <data name="ArchivalAvailability" xml:space="preserve"><value>Disponibilità Archivistica</value></data>
   <data name="CatalogedAuthors" xml:space="preserve"><value>Autori Catalogati</value></data>
   <data name="AddAuthorToRecord" xml:space="preserve"><value>Cerca per associare un autore...</value></data>
+  <data name="AddAdditionalCategory" xml:space="preserve"><value>Aggiungi Categoria</value></data>
   <data name="AddArchivalTag" xml:space="preserve"><value>Aggiungi Tag Archivistico</value></data>
   <data name="EditorialAccountLedger" xml:space="preserve"><value>Libro Mastro Account Editoriale</value></data>
   <data name="PatronDirectory" xml:space="preserve"><value>Elenco Utenti</value></data>
@@ -814,4 +816,36 @@
   <data name="Total" xml:space="preserve"><value>Totale</value></data>
   <data name="GenerateMissingDescriptions" xml:space="preserve"><value>Genera Descrizioni Mancanti</value></data>
   <data name="GenerateDescriptionsHelp" xml:space="preserve"><value>Usa l'IA per generare una descrizione del libro se manca nei metadati della biblioteca.</value></data>
+  <data name="ControlPanel" xml:space="preserve"><value>Pannello di Controllo</value></data>
+  <data name="AdminTools" xml:space="preserve"><value>Strumenti di Amministrazione</value></data>
+  <data name="VectorReconciliation" xml:space="preserve"><value>Riconciliazione Database Vettoriale</value></data>
+  <data name="PurgeVectors" xml:space="preserve"><value>Pulisci Vettori Orfani</value></data>
+  <data name="AdjustBookStates" xml:space="preserve"><value>Sincronizza Stati Libri</value></data>
+  <data name="PurgeVectorsDescription" xml:space="preserve"><value>Rimuove gli embedding dal database vettoriale che si riferiscono a libri non più esistenti nel sistema.</value></data>
+  <data name="AdjustBookStatesDescription" xml:space="preserve"><value>Rileva i libri che dichiarano di avere un embedding mancante nel database vettoriale e ne ripristina lo stato.</value></data>
+  <data name="ActionSuccessful" xml:space="preserve"><value>Azione completata con successo.</value></data>
+  <data name="ActionFailed" xml:space="preserve"><value>Azione fallita.</value></data>
+  <data name="FutureFeaturesPlaceholder" xml:space="preserve"><value>Nuove funzioni amministrative, auditing degli eventi e pianificazione automatizzata appariranno qui nei prossimi aggiornamenti.</value></data>
+  <data name="TagManagement" xml:space="preserve"><value>Gestione Tag</value></data>
+  <data name="TagType" xml:space="preserve"><value>Tipo Tag</value></data>
+  <data name="TagName" xml:space="preserve"><value>Nome Tag</value></data>
+  <data name="BookTag" xml:space="preserve"><value>Libro</value></data>
+  <data name="AuthorTag" xml:space="preserve"><value>Autore</value></data>
+  <data name="GeneralTag" xml:space="preserve"><value>Generale</value></data>
+  <data name="PersonTag" xml:space="preserve"><value>Persona</value></data>
+  <data name="GenericTag" xml:space="preserve"><value>Generico</value></data>
+  <data name="EnterTagName" xml:space="preserve"><value>Inserisci nome tag...</value></data>
+  <data name="AddTag" xml:space="preserve"><value>Aggiungi Tag</value></data>
+  <data name="ArchivalTags" xml:space="preserve"><value>Tag d'Archivio</value></data>
+  <data name="Selected" xml:space="preserve"><value>Selezionati</value></data>
+  <data name="SelectTagToAdd" xml:space="preserve"><value>Seleziona tag da aggiungere</value></data>
+  <data name="NoTagsSelectedNote" xml:space="preserve"><value>Nessun tag selezionato per questo record.</value></data>
+  <data name="NoTagsAvailable" xml:space="preserve"><value>Nessun tag disponibile da aggiungere.</value></data>
+  <data name="Tag" xml:space="preserve"><value>Tag</value></data>
+  <data name="ErrorAddingTag" xml:space="preserve"><value>Errore durante l'aggiunta del tag: {0}</value></data>
+  <data name="ErrorAddingTagGeneric" xml:space="preserve"><value>Errore durante l'aggiunta del tag: {0}</value></data>
+  <data name="ErrorRemovingTag" xml:space="preserve"><value>Errore durante la rimozione del tag: {0}</value></data>
+  <data name="ErrorRemovingTagGeneric" xml:space="preserve"><value>Errore durante la rimozione del tag: {0}</value></data>
+  <data name="FilterByTags" xml:space="preserve"><value>Filtra per Tag</value></data>
+  <data name="SelectTagPlaceholder" xml:space="preserve"><value>Seleziona tag...</value></data>
 </root>

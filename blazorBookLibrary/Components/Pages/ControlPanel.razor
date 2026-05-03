@@ -1,0 +1,416 @@
+@page "/control-panel"
+@using Microsoft.AspNetCore.Authorization
+@using BookLibrary.Shared.Services
+@using blazorBookLibrary.Shared.Resources
+@using Microsoft.Extensions.Localization
+@using BookLibrary.Domain
+@attribute [Authorize(Roles = "Admin")]
+@inject IAdminServices ReconciliationService
+@inject ITagService TagService
+@inject IStringLocalizer<SharedResources> L
+@inject IJSRuntime JSRuntime
+@rendermode InteractiveServer
+
+<PageTitle>@L["ControlPanel"]</PageTitle>
+
+<div class="sanctuary-container py-5">
+    <div class="mb-5">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/" class="text-decoration-none text-muted">@L["Home"]</a></li>
+                <li class="breadcrumb-item active text-serif" aria-current="page">@L["ControlPanel"]</li>
+            </ol>
+        </nav>
+        <div class="d-flex justify-content-between align-items-end">
+            <div>
+                <h1 class="display-4 text-serif mb-2">@L["AdminTools"]</h1>
+                <p class="text-muted lead mb-0">@L["VectorReconciliation"]</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- Purge Vectors -->
+        <div class="col-md-6">
+            <div class="sanctuary-card p-4 h-100 d-flex flex-column border shadow-sm transition-hover bg-surface-low">
+                <div class="d-flex align-items-center mb-3">
+                    <div class="p-3 bg-primary bg-opacity-10 rounded-circle me-3">
+                        <i class="bi bi-eraser-fill text-primary h4 mb-0"></i>
+                    </div>
+                    <h3 class="h5 text-serif mb-0">@L["PurgeVectors"]</h3>
+                </div>
+                <p class="text-muted small flex-grow-1">@L["PurgeVectorsDescription"]</p>
+                <div class="d-flex gap-2 mt-4">
+                    <button class="btn btn-sanctuary flex-grow-1 py-3" @onclick="PurgeVectors" disabled="@(isProcessing && !isPurging)">
+                        @if (isPurging)
+                        {
+                            <span class="spinner-border spinner-border-sm me-2"></span>
+                        }
+                        else
+                        {
+                            <i class="bi bi-lightning-charge me-2"></i>
+                        }
+                        @L["PurgeVectors"]
+                    </button>
+                    @if (isPurging)
+                    {
+                        <button class="btn btn-outline-danger px-4 animate-fade-in" @onclick="CancelOperation" title="@L["Cancel"]">
+                            <i class="bi bi-x-lg"></i>
+                        </button>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Adjust Book States -->
+        <div class="col-md-6">
+            <div class="sanctuary-card p-4 h-100 d-flex flex-column border shadow-sm transition-hover bg-surface-low">
+                <div class="d-flex align-items-center mb-3">
+                    <div class="p-3 bg-secondary bg-opacity-10 rounded-circle me-3">
+                        <i class="bi bi-arrow-repeat text-secondary h4 mb-0"></i>
+                    </div>
+                    <h3 class="h5 text-serif mb-0">@L["AdjustBookStates"]</h3>
+                </div>
+                <p class="text-muted small flex-grow-1">@L["AdjustBookStatesDescription"]</p>
+                <div class="d-flex gap-2 mt-4">
+                    <button class="btn btn-outline-sanctuary flex-grow-1 py-3" @onclick="AdjustBookStates" disabled="@(isProcessing && !isAdjusting)">
+                        @if (isAdjusting)
+                        {
+                            <span class="spinner-border spinner-border-sm me-2"></span>
+                        }
+                        else
+                        {
+                            <i class="bi bi-sync me-2"></i>
+                        }
+                        @L["AdjustBookStates"]
+                    </button>
+                    @if (isAdjusting)
+                    {
+                        <button class="btn btn-outline-danger px-4 animate-fade-in" @onclick="CancelOperation" title="@L["Cancel"]">
+                            <i class="bi bi-x-lg"></i>
+                        </button>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tag Management -->
+    <div class="row mt-5">
+        <div class="col-12">
+            <div class="sanctuary-card p-4 border shadow-sm bg-surface-low">
+                <div class="d-flex align-items-center justify-content-between mb-4">
+                    <div class="d-flex align-items-center">
+                        <div class="p-3 bg-info bg-opacity-10 rounded-circle me-3">
+                            <i class="bi bi-tags-fill text-info h4 mb-0"></i>
+                        </div>
+                        <div>
+                            <h3 class="h5 text-serif mb-0">@L["TagManagement"]</h3>
+                            <p class="text-muted small mb-0">Manage system-wide tags for books and authors</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Add New Tag Form -->
+                <div class="row g-3 mb-5 p-4 bg-surface rounded-4 border-dashed shadow-sm">
+                    <div class="col-12">
+                        <h4 class="h6 text-uppercase fw-bold text-muted mb-3">Create New Tag</h4>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small fw-bold">@L["TagType"]</label>
+                        <select class="form-select border-0 bg-light" @bind="newTagType">
+                            <option value="Book">@L["BookTag"]</option>
+                            <option value="Author">@L["AuthorTag"]</option>
+                            <option value="General">@L["GeneralTag"]</option>
+                            <option value="Person">@L["PersonTag"]</option>
+                            <option value="Generic">@L["GenericTag"]</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold">@L["TagName"]</label>
+                        <input type="text" class="form-control border-0 bg-light" placeholder="@L["EnterTagName"]" @bind="newTagName" @bind:event="oninput" @onkeyup="HandleKeyUp" />
+                    </div>
+                    <div class="col-md-3 d-flex align-items-end">
+                        <button class="btn btn-sanctuary w-100 py-2" @onclick="AddTag" disabled="@(string.IsNullOrWhiteSpace(newTagName))">
+                            <i class="bi bi-plus-lg me-2"></i>@L["AddTag"]
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Grouped Tags with Lateral Scrolling -->
+                <div class="tags-scroller-wrapper">
+                    @if (!allTags.Any())
+                    {
+                        <div class="text-center py-5 bg-surface-low rounded-4 border border-dashed opacity-75">
+                            <div class="mb-3">
+                                <i class="bi bi-tags h1 text-muted"></i>
+                            </div>
+                            <h5 class="text-serif text-muted">No Tags Defined</h5>
+                            <p class="text-muted small mb-0">Use the form above to initialize the repository with its first tags.</p>
+                        </div>
+                    }
+                    else
+                    {
+                        @foreach (var type in new[] { "Book", "Author", "General", "Person", "Generic" })
+                        {
+                            var tagsOfType = allTags.Where(t => GetTagTypeName(t) == type).ToList();
+                            if (tagsOfType.Any())
+                            {
+                                <div class="mb-4">
+                                    <h6 class="text-uppercase small fw-bold text-muted mb-3 d-flex align-items-center">
+                                        <span class="type-indicator @GetTagColorClass(type) me-2"></span>
+                                        @type Tags
+                                        <span class="badge bg-light text-muted ms-2 border">@tagsOfType.Count</span>
+                                    </h6>
+                                    <div class="tags-row-scroller pb-2">
+                                        <div class="d-flex flex-nowrap gap-2">
+                                            @foreach (var tag in tagsOfType)
+                                            {
+                                                <div class="tag-chip @GetTagColorClass(type) d-inline-flex align-items-center animate-fade-in">
+                                                    <span class="me-2">@tag.TagName</span>
+                                                    <button class="btn-close btn-close-white small" @onclick="() => RemoveTag(tag)" aria-label="Remove"></button>
+                                                </div>
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        }
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private bool isPurging = false;
+    private bool isAdjusting = false;
+    private bool isProcessing => isPurging || isAdjusting;
+    private CancellationTokenSource? cts;
+
+    private List<Tag> allTags = new();
+    private string newTagName = "";
+    private string newTagType = "Book";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadTags();
+    }
+
+    private async Task LoadTags()
+    {
+        var result = await TagService.GetTagsAsync();
+        if (result.IsOk)
+        {
+            allTags = result.ResultValue.ToList();
+        }
+    }
+
+    private async Task HandleKeyUp(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await AddTag();
+        }
+    }
+
+    private async Task AddTag()
+    {
+        if (string.IsNullOrWhiteSpace(newTagName)) return;
+
+        Tag tag = newTagType switch
+        {
+            "Book" => Tag.NewBookTag(newTagName),
+            "Author" => Tag.NewAuthorTag(newTagName),
+            "General" => Tag.NewGeneralTag(newTagName),
+            "Person" => Tag.NewPersonTag(newTagName),
+            "Generic" => Tag.NewGenericTag(newTagName),
+            _ => Tag.NewGenericTag(newTagName)
+        };
+
+        var result = await TagService.AddTagAsync(tag);
+        if (result.IsOk)
+        {
+            newTagName = "";
+            await LoadTags();
+            await JSRuntime.InvokeVoidAsync("showToast", L["ActionSuccessful"].Value, "success");
+        }
+        else
+        {
+            await JSRuntime.InvokeVoidAsync("showToast", result.ErrorValue, "error");
+        }
+    }
+
+    private async Task RemoveTag(Tag tag)
+    {
+        var result = await TagService.RemoveTagAsync(tag);
+        if (result.IsOk)
+        {
+            await LoadTags();
+            await JSRuntime.InvokeVoidAsync("showToast", L["ActionSuccessful"].Value, "success");
+        }
+        else
+        {
+            await JSRuntime.InvokeVoidAsync("showToast", result.ErrorValue, "error");
+        }
+    }
+
+    private string GetTagTypeName(Tag tag)
+    {
+        if (tag.IsBookTag) return "Book";
+        if (tag.IsAuthorTag) return "Author";
+        if (tag.IsGeneralTag) return "General";
+        if (tag.IsPersonTag) return "Person";
+        if (tag.IsGenericTag) return "Generic";
+        return "Generic";
+    }
+
+    private string GetTagColorClass(string type)
+    {
+        return type switch
+        {
+            "Book" => "type-book",
+            "Author" => "type-author",
+            "General" => "type-general",
+            "Person" => "type-person",
+            "Generic" => "type-generic",
+            _ => "type-generic"
+        };
+    }
+
+    private void CancelOperation()
+    {
+        cts?.Cancel();
+    }
+
+    private async Task PurgeVectors()
+    {
+        isPurging = true;
+        cts = new CancellationTokenSource();
+        try
+        {
+            var result = await ReconciliationService.PurgeVectorsReferringDroppedBooksAsync(cts.Token);
+            if (result.IsOk)
+            {
+                await JSRuntime.InvokeVoidAsync("showToast", L["ActionSuccessful"].Value, "success");
+            }
+            else
+            {
+                if (cts.IsCancellationRequested)
+                {
+                    await JSRuntime.InvokeVoidAsync("showToast", L["ImportCancelled"].Value, "warning");
+                }
+                else
+                {
+                    await JSRuntime.InvokeVoidAsync("showToast", $"{L["ActionFailed"]}: {result.ErrorValue}", "error");
+                }
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            await JSRuntime.InvokeVoidAsync("showToast", L["ImportCancelled"].Value, "warning");
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("showToast", $"{L["ActionFailed"]}: {ex.Message}", "error");
+        }
+        finally
+        {
+            isPurging = false;
+            cts.Dispose();
+            cts = null;
+        }
+    }
+
+    private async Task AdjustBookStates()
+    {
+        isAdjusting = true;
+        cts = new CancellationTokenSource();
+        try
+        {
+            var result = await ReconciliationService.AdjustBookStatesReferringMissingEmbeddingsAsync(cts.Token);
+            if (result.IsOk)
+            {
+                await JSRuntime.InvokeVoidAsync("showToast", L["ActionSuccessful"].Value, "success");
+            }
+            else
+            {
+                if (cts.IsCancellationRequested)
+                {
+                    await JSRuntime.InvokeVoidAsync("showToast", L["ImportCancelled"].Value, "warning");
+                }
+                else
+                {
+                    await JSRuntime.InvokeVoidAsync("showToast", $"{L["ActionFailed"]}: {result.ErrorValue}", "error");
+                }
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            await JSRuntime.InvokeVoidAsync("showToast", L["ImportCancelled"].Value, "warning");
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("showToast", $"{L["ActionFailed"]}: {ex.Message}", "error");
+        }
+        finally
+        {
+            isAdjusting = false;
+            cts.Dispose();
+            cts = null;
+        }
+    }
+}
+
+<style>
+    .border-dashed {
+        border: 2px dashed var(--outline-variant) !important;
+    }
+    .animate-fade-in {
+        animation: fadeIn 0.3s ease-in-out;
+    }
+    @@keyframes fadeIn {
+        from { opacity: 0; transform: scale(0.9); }
+        to { opacity: 1; transform: scale(1); }
+    }
+
+    .tags-row-scroller {
+        overflow-x: auto;
+        scrollbar-width: thin;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .tag-chip {
+        padding: 0.5rem 1rem;
+        border-radius: 2rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+        white-space: nowrap;
+        transition: all 0.2s ease;
+    }
+
+    .type-indicator {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        display: inline-block;
+    }
+
+    .type-book { background-color: #3b82f6; color: white; }
+    .type-author { background-color: #10b981; color: white; }
+    .type-general { background-color: #f59e0b; color: white; }
+    .type-person { background-color: #06b6d4; color: white; }
+    .type-generic { background-color: #6b7280; color: white; }
+
+    .tag-chip .btn-close {
+        filter: invert(1) grayscale(100%) brightness(200%);
+        padding: 0.25rem;
+        font-size: 0.65rem;
+    }
+
+    .tag-chip:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+</style>

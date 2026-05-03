@@ -77,3 +77,9 @@ graph TB
 - **Anonymization Strategy**: To honor GDPR "Right to be Forgotten" while maintaining event stream integrity, the system implements a "Ghosting" pattern.
 - **Identity Anonymization**: The ASP.NET Identity record is anonymized (email/username randomized, personal fields cleared) and permanently disabled.
 - **Event Integrity**: The underlying F# aggregates (e.g., `User`) remain resolvable by their IDs, ensuring that historical records like loans or reservations don't "break" when a user departs.
+
+### 7. Vector Database Reconciliation
+- **Inconsistency Management**: Due to the distributed nature of the Event Store (source of truth) and the Vector Database (materialized view), inconsistencies can arise (e.g., deleted events not propagated, or vector database crashes).
+- **Reconciliation Service**: A specialized service provides high-level corrective actions:
+    - **Orphan Purging**: Identifies and removes vectors that reference book IDs no longer present in the Event Store.
+    - **State Syncing**: Scans the Event Store for books that reference a vector ID, verifies its existence in pgvector, and resets the book's state if the reference is broken.

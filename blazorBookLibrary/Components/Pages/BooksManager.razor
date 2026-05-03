@@ -14,6 +14,7 @@
 
 @attribute [Authorize(Roles = "Admin, Manager")]
 @inject IBookService BookService
+@inject ITagService TagService
 @inject IDataExportService DataExportService
 @inject IAuthorService AuthorService
 @inject IJSRuntime JSRuntime
@@ -572,6 +573,52 @@
                                     }
                                 </div>
                             </div>
+                            @* Archival Tags Selection *@
+                            <div class="col-12 mt-4">
+                                <label class="form-label small text-muted text-uppercase fw-bold d-flex justify-content-between mb-3">
+                                    @L["ArchivalTags"]
+                                    <span class="badge-sanctuary badge-neutral">@bookTags.Count @L["Selected"]</span>
+                                </label>
+                                
+                                <div class="row g-2 mb-3">
+                                    <div class="col-md-9">
+                                        <select class="form-select bg-surface-low border-0 py-2 shadow-sm" @onchange="AddTagToBook">
+                                            <option value="">-- @L["SelectTagToAdd"] --</option>
+                                            @foreach (var tag in allAvailableTags.Where(t => !bookTags.Contains(t)))
+                                            {
+                                                <option value="@tag.TagName">@tag.TagName (@GetTagTypeName(tag))</option>
+                                            }
+                                        </select>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <button type="button" class="btn btn-outline-warning w-100 py-2 shadow-sm" @onclick="ClearAllTags">
+                                            <i class="bi bi-trash me-1"></i> @L["Clear"]
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div class="bg-surface-low rounded-3 p-4 border border-dashed text-serif" style="min-height: 80px;">
+                                    @if (bookTags.Count == 0)
+                                    {
+                                        <div class="text-center py-2 text-muted italic small opacity-50">
+                                            @L["NoTagsSelectedNote"]
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <div class="d-flex flex-wrap gap-2">
+                                            @foreach (var tag in bookTags)
+                                            {
+                                                <div class="tag-chip @GetTagColorClass(GetTagTypeName(tag)) d-inline-flex align-items-center animate-fade-in shadow-sm">
+                                                    <span class="me-2 small">@tag.TagName</span>
+                                                    <button type="button" class="btn-close btn-close-white small" style="font-size: 0.5rem" 
+                                                            @onclick="() => RemoveTagFromBook(tag)"></button>
+                                                </div>
+                                            }
+                                        </div>
+                                    }
+                                </div>
+                            </div>
                             
                             @* Action Buttons *@
                             <div class="col-12 mt-5">
@@ -941,8 +988,64 @@
     private bool generateEmbeddingAfterAdd = false;
     private Category mainCategory = Category.Other;
     private List<Category> additionalCategories = new();
+    private List<Tag> bookTags = new();
+    private List<Tag> allAvailableTags = new();
     private Category categoryToAdd = Category.Other;
     private FSharpList<Category> allCategories = Category.AllCases();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var tagsResult = await TagService.GetBookTypeTagsAsync();
+        if (tagsResult.IsOk)
+        {
+            allAvailableTags = tagsResult.ResultValue.ToList();
+        }
+    }
+
+    private void AddTagToBook(ChangeEventArgs e)
+    {
+        var tagName = e.Value?.ToString();
+        if (string.IsNullOrWhiteSpace(tagName)) return;
+
+        var tag = allAvailableTags.FirstOrDefault(t => t.TagName == tagName);
+        if (tag != null && !bookTags.Contains(tag))
+        {
+            bookTags.Add(tag);
+        }
+    }
+
+    private void RemoveTagFromBook(Tag tag)
+    {
+        bookTags.Remove(tag);
+    }
+
+    private void ClearAllTags()
+    {
+        bookTags.Clear();
+    }
+
+    private string GetTagTypeName(Tag tag)
+    {
+        if (tag.IsBookTag) return "Book";
+        if (tag.IsAuthorTag) return "Author";
+        if (tag.IsGeneralTag) return "General";
+        if (tag.IsPersonTag) return "Person";
+        if (tag.IsGenericTag) return "Generic";
+        return "Generic";
+    }
+
+    private string GetTagColorClass(string type)
+    {
+        return type switch
+        {
+            "Book" => "type-book",
+            "Author" => "type-author",
+            "General" => "type-general",
+            "Person" => "type-person",
+            "Generic" => "type-generic",
+            _ => "type-generic"
+        };
+    }
 
     private string mainCategoryString 
     {
@@ -1026,6 +1129,7 @@
             FSharpOption<EditorId>.None,
             mainCategory,
             ListModule.OfSeq(additionalCategories),
+            ListModule.OfSeq(bookTags),
             year,
             isbn,
             resolvedImageUrl,
@@ -1119,6 +1223,7 @@
         isGeneratingDescription = false;
         lastImportSummary = null;
         showImportSummaryModal = false;
+        bookTags.Clear();
     }
 
     private async Task ShowStatus(string message, string type)
@@ -1698,4 +1803,28 @@
     .letter-spacing-1 { letter-spacing: 1px; }
     .italic { font-style: italic; }
     .display-4 { font-weight: 800; color: var(--primary); }
+
+    .tag-chip {
+        padding: 0.4rem 1rem;
+        border-radius: 2rem;
+        font-size: 0.85rem;
+        font-weight: 500;
+        white-space: nowrap;
+        transition: all 0.2s ease;
+    }
+    .tag-chip .btn-close {
+        filter: invert(1) grayscale(100%) brightness(200%);
+        padding: 0.25rem;
+        font-size: 0.5rem;
+    }
+    .type-book { background-color: #3b82f6; color: white; }
+    .type-author { background-color: #10b981; color: white; }
+    .type-general { background-color: #f59e0b; color: white; }
+    .type-person { background-color: #06b6d4; color: white; }
+    .type-generic { background-color: #6b7280; color: white; }
+    .animate-fade-in { animation: fadeIn 0.3s ease-in-out; }
+    @@keyframes fadeIn {
+        from { opacity: 0; transform: scale(0.95); }
+        to { opacity: 1; transform: scale(1); }
+    }
 </style>

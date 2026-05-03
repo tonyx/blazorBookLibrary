@@ -12,6 +12,7 @@ type Book001 =
         Title: Title
         ImageUrl: Option<Uri>   
         Description: Option<string>
+        OptionalEmbedding: Option<EmbeddingDataId>
         Availability: Availability
         Authors: List<AuthorId>
         Translators: List<AuthorId>
@@ -24,7 +25,7 @@ type Book001 =
         Year: Year
         Isbn: Isbn
         Sealed: Sealed
-    }
+     }
     member this.Upcast(): Book = 
         { 
             BookId = this.BookId; 
@@ -41,6 +42,7 @@ type Book001 =
             Editor = this.Editor; 
             MainCategory = this.MainCategory; 
             AdditionalCategories = this.AdditionalCategories; 
+            Tags = []
             Year = this.Year; 
             Isbn = this.Isbn; 
             Sealed = this.Sealed  
@@ -62,6 +64,7 @@ and Book =
         Editor: Option<EditorId>
         MainCategory: Category
         AdditionalCategories: List<Category>
+        Tags: List<Tag>
         Year: Year
         Isbn: Isbn
         Sealed: Sealed
@@ -95,6 +98,7 @@ with
             Editor = editor; 
             MainCategory = mainCategory;
             AdditionalCategories = additionalCategories;
+            Tags = [];
             Year = year; 
             Isbn = isbn
             Sealed = Sealed.New(DateTime.UtcNow)
@@ -108,13 +112,14 @@ with
         (editor: Option<EditorId>) 
         (mainCategory: Category) 
         (additionalCategories: list<Category>) 
+        (tags: list<Tag>)
         (year: Year) 
         (isbn: Isbn) 
         (imageUrl: Option<Uri>)
         (availability: Availability)
         = 
         { Book.New title authors translators languages editor mainCategory additionalCategories year isbn imageUrl 
-            with Availability = availability }
+            with Availability = availability; Tags = tags }
 
     member this.UpdateTitle 
         (title: Title) 
@@ -148,6 +153,51 @@ with
                 return { this with Description = None } 
             }
 
+    member this.AddTag 
+        (tag: Tag) 
+        (dateTime: DateTime) = 
+        result
+            {   
+                do!
+                    tag.IsBookTag
+                    |> Result.ofBool $"Tag {tag} is not a book tag"
+                do! 
+                    this.Sealed.IsSealed(dateTime)
+                    |> not
+                    |> Result.ofBool "Book is sealed"
+                do! 
+                    this.Tags
+                    |> List.contains tag
+                    |> not
+                    |> Result.ofBool "Tag already in book"
+                return { this with Tags = this.Tags @ [tag] } 
+            }
+
+    member this.RemoveTag 
+        (tag: Tag) 
+        (dateTime: DateTime) = 
+        result
+            {   
+                do! 
+                    this.Sealed.IsSealed(dateTime)
+                    |> not
+                    |> Result.ofBool "Book is sealed"
+                do! 
+                    this.Tags
+                    |> List.contains tag
+                    |> Result.ofBool "Tag not found in book"
+                return { this with Tags = this.Tags |> List.filter (fun t -> t <> tag) } 
+            }
+    member this.ClearTags (dateTime: DateTime) = 
+        result
+            {
+                do! 
+                    this.Sealed.IsSealed(dateTime)
+                    |> not
+                    |> Result.ofBool "Book is sealed"
+                return { this with Tags = [] } 
+            }
+
     member this.EmbedDescription 
         (embeddingId: EmbeddingDataId) 
         (dateTime: DateTime) = 
@@ -168,6 +218,8 @@ with
                     |> Result.ofBool "Book is sealed"
                 return { this with OptionalEmbedding = None } 
             }
+    member this.ForceRemoveEmbedding () = 
+        {this with OptionalEmbedding = None } |> Ok 
 
     member this.SetAvailability 
         (availability: Availability) 
