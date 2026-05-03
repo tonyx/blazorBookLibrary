@@ -16,6 +16,7 @@ Benvenuti nel manuale di **Blazor Book Library**. Questa guida ti aiuterà a nav
 5. [Strumenti per Bibliotecari e Manager](#strumenti-per-bibliotecari-e-manager)
     - [Gestione del Catalogo](#gestione-del-catalogo)
     - [Scansione Barcode](#scansione-barcode)
+    - [Riconoscimento Copertina IA](#riconoscimento-copertina-ia)
     - [Registro Autori](#registro-autori)
     - [Operazioni Massive](#operazioni-massive)
 6. [Amministrazione del Sistema](#amministrazione-del-sistema)
@@ -108,6 +109,14 @@ I manager utilizzano il **Gestore Libri** per mantenere l'eccellenza della bibli
 Il sistema supporta scanner hardware fisici o la scansione tramite fotocamera.
 - Nel modulo di aggiunta libro, clicca sull'icona della fotocamera **"Scansiona"**.
 - Posiziona il codice a barre del libro nel riquadro. Il sistema catturerà l'ISBN e ti permetterà di **"Autocompletare"** i metadati immediatamente.
+
+<a name="riconoscimento-copertina-ia"></a>
+### Riconoscimento Copertina tramite IA
+Se un libro non ha un codice a barre o preferisci un approccio visivo, puoi usare l'IA per identificare il libro dalla sua copertina.
+- Nel modulo di aggiunta libro, clicca sull'icona **"Cattura Copertina"**.
+- Scatta una foto chiara dell'intera copertina del libro usando la fotocamera del tuo dispositivo.
+- Il sistema utilizza l'intelligenza artificiale avanzata per analizzare l'immagine e risolvere automaticamente il **Titolo**, gli **Autori** e spesso l'**ISBN**.
+- Questo è il modo più veloce per registrare libri antichi o con codici a barre danneggiati.
 
 <a name="registro-autori"></a>
 ### Registro Autori

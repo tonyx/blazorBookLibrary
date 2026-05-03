@@ -16,6 +16,7 @@ Welcome to the **Blazor Book Library** manual. This guide will help you navigate
 5. [Librarian & Manager Tools](#librarian--manager-tools)
     - [Catalog Management](#catalog-management)
     - [Barcode Scanning](#barcode-scanning)
+    - [AI Cover Recognition](#ai-cover-recognition)
     - [Author Registry](#author-registry)
     - [Bulk Operations](#bulk-operations)
 6. [System Administration](#system-administration)
@@ -108,6 +109,13 @@ Managers use the **Books Manager** to maintain the library's excellence.
 The system supports physical hardware or camera-based scanning.
 - In the Add Book form, click the **"Scan"** camera icon.
 - Position the book's barcode in the frame. The system will capture the ISBN and allow you to **"Autofill"** metadata immediately.
+<a name="ai-cover-recognition"></a>
+### AI Cover Recognition
+If a book lacks a barcode or you prefer a visual approach, you can use AI to identify the book from its cover.
+- In the Add Book form, click the **"Capture Cover"** icon.
+- Take a clear photo of the entire book cover using your device's camera.
+- The system uses advanced AI vision to analyze the image and automatically resolve the **Title**, **Authors**, and often the **ISBN**.
+- This is the fastest way to register older books or those with damaged barcodes.
 
 <a name="author-registry"></a>
 ### Author Registry
