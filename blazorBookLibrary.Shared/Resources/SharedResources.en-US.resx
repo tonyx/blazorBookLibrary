@@ -82,6 +82,9 @@
   <data name="BooksBrowser" xml:space="preserve">
     <value>Books Browser</value>
   </data>
+  <data name="AuthorsBrowser" xml:space="preserve">
+    <value>Authors Browser</value>
+  </data>
   <data name="Search" xml:space="preserve">
     <value>Search</value>
   </data>
@@ -931,4 +934,19 @@
   <data name="ErrorRemovingTagGeneric" xml:space="preserve"><value>Error removing tag: {0}</value></data>
   <data name="FilterByTags" xml:space="preserve"><value>Filter by Tags</value></data>
   <data name="SelectTagPlaceholder" xml:space="preserve"><value>Select tag...</value></data>
+  <data name="LookupBio" xml:space="preserve"><value>Lookup Bio</value></data>
+  <data name="WikipediaBioLookup" xml:space="preserve"><value>Wikipedia Biography Lookup</value></data>
+  <data name="SelectBestBioMatch" xml:space="preserve"><value>Select the best biography match</value></data>
+  <data name="AuthorBioPlaceholder" xml:space="preserve"><value>Enter author biography...</value></data>
+  <data name="BioFoundWikipedia" xml:space="preserve"><value>Biography options found on Wikipedia</value></data>
+  <data name="WikipediaLink" xml:space="preserve"><value>Wikipedia Link</value></data>
+  <data name="WikipediaUriLookup" xml:space="preserve"><value>Wikipedia Link Lookup</value></data>
+  <data name="WikipediaLinkFound" xml:space="preserve"><value>Wikipedia link found</value></data>
+  <data name="NoBioFoundWikipedia" xml:space="preserve"><value>No biography found on Wikipedia</value></data>
+  <data name="ErrorSearchingBio" xml:space="preserve"><value>Error searching for biography: {0}</value></data>
+  <data name="ErrorSearchingUri" xml:space="preserve"><value>Error searching for link: {0}</value></data>
+  <data name="Link" xml:space="preserve"><value>Link</value></data>
+  <data name="BioUpdatedSuccessfully" xml:space="preserve"><value>Biography updated successfully</value></data>
+  <data name="WikipediaLinkUpdated" xml:space="preserve"><value>Wikipedia link updated successfully</value></data>
+  <data name="NoBiographyRegistered" xml:space="preserve"><value>No biography registered for this author.</value></data>
 </root>

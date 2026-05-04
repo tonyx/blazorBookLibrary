@@ -1,0 +1,160 @@
+@page "/authors-browser"
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using BookLibrary.Shared.Services
+@using BookLibrary.Shared
+@using BookLibrary.Domain
+@using static BookLibrary.Shared.Commons
+@using Microsoft.FSharp.Core
+
+@inject IAuthorService AuthorService
+@inject IStringLocalizer<SharedResources> L
+@inject NavigationManager NavigationManager
+@rendermode InteractiveServer
+
+<PageTitle>@L["AuthorsBrowser"] — @L["TheModernArchivist"]</PageTitle>
+
+<div class="sanctuary-container py-5">
+
+    @* Page Header *@
+    <div class="mb-5 text-center">
+        <h1 class="display-3 text-serif mb-3">@L["AuthorRegistry"]</h1>
+        <p class="text-muted lead mx-auto" style="max-width: 800px;">@L["ManageCatalogedAuthors"]</p>
+    </div>
+
+    @* Search Toolbar *@
+    <div class="card-sanctuary mb-5 p-4 border-0 shadow-none bg-surface-low rounded-pill-sm">
+        <div class="row g-3 align-items-center">
+            <div class="col-md-9">
+                <div class="input-group input-group-lg">
+                    <span class="input-group-text bg-transparent border-end-0 text-muted ps-4">
+                        <i class="bi bi-search"></i>
+                    </span>
+                    <input type="text" 
+                           class="form-control border-start-0 py-3 ps-0 no-focus-ring bg-transparent" 
+                           placeholder="@L["SearchByName"]"
+                           @bind="searchTerm"
+                           @bind:event="oninput"
+                           @onkeyup="HandleKeyUp" />
+                </div>
+            </div>
+            <div class="col-md-3">
+                <button class="btn btn-primary w-100 py-2 rounded-pill" @onclick="PerformSearch" disabled="@isLoading">
+                    @if (isLoading)
+                    {
+                        <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                    }
+                    else
+                    {
+                        <i class="bi bi-search me-2"></i>
+                    }
+                    @L["Search"]
+                </button>
+            </div>
+        </div>
+    </div>
+
+    @if (searchPerformed)
+    {
+        <div class="animate-fade-in">
+            <div class="card-sanctuary p-0 overflow-hidden">
+                <div class="px-5 py-4 bg-surface-container d-flex justify-content-between align-items-center border-bottom">
+                    <h2 class="h4 text-serif mb-0">@L["RegisteredAuthors"]</h2>
+                    <span class="badge-sanctuary badge-neutral">@foundAuthors.Count @L["Records"]</span>
+                </div>
+
+                <div class="table-responsive">
+                    <QuickGrid Items="@foundAuthors.AsQueryable()" Pagination="@authorPagination" Class="editorial-ledger w-100 align-middle">
+                        <TemplateColumn Title="@L["Author"]" SortBy="@sortName" Class="ps-5">
+                            <a href="/author-view/@context.AuthorId.Value" class="text-decoration-none text-reset d-flex align-items-center gap-3 py-3 transition-hover">
+                                <div class="bg-surface-low rounded-circle overflow-hidden shadow-sm" style="width: 48px; height: 48px; flex-shrink: 0; border: 2px solid var(--surface-container-highest);">
+                                    @if (context.ImageUri != null && FSharpOption<Uri>.get_IsSome(context.ImageUri))
+                                    {
+                                        <img src="@context.ImageUri.Value.ToString()" class="w-100 h-100" style="object-fit: cover;" alt="@context.Name.Value" />
+                                    }
+                                    else
+                                    {
+                                        <div class="w-100 h-100 d-flex align-items-center justify-content-center text-muted opacity-25">
+                                            <i class="bi bi-person-fill" style="font-size: 1.5rem;"></i>
+                                        </div>
+                                    }
+                                </div>
+                                <div>
+                                    <div class="fw-bold text-serif h5 mb-0">@context.Name.Value</div>
+                                    @if (!string.IsNullOrWhiteSpace(context.Isni.Value))
+                                    {
+                                        <div class="small text-muted font-monospace" style="font-size: 0.7rem; opacity: 0.7;">ISNI: @context.Isni.Value</div>
+                                    }
+                                </div>
+                            </a>
+                        </TemplateColumn>
+
+
+                        <TemplateColumn Title="@L["Actions"]" Align="Align.End" Class="pe-5">
+                            <a href="/author-view/@context.AuthorId.Value" class="btn-sanctuary-outline btn-sm">
+                                <i class="bi bi-eye me-1"></i> @L["ViewDetails"]
+                            </a>
+                        </TemplateColumn>
+                    </QuickGrid>
+                </div>
+                
+                <div class="px-5 py-3 bg-surface-container border-top d-flex justify-content-between align-items-center">
+                    <div class="small text-muted serif italic">@L["Showing"] @Math.Min(foundAuthors.Count, authorPagination.ItemsPerPage) @L["Of"] @foundAuthors.Count @L["Records"]</div>
+                    <Paginator State="@authorPagination" />
+                </div>
+            </div>
+        </div>
+    }
+    else if (!isLoading)
+    {
+        <div class="text-center py-5 opacity-50">
+            <i class="bi bi-person-search display-1 mb-3"></i>
+            <p class="lead">@L["EnterSearchQueryToBegin"]</p>
+        </div>
+    }
+</div>
+
+@code {
+    private string searchTerm = "";
+    private bool isLoading = false;
+    private bool searchPerformed = false;
+    private List<Author> foundAuthors = new();
+    private PaginationState authorPagination = new() { ItemsPerPage = 10 };
+    private GridSort<Author> sortName = GridSort<Author>.ByAscending(a => a.Name.Value);
+
+    private async Task HandleKeyUp(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await PerformSearch();
+        }
+    }
+
+    private async Task PerformSearch()
+    {
+        if (string.IsNullOrWhiteSpace(searchTerm)) return;
+
+        isLoading = true;
+        searchPerformed = true;
+        try
+        {
+            var nameResult = Name.NewName(searchTerm);
+            var result = await AuthorService.SearchByNameAsync(nameResult);
+            if (result.IsOk)
+            {
+                foundAuthors = result.ResultValue.ToList();
+            }
+            else
+            {
+                foundAuthors = new List<Author>();
+            }
+        }
+        catch (Exception)
+        {
+            foundAuthors = new List<Author>();
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+}

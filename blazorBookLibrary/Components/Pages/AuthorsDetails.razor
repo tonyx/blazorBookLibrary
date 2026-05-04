@@ -225,6 +225,82 @@
                                 </div>
                             </div>
                         }
+
+                        <div class="col-12 mt-4">
+                            <label class="form-label small text-muted text-uppercase fw-bold mb-2">@L["Biography"]</label>
+                            @if (isEditingBio)
+                            {
+                                <div class="p-4 bg-surface-low rounded-xl border shadow-sm" @onclick:stopPropagation>
+                                    <div class="input-group shadow-sm rounded-3 overflow-hidden mb-3">
+                                        <textarea class="form-control border-0 py-2 serif" rows="4" @bind="editedBio"></textarea>
+                                        <button class="btn btn-white border-start" type="button" @onclick="LookupBio" disabled="@isSearchingBio">
+                                            <i class="bi bi-wikipedia me-2 text-primary"></i>@L["Lookup"]
+                                        </button>
+                                    </div>
+                                    @if (candidateBios.Any())
+                                    {
+                                        <div class="list-group list-group-flush mb-3 border rounded overflow-auto" style="max-height: 150px;">
+                                            @foreach (var bio in candidateBios)
+                                            {
+                                                <button type="button" class="list-group-item list-group-item-action py-2 small" @onclick="() => { editedBio = bio; candidateBios.Clear(); }">
+                                                    @bio.Substring(0, Math.Min(bio.Length, 100))...
+                                                </button>
+                                            }
+                                        </div>
+                                    }
+                                    <div class="d-flex gap-2">
+                                        <button class="btn btn-primary flex-grow-1" @onclick="UpdateBio">@L["Confirm"]</button>
+                                        <button class="btn btn-outline-secondary" @onclick="() => isEditingBio = false">@L["Discard"]</button>
+                                    </div>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="d-flex align-items-start gap-3 p-3 bg-surface-low rounded-xl">
+                                    <p class="mb-0 text-muted serif italic" style="font-size: 0.95rem; line-height: 1.6;">
+                                        @(string.IsNullOrWhiteSpace(authorDetails.Author.Bio) ? L["NoBiographyRegistered"] : authorDetails.Author.Bio)
+                                    </p>
+                                    @if (authorDetails.Author.Editable)
+                                    {
+                                        <button class="btn btn-link p-0 text-muted" @onclick="StartEditBio" @onclick:stopPropagation><i class="bi bi-pencil-square"></i></button>
+                                    }
+                                </div>
+                            }
+                        </div>
+
+                        <div class="col-12 mt-3">
+                            <label class="form-label small text-muted text-uppercase fw-bold mb-2">@L["WikipediaLink"]</label>
+                            @if (isEditingWikipediaUri)
+                            {
+                                <div class="input-group input-group-sm" @onclick:stopPropagation>
+                                    <input type="text" class="form-control bg-surface-low border-0" @bind="editedWikipediaUri" placeholder="https://it.wikipedia.org/wiki/..." />
+                                    <button class="btn btn-white border-start" type="button" @onclick="LookupWikipediaUri" disabled="@isSearchingUri">
+                                        <i class="bi bi-link-45deg text-primary"></i>
+                                    </button>
+                                    <button class="btn btn-primary" @onclick="UpdateWikipediaUri">@L["Confirm"]</button>
+                                    <button class="btn btn-outline-secondary" @onclick="() => isEditingWikipediaUri = false"><i class="bi bi-x-lg"></i></button>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="d-flex align-items-center gap-3">
+                                    @if (authorDetails.Author.WikipediaUri == null || FSharpOption<Uri>.get_IsNone(authorDetails.Author.WikipediaUri))
+                                    {
+                                        <span class="text-muted small fst-italic">@L["NoneNotSet"]</span>
+                                    }
+                                    else
+                                    {
+                                        <a href="@authorDetails.Author.WikipediaUri.Value.ToString()" target="_blank" class="text-primary text-decoration-none small d-flex align-items-center">
+                                            <i class="bi bi-wikipedia me-2"></i> @authorDetails.Author.WikipediaUri.Value.ToString()
+                                        </a>
+                                    }
+                                    @if (authorDetails.Author.Editable)
+                                    {
+                                        <button class="btn btn-link p-0 text-muted" @onclick="StartEditWikipediaUri" @onclick:stopPropagation><i class="bi bi-pencil-square"></i></button>
+                                    }
+                                </div>
+                            }
+                        </div>
                     </div>
                 </div>
 
@@ -315,6 +391,15 @@
     private string editedImageUrl = "";
     private bool isLookingUpImage = false;
 
+    private bool isEditingBio = false;
+    private string editedBio = "";
+    private bool isSearchingBio = false;
+    private List<string> candidateBios = new();
+
+    private bool isEditingWikipediaUri = false;
+    private string editedWikipediaUri = "";
+    private bool isSearchingUri = false;
+
     private async Task LookupImage()
     {
         if (authorDetails == null) return;
@@ -371,6 +456,8 @@
         isEditingName = false;
         isEditingIsni = false;
         isEditingImageUrl = false;
+        isEditingBio = false;
+        isEditingWikipediaUri = false;
     }
 
     private async Task UpdateImageUrl()
@@ -624,6 +711,114 @@
         catch (Exception ex)
         {
             await ShowStatus(string.Format(L["ErrorTogglingSealStateGeneric"], ex.Message), "alert-danger");
+        }
+    }
+
+    private void StartEditBio()
+    {
+        if (authorDetails != null && authorDetails.Author.Editable)
+        {
+            CancelAllEdits();
+            isEditingBio = true;
+            editedBio = authorDetails.Author.Bio;
+        }
+    }
+
+    private async Task UpdateBio()
+    {
+        if (authorDetails == null) return;
+        var result = await AuthorService.UpdateBioAsync(authorDetails.Author.AuthorId, editedBio);
+        if (result.IsOk)
+        {
+            await LoadAuthorDetails();
+            isEditingBio = false;
+            await ShowStatus(L["BioUpdatedSuccessfully"], "alert-success");
+        }
+        else
+        {
+            await ShowStatus(result.ErrorValue, "alert-danger");
+        }
+    }
+
+    private async Task LookupBio()
+    {
+        if (authorDetails == null) return;
+        isSearchingBio = true;
+        try
+        {
+            var lang = ShortLang.New(System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName);
+            var result = await AuthorsSearchService.LookupBioByNameAsync(authorDetails.Author.Name.Value, lang);
+            if (result.IsOk)
+            {
+                candidateBios = result.ResultValue.ToList();
+                await ShowStatus(L["BioFoundWikipedia"], "alert-success");
+            }
+        }
+        finally
+        {
+            isSearchingBio = false;
+        }
+    }
+
+    private void StartEditWikipediaUri()
+    {
+        if (authorDetails != null && authorDetails.Author.Editable)
+        {
+            CancelAllEdits();
+            isEditingWikipediaUri = true;
+            editedWikipediaUri = authorDetails.Author.WikipediaUri != null && FSharpOption<Uri>.get_IsSome(authorDetails.Author.WikipediaUri)
+                ? authorDetails.Author.WikipediaUri.Value.ToString()
+                : "";
+        }
+    }
+
+    private async Task UpdateWikipediaUri()
+    {
+        if (authorDetails == null) return;
+        if (string.IsNullOrWhiteSpace(editedWikipediaUri))
+        {
+            // Optional: handle removal
+            isEditingWikipediaUri = false;
+            return;
+        }
+
+        if (Uri.TryCreate(editedWikipediaUri, UriKind.Absolute, out var uri))
+        {
+            var result = await AuthorService.UpdateWikipediaUriAsync(authorDetails.Author.AuthorId, uri);
+            if (result.IsOk)
+            {
+                await LoadAuthorDetails();
+                isEditingWikipediaUri = false;
+                await ShowStatus(L["WikipediaLinkUpdated"], "alert-success");
+            }
+            else
+            {
+                await ShowStatus(result.ErrorValue, "alert-danger");
+            }
+        }
+        else
+        {
+            await ShowStatus(L["InvalidUrlFormat"], "alert-danger");
+        }
+    }
+
+    private async Task LookupWikipediaUri()
+    {
+        if (authorDetails == null) return;
+        isSearchingUri = true;
+        try
+        {
+            var lang = ShortLang.New(System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName);
+            var result = await AuthorsSearchService.LookupWikipediaUriByNameAsync(authorDetails.Author.Name.Value, lang);
+            if (result.IsOk)
+            {
+                editedWikipediaUri = result.ResultValue;
+                await ShowStatus(L["WikipediaLinkFound"], "alert-success");
+            }
+        }
+        finally
+        {
+            isSearchingUri = false;
         }
     }
 

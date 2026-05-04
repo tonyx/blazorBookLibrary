@@ -15,6 +15,8 @@ type AuthorEvent =
     | Unsealed of DateTime
     | ImageUrlUpdated of Uri * DateTime
     | ImageUrlRemoved of DateTime
+    | BioUpdated of string * DateTime
+    | WikipediaUriUpdated of Uri * DateTime
     interface Event<Author> with
         member this.Process (author: Author) : Result<Author, string> =
             match this with
@@ -22,6 +24,10 @@ type AuthorEvent =
                 author.Rename name dateTime
             | IsniUpdated (isni, dateTime) ->
                 author.UpdateIsni isni dateTime
+            | BioUpdated (bio, dateTime) ->
+                author.UpdateBio bio dateTime
+            | WikipediaUriUpdated (wikipediaUri, dateTime) ->
+                author.UpdateWikipediaUri wikipediaUri dateTime
             | ImageUrlUpdated (imageUrl, dateTime) ->
                 author.UpdateImageUrl imageUrl dateTime
             | ImageUrlRemoved dateTime ->

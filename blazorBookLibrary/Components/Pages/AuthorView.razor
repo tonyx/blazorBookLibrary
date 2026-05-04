@@ -102,6 +102,31 @@
                                 }
                             </div>
                         </div>
+
+                        <div class="col-12 mt-4">
+                            <label class="form-label small text-muted text-uppercase fw-bold mb-2">@L["Biography"]</label>
+                            <div class="p-3 bg-surface-low rounded-xl">
+                                <p class="mb-0 text-muted serif italic" style="font-size: 0.95rem; line-height: 1.6;">
+                                    @(string.IsNullOrWhiteSpace(authorDetails.Author.Bio) ? L["NoBiographyRegistered"] : authorDetails.Author.Bio)
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="col-12 mt-3">
+                            <label class="form-label small text-muted text-uppercase fw-bold mb-2">@L["WikipediaLink"]</label>
+                            <div class="d-flex align-items-center gap-3">
+                                @if (authorDetails.Author.WikipediaUri == null || FSharpOption<Uri>.get_IsNone(authorDetails.Author.WikipediaUri))
+                                {
+                                    <span class="text-muted small fst-italic">@L["NoneNotSet"]</span>
+                                }
+                                else
+                                {
+                                    <a href="@authorDetails.Author.WikipediaUri.Value.ToString()" target="_blank" class="text-primary text-decoration-none small d-flex align-items-center">
+                                        <i class="bi bi-wikipedia me-2"></i> @authorDetails.Author.WikipediaUri.Value.ToString()
+                                    </a>
+                                }
+                            </div>
+                        </div>
                     </div>
                 </div>
 

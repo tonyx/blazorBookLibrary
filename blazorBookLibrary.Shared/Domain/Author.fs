@@ -5,20 +5,43 @@ open FsToolkit.ErrorHandling
 open BookLibrary.Shared.Commons
 open System
 
-type Author = {
+type Author001 = {
     AuthorId: AuthorId
     Name: Name
     Isni: Isni
     ImageUri: Option<Uri>
     Sealed: Sealed
+    Books: List<BookId>}
+    with
+        member this.Upcast() = {
+            AuthorId = this.AuthorId
+            Name = this.Name
+            Isni = this.Isni
+            Bio = ""
+            ImageUri = this.ImageUri
+            WikipediaUri = None
+            Sealed = this.Sealed
+            Books = this.Books
+        }
+
+and Author = {
+    AuthorId: AuthorId
+    Name: Name
+    Isni: Isni
+    Bio: string
+    ImageUri: Option<Uri>
+    WikipediaUri: Option<Uri>
+    Sealed: Sealed
     Books: List<BookId>
 } with 
     static member New (name: Name) (isni: Isni) = 
-        {   
+        {
             AuthorId = AuthorId.New(); 
             Name = name;
             Isni = isni;
+            Bio = ""
             ImageUri = None;
+            WikipediaUri = None;
             Sealed = Sealed.New(DateTime.UtcNow)
             Books = []
         }
@@ -27,16 +50,31 @@ type Author = {
             AuthorId = AuthorId.New(); 
             Name = name;
             Isni = Isni.EmptyIsni
+            Bio = ""
             ImageUri = None;
+            WikipediaUri = None;
             Sealed = Sealed.New(DateTime.UtcNow)
             Books = []
         }
-    static member NewWithOptionalIsniAndImageUrl(name: Name, ?isni: Isni, ?imageUrl: Uri) = 
+    static member NewWithOptionalIsniAndImageUrl(name: Name, ?isni: Isni, ?imageUrl: Uri) =
         {   
             AuthorId = AuthorId.New(); 
             Name = name;
             Isni = isni |> Option.defaultValue Isni.EmptyIsni
+            Bio = ""
             ImageUri = imageUrl
+            WikipediaUri = None
+            Sealed = Sealed.New(DateTime.UtcNow)
+            Books = []
+        }
+    static member NewWithOptionalIsniAndImageUrlAndBio(name: Name, ?isni: Isni, ?imageUrl: Uri, ?bio: string, ?wikipediaUri: Uri) = 
+        {   
+            AuthorId = AuthorId.New(); 
+            Name = name;
+            Isni = isni |> Option.defaultValue Isni.EmptyIsni
+            Bio = bio |> Option.defaultValue ""
+            ImageUri = imageUrl
+            WikipediaUri = wikipediaUri
             Sealed = Sealed.New(DateTime.UtcNow)
             Books = []
         }
@@ -79,6 +117,26 @@ type Author = {
                     |> not
                     |> Result.ofBool "Author is sealed"
                 return { this with Isni = isni } 
+            }
+
+    member this.UpdateBio (bio: string) (dateTime: DateTime) = 
+        result
+            {
+                do! 
+                    this.Sealed.IsSealed(dateTime)
+                    |> not
+                    |> Result.ofBool "Author is sealed"
+                return { this with Bio = bio } 
+            }
+
+    member this.UpdateWikipediaUri (wikipediaUri: Uri) (dateTime: DateTime) = 
+        result
+            {
+                do! 
+                    this.Sealed.IsSealed(dateTime)
+                    |> not
+                    |> Result.ofBool "Author is sealed"
+                return { this with WikipediaUri = wikipediaUri |> Some } 
             }
 
     member this.AddBook (bookId: BookId) = 
@@ -133,4 +191,10 @@ type Author = {
             Ok author
         with
             | ex -> 
-                Error ex.Message
+                try
+                    let oldAuthor = JsonSerializer.Deserialize<Author001> (data, jsonOptions)
+                    let author = oldAuthor.Upcast() 
+                    Ok author
+                with
+                    | ex2 -> 
+                        Error (ex.Message + " " + ex2.Message)

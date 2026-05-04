@@ -263,6 +263,7 @@
   <data name="Biography" xml:space="preserve"><value>Biografia</value></data>
   <data name="BirthDate" xml:space="preserve"><value>Data di Nascita</value></data>
   <data name="BooksBrowser" xml:space="preserve"><value>Sfoglia Libri</value></data>
+  <data name="AuthorsBrowser" xml:space="preserve"><value>Sfoglia Autori</value></data>
   <data name="BooksBy" xml:space="preserve"><value>Libri di</value></data>
   <data name="BooksInLibrary" xml:space="preserve"><value>Libri in Biblioteca</value></data>
   <data name="BookSearch" xml:space="preserve"><value>Ricerca Libri</value></data>
@@ -848,4 +849,19 @@
   <data name="ErrorRemovingTagGeneric" xml:space="preserve"><value>Errore durante la rimozione del tag: {0}</value></data>
   <data name="FilterByTags" xml:space="preserve"><value>Filtra per Tag</value></data>
   <data name="SelectTagPlaceholder" xml:space="preserve"><value>Seleziona tag...</value></data>
+  <data name="LookupBio" xml:space="preserve"><value>Cerca Biografia</value></data>
+  <data name="WikipediaBioLookup" xml:space="preserve"><value>Ricerca Biografia su Wikipedia</value></data>
+  <data name="SelectBestBioMatch" xml:space="preserve"><value>Seleziona la corrispondenza migliore</value></data>
+  <data name="AuthorBioPlaceholder" xml:space="preserve"><value>Inserisci la biografia dell'autore...</value></data>
+  <data name="BioFoundWikipedia" xml:space="preserve"><value>Opzioni biografia trovate su Wikipedia</value></data>
+  <data name="WikipediaLink" xml:space="preserve"><value>Link Wikipedia</value></data>
+  <data name="WikipediaUriLookup" xml:space="preserve"><value>Ricerca Link Wikipedia</value></data>
+  <data name="WikipediaLinkFound" xml:space="preserve"><value>Link Wikipedia trovato</value></data>
+  <data name="NoBioFoundWikipedia" xml:space="preserve"><value>Nessuna biografia trovata su Wikipedia</value></data>
+  <data name="ErrorSearchingBio" xml:space="preserve"><value>Errore durante la ricerca della biografia: {0}</value></data>
+  <data name="ErrorSearchingUri" xml:space="preserve"><value>Errore durante la ricerca del link: {0}</value></data>
+  <data name="Link" xml:space="preserve"><value>Link</value></data>
+  <data name="BioUpdatedSuccessfully" xml:space="preserve"><value>Biografia aggiornata con successo</value></data>
+  <data name="WikipediaLinkUpdated" xml:space="preserve"><value>Link Wikipedia aggiornato con successo</value></data>
+  <data name="NoBiographyRegistered" xml:space="preserve"><value>Nessuna biografia registrata per questo autore.</value></data>
 </root>

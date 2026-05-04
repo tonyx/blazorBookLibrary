@@ -91,6 +91,45 @@
                                 </button>
                             </div>
                         </div>
+
+                        <div class="col-md-8">
+                            <label class="form-label small text-muted text-uppercase fw-bold mb-2">@L["Biography"] (@L["Optional"])</label>
+                            <div class="input-group shadow-sm rounded-3 overflow-hidden">
+                                <InputTextArea class="form-control bg-surface-low border-0 py-2" @bind-Value="newAuthorBio" rows="3" placeholder="@L["AuthorBioPlaceholder"]" />
+                                <button type="button" class="btn btn-white border-start" @onclick="LookupAuthorBio" disabled="@(string.IsNullOrWhiteSpace(newAuthorName) || isSearchingBio)" title="@L["WikipediaBioLookup"]">
+                                    @if (isSearchingBio) { <span class="spinner-border spinner-border-sm"></span> }
+                                    else { <i class="bi bi-wikipedia me-2"></i> @L["LookupBio"] }
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label small text-muted text-uppercase fw-bold mb-2">@L["WikipediaLink"] (@L["Optional"])</label>
+                            <div class="input-group shadow-sm rounded-3 overflow-hidden">
+                                <InputText class="form-control bg-surface-low border-0 py-2" @bind-Value="newAuthorWikipediaUrl" placeholder="https://it.wikipedia.org/wiki/..." />
+                                <button type="button" class="btn btn-white border-start" @onclick="LookupAuthorWikipediaUri" disabled="@(string.IsNullOrWhiteSpace(newAuthorName) || isSearchingUri)" title="@L["WikipediaUriLookup"]">
+                                    @if (isSearchingUri) { <span class="spinner-border spinner-border-sm"></span> }
+                                    else { <i class="bi bi-link-45deg me-2"></i> @L["Link"] }
+                                </button>
+                            </div>
+                        </div>
+
+                        @if (candidateBios.Any())
+                        {
+                            <div class="col-12 mt-3 animate-slide-up">
+                                <div class="card bg-surface-low border shadow-sm p-3">
+                                    <h6 class="text-serif mb-3">@L["SelectBestBioMatch"]</h6>
+                                    <div class="list-group list-group-flush overflow-auto" style="max-height: 200px;">
+                                        @foreach (var bio in candidateBios)
+                                        {
+                                            <button type="button" class="list-group-item list-group-item-action py-3 small text-muted border-0 rounded-2 mb-1" @onclick="() => { newAuthorBio = bio; candidateBios.Clear(); }">
+                                                <i class="bi bi-text-left me-2"></i> @(bio.Length > 200 ? bio.Substring(0, 200) + "..." : bio)
+                                            </button>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        }
                         
                         @if (!string.IsNullOrWhiteSpace(newAuthorImageUrl))
                         {
@@ -214,7 +253,12 @@
     private string newAuthorName = "";
     private string newAuthorIsni = "";
     private string newAuthorImageUrl = "";
+    private string newAuthorBio = "";
+    private string newAuthorWikipediaUrl = "";
     private bool isSearchingImage = false;
+    private bool isSearchingBio = false;
+    private bool isSearchingUri = false;
+    private List<string> candidateBios = new();
 
     private string statusMessage = "";
 
@@ -306,7 +350,17 @@
         }
 
         var name = Name.New(newAuthorName);
-        var author = Author.NewWithOptionalIsniAndImageUrl(name, isniOpt, imageUrlOpt);
+
+        FSharpOption<Uri> wikipediaUriOpt = FSharpOption<Uri>.None;
+        if (!string.IsNullOrWhiteSpace(newAuthorWikipediaUrl))
+        {
+            if (Uri.TryCreate(newAuthorWikipediaUrl, UriKind.Absolute, out var uri))
+            {
+                wikipediaUriOpt = FSharpOption<Uri>.Some(uri);
+            }
+        }
+
+        var author = Author.NewWithOptionalIsniAndImageUrlAndBio(name, isniOpt, imageUrlOpt, FSharpOption<string>.Some(newAuthorBio), wikipediaUriOpt);
 
         var result = await AuthorService.AddAuthorAsync(author);
 
@@ -316,6 +370,9 @@
             newAuthorName = "";
             newAuthorIsni = "";
             newAuthorImageUrl = "";
+            newAuthorBio = "";
+            newAuthorWikipediaUrl = "";
+            candidateBios.Clear();
             await LoadAuthors();
         }
         else
@@ -349,6 +406,71 @@
         finally
         {
             isSearchingImage = false;
+        }
+    }
+
+    private async Task LookupAuthorBio()
+    {
+        if (string.IsNullOrWhiteSpace(newAuthorName)) return;
+
+        isSearchingBio = true;
+        try
+        {
+            var lang = ShortLang.New(System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName);
+            var result = await AuthorsSearchService.LookupBioByNameAsync(newAuthorName, lang);
+            if (result.IsOk)
+            {
+                candidateBios = result.ResultValue.ToList();
+                if (candidateBios.Any())
+                {
+                    await ShowStatus(L["BioFoundWikipedia"], "success");
+                }
+                else
+                {
+                    await ShowStatus(L["NoBioFoundWikipedia"], "warning");
+                }
+            }
+            else
+            {
+                await ShowStatus(string.Format(L["WikipediaLookupError"], result.ErrorValue), "warning");
+            }
+        }
+        catch (Exception ex)
+        {
+            await ShowStatus(string.Format(L["ErrorSearchingBio"], ex.Message), "error");
+        }
+        finally
+        {
+            isSearchingBio = false;
+        }
+    }
+
+    private async Task LookupAuthorWikipediaUri()
+    {
+        if (string.IsNullOrWhiteSpace(newAuthorName)) return;
+
+        isSearchingUri = true;
+        try
+        {
+            var lang = ShortLang.New(System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName);
+            var result = await AuthorsSearchService.LookupWikipediaUriByNameAsync(newAuthorName, lang);
+            if (result.IsOk)
+            {
+                newAuthorWikipediaUrl = result.ResultValue;
+                await ShowStatus(L["WikipediaLinkFound"], "success");
+            }
+            else
+            {
+                await ShowStatus(string.Format(L["WikipediaLookupError"], result.ErrorValue), "warning");
+            }
+        }
+        catch (Exception ex)
+        {
+            await ShowStatus(string.Format(L["ErrorSearchingUri"], ex.Message), "error");
+        }
+        finally
+        {
+            isSearchingUri = false;
         }
     }
 

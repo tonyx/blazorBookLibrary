@@ -22,6 +22,8 @@ type IAuthorService =
     abstract member RemoveImageUrlAsync : authorId: AuthorId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> TaskResult<unit, string>
 
     abstract member UpdateIsniAsync : authorId: AuthorId * isni: Isni * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> TaskResult<unit, string>
+    abstract member UpdateBioAsync : authorId: AuthorId * bio: string * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> TaskResult<unit, string>
+    abstract member UpdateWikipediaUriAsync : authorId: AuthorId * wikipediaUri: Uri * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> TaskResult<unit, string>
     abstract member SealAsync : authorId: AuthorId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> TaskResult<unit, string>
     abstract member UnsealAsync : authorId: AuthorId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> TaskResult<unit, string>
     abstract member GetAllAsync: [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<List<Author>, string>>

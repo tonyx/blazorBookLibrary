@@ -14,6 +14,8 @@ type AuthorCommand =
     | Unseal of DateTime
     | UpdateImageUrl of Uri * DateTime
     | RemoveImageUrl of DateTime
+    | UpdateBio of string * DateTime
+    | UpdateWikipediaUri of Uri * DateTime
     interface AggregateCommand<Author, AuthorEvent> with
         member this.Execute (author: Author) =
             match this with
@@ -23,6 +25,12 @@ type AuthorCommand =
             | UpdateIsni (isni, dateTime) ->
                 author.UpdateIsni isni dateTime
                 |> Result.map (fun a -> (a, [IsniUpdated(isni, dateTime)]))
+            | UpdateBio (bio, dateTime) ->
+                author.UpdateBio bio dateTime
+                |> Result.map (fun a -> (a, [BioUpdated(bio, dateTime)]))
+            | UpdateWikipediaUri (wikipediaUri, dateTime) ->
+                author.UpdateWikipediaUri wikipediaUri dateTime
+                |> Result.map (fun a -> (a, [WikipediaUriUpdated(wikipediaUri, dateTime)]))
             | UpdateImageUrl (imageUrl, dateTime) ->
                 author.UpdateImageUrl imageUrl dateTime
                 |> Result.map (fun a -> (a, [ImageUrlUpdated(imageUrl, dateTime)]))

@@ -7,6 +7,7 @@ open BookLibrary.Shared.Services
 open System.Text.Json.Serialization
 open Microsoft.FSharp.Core
 open FsToolkit.ErrorHandling
+open BookLibrary.Shared.Commons
 
 type OpenLibraryAuthorSearchDoc = {
     [<JsonPropertyName("key")>] Key: string
@@ -98,6 +99,74 @@ type AuthorsSearchService(httpClient: HttpClient) =
                                     return Error "Thumbnail property not found in page"
                             | None ->
                                 return Error "No pages found in Wikipedia response"
+                with
+                | ex -> return Error ex.Message
+            }
+
+        member this.LookupBioByNameAsync(name: string, [<Optional; DefaultParameterValue(null)>] ?lang: ShortLang, [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken) =
+            let ct = defaultArg ct CancellationToken.None
+            let lang = defaultArg lang (ShortLang.New "it")
+            task {
+                try
+                    let encodedName = System.Web.HttpUtility.UrlEncode(name)
+                    let locale = lang.Value
+                    // Action query with generator search allows us to retrieve multiple candidates in a single call.
+                    let url = $"https://{locale}.wikipedia.org/w/api.php?action=query&format=json&generator=search&gsrsearch={encodedName}&gsrlimit=5&prop=extracts&exintro&explaintext&exlimit=5"
+                    
+                    let! jsonDoc = httpClient.GetFromJsonAsync<System.Text.Json.JsonDocument>(url, ct)
+                    
+                    let root = jsonDoc.RootElement
+                    match root.TryGetProperty("query") with
+                    | false, _ -> return Ok []
+                    | true, queryElement ->
+                        match queryElement.TryGetProperty("pages") with
+                        | false, _ -> return Ok []
+                        | true, pagesElement ->
+                            let bios = 
+                                pagesElement.EnumerateObject()
+                                |> Seq.choose (fun page -> 
+                                    match page.Value.TryGetProperty("extract") with
+                                    | true, extract -> 
+                                        let bio = extract.GetString()
+                                        if System.String.IsNullOrWhiteSpace(bio) then None else Some bio
+                                    | false, _ -> None
+                                )
+                                |> List.ofSeq
+                            return Ok bios
+                with
+                | ex -> return Error ex.Message
+            }
+
+        member this.LookupWikipediaUriByNameAsync(name: string, [<Optional; DefaultParameterValue(null)>] ?lang: ShortLang, [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken) =
+            let ct = defaultArg ct CancellationToken.None
+            let lang = defaultArg lang (ShortLang.New "it")
+            task {
+                try
+                    let encodedName = System.Web.HttpUtility.UrlEncode(name)
+                    let locale = lang.Value
+                    // Use generator search to find the most relevant page and prop=info to get the full URL
+                    let url = $"https://{locale}.wikipedia.org/w/api.php?action=query&format=json&generator=search&gsrsearch={encodedName}&gsrlimit=1&prop=info&inprop=url"
+                    
+                    let! jsonDoc = httpClient.GetFromJsonAsync<System.Text.Json.JsonDocument>(url, ct)
+                    
+                    let root = jsonDoc.RootElement
+                    match root.TryGetProperty("query") with
+                    | false, _ -> return Error "Wikipedia page not found"
+                    | true, queryElement ->
+                        match queryElement.TryGetProperty("pages") with
+                        | false, _ -> return Error "Wikipedia page not found"
+                        | true, pagesElement ->
+                            let firstPage = pagesElement.EnumerateObject() |> Seq.tryHead
+                            match firstPage with
+                            | Some page ->
+                                let pageValue = page.Value
+                                match pageValue.TryGetProperty("fullurl") with
+                                | true, urlElement ->
+                                    return Ok (urlElement.GetString())
+                                | false, _ ->
+                                    return Error "Full URL not found for the page"
+                            | None ->
+                                return Error "Wikipedia page not found"
                 with
                 | ex -> return Error ex.Message
             }

@@ -168,6 +168,36 @@ type AuthorService
                 return! result
             }
 
+    member this.UpdateBioAsync (authorId: AuthorId, bio: string, ?ct: CancellationToken) = 
+        taskResult
+            {
+                let updateBioCommand = AuthorCommand.UpdateBio (bio, DateTime.UtcNow)
+                let result = 
+                    runAggregateCommandMdAsync<Author, AuthorEvent, string>
+                        authorId.Value
+                        eventStore
+                        messageSenders
+                        ""
+                        updateBioCommand
+                        ct
+                return! result
+            }
+
+    member this.UpdateWikipediaUriAsync (authorId: AuthorId, wikipediaUri: Uri, ?ct: CancellationToken) = 
+        taskResult
+            {
+                let updateWikipediaUriCommand = AuthorCommand.UpdateWikipediaUri (wikipediaUri, DateTime.UtcNow)
+                let result = 
+                    runAggregateCommandMdAsync<Author, AuthorEvent, string>
+                        authorId.Value
+                        eventStore
+                        messageSenders
+                        ""
+                        updateWikipediaUriCommand
+                        ct
+                return! result
+            }
+
     member this.UpdateImageUrlAsync (authorId: AuthorId, imageUrl: Uri, ?ct: CancellationToken) = 
         taskResult
             {
@@ -300,6 +330,12 @@ type AuthorService
         member this.UpdateIsniAsync(authorId: AuthorId, isni: Isni, ?ct: CancellationToken) = 
             let ct = defaultArg ct CancellationToken.None
             this.UpdateIsniAsync(authorId, isni, ct)
+        member this.UpdateBioAsync(authorId: AuthorId, bio: string, ?ct: CancellationToken) = 
+            let ct = defaultArg ct CancellationToken.None
+            this.UpdateBioAsync(authorId, bio, ct)
+        member this.UpdateWikipediaUriAsync(authorId: AuthorId, wikipediaUri: Uri, ?ct: CancellationToken) = 
+            let ct = defaultArg ct CancellationToken.None
+            this.UpdateWikipediaUriAsync(authorId, wikipediaUri, ct)
         member this.UpdateImageUrlAsync(authorId: AuthorId, imageUrl: Uri, ?ct: CancellationToken) = 
             let ct = defaultArg ct CancellationToken.None
             this.UpdateImageUrlAsync(authorId, imageUrl, ct)
