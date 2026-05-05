@@ -864,4 +864,19 @@
   <data name="BioUpdatedSuccessfully" xml:space="preserve"><value>Biografia aggiornata con successo</value></data>
   <data name="WikipediaLinkUpdated" xml:space="preserve"><value>Link Wikipedia aggiornato con successo</value></data>
   <data name="NoBiographyRegistered" xml:space="preserve"><value>Nessuna biografia registrata per questo autore.</value></data>
+  <data name="DistributionPointsManager" xml:space="preserve"><value>Gestione Punti di Distribuzione</value></data>
+  <data name="ManageDistributionPoints" xml:space="preserve"><value>Gestisci i punti di distribuzione del sistema e assegna i responsabili.</value></data>
+  <data name="AddNewDistributionPoint" xml:space="preserve"><value>Aggiungi Nuovo Punto di Distribuzione</value></data>
+  <data name="DistributionPointName" xml:space="preserve"><value>Nome Punto di Distribuzione</value></data>
+  <data name="DistributionPointInfo" xml:space="preserve"><value>Informazioni / Indirizzo</value></data>
+  <data name="AssignManager" xml:space="preserve"><value>Assegna Responsabile</value></data>
+  <data name="UnassignManager" xml:space="preserve"><value>Rimuovi Responsabile</value></data>
+  <data name="NoDistributionPointsFound" xml:space="preserve"><value>Nessun punto di distribuzione trovato.</value></data>
+  <data name="ReferenceUsers" xml:space="preserve"><value>Responsabili Assegnati</value></data>
+  <data name="DistributionPointCreated" xml:space="preserve"><value>Punto di distribuzione creato con successo.</value></data>
+  <data name="DistributionPointUpdated" xml:space="preserve"><value>Punto di distribuzione aggiornato con successo.</value></data>
+  <data name="ManagerAssigned" xml:space="preserve"><value>Responsabile assegnato con successo.</value></data>
+  <data name="ManagerUnassigned" xml:space="preserve"><value>Responsabile rimosso con successo.</value></data>
+  <data name="EditDistributionPoint" xml:space="preserve"><value>Modifica Punto di Distribuzione</value></data>
+  <data name="DistributionPoint" xml:space="preserve"><value>Punto di Distribuzione</value></data>
 </root>

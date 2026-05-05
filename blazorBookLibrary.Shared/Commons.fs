@@ -54,7 +54,16 @@ type EmbeddingData =
             return 1.0 - similarity
         }
 
+
 let random = System.Random()
+
+type DistributionPointId = 
+    | DistributionPointId of Guid
+    with
+        static member New() = DistributionPointId(Guid.NewGuid())
+        member this.Value = 
+            match this with
+            | DistributionPointId v -> v
 
 type TagsId =
     | TagsId of Guid
@@ -454,6 +463,31 @@ type Name =
             match this with
             | Name v -> v
             | EmptyName -> ""
+type NonEmptyName =
+    | NonEmptyName of string
+    with
+        static member New (name: string) = 
+            if String.IsNullOrWhiteSpace(name) then 
+                Error "Name cannot be empty"
+            else
+                Ok (NonEmptyName(name))
+        member this.Value = 
+            match this with
+            | NonEmptyName v -> v
+
+type Info = 
+    | Info of string
+    | EmptyInfo
+    with
+        static member New (info: string) = 
+            if String.IsNullOrWhiteSpace(info) then 
+                EmptyInfo
+            else
+                Info(info)
+        member this.Value = 
+            match this with
+            | Info v -> v
+            | EmptyInfo -> ""
 
 type Isni = 
     | Isni of string

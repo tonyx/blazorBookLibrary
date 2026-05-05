@@ -137,6 +137,7 @@ let reservationViewerAsync = getAggregateStorageFreshStateViewerAsync<Reservatio
 let loanViewerAsync = getAggregateStorageFreshStateViewerAsync<Loan, LoanEvent, string> pgEventStore
 let userViewerAsync = getAggregateStorageFreshStateViewerAsync<User, UserEvent, string> pgEventStore
 let reviewViewerAsync = getAggregateStorageFreshStateViewerAsync<Review, ReviewEvent, string> pgEventStore
+let distributionPointViewerAsync = getAggregateStorageFreshStateViewerAsync<DistributionPoint, DistributionPointEvent, string> pgEventStore
 
 let fakeEmailNotificator: IMailNotificator = new FakeEmailNotificator()
 let fakeReservationService: IReservationService = new FakeReservationService()
@@ -181,6 +182,7 @@ let getUserService () : IUserService =
         loanViewerAsync,
         userViewerAsync,
         reviewViewerAsync,
+        distributionPointViewerAsync,
         getReviewService(),
         getServiceScopeFactory()) :> IUserService
 

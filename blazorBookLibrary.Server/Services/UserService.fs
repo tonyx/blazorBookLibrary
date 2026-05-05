@@ -37,6 +37,7 @@ type UserService
         loanViewerAsync: AggregateViewerAsync2<Loan>,
         userViewerAsync: AggregateViewerAsync2<User>,
         reviewsViewerAsync: AggregateViewerAsync2<Review>,
+        distributionPointViewerAsync: AggregateViewerAsync2<DistributionPoint>,
         reviewService: IReviewService,
         scopeFactory: IServiceScopeFactory)
     =
@@ -50,6 +51,7 @@ type UserService
         let loanViewerAsync = getAggregateStorageFreshStateViewerAsync<Loan, LoanEvent, string> eventStore
         let userViewerAsync = getAggregateStorageFreshStateViewerAsync<User, UserEvent, string> eventStore
         let reviewsViewerAsync = getAggregateStorageFreshStateViewerAsync<Review, ReviewEvent, string> eventStore
+        let distributionPointViewerAsync = getAggregateStorageFreshStateViewerAsync<DistributionPoint, DistributionPointEvent, string> eventStore
         UserService (
             eventStore,
             messageSenders,
@@ -60,6 +62,7 @@ type UserService
             loanViewerAsync,
             userViewerAsync,
             reviewsViewerAsync,
+            distributionPointViewerAsync,
             reviewService,
             scopeFactory
         )    
@@ -218,6 +221,8 @@ type UserService
     member this.UnSetIsPhysicallyIdentifiedAsync (userId: UserId, ?ct: CancellationToken) : Task<Result<unit, string>> =
         this.UpdateAppUserAndAggregateAsync(userId, (fun u -> u.IsIdentifiedPhysically <- false), UnsetPhysicalIdentification, ?ct = ct)
 
+
+    
     member this.GhostUserAsync (userId: UserId, ?ct: CancellationToken) : Task<Result<unit, string>> =
         this.UpdateAppUserAndAggregateAsync(userId, (fun u -> 
                     let ghostId = Guid.NewGuid().ToString().Substring(0, 8)
@@ -260,6 +265,19 @@ type UserService
 
                 return! result
             }
+    member this.GetDistributionPointManagedByUserAsync (userId: UserId, ?ct: CancellationToken) : Task<Result<List<DistributionPoint>, string>> = 
+        let ct = defaultArg ct CancellationToken.None
+        taskResult
+            {
+                let! distributionPoints = 
+                    StateView.getAllFilteredAggregateStatesAsync<DistributionPoint, DistributionPointEvent, string> 
+                        (fun (dp: DistributionPoint) -> 
+                            dp.ReferenceUsers |> List.exists (fun (id: UserId) -> id = userId)
+                        )
+                        eventStore
+                        (ct |> Some)
+                return distributionPoints |> List.map snd
+            }
 
     interface IUserService with
         member this.CreateUserAsync (user: User, ?ct: CancellationToken) : Task<Result<unit, string>> =
@@ -300,3 +318,7 @@ type UserService
         member this.SetAppUserInfoAsync (userId: UserId, appUserInfo: AppUserInfo, ?ct: CancellationToken) : Task<Result<unit, string>> =
             let ct = defaultArg ct CancellationToken.None
             this.SetAppUserInfoAsync(userId, appUserInfo, ct)
+
+        member this.GetDistributionPointsManagedByUserAsync (userId: UserId, ?ct: CancellationToken) : Task<Result<List<DistributionPoint>, string>> =
+            let ct = defaultArg ct CancellationToken.None
+            this.GetDistributionPointManagedByUserAsync(userId, ct)

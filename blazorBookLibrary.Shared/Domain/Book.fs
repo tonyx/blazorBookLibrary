@@ -6,7 +6,7 @@ open BookLibrary.Shared.Commons
 open System
 open System.Globalization
 
-type Book001 =
+type Book002 =
     {
         BookId: BookId
         Title: Title
@@ -14,6 +14,7 @@ type Book001 =
         Description: Option<string>
         OptionalEmbedding: Option<EmbeddingDataId>
         Availability: Availability
+
         Authors: List<AuthorId>
         Translators: List<AuthorId>
         Languages: List<CultureInfo>
@@ -22,31 +23,34 @@ type Book001 =
         Editor: Option<EditorId>
         MainCategory: Category
         AdditionalCategories: List<Category>
+        Tags: List<Tag>
         Year: Year
         Isbn: Isbn
         Sealed: Sealed
-     }
-    member this.Upcast(): Book = 
-        { 
-            BookId = this.BookId; 
-            Title = this.Title; 
-            ImageUrl = this.ImageUrl; 
-            Description = this.Description; 
-            OptionalEmbedding = None;
-            Availability = this.Availability; 
-            Authors = this.Authors; 
-            Translators = this.Translators; 
-            Languages = this.Languages; 
-            CurrentReservations = this.CurrentReservations; 
-            CurrentLoan = this.CurrentLoan; 
-            Editor = this.Editor; 
-            MainCategory = this.MainCategory; 
-            AdditionalCategories = this.AdditionalCategories; 
-            Tags = []
-            Year = this.Year; 
-            Isbn = this.Isbn; 
-            Sealed = this.Sealed  
-        } 
+    }
+    member
+        this.Upcast(): Book =
+            {
+                BookId = this.BookId;
+                Title = this.Title;
+                ImageUrl = this.ImageUrl;
+                Description = this.Description;
+                OptionalEmbedding = this.OptionalEmbedding;
+                Availability = this.Availability;
+                DistributionPoint = None
+                Authors = this.Authors;
+                Translators = this.Translators;
+                Languages = this.Languages;
+                CurrentReservations = this.CurrentReservations;
+                CurrentLoan = this.CurrentLoan;
+                Editor = this.Editor;
+                MainCategory = this.MainCategory;
+                AdditionalCategories = this.AdditionalCategories;
+                Tags = this.Tags;
+                Year = this.Year;
+                Isbn = this.Isbn;
+                Sealed = this.Sealed
+            }
 
 and Book =
     {
@@ -56,6 +60,8 @@ and Book =
         Description: Option<string>
         OptionalEmbedding: Option<EmbeddingDataId>
         Availability: Availability
+        DistributionPoint: Option<DistributionPointId>
+
         Authors: List<AuthorId>
         Translators: List<AuthorId>
         Languages: List<CultureInfo>
@@ -90,6 +96,7 @@ with
             OptionalEmbedding = None;
             ImageUrl = imageUrl;
             Availability = Availability.Circulating;
+            DistributionPoint = None
             Authors = authors; 
             Translators = translators;
             Languages = languages;
@@ -120,6 +127,23 @@ with
         = 
         { Book.New title authors translators languages editor mainCategory additionalCategories year isbn imageUrl 
             with Availability = availability; Tags = tags }
+    static member NewWithAvailabilityAndDistributionPoint
+        (title: Title) 
+        (authors: list<AuthorId>) 
+        (translators: list<AuthorId>) 
+        (languages: list<CultureInfo>) 
+        (editor: Option<EditorId>) 
+        (mainCategory: Category) 
+        (additionalCategories: list<Category>) 
+        (tags: list<Tag>)
+        (year: Year) 
+        (isbn: Isbn) 
+        (imageUrl: Option<Uri>)
+        (availability: Availability)
+        (distributionPoint: DistributionPointId)
+        = 
+        { Book.New title authors translators languages editor mainCategory additionalCategories year isbn imageUrl 
+            with Availability = availability; Tags = tags; DistributionPoint = Some distributionPoint }
 
     member this.UpdateTitle 
         (title: Title) 
@@ -196,6 +220,33 @@ with
                     |> not
                     |> Result.ofBool "Book is sealed"
                 return { this with Tags = [] } 
+            }
+    member this.SetDistributionPoint (distributionPoint: DistributionPointId) (user: UserId) (dateTime: DateTime) = 
+        result
+            {
+                do! 
+                    this.Sealed.IsSealed(dateTime)
+                    |> not
+                    |> Result.ofBool "Book is sealed"
+                return { this with DistributionPoint = Some distributionPoint } 
+            }
+    member this.UnsetDistributionPoint (user: UserId) (dateTime: DateTime) = 
+        result
+            {
+                do! 
+                    this.Sealed.IsSealed(dateTime)
+                    |> not
+                    |> Result.ofBool "Book is sealed"
+                return { this with DistributionPoint = None } 
+            }
+    member this.ChangeDistributionPoint (distributionPoint: DistributionPointId) (user: UserId) (dateTime: DateTime) = 
+        result
+            {
+                do! 
+                    this.Sealed.IsSealed(dateTime)
+                    |> not
+                    |> Result.ofBool "Book is sealed"
+                return { this with DistributionPoint = Some distributionPoint } 
             }
 
     member this.EmbedDescription 
@@ -543,9 +594,9 @@ with
         with
             | ex -> 
                 try
-                    let book001 = JsonSerializer.Deserialize<Book001> (data, jsonOptions)
-                    let book = book001.Upcast()
-                    Ok book
+                    let book001 = JsonSerializer.Deserialize<Book002> (data, jsonOptions)
+                    Ok (book001.Upcast())
                 with
-                    | ex2 -> Error (ex2.Message + ". " + ex.Message)
+                    | ex -> 
+                        Error(ex.Message)
 

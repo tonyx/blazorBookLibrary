@@ -35,6 +35,11 @@ type BookEvent =
     | AdditionalCategoryAdded of Category * DateTime
     | AdditionalCategoryRemoved of Category * DateTime
     | AdditionalCategoriesReplaced of List<Category> * DateTime
+
+    | DistributionPointSet of DistributionPointId * UserId * DateTime
+    | DistributionPointUnset of UserId * DateTime
+    | DistributionPointChanged of DistributionPointId * UserId * DateTime
+
     | TagAdded of Tag * DateTime
     | TagRemoved of Tag * DateTime
     | TagsCleared of DateTime
@@ -99,6 +104,14 @@ type BookEvent =
                 book.RemoveAdditionalCategory category dateTime
             | AdditionalCategoriesReplaced (additionalCategories, dateTime) ->
                 book.ReplaceAdditionalCategories additionalCategories dateTime
+
+            | DistributionPointSet (distributionPoint, userId, dateTime) ->
+                book.SetDistributionPoint distributionPoint userId dateTime
+            | DistributionPointUnset (userId, dateTime) ->
+                book.UnsetDistributionPoint userId dateTime
+            | DistributionPointChanged (distributionPoint, userId, dateTime) ->
+                book.ChangeDistributionPoint distributionPoint userId dateTime
+
             | TagAdded (tag, dateTime) ->
                 book.AddTag tag dateTime
             | TagRemoved (tag, dateTime) ->

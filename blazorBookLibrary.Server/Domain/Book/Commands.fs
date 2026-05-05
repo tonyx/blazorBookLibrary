@@ -34,6 +34,11 @@ type BookCommand =
     | AddAdditionalCategory of Category * DateTime
     | RemoveAdditionalCategory of Category * DateTime
     | ReplaceAdditionalCategories of List<Category> * DateTime
+
+    | SetDistributionPoint of DistributionPointId * UserId * DateTime
+    | UnsetDistributionPoint of UserId * DateTime
+    | ChangeDistributionPoint of DistributionPointId * UserId * DateTime
+
     | AddTag of Tag * DateTime
     | RemoveTag of Tag * DateTime
     | ClearTags of DateTime
@@ -126,6 +131,17 @@ type BookCommand =
             | ReplaceAdditionalCategories (additionalCategories, dateTime) ->
                 book.ReplaceAdditionalCategories additionalCategories dateTime
                 |> Result.map (fun b -> (b, [AdditionalCategoriesReplaced(additionalCategories, dateTime)]))
+
+            | SetDistributionPoint (distributionPoint, userId, dateTime) ->
+                book.SetDistributionPoint distributionPoint userId dateTime
+                |> Result.map (fun b -> (b, [DistributionPointSet(distributionPoint, userId, dateTime)]))
+            | UnsetDistributionPoint (userId, dateTime) ->
+                book.UnsetDistributionPoint userId dateTime
+                |> Result.map (fun b -> (b, [DistributionPointUnset(userId, dateTime)]))
+            | ChangeDistributionPoint (distributionPoint, userId, dateTime) ->
+                book.ChangeDistributionPoint distributionPoint userId dateTime
+                |> Result.map (fun b -> (b, [DistributionPointChanged(distributionPoint, userId, dateTime)]))
+
             | AddTag (tag, dateTime) ->
                 book.AddTag tag dateTime
                 |> Result.map (fun b -> (b, [TagAdded(tag, dateTime)]))

@@ -367,4 +367,19 @@
   <data name="ActionSuccessful" xml:space="preserve"><value>Action completed successfully.</value></data>
   <data name="ActionFailed" xml:space="preserve"><value>Action failed.</value></data>
   <data name="FutureFeaturesPlaceholder" xml:space="preserve"><value>New administrative functions, event auditing, and automated scheduling will appear here in future updates.</value></data>
+  <data name="DistributionPointsManager" xml:space="preserve"><value>Distribution Points Manager</value></data>
+  <data name="ManageDistributionPoints" xml:space="preserve"><value>Manage system distribution points and assign managers.</value></data>
+  <data name="AddNewDistributionPoint" xml:space="preserve"><value>Add New Distribution Point</value></data>
+  <data name="DistributionPointName" xml:space="preserve"><value>Distribution Point Name</value></data>
+  <data name="DistributionPointInfo" xml:space="preserve"><value>Information / Address</value></data>
+  <data name="AssignManager" xml:space="preserve"><value>Assign Manager</value></data>
+  <data name="UnassignManager" xml:space="preserve"><value>Unassign Manager</value></data>
+  <data name="NoDistributionPointsFound" xml:space="preserve"><value>No distribution points found.</value></data>
+  <data name="ReferenceUsers" xml:space="preserve"><value>Assigned Managers</value></data>
+  <data name="DistributionPointCreated" xml:space="preserve"><value>Distribution point created successfully.</value></data>
+  <data name="DistributionPointUpdated" xml:space="preserve"><value>Distribution point updated successfully.</value></data>
+  <data name="ManagerAssigned" xml:space="preserve"><value>Manager assigned successfully.</value></data>
+  <data name="ManagerUnassigned" xml:space="preserve"><value>Manager unassigned successfully.</value></data>
+  <data name="EditDistributionPoint" xml:space="preserve"><value>Edit Distribution Point</value></data>
+  <data name="DistributionPoint" xml:space="preserve"><value>Distribution Point</value></data>
 </root>

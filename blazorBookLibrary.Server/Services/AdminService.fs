@@ -87,10 +87,121 @@ type AdminService
             else
                 return ()
         }
+    
+    member this.CreateDistributionPointAsync(distributionPoint: DistributionPoint, ?ct: CancellationToken) = 
+        taskResult
+            {
+                return!
+                    runInitAsync<DistributionPoint, DistributionPointEvent, string>
+                    eventStore
+                    messageSender
+                    distributionPoint
+                    ct
+            }
+
+    member this.AssignUserToDistributionPointAsync(id: DistributionPointId, userId: UserId, ?ct: CancellationToken) = 
+        taskResult
+            {
+                let ct = defaultArg ct CancellationToken.None
+                let command = DistributionPointCommand.AddReferenceUser userId
+                return!
+                    runAggregateCommandMdAsync<DistributionPoint, DistributionPointEvent, string>
+                        id.Value
+                        eventStore
+                        messageSender
+                        ""
+                        command
+                        (ct |> Some)
+            }
+
+    member this.UnassignUserFromDistributionPointAsync(id: DistributionPointId, userId: UserId, ?ct: CancellationToken) = 
+        taskResult
+            {
+                let ct = defaultArg ct CancellationToken.None
+                let command = DistributionPointCommand.RemoveReferenceUser userId
+                return!
+                    runAggregateCommandMdAsync<DistributionPoint, DistributionPointEvent, string>
+                        id.Value
+                        eventStore
+                        messageSender
+                        ""
+                        command
+                        (ct |> Some)
+            }
+
+    member this.UpdateDistributionPointInfoAsync(id: DistributionPointId, info: Info, ?ct: CancellationToken) = 
+        taskResult
+            {
+                let ct = defaultArg ct CancellationToken.None
+                let command = DistributionPointCommand.UpdateInfo info
+                return!
+                    runAggregateCommandMdAsync<DistributionPoint, DistributionPointEvent, string>
+                        id.Value
+                        eventStore
+                        messageSender
+                        ""
+                        command
+                        (ct |> Some)
+            }
+
+    member this.RenameDistributionPointAsync(id: DistributionPointId, name: NonEmptyName, ?ct: CancellationToken) = 
+        taskResult
+            {
+                let ct = defaultArg ct CancellationToken.None
+                let command = DistributionPointCommand.Rename name
+                return!
+                    runAggregateCommandMdAsync<DistributionPoint, DistributionPointEvent, string>
+                        id.Value
+                        eventStore
+                        messageSender
+                        ""
+                        command
+                        (ct |> Some)
+            }
+
+    member this.GetAllDistributionPointsAsync(?ct: CancellationToken) = 
+        taskResult
+            {
+                let ct = defaultArg ct CancellationToken.None
+
+                let! result =
+                    StateView.getAllAggregateStatesAsync<DistributionPoint, DistributionPointEvent, string>
+                        eventStore
+                        (ct |> Some)
+                return result |>> snd
+            }
+
+    member this.FindDistributionPointsByNameAsync(name: Name, ?ct: CancellationToken) = 
+        taskResult
+            {
+                let ct = defaultArg ct CancellationToken.None
+                let! result = 
+                    StateView.getAllFilteredAggregateStatesAsync<DistributionPoint, DistributionPointEvent, string>
+                        (fun (x: DistributionPoint) -> x.Name.Value.ToLower().Contains(name.Value.ToLower()))
+                        eventStore
+                        (ct |> Some)
+                return result |>> snd
+            }
 
     interface IAdminServices with
         member this.PurgeVectorsReferringDroppedBooksAsync ?ct = 
             this.PurgeVectorsReferringDroppedBooksAsync (?ct = ct)
         member this.AdjustBookStatesReferringMissingEmbeddingsAsync ?ct = 
             this.AdjustBookStatesReferringMissingEmbeddingsAsync (?ct = ct)
+        member this.CreateDistributionPointAsync(distributionPoint, ?ct) = 
+            this.CreateDistributionPointAsync(distributionPoint, ?ct = ct)
+        member this.AssignUserToDistributionPointAsync(distributionPointId, userId, ?ct) = 
+            this.AssignUserToDistributionPointAsync(distributionPointId, userId, ?ct = ct)
+        member this.UnassignUserFromDistributionPointAsync(distributionPointId, userId, ?ct) = 
+            this.UnassignUserFromDistributionPointAsync(distributionPointId, userId, ?ct = ct)        
+        member this.UpdateDistributionPointInfoAsync(distributionPointId: DistributionPointId, info: Info, ct: CancellationToken option): Task<Result<unit,string>> = 
+            this.UpdateDistributionPointInfoAsync(distributionPointId, info, ?ct = ct)        
+        member this.RenameDistributionPointAsync(distributionPointId: DistributionPointId, name: NonEmptyName, ct: CancellationToken option): Task<Result<unit,string>> = 
+            this.RenameDistributionPointAsync(distributionPointId, name, ?ct = ct)
+        member this.GetAllDistributionPointsAsync(?ct: CancellationToken) = 
+            this.GetAllDistributionPointsAsync(?ct = ct)
+        member this.FindDistributionPointsByNameAsync(name: Name, ?ct: CancellationToken) = 
+            this.FindDistributionPointsByNameAsync(name, ?ct = ct)
+        
+
         

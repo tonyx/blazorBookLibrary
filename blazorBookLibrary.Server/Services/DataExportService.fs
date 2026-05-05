@@ -272,6 +272,7 @@ type DataExportService
                                             ImageUrl = imageUrl
                                             Description = description
                                             OptionalEmbedding = None
+                                            DistributionPoint = None
                                             Availability = Availability.Circulating
                                             Authors = finalAuthorIds
                                             Translators = []

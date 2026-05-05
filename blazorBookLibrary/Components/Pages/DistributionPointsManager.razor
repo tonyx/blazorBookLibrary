@@ -1,0 +1,469 @@
+@page "/distribution-points-manager"
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Identity
+@using blazorBookLibrary.Data
+@using BookLibrary.Domain
+@using static BookLibrary.Shared.Commons
+@using BookLibrary.Shared.Services
+@attribute [Authorize(Roles = "Admin")]
+@using Microsoft.FSharp.Core
+@inject IAdminServices AdminServices
+@inject UserManager<ApplicationUser> UserManager
+@inject IStringLocalizer<SharedResources> L
+@inject IJSRuntime JSRuntime
+@rendermode InteractiveServer
+
+<PageTitle>@L["DistributionPointsManager"] — @L["TheModernArchivist"]</PageTitle>
+
+<div class="sanctuary-container py-5">
+    <div class="mb-5">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/" class="text-decoration-none text-muted">@L["Home"]</a></li>
+                <li class="breadcrumb-item active text-serif" aria-current="page">@L["DistributionPointsManager"]</li>
+            </ol>
+        </nav>
+        <div class="d-flex justify-content-between align-items-end">
+            <div>
+                <h1 class="display-4 text-serif mb-2">@L["DistributionPointsManager"]</h1>
+                <p class="text-muted lead">@L["ManageDistributionPoints"]</p>
+            </div>
+            <button class="btn btn-primary rounded-pill px-4 py-2 mb-2 shadow-sm" @onclick="OpenCreateModal">
+                <i class="bi bi-plus-lg me-2"></i> @L["AddNewDistributionPoint"]
+            </button>
+        </div>
+    </div>
+
+    <div class="card-sanctuary p-4 mb-4">
+        <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-3">
+            <h2 class="h4 text-serif mb-0">@L["DistributionPoints"]</h2>
+            <div class="input-group" style="max-width: 350px;">
+                <span class="input-group-text bg-transparent border-end-0 text-muted">
+                    <i class="bi bi-search"></i>
+                </span>
+                <input type="text" class="form-control border-start-0 ps-0" 
+                       placeholder="@L["SearchByName"]" 
+                       @bind="searchQuery" @bind:event="oninput" 
+                       @onkeyup="HandleKeyUp" />
+            </div>
+        </div>
+
+        @if (isLoading)
+        {
+            <div class="text-center py-5">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">@L["Loading"]...</span>
+                </div>
+                <p class="mt-2 text-muted">@L["RetrievingArchivalRecords"]...</p>
+            </div>
+        }
+        else if (distributionPoints == null || !distributionPoints.Any())
+        {
+            <div class="text-center py-5 bg-surface-low rounded-3">
+                <i class="bi bi-geo-alt display-4 text-muted mb-3 d-block"></i>
+                <p class="text-muted mb-0">@L["NoDistributionPointsFound"]</p>
+            </div>
+        }
+        else
+        {
+            <div class="editorial-ledger-container">
+                <table class="editorial-ledger w-100">
+                    <thead>
+                        <tr>
+                            <th class="ps-3">@L["Name"]</th>
+                            <th>@L["DistributionPointInfo"]</th>
+                            <th>@L["ReferenceUsers"]</th>
+                            <th class="text-end pe-3">@L["Actions"]</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var dp in distributionPoints)
+                        {
+                            <tr>
+                                <td class="ps-3 py-3">
+                                    <div class="fw-bold">@dp.Name.Value</div>
+                                    <div class="text-muted small">ID: @dp.DistributionPointId.Value.ToString().Substring(0, 8)...</div>
+                                </td>
+                                <td class="py-3">
+                                    <div class="text-wrap" style="max-width: 300px;">@dp.Info.Value</div>
+                                </td>
+                                <td class="py-3">
+                                    <div class="d-flex flex-wrap gap-1">
+                                        @if (dp.ReferenceUsers.Any())
+                                        {
+                                            @foreach (var userId in dp.ReferenceUsers)
+                                            {
+                                                var user = GetManagerById(userId.Value.ToString());
+                                                <span class="badge-sanctuary d-flex align-items-center gap-1">
+                                                    @(user?.Nome ?? "User") @(user?.Cognome ?? "")
+                                                    <button type="button" class="btn-close ms-1" style="font-size: 0.5rem;" 
+                                                            @onclick="() => UnassignManager(dp, userId)" aria-label="Remove"></button>
+                                                </span>
+                                            }
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted small italic">@L["NoneNotSet"]</span>
+                                        }
+                                    </div>
+                                </td>
+                                <td class="text-end pe-3 py-3">
+                                    <div class="d-flex justify-content-end gap-2">
+                                        <div class="dropdown">
+                                            <button class="btn btn-outline-primary btn-sm rounded-pill px-3 dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                                <i class="bi bi-person-plus me-1"></i> @L["AssignManager"]
+                                            </button>
+                                            <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 mt-2">
+                                                @if (availableManagers != null && availableManagers.Any(m => !dp.ReferenceUsers.Any(ru => ru.Value.ToString() == m.Id)))
+                                                {
+                                                    @foreach (var manager in availableManagers.Where(m => !dp.ReferenceUsers.Any(ru => ru.Value.ToString() == m.Id)))
+                                                    {
+                                                        <li>
+                                                            <button class="dropdown-item py-2" @onclick="() => AssignManager(dp, manager)">
+                                                                <div class="fw-bold small">@manager.Nome @manager.Cognome</div>
+                                                                <div class="text-muted smaller">@manager.Email</div>
+                                                            </button>
+                                                        </li>
+                                                    }
+                                                }
+                                                else
+                                                {
+                                                    <li><span class="dropdown-item-text text-muted small">@L["NoArchivalManagersFound"]</span></li>
+                                                }
+                                            </ul>
+                                        </div>
+
+                                        @if (dp.ReferenceUsers.Any())
+                                        {
+                                            <div class="dropdown">
+                                                <button class="btn btn-outline-danger btn-sm rounded-pill px-3 dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                                    <i class="bi bi-person-dash me-1"></i> @L["UnassignManager"]
+                                                </button>
+                                                <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 mt-2">
+                                                    @foreach (var userId in dp.ReferenceUsers)
+                                                    {
+                                                        var user = GetManagerById(userId.Value.ToString());
+                                                        <li>
+                                                            <button class="dropdown-item py-2 text-danger" @onclick="() => UnassignManager(dp, userId)">
+                                                                <div class="fw-bold small">@(user?.Nome ?? "User") @(user?.Cognome ?? "")</div>
+                                                                <div class="text-muted smaller">@(user?.Email ?? "ID: " + userId.Value)</div>
+                                                            </button>
+                                                        </li>
+                                                    }
+                                                </ul>
+                                            </div>
+                                        }
+                                        <button class="btn btn-outline-secondary btn-sm rounded-pill px-3" @onclick="() => OpenEditModal(dp)">
+                                            <i class="bi bi-pencil me-1"></i> @L["Edit"]
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>
+
+@* Modal for Create/Edit *@
+@if (showModal)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5); backdrop-filter: blur(4px);">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg card-sanctuary">
+                <div class="modal-header border-bottom-dashed px-4 py-3">
+                    <h5 class="modal-title text-serif">@(isEditMode ? L["EditDistributionPoint"] : L["AddNewDistributionPoint"])</h5>
+                    <button type="button" class="btn-close" @onclick="CloseModal"></button>
+                </div>
+                <div class="modal-body px-4 py-4">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small text-uppercase">@L["DistributionPointName"]</label>
+                        <input type="text" class="form-control form-control-lg border-sanctuary" @bind="editingName" placeholder="e.g. Central Library Hub" />
+                    </div>
+                    <div class="mb-0">
+                        <label class="form-label fw-bold small text-uppercase">@L["DistributionPointInfo"]</label>
+                        <textarea class="form-control border-sanctuary" @bind="editingInfo" rows="3" placeholder="Address, opening hours, or special instructions..."></textarea>
+                    </div>
+                    @if (!string.IsNullOrEmpty(errorMessage))
+                    {
+                        <div class="alert alert-danger mt-3 mb-0 small py-2">
+                            <i class="bi bi-exclamation-triangle-fill me-2"></i> @errorMessage
+                        </div>
+                    }
+                </div>
+                <div class="modal-footer border-0 px-4 pb-4 pt-0">
+                    <button type="button" class="btn btn-link text-muted text-decoration-none" @onclick="CloseModal">@L["Cancel"]</button>
+                    <button type="button" class="btn btn-primary rounded-pill px-4" @onclick="SaveDistributionPoint" disabled="@isSaving">
+                        @if (isSaving)
+                        {
+                            <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                        }
+                        @L["Save"]
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<DistributionPoint>? distributionPoints;
+    private List<ApplicationUser>? availableManagers;
+    private string searchQuery = "";
+    private bool isLoading = true;
+    private bool isSaving = false;
+    private bool showModal = false;
+    private bool isEditMode = false;
+    private string editingName = "";
+    private string editingInfo = "";
+    private DistributionPoint? currentEditPoint;
+    private string errorMessage = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Task.WhenAll(LoadDistributionPoints(), LoadManagers());
+    }
+
+    private async Task LoadDistributionPoints()
+    {
+        isLoading = true;
+        try
+        {
+            var result = string.IsNullOrWhiteSpace(searchQuery) 
+                ? await AdminServices.GetAllDistributionPointsAsync() 
+                : await AdminServices.FindDistributionPointsByNameAsync(Name.New(searchQuery));
+            
+            if (result.IsOk)
+            {
+                distributionPoints = result.ResultValue.ToList();
+            }
+            else
+            {
+                await ShowStatus(result.ErrorValue, "error");
+            }
+        }
+        catch (Exception ex)
+        {
+            await ShowStatus(ex.Message, "error");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task<List<ApplicationUser>> LoadManagers()
+    {
+        var users = await UserManager.GetUsersInRoleAsync("Manager");
+        var admins = await UserManager.GetUsersInRoleAsync("Admin");
+        availableManagers = users.Concat(admins)
+            .GroupBy(u => u.Id)
+            .Select(g => g.First())
+            .ToList();
+        return availableManagers;
+    }
+
+    private ApplicationUser? GetManagerById(string id)
+    {
+        return availableManagers?.FirstOrDefault(m => m.Id == id);
+    }
+
+    private async Task HandleKeyUp(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await LoadDistributionPoints();
+        }
+    }
+
+    private void OpenCreateModal()
+    {
+        isEditMode = false;
+        currentEditPoint = null;
+        editingName = "";
+        editingInfo = "";
+        errorMessage = "";
+        showModal = true;
+    }
+
+    private void OpenEditModal(DistributionPoint dp)
+    {
+        isEditMode = true;
+        currentEditPoint = dp;
+        editingName = dp.Name.Value;
+        editingInfo = dp.Info.Value;
+        errorMessage = "";
+        showModal = true;
+    }
+
+    private void CloseModal()
+    {
+        showModal = false;
+    }
+
+    private async Task SaveDistributionPoint()
+    {
+        errorMessage = "";
+        
+        var nameResult = NonEmptyName.New(editingName);
+        if (nameResult.IsError)
+        {
+            errorMessage = nameResult.ErrorValue;
+            return;
+        }
+
+        isSaving = true;
+        try
+        {
+            FSharpResult<Unit, string> result;
+            if (isEditMode && currentEditPoint != null)
+            {
+                // Update Name if changed
+                if (currentEditPoint.Name.Value != editingName)
+                {
+                    result = await AdminServices.RenameDistributionPointAsync(currentEditPoint.DistributionPointId, nameResult.ResultValue);
+                    if (result.IsError) { errorMessage = result.ErrorValue; return; }
+                }
+                
+                // Update Info if changed
+                if (currentEditPoint.Info.Value != editingInfo)
+                {
+                    result = await AdminServices.UpdateDistributionPointInfoAsync(currentEditPoint.DistributionPointId, Info.New(editingInfo));
+                    if (result.IsError) { errorMessage = result.ErrorValue; return; }
+                }
+                
+                await ShowStatus(L["DistributionPointUpdated"], "success");
+            }
+            else
+            {
+                var newDp = DistributionPoint.New(nameResult.ResultValue, Info.New(editingInfo));
+                result = await AdminServices.CreateDistributionPointAsync(newDp);
+                if (result.IsError) { errorMessage = result.ErrorValue; return; }
+                
+                await ShowStatus(L["DistributionPointCreated"], "success");
+            }
+
+            showModal = false;
+            await LoadDistributionPoints();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.Message;
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private async Task AssignManager(DistributionPoint dp, ApplicationUser user)
+    {
+        try
+        {
+            var userId = UserId.NewUserId(Guid.Parse(user.Id));
+            var result = await AdminServices.AssignUserToDistributionPointAsync(dp.DistributionPointId, userId);
+            
+            if (result.IsOk)
+            {
+                await ShowStatus(L["ManagerAssigned"], "success");
+                await LoadDistributionPoints();
+            }
+            else
+            {
+                await ShowStatus(result.ErrorValue, "error");
+            }
+        }
+        catch (Exception ex)
+        {
+            await ShowStatus(ex.Message, "error");
+        }
+    }
+
+    private async Task UnassignManager(DistributionPoint dp, UserId userId)
+    {
+        try
+        {
+            var result = await AdminServices.UnassignUserFromDistributionPointAsync(dp.DistributionPointId, userId);
+            
+            if (result.IsOk)
+            {
+                await ShowStatus(L["ManagerUnassigned"], "success");
+                await LoadDistributionPoints();
+            }
+            else
+            {
+                await ShowStatus(result.ErrorValue, "error");
+            }
+        }
+        catch (Exception ex)
+        {
+            await ShowStatus(ex.Message, "error");
+        }
+    }
+
+    private async Task ShowStatus(string message, string type)
+    {
+        await JSRuntime.InvokeVoidAsync("showToast", message, type);
+    }
+}
+
+<style>
+    .card-sanctuary {
+        background: #fff;
+        border: 1px solid rgba(0,0,0,0.05);
+        border-radius: 1.25rem;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.02);
+    }
+    
+    .badge-sanctuary {
+        background: #f0f4f8;
+        color: #4a5568;
+        padding: 0.35rem 0.85rem;
+        border-radius: 2rem;
+        font-size: 0.8rem;
+        font-weight: 600;
+        border: 1px solid #e2e8f0;
+    }
+    
+    .text-serif {
+        font-family: 'Playfair Display', serif;
+    }
+    
+    .border-bottom-dashed {
+        border-bottom: 1px dashed #dee2e6 !important;
+    }
+    
+    .border-sanctuary {
+        border: 1px solid #e2e8f0;
+        border-radius: 0.75rem;
+    }
+    
+    .smaller {
+        font-size: 0.75rem;
+    }
+    
+    .editorial-ledger thead th {
+        background: #f8fafc;
+        padding: 1rem;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: #64748b;
+        border-bottom: 2px solid #f1f5f9;
+    }
+    
+    .editorial-ledger tbody tr {
+        border-bottom: 1px solid #f1f5f9;
+        transition: background 0.2s;
+    }
+    
+    .editorial-ledger tbody tr:hover {
+        background: #f8fafc;
+    }
+
+    .btn-close-white {
+        filter: invert(1) grayscale(100%) brightness(200%);
+    }
+</style>
