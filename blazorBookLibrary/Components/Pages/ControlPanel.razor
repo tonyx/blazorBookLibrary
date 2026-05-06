@@ -6,7 +6,9 @@
 @using BookLibrary.Domain
 @attribute [Authorize(Roles = "Admin")]
 @inject IAdminServices ReconciliationService
+@inject IBookService BookService
 @inject ITagService TagService
+@inject AuthenticationStateProvider AuthStateProvider
 @inject IStringLocalizer<SharedResources> L
 @inject IJSRuntime JSRuntime
 @rendermode InteractiveServer
@@ -90,6 +92,77 @@
                             <i class="bi bi-x-lg"></i>
                         </button>
                     }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Distribution Point Maintenance -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="sanctuary-card p-4 border shadow-sm bg-surface-low">
+                <div class="d-flex align-items-center mb-4">
+                    <div class="p-3 bg-warning bg-opacity-10 rounded-circle me-3">
+                        <i class="bi bi-building-gear text-warning h4 mb-0"></i>
+                    </div>
+                    <div>
+                        <h3 class="h5 text-serif mb-0">@L["DistributionPointMaintenance"]</h3>
+                        <p class="text-muted small mb-0">Perform batch operations on books assigned to specific distribution points</p>
+                    </div>
+                </div>
+
+                <div class="row g-4">
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold">@L["SourceDistributionPoint"]</label>
+                        <select class="form-select border-0 bg-light py-3" @bind="selectedDpId">
+                            <option value="">@L["SelectDP"]</option>
+                            @foreach (var dp in distributionPoints)
+                            {
+                                <option value="@dp.DistributionPointId.Value.ToString()">@dp.Name.Value</option>
+                            }
+                        </select>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold">@L["TargetDistributionPoint"]</label>
+                        <select class="form-select border-0 bg-light py-3" @bind="selectedTargetDpId">
+                            <option value="">@L["SelectDP"]</option>
+                            @foreach (var dp in distributionPoints)
+                            {
+                                <option value="@dp.DistributionPointId.Value.ToString()">@dp.Name.Value</option>
+                            }
+                        </select>
+                    </div>
+
+                    <div class="col-md-4 d-flex align-items-end gap-2">
+                        <button class="btn btn-outline-danger py-3 px-3" 
+                                @onclick="DetachAllBooks" 
+                                title="@L["DetachAllBooks"]"
+                                disabled="@(isProcessing || string.IsNullOrEmpty(selectedDpId))">
+                            @if (isDetaching)
+                            {
+                                <span class="spinner-border spinner-border-sm"></span>
+                            }
+                            else
+                            {
+                                <i class="bi bi-link-45deg"></i>
+                            }
+                        </button>
+                        
+                        <button class="btn btn-sanctuary flex-grow-1 py-3" 
+                                @onclick="SwitchAllBooks" 
+                                disabled="@(isProcessing || string.IsNullOrEmpty(selectedDpId) || string.IsNullOrEmpty(selectedTargetDpId) || selectedDpId == selectedTargetDpId)">
+                            @if (isSwitching)
+                            {
+                                <span class="spinner-border spinner-border-sm me-2"></span>
+                            }
+                            else
+                            {
+                                <i class="bi bi-arrow-left-right me-2"></i>
+                            }
+                            @L["SwitchAllBooks"]
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -186,16 +259,43 @@
 @code {
     private bool isPurging = false;
     private bool isAdjusting = false;
-    private bool isProcessing => isPurging || isAdjusting;
+    private bool isDetaching = false;
+    private bool isSwitching = false;
+    private bool isProcessing => isPurging || isAdjusting || isDetaching || isSwitching;
     private CancellationTokenSource? cts;
 
     private List<Tag> allTags = new();
     private string newTagName = "";
     private string newTagType = "Book";
 
+    private List<DistributionPoint> distributionPoints = new();
+    private string selectedDpId = "";
+    private string selectedTargetDpId = "";
+    private UserId? currentUserId;
+
     protected override async Task OnInitializedAsync()
     {
-        await LoadTags();
+        await Task.WhenAll(LoadTags(), LoadDistributionPoints(), LoadCurrentUser());
+    }
+
+    private async Task LoadDistributionPoints()
+    {
+        var result = await ReconciliationService.GetAllDistributionPointsAsync();
+        if (result.IsOk)
+        {
+            distributionPoints = result.ResultValue.ToList();
+        }
+    }
+
+    private async Task LoadCurrentUser()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        var userIdClaim = user.FindFirst(c => c.Type == System.Security.Claims.ClaimTypes.NameIdentifier) ?? user.FindFirst("sub");
+        if (userIdClaim != null && Guid.TryParse(userIdClaim.Value, out var guid))
+        {
+            currentUserId = UserId.NewUserId(guid);
+        }
     }
 
     private async Task LoadTags()
@@ -359,6 +459,79 @@
             isAdjusting = false;
             cts.Dispose();
             cts = null;
+        }
+    }
+
+    private async Task DetachAllBooks()
+    {
+        if (string.IsNullOrEmpty(selectedDpId) || currentUserId == null) return;
+
+        bool confirmed = await JSRuntime.InvokeAsync<bool>("confirm", L["ConfirmDetachAllBooks"].Value);
+        if (!confirmed) return;
+
+        isDetaching = true;
+        try
+        {
+            var dpId = DistributionPointId.NewDistributionPointId(Guid.Parse(selectedDpId));
+            var result = await BookService.UnsetAllBookRelatedToDPAsync(dpId, currentUserId);
+            
+            if (result.IsOk)
+            {
+                await JSRuntime.InvokeVoidAsync("showToast", L["ActionSuccessful"].Value, "success");
+            }
+            else
+            {
+                await JSRuntime.InvokeVoidAsync("showToast", $"{L["ActionFailed"]}: {result.ErrorValue}", "error");
+            }
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("showToast", $"{L["ActionFailed"]}: {ex.Message}", "error");
+        }
+        finally
+        {
+            isDetaching = false;
+        }
+    }
+
+    private async Task SwitchAllBooks()
+    {
+        if (string.IsNullOrEmpty(selectedDpId) || string.IsNullOrEmpty(selectedTargetDpId) || currentUserId == null) return;
+
+        var sourceDp = distributionPoints.FirstOrDefault(d => d.DistributionPointId.Value.ToString() == selectedDpId);
+        var targetDp = distributionPoints.FirstOrDefault(d => d.DistributionPointId.Value.ToString() == selectedTargetDpId);
+
+        if (sourceDp == null || targetDp == null) return;
+
+        bool confirmed = await JSRuntime.InvokeAsync<bool>("confirm", string.Format(L["ConfirmSwitchAllBooks"].Value, sourceDp.Name.Value, targetDp.Name.Value));
+        if (!confirmed) return;
+
+        isSwitching = true;
+        try
+        {
+            var fromId = DistributionPointId.NewDistributionPointId(Guid.Parse(selectedDpId));
+            var toId = DistributionPointId.NewDistributionPointId(Guid.Parse(selectedTargetDpId));
+            
+            // Note: Service expects (from, to, bookId, userId)
+            // Passing BookId.NewBookId(Guid.Empty) as bookId is ignored by implementation for batch move
+            var result = await BookService.MoveFromDpToAnotherDPAsync(fromId, toId, BookId.NewBookId(Guid.Empty), currentUserId);
+            
+            if (result.IsOk)
+            {
+                await JSRuntime.InvokeVoidAsync("showToast", L["ActionSuccessful"].Value, "success");
+            }
+            else
+            {
+                await JSRuntime.InvokeVoidAsync("showToast", $"{L["ActionFailed"]}: {result.ErrorValue}", "error");
+            }
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("showToast", $"{L["ActionFailed"]}: {ex.Message}", "error");
+        }
+        finally
+        {
+            isSwitching = false;
         }
     }
 }

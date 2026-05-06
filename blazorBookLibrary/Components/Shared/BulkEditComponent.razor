@@ -74,6 +74,30 @@
             </div>
         </div>
 
+        <!-- Distribution Point -->
+        @if (ManagedDistributionPoints.Any())
+        {
+            <div class="col-12">
+                <div class="bulk-edit-row d-flex align-items-center p-3 rounded @(editDistributionPoint ? "bg-primary-subtle border-primary" : "bg-light border-transparent") border transition-all">
+                    <div class="form-check form-switch me-4">
+                        <input class="form-check-input" type="checkbox" role="switch" @bind="editDistributionPoint" id="toggleDP">
+                    </div>
+                    <div class="flex-grow-1">
+                        <label class="form-label fw-bold mb-1 d-flex align-items-center" for="toggleDP">
+                            <i class="bi bi-geo-alt me-2"></i>@L["DistributionPoint"]
+                        </label>
+                        <select class="form-select" @bind="selectedDpId" disabled="@(!editDistributionPoint)">
+                            <option value="">-- @L["SelectDistributionPoint"] --</option>
+                            @foreach (var dp in ManagedDistributionPoints)
+                            {
+                                <option value="@dp.DistributionPointId.Value.ToString()">@dp.Name.Value</option>
+                            }
+                        </select>
+                    </div>
+                </div>
+            </div>
+        }
+
         <!-- Additional Categories -->
         <div class="col-12">
             <div class="bulk-edit-row d-flex align-items-start p-3 rounded @(editAdditionalCategories ? "bg-primary-subtle border-primary" : "bg-light border-transparent") border transition-all">
@@ -189,6 +213,8 @@
 
 @code {
     [Parameter] public List<BookId> BookIds { get; set; } = new();
+    [Parameter] public UserId? UserId { get; set; }
+    [Parameter] public List<DistributionPoint> ManagedDistributionPoints { get; set; } = new();
     [Parameter] public EventCallback OnCancel { get; set; }
     [Parameter] public EventCallback OnSuccess { get; set; }
 
@@ -197,11 +223,13 @@
     private bool editAvailability;
     private bool editAdditionalCategories;
     private bool editAuthors;
+    private bool editDistributionPoint;
     private bool isProcessing;
 
     private int year = DateTime.Now.Year;
     private Category mainCategory = Category.Other;
     private string availability = "Circulating";
+    private string selectedDpId = "";
     private List<Category> additionalCategories = new();
     private List<Author> selectedAuthors = new();
 
@@ -251,6 +279,12 @@
 
     private async Task ApplyChanges()
     {
+        if (UserId == null)
+        {
+            await JSRuntime.InvokeVoidAsync("showToast", "User not authenticated.", "error");
+            return;
+        }
+
         isProcessing = true;
         StateHasChanged();
 
@@ -260,9 +294,16 @@
                 .SetYearIfCondition(Year.New(year), editYear)
                 .SetMainCategoryIfCondition(mainCategory, editMainCategory)
                 .SetAdditionalCategoriesIfCondition(ListModule.OfSeq(additionalCategories), editAdditionalCategories)
-                .SetAvailabilityIfCondition(Availability.FromString(availability), editAvailability);
+                .SetAvailabilityIfCondition(Availability.FromString(availability), editAvailability)
+                .SetAdditionalAuthorsIfCondition(ListModule.OfSeq(selectedAuthors.Select(a => a.AuthorId)), editAuthors);
 
-            var result = await BookService.BulkEditAsync(ListModule.OfSeq(BookIds), editCriteria);
+            if (editDistributionPoint && !string.IsNullOrEmpty(selectedDpId))
+            {
+                var dpId = DistributionPointId.NewDistributionPointId(Guid.Parse(selectedDpId));
+                editCriteria = editCriteria.SetDistributionPointIfCondition(dpId, true);
+            }
+
+            var result = await BookService.BulkEditAsync(ListModule.OfSeq(BookIds), editCriteria, UserId);
             if (result.IsOk)
             {
                 await JSRuntime.InvokeVoidAsync("showToast", L["BulkEditSuccess"].Value, "success");

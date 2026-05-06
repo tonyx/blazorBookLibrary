@@ -186,12 +186,21 @@
 
                 <div class="table-responsive">
                     <QuickGrid Items="@FilteredBooks" Pagination="@bookPagination" Class="editorial-ledger w-100 align-middle">
-                        <TemplateColumn Title="@L["Select"]" Align="Align.Center" Class="col-select">
-                            <div class="form-check d-inline-block">
-                                <input type="checkbox" class="form-check-input" 
-                                       checked="@selectedBookIds.Contains(context.Book.BookId)" 
-                                       @onchange="@(e => ToggleBookSelection(context.Book.BookId, e.Value))" />
-                            </div>
+                        <TemplateColumn Align="Align.Center" Class="col-select">
+                            <HeaderTemplate>
+                                <div class="form-check d-inline-block">
+                                    <input type="checkbox" class="form-check-input" 
+                                           checked="@AllBooksSelected" 
+                                           @onchange="ToggleSelectAll" />
+                                </div>
+                            </HeaderTemplate>
+                            <ChildContent>
+                                <div class="form-check d-inline-block">
+                                    <input type="checkbox" class="form-check-input" 
+                                           checked="@selectedBookIds.Contains(context.Book.BookId)" 
+                                           @onchange="@(e => ToggleBookSelection(context.Book.BookId, e.Value))" />
+                                </div>
+                            </ChildContent>
                         </TemplateColumn>
                         
                         <TemplateColumn Title="@L["Title"]" SortBy="@sortTitle" Class="col-title text-serif fw-bold h5">
@@ -285,7 +294,11 @@
     {
         <div class="mb-5 animate-fade-in">
             <div class="card-sanctuary p-4 bg-surface-low border-primary-subtle border">
-                <BulkEditComponent BookIds="@selectedBookIds.ToList()" OnCancel="() => showBulkEdit = false" OnSuccess="HandleBulkEditSuccess" />
+                <BulkEditComponent BookIds="@selectedBookIds.ToList()" 
+                                   UserId="@currentUserId"
+                                   ManagedDistributionPoints="@managedDistributionPoints"
+                                   OnCancel="() => showBulkEdit = false" 
+                                   OnSuccess="HandleBulkEditSuccess" />
             </div>
         </div>
     }
@@ -782,6 +795,27 @@
         }
     }
 
+    private bool AllBooksSelected => FilteredBooks.Any() && FilteredBooks.All(b => selectedBookIds.Contains(b.Book.BookId));
+
+    private void ToggleSelectAll(ChangeEventArgs e)
+    {
+        bool isChecked = e.Value is bool b && b;
+        if (isChecked)
+        {
+            foreach (var bookResult in FilteredBooks)
+            {
+                selectedBookIds.Add(bookResult.Book.BookId);
+            }
+        }
+        else
+        {
+            foreach (var bookResult in FilteredBooks)
+            {
+                selectedBookIds.Remove(bookResult.Book.BookId);
+            }
+        }
+    }
+
     private void EnableBulkEdit()
     {
         showBulkEdit = true;
@@ -853,6 +887,7 @@
     private ImportSummary? lastImportSummary = null;
     private bool showImportSummaryModal = false;
     private Guid selectedDistributionPointId = Guid.Empty;
+    private UserId? currentUserId;
 
     private void CancelImport()
     {
@@ -1039,8 +1074,8 @@
             var userIdStr = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
             if (!string.IsNullOrEmpty(userIdStr) && Guid.TryParse(userIdStr, out var userGuid))
             {
-                var userId = UserId.NewUserId(userGuid);
-                var dpResult = await UserService.GetDistributionPointsManagedByUserAsync(userId, FSharpOption<CancellationToken>.None);
+                currentUserId = UserId.NewUserId(userGuid);
+                var dpResult = await UserService.GetDistributionPointsManagedByUserAsync(currentUserId, FSharpOption<CancellationToken>.None);
                 if (dpResult.IsOk)
                 {
                     managedDistributionPoints = dpResult.ResultValue.ToList();

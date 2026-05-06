@@ -224,22 +224,13 @@ with
     member this.SetDistributionPoint (distributionPoint: DistributionPointId) (user: UserId) (dateTime: DateTime) = 
         result
             {
-                do! 
-                    this.Sealed.IsSealed(dateTime)
-                    |> not
-                    |> Result.ofBool "Book is sealed"
                 return { this with DistributionPoint = Some distributionPoint } 
             }
     member this.UnsetDistributionPoint (user: UserId) (dateTime: DateTime) = 
         result
             {
-                do! 
-                    this.Sealed.IsSealed(dateTime)
-                    |> not
-                    |> Result.ofBool "Book is sealed"
                 return { this with DistributionPoint = None } 
             }
-
     member this.EmbedDescription 
         (embeddingId: EmbeddingDataId) 
         (dateTime: DateTime) = 
@@ -277,6 +268,13 @@ with
         result
             { 
                 return { this with Authors = authors } 
+            }
+    member this.AddAuthors 
+        (additionalAuthors: List<AuthorId>) 
+        (dateTime: DateTime) = 
+        result
+            { 
+                return { this with Authors = this.Authors @ additionalAuthors |> List.distinct } 
             }
     member this.AddAuthor 
         (author: AuthorId) 

@@ -18,6 +18,7 @@ type BookCommand =
     | UpdateYear of Year * DateTime
     | UpdateIsbn of Isbn * DateTime
     | AddAuthor of AuthorId * DateTime
+    | AddAuthors of List<AuthorId> * DateTime
     | RemoveAuthor of AuthorId * DateTime
     | AddTranslator of AuthorId * DateTime
     | RemoveTranslator of AuthorId * DateTime
@@ -82,6 +83,9 @@ type BookCommand =
             | AddAuthor (authorId, dateTime) ->
                 book.AddAuthor authorId dateTime
                 |> Result.map (fun b -> (b, [AuthorAdded(authorId, dateTime)]))
+            | AddAuthors (additionalAuthors, dateTime) ->
+                book.AddAuthors additionalAuthors dateTime
+                |> Result.map (fun b -> (b, [AuthorsAdded(additionalAuthors, dateTime)])) 
             | RemoveAuthor (authorId, dateTime) ->
                 book.RemoveAuthor authorId dateTime
                 |> Result.map (fun b -> (b, [AuthorRemoved(authorId, dateTime)]))

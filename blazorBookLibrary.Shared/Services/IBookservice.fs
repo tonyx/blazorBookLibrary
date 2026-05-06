@@ -16,11 +16,14 @@ type BulkBookEdit =
         MainCategoryEdit: Option<Category>
         AdditionalCategoriesEdit: Option<List<Category>>
         AvailabilityEdit: Option<Availability>
+        DistributionPointEdit: Option<DistributionPointId>
+        AdditionalAuthorsEdit: Option<List<AuthorId>>
     }
     with
         static member 
             Empty =
-                { YearEdit = None; MainCategoryEdit = None; AdditionalCategoriesEdit = None; AvailabilityEdit = None }
+                { YearEdit = None; MainCategoryEdit = None; AdditionalCategoriesEdit = None; AvailabilityEdit = None; DistributionPointEdit = None; 
+                AdditionalAuthorsEdit = None }
         member 
             this.SetYearIfCondition (year, switch) =
                 if switch then { this with YearEdit = Some year } else this
@@ -33,7 +36,12 @@ type BulkBookEdit =
         member 
             this.SetAvailabilityIfCondition (availability, switch) =
                 if switch then { this with AvailabilityEdit = Some availability } else this
-
+        member 
+            this.SetDistributionPointIfCondition (distributionPointId, switch) =
+                if switch then { this with DistributionPointEdit = Some distributionPointId } else this
+        member 
+            this.SetAdditionalAuthorsIfCondition (authors, switch) =
+                if switch then { this with AdditionalAuthorsEdit = Some authors} else this
 
 type IBookService =
     abstract member AddBookAsync : book: Book * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<unit, string>>
@@ -50,7 +58,7 @@ type IBookService =
     abstract member AddTagToBookAsync: tag: Tag * bookId: BookId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<unit, string>>
     abstract member RemoveTagFromBookAsync: tag: Tag * bookId: BookId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<unit, string>>
 
-    abstract member BulkEditAsync: bookIds: List<BookId> * editCriteria: BulkBookEdit * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<unit, string>>
+    abstract member BulkEditAsync: bookIds: List<BookId> * editCriteria: BulkBookEdit * userId: UserId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<unit, string>>
     abstract member GetAllAsync : [<Optional; DefaultParameterValue(null)>] ?criteria: BookSearchCriteria * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<Book list, string>>
 
     abstract member SearchByTitleAsync : title: Title * [<Optional; DefaultParameterValue(null)>] ?criteria: BookSearchCriteria * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<List<Book>, string>>
@@ -58,6 +66,9 @@ type IBookService =
 
     abstract member SetDistributionPointAsync: distributionPointId: DistributionPointId * bookId: BookId * userId: UserId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<unit, string>>
     abstract member UnSetDistributionPointAsync: distributionPointId: DistributionPointId * bookId: BookId * userId: UserId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<unit, string>>
+
+    abstract member UnsetAllBookRelatedToDPAsync: distributionPointId: DistributionPointId * userId: UserId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<unit, string>>
+    abstract member MoveFromDpToAnotherDPAsync: fromPoint: DistributionPointId * toPoint: DistributionPointId * bookId: BookId * userId: UserId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<unit, string>>
 
     abstract member SearchByTitleAndIsbnAsync : title: Title * isbn: Isbn * [<Optional; DefaultParameterValue(null)>] ?criteria: BookSearchCriteria * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<List<Book>, string>>
     abstract member ChangeMainCategoryAsync : category: Category * bookId: BookId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<unit, string>>

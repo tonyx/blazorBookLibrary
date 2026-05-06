@@ -369,7 +369,7 @@ type BookService
                                 (Some ct)
                     }
 
-            member this.BulkEditAsync (bookIds: List<BookId>, bulkBookEdit: BulkBookEdit, ?ct: CancellationToken) = 
+            member this.BulkEditAsync (bookIds: List<BookId>, bulkBookEdit: BulkBookEdit, userId: UserId, ?ct: CancellationToken) = 
                 let ct = defaultArg ct CancellationToken.None
                 taskResult
                     {
@@ -438,6 +438,38 @@ type BookService
                                     Some v
                             | None -> None
 
+                        let preExecutedDistributionPointEditCommands =
+                            match bulkBookEdit.DistributionPointEdit with
+                            | Some distributionPoint -> 
+                                let command = BookCommand.SetDistributionPoint (distributionPoint, userId, dateTime)
+                                let! preExecutedDistributionPointUpdateCommands =
+                                    bookIds
+                                    |> List.map _.Value
+                                    |> List.traverseResultM (fun id -> preExecuteAggregateCommandMd<Book, BookEvent, string> id eventStore MessageSenders.NoSender "" command)
+                                match preExecutedDistributionPointUpdateCommands with
+                                | Error e ->
+                                    printf "Error pre-executing distribution point update command: %A\n" e
+                                    None 
+                                | Ok v ->
+                                    Some v
+                            | None -> None
+
+                        let preExecutedAuthorEditCommands =
+                            match bulkBookEdit.AdditionalAuthorsEdit with
+                            | Some authors -> 
+                                let command = BookCommand.AddAuthors (authors, dateTime)
+                                let! preExecutedAuthorUpdateCommands =
+                                    bookIds
+                                    |> List.map _.Value
+                                    |> List.traverseResultM (fun id -> preExecuteAggregateCommandMd<Book, BookEvent, string> id eventStore MessageSenders.NoSender "" command)
+                                match preExecutedAuthorUpdateCommands with
+                                | Error e ->
+                                    printf "Error pre-executing author update command: %A\n" e
+                                    None 
+                                | Ok v ->
+                                    Some v
+                            | None -> None
+
                         let allPreExecutedCommands =
                             if preExecutedYearEditCommands.IsSome then
                                 preExecutedYearEditCommands.Value
@@ -456,6 +488,16 @@ type BookService
                             @
                             if preExecutedAvailabilityEditCommands.IsSome then
                                 preExecutedAvailabilityEditCommands.Value
+                            else
+                                []
+                            @
+                            if preExecutedDistributionPointEditCommands.IsSome then
+                                preExecutedDistributionPointEditCommands.Value
+                            else
+                                []
+                            @
+                            if preExecutedAuthorEditCommands.IsSome then
+                                preExecutedAuthorEditCommands.Value
                             else
                                 []
                         let result = 
@@ -827,7 +869,58 @@ type BookService
                                 (Some ct)
                     }
 
+            member this.UnsetAllBookRelatedToDPAsync (distributionPointId: DistributionPointId, userId: UserId, ?ct: CancellationToken) =
+                taskResult
+                    {
+                        let ct = defaultArg ct CancellationToken.None
+                        let! books = 
+                            StateView.getAllFilteredAggregateStatesAsync<Book, BookEvent, string> 
+                                (fun book -> book.DistributionPoint = Some distributionPointId)
+                                eventStore
+                                (ct |> Some)
+                        let booksIds = books |>> snd |>> _.Id
+                        let unsetCommand: List<AggregateCommand<Book, BookEvent>> = 
+                            [ 1 .. booksIds.Length ]
+                            |>> fun _ -> BookCommand.UnsetDistributionPoint (userId, DateTime.UtcNow)
 
+                        let! result =
+                            runNAggregateCommandsMdAsync<Book, BookEvent, string>
+                                booksIds
+                                eventStore
+                                messageSenders
+                                ""
+                                unsetCommand
+                                (Some ct)
+                        return result
+                    }
+            
+            member this.MoveFromDpToAnotherDPAsync(fromPoint: DistributionPointId, toPoint: DistributionPointId, bookId: BookId, userId: UserId, ?ct: CancellationToken) = 
+                let ct = defaultArg ct CancellationToken.None
+                taskResult
+                    {
+                        let! books = 
+                            StateView.getAllFilteredAggregateStatesAsync<Book, BookEvent, string>
+                                (fun book -> book.DistributionPoint = Some fromPoint)
+                                eventStore
+                                (Some ct)
+                        
+                        let bookIds = books |>> snd |>> _.Id
+                        if bookIds.Length = 0 then
+                            return ()
+                        else
+                            let setDistributionPointCommand: List<AggregateCommand<Book, BookEvent>> = 
+                                [ 1 .. bookIds.Length ]
+                                |>> fun _ -> BookCommand.SetDistributionPoint(toPoint, userId, DateTime.UtcNow)
+                            let! result =
+                                runNAggregateCommandsMdAsync<Book, BookEvent, string>
+                                    bookIds
+                                    eventStore
+                                    messageSenders
+                                    ""
+                                    setDistributionPointCommand
+                                    (Some ct)
+                            return result
+                    }
 
             member this.SearchBooksByAuthorAsync(authorId: AuthorId, ?criteria: BookSearchCriteria, ?ct: CancellationToken) = 
                 let criteria = defaultArg (criteria |> Option.bind Option.ofObj) SearchCriteria.searchAllBooks
@@ -1027,6 +1120,12 @@ type BookService
                 let ct = defaultArg ct CancellationToken.None
                 this.UnSetDistributionPointAsync(distributionPointId, bookId, userId, ct)
 
+            member this.UnsetAllBookRelatedToDPAsync(distributionPointId: DistributionPointId, userId: UserId, ?ct: CancellationToken) = 
+                let ct = defaultArg ct CancellationToken.None
+                this.UnsetAllBookRelatedToDPAsync(distributionPointId, userId, ct)    
+            member this.MoveFromDpToAnotherDPAsync(fromPointId: DistributionPointId, toPointId: DistributionPointId, bookId: BookId, userId: UserId, ?ct: CancellationToken) = 
+                let ct = defaultArg ct CancellationToken.None
+                this.MoveFromDpToAnotherDPAsync(fromPointId, toPointId, bookId, userId, ct)
 
             member this.SearchByTitleAndIsbnAsync(title: Title, isbn: Isbn, ?criteria: BookSearchCriteria, ?ct: CancellationToken) = 
                 let criteria = defaultArg (criteria |> Option.bind Option.ofObj) SearchCriteria.searchAllBooks
@@ -1153,9 +1252,9 @@ type BookService
             member this.SetAvailabilityAsync(availability: Availability, bookId: BookId, ?ct: CancellationToken) = 
                 let ct = defaultArg ct CancellationToken.None
                 this.SetAvailabilityAsync(availability, bookId, ct)
-            member this.BulkEditAsync(bookIds: List<BookId>, editCriteria: BulkBookEdit, ?ct: CancellationToken) = 
+            member this.BulkEditAsync(bookIds: List<BookId>, editCriteria: BulkBookEdit, userId: UserId, ?ct: CancellationToken) = 
                 let ct = defaultArg ct CancellationToken.None
-                this.BulkEditAsync(bookIds, editCriteria, ct)
+                this.BulkEditAsync(bookIds, editCriteria, userId, ct)
             member this.LoanedByUserAtLeastOnceAsync(bookId: BookId, userId: UserId, ?ct: CancellationToken) = 
                 let ct = defaultArg ct CancellationToken.None
                 this.LoanedByUserAtLeastOnceAsync(bookId, userId, ct)

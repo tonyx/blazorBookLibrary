@@ -950,4 +950,13 @@
   <data name="WikipediaLinkUpdated" xml:space="preserve"><value>Wikipedia link updated successfully</value></data>
   <data name="NoBiographyRegistered" xml:space="preserve"><value>No biography registered for this author.</value></data>
   <data name="SelectDistributionPoint" xml:space="preserve"><value>Select distribution point</value></data>
+  <data name="DistributionPointMaintenance" xml:space="preserve"><value>Distribution Point Maintenance</value></data>
+  <data name="SelectDP" xml:space="preserve"><value>-- Select Distribution Point --</value></data>
+  <data name="DetachAllBooks" xml:space="preserve"><value>Detach All Books</value></data>
+  <data name="ConfirmDetachAllBooks" xml:space="preserve"><value>Are you sure you want to detach all books from the selected distribution point? This action cannot be undone.</value></data>
+  <data name="SwitchDP" xml:space="preserve"><value>Switch Distribution Point</value></data>
+  <data name="SourceDistributionPoint" xml:space="preserve"><value>Source Distribution Point</value></data>
+  <data name="TargetDistributionPoint" xml:space="preserve"><value>Target Distribution Point</value></data>
+  <data name="SwitchAllBooks" xml:space="preserve"><value>Move All Books</value></data>
+  <data name="ConfirmSwitchAllBooks" xml:space="preserve"><value>Are you sure you want to move all books from {0} to {1}?</value></data>
 </root>

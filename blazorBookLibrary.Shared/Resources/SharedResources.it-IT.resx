@@ -880,4 +880,13 @@
   <data name="EditDistributionPoint" xml:space="preserve"><value>Modifica Punto di Distribuzione</value></data>
   <data name="DistributionPoint" xml:space="preserve"><value>Punto di Distribuzione</value></data>
   <data name="SelectDistributionPoint" xml:space="preserve"><value>Seleziona punto di distribuzione</value></data>
+  <data name="DistributionPointMaintenance" xml:space="preserve"><value>Manutenzione Punti di Distribuzione</value></data>
+  <data name="SelectDP" xml:space="preserve"><value>-- Seleziona Punto di Distribuzione --</value></data>
+  <data name="DetachAllBooks" xml:space="preserve"><value>Scollega Tutti i Libri</value></data>
+  <data name="ConfirmDetachAllBooks" xml:space="preserve"><value>Sei sicuro di voler scollegare tutti i libri dal punto di distribuzione selezionato? Questa azione non può essere annullata.</value></data>
+  <data name="SwitchDP" xml:space="preserve"><value>Cambia Punto di Distribuzione</value></data>
+  <data name="SourceDistributionPoint" xml:space="preserve"><value>Punto di Distribuzione di Origine</value></data>
+  <data name="TargetDistributionPoint" xml:space="preserve"><value>Punto di Distribuzione di Destinazione</value></data>
+  <data name="SwitchAllBooks" xml:space="preserve"><value>Sposta Tutti i Libri</value></data>
+  <data name="ConfirmSwitchAllBooks" xml:space="preserve"><value>Sei sicuro di voler spostare tutti i libri da {0} a {1}?</value></data>
 </root>
