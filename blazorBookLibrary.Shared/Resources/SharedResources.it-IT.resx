@@ -879,4 +879,5 @@
   <data name="ManagerUnassigned" xml:space="preserve"><value>Responsabile rimosso con successo.</value></data>
   <data name="EditDistributionPoint" xml:space="preserve"><value>Modifica Punto di Distribuzione</value></data>
   <data name="DistributionPoint" xml:space="preserve"><value>Punto di Distribuzione</value></data>
+  <data name="SelectDistributionPoint" xml:space="preserve"><value>Seleziona punto di distribuzione</value></data>
 </root>

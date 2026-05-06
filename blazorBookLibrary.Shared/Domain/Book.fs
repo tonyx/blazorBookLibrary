@@ -239,15 +239,6 @@ with
                     |> Result.ofBool "Book is sealed"
                 return { this with DistributionPoint = None } 
             }
-    member this.ChangeDistributionPoint (distributionPoint: DistributionPointId) (user: UserId) (dateTime: DateTime) = 
-        result
-            {
-                do! 
-                    this.Sealed.IsSealed(dateTime)
-                    |> not
-                    |> Result.ofBool "Book is sealed"
-                return { this with DistributionPoint = Some distributionPoint } 
-            }
 
     member this.EmbedDescription 
         (embeddingId: EmbeddingDataId) 

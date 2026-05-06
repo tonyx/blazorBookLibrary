@@ -23,6 +23,8 @@
 @inject IVectorDbService VectorDbService
 @inject IStringLocalizer<SharedResources> L
 @inject ILoanService LoanService
+@inject IUserService UserService
+@inject AuthenticationStateProvider AuthenticationStateProvider
 @inject IConfiguration Configuration
 @inject ILogger<BookEdit> Logger
 @rendermode InteractiveServer
@@ -322,6 +324,54 @@
                                     @if (bookDetails.Book.Editable)
                                     {
                                         <button class="btn btn-link p-0 text-muted" @onclick="StartEditAvailability"><i class="bi bi-pencil-square"></i></button>
+                                    }
+                                </div>
+                            }
+                        </div>
+
+                        <!-- Distribution Point -->
+                        <div class="col-md-6 border-end" style="border-color: var(--surface-container-low) !important;">
+                            <label class="form-label small text-muted text-uppercase fw-bold mb-2">@L["DistributionPoint"]</label>
+                            
+                            @if (bookDetails.DistributionPoint != null && FSharpOption<DistributionPoint>.get_IsSome(bookDetails.DistributionPoint))
+                            {
+                                var dp = bookDetails.DistributionPoint.Value;
+                                <div class="d-flex align-items-center gap-3">
+                                    <span class="badge-sanctuary badge-neutral p-2">
+                                        <i class="bi bi-geo-alt-fill me-2 opacity-50"></i>
+                                        @dp.Name.Value
+                                    </span>
+                                    @if (managedDistributionPoints.Any(m => m.DistributionPointId.Equals(dp.DistributionPointId)))
+                                    {
+                                        <button class="btn btn-outline-danger btn-sm rounded-pill px-3" @onclick="UnsetDistributionPoint" disabled="@isUpdatingDP">
+                                            @if (isUpdatingDP) { <span class="spinner-border spinner-border-sm me-1"></span> }
+                                            <i class="bi bi-x-circle me-1"></i> @L["Unset"]
+                                        </button>
+                                    }
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="d-flex flex-wrap gap-2">
+                                    @if (managedDistributionPoints.Any())
+                                    {
+                                        <div class="input-group input-group-sm" style="max-width: 300px;">
+                                            <select class="form-select border-primary-subtle" @bind="selectedDistributionPointIdToSet">
+                                                <option value="">@L["SelectToSetDP"]</option>
+                                                @foreach (var dp in managedDistributionPoints)
+                                                {
+                                                    <option value="@dp.DistributionPointId.Value.ToString()">@dp.Name.Value</option>
+                                                }
+                                            </select>
+                                            <button class="btn btn-primary px-3" @onclick="SetDistributionPoint" disabled="@(string.IsNullOrEmpty(selectedDistributionPointIdToSet) || isUpdatingDP)">
+                                                @if (isUpdatingDP) { <span class="spinner-border spinner-border-sm me-1"></span> }
+                                                @L["Set"]
+                                            </button>
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted small italic">@L["NoDistributionPointAssigned"]</span>
                                     }
                                 </div>
                             }
@@ -824,6 +874,8 @@
     private string sanityCheckQuery = "";
     private int sanityCheckLimit = 3;
     private bool isPerformingSanityCheck = false;
+    private bool isEditingDescription = false;
+    private string editedDescription = "";
     private bool isGeneratingDescription = false;
     private string? previousDescription = null;
     private List<SanityCheckResult>? sanityCheckResults = null;
@@ -843,6 +895,11 @@
     private string? coverPreviewUrl = null;
     private bool isLookingUpCover = false;
     private string coverSizeLookup = "Medium";
+
+    private List<DistributionPoint> managedDistributionPoints = new();
+    private string selectedDistributionPointIdToSet = "";
+    private bool isUpdatingDP = false;
+    private UserId currentUserId;
 
     private bool isEditingIsbn = false;
     private string editedIsbn = "";
@@ -969,8 +1026,6 @@
     private string editedTitle = "";
     private bool isEditingCategory = false;
     private string editedCategory = "";
-    private bool isEditingDescription = false;
-    private string editedDescription = "";
     private bool isEditingAvailability = false;
     private string editedAvailability = "";
     private bool showAddTagDropdown = false;
@@ -1757,6 +1812,22 @@
         {
             allAvailableTags = tagsResult.ResultValue.ToList();
         }
+
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        if (user.Identity?.IsAuthenticated ?? false)
+        {
+            var userIdClaim = user.FindFirst(c => c.Type == System.Security.Claims.ClaimTypes.NameIdentifier) ?? user.FindFirst("sub");
+            if (userIdClaim != null && Guid.TryParse(userIdClaim.Value, out var guid))
+            {
+                currentUserId = UserId.NewUserId(guid);
+                var dpResult = await UserService.GetDistributionPointsManagedByUserAsync(currentUserId, FSharpOption<CancellationToken>.None);
+                if (dpResult.IsOk)
+                {
+                    managedDistributionPoints = dpResult.ResultValue.ToList();
+                }
+            }
+        }
     }
 
     private async Task LoadBookDetails()
@@ -1950,6 +2021,68 @@
             editedDescription = previousDescription;
             previousDescription = null;
             isEditingDescription = true;
+        }
+    }
+
+    private async Task SetDistributionPoint()
+    {
+        if (string.IsNullOrEmpty(selectedDistributionPointIdToSet) || bookDetails == null || currentUserId == null) return;
+        
+        isUpdatingDP = true;
+        try
+        {
+            var dpId = DistributionPointId.NewDistributionPointId(new Guid(selectedDistributionPointIdToSet));
+            var result = await BookService.SetDistributionPointAsync(dpId, bookDetails.Book.BookId, currentUserId, FSharpOption<CancellationToken>.None);
+            if (result.IsOk)
+            {
+                await ShowStatus(L["DistributionPointSetSuccess"], "alert-success");
+                await WaitForCacheUpdateAsync(d => d.DistributionPoint != null && FSharpOption<DistributionPoint>.get_IsSome(d.DistributionPoint) && d.DistributionPoint.Value.DistributionPointId.Equals(dpId));
+                selectedDistributionPointIdToSet = "";
+            }
+            else
+            {
+                await ShowStatus($"{L["ErrorSettingDistributionPoint"]}: {result.ErrorValue}", "alert-danger");
+            }
+        }
+        catch (Exception ex)
+        {
+            await ShowStatus($"{L["ErrorSettingDistributionPoint"]}: {ex.Message}", "alert-danger");
+        }
+        finally
+        {
+            isUpdatingDP = false;
+        }
+    }
+
+    private async Task UnsetDistributionPoint()
+    {
+        if (bookDetails == null || FSharpOption<DistributionPoint>.get_IsNone(bookDetails.DistributionPoint) || currentUserId == null) return;
+        
+        var dp = bookDetails.DistributionPoint.Value;
+        bool confirm = await JSRuntime.InvokeAsync<bool>("confirm", string.Format(L["ConfirmUnsetDP"], dp.Name.Value));
+        if (!confirm) return;
+
+        isUpdatingDP = true;
+        try
+        {
+            var result = await BookService.UnSetDistributionPointAsync(dp.DistributionPointId, bookDetails.Book.BookId, currentUserId, FSharpOption<CancellationToken>.None);
+            if (result.IsOk)
+            {
+                await ShowStatus(L["DistributionPointUnsetSuccess"], "alert-success");
+                await WaitForCacheUpdateAsync(d => FSharpOption<DistributionPoint>.get_IsNone(d.DistributionPoint));
+            }
+            else
+            {
+                await ShowStatus($"{L["ErrorUnsettingDistributionPoint"]}: {result.ErrorValue}", "alert-danger");
+            }
+        }
+        catch (Exception ex)
+        {
+            await ShowStatus($"{L["ErrorUnsettingDistributionPoint"]}: {ex.Message}", "alert-danger");
+        }
+        finally
+        {
+            isUpdatingDP = false;
         }
     }
 }

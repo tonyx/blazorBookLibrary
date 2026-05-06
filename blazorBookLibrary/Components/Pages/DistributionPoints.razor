@@ -1,0 +1,84 @@
+@page "/distribution-points"
+@using BookLibrary.Shared.Services
+@using BookLibrary.Domain
+@using static BookLibrary.Shared.Commons
+@using Microsoft.Extensions.Localization
+@using blazorBookLibrary.Shared.Resources
+@inject IAdminServices AdminService
+@inject IStringLocalizer<SharedResources> L
+@inject NavigationManager NavManager
+@rendermode InteractiveServer
+
+<PageTitle>@L["DistributionPoints"] — @L["TheModernArchivist"]</PageTitle>
+
+<div class="sanctuary-container py-5">
+    @* Page Header *@
+    <div class="mb-5 text-center">
+        <h1 class="display-3 text-serif mb-3">@L["OurDistributionPoints"]</h1>
+        <p class="text-muted lead mx-auto" style="max-width: 800px;">@L["DistributionPointsDescription"]</p>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="d-flex justify-content-center py-5">
+            <div class="spinner-grow text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+    }
+    else if (!distributionPoints.Any())
+    {
+        <div class="alert alert-info text-center serif py-5">
+            <i class="bi bi-info-circle display-4 d-block mb-3"></i>
+            @L["NoDistributionPointsFound"]
+        </div>
+    }
+    else
+    {
+        <div class="row g-4">
+            @foreach (var dp in distributionPoints)
+            {
+                <div class="col-md-6 col-lg-4">
+                    <div class="card-sanctuary h-100 floating transition-hover" style="cursor: pointer;" @onclick='() => NavigateToSearch(dp)'>
+                        <div class="card-body p-4">
+                            <div class="d-flex align-items-center mb-4">
+                                <div class="bg-primary-subtle rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 56px; height: 56px;">
+                                    <i class="bi bi-geo-alt-fill fs-4 text-primary"></i>
+                                </div>
+                                <h3 class="h4 serif mb-0">@dp.Name.Value</h3>
+                            </div>
+                            
+                            <p class="text-muted mb-4" style="line-height: 1.6;">@dp.Info.Value</p>
+                            
+                            <div class="mt-auto pt-3 border-top d-flex justify-content-between align-items-center">
+                                <span class="small fw-bold text-primary text-uppercase letter-spacing-1">
+                                    @L["ViewAvailableBooks"] <i class="bi bi-arrow-right ms-1"></i>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private List<DistributionPoint> distributionPoints = new();
+    private bool isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var result = await AdminService.GetAllDistributionPointsAsync();
+        if (result.IsOk)
+        {
+            distributionPoints = result.ResultValue.ToList();
+        }
+        isLoading = false;
+    }
+
+    private void NavigateToSearch(DistributionPoint dp)
+    {
+        NavManager.NavigateTo($"/book-search?dp={dp.DistributionPointId.Value}");
+    }
+}

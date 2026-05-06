@@ -15,6 +15,7 @@
 @inject ITextEmbeddingService TextEmbeddingService
 @inject IVectorDbService VectorDbService
 @inject IJSRuntime JSRuntime
+@inject IAdminServices AdminService
 @inject IStringLocalizer<SharedResources> L
 @inject ILogger<BookSearchToolbar> Logger
 
@@ -210,6 +211,35 @@
                                 <option value="ImmediatelyAvailable">@L["ImmediatelyAvailableOnly"]</option>
                             </select>
                         </div>
+
+                        <div class="mt-4">
+                            <label class="form-label small text-muted text-uppercase fw-bold mb-2">@L["FilterByDistributionPoint"]</label>
+                            <div class="d-flex gap-2">
+                                <select class="form-select bg-surface-lowest border-0 rounded-lg shadow-sm py-2" @bind="selectedDistributionPointIdForFilter">
+                                    <option value="">@L["SelectDistributionPoint"]</option>
+                                    @foreach (var dp in allDistributionPoints)
+                                    {
+                                        if (!searchDistributionPointsCriteria.Any(x => x.DistributionPointId == dp.DistributionPointId))
+                                        {
+                                            <option value="@dp.DistributionPointId.Value.ToString()">@dp.Name.Value</option>
+                                        }
+                                    }
+                                </select>
+                                <button type="button" class="btn-sanctuary-outline bg-surface-lowest px-3" @onclick="AddDistributionPointToSearchCriteria" disabled="@(string.IsNullOrEmpty(selectedDistributionPointIdForFilter))">
+                                    <i class="bi bi-plus-lg"></i>
+                                </button>
+                            </div>
+                            
+                            <div class="mt-3 d-flex flex-wrap gap-2">
+                                @foreach (var dp in searchDistributionPointsCriteria)
+                                {
+                                    <span class="badge-sanctuary badge-neutral">
+                                        @dp.Name.Value
+                                        <i class="bi bi-x-circle-fill ms-2" style="cursor: pointer" @onclick="() => RemoveDistributionPointFromSearchCriteria(dp)"></i>
+                                    </span>
+                                }
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -221,6 +251,7 @@
     [Parameter] public EventCallback<List<BookSearchResult>> OnSearchResultsFound { get; set; }
     [Parameter] public EventCallback<string> OnError { get; set; }
     [Parameter] public EventCallback<bool> OnSearchStarted { get; set; }
+    [Parameter] public string? InitialDistributionPointId { get; set; }
 
     private bool _isLoading = false;
 
@@ -248,12 +279,40 @@
     private List<Tag> searchTagsCriteria = new();
     private string selectedTagNameForFilter = "";
 
+    private List<DistributionPoint> allDistributionPoints = new();
+    private List<DistributionPoint> searchDistributionPointsCriteria = new();
+    private string selectedDistributionPointIdForFilter = "";
+
+    private bool isInitialSearchTriggered = false;
+
     protected override async Task OnInitializedAsync()
     {
         var result = await TagService.GetBookTypeTagsAsync();
         if (result.IsOk)
         {
             allBookTags = result.ResultValue.ToList();
+        }
+
+        var dpResult = await AdminService.GetAllDistributionPointsAsync();
+        if (dpResult.IsOk)
+        {
+            allDistributionPoints = dpResult.ResultValue.ToList();
+        }
+
+        if (!isInitialSearchTriggered && !string.IsNullOrEmpty(InitialDistributionPointId) && allDistributionPoints.Any())
+        {
+            var guidResult = Guid.TryParse(InitialDistributionPointId, out var guid);
+            if (guidResult)
+            {
+                var dp = allDistributionPoints.FirstOrDefault(d => d.DistributionPointId.Value == guid);
+                if (dp != null && !searchDistributionPointsCriteria.Any(x => x.DistributionPointId == dp.DistributionPointId))
+                {
+                    searchDistributionPointsCriteria.Add(dp);
+                    isInitialSearchTriggered = true;
+                    // We need a small delay or StateHasChanged to ensure the UI reflects the added criteria before search starts
+                    await HandleBookSearch();
+                }
+            }
         }
     }
 
@@ -264,6 +323,7 @@
         searchAuthorsCriteria.Any() || 
         searchCategoriesCriteria.Any() ||
         searchTagsCriteria.Any() ||
+        searchDistributionPointsCriteria.Any() ||
         searchBookAvailability != "All";
 
     private bool IsIsbnSearchActive => !string.IsNullOrWhiteSpace(searchBookIsbn);
@@ -294,7 +354,14 @@
                     tagsMatch = searchTagsCriteria.Any(t => book.Tags.Contains(t));
                 }
 
-                return availabilityMatch && tagsMatch;
+                bool dpMatch = true;
+                if (searchDistributionPointsCriteria.Any())
+                {
+                    dpMatch = FSharpOption<DistributionPointId>.get_IsSome(book.DistributionPoint) && 
+                              searchDistributionPointsCriteria.Any(dp => dp.DistributionPointId.Equals(book.DistributionPoint.Value));
+                }
+
+                return availabilityMatch && tagsMatch && dpMatch;
             };
         }
     }
@@ -395,6 +462,25 @@
     private void RemoveTagFromSearchCriteria(Tag tag)
     {
         searchTagsCriteria.Remove(tag);
+    }
+
+    private void AddDistributionPointToSearchCriteria()
+    {
+        if (string.IsNullOrEmpty(selectedDistributionPointIdForFilter)) return;
+        
+        var dpId = new Guid(selectedDistributionPointIdForFilter);
+        var dp = allDistributionPoints.FirstOrDefault(d => d.DistributionPointId.Value == dpId);
+        
+        if (dp != null && !searchDistributionPointsCriteria.Any(x => x.DistributionPointId == dp.DistributionPointId))
+        {
+            searchDistributionPointsCriteria.Add(dp);
+        }
+        selectedDistributionPointIdForFilter = "";
+    }
+
+    private void RemoveDistributionPointFromSearchCriteria(DistributionPoint dp)
+    {
+        searchDistributionPointsCriteria.Remove(dp);
     }
 
     private async Task HandleBookSearch()

@@ -60,6 +60,7 @@ module Details =
         { 
             Authors: List<Author>
             Book: Book
+            DistributionPoint: Option<DistributionPoint>
             CurrentLoan: Option<LoanDetails>
             ReservationsDetails: List<ReservationDetails>
             ApprovedVisibleReviews: List<ReviewDetails>

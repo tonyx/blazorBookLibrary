@@ -17,5 +17,6 @@ type IAdminServices =
     abstract member RenameDistributionPointAsync: distributionPointId:DistributionPointId * name:NonEmptyName * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<unit, string>>
     // abstract member RemoveDistributionPointAsync: distributionPointId:DistributionPointId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<unit, string>>
     abstract member GetAllDistributionPointsAsync: [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<List<DistributionPoint>, string>>
+    abstract member GetDistributionPointAsync: distributionPointId:DistributionPointId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<DistributionPoint, string>>
     abstract member FindDistributionPointsByNameAsync: name:Name * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<List<DistributionPoint>, string>>
     

@@ -37,7 +37,6 @@ type BookCommand =
 
     | SetDistributionPoint of DistributionPointId * UserId * DateTime
     | UnsetDistributionPoint of UserId * DateTime
-    | ChangeDistributionPoint of DistributionPointId * UserId * DateTime
 
     | AddTag of Tag * DateTime
     | RemoveTag of Tag * DateTime
@@ -138,9 +137,6 @@ type BookCommand =
             | UnsetDistributionPoint (userId, dateTime) ->
                 book.UnsetDistributionPoint userId dateTime
                 |> Result.map (fun b -> (b, [DistributionPointUnset(userId, dateTime)]))
-            | ChangeDistributionPoint (distributionPoint, userId, dateTime) ->
-                book.ChangeDistributionPoint distributionPoint userId dateTime
-                |> Result.map (fun b -> (b, [DistributionPointChanged(distributionPoint, userId, dateTime)]))
 
             | AddTag (tag, dateTime) ->
                 book.AddTag tag dateTime

@@ -14,6 +14,8 @@
 
 @attribute [Authorize(Roles = "Admin, Manager")]
 @inject IBookService BookService
+@inject IUserService UserService
+@inject AuthenticationStateProvider AuthenticationStateProvider
 @inject ITagService TagService
 @inject IDataExportService DataExportService
 @inject IAuthorService AuthorService
@@ -544,6 +546,7 @@
                                 </select>
                             </div>
 
+
                             @* Selected Authors Ledger *@
                             <div class="col-12 mt-2">
                                 <label class="form-label small text-muted text-uppercase fw-bold d-flex justify-content-between mb-3">
@@ -619,6 +622,31 @@
                                     }
                                 </div>
                             </div>
+
+                            @* Distribution Point Selection *@
+                            @if (managedDistributionPoints.Any())
+                            {
+                                <div class="col-12 mt-4">
+                                    <label class="form-label small text-muted text-uppercase fw-bold mb-3">@L["DistributionPoint"]</label>
+                                    <div class="row g-2 mb-3">
+                                        <div class="col-md-9">
+                                            <select class="form-select bg-surface-low border-0 py-2 shadow-sm" @bind="selectedDistributionPointId">
+                                                <option value="@Guid.Empty">-- @L["SelectDistributionPoint"] --</option>
+                                                @foreach (var dp in managedDistributionPoints)
+                                                {
+                                                    <option value="@dp.DistributionPointId.Value">@dp.Name.Value</option>
+                                                }
+                                            </select>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <button type="button" class="btn btn-outline-warning w-100 py-2 shadow-sm" @onclick="() => selectedDistributionPointId = Guid.Empty">
+                                                <i class="bi bi-trash me-1"></i> @L["Clear"]
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+
                             
                             @* Action Buttons *@
                             <div class="col-12 mt-5">
@@ -824,6 +852,7 @@
     private CancellationTokenSource? descriptionGenerationCts;
     private ImportSummary? lastImportSummary = null;
     private bool showImportSummaryModal = false;
+    private Guid selectedDistributionPointId = Guid.Empty;
 
     private void CancelImport()
     {
@@ -993,12 +1022,30 @@
     private Category categoryToAdd = Category.Other;
     private FSharpList<Category> allCategories = Category.AllCases();
 
+    private List<DistributionPoint> managedDistributionPoints = new();
+
     protected override async Task OnInitializedAsync()
     {
         var tagsResult = await TagService.GetBookTypeTagsAsync();
         if (tagsResult.IsOk)
         {
             allAvailableTags = tagsResult.ResultValue.ToList();
+        }
+
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        if (user.Identity?.IsAuthenticated == true)
+        {
+            var userIdStr = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (!string.IsNullOrEmpty(userIdStr) && Guid.TryParse(userIdStr, out var userGuid))
+            {
+                var userId = UserId.NewUserId(userGuid);
+                var dpResult = await UserService.GetDistributionPointsManagedByUserAsync(userId, FSharpOption<CancellationToken>.None);
+                if (dpResult.IsOk)
+                {
+                    managedDistributionPoints = dpResult.ResultValue.ToList();
+                }
+            }
         }
     }
 
@@ -1121,20 +1168,42 @@
 
         var availability = Availability.FromString(newBookAvailability);
 
-        var book = Book.NewWithAvailability(
-            title, 
-            ListModule.OfSeq(authorIds),
-            ListModule.OfSeq(Enumerable.Empty<AuthorId>()),
-            ListModule.OfSeq(Enumerable.Empty<System.Globalization.CultureInfo>()),
-            FSharpOption<EditorId>.None,
-            mainCategory,
-            ListModule.OfSeq(additionalCategories),
-            ListModule.OfSeq(bookTags),
-            year,
-            isbn,
-            resolvedImageUrl,
-            availability
-        );
+        Book book;
+        if (selectedDistributionPointId != Guid.Empty)
+        {
+            book = Book.NewWithAvailabilityAndDistributionPoint(
+                title, 
+                ListModule.OfSeq(authorIds),
+                ListModule.OfSeq(Enumerable.Empty<AuthorId>()),
+                ListModule.OfSeq(Enumerable.Empty<System.Globalization.CultureInfo>()),
+                FSharpOption<EditorId>.None,
+                mainCategory,
+                ListModule.OfSeq(additionalCategories),
+                ListModule.OfSeq(bookTags),
+                year,
+                isbn,
+                resolvedImageUrl,
+                availability,
+                DistributionPointId.NewDistributionPointId(selectedDistributionPointId)
+            );
+        }
+        else
+        {
+            book = Book.NewWithAvailability(
+                title, 
+                ListModule.OfSeq(authorIds),
+                ListModule.OfSeq(Enumerable.Empty<AuthorId>()),
+                ListModule.OfSeq(Enumerable.Empty<System.Globalization.CultureInfo>()),
+                FSharpOption<EditorId>.None,
+                mainCategory,
+                ListModule.OfSeq(additionalCategories),
+                ListModule.OfSeq(bookTags),
+                year,
+                isbn,
+                resolvedImageUrl,
+                availability
+            );
+        }
 
         if (!string.IsNullOrWhiteSpace(newBookDescription))
         {
@@ -1223,6 +1292,7 @@
         isGeneratingDescription = false;
         lastImportSummary = null;
         showImportSummaryModal = false;
+        selectedDistributionPointId = Guid.Empty;
         bookTags.Clear();
     }
 

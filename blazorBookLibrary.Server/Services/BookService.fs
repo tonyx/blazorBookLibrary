@@ -796,6 +796,39 @@ type BookService
                                 ct
                     }
 
+
+            member this.SetDistributionPointAsync(distributionPointId: DistributionPointId, bookId: BookId, userId: UserId, ?ct: CancellationToken) = 
+                taskResult
+                    {
+                        let ct = defaultArg ct CancellationToken.None
+                        let command = BookCommand.SetDistributionPoint(distributionPointId, userId, DateTime.UtcNow)
+                        return!
+                            runAggregateCommandMdAsync<Book, BookEvent, string>
+                                bookId.Value
+                                eventStore
+                                messageSenders
+                                ""
+                                command
+                                (Some ct)
+                    }
+
+            member this.UnSetDistributionPointAsync(distributionPointId: DistributionPointId, bookId: BookId, userId: UserId, ?ct: CancellationToken) = 
+                taskResult
+                    {
+                        let ct = defaultArg ct CancellationToken.None
+                        let command = BookCommand.UnsetDistributionPoint(userId, DateTime.UtcNow)
+                        return!
+                            runAggregateCommandMdAsync<Book, BookEvent, string>
+                                bookId.Value
+                                eventStore
+                                messageSenders
+                                ""
+                                command
+                                (Some ct)
+                    }
+
+
+
             member this.SearchBooksByAuthorAsync(authorId: AuthorId, ?criteria: BookSearchCriteria, ?ct: CancellationToken) = 
                 let criteria = defaultArg (criteria |> Option.bind Option.ofObj) SearchCriteria.searchAllBooks
                 taskResult
@@ -987,6 +1020,14 @@ type BookService
                 let criteria = defaultArg (criteria |> Option.bind Option.ofObj) SearchCriteria.searchAllBooks
                 let ct = defaultArg ct CancellationToken.None
                 this.SearchBooksByIsbnAsync(isbn, criteria, ct)
+            member this.SetDistributionPointAsync(distributionPointId: DistributionPointId, bookId: BookId, userId: UserId, ?ct: CancellationToken) = 
+                let ct = defaultArg ct CancellationToken.None
+                this.SetDistributionPointAsync(distributionPointId, bookId, userId, ct)
+            member this.UnSetDistributionPointAsync(distributionPointId: DistributionPointId, bookId: BookId, userId: UserId, ?ct: CancellationToken) = 
+                let ct = defaultArg ct CancellationToken.None
+                this.UnSetDistributionPointAsync(distributionPointId, bookId, userId, ct)
+
+
             member this.SearchByTitleAndIsbnAsync(title: Title, isbn: Isbn, ?criteria: BookSearchCriteria, ?ct: CancellationToken) = 
                 let criteria = defaultArg (criteria |> Option.bind Option.ofObj) SearchCriteria.searchAllBooks
                 let ct = defaultArg ct CancellationToken.None

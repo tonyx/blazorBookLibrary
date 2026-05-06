@@ -382,4 +382,19 @@
   <data name="ManagerUnassigned" xml:space="preserve"><value>Manager unassigned successfully.</value></data>
   <data name="EditDistributionPoint" xml:space="preserve"><value>Edit Distribution Point</value></data>
   <data name="DistributionPoint" xml:space="preserve"><value>Distribution Point</value></data>
+  <data name="SelectDistributionPoint" xml:space="preserve"><value>Select distribution point</value></data>
+  <data name="FilterByDistributionPoint" xml:space="preserve"><value>Filter by Distribution Point</value></data>
+  <data name="OurDistributionPoints" xml:space="preserve"><value>Our Distribution Points</value></data>
+  <data name="DistributionPointsDescription" xml:space="preserve"><value>Find the physical location of our curated collection and visit the nearest archival center.</value></data>
+  <data name="ViewAvailableBooks" xml:space="preserve"><value>View Available Books</value></data>
+  <data name="DistributionPoints" xml:space="preserve"><value>Distribution Points</value></data>
+  <data name="Unset" xml:space="preserve"><value>Unset</value></data>
+  <data name="Set" xml:space="preserve"><value>Set</value></data>
+  <data name="SelectToSetDP" xml:space="preserve"><value>Select distribution point...</value></data>
+  <data name="NoDistributionPointAssigned" xml:space="preserve"><value>No distribution point assigned</value></data>
+  <data name="DistributionPointSetSuccess" xml:space="preserve"><value>Distribution point assigned successfully.</value></data>
+  <data name="DistributionPointUnsetSuccess" xml:space="preserve"><value>Distribution point removed successfully.</value></data>
+  <data name="ConfirmUnsetDP" xml:space="preserve"><value>Are you sure you want to remove the book from {0}?</value></data>
+  <data name="ErrorSettingDistributionPoint" xml:space="preserve"><value>Error setting distribution point</value></data>
+  <data name="ErrorUnsettingDistributionPoint" xml:space="preserve"><value>Error removing distribution point</value></data>
 </root>

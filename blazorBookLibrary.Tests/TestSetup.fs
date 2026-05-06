@@ -232,6 +232,7 @@ let getDetailsService () : IDetailsService =
         loanViewerAsync,
         userViewerAsync,
         reviewViewerAsync,
+        distributionPointViewerAsync,
         getLoanService(),
         getReservationService(),
         getReviewService(),

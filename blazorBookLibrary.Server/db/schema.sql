@@ -1,6 +1,6 @@
-\restrict DAyOiq5xBMSy502tSuioXdDKSgwjbiMGznJJZEUzo3WoR9KZx2B0ijgz4psjhPe
+\restrict p5tgzLLuKQo1jPT6uEk4o2D4rPjsDik7154aTe0IJcXXZIFzI0kFNoEH7Gztgi4
 
--- Dumped from database version 17.9 (Homebrew)
+-- Dumped from database version 16.12
 -- Dumped by pg_dump version 17.9 (Homebrew)
 
 SET statement_timeout = 0;
@@ -14,6 +14,13 @@ SET check_function_bodies = false;
 SET xmloption = content;
 SET client_min_messages = warning;
 SET row_security = off;
+
+--
+-- Name: public; Type: SCHEMA; Schema: -; Owner: -
+--
+
+-- *not* creating schema, since initdb creates it
+
 
 --
 -- Name: insert_01_author_event_and_return_id(text, uuid); Type: FUNCTION; Schema: public; Owner: -
@@ -2579,7 +2586,7 @@ ALTER TABLE ONLY public.snapshots_01_user
 -- PostgreSQL database dump complete
 --
 
-\unrestrict DAyOiq5xBMSy502tSuioXdDKSgwjbiMGznJJZEUzo3WoR9KZx2B0ijgz4psjhPe
+\unrestrict p5tgzLLuKQo1jPT6uEk4o2D4rPjsDik7154aTe0IJcXXZIFzI0kFNoEH7Gztgi4
 
 
 --

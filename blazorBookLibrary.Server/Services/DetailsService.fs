@@ -38,6 +38,7 @@ type DetailsService (
     loanViewerAsync: AggregateViewerAsync2<Loan>,
     userViewerAsync: AggregateViewerAsync2<User>,
     reviewsViewerAsync: AggregateViewerAsync2<Review>,
+    distributionPointViewerAsync: AggregateViewerAsync2<DistributionPoint>,
     loanService: ILoanService,
     reservationService: IReservationService,
     reviewService: IReviewService,
@@ -52,6 +53,8 @@ type DetailsService (
         let loanViewerAsync = getAggregateStorageFreshStateViewerAsync<Loan, LoanEvent, string> eventStore
         let userViewerAsync = getAggregateStorageFreshStateViewerAsync<User, UserEvent, string> eventStore
         let reviewsViewerAsync = getAggregateStorageFreshStateViewerAsync<Review, ReviewEvent, string> eventStore
+        let distributionPointViewerAsync = getAggregateStorageFreshStateViewerAsync<DistributionPoint, DistributionPointEvent, string> eventStore
+        
         DetailsService (
             eventStore,
             messageSenders,
@@ -62,6 +65,7 @@ type DetailsService (
             loanViewerAsync,
             userViewerAsync,
             reviewsViewerAsync,
+            distributionPointViewerAsync,
             loanService,
             reservationService,
             reviewService,
@@ -343,11 +347,22 @@ type DetailsService (
 
                                     let! approvedVisibleReviews = 
                                         this.GetApprovedVisibleReviewsOfBookAsync (bookId, ct)
+
+                                    let! distributionPoint = 
+                                        match book.DistributionPoint with
+                                        | None -> 
+                                            taskResult { return None }
+                                        | Some distributionPointId -> 
+                                            taskResult {
+                                                let! distributionPoint = distributionPointViewerAsync (ct |> Some) distributionPointId.Value|> TaskResult.map (fun (x, y) -> y )
+                                                return distributionPoint |> Some
+                                            }
                                     return 
                                         { 
                                             Authors = authors
                                             Book = book
                                             CurrentLoan = currentLoan
+                                            DistributionPoint = distributionPoint
                                             ReservationsDetails = futureReservations
                                             ApprovedVisibleReviews = approvedVisibleReviews 
                                         } 

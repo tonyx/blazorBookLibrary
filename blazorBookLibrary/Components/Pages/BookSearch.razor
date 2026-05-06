@@ -35,7 +35,7 @@
 
     @* Search Toolbar *@
     <div class="card-sanctuary mb-5 p-4 border-0 shadow-none bg-surface-low rounded-pill-sm">
-        <BookSearchToolbar @ref="searchToolbar" OnSearchResultsFound="HandleSearchResultsFound" OnError="ShowSearchError" OnSearchStarted="HandleSearchStarted" />
+        <BookSearchToolbar @ref="searchToolbar" InitialDistributionPointId="@DpId" OnSearchResultsFound="HandleSearchResultsFound" OnError="ShowSearchError" OnSearchStarted="HandleSearchStarted" />
     </div>
 
     @if (searchBooksPerformed)
@@ -190,6 +190,10 @@
     private string topMatchColor = "bg-secondary";
     private BookId? topBookId;
     private BookSearchToolbar searchToolbar;
+
+    [SupplyParameterFromQuery(Name = "dp")]
+    public string? DpId { get; set; }
+
     private HashSet<BookId> loadingExplanations = new();
     private static readonly SemaphoreSlim explanationSemaphore = new(1, 1);
 

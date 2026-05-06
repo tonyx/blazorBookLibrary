@@ -949,4 +949,5 @@
   <data name="BioUpdatedSuccessfully" xml:space="preserve"><value>Biography updated successfully</value></data>
   <data name="WikipediaLinkUpdated" xml:space="preserve"><value>Wikipedia link updated successfully</value></data>
   <data name="NoBiographyRegistered" xml:space="preserve"><value>No biography registered for this author.</value></data>
+  <data name="SelectDistributionPoint" xml:space="preserve"><value>Select distribution point</value></data>
 </root>

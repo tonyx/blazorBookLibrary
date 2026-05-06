@@ -56,6 +56,9 @@ type IBookService =
     abstract member SearchByTitleAsync : title: Title * [<Optional; DefaultParameterValue(null)>] ?criteria: BookSearchCriteria * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<List<Book>, string>>
     abstract member SearchByIsbnAsync : isbn: Isbn * [<Optional; DefaultParameterValue(null)>] ?criteria: BookSearchCriteria * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<List<Book>, string>>
 
+    abstract member SetDistributionPointAsync: distributionPointId: DistributionPointId * bookId: BookId * userId: UserId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<unit, string>>
+    abstract member UnSetDistributionPointAsync: distributionPointId: DistributionPointId * bookId: BookId * userId: UserId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<unit, string>>
+
     abstract member SearchByTitleAndIsbnAsync : title: Title * isbn: Isbn * [<Optional; DefaultParameterValue(null)>] ?criteria: BookSearchCriteria * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<List<Book>, string>>
     abstract member ChangeMainCategoryAsync : category: Category * bookId: BookId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<unit, string>>
     abstract member AddAdditionalCategoryAsync : category: Category * bookId: BookId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<unit, string>>

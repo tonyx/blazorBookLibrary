@@ -171,6 +171,18 @@ type AdminService
                 return result |>> snd
             }
 
+    member this.GetDistributionPointAsync(id: DistributionPointId, ?ct: CancellationToken) = 
+        taskResult
+            {
+                let ct = defaultArg ct CancellationToken.None
+                let! result = 
+                    StateView.getAggregateFreshStateAsync<DistributionPoint, DistributionPointEvent, string>
+                        id.Value
+                        eventStore
+                        (ct |> Some)
+                return result |> snd
+            }
+
     member this.FindDistributionPointsByNameAsync(name: Name, ?ct: CancellationToken) = 
         taskResult
             {
@@ -200,6 +212,8 @@ type AdminService
             this.RenameDistributionPointAsync(distributionPointId, name, ?ct = ct)
         member this.GetAllDistributionPointsAsync(?ct: CancellationToken) = 
             this.GetAllDistributionPointsAsync(?ct = ct)
+        member this.GetDistributionPointAsync(distributionPointId, ?ct) = 
+            this.GetDistributionPointAsync(distributionPointId, ?ct = ct)
         member this.FindDistributionPointsByNameAsync(name: Name, ?ct: CancellationToken) = 
             this.FindDistributionPointsByNameAsync(name, ?ct = ct)
         
