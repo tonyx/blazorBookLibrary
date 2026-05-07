@@ -5,6 +5,8 @@
 @using BookLibrary.Domain
 @using static BookLibrary.Shared.Commons
 @using Microsoft.FSharp.Core
+@using Microsoft.Extensions.Localization
+@using blazorBookLibrary.Shared.Resources
 
 @inject IAuthorService AuthorService
 @inject IStringLocalizer<SharedResources> L
@@ -138,7 +140,7 @@
         try
         {
             var nameResult = Name.NewName(searchTerm);
-            var result = await AuthorService.SearchByNameAsync(nameResult);
+            var result = await AuthorService.SearchByNameAsync(nameResult, FSharpOption<System.Threading.CancellationToken>.None);
             if (result.IsOk)
             {
                 foundAuthors = result.ResultValue.ToList();

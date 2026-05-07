@@ -1,0 +1,16 @@
+@page "/home"
+@inject NavigationManager Navigation
+@inject IStringLocalizer<SharedResources> L
+
+<PageTitle>@L["Home"]</PageTitle>
+
+<h1>@L["AppTitle"]</h1>
+
+@L["WelcomeToApp"]
+
+@code {
+    protected override void OnInitialized()
+    {
+        Navigation.NavigateTo("/");
+    }
+}

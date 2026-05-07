@@ -5,9 +5,9 @@
 @using BookLibrary.Domain
 @using BookLibrary.Shared
 @using static BookLibrary.Shared.Commons
+@using blazorBookLibrary.Shared.Security
 @using Microsoft.FSharp.Core
 
-@using blazorBookLibrary.Security
 @inject IBookService BookService
 @inject IUserService UserService
 @inject ILogger<BookView> Logger
@@ -21,7 +21,7 @@
 @using Microsoft.Extensions.Localization
 @using blazorBookLibrary.Shared.Resources
 @inject IStringLocalizer<SharedResources> L
-@inject BotScoreService BotScoreService
+@inject IBotScoreService BotScoreService
 @rendermode InteractiveServer
 
 <PageTitle>@L["BookDetails"]</PageTitle>

@@ -1,9 +1,10 @@
 using System.Net.Http.Json;
 using Microsoft.Extensions.Configuration;
+using blazorBookLibrary.Shared.Security;
 
 namespace blazorBookLibrary.Security;
 
-public class BotScoreService
+public class BotScoreService : IBotScoreService
 {
     private readonly IConfiguration _configuration;
     private readonly HttpClient _httpClient;

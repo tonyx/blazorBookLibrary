@@ -5,6 +5,7 @@
 @using Microsoft.Extensions.Localization
 @using blazorBookLibrary.Shared.Resources
 @inject IAdminServices AdminService
+@inject IDistributionPointService DistributionPointService
 @inject IStringLocalizer<SharedResources> L
 @inject NavigationManager NavManager
 @rendermode InteractiveServer
@@ -69,7 +70,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        var result = await AdminService.GetAllDistributionPointsAsync();
+        var result = await DistributionPointService.GetAllDistributionPointsAsync();
         if (result.IsOk)
         {
             distributionPoints = result.ResultValue.ToList();

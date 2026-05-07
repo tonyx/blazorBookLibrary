@@ -5,8 +5,6 @@ open System.Threading.Tasks
 open System.Runtime.InteropServices
 open BookLibrary.Domain
 open BookLibrary.Shared.Commons
-open BookLibrary.Shared.Details
-open blazorBookLibrary.Data
 
 type IReviewService = 
     abstract member GetReviewAsync : commentId:ReviewId * [<Optional; DefaultParameterValue(null)>] ?ct:CancellationToken -> Task<Result<Review, string>>

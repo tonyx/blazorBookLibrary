@@ -1,14 +1,12 @@
 @using Microsoft.AspNetCore.Components.Forms
 @using Microsoft.AspNetCore.Components.QuickGrid
-@using BookLibrary.Shared.Services
-@using BookLibrary.Domain
-@using static BookLibrary.Shared.Commons
-@using Microsoft.FSharp.Core
 @using Microsoft.FSharp.Collections
-@using static BookLibrary.Shared.SearchCriteria
-@using BookLibrary.Shared
+@using Microsoft.FSharp.Core
 @using System.Threading
-@using Microsoft.Extensions.Localization
+@using BookLibrary.Domain
+@using BookLibrary.Shared
+@using static BookLibrary.Shared.Commons
+@using blazorBookLibrary.Shared.Security
 @inject IBookService BookService
 @inject IAuthorService AuthorService
 @inject ITagService TagService
@@ -16,13 +14,10 @@
 @inject IVectorDbService VectorDbService
 @inject IJSRuntime JSRuntime
 @inject IAdminServices AdminService
+@inject IDistributionPointService DistributionPointService
 @inject IStringLocalizer<SharedResources> L
 @inject ILogger<BookSearchToolbar> Logger
 
-@if (_isLoading || isLoadingAuthors)
-{
-    <img src="/images/loading-gif.gif" alt="Uploading..." style="height:32px;"/>
-}
 <div class="card-sanctuary bg-surface-lowest floating mb-5 p-0 overflow-hidden">
     <div class="px-3 px-md-5 pt-4 pt-md-5 pb-4">
         <h5 class="serif display-6 mb-4" style="font-size: calc(1.3rem + 0.6vw);">@L["SearchBooks"]</h5>
@@ -293,7 +288,7 @@
             allBookTags = result.ResultValue.ToList();
         }
 
-        var dpResult = await AdminService.GetAllDistributionPointsAsync();
+        var dpResult = await DistributionPointService.GetAllDistributionPointsAsync();
         if (dpResult.IsOk)
         {
             allDistributionPoints = dpResult.ResultValue.ToList();
@@ -368,11 +363,6 @@
 
     private async Task HandleAuthorSearchInput(ChangeEventArgs e)
     {
-@* 
-        _isLoading = true;
-        StateHasChanged(); // immediately show the GIF
-        await Task.Yield(); // let UI update *@
-
         authorSearchNameFilter = e.Value?.ToString() ?? "";
         if (authorSearchNameFilter.Length >= 2)
         {
@@ -397,8 +387,6 @@
             finally
             {
                 isLoadingAuthors = false;
-                @* StateHasChanged(); // immediately show the GIF
-                await Task.Yield(); // let UI update *@
             }
         }
         else

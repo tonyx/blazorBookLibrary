@@ -7,8 +7,11 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="Security/RecaptchaVerifyResponse.fs" />
+    <Compile Include="Security/IBotScoreService.fs" />
     <Compile Include="Library.fs" />
     <Compile Include="Commons.fs" />
+    <Compile Include="Utils/ConverterUtils.fs" />
     <Compile Include="Domain/Tags.fs" />
     <Compile Include="Domain/Book.fs" />
     <Compile Include="Domain/Author.fs" />
@@ -38,6 +41,7 @@
     <Compile Include="Services/IDataExportService.fs" />
     <Compile Include="Services/ITextEmbeddingService.fs" />
     <Compile Include="Services/IAdminService.fs" />
+    <Compile Include="Services/IDistributionPointService.fs" />
 
     <Compile Include="SearchCriteria.fs" />
     <Compile Include="Infrastructure/Services/IMailNotificator.fs" />
@@ -64,10 +68,6 @@
     <PackageReference Include="Microsoft.Extensions.Configuration" Version="10.0.5" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.0.5" />
     <PackageReference Include="Sharpino.Core" Version="4.8.8" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\blazorBookLibrary.Data\blazorBookLibrary.Data.csproj" />
   </ItemGroup>
 
 </Project>

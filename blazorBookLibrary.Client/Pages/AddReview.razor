@@ -1,14 +1,14 @@
 @page "/add-review/{bookIdGuid:guid}"
 @using Microsoft.AspNetCore.Authorization
-@using Microsoft.AspNetCore.Identity
 @using BookLibrary.Shared.Services
 @using BookLibrary.Domain
 @using BookLibrary.Shared
 @using System.Globalization
 @using static BookLibrary.Shared.Details
 @using blazorBookLibrary.Shared.Resources
-@using blazorBookLibrary.Security
-@using blazorBookLibrary.Data
+@using blazorBookLibrary.Shared.Security
+@* @using blazorBookLibrary.Security *@
+@* @using blazorBookLibrary.Data *@
 @using Microsoft.Extensions.Localization
 @using Microsoft.FSharp.Collections
 @using static BookLibrary.Shared.Commons
@@ -19,7 +19,7 @@
 @inject IDetailsService DetailsService
 @inject NavigationManager NavigationManager
 @inject AuthenticationStateProvider AuthenticationStateProvider
-@inject BotScoreService BotScoreService
+@inject IBotScoreService BotScoreService
 @inject ILogger<AddReview> Logger
 @inject IConfiguration Configuration
 @inject IJSRuntime JSRuntime

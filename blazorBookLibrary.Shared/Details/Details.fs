@@ -5,7 +5,7 @@ open System
 module Details =
     open BookLibrary.Domain
     open Commons
-    open blazorBookLibrary.Data
+    // open blazorBookLibrary.Data
     open System.Threading.Tasks
 
     let random = System.Random()

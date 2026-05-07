@@ -12,6 +12,7 @@ using blazorBookLibrary.Data;
 using BookLibrary.Shared.Services;
 using BookLibrary.Services;
 using blazorBookLibrary.Shared.Infrastructure.Services;
+using blazorBookLibrary.Shared.Security;
 using BookLibrary.Domain;
 using BookLibrary.Utils;
 
@@ -30,7 +31,7 @@ using Microsoft.FSharp.Core;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-builder.Services.AddScoped<BotScoreService>();
+builder.Services.AddScoped<IBotScoreService, BotScoreService>();
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents()
     .AddHubOptions(options => options.MaximumReceiveMessageSize = 10 * 1024 * 1024)
@@ -104,6 +105,7 @@ builder.Services.AddHttpClient<IAuthorsSearchService, AuthorsSearchService>(clie
 {
     client.DefaultRequestHeaders.Add("User-Agent", "BlazorBookLibrary/1.0");
 });
+builder.Services.AddSingleton<IDistributionPointService, DistributionPointService>();
 
 builder.Services.AddSingleton<IAdminServices, AdminService>();
 

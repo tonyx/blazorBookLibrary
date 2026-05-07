@@ -8,6 +8,7 @@
 @attribute [Authorize(Roles = "Admin")]
 @using Microsoft.FSharp.Core
 @inject IAdminServices AdminServices
+@inject IDistributionPointService DistributionPointService
 @inject UserManager<ApplicationUser> UserManager
 @inject IStringLocalizer<SharedResources> L
 @inject IJSRuntime JSRuntime
@@ -232,8 +233,8 @@
         try
         {
             var result = string.IsNullOrWhiteSpace(searchQuery) 
-                ? await AdminServices.GetAllDistributionPointsAsync() 
-                : await AdminServices.FindDistributionPointsByNameAsync(Name.New(searchQuery));
+                ? await DistributionPointService.GetAllDistributionPointsAsync() 
+                : await DistributionPointService.FindDistributionPointsAsync(Name.New(searchQuery));
             
             if (result.IsOk)
             {
@@ -339,7 +340,7 @@
             else
             {
                 var newDp = DistributionPoint.New(nameResult.ResultValue, Info.New(editingInfo));
-                result = await AdminServices.CreateDistributionPointAsync(newDp);
+                result = await DistributionPointService.CreateDistributionPointAsync(newDp);
                 if (result.IsError) { errorMessage = result.ErrorValue; return; }
                 
                 await ShowStatus(L["DistributionPointCreated"], "success");

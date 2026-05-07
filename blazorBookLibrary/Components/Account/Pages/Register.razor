@@ -9,6 +9,7 @@
 @using BookLibrary.Shared.Services
 @using BookLibrary.Domain
 @using blazorBookLibrary.Security
+@using blazorBookLibrary.Shared.Security
 @using static BookLibrary.Shared.Commons
 @using BookLibrary.Services
 
@@ -27,7 +28,7 @@
 @using blazorBookLibrary.Shared.Resources
 @using Microsoft.AspNetCore.Http
 @inject IJSRuntime JSRuntime
-@inject BotScoreService BotScoreService
+@inject IBotScoreService BotScoreService
 @inject IConfiguration Configuration
 
 <PageTitle>@L["Register"]</PageTitle>

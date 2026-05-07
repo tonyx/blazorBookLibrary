@@ -5,9 +5,6 @@ open System.Threading
 open System.Threading.Tasks
 open System.Runtime.InteropServices
 open BookLibrary.Domain
-open BookLibrary.Shared.Commons
-open BookLibrary.Shared.Details
-open blazorBookLibrary.Data
 
 type ITagService = 
     abstract member GetTagsAsync: [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<list<Tag>, string>>

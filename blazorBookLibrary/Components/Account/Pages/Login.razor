@@ -8,6 +8,7 @@
 @using Microsoft.Extensions.Localization
 @using Microsoft.AspNetCore.Components.Web
 @using blazorBookLibrary.Shared.Resources
+@using blazorBookLibrary.Shared.Security
 @using Microsoft.AspNetCore.Http
 @using blazorBookLibrary.Security
 @inject UserManager<ApplicationUser> UserManager
@@ -16,7 +17,7 @@
 @inject NavigationManager NavigationManager
 @inject IdentityRedirectManager RedirectManager
 @inject IStringLocalizer<SharedResources> L
-@inject BotScoreService BotScoreService
+@inject IBotScoreService BotScoreService
 @inject IConfiguration Configuration
 @inject IJSRuntime JSRuntime
 

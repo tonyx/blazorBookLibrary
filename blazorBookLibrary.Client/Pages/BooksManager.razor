@@ -3,14 +3,15 @@
 @using Microsoft.Extensions.Localization
 @using blazorBookLibrary.Shared.Resources
 @using BookLibrary.Domain
-@using blazorBookLibrary.Components.Shared
+@using blazorBookLibrary.Client.Components.Shared
 @using Microsoft.FSharp.Core
 @using Microsoft.FSharp.Collections
 @using System.Threading
 @using BlazorBarcodeScanner.ZXing.JS
 @using static BookLibrary.Shared.Commons
 @using BookLibrary.Shared
-@using BookLibrary.Utils
+@using blazorBookLibrary.Shared
+@using Microsoft.AspNetCore.Components.QuickGrid
 
 @attribute [Authorize(Roles = "Admin, Manager")]
 @inject IBookService BookService

@@ -1,4 +1,4 @@
-namespace BookLibrary.Utils
+namespace blazorBookLibrary.Shared
 
 open System
 open BookLibrary.Shared.Commons

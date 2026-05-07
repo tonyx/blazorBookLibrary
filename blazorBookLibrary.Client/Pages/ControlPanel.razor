@@ -4,8 +4,10 @@
 @using blazorBookLibrary.Shared.Resources
 @using Microsoft.Extensions.Localization
 @using BookLibrary.Domain
+@using static BookLibrary.Shared.Commons
 @attribute [Authorize(Roles = "Admin")]
 @inject IAdminServices ReconciliationService
+@inject IDistributionPointService DistributionPointService
 @inject IBookService BookService
 @inject ITagService TagService
 @inject AuthenticationStateProvider AuthStateProvider
@@ -280,7 +282,7 @@
 
     private async Task LoadDistributionPoints()
     {
-        var result = await ReconciliationService.GetAllDistributionPointsAsync();
+        var result = await DistributionPointService.GetAllDistributionPointsAsync();
         if (result.IsOk)
         {
             distributionPoints = result.ResultValue.ToList();

@@ -1,6 +1,5 @@
 @page "/loans"
 @using Microsoft.AspNetCore.Authorization
-@using Microsoft.AspNetCore.Identity
 @using Microsoft.AspNetCore.Components.QuickGrid
 @using BookLibrary.Shared.Services
 @using BookLibrary.Domain
@@ -8,9 +7,9 @@
 @using System.Globalization
 @using static BookLibrary.Shared.Details
 @using blazorBookLibrary.Shared.Resources
-@using blazorBookLibrary.Data
 @using Microsoft.Extensions.Localization
 @using Microsoft.FSharp.Collections
+@using static BookLibrary.Shared.Commons
 
 @attribute [Authorize(Roles = "Admin, Manager")]
 @inject ILoanService LoanService

@@ -5,15 +5,15 @@
 @using BookLibrary.Shared.Services
 @using Microsoft.Extensions.Configuration
 @using BookLibrary.Shared
-@using blazorBookLibrary.Security
 @using BookLibrary.Domain
 @using static BookLibrary.Shared.Commons
+@using blazorBookLibrary.Shared.Security
 @using Microsoft.FSharp.Core
 @using Microsoft.FSharp.Collections
 @using static  BookLibrary.Shared.SearchCriteria
 @using System.Threading
 @using static BookLibrary.Shared.Details
-@inject BotScoreService BotScoreService
+@inject IBotScoreService BotScoreService
 @inject IBookService BookService
 @inject ITextEmbeddingService TextEmbeddingService
 @inject IAuthorService AuthorService

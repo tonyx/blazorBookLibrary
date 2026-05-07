@@ -1,9 +1,9 @@
-@using BookLibrary.Domain
-@using blazorBookLibrary.Shared.Resources
-@using Microsoft.Extensions.Localization
 @using Microsoft.FSharp.Collections
 @using Microsoft.FSharp.Core
-@using BookLibrary.Shared.Services
+@using BookLibrary.Domain
+@using BookLibrary.Shared
+@using static BookLibrary.Shared.Commons
+@using blazorBookLibrary.Shared.Security
 @inject IBookService BookService
 @inject IStringLocalizer<SharedResources> L
 @inject IAuthorService AuthorService
