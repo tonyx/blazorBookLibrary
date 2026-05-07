@@ -7,17 +7,17 @@ open BookLibrary.Domain
 open BookLibrary.Shared.Commons
 
 type IReviewService = 
-    abstract member GetReviewAsync : commentId:ReviewId * [<Optional; DefaultParameterValue(null)>] ?ct:CancellationToken -> Task<Result<Review, string>>
-    abstract member GetAllReviewsAsync : [<Optional; DefaultParameterValue(null)>] ?ct:CancellationToken -> Task<Result<list<Review>, string>>
-    abstract member GetPendingReviewsAsync : [<Optional; DefaultParameterValue(null)>] ?ct:CancellationToken -> Task<Result<list<Review>, string>>
-    abstract member AddReviewAsync : review:Review * [<Optional; DefaultParameterValue(null)>] ?ct:CancellationToken -> Task<Result<unit, string>>
-    abstract member EditReviewAsync : reviewId:ReviewId * editedComment:string * [<Optional; DefaultParameterValue(null)>] ?ct:CancellationToken -> Task<Result<unit, string>>
-    abstract member ApproveAsync: reviewId:ReviewId * [<Optional; DefaultParameterValue(null)>] ?ct:CancellationToken -> Task<Result<unit, string>>
-    abstract member RejectAsync: reviewId:ReviewId * [<Optional; DefaultParameterValue(null)>] ?ct:CancellationToken -> Task<Result<unit, string>>
-    abstract member ShowAsync: reviewId:ReviewId * [<Optional; DefaultParameterValue(null)>] ?ct:CancellationToken -> Task<Result<unit, string>>
-    abstract member HideAsync: reviewId:ReviewId * [<Optional; DefaultParameterValue(null)>] ?ct:CancellationToken -> Task<Result<unit, string>>
-    abstract member GetReviewsOfBookAsync: bookId:BookId * [<Optional; DefaultParameterValue(null)>] ?ct:CancellationToken -> Task<Result<list<AppUserInfo * Review>, string>>
-    abstract member GetApprovedVisibleReviewsOfBookAsync: bookId:BookId * [<Optional; DefaultParameterValue(null)>] ?ct:CancellationToken -> Task<Result<list<AppUserInfo * Review>, string>>
-    abstract member GetReviewsOfUserAsync: userId:UserId * [<Optional; DefaultParameterValue(null)>] ?ct:CancellationToken -> Task<Result<list<Book * Review>, string>>
+    abstract member GetReviewAsync : context:UserContext * commentId:ReviewId * [<Optional; DefaultParameterValue(null)>] ?ct:CancellationToken -> Task<Result<Review, string>>
+    abstract member GetAllReviewsAsync : context:UserContext * [<Optional; DefaultParameterValue(null)>] ?ct:CancellationToken -> Task<Result<list<Review>, string>>
+    abstract member GetPendingReviewsAsync : context:UserContext * [<Optional; DefaultParameterValue(null)>] ?ct:CancellationToken -> Task<Result<list<Review>, string>>
+    abstract member AddReviewAsync : context:UserContext * review:Review * [<Optional; DefaultParameterValue(null)>] ?ct:CancellationToken -> Task<Result<unit, string>>
+    abstract member EditReviewAsync : context:UserContext * reviewId:ReviewId * editedComment:string * [<Optional; DefaultParameterValue(null)>] ?ct:CancellationToken -> Task<Result<unit, string>>
+    abstract member ApproveAsync: context:UserContext * reviewId:ReviewId * [<Optional; DefaultParameterValue(null)>] ?ct:CancellationToken -> Task<Result<unit, string>>
+    abstract member RejectAsync: context:UserContext * reviewId:ReviewId * [<Optional; DefaultParameterValue(null)>] ?ct:CancellationToken -> Task<Result<unit, string>>
+    abstract member ShowAsync: context:UserContext * reviewId:ReviewId * [<Optional; DefaultParameterValue(null)>] ?ct:CancellationToken -> Task<Result<unit, string>>
+    abstract member HideAsync: context:UserContext * reviewId:ReviewId * [<Optional; DefaultParameterValue(null)>] ?ct:CancellationToken -> Task<Result<unit, string>>
+    abstract member GetReviewsOfBookAsync: context:UserContext * bookId:BookId * [<Optional; DefaultParameterValue(null)>] ?ct:CancellationToken -> Task<Result<list<AppUserInfo * Review>, string>>
+    abstract member GetApprovedVisibleReviewsOfBookAsync: context:UserContext * bookId:BookId * [<Optional; DefaultParameterValue(null)>] ?ct:CancellationToken -> Task<Result<list<AppUserInfo * Review>, string>>
+    abstract member GetReviewsOfUserAsync: context:UserContext * userId:UserId * [<Optional; DefaultParameterValue(null)>] ?ct:CancellationToken -> Task<Result<list<Book * Review>, string>>
     
     

@@ -17,6 +17,7 @@
 @inject IStringLocalizer<SharedResources> L
 @inject IJSRuntime JSRuntime
 @inject IDetailsService DetailsService
+@inject AuthenticationStateProvider AuthenticationStateProvider
 @rendermode InteractiveServer
 
 <PageTitle>@L["AuthorDetails"]</PageTitle>
@@ -373,6 +374,12 @@
     [Parameter]
     public string AuthorIdStr { get; set; } = "";
 
+    private async Task<UserContext> GetContext()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        return blazorBookLibrary.Shared.ConverterUtils.fromClaimsPrincipal(authState.User);
+    }
+
     private bool isLoading = true;
     private Details.AuthorDetails? authorDetails;
     private PaginationState bookPagination = new() { ItemsPerPage = 10 };
@@ -496,7 +503,8 @@
                 return;
             }
 
-            var result = await AuthorService.UpdateImageUrlAsync(authorDetails.Author.AuthorId, newUri);
+            var context = await GetContext();
+            var result = await AuthorService.UpdateImageUrlAsync(context, authorDetails.Author.AuthorId, newUri);
             if (result.IsOk)
             {
                 await LoadAuthorDetails();
@@ -520,7 +528,8 @@
 
         try
         {
-            var result = await AuthorService.RemoveImageUrlAsync(authorDetails.Author.AuthorId);
+            var context = await GetContext();
+            var result = await AuthorService.RemoveImageUrlAsync(context, authorDetails.Author.AuthorId);
             if (result.IsOk)
             {
                 await LoadAuthorDetails();
@@ -566,8 +575,9 @@
 
         try
         {
+            var context = await GetContext();
             var newName = Name.New(editedName);
-            var result = await AuthorService.RenameAsync(authorDetails.Author.AuthorId, newName);
+            var result = await AuthorService.RenameAsync(context, authorDetails.Author.AuthorId, newName);
             if (result.IsOk)
             {
                 await LoadAuthorDetails();
@@ -633,7 +643,8 @@
 
         try
         {
-            var result = await AuthorService.UpdateIsniAsync(authorDetails.Author.AuthorId, newIsni);
+            var context = await GetContext();
+            var result = await AuthorService.UpdateIsniAsync(context, authorDetails.Author.AuthorId, newIsni);
             if (result.IsOk)
             {
                 await LoadAuthorDetails();
@@ -673,7 +684,8 @@
         
         try 
         {
-            var result = await AuthorService.RemoveAsync(authorDetails.Author.AuthorId);
+            var context = await GetContext();
+            var result = await AuthorService.RemoveAsync(context, authorDetails.Author.AuthorId);
             if (result.IsOk)
             {
                 NavigationManager.NavigateTo("/books-manager");
@@ -695,9 +707,10 @@
         
         try
         {
+            var context = await GetContext();
             var result = isAuthorSealed 
-                ? await AuthorService.UnsealAsync(authorDetails.Author.AuthorId)
-                : await AuthorService.SealAsync(authorDetails.Author.AuthorId);
+                ? await AuthorService.UnsealAsync(context, authorDetails.Author.AuthorId)
+                : await AuthorService.SealAsync(context, authorDetails.Author.AuthorId);
                 
             if (result.IsOk)
             {
@@ -728,7 +741,8 @@
     private async Task UpdateBio()
     {
         if (authorDetails == null) return;
-        var result = await AuthorService.UpdateBioAsync(authorDetails.Author.AuthorId, editedBio);
+        var context = await GetContext();
+        var result = await AuthorService.UpdateBioAsync(context, authorDetails.Author.AuthorId, editedBio);
         if (result.IsOk)
         {
             await LoadAuthorDetails();
@@ -785,7 +799,8 @@
 
         if (Uri.TryCreate(editedWikipediaUri, UriKind.Absolute, out var uri))
         {
-            var result = await AuthorService.UpdateWikipediaUriAsync(authorDetails.Author.AuthorId, uri);
+            var context = await GetContext();
+            var result = await AuthorService.UpdateWikipediaUriAsync(context, authorDetails.Author.AuthorId, uri);
             if (result.IsOk)
             {
                 await LoadAuthorDetails();
@@ -848,7 +863,8 @@
             if (Guid.TryParse(AuthorIdStr, out var guid))
             {
                 var authorId = AuthorId.NewAuthorId(guid);
-                var result = await DetailsService.GetAuthorDetailsAsync(authorId);
+                var context = await GetContext();
+                var result = await DetailsService.GetAuthorDetailsAsync(context, authorId);
 
                 if (result.IsOk)
                 {

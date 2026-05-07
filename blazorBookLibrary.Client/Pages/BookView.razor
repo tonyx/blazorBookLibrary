@@ -369,7 +369,8 @@
             
             var reservation = Reservation.New(bookDetails.Book.BookId, sharpinoUserId, nextSlot, now);
             
-            var result = await ReservationService.AddReservationAsync(reservation, ShortLang.New(CultureInfo.CurrentCulture.Name.Substring(0,2)), FSharpOption<System.Threading.CancellationToken>.None);
+            var context = blazorBookLibrary.Shared.ConverterUtils.fromClaimsPrincipal(authState.User);
+            var result = await ReservationService.AddReservationAsync(context, reservation, ShortLang.New(CultureInfo.CurrentCulture.Name.Substring(0,2)), FSharpOption<System.Threading.CancellationToken>.None);
             
             if (result.IsOk)
             {
@@ -410,7 +411,9 @@
             if (Guid.TryParse(BookIdStr, out var guid))
             {
                 var bookId = BookId.NewBookId(guid);
-                var result = await DetailsService.GetBookDetailsAsync(bookId, FSharpOption<CancellationToken>.None);
+                var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+                var context = blazorBookLibrary.Shared.ConverterUtils.fromClaimsPrincipal(authState.User);
+                var result = await DetailsService.GetBookDetailsAsync(context, bookId, FSharpOption<CancellationToken>.None);
 
                 if (result.IsOk)
                 {
@@ -443,6 +446,7 @@
         {
             var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
             var user = authState.User;
+            var context = blazorBookLibrary.Shared.ConverterUtils.fromClaimsPrincipal(user);
             
             if (user.Identity?.IsAuthenticated == true)
             {
@@ -450,7 +454,7 @@
                 if (!string.IsNullOrEmpty(userIdStr) && Guid.TryParse(userIdStr, out var userGuid))
                 {
                     var sharpinoUserId = UserId.NewUserId(userGuid);
-                    var result = await DetailsService.GetUserDetailsAsync(sharpinoUserId, FSharpOption<System.Threading.CancellationToken>.None);
+                    var result = await DetailsService.GetUserDetailsAsync(context, sharpinoUserId, FSharpOption<System.Threading.CancellationToken>.None);
 
                     if (result.IsOk)
                     {
@@ -465,7 +469,7 @@
                                 .Select(t => t.Item1)
                                 .FirstOrDefault(r => r.BookId.Value == bookDetails.Book.BookId.Value);
 
-                            var reviewResult = await BookService.LoanedByUserAtLeastOnceAsync(bookDetails.Book.BookId, sharpinoUserId, FSharpOption<CancellationToken>.None);
+                            var reviewResult = await BookService.LoanedByUserAtLeastOnceAsync(context, bookDetails.Book.BookId, sharpinoUserId, FSharpOption<CancellationToken>.None);
                             if (reviewResult.IsOk)
                             {
                                 hasLoaned = reviewResult.ResultValue;

@@ -225,7 +225,8 @@
             var bookId = BookId.NewBookId(bookIdGuid);
 
             // Check if user has loaned the book at least once
-            var loanCheckResult = await BookService.LoanedByUserAtLeastOnceAsync(bookId, currentUserId, CancellationToken.None);
+            var context = blazorBookLibrary.Shared.ConverterUtils.fromClaimsPrincipal(user);
+            var loanCheckResult = await BookService.LoanedByUserAtLeastOnceAsync(context, bookId, currentUserId, CancellationToken.None);
             if (loanCheckResult.IsError || !loanCheckResult.ResultValue)
             {
                 isAllowed = false;
@@ -234,7 +235,7 @@
             }
 
             // Check if user already has an approved review
-            var userDetailsResult = await DetailsService.GetUserDetailsAsync(currentUserId, CancellationToken.None);
+            var userDetailsResult = await DetailsService.GetUserDetailsAsync(context, currentUserId, CancellationToken.None);
             if (userDetailsResult.IsOk && userDetailsResult.ResultValue.HasAnApprovedReviewOfBook(bookId))
             {
                 isAllowed = false;
@@ -246,7 +247,7 @@
             isAllowed = true;
 
             // Fetch book details
-            var bookResult = await BookService.GetBookAsync(bookId, CancellationToken.None);
+            var bookResult = await BookService.GetBookAsync(context, bookId, CancellationToken.None);
             if (bookResult.IsOk)
             {
                 book = bookResult.ResultValue;
@@ -300,12 +301,15 @@
 
         try
         {
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var context = blazorBookLibrary.Shared.ConverterUtils.fromClaimsPrincipal(authState.User);
+
             var bookId = BookId.NewBookId(bookIdGuid);
             var review = isHidden 
                 ? Review.NewHidden(bookId, currentUserId, comment, DateTime.UtcNow)
                 : Review.New(bookId, currentUserId, comment, DateTime.UtcNow);
 
-            var result = await ReviewService.AddReviewAsync(review, CancellationToken.None);
+            var result = await ReviewService.AddReviewAsync(context, review, CancellationToken.None);
             if (result.IsOk)
             {
                 var notice = isHidden ? L["ReviewHiddenNotice"] : L["ReviewPendingNotice"];

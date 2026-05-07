@@ -8,6 +8,7 @@
 @inject IDistributionPointService DistributionPointService
 @inject IStringLocalizer<SharedResources> L
 @inject NavigationManager NavManager
+@inject AuthenticationStateProvider AuthStateProvider
 @rendermode InteractiveServer
 
 <PageTitle>@L["DistributionPoints"] — @L["TheModernArchivist"]</PageTitle>
@@ -70,7 +71,9 @@
 
     protected override async Task OnInitializedAsync()
     {
-        var result = await DistributionPointService.GetAllDistributionPointsAsync();
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var userContext = blazorBookLibrary.Shared.ConverterUtils.fromClaimsPrincipal(authState.User);
+        var result = await DistributionPointService.GetAllDistributionPointsAsync(userContext);
         if (result.IsOk)
         {
             distributionPoints = result.ResultValue.ToList();

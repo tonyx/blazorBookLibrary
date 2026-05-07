@@ -213,7 +213,7 @@
 
 @code {
     [Parameter] public List<BookId> BookIds { get; set; } = new();
-    [Parameter] public UserId? UserId { get; set; }
+    [Parameter] public UserContext? UserContext { get; set; }
     [Parameter] public List<DistributionPoint> ManagedDistributionPoints { get; set; } = new();
     [Parameter] public EventCallback OnCancel { get; set; }
     [Parameter] public EventCallback OnSuccess { get; set; }
@@ -261,8 +261,8 @@
 
     private async Task SearchAuthors()
     {
-        if (string.IsNullOrWhiteSpace(authorSearchTerm)) return;
-        var result = await AuthorService.SearchByNameAsync(Name.New(authorSearchTerm));
+        if (string.IsNullOrWhiteSpace(authorSearchTerm) || UserContext == null) return;
+        var result = await AuthorService.SearchByNameAsync(UserContext, Name.New(authorSearchTerm), CancellationToken.None);
         if (result.IsOk)
         {
             foundAuthors = result.ResultValue.ToList();
@@ -279,7 +279,7 @@
 
     private async Task ApplyChanges()
     {
-        if (UserId == null)
+        if (UserContext == null)
         {
             await JSRuntime.InvokeVoidAsync("showToast", "User not authenticated.", "error");
             return;
@@ -303,7 +303,7 @@
                 editCriteria = editCriteria.SetDistributionPointIfCondition(dpId, true);
             }
 
-            var result = await BookService.BulkEditAsync(ListModule.OfSeq(BookIds), editCriteria, UserId);
+            var result = await BookService.BulkEditAsync(UserContext, ListModule.OfSeq(BookIds), editCriteria, CancellationToken.None);
             if (result.IsOk)
             {
                 await JSRuntime.InvokeVoidAsync("showToast", L["BulkEditSuccess"].Value, "success");

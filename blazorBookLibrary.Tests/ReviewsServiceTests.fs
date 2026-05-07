@@ -34,21 +34,21 @@ let tests =
                     (Year.New 1924) 
                     (Isbn.NewEmpty()) 
                     None
-            let! addBook = bookService.AddBookAsync book
+            let! addBook = bookService.AddBookAsync(UserContext.Anonymous, book)
             Expect.isOk addBook "should be ok"
 
             let! userId = registerUserTask "test@example.com" "Password123!"
 
-            let! user = userService.GetUserAsync userId
+            let! user = userService.GetUserAsync(UserContext.Anonymous, userId)
             Expect.isOk user "should be ok"
             // let! userDetails = userService.GetUserDetailsAsync userId
-            let! userDetails = detailsService.GetUserDetailsAsync userId
+            let! userDetails = detailsService.GetUserDetailsAsync (UserContext.Anonymous, userId)
             Expect.isOk userDetails "should be ok"
 
             let now = DateTime.Now
             let review = 
                 Review.New book.BookId userId "this is a very good book" now
-            let! addReview = reviewService.AddReviewAsync review
+            let! addReview = reviewService.AddReviewAsync (UserContext.Anonymous, review)
             Expect.isError addReview "should be ok"
 
         }
@@ -72,12 +72,12 @@ let tests =
                     (Year.New 1924) 
                     (Isbn.NewEmpty()) 
                     None
-            let! addBook = bookService.AddBookAsync book
+            let! addBook = bookService.AddBookAsync(UserContext.Anonymous, book)
             Expect.isOk addBook "should be ok"
 
             let! userId = registerUserTask "test@example.com" "Password123!"
 
-            let! user = userService.GetUserAsync userId
+            let! user = userService.GetUserAsync(UserContext.Anonymous, userId)
             Expect.isOk user "should be ok"
 
             let timeSlot = 
@@ -90,19 +90,19 @@ let tests =
                     userId
                     DateTime.Now 
                     timeSlot
-            let! addLoan = (loanService: ILoanService).AddLoanAsync (loan, (ShortLang.New "en"))
+            let! addLoan = (loanService: ILoanService).AddLoanAsync (UserContext.Anonymous, loan, (ShortLang.New "en"))
             Expect.isOk addLoan "should be ok"
 
-            let! releaseLoan = (loanService:> ILoanService).ReleaseLoanAsync (loan.LoanId, (ShortLang.New "en"), DateTime.Now)
+            let! releaseLoan = (loanService:> ILoanService).ReleaseLoanAsync (UserContext.Anonymous, loan.LoanId, (ShortLang.New "en"), DateTime.Now)
             Expect.isOk releaseLoan "should be ok"
 
-            let! userDetails = detailsService.GetUserDetailsAsync userId
+            let! userDetails = detailsService.GetUserDetailsAsync (UserContext.Anonymous, userId)
             Expect.isOk userDetails "should be ok"
 
             let now = DateTime.Now
             let review = 
                 Review.New book.BookId userId "this is a very good book" now
-            let! addReview = reviewService.AddReviewAsync review
+            let! addReview = reviewService.AddReviewAsync (UserContext.Anonymous, review)
             Expect.isOk addReview "should be ok"
         }
 
@@ -126,12 +126,12 @@ let tests =
                         (Year.New 1924) 
                         (Isbn.NewEmpty()) 
                         None
-                let! addBook = bookService.AddBookAsync book
+                let! addBook = bookService.AddBookAsync(UserContext.Anonymous, book)
                 Expect.isOk addBook "should be ok"
 
                 let! userId = registerUserTask "test@example.com" "Password123!"
 
-                let! user = userService.GetUserAsync userId
+                let! user = userService.GetUserAsync(UserContext.Anonymous, userId)
                 Expect.isOk user "should be ok"
 
                 let timeSlot = 
@@ -144,22 +144,22 @@ let tests =
                         userId
                         DateTime.Now 
                         timeSlot
-                let! addLoan = (loanService: ILoanService).AddLoanAsync (loan, (ShortLang.New "en"))
+                let! addLoan = (loanService: ILoanService).AddLoanAsync (UserContext.Anonymous, loan, (ShortLang.New "en"))
                 Expect.isOk addLoan "should be ok"
 
-                let! releaseLoan = (loanService:> ILoanService).ReleaseLoanAsync (loan.LoanId, (ShortLang.New "en"), DateTime.Now)
+                let! releaseLoan = (loanService:> ILoanService).ReleaseLoanAsync (UserContext.Anonymous, loan.LoanId, (ShortLang.New "en"), DateTime.Now)
                 Expect.isOk releaseLoan "should be ok"
 
-                let! userDetails = detailsService.GetUserDetailsAsync userId
+                let! userDetails = detailsService.GetUserDetailsAsync (UserContext.Anonymous, userId)
                 Expect.isOk userDetails "should be ok"
 
                 let now = DateTime.Now
                 let review = 
                     Review.New book.BookId userId "this is a very good book" now
-                let! addReview = reviewService.AddReviewAsync review
+                let! addReview = reviewService.AddReviewAsync (UserContext.Anonymous, review)
                 Expect.isOk addReview "should be ok"
 
-                let! getReview = reviewService.GetReviewAsync review.ReviewId
+                let! getReview = reviewService.GetReviewAsync (UserContext.Anonymous, review.ReviewId)
                 Expect.isOk getReview "should be ok"
                 let review = getReview.OkValue
                 Expect.equal review.ApprovalStatus ApprovalStatus.Pending "should be pending"
@@ -184,12 +184,12 @@ let tests =
                     (Year.New 1924) 
                     (Isbn.NewEmpty()) 
                     None
-            let! addBook = bookService.AddBookAsync book
+            let! addBook = bookService.AddBookAsync(UserContext.Anonymous, book)
             Expect.isOk addBook "should be ok"
 
             let! userId = registerUserTask "test@example.com" "Password123!"
 
-            let! user = userService.GetUserAsync userId
+            let! user = userService.GetUserAsync(UserContext.Anonymous, userId)
             Expect.isOk user "should be ok"
 
             let timeSlot = 
@@ -202,30 +202,30 @@ let tests =
                     userId
                     DateTime.Now 
                     timeSlot
-            let! addLoan = (loanService: ILoanService).AddLoanAsync (loan, (ShortLang.New "en"))
+            let! addLoan = (loanService: ILoanService).AddLoanAsync (UserContext.Anonymous, loan, (ShortLang.New "en"))
             Expect.isOk addLoan "should be ok"
 
-            let! releaseLoan = (loanService:> ILoanService).ReleaseLoanAsync (loan.LoanId, (ShortLang.New "en"), DateTime.Now)
+            let! releaseLoan = (loanService:> ILoanService).ReleaseLoanAsync (UserContext.Anonymous, loan.LoanId, (ShortLang.New "en"), DateTime.Now)
             Expect.isOk releaseLoan "should be ok"
 
-            let! userDetails = detailsService.GetUserDetailsAsync userId
+            let! userDetails = detailsService.GetUserDetailsAsync (UserContext.Anonymous, userId)
             Expect.isOk userDetails "should be ok"
 
             let now = DateTime.Now
             let review = 
                 Review.New book.BookId userId "this is a very good book" now
-            let! addReview = reviewService.AddReviewAsync review
+            let! addReview = reviewService.AddReviewAsync (UserContext.Anonymous, review)
             Expect.isOk addReview "should be ok"
 
-            let! getReview = reviewService.GetReviewAsync review.ReviewId
+            let! getReview = reviewService.GetReviewAsync (UserContext.Anonymous, review.ReviewId)
             Expect.isOk getReview "should be ok"
             let review = getReview.OkValue
             Expect.equal review.ApprovalStatus ApprovalStatus.Pending "should be pending"
 
-            let! approveReview = reviewService.ApproveAsync review.ReviewId
+            let! approveReview = reviewService.ApproveAsync (UserContext.Anonymous, review.ReviewId)
             Expect.isOk approveReview "should be ok"
 
-            let! getReviewAfterApprove = reviewService.GetReviewAsync review.ReviewId
+            let! getReviewAfterApprove = reviewService.GetReviewAsync (UserContext.Anonymous, review.ReviewId)
             Expect.isOk getReviewAfterApprove "should be ok"
             let reviewAfterApprove = getReviewAfterApprove.OkValue
             Expect.isTrue reviewAfterApprove.ApprovalStatus.IsApproved "should be approved"
@@ -250,12 +250,12 @@ let tests =
                     (Year.New 1924) 
                     (Isbn.NewEmpty()) 
                     None
-            let! addBook = bookService.AddBookAsync book
+            let! addBook = bookService.AddBookAsync(UserContext.Anonymous, book)
             Expect.isOk addBook "should be ok"
 
             let! userId = registerUserTask "test@example.com" "Password123!"
 
-            let! user = userService.GetUserAsync userId
+            let! user = userService.GetUserAsync(UserContext.Anonymous, userId)
             Expect.isOk user "should be ok"
 
             let timeSlot = 
@@ -268,30 +268,30 @@ let tests =
                     userId
                     DateTime.Now 
                     timeSlot
-            let! addLoan = (loanService:> ILoanService).AddLoanAsync (loan, (ShortLang.New "en"))
+            let! addLoan = (loanService:> ILoanService).AddLoanAsync (UserContext.Anonymous, loan, (ShortLang.New "en"))
             Expect.isOk addLoan "should be ok"
 
-            let! releaseLoan = (loanService:> ILoanService).ReleaseLoanAsync (loan.LoanId, (ShortLang.New "en"), DateTime.Now)
+            let! releaseLoan = (loanService:> ILoanService).ReleaseLoanAsync (UserContext.Anonymous, loan.LoanId, (ShortLang.New "en"), DateTime.Now)
             Expect.isOk releaseLoan "should be ok"
 
-            let! userDetails = detailsService.GetUserDetailsAsync userId
+            let! userDetails = detailsService.GetUserDetailsAsync (UserContext.Anonymous, userId)
             Expect.isOk userDetails "should be ok"
 
             let now = DateTime.Now
             let review = 
                 Review.New book.BookId userId "this is a very good book" now
-            let! addReview = reviewService.AddReviewAsync review
+            let! addReview = reviewService.AddReviewAsync (UserContext.Anonymous, review)
             Expect.isOk addReview "should be ok"
 
-            let! getReview = reviewService.GetReviewAsync review.ReviewId
+            let! getReview = reviewService.GetReviewAsync (UserContext.Anonymous, review.ReviewId)
             Expect.isOk getReview "should be ok"
             let review = getReview.OkValue
             Expect.equal review.ApprovalStatus ApprovalStatus.Pending "should be pending"
 
-            let! approveReview = reviewService.ApproveAsync review.ReviewId
+            let! approveReview = reviewService.ApproveAsync (UserContext.Anonymous, review.ReviewId)
             Expect.isOk approveReview "should be ok"
 
-            let! bookDetail = detailsService.GetBookDetailsAsync book.BookId
+            let! bookDetail = detailsService.GetBookDetailsAsync (UserContext.Anonymous, book.BookId)
             Expect.isOk bookDetail "should be ok"
 
             let bookDetail = bookDetail.OkValue
@@ -320,12 +320,12 @@ let tests =
                     (Year.New 1924) 
                     (Isbn.NewEmpty()) 
                     None
-            let! addBook = bookService.AddBookAsync book
+            let! addBook = bookService.AddBookAsync(UserContext.Anonymous, book)
             Expect.isOk addBook "should be ok"
 
             let! userId = registerUserTask "test@example.com" "Password123!"
 
-            let! user = userService.GetUserAsync userId
+            let! user = userService.GetUserAsync(UserContext.Anonymous, userId)
             Expect.isOk user "should be ok"
 
             let timeSlot = 
@@ -338,30 +338,30 @@ let tests =
                     userId
                     DateTime.Now 
                     timeSlot
-            let! addLoan = (loanService:> ILoanService).AddLoanAsync (loan, (ShortLang.New "en"))
+            let! addLoan = (loanService:> ILoanService).AddLoanAsync (UserContext.Anonymous, loan, (ShortLang.New "en"))
             Expect.isOk addLoan "should be ok"
 
-            let! releaseLoan = (loanService:> ILoanService).ReleaseLoanAsync (loan.LoanId, (ShortLang.New "en"), DateTime.Now)
+            let! releaseLoan = (loanService:> ILoanService).ReleaseLoanAsync (UserContext.Anonymous, loan.LoanId, (ShortLang.New "en"), DateTime.Now)
             Expect.isOk releaseLoan "should be ok"
 
-            let! userDetails = detailsService.GetUserDetailsAsync userId
+            let! userDetails = detailsService.GetUserDetailsAsync (UserContext.Anonymous, userId)
             Expect.isOk userDetails "should be ok"
 
             let now = DateTime.Now
             let review = 
                 Review.New book.BookId userId "this is a very good book" now
-            let! addReview = reviewService.AddReviewAsync review
+            let! addReview = reviewService.AddReviewAsync (UserContext.Anonymous, review)
             Expect.isOk addReview "should be ok"
 
-            let! getReview = reviewService.GetReviewAsync review.ReviewId
+            let! getReview = reviewService.GetReviewAsync (UserContext.Anonymous, review.ReviewId)
             Expect.isOk getReview "should be ok"
             let review = getReview.OkValue
             Expect.equal review.ApprovalStatus ApprovalStatus.Pending "should be pending"
 
-            let! approveReview = reviewService.ApproveAsync review.ReviewId
+            let! approveReview = reviewService.ApproveAsync (UserContext.Anonymous, review.ReviewId)
             Expect.isOk approveReview "should be ok"
 
-            let! bookDetail = detailsService.GetBookDetailsAsync book.BookId
+            let! bookDetail = detailsService.GetBookDetailsAsync (UserContext.Anonymous, book.BookId)
             Expect.isOk bookDetail "should be ok"
 
             let bookDetail = bookDetail.OkValue
@@ -371,17 +371,17 @@ let tests =
             Expect.equal reviewContent "this is a very good book" "should have the same content as the review"
 
             let newContent = "this was a very good book"
-            let! updateReview = reviewService.EditReviewAsync (review.ReviewId, newContent)
+            let! updateReview = reviewService.EditReviewAsync (UserContext.Anonymous, review.ReviewId, newContent)
             Async.Sleep 100 |> Async.RunSynchronously
 
             Expect.isOk updateReview "should be ok"
 
-            let! getReviewAfterUpdate = reviewService.GetReviewAsync review.ReviewId
+            let! getReviewAfterUpdate = reviewService.GetReviewAsync (UserContext.Anonymous, review.ReviewId)
             Expect.isOk getReviewAfterUpdate "should be ok"
             let reviewAfterUpdate = getReviewAfterUpdate.OkValue
             Expect.equal reviewAfterUpdate.Comment newContent "should have the same content as the review"
 
-            let! bookDetailAfterUpdate = detailsService.GetBookDetailsAsync book.BookId
+            let! bookDetailAfterUpdate = detailsService.GetBookDetailsAsync (UserContext.Anonymous, book.BookId)
             Expect.isOk bookDetailAfterUpdate "should be ok"
 
             let bookDetailAfterUpdate = bookDetailAfterUpdate.OkValue

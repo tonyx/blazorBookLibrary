@@ -275,51 +275,51 @@ type ReviewService
             }
 
     interface IReviewService with
-        member this.GetReviewAsync (commentId: ReviewId, ?ct: CancellationToken) = 
+        member this.GetReviewAsync (userContext: UserContext, commentId: ReviewId, ?ct: CancellationToken) = 
             let ct = ct |> Option.defaultValue CancellationToken.None
             this.GetReviewAsync (commentId, ct)
 
-        member this.GetAllReviewsAsync (?ct: CancellationToken) = 
+        member this.GetAllReviewsAsync (userContext: UserContext, ?ct: CancellationToken) = 
             let ct = ct |> Option.defaultValue CancellationToken.None
             this.GetAllReviewsAsync ct
 
-        member this.GetPendingReviewsAsync (?ct: CancellationToken) = 
+        member this.GetPendingReviewsAsync (userContext: UserContext, ?ct: CancellationToken) = 
             let ct = ct |> Option.defaultValue CancellationToken.None
             this.GetPendingReviewsAsync ct
 
-        member this.AddReviewAsync (comment: Review, ?ct: CancellationToken) = 
+        member this.AddReviewAsync (userContext: UserContext, review: Review, ?ct: CancellationToken) = 
             let ct = ct |> Option.defaultValue CancellationToken.None
-            this.AddReviewAsync (comment, ct)
+            this.AddReviewAsync (review, ct)
 
-        member this.EditReviewAsync (commentId: ReviewId, editedComment: string, ?ct: CancellationToken) = 
+        member this.EditReviewAsync (userContext: UserContext, commentId: ReviewId, editedComment: string, ?ct: CancellationToken) = 
             let ct = ct |> Option.defaultValue CancellationToken.None
             this.EditReviewAsync (commentId, editedComment, ct)
 
-        member this.ApproveAsync (commentId: ReviewId, ?ct: CancellationToken) = 
+        member this.ApproveAsync (userContext: UserContext, commentId: ReviewId, ?ct: CancellationToken) = 
             let ct = ct |> Option.defaultValue CancellationToken.None
             this.ApproveAsync (commentId, ct)
 
-        member this.RejectAsync (commentId: ReviewId, ?ct: CancellationToken) = 
+        member this.RejectAsync (userContext: UserContext, commentId: ReviewId, ?ct: CancellationToken) = 
             let ct = ct |> Option.defaultValue CancellationToken.None
             this.RejectAsync (commentId, ct)
 
-        member this.ShowAsync (commentId: ReviewId, ?ct: CancellationToken) = 
+        member this.ShowAsync (userContext: UserContext, commentId: ReviewId, ?ct: CancellationToken) = 
             let ct = ct |> Option.defaultValue CancellationToken.None
             this.ShowAsync (commentId, ct)
 
-        member this.HideAsync (commentId: ReviewId, ?ct: CancellationToken) = 
+        member this.HideAsync (userContext: UserContext, commentId: ReviewId, ?ct: CancellationToken) = 
             let ct = ct |> Option.defaultValue CancellationToken.None
             this.HideAsync (commentId, ct)
 
-        member this.GetReviewsOfBookAsync (bookId: BookId, ?ct: CancellationToken) = 
+        member this.GetReviewsOfBookAsync (userContext: UserContext, bookId: BookId, ?ct: CancellationToken) = 
             let ct = ct |> Option.defaultValue CancellationToken.None
             this.GetReviewsOfBookAsync (bookId, ct)
 
-        member this.GetReviewsOfUserAsync (userId: UserId, ?ct: CancellationToken) = 
+        member this.GetReviewsOfUserAsync (userContext: UserContext, userId: UserId, ?ct: CancellationToken) = 
             let ct = ct |> Option.defaultValue CancellationToken.None
             this.GetReviewsOfUserAsync (userId, ct)
 
-        member this.GetApprovedVisibleReviewsOfBookAsync (bookId: BookId, ?ct: CancellationToken) = 
+        member this.GetApprovedVisibleReviewsOfBookAsync (userContext: UserContext, bookId: BookId, ?ct: CancellationToken) = 
             let ct = ct |> Option.defaultValue CancellationToken.None
             this.GetApprovedVisibleReviewsOfBookAsync (bookId, ct)
 

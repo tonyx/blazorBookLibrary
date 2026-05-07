@@ -14,6 +14,7 @@
 @inject IUserService UserService
 @inject IDetailsService DetailsService
 @inject UserManager<ApplicationUser> UserManager
+@inject AuthenticationStateProvider AuthenticationStateProvider
 @inject IJSRuntime JSRuntime
 @inject NavigationManager NavigationManager
 @inject IStringLocalizer<SharedResources> L
@@ -296,11 +297,12 @@
     {
         try
         {
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
             if (Guid.TryParse(UserIdStr, out var guid))
             {
                 var sharpinoUserId = UserId.NewUserId(guid);
-                @* var result = await UserService.GetUserDetailsAsync(sharpinoUserId, FSharpOption<System.Threading.CancellationToken>.None); *@
-                var result = await DetailsService.GetUserDetailsAsync(sharpinoUserId, FSharpOption<System.Threading.CancellationToken>.None);
+                var context = blazorBookLibrary.Shared.ConverterUtils.fromClaimsPrincipal(authState.User);
+                var result = await DetailsService.GetUserDetailsAsync(context, sharpinoUserId, FSharpOption<System.Threading.CancellationToken>.None);
 
                 if (result.IsOk)
                 {
@@ -339,7 +341,9 @@
         if (Guid.TryParse(UserIdStr, out var guid))
         {
             var userId = UserId.NewUserId(guid);
-            var result = await UserService.SetIsPhysicallyIdentifiedAsync(userId, FSharpOption<System.Threading.CancellationToken>.None);
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var context = blazorBookLibrary.Shared.ConverterUtils.fromClaimsPrincipal(authState.User);
+            var result = await UserService.SetIsPhysicallyIdentifiedAsync(context, userId, FSharpOption<System.Threading.CancellationToken>.None);
             if (result.IsOk)
             {
                 emailConfirmation = "";
@@ -359,7 +363,9 @@
         if (Guid.TryParse(UserIdStr, out var guid))
         {
             var userId = UserId.NewUserId(guid);
-            var result = await UserService.UnSetIsPhysicallyIdentifiedAsync(userId, FSharpOption<System.Threading.CancellationToken>.None);
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var context = blazorBookLibrary.Shared.ConverterUtils.fromClaimsPrincipal(authState.User);
+            var result = await UserService.UnSetIsPhysicallyIdentifiedAsync(context, userId, FSharpOption<System.Threading.CancellationToken>.None);
             if (result.IsOk)
             {
                 emailConfirmation = "";

@@ -44,70 +44,70 @@ type BulkBookEdit =
                 if switch then { this with AdditionalAuthorsEdit = Some authors} else this
 
 type IBookService =
-    abstract member AddBookAsync : book: Book * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<unit, string>>
-    abstract member AddBooksAsync : books: List<Book> * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<unit, string>>
-    abstract member AddAuthorToBookAsync : authorId: AuthorId * bookId: BookId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<unit, string>>
-    abstract member RemoveAuthorFromBookAsync : authorId: AuthorId * bookId: BookId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<unit, string>>
-    abstract member RemoveBookAsync : bookId: BookId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<unit, string>>
-    abstract member GetBookAsync : id: BookId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<Book, string>>
-    abstract member GetBooksAsync : bookIds: List<BookId> * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<List<Book>, string>>
+    abstract member AddBookAsync : context:UserContext * book: Book * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<unit, string>>
+    abstract member AddBooksAsync : context:UserContext * books: List<Book> * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<unit, string>>
+    abstract member AddAuthorToBookAsync : context:UserContext * authorId: AuthorId * bookId: BookId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<unit, string>>
+    abstract member RemoveAuthorFromBookAsync : context:UserContext * authorId: AuthorId * bookId: BookId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<unit, string>>
+    abstract member RemoveBookAsync : context:UserContext * bookId: BookId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<unit, string>>
+    abstract member GetBookAsync : context:UserContext * id: BookId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<Book, string>>
+    abstract member GetBooksAsync : context:UserContext * bookIds: List<BookId> * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<List<Book>, string>>
 
-    abstract member RemoveImageUrlAsync: bookId: BookId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<unit, string>>
-    abstract member SetImageUrlAsync: bookId: BookId * imageUrl: Uri * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<unit, string>>
-    abstract member SetAvailabilityAsync: availability: Availability * bookId: BookId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<unit, string>>
-    abstract member AddTagToBookAsync: tag: Tag * bookId: BookId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<unit, string>>
-    abstract member RemoveTagFromBookAsync: tag: Tag * bookId: BookId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<unit, string>>
+    abstract member RemoveImageUrlAsync: context:UserContext * bookId: BookId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<unit, string>>
+    abstract member SetImageUrlAsync: context:UserContext * bookId: BookId * imageUrl: Uri * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<unit, string>>
+    abstract member SetAvailabilityAsync: context:UserContext * availability: Availability * bookId: BookId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<unit, string>>
+    abstract member AddTagToBookAsync: context:UserContext * tag: Tag * bookId: BookId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<unit, string>>
+    abstract member RemoveTagFromBookAsync: context:UserContext * tag: Tag * bookId: BookId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<unit, string>>
 
-    abstract member BulkEditAsync: bookIds: List<BookId> * editCriteria: BulkBookEdit * userId: UserId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<unit, string>>
-    abstract member GetAllAsync : [<Optional; DefaultParameterValue(null)>] ?criteria: BookSearchCriteria * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<Book list, string>>
+    abstract member BulkEditAsync: context:UserContext * bookIds: List<BookId> * editCriteria: BulkBookEdit * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<unit, string>>
+    abstract member GetAllAsync : context:UserContext * [<Optional; DefaultParameterValue(null)>] ?criteria: BookSearchCriteria * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<Book list, string>>
 
-    abstract member SearchByTitleAsync : title: Title * [<Optional; DefaultParameterValue(null)>] ?criteria: BookSearchCriteria * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<List<Book>, string>>
-    abstract member SearchByIsbnAsync : isbn: Isbn * [<Optional; DefaultParameterValue(null)>] ?criteria: BookSearchCriteria * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<List<Book>, string>>
+    abstract member SearchByTitleAsync : context:UserContext * title: Title * [<Optional; DefaultParameterValue(null)>] ?criteria: BookSearchCriteria * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<List<Book>, string>>
+    abstract member SearchByIsbnAsync : context:UserContext * isbn: Isbn * [<Optional; DefaultParameterValue(null)>] ?criteria: BookSearchCriteria * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<List<Book>, string>>
 
-    abstract member SetDistributionPointAsync: distributionPointId: DistributionPointId * bookId: BookId * userId: UserId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<unit, string>>
-    abstract member UnSetDistributionPointAsync: distributionPointId: DistributionPointId * bookId: BookId * userId: UserId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<unit, string>>
+    abstract member SetDistributionPointAsync: context:UserContext * distributionPointId: DistributionPointId * bookId: BookId * userId: UserId *  [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<unit, string>>
+    abstract member UnSetDistributionPointAsync: context:UserContext * distributionPointId: DistributionPointId * bookId: BookId * userId: UserId *  [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<unit, string>>
 
-    abstract member UnsetAllBookRelatedToDPAsync: distributionPointId: DistributionPointId * userId: UserId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<unit, string>>
-    abstract member MoveFromDpToAnotherDPAsync: fromPoint: DistributionPointId * toPoint: DistributionPointId * bookId: BookId * userId: UserId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<unit, string>>
+    abstract member UnsetAllBookRelatedToDPAsync: context:UserContext * distributionPointId: DistributionPointId * userId: UserId *  [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<unit, string>>
+    abstract member MoveFromDpToAnotherDPAsync: context:UserContext * fromPoint: DistributionPointId * toPoint: DistributionPointId * bookId: BookId * userId: UserId *  [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<unit, string>>
 
-    abstract member SearchByTitleAndIsbnAsync : title: Title * isbn: Isbn * [<Optional; DefaultParameterValue(null)>] ?criteria: BookSearchCriteria * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<List<Book>, string>>
-    abstract member ChangeMainCategoryAsync : category: Category * bookId: BookId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<unit, string>>
-    abstract member AddAdditionalCategoryAsync : category: Category * bookId: BookId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<unit, string>>
-    abstract member RemoveAdditionalCategoryAsync : category: Category * bookId: BookId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<unit, string>>
-    abstract member UpdateTitleAsync: title: Title * bookId: BookId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<unit, string>>
+    abstract member SearchByTitleAndIsbnAsync : context:UserContext * title: Title * isbn: Isbn * [<Optional; DefaultParameterValue(null)>] ?criteria: BookSearchCriteria * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<List<Book>, string>>
+    abstract member ChangeMainCategoryAsync : context:UserContext * category: Category * bookId: BookId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<unit, string>>
+    abstract member AddAdditionalCategoryAsync : context:UserContext * category: Category * bookId: BookId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<unit, string>>
+    abstract member RemoveAdditionalCategoryAsync : context:UserContext * category: Category * bookId: BookId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<unit, string>>
+    abstract member UpdateTitleAsync: context:UserContext * title: Title * bookId: BookId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<unit, string>>
 
-    abstract member UpdateDescriptionAsync: description: string * bookId: BookId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<unit, string>>
-    abstract member RemoveDescriptionAsync: bookId: BookId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<unit, string>>
-    abstract member EmbedDescriptionAsync: bookId: BookId * EmbeddingDataId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<unit, string>>
-    abstract member RemoveEmbeddingAsync: bookId: BookId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<unit, string>>
-    abstract member ForceBulkRemoveEmbeddingsAsync : bookIds: List<BookId> * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<unit, string>>
+    abstract member UpdateDescriptionAsync: context:UserContext * description: string * bookId: BookId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<unit, string>>
+    abstract member RemoveDescriptionAsync: context:UserContext * bookId: BookId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<unit, string>>
+    abstract member EmbedDescriptionAsync: context:UserContext * bookId: BookId * EmbeddingDataId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<unit, string>>
+    abstract member RemoveEmbeddingAsync: context:UserContext * bookId: BookId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<unit, string>>
+    abstract member ForceBulkRemoveEmbeddingsAsync : context:UserContext * bookIds: List<BookId> * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<unit, string>>
 
-    abstract member UpdateIsbnAsync: isbn: Isbn * bookId: BookId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<unit, string>>
+    abstract member UpdateIsbnAsync: context:UserContext * isbn: Isbn * bookId: BookId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<unit, string>>
 
-    abstract member UnsealAsync : bookId: BookId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<unit, string>>
-    abstract member SealAsync : bookId: BookId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<unit, string>>
+    abstract member UnsealAsync : context:UserContext * bookId: BookId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<unit, string>>
+    abstract member SealAsync : context:UserContext * bookId: BookId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<unit, string>>
 
-    abstract member SearchByYearAsync: year: YearSearch * [<Optional; DefaultParameterValue(null)>] ?criteria: BookSearchCriteria * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<List<Book>, string>>
+    abstract member SearchByYearAsync: context:UserContext * year: YearSearch * [<Optional; DefaultParameterValue(null)>] ?criteria: BookSearchCriteria * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<List<Book>, string>>
 
-    abstract member SearchByTitleAndYearAsync: title: Title * year: YearSearch * [<Optional; DefaultParameterValue(null)>] ?criteria: BookSearchCriteria * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<List<Book>, string>>
-    abstract member SearchByIsbnAndYearAsync: isbn: Isbn * year: YearSearch * [<Optional; DefaultParameterValue(null)>] ?criteria: BookSearchCriteria * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<List<Book>, string>>
-    abstract member SearchByTitleAndIsbnAndYearAsync: title: Title * isbn: Isbn * year: YearSearch * [<Optional; DefaultParameterValue(null)>] ?criteria: BookSearchCriteria * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<List<Book>, string>>
-    abstract member SearchByCategoriesAsync: categories: List<Category> * [<Optional; DefaultParameterValue(null)>] ?criteria: BookSearchCriteria * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<List<Book>, string>>
+    abstract member SearchByTitleAndYearAsync: context:UserContext * title: Title * year: YearSearch * [<Optional; DefaultParameterValue(null)>] ?criteria: BookSearchCriteria * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<List<Book>, string>>
+    abstract member SearchByIsbnAndYearAsync: context:UserContext * isbn: Isbn * year: YearSearch * [<Optional; DefaultParameterValue(null)>] ?criteria: BookSearchCriteria * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<List<Book>, string>>
+    abstract member SearchByTitleAndIsbnAndYearAsync: context:UserContext * title: Title * isbn: Isbn * year: YearSearch * [<Optional; DefaultParameterValue(null)>] ?criteria: BookSearchCriteria * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<List<Book>, string>>
+    abstract member SearchByCategoriesAsync: context:UserContext * categories: List<Category> * [<Optional; DefaultParameterValue(null)>] ?criteria: BookSearchCriteria * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<List<Book>, string>>
 
-    abstract member SearchByIsbnOrTitleAsync: isbn: Isbn * title: Title * [<Optional; DefaultParameterValue(null)>] ?criteria: BookSearchCriteria * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<List<Book>, string>>
+    abstract member SearchByIsbnOrTitleAsync: context:UserContext * isbn: Isbn * title: Title * [<Optional; DefaultParameterValue(null)>] ?criteria: BookSearchCriteria * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<List<Book>, string>>
 
-    abstract member SearchByTitleAndCategoriesAsync: title: Title * categories: List<Category> * [<Optional; DefaultParameterValue(null)>] ?criteria: BookSearchCriteria * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<List<Book>, string>>
-    abstract member SearchByYearAndCategoriesAsync: year: YearSearch * categories: List<Category> * [<Optional; DefaultParameterValue(null)>] ?criteria: BookSearchCriteria * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<List<Book>, string>>
-    abstract member SearchByTitleAndYearAndCategoriesAsync: title: Title * year: YearSearch * categories: List<Category> * [<Optional; DefaultParameterValue(null)>] ?criteria: BookSearchCriteria * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<List<Book>, string>>
-    abstract member SearchByAuthorAsync: authorId: AuthorId * [<Optional; DefaultParameterValue(null)>] ?criteria: BookSearchCriteria * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<List<Book>, string>>
-    abstract member SearchByAuthorsAsync: authors: List<AuthorId> * [<Optional; DefaultParameterValue(null)>] ?criteria: BookSearchCriteria * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<List<Book>, string>>
-    abstract member SearchByTitleAndAuthorsAsync: title: Title * authors: List<AuthorId> * [<Optional; DefaultParameterValue(null)>] ?criteria: BookSearchCriteria * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<List<Book>, string>>
-    abstract member SearchByAuthorsAndYearAsync: authors: List<AuthorId> * year: YearSearch * [<Optional; DefaultParameterValue(null)>] ?criteria: BookSearchCriteria * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<List<Book>, string>>
-    abstract member SearchByTitleAndAuthorsAndYearAsync: title: Title * authors: List<AuthorId> * year: YearSearch * [<Optional; DefaultParameterValue(null)>] ?criteria: BookSearchCriteria * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<List<Book>, string>>
-    abstract member SearchByAuthorsAndCategoriesAsync: authors: List<AuthorId> * categories: List<Category> * [<Optional; DefaultParameterValue(null)>] ?criteria: BookSearchCriteria * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<List<Book>, string>>
-    abstract member SearchByTitleAndAuthorsAndCategoriesAsync: title: Title * authors: List<AuthorId> * categories: List<Category> * [<Optional; DefaultParameterValue(null)>] ?criteria: BookSearchCriteria * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<List<Book>, string>>
-    abstract member SearchByAuthorsAndYearAndCategoriesAsync: authors: List<AuthorId> * year: YearSearch * categories: List<Category> * [<Optional; DefaultParameterValue(null)>] ?criteria: BookSearchCriteria * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<List<Book>, string>>
-    abstract member SearchByTitleAndAuthorsAndYearAndCategoriesAsync: title: Title * authors: List<AuthorId> * year: YearSearch * categories: List<Category> * [<Optional; DefaultParameterValue(null)>] ?criteria: BookSearchCriteria * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<List<Book>, string>>
+    abstract member SearchByTitleAndCategoriesAsync: context:UserContext * title: Title * categories: List<Category> * [<Optional; DefaultParameterValue(null)>] ?criteria: BookSearchCriteria * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<List<Book>, string>>
+    abstract member SearchByYearAndCategoriesAsync: context:UserContext * year: YearSearch * categories: List<Category> * [<Optional; DefaultParameterValue(null)>] ?criteria: BookSearchCriteria * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<List<Book>, string>>
+    abstract member SearchByTitleAndYearAndCategoriesAsync: context:UserContext * title: Title * year: YearSearch * categories: List<Category> * [<Optional; DefaultParameterValue(null)>] ?criteria: BookSearchCriteria * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<List<Book>, string>>
+    abstract member SearchByAuthorAsync: context:UserContext * authorId: AuthorId * [<Optional; DefaultParameterValue(null)>] ?criteria: BookSearchCriteria * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<List<Book>, string>>
+    abstract member SearchByAuthorsAsync: context:UserContext * authors: List<AuthorId> * [<Optional; DefaultParameterValue(null)>] ?criteria: BookSearchCriteria * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<List<Book>, string>>
+    abstract member SearchByTitleAndAuthorsAsync: context:UserContext * title: Title * authors: List<AuthorId> * [<Optional; DefaultParameterValue(null)>] ?criteria: BookSearchCriteria * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<List<Book>, string>>
+    abstract member SearchByAuthorsAndYearAsync: context:UserContext * authors: List<AuthorId> * year: YearSearch * [<Optional; DefaultParameterValue(null)>] ?criteria: BookSearchCriteria * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<List<Book>, string>>
+    abstract member SearchByTitleAndAuthorsAndYearAsync: context:UserContext * title: Title * authors: List<AuthorId> * year: YearSearch * [<Optional; DefaultParameterValue(null)>] ?criteria: BookSearchCriteria * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<List<Book>, string>>
+    abstract member SearchByAuthorsAndCategoriesAsync: context:UserContext * authors: List<AuthorId> * categories: List<Category> * [<Optional; DefaultParameterValue(null)>] ?criteria: BookSearchCriteria * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<List<Book>, string>>
+    abstract member SearchByTitleAndAuthorsAndCategoriesAsync: context:UserContext * title: Title * authors: List<AuthorId> * categories: List<Category> * [<Optional; DefaultParameterValue(null)>] ?criteria: BookSearchCriteria * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<List<Book>, string>>
+    abstract member SearchByAuthorsAndYearAndCategoriesAsync: context:UserContext * authors: List<AuthorId> * year: YearSearch * categories: List<Category> * [<Optional; DefaultParameterValue(null)>] ?criteria: BookSearchCriteria * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<List<Book>, string>>
+    abstract member SearchByTitleAndAuthorsAndYearAndCategoriesAsync: context:UserContext * title: Title * authors: List<AuthorId> * year: YearSearch * categories: List<Category> * [<Optional; DefaultParameterValue(null)>] ?criteria: BookSearchCriteria * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<List<Book>, string>>
     
-    abstract member LoanedByUserAtLeastOnceAsync : bookId: BookId * userId:UserId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<bool, string>>
+    abstract member LoanedByUserAtLeastOnceAsync : context:UserContext * bookId: BookId * userId:UserId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<bool, string>>
 

@@ -322,7 +322,7 @@ let registerUser (email: string) (password: string) =
     let userService = getUserService()
     let user = User.New userId
     let addUser = 
-        userService.CreateUserAsync user
+        userService.CreateUserAsync(UserContext.Anonymous, user)
         |> Async.AwaitTask
         |> Async.RunSynchronously
     
@@ -352,7 +352,7 @@ let registerUserTask (email: string) (password: string) =
         let userId = UserId guid
         let userService = getUserService()
         let user = User.New userId
-        let! addUser = userService.CreateUserAsync user
+        let! addUser = userService.CreateUserAsync(UserContext.Anonymous, user)
         
         if not (addUser |> Result.isOk) then
             failwithf "Domain user creation failed: %A" addUser

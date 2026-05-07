@@ -62,7 +62,7 @@ type TagService
                 return ()
         }
 
-    member this.AddTagAsync (tag: Tag, ?ct: CancellationToken) =
+    member this.AddTagAsync (userContext: UserContext, tag: Tag, ?ct: CancellationToken) =
         let ct = defaultArg ct CancellationToken.None
         taskResult {
             let tagId = TagsId.UniqueTagId
@@ -72,12 +72,12 @@ type TagService
                     tagId.Value
                     eventStore
                     messageSenders
-                    ""
+                    (userContext.ToString())
                     addTagCommand
                     (ct |> Some)
         }
 
-    member this.RemoveTagAsync (tag: Tag, ?ct: CancellationToken) =
+    member this.RemoveTagAsync (userContext: UserContext, tag: Tag, ?ct: CancellationToken) =
         let ct = defaultArg ct CancellationToken.None
         taskResult {
             let tagId = TagsId.UniqueTagId
@@ -87,12 +87,12 @@ type TagService
                     tagId.Value
                     eventStore
                     messageSenders
-                    ""
+                    (userContext.ToString())
                     removeTagCommand
                     (ct |> Some)
         }
 
-    member this.ReplaceTagAsync (oldTag: Tag, newTag: Tag, ?ct: CancellationToken) =
+    member this.ReplaceTagAsync (userContext: UserContext, oldTag: Tag, newTag: Tag, ?ct: CancellationToken) =
         let ct = defaultArg ct CancellationToken.None
         taskResult {
             let tagId = TagsId.UniqueTagId
@@ -102,7 +102,7 @@ type TagService
                     tagId.Value
                     eventStore
                     messageSenders
-                    ""
+                    (userContext.ToString())
                     replaceTagCommand
                     (ct |> Some)
         }
@@ -150,14 +150,14 @@ type TagService
         member this.EnsureTagsRepoCreatedAsync (?ct: CancellationToken) =
             this.EnsureTagsRepoCreatedAsync (?ct = ct)
 
-        member this.AddTagAsync (tag: Tag, ?ct: CancellationToken) =
-            this.AddTagAsync (tag, ?ct = ct)
+        member this.AddTagAsync (userContext:UserContext, tag: Tag, ?ct: CancellationToken) =
+            this.AddTagAsync (userContext, tag, ?ct = ct)
 
-        member this.RemoveTagAsync (tag: Tag, ?ct: CancellationToken) =
-            this.RemoveTagAsync (tag, ?ct = ct)
+        member this.RemoveTagAsync (userContext:UserContext, tag: Tag, ?ct: CancellationToken) =
+            this.RemoveTagAsync (userContext, tag, ?ct = ct)
 
-        member this.ReplaceTagAsync (oldTag: Tag, newTag: Tag, ?ct: CancellationToken) =
-            this.ReplaceTagAsync (oldTag, newTag, ?ct = ct)            
+        member this.ReplaceTagAsync (userContext:UserContext, oldTag: Tag, newTag: Tag, ?ct: CancellationToken) =
+            this.ReplaceTagAsync (userContext, oldTag, newTag, ?ct = ct)            
         member this.GetTagsAsync(?ct: CancellationToken): Tasks.Task<Result<Tag list,string>> = 
             this.GetTagsAsync(?ct = ct)
         member this.GetBookTypeTagsAsync(?ct: CancellationToken) =

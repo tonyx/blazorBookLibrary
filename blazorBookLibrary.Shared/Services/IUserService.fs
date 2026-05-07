@@ -10,18 +10,18 @@ open BookLibrary.Shared.Details
 open System
 
 type IUserService = 
-    abstract member CreateUserAsync: user:User * [<Optional; DefaultParameterValue(null)>] ?ct:CancellationToken -> Task<Result<unit, string>>
-    abstract member GetUserAsync: userId:UserId * [<Optional; DefaultParameterValue(null)>] ?ct:CancellationToken -> Task<Result<User, string>>
-    abstract member GetUserDetailsAsync: userId:UserId * [<Optional; DefaultParameterValue(null)>] ?ct:CancellationToken -> Task<Result<UserDetails, string>>
-    abstract member SetFiscalCodeAsync: userId:UserId * fiscalCode:FiscalCode * [<Optional; DefaultParameterValue(null)>] ?ct:CancellationToken -> Task<Result<unit, string>>
-    abstract member SetNameAsync: userId:UserId * name:string * [<Optional; DefaultParameterValue(null)>] ?ct:CancellationToken -> Task<Result<unit, string>>
-    abstract member SetSurnameAsync: userId:UserId * surname:string * [<Optional; DefaultParameterValue(null)>] ?ct:CancellationToken -> Task<Result<unit, string>>
-    abstract member SetPhoneNumberAsync: userId:UserId * phoneNumber:PhoneNumber * [<Optional; DefaultParameterValue(null)>] ?ct:CancellationToken -> Task<Result<unit, string>>
-    abstract member SetIsPhysicallyIdentifiedAsync: userId:UserId * [<Optional; DefaultParameterValue(null)>] ?ct:CancellationToken -> Task<Result<unit, string>>
-    abstract member UnSetIsPhysicallyIdentifiedAsync: userId:UserId * [<Optional; DefaultParameterValue(null)>] ?ct:CancellationToken -> Task<Result<unit, string>>
-    abstract member GhostUserAsync: userId:UserId * [<Optional; DefaultParameterValue(null)>] ?ct:CancellationToken -> Task<Result<unit, string>>
-    abstract member GetUser: userId:UserId * [<Optional; DefaultParameterValue(null)>] ?ct:CancellationToken -> Task<Result<User, string>>
-    abstract member SetAppUserInfoAsync: userId:UserId * appUserInfo:AppUserInfo * [<Optional; DefaultParameterValue(null)>] ?ct:CancellationToken -> Task<Result<unit, string>>
-    abstract member GetDistributionPointsManagedByUserAsync: userId:UserId * [<Optional; DefaultParameterValue(null)>] ?ct:CancellationToken -> Task<Result<List<DistributionPoint>, string>>
+    abstract member CreateUserAsync: context: UserContext * user:User * [<Optional; DefaultParameterValue(null)>] ?ct:CancellationToken -> Task<Result<unit, string>>
+    abstract member GetUserAsync: context: UserContext * userId:UserId * [<Optional; DefaultParameterValue(null)>] ?ct:CancellationToken -> Task<Result<User, string>>
+    abstract member GetUserDetailsAsync: context: UserContext * userId:UserId * [<Optional; DefaultParameterValue(null)>] ?ct:CancellationToken -> Task<Result<UserDetails, string>>
+    abstract member SetFiscalCodeAsync: context: UserContext * userId:UserId * fiscalCode:FiscalCode * [<Optional; DefaultParameterValue(null)>] ?ct:CancellationToken -> Task<Result<unit, string>>
+    abstract member SetNameAsync: context: UserContext * userId:UserId * name:string * [<Optional; DefaultParameterValue(null)>] ?ct:CancellationToken -> Task<Result<unit, string>>
+    abstract member SetSurnameAsync: context: UserContext * userId:UserId * surname:string * [<Optional; DefaultParameterValue(null)>] ?ct:CancellationToken -> Task<Result<unit, string>>
+    abstract member SetPhoneNumberAsync: context: UserContext * userId:UserId * phoneNumber:PhoneNumber * [<Optional; DefaultParameterValue(null)>] ?ct:CancellationToken -> Task<Result<unit, string>>
+    abstract member SetIsPhysicallyIdentifiedAsync: context: UserContext * userId:UserId * [<Optional; DefaultParameterValue(null)>] ?ct:CancellationToken -> Task<Result<unit, string>>
+    abstract member UnSetIsPhysicallyIdentifiedAsync: context: UserContext * userId:UserId * [<Optional; DefaultParameterValue(null)>] ?ct:CancellationToken -> Task<Result<unit, string>>
+    abstract member GhostUserAsync: context: UserContext * userId:UserId * [<Optional; DefaultParameterValue(null)>] ?ct:CancellationToken -> Task<Result<unit, string>>
+    abstract member GetUser: context: UserContext * userId:UserId * [<Optional; DefaultParameterValue(null)>] ?ct:CancellationToken -> Task<Result<User, string>>
+    abstract member SetAppUserInfoAsync: context: UserContext * userId:UserId * appUserInfo:AppUserInfo * [<Optional; DefaultParameterValue(null)>] ?ct:CancellationToken -> Task<Result<unit, string>>
+    abstract member GetDistributionPointsManagedByUserAsync: context: UserContext * userId:UserId * [<Optional; DefaultParameterValue(null)>] ?ct:CancellationToken -> Task<Result<List<DistributionPoint>, string>>
 
     

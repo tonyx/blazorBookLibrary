@@ -11,6 +11,7 @@
 @inject IAuthorService AuthorService
 @inject IStringLocalizer<SharedResources> L
 @inject NavigationManager NavigationManager
+@inject AuthenticationStateProvider AuthenticationStateProvider
 @rendermode InteractiveServer
 
 <PageTitle>@L["AuthorsBrowser"] — @L["TheModernArchivist"]</PageTitle>
@@ -123,6 +124,12 @@
     private PaginationState authorPagination = new() { ItemsPerPage = 10 };
     private GridSort<Author> sortName = GridSort<Author>.ByAscending(a => a.Name.Value);
 
+    private async Task<UserContext> GetContext()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        return blazorBookLibrary.Shared.ConverterUtils.fromClaimsPrincipal(authState.User);
+    }
+
     private async Task HandleKeyUp(KeyboardEventArgs e)
     {
         if (e.Key == "Enter")
@@ -139,8 +146,9 @@
         searchPerformed = true;
         try
         {
-            var nameResult = Name.NewName(searchTerm);
-            var result = await AuthorService.SearchByNameAsync(nameResult, FSharpOption<System.Threading.CancellationToken>.None);
+            var context = await GetContext();
+            var nameResult = Name.New(searchTerm);
+            var result = await AuthorService.SearchByNameAsync(context, nameResult);
             if (result.IsOk)
             {
                 foundAuthors = result.ResultValue.ToList();

@@ -851,6 +851,12 @@
 
 
 @code {
+    private async Task<UserContext> GetContext()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        return blazorBookLibrary.Shared.ConverterUtils.fromClaimsPrincipal(authState.User);
+    }
+
     [Parameter]
     public string BookIdStr { get; set; } = "";
 
@@ -933,7 +939,8 @@
             isLoadingAuthors = true;
             try
             {
-                var result = await AuthorService.SearchByNameAsync(Name.New(authorSearchInput), FSharpOption<CancellationToken>.None);
+                var context = await GetContext();
+                var result = await AuthorService.SearchByNameAsync(context, Name.New(authorSearchInput), FSharpOption<CancellationToken>.None);
                 if (result.IsOk)
                 {
                     authorSearchResults = result.ResultValue.ToList();
@@ -973,7 +980,8 @@
         try
         {
             var authorId = selectedAuthorForAdd.AuthorId;
-            var result = await BookService.AddAuthorToBookAsync(authorId, bookDetails.Book.BookId, FSharpOption<CancellationToken>.None);
+            var context = await GetContext();
+            var result = await BookService.AddAuthorToBookAsync(context, authorId, bookDetails.Book.BookId, FSharpOption<CancellationToken>.None);
             if (result.IsOk)
             {
                 var addedName = selectedAuthorForAdd.Name.Value;
@@ -1004,7 +1012,8 @@
 
         try
         {
-            var result = await BookService.RemoveAuthorFromBookAsync(author.AuthorId, bookDetails.Book.BookId, FSharpOption<CancellationToken>.None);
+            var context = await GetContext();
+            var result = await BookService.RemoveAuthorFromBookAsync(context, author.AuthorId, bookDetails.Book.BookId, FSharpOption<CancellationToken>.None);
             if (result.IsOk)
             {
                 await WaitForCacheUpdateAsync(d => !d.Authors.Any(a => a.AuthorId.Value == author.AuthorId.Value));
@@ -1044,7 +1053,8 @@
         
         try 
         {
-            var result = await BookService.AddAdditionalCategoryAsync(category, bookDetails.Book.BookId, FSharpOption<CancellationToken>.None);
+            var context = await GetContext();
+            var result = await BookService.AddAdditionalCategoryAsync(context, category, bookDetails.Book.BookId, FSharpOption<CancellationToken>.None);
             if (result.IsOk)
             {
                 await WaitForCacheUpdateAsync(d => d.Book.AdditionalCategories.Contains(category));
@@ -1067,7 +1077,8 @@
         
         try 
         {
-            var result = await BookService.RemoveAdditionalCategoryAsync(category, bookDetails.Book.BookId, FSharpOption<CancellationToken>.None);
+            var context = await GetContext();
+            var result = await BookService.RemoveAdditionalCategoryAsync(context, category, bookDetails.Book.BookId, FSharpOption<CancellationToken>.None);
             if (result.IsOk)
             {
                 await WaitForCacheUpdateAsync(d => !d.Book.AdditionalCategories.Contains(category));
@@ -1095,7 +1106,8 @@
         if (bookDetails == null) return;
         try
         {
-            var result = await BookService.AddTagToBookAsync(tag, bookDetails.Book.BookId, FSharpOption<CancellationToken>.None);
+            var context = await GetContext();
+            var result = await BookService.AddTagToBookAsync(context, tag, bookDetails.Book.BookId, FSharpOption<CancellationToken>.None);
             if (result.IsOk)
             {
                 await WaitForCacheUpdateAsync(d => d.Book.Tags.Contains(tag));
@@ -1117,7 +1129,8 @@
         if (bookDetails == null) return;
         try
         {
-            var result = await BookService.RemoveTagFromBookAsync(tag, bookDetails.Book.BookId, FSharpOption<CancellationToken>.None);
+            var context = await GetContext();
+            var result = await BookService.RemoveTagFromBookAsync(context, tag, bookDetails.Book.BookId, FSharpOption<CancellationToken>.None);
             if (result.IsOk)
             {
                 await WaitForCacheUpdateAsync(d => !d.Book.Tags.Contains(tag));
@@ -1186,9 +1199,10 @@
             }
         }
 
+        var context = await GetContext();
         var result = isBookSealed 
-            ? await BookService.UnsealAsync(bookDetails.Book.BookId, FSharpOption<CancellationToken>.None)
-            : await BookService.SealAsync(bookDetails.Book.BookId, FSharpOption<CancellationToken>.None);
+            ? await BookService.UnsealAsync(context, bookDetails.Book.BookId, FSharpOption<CancellationToken>.None)
+            : await BookService.SealAsync(context, bookDetails.Book.BookId, FSharpOption<CancellationToken>.None);
             
         if (result.IsOk)
         {
@@ -1230,8 +1244,9 @@
 
         try
         {
+            var context = await GetContext();
             var category = Category.FromString(editedCategory);
-            var result = await BookService.ChangeMainCategoryAsync(category, bookDetails.Book.BookId, FSharpOption<CancellationToken>.None);
+            var result = await BookService.ChangeMainCategoryAsync(context, category, bookDetails.Book.BookId, FSharpOption<CancellationToken>.None);
             if (result.IsOk)
             {
                 await WaitForCacheUpdateAsync(d => d.Book.MainCategory.Value() == editedCategory);
@@ -1272,8 +1287,9 @@
 
         try
         {
+            var context = await GetContext();
             var availability = Availability.FromString(editedAvailability);
-            var result = await BookService.SetAvailabilityAsync(availability, bookDetails.Book.BookId, FSharpOption<CancellationToken>.None);
+            var result = await BookService.SetAvailabilityAsync(context, availability, bookDetails.Book.BookId, FSharpOption<CancellationToken>.None);
             if (result.IsOk)
             {
                 await WaitForCacheUpdateAsync(d => d.Book.Availability.ToString() == editedAvailability);
@@ -1319,8 +1335,9 @@
         
         try 
         {
+            var context = await GetContext();
             // The service now handles the 3-phase removal (Vector DB cleanup, association removal, and book deletion)
-            var result = await BookService.RemoveBookAsync(bookDetails.Book.BookId, FSharpOption<CancellationToken>.None);
+            var result = await BookService.RemoveBookAsync(context, bookDetails.Book.BookId, FSharpOption<CancellationToken>.None);
             if (result.IsOk)
             {
                 NavigationManager.NavigateTo("/books-manager");
@@ -1346,8 +1363,9 @@
         
         try 
         {
+            var context = await GetContext();
             var title = Title.New(editedTitle);
-            var result = await BookService.UpdateTitleAsync(title, bookDetails.Book.BookId, FSharpOption<CancellationToken>.None);
+            var result = await BookService.UpdateTitleAsync(context, title, bookDetails.Book.BookId, FSharpOption<CancellationToken>.None);
             
             if (result.IsOk)
             {
@@ -1381,7 +1399,8 @@
 
             if (Uri.TryCreate(editedImageUrl, UriKind.Absolute, out var uri))
             {
-                var result = await BookService.SetImageUrlAsync(bookDetails.Book.BookId, uri);
+                var context = await GetContext();
+                var result = await BookService.SetImageUrlAsync(context, bookDetails.Book.BookId, uri);
                 if (result.IsOk)
                 {
                     await ShowStatus(L["ImageUrlUpdated"], "alert-success");
@@ -1413,7 +1432,8 @@
 
         try
         {
-            var result = await BookService.RemoveImageUrlAsync(bookDetails.Book.BookId);
+            var context = await GetContext();
+            var result = await BookService.RemoveImageUrlAsync(context, bookDetails.Book.BookId);
             if (result.IsOk)
             {
                 await ShowStatus(L["ImageCoverRemoved"], "alert-info");
@@ -1517,12 +1537,14 @@
             
             if (string.IsNullOrWhiteSpace(editedDescription))
             {
-                result = await BookService.RemoveDescriptionAsync(bookDetails.Book.BookId, FSharpOption<System.Threading.CancellationToken>.None);
+                var context = await GetContext();
+                result = await BookService.RemoveDescriptionAsync(context, bookDetails.Book.BookId, FSharpOption<System.Threading.CancellationToken>.None);
                 if (result.IsOk) await ShowStatus(L["DescriptionRemoved"], "alert-success");
             }
             else
             {
-                result = await BookService.UpdateDescriptionAsync(editedDescription, bookDetails.Book.BookId, FSharpOption<System.Threading.CancellationToken>.None);
+                var context = await GetContext();
+                result = await BookService.UpdateDescriptionAsync(context, editedDescription, bookDetails.Book.BookId, FSharpOption<System.Threading.CancellationToken>.None);
                 if (result.IsOk) 
                 {
                     await ShowStatus(L["DescriptionUpdated"], "alert-success");
@@ -1582,7 +1604,8 @@
                 return;
             }
 
-            var embedResult = await BookService.EmbedDescriptionAsync(bookDetails.Book.BookId, embeddingId, FSharpOption<System.Threading.CancellationToken>.None);
+            var context = await GetContext();
+            var embedResult = await BookService.EmbedDescriptionAsync(context, bookDetails.Book.BookId, embeddingId, FSharpOption<System.Threading.CancellationToken>.None);
             
             if (embedResult.IsOk)
             {
@@ -1632,7 +1655,9 @@
                 var bookId = item.Item2;
                 var score = item.Item3;
                 // Fetch title for each book
-                var details = await DetailsService.GetBookDetailsAsync(bookId, FSharpOption<CancellationToken>.None);
+                var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+                var context = blazorBookLibrary.Shared.ConverterUtils.fromClaimsPrincipal(authState.User);
+                var details = await DetailsService.GetBookDetailsAsync(context, bookId, FSharpOption<CancellationToken>.None);
                 if (details.IsOk)
                 {
                     results.Add(new SanityCheckResult { Id = bookId, Title = details.ResultValue.Book.Title.Value, Score = score, Explanation = null, IsLoadingExplanation = false });
@@ -1666,7 +1691,9 @@
         {
             if (res.Explanation != null) return;
 
-            var details = await DetailsService.GetBookDetailsAsync(res.Id, FSharpOption<CancellationToken>.None);
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var context = blazorBookLibrary.Shared.ConverterUtils.fromClaimsPrincipal(authState.User);
+            var details = await DetailsService.GetBookDetailsAsync(context, res.Id, FSharpOption<CancellationToken>.None);
             if (details.IsOk)
             {
                 var book = details.ResultValue.Book;
@@ -1758,7 +1785,8 @@
                 return;
             }
 
-            var result = await BookService.UpdateIsbnAsync(isbn, bookDetails.Book.BookId, FSharpOption<CancellationToken>.None);
+            var context = await GetContext();
+            var result = await BookService.UpdateIsbnAsync(context, isbn, bookDetails.Book.BookId, FSharpOption<CancellationToken>.None);
             if (result.IsOk)
             {
                 await WaitForCacheUpdateAsync(d => d.Book.Isbn.Value == isbn.Value);
@@ -1784,7 +1812,9 @@
         while (retries > 0)
         {
             await Task.Delay(100);
-            var freshDetailsResult = await DetailsService.GetBookDetailsAsync(bookDetails.Book.BookId, FSharpOption<CancellationToken>.None);
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var context = blazorBookLibrary.Shared.ConverterUtils.fromClaimsPrincipal(authState.User);
+            var freshDetailsResult = await DetailsService.GetBookDetailsAsync(context, bookDetails.Book.BookId, FSharpOption<CancellationToken>.None);
             if (freshDetailsResult.IsOk)
             {
                 var freshDetails = freshDetailsResult.ResultValue;
@@ -1807,6 +1837,7 @@
         enableAIExplanations = Configuration.GetValue<bool>("BooksLibrary:EnableAIExtendedExplanations");
         await LoadBookDetails();
         
+        var context = await GetContext();
         var tagsResult = await TagService.GetBookTypeTagsAsync();
         if (tagsResult.IsOk)
         {
@@ -1821,7 +1852,8 @@
             if (userIdClaim != null && Guid.TryParse(userIdClaim.Value, out var guid))
             {
                 currentUserId = UserId.NewUserId(guid);
-                var dpResult = await UserService.GetDistributionPointsManagedByUserAsync(currentUserId, FSharpOption<CancellationToken>.None);
+                context = await GetContext();
+                var dpResult = await UserService.GetDistributionPointsManagedByUserAsync(context, currentUserId, FSharpOption<CancellationToken>.None);
                 if (dpResult.IsOk)
                 {
                     managedDistributionPoints = dpResult.ResultValue.ToList();
@@ -1840,7 +1872,9 @@
             if (Guid.TryParse(BookIdStr, out var guid))
             {
                 var bookId = BookId.NewBookId(guid);
-                var result = await DetailsService.GetBookDetailsAsync(bookId, FSharpOption<CancellationToken>.None);
+                var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+                var context = blazorBookLibrary.Shared.ConverterUtils.fromClaimsPrincipal(authState.User);
+                var result = await DetailsService.GetBookDetailsAsync(context, bookId, FSharpOption<CancellationToken>.None);
 
                 if (result.IsOk)
                 {
@@ -1887,7 +1921,10 @@
         {
             @* var resCode = ReservationCode.ReservationCode(reservationCodeInput); *@
             var resCode = ReservationCode.ReservationCode.NewReservationCode(reservationCodeInput);
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var context = blazorBookLibrary.Shared.ConverterUtils.fromClaimsPrincipal(authState.User);
             var result = await LoanService.TransformReservationIntoLoanAsync(
+                context,
                 resDetails.Reservation.ReservationId, 
                 resCode, 
                 ShortLang.New(CultureInfo.CurrentCulture.Name),
@@ -1936,8 +1973,9 @@
 
         try
         {
+            var context = await GetContext();
             // 1. Remove from Book object via BookService
-            var bookResult = await BookService.RemoveEmbeddingAsync(bookDetails.Book.BookId);
+            var bookResult = await BookService.RemoveEmbeddingAsync(context, bookDetails.Book.BookId);
             if (!bookResult.IsOk)
             {
                 await ShowStatus(string.Format(L["ErrorRemovingEmbedding"], bookResult.ErrorValue), "alert-danger");
@@ -1950,7 +1988,8 @@
             {
                 // Inform user and restore the reference in the Book object for consistency
                 await ShowStatus(L["VectorDbRemovalFailed"], "alert-warning");
-                var restoreResult = await BookService.EmbedDescriptionAsync(bookDetails.Book.BookId, embeddingId);
+                context = await GetContext();
+                var restoreResult = await BookService.EmbedDescriptionAsync(context, bookDetails.Book.BookId, embeddingId);
                 if (!restoreResult.IsOk)
                 {
                     await ShowStatus(string.Format(L["ErrorRestoringEmbedding"], restoreResult.ErrorValue), "alert-danger");
@@ -2031,8 +2070,9 @@
         isUpdatingDP = true;
         try
         {
+            var context = await GetContext();
             var dpId = DistributionPointId.NewDistributionPointId(new Guid(selectedDistributionPointIdToSet));
-            var result = await BookService.SetDistributionPointAsync(dpId, bookDetails.Book.BookId, currentUserId, FSharpOption<CancellationToken>.None);
+            var result = await BookService.SetDistributionPointAsync(context, dpId, bookDetails.Book.BookId, currentUserId, FSharpOption<CancellationToken>.None);
             if (result.IsOk)
             {
                 await ShowStatus(L["DistributionPointSetSuccess"], "alert-success");
@@ -2065,7 +2105,8 @@
         isUpdatingDP = true;
         try
         {
-            var result = await BookService.UnSetDistributionPointAsync(dp.DistributionPointId, bookDetails.Book.BookId, currentUserId, FSharpOption<CancellationToken>.None);
+            var context = await GetContext();
+            var result = await BookService.UnSetDistributionPointAsync(context, dp.DistributionPointId, bookDetails.Book.BookId, currentUserId, FSharpOption<CancellationToken>.None);
             if (result.IsOk)
             {
                 await ShowStatus(L["DistributionPointUnsetSuccess"], "alert-success");

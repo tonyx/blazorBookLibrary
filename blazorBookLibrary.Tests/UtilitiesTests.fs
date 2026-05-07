@@ -1,7 +1,7 @@
 module UtilitiesTests
 
 open Expecto
-open BookLibrary.Utils
+open blazorBookLibrary.Shared
 open BookLibrary.Shared.Commons
 open System
 

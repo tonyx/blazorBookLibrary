@@ -115,7 +115,7 @@ type LoanService
         let eventStore = PgStorage.PgEventStore connectionString
         LoanService(eventStore, reservationService, usersService, mailNotificator, localizer, configuration, mailBodyRetriever)
 
-    member this.AddLoanAsync (loan: Loan, shortLang: ShortLang, dateTime: System.DateTime, ?ct: CancellationToken)= 
+    member this.AddLoanAsync (context: UserContext, loan: Loan, shortLang: ShortLang, dateTime: System.DateTime, ?ct: CancellationToken)= 
         taskResult
             {
                 let ct = defaultArg ct CancellationToken.None
@@ -128,7 +128,7 @@ type LoanService
                     |> TaskResult.map snd
                 
                 let! userDetails = 
-                    usersService.GetUserDetailsAsync (user.UserId, ct)
+                    usersService.GetUserDetailsAsync (context, user.UserId, ct)
                 
                 let setCurrentLoanCommand = 
                     BookCommand.SetCurrentLoan (loan.LoanId, dateTime)
@@ -169,7 +169,7 @@ type LoanService
                 return result
             }
 
-    member this.GetLoanAsync (id: LoanId, ?ct: CancellationToken): TaskResult<Loan, string> = 
+    member this.GetLoanAsync (context: UserContext, id: LoanId, ?ct: CancellationToken): TaskResult<Loan, string> = 
         taskResult
             {
                 let ct = defaultArg ct CancellationToken.None
@@ -178,7 +178,7 @@ type LoanService
                 return result |> snd
             }
 
-    member this.GetRefreshableLoanDetailsAsync (loanId: LoanId, ?ct: CancellationToken): TaskResult<RefreshableLoanDetails, string> = 
+    member this.GetRefreshableLoanDetailsAsync (context: UserContext, loanId: LoanId, ?ct: CancellationToken): TaskResult<RefreshableLoanDetails, string> = 
         let detailsBuilder =
             fun (ct: Option<CancellationToken>) ->
                 let ct = ct |> Option.defaultValue CancellationToken.None
@@ -191,7 +191,7 @@ type LoanService
                             let! book = 
                                 bookViewerAsync (ct |> Some) loan.BookId.Value |> TaskResult.map snd
                             let! userDetail = 
-                                usersService.GetUserDetailsAsync (loan.UserId, ct)
+                                usersService.GetUserDetailsAsync (context, loan.UserId, ct)
                             return
                                 { 
                                     Loan = loan
@@ -215,7 +215,7 @@ type LoanService
                     }
         let key = DetailsCacheKey.OfType typeof<RefreshableLoanDetails> loanId.Value    
         StateView.getRefreshableDetailsTaskResultAsync<RefreshableLoanDetails> (fun ct -> detailsBuilder ct) key ct
-    member this.GetLoansAsync (?ct: CancellationToken): TaskResult<List<Loan>, string> = 
+    member this.GetLoansAsync (context: UserContext, ?ct: CancellationToken): TaskResult<List<Loan>, string> = 
         taskResult
             {
                 let ct = defaultArg ct CancellationToken.None
@@ -225,7 +225,7 @@ type LoanService
                 return result
             }
 
-    member this.ReleaseLoanAsync (loanId: LoanId, shortLang: ShortLang,  dateTime: System.DateTime, ?ct: CancellationToken)= 
+    member this.ReleaseLoanAsync (context: UserContext, loanId: LoanId, shortLang: ShortLang,  dateTime: System.DateTime, ?ct: CancellationToken)= 
         taskResult
             {
                 let ct = defaultArg ct CancellationToken.None
@@ -245,7 +245,7 @@ type LoanService
                 let userReleaseLoanCommandr = 
                     UserCommand.ReleaseLoan (loanId)
                 let! userDetails = 
-                    usersService.GetUserDetailsAsync loan.UserId
+                    usersService.GetUserDetailsAsync (context, loan.UserId, ct)
                 let! emailTextRetrieved =
                     mailBodyRetriever.GetReleaseLoanNotificationTextMailAsync(shortLang)
 
@@ -278,7 +278,7 @@ type LoanService
                         }
                 return result
             }
-    member this.GetHistoryLoansOfUserAsync (userId: UserId, ?ct: CancellationToken) = 
+    member this.GetHistoryLoansOfUserAsync (context: UserContext, userId: UserId, ?ct: CancellationToken) = 
         let ct = defaultArg ct CancellationToken.None
         taskResult
             {
@@ -291,7 +291,7 @@ type LoanService
                 return loans
             }
 
-    member this.TransformReservationIntoLoanAsync (reservationId: ReservationId, providedReservationCode: ReservationCode, shortLang: ShortLang, now: DateTime, ?ct: CancellationToken)= 
+    member this.TransformReservationIntoLoanAsync (context: UserContext, reservationId: ReservationId, providedReservationCode: ReservationCode, shortLang: ShortLang, now: DateTime, ?ct: CancellationToken)= 
         let ct = defaultArg ct CancellationToken.None
         taskResult
             {
@@ -299,7 +299,7 @@ type LoanService
                     reservationViewerAsync (Some ct) reservationId.Value
                     |> TaskResult.map snd
                 let! reservationDetails =
-                    reservationService.GetReservationDetailsAsync (reservationId, ct)
+                    reservationService.GetReservationDetailsAsync (context, reservationId, ct)
 
                 let book =
                     reservationDetails.Book
@@ -356,21 +356,21 @@ type LoanService
             }
 
     interface ILoanService with
-        member this.AddLoanAsync (loan: Loan, shortLang:ShortLang, ?ct: CancellationToken) =
+        member this.AddLoanAsync (context: UserContext, loan: Loan, shortLang:ShortLang, ?ct: CancellationToken) =
             let ct = defaultArg ct CancellationToken.None
-            this.AddLoanAsync (loan, shortLang, System.DateTime.Now, ct)
-        member this.GetLoanAsync (id: LoanId, ?ct: CancellationToken) =  
+            this.AddLoanAsync (context, loan, shortLang, System.DateTime.Now, ct)
+        member this.GetLoanAsync (context: UserContext, id: LoanId, ?ct: CancellationToken) =  
             let ct = defaultArg ct CancellationToken.None
-            this.GetLoanAsync (id, ct)
-        member this.ReleaseLoanAsync (loanId: LoanId, shortLang: ShortLang, now: DateTime, ?ct: CancellationToken) =
+            this.GetLoanAsync (context, id, ct)
+        member this.ReleaseLoanAsync (context: UserContext, loanId: LoanId, shortLang: ShortLang, now: DateTime, ?ct: CancellationToken) =
             let ct = defaultArg ct CancellationToken.None
-            this.ReleaseLoanAsync (loanId, shortLang, now, ct)
-        member this.GetLoansAsync (?ct: CancellationToken) =
+            this.ReleaseLoanAsync (context, loanId, shortLang, now, ct)
+        member this.GetLoansAsync (context: UserContext, ?ct: CancellationToken) =
             let ct = defaultArg ct CancellationToken.None
-            this.GetLoansAsync ct
-        member this.GetHistoryLoansOfUserAsync (userId: UserId, ?ct: CancellationToken) =
+            this.GetLoansAsync (context, ct)
+        member this.GetHistoryLoansOfUserAsync (context: UserContext, userId: UserId, ?ct: CancellationToken) =
             let ct = defaultArg ct CancellationToken.None
-            this.GetHistoryLoansOfUserAsync (userId, ct)
-        member this.TransformReservationIntoLoanAsync (reservationId: ReservationId, providedReservationCode: ReservationCode, shortLang: ShortLang, now: DateTime, ?ct: CancellationToken) =
+            this.GetHistoryLoansOfUserAsync (context, userId, ct)
+        member this.TransformReservationIntoLoanAsync (context: UserContext, reservationId: ReservationId, providedReservationCode: ReservationCode, shortLang: ShortLang, now: DateTime, ?ct: CancellationToken) =
             let ct = defaultArg ct CancellationToken.None
-            this.TransformReservationIntoLoanAsync (reservationId, providedReservationCode, shortLang, now, ct)
+            this.TransformReservationIntoLoanAsync (context, reservationId, providedReservationCode, shortLang, now, ct)

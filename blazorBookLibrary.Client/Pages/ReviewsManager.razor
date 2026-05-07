@@ -10,12 +10,14 @@
 @using Microsoft.Extensions.Localization
 @using Microsoft.FSharp.Collections
 @using static BookLibrary.Shared.Commons
+@using Microsoft.AspNetCore.Components.Authorization
 
 @attribute [Authorize(Roles = "Admin, Manager")]
 @inject IReviewService ReviewService
 @inject IDetailsService DetailsService
 @inject NavigationManager NavigationManager
 @inject IStringLocalizer<SharedResources> L
+@inject AuthenticationStateProvider AuthenticationStateProvider
 @rendermode InteractiveServer
 
 <PageTitle>@L["ReviewsManagement"] — @L["TheModernArchivist"]</PageTitle>
@@ -168,7 +170,9 @@
 
     private async Task LoadReviews()
     {
-        var result = await DetailsService.GetAllReviewsDetailsAsync();
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var context = blazorBookLibrary.Shared.ConverterUtils.fromClaimsPrincipal(authState.User);
+        var result = await DetailsService.GetAllReviewsDetailsAsync(context);
         if (result.IsOk)
         {
             reviewDetailsList = result.ResultValue.ToList();

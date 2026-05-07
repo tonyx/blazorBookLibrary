@@ -9,10 +9,10 @@ open BookLibrary.Shared.Commons
 open BookLibrary.Shared.Details
 
 type IReservationService =
-    abstract member AddReservationAsync : reservation: Reservation * shortLang:ShortLang * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> TaskResult<unit, string>
-    abstract member GetReservationAsync : id: ReservationId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<Reservation, string>>
-    abstract member RemoveReservationAsync : reservationId: ReservationId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> TaskResult<unit, string>
-    abstract member GetReservationsAsync : ids: List<ReservationId> * ?ct: CancellationToken -> Task<Result<List<Reservation>, string>>
-    abstract member GetReservationDetailsAsync : id: ReservationId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<ReservationDetails, string>>
-    abstract member GetAllPendingReservationsDetailsAsync : ?ct: CancellationToken -> Task<Result<List<ReservationDetails>, string>>
-    abstract member RemoveExpiredReservationsAsync : ?ct: CancellationToken -> TaskResult<unit, string>
+    abstract member AddReservationAsync : context: UserContext * reservation: Reservation * shortLang:ShortLang * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> TaskResult<unit, string>
+    abstract member GetReservationAsync : context: UserContext * id: ReservationId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<Reservation, string>>
+    abstract member RemoveReservationAsync : context: UserContext * reservationId: ReservationId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> TaskResult<unit, string>
+    abstract member GetReservationsAsync : context: UserContext * ids: List<ReservationId> * ?ct: CancellationToken -> Task<Result<List<Reservation>, string>>
+    abstract member GetReservationDetailsAsync : context: UserContext * id: ReservationId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<ReservationDetails, string>>
+    abstract member GetAllPendingReservationsDetailsAsync : context: UserContext * ?ct: CancellationToken -> Task<Result<List<ReservationDetails>, string>>
+    abstract member RemoveExpiredReservationsAsync : context: UserContext * ?ct: CancellationToken -> TaskResult<unit, string>

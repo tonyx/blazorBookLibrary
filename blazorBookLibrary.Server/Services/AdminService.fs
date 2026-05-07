@@ -38,7 +38,7 @@ type AdminService
         let eventStore = PgStorage.PgEventStore connectionString
         AdminService (eventStore, messageSenders, vectorDbService, bookService)
 
-    member this.PurgeVectorsReferringDroppedBooksAsync ?ct = 
+    member this.PurgeVectorsReferringDroppedBooksAsync (context: UserContext, ?ct) = 
         let ct = defaultArg ct CancellationToken.None
         taskResult
             {
@@ -47,7 +47,7 @@ type AdminService
                     vectorDbItemsWithBookIds
                     |> Seq.map (fun (embeddingDataId, bookId) -> 
                         task {
-                            let! bookResult = bookService.GetBookAsync (bookId, ct)
+                            let! bookResult = bookService.GetBookAsync (context, bookId, ct)
                             return (embeddingDataId, bookResult.IsError)
                         }
                     )
@@ -65,11 +65,11 @@ type AdminService
                 else
                     return ()
             }
-    member this.AdjustBookStatesReferringMissingEmbeddingsAsync ?ct = 
+    member this.AdjustBookStatesReferringMissingEmbeddingsAsync (context: UserContext, ?ct) = 
         let ct = defaultArg ct CancellationToken.None
         taskResult {
             let embeddingIsSome = BookSearchCriteria(fun b -> b.OptionalEmbedding.IsSome)
-            let! booksWithEmbeddings = bookService.GetAllAsync(criteria = embeddingIsSome, ct = ct)
+            let! booksWithEmbeddings = bookService.GetAllAsync(context, criteria = embeddingIsSome, ct = ct)
             
             let bookIdsEmbeddingIds = booksWithEmbeddings |> List.map (fun b -> b.Id, b.OptionalEmbedding.Value)
             let embeddingIds = bookIdsEmbeddingIds |>> snd
@@ -82,13 +82,13 @@ type AdminService
                 |> List.map (fun b -> b.BookId)
             
             if not booksToFix.IsEmpty then
-                let! _ = bookService.ForceBulkRemoveEmbeddingsAsync (booksToFix, ct)
+                let! _ = bookService.ForceBulkRemoveEmbeddingsAsync (context, booksToFix, ct)
                 return ()
             else
                 return ()
         }
     
-    member this.CreateDistributionPointAsync(distributionPoint: DistributionPoint, ?ct: CancellationToken) = 
+    member this.CreateDistributionPointAsync(context: UserContext, distributionPoint: DistributionPoint, ?ct: CancellationToken) = 
         taskResult
             {
                 return!
@@ -99,7 +99,7 @@ type AdminService
                     ct
             }
 
-    member this.AssignUserToDistributionPointAsync(id: DistributionPointId, userId: UserId, ?ct: CancellationToken) = 
+    member this.AssignUserToDistributionPointAsync(context: UserContext, id: DistributionPointId, userId: UserId, ?ct: CancellationToken) = 
         taskResult
             {
                 let ct = defaultArg ct CancellationToken.None
@@ -109,12 +109,12 @@ type AdminService
                         id.Value
                         eventStore
                         messageSender
-                        ""
+                        (context.ToString())
                         command
                         (ct |> Some)
             }
 
-    member this.UnassignUserFromDistributionPointAsync(id: DistributionPointId, userId: UserId, ?ct: CancellationToken) = 
+    member this.UnassignUserFromDistributionPointAsync(context: UserContext, id: DistributionPointId, userId: UserId, ?ct: CancellationToken) = 
         taskResult
             {
                 let ct = defaultArg ct CancellationToken.None
@@ -124,12 +124,12 @@ type AdminService
                         id.Value
                         eventStore
                         messageSender
-                        ""
+                        (context.ToString())
                         command
                         (ct |> Some)
             }
 
-    member this.UpdateDistributionPointInfoAsync(id: DistributionPointId, info: Info, ?ct: CancellationToken) = 
+    member this.UpdateDistributionPointInfoAsync(context: UserContext, id: DistributionPointId, info: Info, ?ct: CancellationToken) = 
         taskResult
             {
                 let ct = defaultArg ct CancellationToken.None
@@ -139,12 +139,12 @@ type AdminService
                         id.Value
                         eventStore
                         messageSender
-                        ""
+                        (context.ToString())
                         command
                         (ct |> Some)
             }
 
-    member this.RenameDistributionPointAsync(id: DistributionPointId, name: NonEmptyName, ?ct: CancellationToken) = 
+    member this.RenameDistributionPointAsync(context: UserContext, id: DistributionPointId, name: NonEmptyName, ?ct: CancellationToken) = 
         taskResult
             {
                 let ct = defaultArg ct CancellationToken.None
@@ -154,25 +154,25 @@ type AdminService
                         id.Value
                         eventStore
                         messageSender
-                        ""
+                        (context.ToString())
                         command
                         (ct |> Some)
             }
 
 
     interface IAdminServices with
-        member this.PurgeVectorsReferringDroppedBooksAsync ?ct = 
-            this.PurgeVectorsReferringDroppedBooksAsync (?ct = ct)
-        member this.AdjustBookStatesReferringMissingEmbeddingsAsync ?ct = 
-            this.AdjustBookStatesReferringMissingEmbeddingsAsync (?ct = ct)
-        member this.AssignUserToDistributionPointAsync(distributionPointId, userId, ?ct) = 
-            this.AssignUserToDistributionPointAsync(distributionPointId, userId, ?ct = ct)
-        member this.UnassignUserFromDistributionPointAsync(distributionPointId, userId, ?ct) = 
-            this.UnassignUserFromDistributionPointAsync(distributionPointId, userId, ?ct = ct)        
-        member this.UpdateDistributionPointInfoAsync(distributionPointId: DistributionPointId, info: Info, ct: CancellationToken option): Task<Result<unit,string>> = 
-            this.UpdateDistributionPointInfoAsync(distributionPointId, info, ?ct = ct)        
-        member this.RenameDistributionPointAsync(distributionPointId: DistributionPointId, name: NonEmptyName, ct: CancellationToken option): Task<Result<unit,string>> = 
-            this.RenameDistributionPointAsync(distributionPointId, name, ?ct = ct)
+        member this.PurgeVectorsReferringDroppedBooksAsync (context, ?ct) = 
+            this.PurgeVectorsReferringDroppedBooksAsync (context, ?ct = ct)
+        member this.AdjustBookStatesReferringMissingEmbeddingsAsync (context, ?ct) = 
+            this.AdjustBookStatesReferringMissingEmbeddingsAsync (context, ?ct = ct)
+        member this.AssignUserToDistributionPointAsync(context, distributionPointId, userId, ?ct) = 
+            this.AssignUserToDistributionPointAsync(context, distributionPointId, userId, ?ct = ct)
+        member this.UnassignUserFromDistributionPointAsync(context, distributionPointId, userId, ?ct) = 
+            this.UnassignUserFromDistributionPointAsync(context, distributionPointId, userId, ?ct = ct)        
+        member this.UpdateDistributionPointInfoAsync(context, distributionPointId, info, ct) = 
+            this.UpdateDistributionPointInfoAsync(context, distributionPointId, info, ?ct = ct)        
+        member this.RenameDistributionPointAsync(context, distributionPointId, name, ct) = 
+            this.RenameDistributionPointAsync(context, distributionPointId, name, ?ct = ct)
         
 
         

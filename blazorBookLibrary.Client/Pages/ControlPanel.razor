@@ -282,7 +282,9 @@
 
     private async Task LoadDistributionPoints()
     {
-        var result = await DistributionPointService.GetAllDistributionPointsAsync();
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var userContext = blazorBookLibrary.Shared.ConverterUtils.fromClaimsPrincipal(authState.User);
+        var result = await DistributionPointService.GetAllDistributionPointsAsync(userContext);
         if (result.IsOk)
         {
             distributionPoints = result.ResultValue.ToList();
@@ -302,7 +304,9 @@
 
     private async Task LoadTags()
     {
-        var result = await TagService.GetTagsAsync();
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var userContext = blazorBookLibrary.Shared.ConverterUtils.fromClaimsPrincipal(authState.User);
+        var result = await TagService.GetTagsAsync(CancellationToken.None);
         if (result.IsOk)
         {
             allTags = result.ResultValue.ToList();
@@ -331,7 +335,10 @@
             _ => Tag.NewGenericTag(newTagName)
         };
 
-        var result = await TagService.AddTagAsync(tag);
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var userContext = blazorBookLibrary.Shared.ConverterUtils.fromClaimsPrincipal(authState.User);
+
+        var result = await TagService.AddTagAsync(userContext, tag);
         if (result.IsOk)
         {
             newTagName = "";
@@ -346,7 +353,10 @@
 
     private async Task RemoveTag(Tag tag)
     {
-        var result = await TagService.RemoveTagAsync(tag);
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var userContext = blazorBookLibrary.Shared.ConverterUtils.fromClaimsPrincipal(authState.User);
+
+        var result = await TagService.RemoveTagAsync(userContext, tag);
         if (result.IsOk)
         {
             await LoadTags();
@@ -392,7 +402,9 @@
         cts = new CancellationTokenSource();
         try
         {
-            var result = await ReconciliationService.PurgeVectorsReferringDroppedBooksAsync(cts.Token);
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            var userContext = blazorBookLibrary.Shared.ConverterUtils.fromClaimsPrincipal(authState.User);
+            var result = await ReconciliationService.PurgeVectorsReferringDroppedBooksAsync(userContext, cts.Token);
             if (result.IsOk)
             {
                 await JSRuntime.InvokeVoidAsync("showToast", L["ActionSuccessful"].Value, "success");
@@ -431,7 +443,9 @@
         cts = new CancellationTokenSource();
         try
         {
-            var result = await ReconciliationService.AdjustBookStatesReferringMissingEmbeddingsAsync(cts.Token);
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            var userContext = blazorBookLibrary.Shared.ConverterUtils.fromClaimsPrincipal(authState.User);
+            var result = await ReconciliationService.AdjustBookStatesReferringMissingEmbeddingsAsync(userContext, cts.Token);
             if (result.IsOk)
             {
                 await JSRuntime.InvokeVoidAsync("showToast", L["ActionSuccessful"].Value, "success");
@@ -474,8 +488,10 @@
         isDetaching = true;
         try
         {
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            var userContext = blazorBookLibrary.Shared.ConverterUtils.fromClaimsPrincipal(authState.User);
             var dpId = DistributionPointId.NewDistributionPointId(Guid.Parse(selectedDpId));
-            var result = await BookService.UnsetAllBookRelatedToDPAsync(dpId, currentUserId);
+            var result = await BookService.UnsetAllBookRelatedToDPAsync(userContext, dpId, currentUserId);
             
             if (result.IsOk)
             {
@@ -511,12 +527,14 @@
         isSwitching = true;
         try
         {
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            var userContext = blazorBookLibrary.Shared.ConverterUtils.fromClaimsPrincipal(authState.User);
             var fromId = DistributionPointId.NewDistributionPointId(Guid.Parse(selectedDpId));
             var toId = DistributionPointId.NewDistributionPointId(Guid.Parse(selectedTargetDpId));
             
-            // Note: Service expects (from, to, bookId, userId)
+            // Note: Service expects (context, from, to, bookId, userId)
             // Passing BookId.NewBookId(Guid.Empty) as bookId is ignored by implementation for batch move
-            var result = await BookService.MoveFromDpToAnotherDPAsync(fromId, toId, BookId.NewBookId(Guid.Empty), currentUserId);
+            var result = await BookService.MoveFromDpToAnotherDPAsync(userContext, fromId, toId, BookId.NewBookId(Guid.Empty), currentUserId);
             
             if (result.IsOk)
             {

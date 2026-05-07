@@ -83,7 +83,11 @@ type DistributionPointService
             }
 
     interface IDistributionPointService with
-        member this.GetDistributionPointAsync(id, ?ct) = this.GetDistributionPointAsync(id, ?ct=ct)
-        member this.GetAllDistributionPointsAsync(?ct) = this.GetAllDistributionPointsAsync(?ct=ct)
-        member this.FindDistributionPointsAsync(name, ?ct) = this.FindDistributionPointsAsync(name, ?ct=ct)
-        member this.CreateDistributionPointAsync(distributionPoint, ?ct) = this.CreateDistributionPointAsync(distributionPoint, ?ct=ct)
+        member this.GetDistributionPointAsync(context: UserContext, id: DistributionPointId, ?ct: CancellationToken) = 
+            this.GetDistributionPointAsync(id, ?ct=ct)
+        member this.GetAllDistributionPointsAsync(context: UserContext, ?ct: CancellationToken) = 
+            this.GetAllDistributionPointsAsync(?ct=ct)
+        member this.FindDistributionPointsAsync(context: UserContext, name: Name, ?ct: CancellationToken) = 
+            this.FindDistributionPointsAsync(name, ?ct=ct)
+        member this.CreateDistributionPointAsync(context: UserContext, distributionPoint: DistributionPoint, ?ct: CancellationToken) = 
+            this.CreateDistributionPointAsync(distributionPoint, ?ct=ct)

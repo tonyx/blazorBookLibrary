@@ -224,8 +224,9 @@
 
             currentUserId = UserId.NewUserId(userGuid);
             var reviewId = ReviewId.NewReviewId(reviewIdGuid);
+            var context = blazorBookLibrary.Shared.ConverterUtils.fromClaimsPrincipal(user);
 
-            var result = await DetailsService.GetReviewDetailsAsync(reviewId);
+            var result = await DetailsService.GetReviewDetailsAsync(context, reviewId);
             if (result.IsOk)
             {
                 var details = result.ResultValue;
@@ -263,7 +264,9 @@
 
         try
         {
-            var result = await ReviewService.EditReviewAsync(reviewDetails.Review.ReviewId, editedComment, CancellationToken.None);
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var context = blazorBookLibrary.Shared.ConverterUtils.fromClaimsPrincipal(authState.User);
+            var result = await ReviewService.EditReviewAsync(context, reviewDetails.Review.ReviewId, editedComment, CancellationToken.None);
             if (result.IsOk)
             {
                 originalComment = editedComment;
@@ -307,7 +310,9 @@
     private async Task HideReview()
     {
         if (reviewDetails == null) return;
-        var result = await ReviewService.HideAsync(reviewDetails.Review.ReviewId, CancellationToken.None);
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var context = blazorBookLibrary.Shared.ConverterUtils.fromClaimsPrincipal(authState.User);
+        var result = await ReviewService.HideAsync(context, reviewDetails.Review.ReviewId, CancellationToken.None);
         if (result.IsOk)
         {
             await LoadReview();
@@ -317,7 +322,9 @@
     private async Task ShowReview()
     {
         if (reviewDetails == null) return;
-        var result = await ReviewService.ShowAsync(reviewDetails.Review.ReviewId, CancellationToken.None);
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var context = blazorBookLibrary.Shared.ConverterUtils.fromClaimsPrincipal(authState.User);
+        var result = await ReviewService.ShowAsync(context, reviewDetails.Review.ReviewId, CancellationToken.None);
         if (result.IsOk)
         {
             await LoadReview();

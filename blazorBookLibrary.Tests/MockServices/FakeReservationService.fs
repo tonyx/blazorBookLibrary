@@ -10,28 +10,28 @@ open BookLibrary.Shared.Services
 
 type FakeReservationService() =
     interface IReservationService with
-        member this.AddReservationAsync(reservation, shortLang, ct) =
+        member this.AddReservationAsync(userContext, reservation, shortLang, ct) =
             printfn "FakeReservationService: AddReservationAsync called for reservation %A (Lang: %A)" reservation shortLang
             Task.FromResult(Ok ())
 
-        member this.GetReservationAsync(id, ct) =
+        member this.GetReservationAsync(userContext, id, ct) =
             printfn "FakeReservationService: GetReservationAsync called for id %A" id
             Task.FromResult(Error "GetReservationAsync not fully implemented in FakeReservationService")
 
-        member this.RemoveReservationAsync(reservationId, ct) =
+        member this.RemoveReservationAsync(userContext, reservationId, ct) =
             printfn "FakeReservationService: RemoveReservationAsync called for id %A" reservationId
             Task.FromResult(Ok ())
 
-        member this.GetReservationsAsync(ids, ct) =
+        member this.GetReservationsAsync(userContext, ids, ct) =
             printfn "FakeReservationService: GetReservationsAsync called for %d ids" ids.Length
             Task.FromResult(Ok [])
 
-        member this.GetReservationDetailsAsync(id, ct) =
+        member this.GetReservationDetailsAsync(userContext, id, ct) =
             printfn "FakeReservationService: GetReservationDetailsAsync called for id %A" id
             Task.FromResult(Error "GetReservationDetailsAsync not fully implemented in FakeReservationService")
-        member this.RemoveExpiredReservationsAsync (?ct: CancellationToken) = 
+        member this.RemoveExpiredReservationsAsync (userContext, ct) = 
             printfn "FakeReservationService: RemoveExpiredReservationsAsync called"
             Task.FromResult(Ok ())        
-        member this.GetAllPendingReservationsDetailsAsync(ct: CancellationToken option): Task<Result<List<ReservationDetails>,string>> = 
+        member this.GetAllPendingReservationsDetailsAsync(userContext, ct) = 
             printfn "FakeReservationService: GetAllPendingReservationsDetailsAsync called"
             Task.FromResult(Ok [])

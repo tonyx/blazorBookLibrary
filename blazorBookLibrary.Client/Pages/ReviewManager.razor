@@ -16,6 +16,7 @@
 @inject IDetailsService DetailsService
 @inject IJSRuntime JSRuntime
 @inject IStringLocalizer<SharedResources> L
+@inject AuthenticationStateProvider AuthenticationStateProvider
 @rendermode InteractiveServer
 
 <PageTitle>@L["ReviewModeration"] — @L["TheModernArchivist"]</PageTitle>
@@ -168,10 +169,12 @@
         
         int retries = 20;
         var reviewId = ReviewId.NewReviewId(reviewIdGuid);
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var context = blazorBookLibrary.Shared.ConverterUtils.fromClaimsPrincipal(authState.User);
         while (retries > 0)
         {
             await Task.Delay(100);
-            var freshResult = await DetailsService.GetReviewDetailsAsync(reviewId);
+            var freshResult = await DetailsService.GetReviewDetailsAsync(context, reviewId);
             if (freshResult.IsOk)
             {
                 var freshDetails = freshResult.ResultValue;
@@ -192,7 +195,9 @@
     private async Task LoadReview()
     {
         var reviewId = ReviewId.NewReviewId(reviewIdGuid);
-        var result = await DetailsService.GetReviewDetailsAsync(reviewId);
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var context = blazorBookLibrary.Shared.ConverterUtils.fromClaimsPrincipal(authState.User);
+        var result = await DetailsService.GetReviewDetailsAsync(context, reviewId);
         if (result.IsOk)
         {
             details = result.ResultValue;
@@ -206,7 +211,9 @@
     private async Task ApproveReview()
     {
         if (details == null) return;
-        var result = await ReviewService.ApproveAsync(details.Review.ReviewId, CancellationToken.None);
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var context = blazorBookLibrary.Shared.ConverterUtils.fromClaimsPrincipal(authState.User);
+        var result = await ReviewService.ApproveAsync(context, details.Review.ReviewId, CancellationToken.None);
         if (result.IsOk)
         {
             await JSRuntime.InvokeVoidAsync("showToast", L["ApproveSuccess"].Value, "success");
@@ -221,7 +228,9 @@
     private async Task RejectReview()
     {
         if (details == null) return;
-        var result = await ReviewService.RejectAsync(details.Review.ReviewId, CancellationToken.None);
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var context = blazorBookLibrary.Shared.ConverterUtils.fromClaimsPrincipal(authState.User);
+        var result = await ReviewService.RejectAsync(context, details.Review.ReviewId, CancellationToken.None);
         if (result.IsOk)
         {
             await JSRuntime.InvokeVoidAsync("showToast", L["RejectSuccess"].Value, "success");

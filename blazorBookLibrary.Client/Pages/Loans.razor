@@ -16,6 +16,7 @@
 @inject IDetailsService DetailsService
 @inject IJSRuntime JSRuntime
 @inject IStringLocalizer<SharedResources> L
+@inject AuthenticationStateProvider AuthenticationStateProvider
 @rendermode InteractiveServer
 
 <PageTitle>@L["LoansManagement"] — @L["TheModernArchivist"]</PageTitle>
@@ -184,8 +185,9 @@
 
     private async Task LoadLoans()
     {
-        @* var result = await LoanService.GetLoansDetailsAsync(); *@
-        var result = await DetailsService.GetAllLoansDetailsAsync();
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var context = blazorBookLibrary.Shared.ConverterUtils.fromClaimsPrincipal(authState.User);
+        var result = await DetailsService.GetAllLoansDetailsAsync(context);
         if (result.IsOk)
         {
             loanDetailsList = result.ResultValue.ToList();
@@ -201,7 +203,9 @@
         var confirmed = await JSRuntime.InvokeAsync<bool>("confirm", $"{L["ConfirmReturnOf"]} {loanDetails.Book.Title.Value}?");
         if (confirmed)
         {
-            var result = await LoanService.ReleaseLoanAsync(loanDetails.Loan.LoanId, ShortLang.New(CultureInfo.CurrentCulture.Name), DateTime.UtcNow);
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var context = blazorBookLibrary.Shared.ConverterUtils.fromClaimsPrincipal(authState.User);
+            var result = await LoanService.ReleaseLoanAsync(context, loanDetails.Loan.LoanId, ShortLang.New(CultureInfo.CurrentCulture.Name), DateTime.UtcNow);
             if (result.IsOk)
             {
                 await JSRuntime.InvokeVoidAsync("showToast", $"{L["LoanReturnedSuccessfully"]}", "success");

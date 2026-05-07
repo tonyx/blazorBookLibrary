@@ -125,7 +125,8 @@
         var userIdStr = await UserManager.GetUserIdAsync(user);
         if (Guid.TryParse(userIdStr, out var userGuid))
         {
-            var result = await ReviewService.GetReviewsOfUserAsync(UserId.NewUserId(userGuid));
+            var context = blazorBookLibrary.Shared.ConverterUtils.fromClaimsPrincipal(HttpContext.User);
+            var result = await ReviewService.GetReviewsOfUserAsync(context, UserId.NewUserId(userGuid));
             if (result.IsOk)
             {
                 // Convert F# list to C# list

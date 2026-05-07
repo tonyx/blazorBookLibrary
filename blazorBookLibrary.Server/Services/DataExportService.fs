@@ -86,14 +86,14 @@ type DataExportService
         )
     
     interface IDataExportService with
-        member this.ExportAllBooksAsync(exportFormat, ?ct) =
+        member this.ExportAllBooksAsync(context, exportFormat, ?ct) =
             taskResult {
                 let ct = defaultArg ct CancellationToken.None
-                let! allBooks = bookService.GetAllAsync(ct = ct) 
+                let! allBooks = bookService.GetAllAsync(context, ct = ct) 
                 let bookIds = allBooks |> List.map _.BookId
                 let! bookDetails = 
                     bookIds
-                    |> List.traverseTaskResultM (fun bookId -> detailsService.GetBookDetailsAsync(bookId, ct))
+                    |> List.traverseTaskResultM (fun bookId -> detailsService.GetBookDetailsAsync(context, bookId, ct))
                 match exportFormat with
                 | Json ->
                     let json = System.Text.Json.JsonSerializer.Serialize(allBooks, jsonOptions)
@@ -116,7 +116,7 @@ type DataExportService
                     return csv
             }
 
-        member this.ImportFromIsbns (isbns: List<Isbn>, preventDuplicates: bool, generateUnknownAuthors: bool, generateEmbeddings: bool, generateMissingDescriptions: bool, progress: IProgress<ImportProgress>, ct: CancellationToken) =
+        member this.ImportFromIsbns (context: UserContext, isbns: List<Isbn>, preventDuplicates: bool, generateUnknownAuthors: bool, generateEmbeddings: bool, generateMissingDescriptions: bool, progress: IProgress<ImportProgress>, ct: CancellationToken) =
             task {
                 let progressReporter = Option.ofObj progress
                 let details = System.Collections.Generic.List<ImportItemDetail>()
@@ -149,7 +149,7 @@ type DataExportService
                             let! skip = 
                                 if preventDuplicates then
                                     task {
-                                        let! existingResult = bookService.SearchByIsbnAsync(isbn, ct = ct)
+                                        let! existingResult = bookService.SearchByIsbnAsync(context, isbn, ct = ct)
                                         match existingResult with
                                         | Ok l -> return Ok (not (List.isEmpty l))
                                         | Error e -> return Error e
@@ -196,7 +196,7 @@ type DataExportService
                                         |> List.traverseTaskResultM (fun authorName ->
                                             taskResult {
                                                 let name = Name.New authorName
-                                                let! localAuthors = authorService.SearchByNameAsync(name, ct = ct)
+                                                let! localAuthors = authorService.SearchByNameAsync(context, name, ct = ct)
                                                 if not (List.isEmpty localAuthors) then
                                                     return Some localAuthors.[0].AuthorId
                                                 elif generateUnknownAuthors then
@@ -224,7 +224,7 @@ type DataExportService
                                                         |> Option.defaultValue Isni.EmptyIsni
                                                     
                                                     let author = Author.NewWithOptionalIsniAndImageUrl(name, isni, ?imageUrl = authorPic)
-                                                    let! _ = authorService.AddAuthorAsync(author, ct = ct)
+                                                    let! _ = authorService.AddAuthorAsync(context, author, ct = ct)
                                                     return Some author.AuthorId
                                                 else
                                                     return None
@@ -316,7 +316,7 @@ type DataExportService
                                         }
                                         |> Task.map (fun r -> match r with | Ok b -> b | _ -> book)
 
-                                    let! _ = bookService.AddBookAsync(finalBook, ct = ct)
+                                    let! _ = bookService.AddBookAsync(context, finalBook, ct = ct)
                                     return ()
                                 | None -> 
                                     return! Error "Metadata not found"

@@ -296,7 +296,7 @@
         <div class="mb-5 animate-fade-in">
             <div class="card-sanctuary p-4 bg-surface-low border-primary-subtle border">
                 <BulkEditComponent BookIds="@selectedBookIds.ToList()" 
-                                   UserId="@currentUserId"
+                                   UserContext="@_cachedUserContext"
                                    ManagedDistributionPoints="@managedDistributionPoints"
                                    OnCancel="() => showBulkEdit = false" 
                                    OnSuccess="HandleBulkEditSuccess" />
@@ -780,8 +780,22 @@
 </div>
 
 @code {
+    [CascadingParameter]
+    private Task<AuthenticationState> authenticationStateTask { get; set; } = default!;
+
+    private UserContext? _cachedUserContext;
     private bool showBulkEdit = false;
     private HashSet<BookId> selectedBookIds = new();
+
+    private async Task<UserContext> GetUserContextAsync()
+    {
+        if (_cachedUserContext == null)
+        {
+            var authState = await authenticationStateTask;
+            _cachedUserContext = blazorBookLibrary.Shared.ConverterUtils.fromClaimsPrincipal(authState.User);
+        }
+        return _cachedUserContext;
+    }
 
     private void ToggleBookSelection(BookId bookId, object? checkedValue)
     {
@@ -1062,7 +1076,8 @@
 
     protected override async Task OnInitializedAsync()
     {
-        var tagsResult = await TagService.GetBookTypeTagsAsync();
+        var context = await GetUserContextAsync();
+        var tagsResult = await TagService.GetBookTypeTagsAsync(CancellationToken.None);
         if (tagsResult.IsOk)
         {
             allAvailableTags = tagsResult.ResultValue.ToList();
@@ -1072,11 +1087,11 @@
         var user = authState.User;
         if (user.Identity?.IsAuthenticated == true)
         {
-            var userIdStr = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-            if (!string.IsNullOrEmpty(userIdStr) && Guid.TryParse(userIdStr, out var userGuid))
+            var userIdClaim = user.FindFirst(c => c.Type == System.Security.Claims.ClaimTypes.NameIdentifier) ?? user.FindFirst("sub");
+            if (userIdClaim != null && Guid.TryParse(userIdClaim.Value, out var guid))
             {
-                currentUserId = UserId.NewUserId(userGuid);
-                var dpResult = await UserService.GetDistributionPointsManagedByUserAsync(currentUserId, FSharpOption<CancellationToken>.None);
+                currentUserId = UserId.NewUserId(guid);
+                var dpResult = await UserService.GetDistributionPointsManagedByUserAsync(context, currentUserId, CancellationToken.None);
                 if (dpResult.IsOk)
                 {
                     managedDistributionPoints = dpResult.ResultValue.ToList();
@@ -1250,7 +1265,8 @@
             }
         }
 
-        var result = await BookService.AddBookAsync(book);
+        var context = await GetUserContextAsync();
+        var result = await BookService.AddBookAsync(context, book);
         if (result.IsOk)
         {
             await ShowStatus(string.Format(L["BookCreatedSuccessfully"], newBookTitle), "success");
@@ -1277,12 +1293,13 @@
             var embeddingResult = await TextEmbeddingService.GetEmbeddingAsync(description);
             if (embeddingResult.IsOk)
             {
+                var context = await GetUserContextAsync();
                 var embeddingId = EmbeddingDataId.New();
-                var storeResult = await VectorDbService.StoreEmbeddingAsync(embeddingId, bookId, embeddingResult.ResultValue, FSharpOption<CancellationToken>.None);
+                var storeResult = await VectorDbService.StoreEmbeddingAsync(embeddingId, bookId, embeddingResult.ResultValue, CancellationToken.None);
                 
                 if (storeResult.IsOk)
                 {
-                    var embedResult = await BookService.EmbedDescriptionAsync(bookId, embeddingId, FSharpOption<CancellationToken>.None);
+                    var embedResult = await BookService.EmbedDescriptionAsync(context, bookId, embeddingId, CancellationToken.None);
                     if (embedResult.IsOk)
                     {
                         await ShowStatus(L["EmbeddingGeneratedSuccessfully"].Value, "success");
@@ -1344,26 +1361,27 @@
         bool hasIsni = !string.IsNullOrWhiteSpace(searchAuthorIsni);
 
         FSharpResult<FSharpList<Author>, string> result;
+        var context = await GetUserContextAsync();
 
         if (hasName && hasIsni)
         {
             var name = Name.New(searchAuthorName);
             var isni = Isni.NewInvalid(searchAuthorIsni);
-            result = await AuthorService.SearchByIsniAndNameAsync(isni, name);
+            result = await AuthorService.SearchByIsniAndNameAsync(context, isni, name, CancellationToken.None);
         }
         else if (hasName)
         {
             var name = Name.New(searchAuthorName);
-            result = await AuthorService.SearchByNameAsync(name);
+            result = await AuthorService.SearchByNameAsync(context, name, CancellationToken.None);
         }
         else if (hasIsni)
         {
             var isni = Isni.NewInvalid(searchAuthorIsni);
-            result = await AuthorService.SearchByIsniAsync(isni);
+            result = await AuthorService.SearchByIsniAsync(context, isni, CancellationToken.None);
         }
         else
         {
-            result = await AuthorService.GetAllAsync();
+            result = await AuthorService.GetAllAsync(context, CancellationToken.None);
         }
 
         if (result.IsOk)
@@ -1387,7 +1405,7 @@
         isAutofilling = true;
         try
         {
-            var results = await GoogleBooksService.LookupMultipleByTitleAsync(newBookTitle);
+            var results = await GoogleBooksService.LookupMultipleByTitleAsync(newBookTitle, CancellationToken.None);
             if (results.IsOk)
             {
                 lookupResults = results.ResultValue.ToList();
@@ -1436,7 +1454,7 @@
         isLookingUpMetadata = true;
         try
         {
-            var result = await GoogleBooksService.LookupByIsbnAsync(Isbn.StripExtraChars(newBookIsbn));
+            var result = await GoogleBooksService.LookupByIsbnAsync(Isbn.StripExtraChars(newBookIsbn), CancellationToken.None);
             if (result.IsOk && FSharpOption<GoogleBookMetadata>.get_IsSome(result.ResultValue))
             {
                 var book = result.ResultValue.Value;
@@ -1470,9 +1488,10 @@
     private async Task ProcessMetadataAuthors(IEnumerable<string> names)
     {
         metadataAuthors.Clear();
+        var context = await GetUserContextAsync();
         foreach (var name in names)
         {
-            var searchResult = await AuthorService.SearchByNameAsync(Name.New(name));
+            var searchResult = await AuthorService.SearchByNameAsync(context, Name.New(name), CancellationToken.None);
             if (searchResult.IsOk && searchResult.ResultValue.Any())
             {
                 // Find exact name match in the list
@@ -1496,7 +1515,8 @@
     private async Task AddMetadataAuthor(string name)
     {
         var author = Author.NewWithoutIsni(Name.New(name));
-        var result = await AuthorService.AddAuthorAsync(author);
+        var context = await GetUserContextAsync();
+        var result = await AuthorService.AddAuthorAsync(context, author);
         if (result.IsOk)
         {
             AddAuthor(author);
@@ -1531,6 +1551,7 @@
 
         try
         {
+            var context = await GetUserContextAsync();
             FSharpResult<FSharpOption<string>, string> result;
             string searchMode = "";
 
@@ -1541,7 +1562,7 @@
                 if (coverSizeLookup == "Small") size = ThumbRoughSize.Small;
                 else if (coverSizeLookup == "Large") size = ThumbRoughSize.Large;
 
-                result = await GoogleBooksService.LookupCoverImageByIsbnWithOpenApiAndThenGoogleAsync(Isbn.New(newBookIsbn).ResultValue, FSharpOption<ThumbRoughSize>.Some(size));
+                result = await GoogleBooksService.LookupCoverImageByIsbnWithOpenApiAndThenGoogleAsync(Isbn.New(newBookIsbn).ResultValue, FSharpOption<ThumbRoughSize>.Some(size), CancellationToken.None);
             }
             else
             {
@@ -1550,7 +1571,7 @@
                 var firstAuthor = selectedAuthors.FirstOrDefault();
                 var authorName = firstAuthor != null ? FSharpOption<string>.Some(firstAuthor.Name.Value) : FSharpOption<string>.None;
                 
-                result = await GoogleBooksService.LookupGoogleApiCoverImageByTitleAndOptionalAuthorAsync(title, authorName);
+                result = await GoogleBooksService.LookupGoogleApiCoverImageByTitleAndOptionalAuthorAsync(title, authorName, CancellationToken.None);
             }
 
             if (result.IsOk && FSharpOption<string>.get_IsSome(result.ResultValue))
@@ -1584,7 +1605,8 @@
         isExporting = true;
         try
         {
-            var result = await DataExportService.ExportAllBooksAsync(format, CancellationToken.None);
+            var context = await GetUserContextAsync();
+            var result = await DataExportService.ExportAllBooksAsync(context, format, CancellationToken.None);
             if (result.IsOk)
             {
                 var fileName = $"books_export_{DateTime.Now:yyyyMMdd_HHmmss}{format.Extension}";
@@ -1636,7 +1658,16 @@
             });
 
             importCts = new CancellationTokenSource();
-            var result = await DataExportService.ImportFromIsbns(isbns, !importAllowDuplicates, importGenerateAuthors, importGenerateEmbeddings, importGenerateMissingDescriptions, progress, importCts.Token);
+            var context = await GetUserContextAsync();
+            var result = await DataExportService.ImportFromIsbns(
+                context, 
+                isbns, 
+                !importAllowDuplicates, 
+                importGenerateAuthors, 
+                importGenerateEmbeddings, 
+                importGenerateMissingDescriptions, 
+                progress, 
+                importCts.Token);
             
             if (result.IsOk)
             {

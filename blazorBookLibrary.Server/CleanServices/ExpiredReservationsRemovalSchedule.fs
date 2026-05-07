@@ -7,6 +7,7 @@ open System.Threading
 open BookLibrary.Shared.Services
 open BookLibrary.Shared
 open Microsoft.Extensions.Configuration
+open BookLibrary.Shared.Commons
 
 type ExpiredReservationsRemovalScheduler(scopeFactory: IServiceScopeFactory, configuration: IConfiguration) =
     inherit BackgroundService()
@@ -21,6 +22,6 @@ type ExpiredReservationsRemovalScheduler(scopeFactory: IServiceScopeFactory, con
                 do
                     use scope = scopeFactory.CreateScope()
                     let reservationService = scope.ServiceProvider.GetRequiredService<IReservationService>()
-                    let! _ = reservationService.RemoveExpiredReservationsAsync()
+                    let! _ = reservationService.RemoveExpiredReservationsAsync(UserContext.Anonymous)
                     ()
         }

@@ -450,6 +450,30 @@ type AppUserInfo =
                 Cognome = ""
             }
 
+type Role = 
+    | Admin
+    | Manager
+    with
+        static member FromString (role: string) = 
+            match role.ToLowerInvariant() with
+            | "admin" -> Admin
+            | "manager" ->  Manager
+            | _ -> failwith ("unrecognized role: " + role)
+
+type UserContext = 
+    | Authenticated of UserId: UserId * Roles: List<Role>
+    | Anonymous
+    with 
+        member this.IsInRole (role: string) = 
+            match this with
+            | Authenticated(_, roles) -> roles |> List.exists (fun r -> r.ToString() = role)
+            | Anonymous -> false
+        
+        member this.UserId = 
+            match this with
+            | Authenticated(userId, _) -> Some userId
+            | Anonymous -> None
+
 type Name =
     | Name of string
     | EmptyName

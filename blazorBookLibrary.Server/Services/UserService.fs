@@ -73,7 +73,7 @@ type UserService
         let eventStore = PgStorage.PgEventStore connectionString
         UserService(eventStore, scopeFactory, reviewService)
 
-    member this.MakeUserDetailsRefresherAsync(id: UserId, ?ct: CancellationToken) = 
+    member this.MakeUserDetailsRefresherAsync(context: UserContext, id: UserId, ?ct: CancellationToken) = 
         fun (ct: Option<CancellationToken>) -> 
             taskResult 
                 {
@@ -101,7 +101,7 @@ type UserService
                         List.zip currentLoans loansedBooks
 
                     let! booksAndReviews =
-                        reviewService.GetReviewsOfUserAsync(id, ct)
+                        reviewService.GetReviewsOfUserAsync(context, id, ct)
                         
                     return 
                         {
@@ -113,7 +113,7 @@ type UserService
                         }
                 }
 
-    member this.CreateUserAsync (user: User, ?ct: CancellationToken) : Task<Result<unit, string>> =
+    member this.CreateUserAsync (context: UserContext, user: User, ?ct: CancellationToken) : Task<Result<unit, string>> =
         taskResult 
             {
                 let result =
@@ -125,7 +125,7 @@ type UserService
                 return! result
             }
 
-    member this.GetUserAsync (userId: UserId, ?ct: CancellationToken) : Task<Result<User, string>> =
+    member this.GetUserAsync (context: UserContext, userId: UserId, ?ct: CancellationToken) : Task<Result<User, string>> =
         taskResult 
             {
                 let ct = defaultArg ct CancellationToken.None
@@ -134,11 +134,11 @@ type UserService
             }
 
     member private 
-        this.GetRefreshableUserDetailsAsync(userId: UserId, ?ct:CancellationToken): TaskResult<RefreshableUserDetails, string> =
+        this.GetRefreshableUserDetailsAsync(context: UserContext, userId: UserId, ?ct:CancellationToken): TaskResult<RefreshableUserDetails, string> =
             let detailsBuilder =
                 fun (ct: Option<CancellationToken>) ->
                     let ct = ct |> Option.defaultValue CancellationToken.None
-                    let refresher = this.MakeUserDetailsRefresherAsync(userId)
+                    let refresher = this.MakeUserDetailsRefresherAsync(context, userId)
 
                     taskResult {
                         let! userDetails = refresher (Some ct) 
@@ -157,15 +157,15 @@ type UserService
             let key = DetailsCacheKey.OfType typeof<RefreshableUserDetails> userId.Value
             StateView.getRefreshableDetailsTaskResultAsync<RefreshableUserDetails> (fun ct -> detailsBuilder ct) key ct
 
-    member this.GetUserDetailsAsync (userId: UserId, ?ct: CancellationToken) : Task<Result<UserDetails, string>> =
+    member this.GetUserDetailsAsync (context: UserContext, userId: UserId, ?ct: CancellationToken) : Task<Result<UserDetails, string>> =
         taskResult {
             let ct = defaultArg ct CancellationToken.None
             let! refreshableUserDetails =
-                this.GetRefreshableUserDetailsAsync(userId, ct)
+                this.GetRefreshableUserDetailsAsync(context, userId, ct)
             return refreshableUserDetails.UserDetails
         }
 
-    member private this.UpdateAppUserPropertyAsync (userId: UserId, updateAction: ApplicationUser -> unit, ?ct: CancellationToken) : Task<Result<unit, string>> =
+    member private this.UpdateAppUserPropertyAsync (context: UserContext, userId: UserId, updateAction: ApplicationUser -> unit, ?ct: CancellationToken) : Task<Result<unit, string>> =
         taskResult {
             let ct = defaultArg ct CancellationToken.None
             use scope = scopeFactory.CreateScope()
@@ -187,44 +187,44 @@ type UserService
             return updateResult
         }
 
-    member private this.UpdateAppUserAndAggregateAsync (userId: UserId, updateAction: ApplicationUser -> unit, command: UserCommand, ?ct: CancellationToken) : Task<Result<unit, string>> =
+    member private this.UpdateAppUserAndAggregateAsync (context: UserContext, userId: UserId, updateAction: ApplicationUser -> unit, command: UserCommand, ?ct: CancellationToken) : Task<Result<unit, string>> =
         taskResult {
             let ct = defaultArg ct CancellationToken.None
-            let! res = this.UpdateAppUserPropertyAsync(userId, updateAction, ct)
+            let! res = this.UpdateAppUserPropertyAsync(context, userId, updateAction, ct)
             let! _ = 
                 runAggregateCommandMdAsync<User, UserEvent, string>
                     userId.Value
                     eventStore
                     messageSenders
-                    ""
+                    (context.ToString())
                     command
                     (Some ct)
             
             return res
         }
 
-    member this.SetFiscalCodeAsync (userId: UserId, fiscalCode: FiscalCode, ?ct: CancellationToken) : Task<Result<unit, string>> =
-        this.UpdateAppUserAndAggregateAsync(userId, (fun u -> u.CodiceFiscale <- fiscalCode.Value), SetCodiceFiscale fiscalCode, ?ct = ct)
+    member this.SetFiscalCodeAsync (context: UserContext, userId: UserId, fiscalCode: FiscalCode, ?ct: CancellationToken) : Task<Result<unit, string>> =
+        this.UpdateAppUserAndAggregateAsync(context, userId, (fun u -> u.CodiceFiscale <- fiscalCode.Value), SetCodiceFiscale fiscalCode, ?ct = ct)
 
-    member this.SetNameAsync (userId: UserId, name: string, ?ct: CancellationToken) : Task<Result<unit, string>> =
-        this.UpdateAppUserAndAggregateAsync(userId, (fun u -> u.Nome <- name), SetNome name, ?ct = ct)
+    member this.SetNameAsync (context: UserContext, userId: UserId, name: string, ?ct: CancellationToken) : Task<Result<unit, string>> =
+        this.UpdateAppUserAndAggregateAsync(context, userId, (fun u -> u.Nome <- name), SetNome name, ?ct = ct)
 
-    member this.SetSurnameAsync (userId: UserId, surname: string, ?ct: CancellationToken) : Task<Result<unit, string>> =
-        this.UpdateAppUserAndAggregateAsync(userId, (fun u -> u.Cognome <- surname), SetCognome surname, ?ct = ct)
+    member this.SetSurnameAsync (context: UserContext, userId: UserId, surname: string, ?ct: CancellationToken) : Task<Result<unit, string>> =
+        this.UpdateAppUserAndAggregateAsync(context, userId, (fun u -> u.Cognome <- surname), SetCognome surname, ?ct = ct)
 
-    member this.SetPhoneNumberAsync (userId: UserId, phoneNumber: PhoneNumber, ?ct: CancellationToken) : Task<Result<unit, string>> =
-        this.UpdateAppUserAndAggregateAsync(userId, (fun u -> u.PhoneNumber <- phoneNumber.Value), SetPhoneNumber phoneNumber, ?ct = ct)
+    member this.SetPhoneNumberAsync (context: UserContext, userId: UserId, phoneNumber: PhoneNumber, ?ct: CancellationToken) : Task<Result<unit, string>> =
+        this.UpdateAppUserAndAggregateAsync(context, userId, (fun u -> u.PhoneNumber <- phoneNumber.Value), SetPhoneNumber phoneNumber, ?ct = ct)
 
-    member this.SetIsPhysicallyIdentifiedAsync (userId: UserId, ?ct: CancellationToken) : Task<Result<unit, string>> =
-        this.UpdateAppUserAndAggregateAsync(userId, (fun u -> u.IsIdentifiedPhysically <- true), SetPhysicalIdentification, ?ct = ct)
+    member this.SetIsPhysicallyIdentifiedAsync (context: UserContext, userId: UserId, ?ct: CancellationToken) : Task<Result<unit, string>> =
+        this.UpdateAppUserAndAggregateAsync(context, userId, (fun u -> u.IsIdentifiedPhysically <- true), SetPhysicalIdentification, ?ct = ct)
 
-    member this.UnSetIsPhysicallyIdentifiedAsync (userId: UserId, ?ct: CancellationToken) : Task<Result<unit, string>> =
-        this.UpdateAppUserAndAggregateAsync(userId, (fun u -> u.IsIdentifiedPhysically <- false), UnsetPhysicalIdentification, ?ct = ct)
+    member this.UnSetIsPhysicallyIdentifiedAsync (context: UserContext, userId: UserId, ?ct: CancellationToken) : Task<Result<unit, string>> =
+        this.UpdateAppUserAndAggregateAsync(context, userId, (fun u -> u.IsIdentifiedPhysically <- false), UnsetPhysicalIdentification, ?ct = ct)
 
 
     
-    member this.GhostUserAsync (userId: UserId, ?ct: CancellationToken) : Task<Result<unit, string>> =
-        this.UpdateAppUserAndAggregateAsync(userId, (fun u -> 
+    member this.GhostUserAsync (context: UserContext, userId: UserId, ?ct: CancellationToken) : Task<Result<unit, string>> =
+        this.UpdateAppUserAndAggregateAsync(context, userId, (fun u -> 
                     let ghostId = Guid.NewGuid().ToString().Substring(0, 8)
                     let ghostName = sprintf "ghosted_%s" ghostId
                     let ghostEmail = sprintf "ghosted_%s@example.com" ghostId
@@ -241,7 +241,7 @@ type UserService
                     u.LockoutEnd <- Nullable<DateTimeOffset>(DateTimeOffset.MaxValue)
                 ), GdprGhost, ?ct = ct)
 
-    member private this.GetUser (userId: UserId, ?ct: CancellationToken) : Task<Result<User, string>> =
+    member private this.GetUser (context: UserContext, userId: UserId, ?ct: CancellationToken) : Task<Result<User, string>> =
         let ct = defaultArg ct CancellationToken.None
         taskResult
             {
@@ -249,7 +249,7 @@ type UserService
                 return user
             }
     
-    member this.SetAppUserInfoAsync (userId: UserId, appUserInfo: AppUserInfo, ?ct: CancellationToken) : Task<Result<unit, string>> =
+    member this.SetAppUserInfoAsync (context: UserContext, userId: UserId, appUserInfo: AppUserInfo, ?ct: CancellationToken) : Task<Result<unit, string>> =
         let ct = defaultArg ct CancellationToken.None
         taskResult
             {
@@ -259,13 +259,13 @@ type UserService
                         userId.Value
                         eventStore
                         messageSenders
-                        ""
+                        (context.ToString())
                         setAppUserInfoCommand
                         (ct |> Some)
 
                 return! result
             }
-    member this.GetDistributionPointManagedByUserAsync (userId: UserId, ?ct: CancellationToken) : Task<Result<List<DistributionPoint>, string>> = 
+    member this.GetDistributionPointsManagedByUserAsync (context: UserContext, userId: UserId, ?ct: CancellationToken) : Task<Result<List<DistributionPoint>, string>> = 
         let ct = defaultArg ct CancellationToken.None
         taskResult
             {
@@ -280,45 +280,45 @@ type UserService
             }
 
     interface IUserService with
-        member this.CreateUserAsync (user: User, ?ct: CancellationToken) : Task<Result<unit, string>> =
+        member this.CreateUserAsync (context, user: User, ?ct: CancellationToken) : Task<Result<unit, string>> =
             let ct = defaultArg ct CancellationToken.None
-            this.CreateUserAsync(user, ct)
-        member this.GetUserAsync (userId: UserId, ?ct: CancellationToken) : Task<Result<User, string>> =
+            this.CreateUserAsync(context, user, ct)
+        member this.GetUserAsync (context, userId: UserId, ?ct: CancellationToken) : Task<Result<User, string>> =
             let ct = defaultArg ct CancellationToken.None
-            this.GetUserAsync(userId, ct)
-        member this.GetUserDetailsAsync (userId: UserId, ?ct: CancellationToken) : Task<Result<UserDetails, string>> =
+            this.GetUserAsync(context, userId, ct)
+        member this.GetUserDetailsAsync (context: UserContext, userId: UserId, ?ct: CancellationToken) : Task<Result<UserDetails, string>> =
             let ct = defaultArg ct CancellationToken.None
-            this.GetUserDetailsAsync(userId, ct)
-        member this.SetFiscalCodeAsync (userId: UserId, fiscalCode: FiscalCode, ?ct: CancellationToken) : Task<Result<unit, string>> =
+            this.GetUserDetailsAsync(context, userId, ct)
+        member this.SetFiscalCodeAsync (context, userId: UserId, fiscalCode: FiscalCode, ?ct: CancellationToken) : Task<Result<unit, string>> =
             let ct = defaultArg ct CancellationToken.None
-            this.SetFiscalCodeAsync(userId, fiscalCode, ct)
-        member this.SetNameAsync (userId: UserId, name: string, ?ct: CancellationToken) : Task<Result<unit, string>> =
+            this.SetFiscalCodeAsync(context, userId, fiscalCode, ct)
+        member this.SetNameAsync (context, userId: UserId, name: string, ?ct: CancellationToken) : Task<Result<unit, string>> =
             let ct = defaultArg ct CancellationToken.None
-            this.SetNameAsync(userId, name, ct)
-        member this.SetSurnameAsync (userId: UserId, surname: string, ?ct: CancellationToken) : Task<Result<unit, string>> =
+            this.SetNameAsync(context, userId, name, ct)
+        member this.SetSurnameAsync (context, userId: UserId, surname: string, ?ct: CancellationToken) : Task<Result<unit, string>> =
             let ct = defaultArg ct CancellationToken.None
-            this.SetSurnameAsync(userId, surname, ct)
-        member this.SetPhoneNumberAsync (userId: UserId, phoneNumber: PhoneNumber, ?ct: CancellationToken) : Task<Result<unit, string>> =
+            this.SetSurnameAsync(context, userId, surname, ct)
+        member this.SetPhoneNumberAsync (context, userId: UserId, phoneNumber: PhoneNumber, ?ct: CancellationToken) : Task<Result<unit, string>> =
             let ct = defaultArg ct CancellationToken.None
-            this.SetPhoneNumberAsync(userId, phoneNumber, ct)
-        member this.SetIsPhysicallyIdentifiedAsync (userId: UserId, ?ct: CancellationToken) : Task<Result<unit, string>> =
+            this.SetPhoneNumberAsync(context, userId, phoneNumber, ct)
+        member this.SetIsPhysicallyIdentifiedAsync (context, userId: UserId, ?ct: CancellationToken) : Task<Result<unit, string>> =
             let ct = defaultArg ct CancellationToken.None
-            this.SetIsPhysicallyIdentifiedAsync(userId, ct)
-        member this.UnSetIsPhysicallyIdentifiedAsync (userId: UserId, ?ct: CancellationToken) : Task<Result<unit, string>> =
+            this.SetIsPhysicallyIdentifiedAsync(context, userId, ct)
+        member this.UnSetIsPhysicallyIdentifiedAsync (context, userId: UserId, ?ct: CancellationToken) : Task<Result<unit, string>> =
             let ct = defaultArg ct CancellationToken.None
-            this.UnSetIsPhysicallyIdentifiedAsync(userId, ct)
-        member this.GhostUserAsync (userId: UserId, ?ct: CancellationToken) : Task<Result<unit, string>> =
+            this.UnSetIsPhysicallyIdentifiedAsync(context, userId, ct)
+        member this.GhostUserAsync (context, userId: UserId, ?ct: CancellationToken) : Task<Result<unit, string>> =
             let ct = defaultArg ct CancellationToken.None
-            this.GhostUserAsync(userId, ct)
+            this.GhostUserAsync(context, userId, ct)
                  
-        member this.GetUser (userId: UserId, ?ct: CancellationToken) : Task<Result<User, string>> =
+        member this.GetUser (context, userId: UserId, ?ct: CancellationToken) : Task<Result<User, string>> =
             let ct = defaultArg ct CancellationToken.None
-            this.GetUser(userId, ct)
+            this.GetUser(context, userId, ct)
             
-        member this.SetAppUserInfoAsync (userId: UserId, appUserInfo: AppUserInfo, ?ct: CancellationToken) : Task<Result<unit, string>> =
+        member this.SetAppUserInfoAsync (context, userId: UserId, appUserInfo: AppUserInfo, ?ct: CancellationToken) : Task<Result<unit, string>> =
             let ct = defaultArg ct CancellationToken.None
-            this.SetAppUserInfoAsync(userId, appUserInfo, ct)
+            this.SetAppUserInfoAsync(context, userId, appUserInfo, ct)
 
-        member this.GetDistributionPointsManagedByUserAsync (userId: UserId, ?ct: CancellationToken) : Task<Result<List<DistributionPoint>, string>> =
+        member this.GetDistributionPointsManagedByUserAsync (context, userId: UserId, ?ct: CancellationToken) : Task<Result<List<DistributionPoint>, string>> =
             let ct = defaultArg ct CancellationToken.None
-            this.GetDistributionPointManagedByUserAsync(userId, ct)
+            this.GetDistributionPointsManagedByUserAsync(context, userId, ct)

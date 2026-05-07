@@ -8,6 +8,7 @@ open FsToolkit.ErrorHandling
 open Microsoft.Extensions.Configuration
 open Microsoft.Extensions.Logging
 open BookLibrary.Shared.Services
+open BookLibrary.Shared.Commons
 open BookLibrary.Tests.TestSeedExtensions.BookSeeds
 
 type RandomBooksGeneratorService (
@@ -20,8 +21,8 @@ type RandomBooksGeneratorService (
         let random = Random()
         taskResult
             {
-                let! existingBooks = bookService.GetAllAsync()
-                let! existingAuthors = authorService.GetAllAsync()
+                let! existingBooks = bookService.GetAllAsync(UserContext.Anonymous)
+                let! existingAuthors = authorService.GetAllAsync(UserContext.Anonymous)
                 if (existingBooks.Length >= 10) then
                     logger.LogInformation("Book threshold reached: {Count}", existingBooks.Length)
                     return ()
@@ -35,7 +36,7 @@ type RandomBooksGeneratorService (
 
                     logger.LogInformation("Generated {Count} random books", randomBooks.Length)
                     let! result = 
-                        bookService.AddBooksAsync(randomBooks)
+                        bookService.AddBooksAsync(UserContext.Anonymous, randomBooks)
 
                     logger.LogInformation("Added {Count} random books", randomBooks.Length)
 

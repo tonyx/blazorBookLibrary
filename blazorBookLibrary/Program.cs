@@ -194,12 +194,12 @@ using (var scope = app.Services.CreateScope())
             if (Guid.TryParse(identityUser.Id, out var userGuid))
             {
                 var sharpinoUserId = BookLibrary.Shared.Commons.UserId.NewUserId(userGuid);
-                var sharpinoUserResult = await userService.GetUserAsync(sharpinoUserId, Microsoft.FSharp.Core.FSharpOption<System.Threading.CancellationToken>.None);
+                var sharpinoUserResult = await userService.GetUserAsync(UserContext.Anonymous, sharpinoUserId, Microsoft.FSharp.Core.FSharpOption<System.Threading.CancellationToken>.None);
 
                 if (sharpinoUserResult.IsError) // User not found in event store
                 {
                     var newSharpinoUser = BookLibrary.Domain.User.New(sharpinoUserId);
-                    var createResult = await userService.CreateUserAsync(newSharpinoUser, Microsoft.FSharp.Core.FSharpOption<System.Threading.CancellationToken>.None);
+                    var createResult = await userService.CreateUserAsync(UserContext.Anonymous, newSharpinoUser, Microsoft.FSharp.Core.FSharpOption<System.Threading.CancellationToken>.None);
                     
                     if (createResult.IsError)
                     {
@@ -223,12 +223,12 @@ using (var scope = app.Services.CreateScope())
             if (Guid.TryParse(identityUser.Id, out var userGuid))
             {
                 var sharpinoUserId = UserId.NewUserId(userGuid);
-                var sharpinoUserResult = await userService.GetUserAsync(sharpinoUserId, FSharpOption<CancellationToken>.None);
+                var sharpinoUserResult = await userService.GetUserAsync(UserContext.Anonymous, sharpinoUserId, FSharpOption<CancellationToken>.None);
                 
                 if (sharpinoUserResult.IsOk)
                 {
                     var sharpinoId = UserId.NewUserId(new Guid(identityUser.Id));
-                    await userService.SetAppUserInfoAsync(sharpinoId, UserMapping.toAppUserInfo(identityUser), FSharpOption<CancellationToken>.None);
+                    await userService.SetAppUserInfoAsync(UserContext.Anonymous, sharpinoId, UserMapping.toAppUserInfo(identityUser), FSharpOption<CancellationToken>.None);
                 } 
                 else
                 {

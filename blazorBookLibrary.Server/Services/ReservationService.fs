@@ -77,7 +77,7 @@ type ReservationService
         let eventStore = PgStorage.PgEventStore connectionString
         ReservationService(eventStore, userService, mailNotificator, configuration, mailBodyRetriever) 
 
-        member private this.MakeReservationRefresher(id: ReservationId, ?ct:CancellationToken) = 
+        member private this.MakeReservationRefresher(context: UserContext, id: ReservationId, ?ct:CancellationToken) = 
             fun (ct: Option<CancellationToken>) ->
                 taskResult
                     {
@@ -87,7 +87,7 @@ type ReservationService
                         let! book = 
                             bookViewerAsync (ct |> Some) reservation.BookId.Value |> TaskResult.map snd
                         let! userDetails = 
-                            usersService.GetUserDetailsAsync (reservation.UserId, ct)
+                            usersService.GetUserDetailsAsync (context, reservation.UserId, ct)
                         return 
                             {
                                 Reservation = reservation
@@ -110,7 +110,7 @@ type ReservationService
                     reservationDetails.Book.BookId.Value]
                 }
             
-        member this.AddReservationAsync (reservation: Reservation, dateTime: System.DateTime, shortLang: ShortLang, ?ct: CancellationToken) = 
+        member this.AddReservationAsync (context: UserContext, reservation: Reservation, dateTime: System.DateTime, shortLang: ShortLang, ?ct: CancellationToken) = 
 
             taskResult
                 {
@@ -130,7 +130,7 @@ type ReservationService
                         |> Result.ofBool "Reservation time slot must be in the future"
 
                     let! alreadyExistingReservations =
-                        this.GetReservationsAsync book.CurrentReservations
+                        this.GetReservationsAsync (context, book.CurrentReservations)
 
                     let! noOverlaps =
                         alreadyExistingReservations
@@ -144,7 +144,7 @@ type ReservationService
                         UserCommand.AddReservation reservation.ReservationId
 
                     let! userDetails = 
-                        usersService.GetUserDetailsAsync (user.UserId, ct)
+                        usersService.GetUserDetailsAsync (context, user.UserId, ct)
                     let! emailTextRetrieved = 
                         mailBodyRetriever.GetReservationNotificationTextMailAsync(shortLang, ct)
                     let! result =
@@ -176,10 +176,10 @@ type ReservationService
 
                     return result
                 }
-        member this.AddReservationAsync (reservation: Reservation, dateTime: DateTime, ?ct: CancellationToken) =
-            this.AddReservationAsync (reservation, dateTime, ShortLang.New "en", ?ct = ct)
+        member this.AddReservationAsync (context: UserContext, reservation: Reservation, dateTime: DateTime, ?ct: CancellationToken) =
+            this.AddReservationAsync (context, reservation, dateTime, ShortLang.New "en", ?ct = ct)
 
-        member this.GetAllReservationsAsync (?ct: CancellationToken) = 
+        member this.GetAllReservationsAsync (context: UserContext, ?ct: CancellationToken) = 
             taskResult
                 {
                     let ct = defaultArg ct CancellationToken.None
@@ -189,7 +189,7 @@ type ReservationService
                     return reservations
                 }
 
-    member this.GetReservationAsync (id: ReservationId, ?ct: CancellationToken) = 
+    member this.GetReservationAsync (context: UserContext, id: ReservationId, ?ct: CancellationToken) = 
         taskResult
             {
                 let ct = defaultArg ct CancellationToken.None
@@ -198,21 +198,21 @@ type ReservationService
                     |> TaskResult.map snd
                 return result
             }
-    member this.GetRefreshableReservationDetailsAsync (id: ReservationId, ?ct: CancellationToken) = 
+    member this.GetRefreshableReservationDetailsAsync (context: UserContext, id: ReservationId, ?ct: CancellationToken) = 
         let detailsBuilder =
             fun (ct: Option<CancellationToken>) ->
-                this.MakeReservationRefresher(id, ct|> Option.defaultValue CancellationToken.None) 
+                this.MakeReservationRefresher(context, id, ct|> Option.defaultValue CancellationToken.None) 
                 |> fun refresher -> this.MakeReservationDetailsBuilder(id, refresher)
 
         let key = DetailsCacheKey.OfType typeof<RefreshableReservationDetails> id.Value
         StateView.getRefreshableDetailsTaskResultAsync<RefreshableReservationDetails> (fun ct -> detailsBuilder ct) key ct
 
-    member this.RemoveReservationAsync (reservationId: ReservationId, dateTime: System.DateTime, ?ct:CancellationToken)= 
+    member this.RemoveReservationAsync (context: UserContext, reservationId: ReservationId, dateTime: System.DateTime, ?ct:CancellationToken)= 
         taskResult
             {
                 let ct = defaultArg ct CancellationToken.None
                 let! reservation = 
-                    this.GetReservationAsync(reservationId, ct)
+                    this.GetReservationAsync(context, reservationId, ct)
                 let! book =
                     bookViewerAsync (Some ct) reservation.BookId.Value
                     |> TaskResult.map snd
@@ -240,16 +240,16 @@ type ReservationService
                 return result
             }
 
-    member this.GetReservationsAsync (ids: List<ReservationId>, ?ct: CancellationToken) = 
+    member this.GetReservationsAsync (context: UserContext, ids: List<ReservationId>, ?ct: CancellationToken) = 
         taskResult
             {
                 let ct = defaultArg ct CancellationToken.None
                 let! result = 
                     ids
-                    |> List.traverseTaskResultM (fun id -> this.GetReservationAsync (id, ct))
+                    |> List.traverseTaskResultM (fun id -> this.GetReservationAsync (context, id, ct))
                 return result
             }
-    member this.RemoveExpiredReservationsAsync (?ct: CancellationToken) = 
+    member this.RemoveExpiredReservationsAsync (context: UserContext, ?ct: CancellationToken) = 
         taskResult
             {
                 let ct = defaultArg ct CancellationToken.None
@@ -259,34 +259,34 @@ type ReservationService
                     |> TaskResult.map (fun reservations -> reservations |> List.map snd)
                 let! result = 
                     expiredReservations
-                    |> List.traverseTaskResultM (fun reservation -> this.RemoveReservationAsync (reservation.ReservationId, now, ct))
+                    |> List.traverseTaskResultM (fun reservation -> this.RemoveReservationAsync (context, reservation.ReservationId, now, ct))
                 return ()
             }
     interface IReservationService with
-        member this.AddReservationAsync (reservation: Reservation, shortLang: ShortLang, ?ct: CancellationToken)= 
+        member this.AddReservationAsync (context: UserContext, reservation: Reservation, shortLang: ShortLang, ?ct: CancellationToken)= 
             let ct = defaultArg ct CancellationToken.None
-            this.AddReservationAsync (reservation, DateTime.UtcNow, shortLang, ct)
-        member this.GetReservationAsync (id: ReservationId, ?ct: CancellationToken) = 
+            this.AddReservationAsync (context, reservation, DateTime.UtcNow, shortLang, ct)
+        member this.GetReservationAsync (context: UserContext, id: ReservationId, ?ct: CancellationToken) = 
             let ct = defaultArg ct CancellationToken.None
-            this.GetReservationAsync (id, ct)
-        member this.GetReservationDetailsAsync (id: ReservationId, ?ct: CancellationToken) = 
+            this.GetReservationAsync (context, id, ct)
+        member this.GetReservationDetailsAsync (context: UserContext, id: ReservationId, ?ct: CancellationToken) = 
             taskResult
                 {
                     let ct = defaultArg ct CancellationToken.None
-                    let! refreshableDetails = this.GetRefreshableReservationDetailsAsync (id, ct)
+                    let! refreshableDetails = this.GetRefreshableReservationDetailsAsync (context, id, ct)
                     return refreshableDetails.ReservationDetails
                 }
-        member this.RemoveReservationAsync (reservationId: ReservationId, ?ct:CancellationToken)= 
+        member this.RemoveReservationAsync (context: UserContext, reservationId: ReservationId, ?ct:CancellationToken)= 
             let ct = defaultArg ct CancellationToken.None
-            this.RemoveReservationAsync (reservationId, DateTime.UtcNow, ct)            
-        member this.GetReservationsAsync(ids: List<ReservationId>, ?ct: CancellationToken)= 
+            this.RemoveReservationAsync (context, reservationId, DateTime.UtcNow, ct)            
+        member this.GetReservationsAsync(context: UserContext, ids: List<ReservationId>, ?ct: CancellationToken)= 
             let ct = defaultArg ct CancellationToken.None
-            this.GetReservationsAsync (ids, ct)
-        member this.RemoveExpiredReservationsAsync (?ct: CancellationToken) = 
+            this.GetReservationsAsync (context, ids, ct)
+        member this.RemoveExpiredReservationsAsync (context: UserContext, ?ct: CancellationToken) = 
             let ct = defaultArg ct CancellationToken.None
-            this.RemoveExpiredReservationsAsync ct
+            this.RemoveExpiredReservationsAsync (context, ct)
 
-        member this.GetAllPendingReservationsDetailsAsync (?ct: CancellationToken) = 
+        member this.GetAllPendingReservationsDetailsAsync (context: UserContext, ?ct: CancellationToken) = 
             taskResult
                 {
                     let ct = defaultArg ct CancellationToken.None
@@ -295,6 +295,6 @@ type ReservationService
                         |> TaskResult.map (fun reservations -> reservations |> List.map snd)
                     let! reservationDetails = 
                         reservations
-                        |> List.traverseTaskResultM (fun reservation -> (this:>IReservationService).GetReservationDetailsAsync (reservation.ReservationId, ct))
+                        |> List.traverseTaskResultM (fun reservation -> (this:>IReservationService).GetReservationDetailsAsync (context, reservation.ReservationId, ct))
                     return reservationDetails 
                 }

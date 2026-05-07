@@ -13,6 +13,7 @@
 @inject NavigationManager NavigationManager
 @inject IStringLocalizer<SharedResources> L
 @inject IJSRuntime JSRuntime
+@inject AuthenticationStateProvider AuthenticationStateProvider
 @rendermode InteractiveServer
 
 <PageTitle>@L["AuthorDetails"]</PageTitle>
@@ -221,7 +222,9 @@
             if (Guid.TryParse(AuthorIdStr, out var guid))
             {
                 var authorId = AuthorId.NewAuthorId(guid);
-                var result = await DetailsService.GetAuthorDetailsAsync(authorId);
+                var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+                var context = blazorBookLibrary.Shared.ConverterUtils.fromClaimsPrincipal(authState.User);
+                var result = await DetailsService.GetAuthorDetailsAsync(context, authorId);
 
                 if (result.IsOk)
                 {

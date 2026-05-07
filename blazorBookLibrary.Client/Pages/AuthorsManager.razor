@@ -14,6 +14,7 @@
 @inject IAuthorsSearchService AuthorsSearchService
 @inject IJSRuntime JSRuntime
 @inject IStringLocalizer<SharedResources> L
+@inject AuthenticationStateProvider AuthenticationStateProvider
 @rendermode InteractiveServer
 
 <PageTitle>@L["AuthorsManager"] — @L["TheModernArchivist"]</PageTitle>
@@ -242,6 +243,12 @@
 </div>
 
 @code {
+    private async Task<UserContext> GetContext()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        return blazorBookLibrary.Shared.ConverterUtils.fromClaimsPrincipal(authState.User);
+    }
+
     private bool showAddSection = false;
     private List<Author> authors = new();
     private PaginationState pagination = new() { ItemsPerPage = 12 };
@@ -281,23 +288,27 @@
 
         if (hasName && hasIsni)
         {
+            var context = await GetContext();
             var name = Name.New(searchName);
             var isni = Isni.NewInvalid(searchIsni);
-            result = await AuthorService.SearchByIsniAndNameAsync(isni, name);
+            result = await AuthorService.SearchByIsniAndNameAsync(context, isni, name);
         }
         else if (hasName)
         {
+            var context = await GetContext();
             var name = Name.New(searchName);
-            result = await AuthorService.SearchByNameAsync(name);
+            result = await AuthorService.SearchByNameAsync(context, name);
         }
         else if (hasIsni)
         {
+            var context = await GetContext();
             var isni = Isni.NewInvalid(searchIsni);
-            result = await AuthorService.SearchByIsniAsync(isni); 
+            result = await AuthorService.SearchByIsniAsync(context, isni); 
         }
         else
         {
-            result = await AuthorService.GetAllAsync();
+            var context = await GetContext();
+            result = await AuthorService.GetAllAsync(context);
         }
 
         if (result.IsOk)
@@ -362,7 +373,8 @@
 
         var author = Author.NewWithOptionalIsniAndImageUrlAndBio(name, isniOpt, imageUrlOpt, FSharpOption<string>.Some(newAuthorBio), wikipediaUriOpt);
 
-        var result = await AuthorService.AddAuthorAsync(author);
+        var context = await GetContext();
+        var result = await AuthorService.AddAuthorAsync(context, author);
 
         if (result.IsOk)
         {

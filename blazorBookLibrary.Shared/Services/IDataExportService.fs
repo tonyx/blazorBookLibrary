@@ -34,5 +34,5 @@ type ImportSummary = {
 }
 
 type IDataExportService =
-    abstract member ExportAllBooksAsync: exportFormat: ExportFormat * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<string, string>>
-    abstract member ImportFromIsbns: isdns: List<Isbn> * preventDuplicates:bool * generateUnknownAuthors: bool * [<Optional; DefaultParameterValue(false)>]generateEmbeddings: bool * [<Optional; DefaultParameterValue(false)>]generateMissingDescriptions: bool * [<Optional; DefaultParameterValue(null)>] progress: IProgress<ImportProgress> * [<Optional; DefaultParameterValue(null)>] ct: CancellationToken -> Task<Result<ImportSummary, string>>
+    abstract member ExportAllBooksAsync: context: UserContext * exportFormat: ExportFormat * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<string, string>>
+    abstract member ImportFromIsbns: context: UserContext * isdns: List<Isbn> * preventDuplicates:bool * generateUnknownAuthors: bool * [<Optional; DefaultParameterValue(false)>]generateEmbeddings: bool * [<Optional; DefaultParameterValue(false)>]generateMissingDescriptions: bool * [<Optional; DefaultParameterValue(null)>] progress: IProgress<ImportProgress> * [<Optional; DefaultParameterValue(null)>] ct: CancellationToken -> Task<Result<ImportSummary, string>>

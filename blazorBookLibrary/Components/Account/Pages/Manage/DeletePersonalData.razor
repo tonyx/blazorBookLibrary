@@ -84,7 +84,8 @@
             throw new InvalidOperationException("Invalid user ID.");
         }
 
-        var result = await UserService.GhostUserAsync(UserId.NewUserId(userGuid));
+        var context = blazorBookLibrary.Shared.ConverterUtils.fromClaimsPrincipal(HttpContext.User);
+        var result = await UserService.GhostUserAsync(context, UserId.NewUserId(userGuid), Microsoft.FSharp.Core.FSharpOption<System.Threading.CancellationToken>.None);
         if (!result.IsOk)
         {
             message = $"Error: {result.ErrorValue}";

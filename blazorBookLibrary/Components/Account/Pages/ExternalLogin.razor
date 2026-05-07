@@ -172,13 +172,13 @@
                 {
                     var sharpinoUserId = UserId.NewUserId(userGuid);
                     var sharpinoUser = User.New(sharpinoUserId);
-                    var sharpinoResult = await UserService.CreateUserAsync(sharpinoUser, CancellationToken.None);
+                    var sharpinoResult = await UserService.CreateUserAsync(UserContext.Anonymous, sharpinoUser, CancellationToken.None);
 
                     if (sharpinoResult.IsOk)
                     {
                         // Populate UserInfo
                         var appUserInfo = UserMapping.toAppUserInfo(user);
-                        var userInfoResult = await UserService.SetAppUserInfoAsync(sharpinoUserId, appUserInfo, CancellationToken.None);
+                        var userInfoResult = await UserService.SetAppUserInfoAsync(UserContext.Anonymous, sharpinoUserId, appUserInfo, CancellationToken.None);
                         if (userInfoResult.IsError)
                         {
                             Logger.LogWarning("Failed to set AppUserInfo for Sharpino user {email}: {error}", Input.Email, userInfoResult.ErrorValue);

@@ -145,7 +145,8 @@
             if (Guid.TryParse(user.Id, out var userGuid))
             {
                 var userId = UserId.NewUserId(userGuid);
-                var result = await UserService.SetNameAsync(userId, Input.Name ?? "", default);
+                var context = blazorBookLibrary.Shared.ConverterUtils.fromClaimsPrincipal(HttpContext.User);
+                var result = await UserService.SetNameAsync(context, userId, Input.Name ?? "", default);
                 if (!result.IsOk)
                 {
                     RedirectManager.RedirectToCurrentPageWithStatus($"Error: {result.ErrorValue}", HttpContext);
@@ -161,7 +162,8 @@
             if (Guid.TryParse(user.Id, out var userGuid))
             {
                 var userId = UserId.NewUserId(userGuid);
-                var result = await UserService.SetSurnameAsync(userId, Input.Surname ?? "", default);
+                var context = blazorBookLibrary.Shared.ConverterUtils.fromClaimsPrincipal(HttpContext.User);
+                var result = await UserService.SetSurnameAsync(context, userId, Input.Surname ?? "", default);
                 if (!result.IsOk)
                 {
                     RedirectManager.RedirectToCurrentPageWithStatus($"Error: {result.ErrorValue}", HttpContext);
@@ -202,7 +204,8 @@
                     statusMsg = L["InvalidPhoneNumberUpdated"];
                 }
 
-                var result = await UserService.SetPhoneNumberAsync(userId, phoneObj, default);
+                var context = blazorBookLibrary.Shared.ConverterUtils.fromClaimsPrincipal(HttpContext.User);
+                var result = await UserService.SetPhoneNumberAsync(context, userId, phoneObj, default);
                 if (!result.IsOk)
                 {
                     RedirectManager.RedirectToCurrentPageWithStatus($"Error: {result.ErrorValue}", HttpContext);
@@ -233,7 +236,8 @@
                     statusMsg = L["InvalidFiscalCodeUpdated"];
                 }
 
-                var result = await UserService.SetFiscalCodeAsync(userId, fiscalObj, default);
+                var context = blazorBookLibrary.Shared.ConverterUtils.fromClaimsPrincipal(HttpContext.User);
+                var result = await UserService.SetFiscalCodeAsync(context, userId, fiscalObj, default);
                 if (!result.IsOk)
                 {
                     RedirectManager.RedirectToCurrentPageWithStatus($"Error: {result.ErrorValue}", HttpContext);

@@ -17,6 +17,7 @@
 @inject IDistributionPointService DistributionPointService
 @inject IStringLocalizer<SharedResources> L
 @inject ILogger<BookSearchToolbar> Logger
+@inject AuthenticationStateProvider AuthStateProvider
 
 <div class="card-sanctuary bg-surface-lowest floating mb-5 p-0 overflow-hidden">
     <div class="px-3 px-md-5 pt-4 pt-md-5 pb-4">
@@ -279,16 +280,28 @@
     private string selectedDistributionPointIdForFilter = "";
 
     private bool isInitialSearchTriggered = false;
+    private UserContext? _userContext;
+
+    private async Task<UserContext> GetUserContextAsync()
+    {
+        if (_userContext == null)
+        {
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            _userContext = blazorBookLibrary.Shared.ConverterUtils.fromClaimsPrincipal(authState.User);
+        }
+        return _userContext;
+    }
 
     protected override async Task OnInitializedAsync()
     {
-        var result = await TagService.GetBookTypeTagsAsync();
+        var userContext = await GetUserContextAsync();
+        var result = await TagService.GetBookTypeTagsAsync(CancellationToken.None);
         if (result.IsOk)
         {
             allBookTags = result.ResultValue.ToList();
         }
 
-        var dpResult = await DistributionPointService.GetAllDistributionPointsAsync();
+        var dpResult = await DistributionPointService.GetAllDistributionPointsAsync(userContext);
         if (dpResult.IsOk)
         {
             allDistributionPoints = dpResult.ResultValue.ToList();
@@ -369,8 +382,9 @@
             isLoadingAuthors = true;
             try
             {
+                var userContext = await GetUserContextAsync();
                 var name = Name.New(authorSearchNameFilter);
-                var result = await AuthorService.SearchByNameAsync(name, FSharpOption<CancellationToken>.None);
+                var result = await AuthorService.SearchByNameAsync(userContext, name, FSharpOption<CancellationToken>.None);
                 
                 if (result.IsOk)
                 {
@@ -538,7 +552,8 @@
                     return;
                 }
 
-                var booksResult = await BookService.GetBooksAsync(ListModule.OfSeq(bookIdList));
+                var userContext = await GetUserContextAsync();
+                var booksResult = await BookService.GetBooksAsync(userContext, ListModule.OfSeq(bookIdList));
                 if (booksResult.IsOk)
                 {
                     var booksDict = booksResult.ResultValue.ToDictionary(b => b.BookId, b => b);
@@ -594,16 +609,17 @@
         bool hasYear = searchBookYear.HasValue;
         bool hasBetweenYear = yearSearchMode == "between" && searchBookYear.HasValue && searchBookYearTo.HasValue;
 
+        var userContext = await GetUserContextAsync();
         if (hasIsbn)
         {
             var isbn = Isbn.NewInvalid(searchBookIsbn);
             if (hasTitle)
             {
-                return await BookService.SearchByIsbnOrTitleAsync(isbn, Title.New(searchBookTitle), searchCriteria, CancellationToken.None);
+                return await BookService.SearchByIsbnOrTitleAsync(userContext, isbn, Title.New(searchBookTitle), searchCriteria, CancellationToken.None);
             }
             else
             {
-                return await BookService.SearchByIsbnAsync(isbn, searchCriteria, CancellationToken.None);
+                return await BookService.SearchByIsbnAsync(userContext, isbn, searchCriteria, CancellationToken.None);
             }
         }
         else 
@@ -633,38 +649,38 @@
                 {
                     if (hasTitle && hasEffectiveYear)
                     {
-                        return await BookService.SearchByTitleAndAuthorsAndYearAndCategoriesAsync(Title.New(searchBookTitle), authorIds, yearSearch, categories, searchCriteria, CancellationToken.None);
+                        return await BookService.SearchByTitleAndAuthorsAndYearAndCategoriesAsync(userContext, Title.New(searchBookTitle), authorIds, yearSearch, categories, searchCriteria, CancellationToken.None);
                     }
                     else if (hasTitle)
                     {
-                        return await BookService.SearchByTitleAndAuthorsAndCategoriesAsync(Title.New(searchBookTitle), authorIds, categories, searchCriteria, CancellationToken.None);
+                        return await BookService.SearchByTitleAndAuthorsAndCategoriesAsync(userContext, Title.New(searchBookTitle), authorIds, categories, searchCriteria, CancellationToken.None);
                     }
                     else if (hasEffectiveYear)
                     {
-                        return await BookService.SearchByAuthorsAndYearAndCategoriesAsync(authorIds, yearSearch, categories, searchCriteria, CancellationToken.None);
+                        return await BookService.SearchByAuthorsAndYearAndCategoriesAsync(userContext, authorIds, yearSearch, categories, searchCriteria, CancellationToken.None);
                     }
                     else
                     {
-                        return await BookService.SearchByAuthorsAndCategoriesAsync(authorIds, categories, searchCriteria, CancellationToken.None);
+                        return await BookService.SearchByAuthorsAndCategoriesAsync(userContext, authorIds, categories, searchCriteria, CancellationToken.None);
                     }
                 }
                 else
                 {
                     if (hasTitle && hasEffectiveYear)
                     {
-                        return await BookService.SearchByTitleAndYearAndCategoriesAsync(Title.New(searchBookTitle), yearSearch, categories, searchCriteria, CancellationToken.None);
+                        return await BookService.SearchByTitleAndYearAndCategoriesAsync(userContext, Title.New(searchBookTitle), yearSearch, categories, searchCriteria, CancellationToken.None);
                     }
                     else if (hasTitle)
                     {
-                        return await BookService.SearchByTitleAndCategoriesAsync(Title.New(searchBookTitle), categories, searchCriteria, CancellationToken.None);
+                        return await BookService.SearchByTitleAndCategoriesAsync(userContext, Title.New(searchBookTitle), categories, searchCriteria, CancellationToken.None);
                     }
                     else if (hasEffectiveYear)
                     {
-                        return await BookService.SearchByYearAndCategoriesAsync(yearSearch, categories, searchCriteria, CancellationToken.None); 
+                        return await BookService.SearchByYearAndCategoriesAsync(userContext, yearSearch, categories, searchCriteria, CancellationToken.None); 
                     }
                     else
                     {
-                        return await BookService.SearchByCategoriesAsync(categories, searchCriteria, CancellationToken.None); 
+                        return await BookService.SearchByCategoriesAsync(userContext, categories, searchCriteria, CancellationToken.None); 
                     }
                 }
             }
@@ -673,36 +689,36 @@
                 var authorIds = ListModule.OfSeq(searchAuthorsCriteria.Select(a => a.AuthorId));
                 if (hasTitle && hasEffectiveYear)
                 {
-                    return await BookService.SearchByTitleAndAuthorsAndYearAsync(Title.New(searchBookTitle), authorIds, GetYearSearch(), searchCriteria, CancellationToken.None);
+                    return await BookService.SearchByTitleAndAuthorsAndYearAsync(userContext, Title.New(searchBookTitle), authorIds, GetYearSearch(), searchCriteria, CancellationToken.None);
                 }
                 else if (hasTitle)
                 {
-                    return await BookService.SearchByTitleAndAuthorsAsync(Title.New(searchBookTitle), authorIds, searchCriteria, CancellationToken.None);
+                    return await BookService.SearchByTitleAndAuthorsAsync(userContext, Title.New(searchBookTitle), authorIds, searchCriteria, CancellationToken.None);
                 }
                 else if (hasEffectiveYear)
                 {
-                    return await BookService.SearchByAuthorsAndYearAsync(authorIds, GetYearSearch(), searchCriteria, CancellationToken.None);
+                    return await BookService.SearchByAuthorsAndYearAsync(userContext, authorIds, GetYearSearch(), searchCriteria, CancellationToken.None);
                 }
                 else
                 {
-                    return await BookService.SearchByAuthorsAsync(authorIds, searchCriteria, CancellationToken.None);
+                    return await BookService.SearchByAuthorsAsync(userContext, authorIds, searchCriteria, CancellationToken.None);
                 }
             }
             else if (hasTitle && hasEffectiveYear)
             {
-                return await BookService.SearchByTitleAndYearAsync(Title.New(searchBookTitle), GetYearSearch(), searchCriteria, CancellationToken.None);
+                return await BookService.SearchByTitleAndYearAsync(userContext, Title.New(searchBookTitle), GetYearSearch(), searchCriteria, CancellationToken.None);
             }
             else if (hasTitle)
             {
-                return await BookService.SearchByTitleAsync(Title.New(searchBookTitle), searchCriteria, CancellationToken.None);
+                return await BookService.SearchByTitleAsync(userContext, Title.New(searchBookTitle), searchCriteria, CancellationToken.None);
             }
             else if (hasEffectiveYear)
             {
-                return await BookService.SearchByYearAsync(GetYearSearch(), searchCriteria, CancellationToken.None);
+                return await BookService.SearchByYearAsync(userContext, GetYearSearch(), searchCriteria, CancellationToken.None);
             }
             else
             {
-                return await BookService.GetAllAsync(searchCriteria, CancellationToken.None);
+                return await BookService.GetAllAsync(userContext, searchCriteria, CancellationToken.None);
             }
         }
     }

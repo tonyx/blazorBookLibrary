@@ -36,7 +36,7 @@ type RandomAuthorGeneratorService (
     member this.SeedRandomAuthorsAccordingToThreshold () = 
         taskResult
             {
-                let! existingAuthors = authorService.GetAllAsync()
+                let! existingAuthors = authorService.GetAllAsync(UserContext.Anonymous, CancellationToken.None)
                 if (existingAuthors.Length > 10) then
                     return ()
                 else
@@ -46,6 +46,6 @@ type RandomAuthorGeneratorService (
                         |> List.map (fun _ -> generateRandomAuthor())
 
                     let result =
-                        authorService.AddAuthorsAsync newAuthors
+                        authorService.AddAuthorsAsync(UserContext.Anonymous, newAuthors, CancellationToken.None)
                     return! result
             }

@@ -149,7 +149,7 @@
         {
             var sharpinoUserId = UserId.NewUserId(userGuid);
             var sharpinoUser = User.NewWithUserInfo(sharpinoUserId, UserMapping.toAppUserInfo(user));
-            var sharpinoResult = await UserService.CreateUserAsync(sharpinoUser, CancellationToken.None);
+            var sharpinoResult = await UserService.CreateUserAsync(UserContext.Anonymous, sharpinoUser, CancellationToken.None);
 
             if (sharpinoResult.IsError)
             {

@@ -22,19 +22,19 @@ let tests =
             let! userId = registerUserTask "test@example.com" "Password123!"
 
             let book = Book.New (Title.New "the constitution") [] [] [] None  Category.Other [] (Year.New 1924) (Isbn.NewEmpty()) None
-            let! addBook = bookService.AddBookAsync book
+            let! addBook = bookService.AddBookAsync(UserContext.Anonymous, book)
             Expect.isOk addBook "should be ok"
 
             let timeSlot = TimeSlot.New (System.DateTime.Now) (System.DateTime.Now.AddDays(timeSlotDurationInDays))
             let loan = Loan.New book.BookId userId (System.DateTime.Now) timeSlot
 
-            let! addLoan = loanService.AddLoanAsync (loan, ShortLang.New "en")
+            let! addLoan = loanService.AddLoanAsync (UserContext.Anonymous, loan, ShortLang.New "en")
             Expect.isOk addLoan "should be ok"
 
-            let! retrieveLoanResult = loanService.GetLoanAsync loan.LoanId
+            let! retrieveLoanResult = loanService.GetLoanAsync (UserContext.Anonymous, loan.LoanId)
             Expect.isOk retrieveLoanResult "should be ok"
 
-            let! retrieveBookResult = bookService.GetBookAsync book.BookId
+            let! retrieveBookResult = bookService.GetBookAsync(UserContext.Anonymous, book.BookId)
             Expect.isOk retrieveBookResult "should be ok"
 
             let (bookRetrieved: Book) = retrieveBookResult |> Result.get
@@ -43,16 +43,16 @@ let tests =
             let (loanRetrieved: Loan) = retrieveLoanResult |> Result.get
             Expect.isTrue (loanRetrieved.BookId = book.BookId) "should contain the book"
 
-            let! releaseLoan = loanService.ReleaseLoanAsync (loan.LoanId, ShortLang.New "en", System.DateTime.Now)
+            let! releaseLoan = loanService.ReleaseLoanAsync (UserContext.Anonymous, loan.LoanId, ShortLang.New "en", System.DateTime.Now)
             Expect.isOk releaseLoan "should be ok"
 
-            let! retrieveLoanResultAfter = loanService.GetLoanAsync loan.LoanId
+            let! retrieveLoanResultAfter = loanService.GetLoanAsync (UserContext.Anonymous, loan.LoanId)
             Expect.isOk retrieveLoanResultAfter "should be ok"
 
-            let! retrieveBookResultAfter = bookService.GetBookAsync book.BookId
+            let! retrieveBookResultAfter = bookService.GetBookAsync(UserContext.Anonymous, book.BookId)
             Expect.isOk retrieveBookResultAfter "should be ok"
 
-            let! userRetrievedResult = userService.GetUserAsync userId
+            let! userRetrievedResult = userService.GetUserAsync(UserContext.Anonymous, userId)
             Expect.isOk userRetrievedResult "should be ok"
 
             let (bookRetrieved: Book) = retrieveBookResultAfter |> Result.get
@@ -68,17 +68,17 @@ let tests =
             let userService = getUserService()
             let bookService = getBookService()
             let book = Book.New (Title.New "the constitution") [] [] [] None  Category.Other [] (Year.New 1924) (Isbn.NewEmpty()) None
-            let! addBook = bookService.AddBookAsync book
+            let! addBook = bookService.AddBookAsync(UserContext.Anonymous, book)
             Expect.isOk addBook "should be ok"
             let! userId = registerUserTask "test@example.com" "Password123!"
 
             let timeSlot = TimeSlot.New (System.DateTime.Now) (System.DateTime.Now.AddDays(timeSlotDurationInDays))
             let loan = Loan.New book.BookId userId (System.DateTime.Now) timeSlot
 
-            let! addLoan = loanService.AddLoanAsync (loan, ShortLang.New "en")
+            let! addLoan = loanService.AddLoanAsync (UserContext.Anonymous, loan, ShortLang.New "en")
             Expect.isOk addLoan "should be ok"
 
-            let! userRetrievedResult = userService.GetUserAsync userId
+            let! userRetrievedResult = userService.GetUserAsync(UserContext.Anonymous, userId)
             Expect.isOk userRetrievedResult "should be ok"
 
             let (userRetrieved: User) = userRetrievedResult |> Result.get
@@ -91,23 +91,23 @@ let tests =
             let userService = getUserService()
             let bookService = getBookService()
             let book = Book.New (Title.New "the constitution") [] [] [] None  Category.Other [] (Year.New 1924) (Isbn.NewEmpty()) None
-            let! addBook = bookService.AddBookAsync book
+            let! addBook = bookService.AddBookAsync(UserContext.Anonymous, book)
             Expect.isOk addBook "should be ok"
             let! userId = registerUserTask "test@example.com" "Password123!"
 
             let timeSlot = TimeSlot.New (System.DateTime.Now) (System.DateTime.Now.AddDays(timeSlotDurationInDays))
             let loan = Loan.New book.BookId userId (System.DateTime.Now) timeSlot
 
-            let! addLoan = loanService.AddLoanAsync (loan, ShortLang.New "en")
+            let! addLoan = loanService.AddLoanAsync (UserContext.Anonymous, loan, ShortLang.New "en")
             Expect.isOk addLoan "should be ok"
 
-            let! releaseLoan = loanService.ReleaseLoanAsync (loan.LoanId, ShortLang.New "en", System.DateTime.Now)
+            let! releaseLoan = loanService.ReleaseLoanAsync (UserContext.Anonymous, loan.LoanId, ShortLang.New "en", System.DateTime.Now)
             Expect.isOk releaseLoan "should be ok"
 
-            let! bookRetrievedResult = bookService.GetBookAsync book.BookId
+            let! bookRetrievedResult = bookService.GetBookAsync(UserContext.Anonymous, book.BookId)
             Expect.isOk bookRetrievedResult "should be ok"
 
-            let! userRetrievedResult = userService.GetUserAsync userId
+            let! userRetrievedResult = userService.GetUserAsync(UserContext.Anonymous, userId)
             Expect.isOk userRetrievedResult "should be ok"
 
             let (bookRetrieved: Book) = bookRetrievedResult |> Result.get
@@ -123,26 +123,26 @@ let tests =
             let userService = getUserService()
             let bookService = getBookService()
             let book = Book.New (Title.New "the constitution") [] [] [] None  Category.Other [] (Year.New 1924) (Isbn.NewEmpty()) None
-            let! addBook = bookService.AddBookAsync book
+            let! addBook = bookService.AddBookAsync(UserContext.Anonymous, book)
             Expect.isOk addBook "should be ok"
             let! userId = registerUserTask "test@example.com" "Password123!"
 
             let timeSlot = TimeSlot.New (System.DateTime.Now) (System.DateTime.Now.AddDays(timeSlotDurationInDays))
             let loan = Loan.New book.BookId userId (System.DateTime.Now) timeSlot
 
-            let! addLoan = loanService.AddLoanAsync (loan, ShortLang.New "en")
+            let! addLoan = loanService.AddLoanAsync (UserContext.Anonymous, loan, ShortLang.New "en")
             Expect.isOk addLoan "should be ok"
 
-            let! releaseLoan = loanService.ReleaseLoanAsync (loan.LoanId, ShortLang.New "en", System.DateTime.Now)
+            let! releaseLoan = loanService.ReleaseLoanAsync (UserContext.Anonymous, loan.LoanId, ShortLang.New "en", System.DateTime.Now)
             Expect.isOk releaseLoan "should be ok"
 
-            let! bookRetrievedResult = bookService.GetBookAsync book.BookId
+            let! bookRetrievedResult = bookService.GetBookAsync(UserContext.Anonymous, book.BookId)
             Expect.isOk bookRetrievedResult "should be ok"
 
-            let! userRetrievedResult = userService.GetUserAsync userId
+            let! userRetrievedResult = userService.GetUserAsync(UserContext.Anonymous, userId)
             Expect.isOk userRetrievedResult "should be ok"
 
-            let! loanHistoryResult = loanService.GetHistoryLoansOfUserAsync userId
+            let! loanHistoryResult = loanService.GetHistoryLoansOfUserAsync (UserContext.Anonymous, userId)
             Expect.isOk loanHistoryResult "should be ok"
 
             let (loanHistory: list<Loan>) = loanHistoryResult |> Result.get

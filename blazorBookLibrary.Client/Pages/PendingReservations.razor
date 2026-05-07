@@ -19,6 +19,7 @@
 @inject IStringLocalizer<SharedResources> L
 @inject IJSRuntime JSRuntime
 @inject NavigationManager NavigationManager
+@inject AuthenticationStateProvider AuthenticationStateProvider
 @rendermode InteractiveServer
 
 <PageTitle>@L["PendingReservations"]</PageTitle>
@@ -219,7 +220,9 @@
         isLoading = true;
         try
         {
-            var result = await DetailsService.GetAllPendingReservationsDetailsAsync(Microsoft.FSharp.Core.FSharpOption<CancellationToken>.None);
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var context = blazorBookLibrary.Shared.ConverterUtils.fromClaimsPrincipal(authState.User);
+            var result = await DetailsService.GetAllPendingReservationsDetailsAsync(context, Microsoft.FSharp.Core.FSharpOption<CancellationToken>.None);
             if (result.IsOk)
             {
                 pendingReservations = result.ResultValue.ToList();
@@ -270,7 +273,10 @@
             var resId = selectedReservation.Reservation.ReservationId;
             var resCode = ReservationCode.ReservationCode.NewReservationCode(reservationCodeInput);
             
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var context = blazorBookLibrary.Shared.ConverterUtils.fromClaimsPrincipal(authState.User);
             var result = await LoanService.TransformReservationIntoLoanAsync(
+                context,
                 resId,
                 resCode,
                 ShortLang.New(CultureInfo.CurrentCulture.Name),

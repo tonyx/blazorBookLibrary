@@ -12,6 +12,7 @@ using blazorBookLibrary.Components.Account.Pages.Manage;
 using blazorBookLibrary.Data;
 using BookLibrary.Shared.Services;
 using static BookLibrary.Shared.Commons;
+using blazorBookLibrary.Shared;
 
 namespace Microsoft.AspNetCore.Routing;
 
@@ -128,7 +129,8 @@ internal static class IdentityComponentsEndpointRouteBuilderExtensions
             var userId = await userManager.GetUserIdAsync(user);
             downloadLogger.LogInformation("User with ID '{UserId}' asked for their personal data.", userId);
 
-            var booksAndReviews = await reviewService.GetReviewsOfUserAsync(UserId.NewUserId(Guid.Parse(userId)), CancellationToken.None);
+            var userContext = blazorBookLibrary.Shared.ConverterUtils.fromClaimsPrincipal(context.User);
+            var booksAndReviews = await reviewService.GetReviewsOfUserAsync(userContext, UserId.NewUserId(Guid.Parse(userId)), CancellationToken.None);
             if (booksAndReviews.IsError)
                 {
                     throw new InvalidOperationException($"Unable to get reviews for user with ID '{userId}'.");
