@@ -61,3 +61,40 @@ type TagsController(tagService: ITagService) =
             | Ok tags -> return this.Ok(tags) :> IActionResult
             | Error msg -> return this.BadRequest(msg) :> IActionResult
         }
+
+    [<HttpGet("general")>]
+    member this.GetGeneralTags() =
+        task {
+            let! result = tagService.GetGeneralTypeTagsAsync()
+            match result with
+            | Ok tags -> return this.Ok(tags) :> IActionResult
+            | Error msg -> return this.BadRequest(msg) :> IActionResult
+        }
+
+    [<HttpGet("person")>]
+    member this.GetPersonTags() =
+        task {
+            let! result = tagService.GetPersonTypeTagsAsync()
+            match result with
+            | Ok tags -> return this.Ok(tags) :> IActionResult
+            | Error msg -> return this.BadRequest(msg) :> IActionResult
+        }
+
+    [<HttpPost("replace")>]
+    member this.ReplaceTag([<FromBody>] request: {| oldTag: Tag; newTag: Tag |}) =
+        task {
+            let context = UserContextMapper.mapFromClaimsPrincipal this.User
+            let! result = tagService.ReplaceTagAsync(context, request.oldTag, request.newTag)
+            match result with
+            | Ok _ -> return this.Ok() :> IActionResult
+            | Error msg -> return this.BadRequest(msg) :> IActionResult
+        }
+
+    [<HttpPost("ensure-repo")>]
+    member this.EnsureRepoCreated() =
+        task {
+            let! result = tagService.EnsureTagsRepoCreatedAsync()
+            match result with
+            | Ok _ -> return this.Ok() :> IActionResult
+            | Error msg -> return this.BadRequest(msg) :> IActionResult
+        }

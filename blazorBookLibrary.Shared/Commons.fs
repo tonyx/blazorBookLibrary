@@ -7,7 +7,7 @@ open System.Threading
 open System.Threading.Tasks
 
 // Guid must be the AggregateId and int the EventId
-// this conflicts with the one in the libary ouch
+// this conflicts with the one in the library ouch
 type AggregateViewerAsync2<'A> = Option<CancellationToken> -> Guid -> Task<Result<int * 'A,string>>     
 
 type EmbeddingDataId =
@@ -30,8 +30,9 @@ type EmbeddingData =
             let otherMagnitude = Math.Sqrt (other.Vector |> Seq.map (fun v -> float v * float v) |> Seq.sum)
             dotProduct / (thisMagnitude * otherMagnitude) |> Ok
         else
-            Error "The model used to generate the embeddings is different"
+            Error $"You passed the wrong model '{other.Model}' whereas the expected model is '{this.Model}'. They must be the same in order to calculate the similarity of the embeddings."
 
+    // this one is faster
     member this.Similarity2 (other: EmbeddingData) =
         if this.Model = other.Model then
             let a = this.Vector
@@ -45,7 +46,7 @@ type EmbeddingData =
                 magB <- magB + (b.[i] * b.[i])
             float (dot / (sqrt(magA) * sqrt(magB))) |> Ok
         else    
-            Error "The model used to generate the embeddings is different"
+            Error $"You passed the wrong model '{other.Model}' whereas the expected model is '{this.Model}'. They must be the same in order to calculate the similarity of the embeddings."
 
 
     member this.Distance (other: EmbeddingData) = 

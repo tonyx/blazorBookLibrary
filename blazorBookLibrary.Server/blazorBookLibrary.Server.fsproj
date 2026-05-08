@@ -93,7 +93,10 @@
     <Compile Include="Controllers/AdminController.fs" />
     <Compile Include="Controllers/GoogleBooksController.fs" />
     <Compile Include="Controllers/DataExportController.fs" />
+    <Compile Include="Controllers/DetailsController.fs" />
+    <Compile Include="Controllers/VectorDbController.fs" />
     <Compile Include="Controllers/AIAssistantController.fs" />
+
   </ItemGroup>
 
   <ItemGroup>

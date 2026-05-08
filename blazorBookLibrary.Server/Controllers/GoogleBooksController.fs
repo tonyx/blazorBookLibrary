@@ -54,3 +54,14 @@ type GoogleBooksController(googleBooksService: IGoogleBooksService) =
             | Ok url -> return this.Ok(url) :> IActionResult
             | Error msg -> return this.BadRequest(msg) :> IActionResult
         }
+
+    [<HttpGet("cover/title/{title}")>]
+    member this.LookupCoverImageByTitle(title: string, [<FromQuery>] author: string) =
+        task {
+            let context = UserContextMapper.mapFromClaimsPrincipal this.User
+            let authorOpt = if String.IsNullOrWhiteSpace author then None else Some author
+            let! result = googleBooksService.LookupGoogleApiCoverImageByTitleAndOptionalAuthorAsync(context, title, ?author = authorOpt)
+            match result with
+            | Ok url -> return this.Ok(url) :> IActionResult
+            | Error msg -> return this.BadRequest(msg) :> IActionResult
+        }

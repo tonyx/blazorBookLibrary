@@ -40,10 +40,21 @@ builder.Services.AddRazorComponents()
 
 builder.Services.AddLocalization();
 builder.Services.AddControllers()
+    .AddJsonOptions(options => {
+        var fsharpOptions = BookLibrary.Shared.Commons.jsonOptions;
+        options.JsonSerializerOptions.PropertyNamingPolicy = fsharpOptions.PropertyNamingPolicy;
+        options.JsonSerializerOptions.DefaultIgnoreCondition = fsharpOptions.DefaultIgnoreCondition;
+        foreach (var converter in fsharpOptions.Converters)
+        {
+            options.JsonSerializerOptions.Converters.Add(converter);
+        }
+    })
     .AddDataAnnotationsLocalization(options => {
         options.DataAnnotationLocalizerProvider = (type, factory) =>
             factory.Create(typeof(blazorBookLibrary.Shared.Resources.SharedResources));
     });
+
+
 
 
 builder.Services.AddSingleton<BookLibrary.Utils.SecretsReader>();

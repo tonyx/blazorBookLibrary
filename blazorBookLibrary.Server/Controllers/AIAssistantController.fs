@@ -15,6 +15,15 @@ open System.Collections.Generic
 type AIAssistantController(textEmbeddingService: ITextEmbeddingService) =
     inherit ControllerBase()
 
+    [<HttpPost("embedding")>]
+    member this.GetEmbedding([<FromBody>] text: string) =
+        task {
+            let! result = textEmbeddingService.GetEmbeddingAsync(text)
+            match result with
+            | Ok embedding -> return this.Ok(embedding) :> IActionResult
+            | Error msg -> return this.BadRequest(msg) :> IActionResult
+        }
+
     [<HttpPost("explain-match")>]
     member this.ExplainMatch([<FromBody>] request: {| query: string; itemText: string |}) =
         task {

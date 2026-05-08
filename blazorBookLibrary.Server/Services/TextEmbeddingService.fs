@@ -101,7 +101,7 @@ type TextEmbeddingService
             let ct = defaultArg ct CancellationToken.None
             task {
                 try
-                    let modelName = "gemini-2.5-flash-lite"
+                    let modelName = "gemini-1.5-flash"
                     let url = $"https://generativelanguage.googleapis.com/v1beta/models/{modelName}:generateContent?key={apiKey}"
                     
                     let prompt = $"Explain concisely why the following query matches the provided text. Use the same language as the query.\n\nQuery: {query}\n\nText: {itemText}\n\nExplanation:"
@@ -141,7 +141,7 @@ type TextEmbeddingService
             let ct = defaultArg ct CancellationToken.None
             task {
                 try
-                    let modelName = "gemini-2.5-flash-lite"
+                    let modelName = "gemini-1.5-flash"
                     let url = $"https://generativelanguage.googleapis.com/v1beta/models/{modelName}:generateContent?key={apiKey}"
                     
                     let bookInfo = 
@@ -196,7 +196,7 @@ type TextEmbeddingService
             let ct = defaultArg ct CancellationToken.None
             task {
                 try
-                    let modelName = "gemini-2.5-flash"
+                    let modelName = "gemini-1.5-flash"
                     let url = $"https://generativelanguage.googleapis.com/v1beta/models/{modelName}:generateContent?key={apiKey}"
                     
                     let prompt = "Identify the book from this cover image. Provide the title, authors (as a list), and the most likely ISBN-13 for this book. Use your internal knowledge to provide the ISBN even if it is not explicitly printed on the cover image. Format the response as a JSON object with the following keys: 'title', 'authors', 'isbn'."

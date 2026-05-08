@@ -14,7 +14,7 @@
 @inject IStringLocalizer<SharedResources> L
 @inject IJSRuntime JSRuntime
 @inject AuthenticationStateProvider AuthenticationStateProvider
-@rendermode InteractiveServer
+@rendermode InteractiveAuto
 
 <PageTitle>@L["AuthorDetails"]</PageTitle>
 
@@ -190,6 +190,10 @@
         <div class="card-sanctuary text-center p-5">
             <i class="bi bi-exclamation-triangle display-4 text-warning mb-3"></i>
             <h4 class="serif">@L["ErrorLoadingAuthor"]</h4>
+            @if (!string.IsNullOrEmpty(errorMessage))
+            {
+                <p class="text-muted small">@errorMessage</p>
+            }
             <a href="/books-browser" class="btn-sanctuary-outline text-decoration-none d-inline-block mt-3">@L["BackToLibrary"]</a>
         </div>
     }
@@ -203,6 +207,7 @@
     private Details.AuthorDetails? authorDetails;
     private PaginationState bookPagination = new() { ItemsPerPage = 10 };
     private GridSort<Book> sortTitle = GridSort<Book>.ByAscending(b => b.Title.Value);
+    private string? errorMessage;
 
     private void GoBack()
     {
@@ -217,24 +222,42 @@
     private async Task LoadAuthorDetails()
     {
         isLoading = true;
+        errorMessage = null;
         try
         {
             if (Guid.TryParse(AuthorIdStr, out var guid))
             {
                 var authorId = AuthorId.NewAuthorId(guid);
                 var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+                @* Console.WriteLine($"[AuthorView] user is null!!!: {authState.User == null}");
+                Console.WriteLine($"[AuthorView] AuthenticationState: {authState}");
+                Console.WriteLine($"[AuthorView] AuthenticationState: {authState.User}"); *@
                 var context = blazorBookLibrary.Shared.ConverterUtils.fromClaimsPrincipal(authState.User);
+                
+                @* Console.WriteLine($"[AuthorView] Calling DetailsService.GetAuthorDetailsAsync for {guid}"); *@
                 var result = await DetailsService.GetAuthorDetailsAsync(context, authorId);
 
                 if (result.IsOk)
                 {
                     authorDetails = result.ResultValue;
+                    @* Console.WriteLine($"[AuthorView] Successfully loaded author: {authorDetails.Author.Name.Value}"); *@
+                }
+                else
+                {
+                    errorMessage = result.ErrorValue;
+                    @* Console.WriteLine($"[AuthorView] Error from service: {errorMessage}"); *@
                 }
             }
+            else
+            {
+                errorMessage = "Invalid Author ID format";
+                Console.WriteLine($"[AuthorView] {errorMessage}: {AuthorIdStr}");
+            }
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            // Error handling can be expanded here
+            errorMessage = ex.Message;
+            Console.WriteLine($"[AuthorView] Exception during LoadAuthorDetails: {ex}");
         }
         finally
         {
