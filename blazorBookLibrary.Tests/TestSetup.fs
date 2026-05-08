@@ -139,6 +139,8 @@ let userViewerAsync = getAggregateStorageFreshStateViewerAsync<User, UserEvent, 
 let reviewViewerAsync = getAggregateStorageFreshStateViewerAsync<Review, ReviewEvent, string> pgEventStore
 let distributionPointViewerAsync = getAggregateStorageFreshStateViewerAsync<DistributionPoint, DistributionPointEvent, string> pgEventStore
 
+let adminContext = UserContext.Authenticated (UserId.New(), [Role.Admin])
+
 let fakeEmailNotificator: IMailNotificator = new FakeEmailNotificator()
 let fakeReservationService: IReservationService = new FakeReservationService()
 let fakeLocalizer: IStringLocalizer<SharedResources> = new FakeLocalizer<SharedResources>()

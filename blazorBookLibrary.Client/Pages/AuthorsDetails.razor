@@ -419,7 +419,8 @@
 
         try
         {
-            var result = await AuthorsSearchService.LookupImageUrlByNameAndThumbSizeAsync(authorDetails.Author.Name.Value, FSharpOption<int>.None);
+            var context = await this.GetContext();
+            var result = await AuthorsSearchService.LookupImageUrlByNameAndThumbSizeAsync(context, authorDetails.Author.Name.Value, FSharpOption<int>.None);
             if (result.IsOk)
             {
                 editedImageUrl = result.ResultValue;
@@ -761,8 +762,9 @@
         isSearchingBio = true;
         try
         {
+            var context = await this.GetContext();
             var lang = ShortLang.New(System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName);
-            var result = await AuthorsSearchService.LookupBioByNameAsync(authorDetails.Author.Name.Value, lang);
+            var result = await AuthorsSearchService.LookupBioByNameAsync(context, authorDetails.Author.Name.Value, FSharpOption<ShortLang>.Some(lang));
             if (result.IsOk)
             {
                 candidateBios = result.ResultValue.ToList();
@@ -824,8 +826,9 @@
         isSearchingUri = true;
         try
         {
+            var context = await GetContext();
             var lang = ShortLang.New(System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName);
-            var result = await AuthorsSearchService.LookupWikipediaUriByNameAsync(authorDetails.Author.Name.Value, lang);
+            var result = await AuthorsSearchService.LookupWikipediaUriByNameAsync(context, authorDetails.Author.Name.Value, lang);
             if (result.IsOk)
             {
                 editedWikipediaUri = result.ResultValue;

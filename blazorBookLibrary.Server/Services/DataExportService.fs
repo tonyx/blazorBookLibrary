@@ -161,7 +161,7 @@ type DataExportService
                             else
                                 let rec lookupWithRetry (isbn: string) (retries: int) =
                                     task {
-                                        let! res = googleBooksService.LookupByIsbnAsync(isbn, ct = ct)
+                                        let! res = googleBooksService.LookupByIsbnAsync(context, isbn, ct = ct)
                                         match res with
                                         | Error e when e.Contains("503") && retries > 0 ->
                                             do! Task.Delay(5000, ct)
@@ -176,7 +176,7 @@ type DataExportService
                                     itemTitle <- Some metadata.Title
                                     reportProgress (Some (sprintf "Processing '%s'..." metadata.Title))
                                     let! (coverImageOpt: string option) = 
-                                        googleBooksService.LookupCoverImageByIsbnWithOpenApiAndThenGoogleAsync(isbn, ct = ct)
+                                        googleBooksService.LookupCoverImageByIsbnWithOpenApiAndThenGoogleAsync(context, isbn, ct = ct)
                                         |> Task.map (fun r -> match r with | Ok s -> Ok s | _ -> Ok None)
                                     
                                     let imageUrl = 
@@ -201,14 +201,14 @@ type DataExportService
                                                     return Some localAuthors.[0].AuthorId
                                                 elif generateUnknownAuthors then
                                                     let! authorMeta = 
-                                                        authorsSearchService.LookupByNameAsync(authorName, ct = ct)
+                                                        authorsSearchService.LookupByNameAsync(context, authorName, ct = ct)
                                                         |> Task.map (fun r -> 
                                                             match r with
                                                             | Ok m -> Ok (Some m)
                                                             | Error _ -> Ok None)
                                                     
                                                     let! authorPic = 
-                                                        authorsSearchService.LookupImageUrlByNameAndThumbSizeAsync(authorName, ct = ct)
+                                                        authorsSearchService.LookupImageUrlByNameAndThumbSizeAsync(context, authorName, ct = ct)
                                                         |> Task.map (fun r -> 
                                                             match r with
                                                             | Ok s when not (String.IsNullOrEmpty s) -> 

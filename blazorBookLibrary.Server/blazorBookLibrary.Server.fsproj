@@ -66,6 +66,7 @@
     <Compile Include="Services/MailBodyRetriever.fs" />
     <Compile Include="Services/TagService.fs" />
     <Compile Include="Services/UserMapping.fs" />
+    <Compile Include="Services/UserContextMapper.fs" />
     <Compile Include="Services/ReviewService.fs" />
     <Compile Include="Services/UserService.fs" />
     <Compile Include="Services/ReservationService.fs" />
@@ -80,6 +81,19 @@
     <Compile Include="Services/TextEmbeddingService.fs" />
     <Compile Include="Services/DataExportService.fs" />
     <Compile Include="Services/AdminService.fs" />
+    <Compile Include="Controllers/AuthorsSearchController.fs" />
+    <Compile Include="Controllers/BooksController.fs" />
+    <Compile Include="Controllers/LoansController.fs" />
+    <Compile Include="Controllers/AuthorsController.fs" />
+    <Compile Include="Controllers/DistributionPointsController.fs" />
+    <Compile Include="Controllers/ReviewsController.fs" />
+    <Compile Include="Controllers/TagsController.fs" />
+    <Compile Include="Controllers/UsersController.fs" />
+    <Compile Include="Controllers/ReservationsController.fs" />
+    <Compile Include="Controllers/AdminController.fs" />
+    <Compile Include="Controllers/GoogleBooksController.fs" />
+    <Compile Include="Controllers/DataExportController.fs" />
+    <Compile Include="Controllers/AIAssistantController.fs" />
   </ItemGroup>
 
   <ItemGroup>

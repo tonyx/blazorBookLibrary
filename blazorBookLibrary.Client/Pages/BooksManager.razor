@@ -1405,7 +1405,8 @@
         isAutofilling = true;
         try
         {
-            var results = await GoogleBooksService.LookupMultipleByTitleAsync(newBookTitle, CancellationToken.None);
+            var context = await GetUserContextAsync();
+            var results = await GoogleBooksService.LookupMultipleByTitleAsync(context, newBookTitle, CancellationToken.None);
             if (results.IsOk)
             {
                 lookupResults = results.ResultValue.ToList();
@@ -1454,7 +1455,8 @@
         isLookingUpMetadata = true;
         try
         {
-            var result = await GoogleBooksService.LookupByIsbnAsync(Isbn.StripExtraChars(newBookIsbn), CancellationToken.None);
+            var context = await GetUserContextAsync();
+            var result = await GoogleBooksService.LookupByIsbnAsync(context, Isbn.StripExtraChars(newBookIsbn), CancellationToken.None);
             if (result.IsOk && FSharpOption<GoogleBookMetadata>.get_IsSome(result.ResultValue))
             {
                 var book = result.ResultValue.Value;
@@ -1562,7 +1564,7 @@
                 if (coverSizeLookup == "Small") size = ThumbRoughSize.Small;
                 else if (coverSizeLookup == "Large") size = ThumbRoughSize.Large;
 
-                result = await GoogleBooksService.LookupCoverImageByIsbnWithOpenApiAndThenGoogleAsync(Isbn.New(newBookIsbn).ResultValue, FSharpOption<ThumbRoughSize>.Some(size), CancellationToken.None);
+                result = await GoogleBooksService.LookupCoverImageByIsbnWithOpenApiAndThenGoogleAsync(context, Isbn.New(newBookIsbn).ResultValue, FSharpOption<ThumbRoughSize>.Some(size), CancellationToken.None);
             }
             else
             {
@@ -1571,7 +1573,7 @@
                 var firstAuthor = selectedAuthors.FirstOrDefault();
                 var authorName = firstAuthor != null ? FSharpOption<string>.Some(firstAuthor.Name.Value) : FSharpOption<string>.None;
                 
-                result = await GoogleBooksService.LookupGoogleApiCoverImageByTitleAndOptionalAuthorAsync(title, authorName, CancellationToken.None);
+                result = await GoogleBooksService.LookupGoogleApiCoverImageByTitleAndOptionalAuthorAsync(context, title, authorName, CancellationToken.None);
             }
 
             if (result.IsOk && FSharpOption<string>.get_IsSome(result.ResultValue))

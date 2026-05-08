@@ -38,42 +38,42 @@ type DistributionPointService
     member this.GetAllDistributionPointsAsync(?ct: CancellationToken) = 
         taskResult
             {
-                let ct = defaultArg ct CancellationToken.None
-
                 let! result =
                     StateView.getAllAggregateStatesAsync<DistributionPoint, DistributionPointEvent, string>
                         eventStore
-                        (ct |> Some)
+                        ct
                 return result |>> snd
             }
 
     member this.GetDistributionPointAsync(id: DistributionPointId, ?ct: CancellationToken) = 
         taskResult
             {
-                let ct = defaultArg ct CancellationToken.None
                 let! result = 
                     StateView.getAggregateFreshStateAsync<DistributionPoint, DistributionPointEvent, string>
                         id.Value
                         eventStore
-                        (ct |> Some)
+                        ct
                 return result |> snd
             }
 
     member this.FindDistributionPointsAsync(name: Name, ?ct: CancellationToken) = 
         taskResult
             {
-                let ct = defaultArg ct CancellationToken.None
                 let! result = 
                     StateView.getAllFilteredAggregateStatesAsync<DistributionPoint, DistributionPointEvent, string>
                         (fun (x: DistributionPoint) -> x.Name.Value.ToLower().Contains(name.Value.ToLower()))
                         eventStore
-                        (ct |> Some)
+                        ct
                 return result |>> snd
             }
 
-    member this.CreateDistributionPointAsync(distributionPoint: DistributionPoint, ?ct: CancellationToken) = 
+    member this.CreateDistributionPointAsync(context: UserContext, distributionPoint: DistributionPoint, ?ct: CancellationToken) = 
         taskResult
             {
+                do!  
+                    context.IsInRole Role.Admin
+                    |> Result.ofBool "Creation of distribution point allowed only to admins"
+
                 return!
                     runInitAsync<DistributionPoint, DistributionPointEvent, string>
                     eventStore
@@ -90,4 +90,4 @@ type DistributionPointService
         member this.FindDistributionPointsAsync(context: UserContext, name: Name, ?ct: CancellationToken) = 
             this.FindDistributionPointsAsync(name, ?ct=ct)
         member this.CreateDistributionPointAsync(context: UserContext, distributionPoint: DistributionPoint, ?ct: CancellationToken) = 
-            this.CreateDistributionPointAsync(distributionPoint, ?ct=ct)
+            this.CreateDistributionPointAsync(context, distributionPoint, ?ct=ct)

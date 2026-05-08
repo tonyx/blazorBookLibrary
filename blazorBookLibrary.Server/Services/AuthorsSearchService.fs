@@ -8,6 +8,8 @@ open System.Text.Json.Serialization
 open Microsoft.FSharp.Core
 open FsToolkit.ErrorHandling
 open BookLibrary.Shared.Commons
+open System.Threading
+open System.Runtime.InteropServices
 
 type OpenLibraryAuthorSearchDoc = {
     [<JsonPropertyName("key")>] Key: string
@@ -27,43 +29,44 @@ type OpenLibraryAuthorDetails = {
     [<JsonPropertyName("remote_ids")>] RemoteIds: OpenLibraryRemoteIds
 }
 
-open System.Threading
-open System.Runtime.InteropServices
 
 type AuthorsSearchService(httpClient: HttpClient) =
     interface IAuthorsSearchService with
-        member this.LookupByNameAsync(name: string, [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken) =
+        member this.LookupByNameAsync(context: UserContext, name: string, [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken) =
             let ct = defaultArg ct CancellationToken.None
             task {
                 try
-                    // URL encode the name
-                    let encodedName = System.Web.HttpUtility.UrlEncode(name)
-                    let url = $"https://openlibrary.org/search/authors.json?q={encodedName}"
-                    let! response = httpClient.GetFromJsonAsync<OpenLibraryAuthorSearchResponse>(url, ct)
-                    
-                    if isNull (box response) || isNull (box response.Docs) || response.Docs.Length = 0 then
-                        return Error "Author not found"
+                    if not (context.IsInRole Role.Admin || context.IsInRole Role.Manager) then
+                        return Error "Only admin or managers can look up authors"
                     else
-                        let doc = response.Docs.[0]
-                        let authorKey = doc.Key
+                        // URL encode the name
+                        let encodedName = System.Web.HttpUtility.UrlEncode(name)
+                        let url = $"https://openlibrary.org/search/authors.json?q={encodedName}"
+                        let! response = httpClient.GetFromJsonAsync<OpenLibraryAuthorSearchResponse>(url, ct)
+                        
+                        if isNull (box response) || isNull (box response.Docs) || response.Docs.Length = 0 then
+                            return Error "Author not found"
+                        else
+                            let doc = response.Docs.[0]
+                            let authorKey = doc.Key
 
-                        let mutable isniOpt = None
+                            let mutable isniOpt = None
 
-                        try
-                            // Optional secondary call to fetch remote ids (like ISNI) if present
-                            let detailsUrl = $"https://openlibrary.org/authors/{authorKey}.json"
-                            let! details = httpClient.GetFromJsonAsync<OpenLibraryAuthorDetails>(detailsUrl, ct)
-                            if not (isNull (box details)) && not (isNull (box details.RemoteIds)) && not (System.String.IsNullOrWhiteSpace(details.RemoteIds.Isni)) then
-                                isniOpt <- Some details.RemoteIds.Isni
-                        with
-                        | _ -> () // ignore if details can't be fetched or parsing fails
+                            try
+                                // Optional secondary call to fetch remote ids (like ISNI) if present
+                                let detailsUrl = $"https://openlibrary.org/authors/{authorKey}.json"
+                                let! details = httpClient.GetFromJsonAsync<OpenLibraryAuthorDetails>(detailsUrl, ct)
+                                if not (isNull (box details)) && not (isNull (box details.RemoteIds)) && not (System.String.IsNullOrWhiteSpace(details.RemoteIds.Isni)) then
+                                    isniOpt <- Some details.RemoteIds.Isni
+                            with
+                            | _ -> () // ignore if details can't be fetched or parsing fails
 
-                        return Ok { Name = doc.Name; Isni = isniOpt }
+                            return Ok { Name = doc.Name; Isni = isniOpt }
                 with
                 | ex -> return Error ex.Message
             }
 
-        member this.LookupImageUrlByNameAndThumbSizeAsync(name: string, [<Optional; DefaultParameterValue(null)>] ?pitThumbSize: int, [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken) =
+        member this.LookupImageUrlByNameAndThumbSizeAsync(context: UserContext, name: string, [<Optional; DefaultParameterValue(null)>] ?pitThumbSize: int, [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken) =
             let ct = defaultArg ct CancellationToken.None
             task {
                 let thumbSize = defaultArg pitThumbSize 100
@@ -103,41 +106,44 @@ type AuthorsSearchService(httpClient: HttpClient) =
                 | ex -> return Error ex.Message
             }
 
-        member this.LookupBioByNameAsync(name: string, [<Optional; DefaultParameterValue(null)>] ?lang: ShortLang, [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken) =
+        member this.LookupBioByNameAsync(context: UserContext, name: string, [<Optional; DefaultParameterValue(null)>] ?lang: ShortLang, [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken) =
             let ct = defaultArg ct CancellationToken.None
             let lang = defaultArg lang (ShortLang.New "it")
             task {
                 try
-                    let encodedName = System.Web.HttpUtility.UrlEncode(name)
-                    let locale = lang.Value
-                    // Action query with generator search allows us to retrieve multiple candidates in a single call.
-                    let url = $"https://{locale}.wikipedia.org/w/api.php?action=query&format=json&generator=search&gsrsearch={encodedName}&gsrlimit=5&prop=extracts&exintro&explaintext&exlimit=5"
-                    
-                    let! jsonDoc = httpClient.GetFromJsonAsync<System.Text.Json.JsonDocument>(url, ct)
-                    
-                    let root = jsonDoc.RootElement
-                    match root.TryGetProperty("query") with
-                    | false, _ -> return Ok []
-                    | true, queryElement ->
-                        match queryElement.TryGetProperty("pages") with
+                    if not (context.IsInRole Role.Admin || context.IsInRole Role.Manager) then
+                        return Error "Only admin or managers can look up authors"
+                    else
+                        let encodedName = System.Web.HttpUtility.UrlEncode(name)
+                        let locale = lang.Value
+                        // Action query with generator search allows us to retrieve multiple candidates in a single call.
+                        let url = $"https://{locale}.wikipedia.org/w/api.php?action=query&format=json&generator=search&gsrsearch={encodedName}&gsrlimit=5&prop=extracts&exintro&explaintext&exlimit=5"
+                        
+                        let! jsonDoc = httpClient.GetFromJsonAsync<System.Text.Json.JsonDocument>(url, ct)
+                        
+                        let root = jsonDoc.RootElement
+                        match root.TryGetProperty("query") with
                         | false, _ -> return Ok []
-                        | true, pagesElement ->
-                            let bios = 
-                                pagesElement.EnumerateObject()
-                                |> Seq.choose (fun page -> 
-                                    match page.Value.TryGetProperty("extract") with
-                                    | true, extract -> 
-                                        let bio = extract.GetString()
-                                        if System.String.IsNullOrWhiteSpace(bio) then None else Some bio
-                                    | false, _ -> None
-                                )
-                                |> List.ofSeq
-                            return Ok bios
+                        | true, queryElement ->
+                            match queryElement.TryGetProperty("pages") with
+                            | false, _ -> return Ok []
+                            | true, pagesElement ->
+                                let bios = 
+                                    pagesElement.EnumerateObject()
+                                    |> Seq.choose (fun page -> 
+                                        match page.Value.TryGetProperty("extract") with
+                                        | true, extract -> 
+                                            let bio = extract.GetString()
+                                            if System.String.IsNullOrWhiteSpace(bio) then None else Some bio
+                                        | false, _ -> None
+                                    )
+                                    |> List.ofSeq
+                                return Ok bios
                 with
                 | ex -> return Error ex.Message
             }
 
-        member this.LookupWikipediaUriByNameAsync(name: string, [<Optional; DefaultParameterValue(null)>] ?lang: ShortLang, [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken) =
+        member this.LookupWikipediaUriByNameAsync(context: UserContext, name: string, [<Optional; DefaultParameterValue(null)>] ?lang: ShortLang, [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken) =
             let ct = defaultArg ct CancellationToken.None
             let lang = defaultArg lang (ShortLang.New "it")
             task {

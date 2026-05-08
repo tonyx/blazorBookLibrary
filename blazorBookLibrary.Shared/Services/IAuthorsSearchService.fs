@@ -13,7 +13,7 @@ type AuthorMetadata = {
 }
 
 type IAuthorsSearchService =
-    abstract member LookupByNameAsync : name: string * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<AuthorMetadata, string>>
-    abstract member LookupImageUrlByNameAndThumbSizeAsync: name: string * [<Optional; DefaultParameterValue(null)>] ?pitThumbSize: int * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<string, string>>
-    abstract member LookupBioByNameAsync: name: string * [<Optional; DefaultParameterValue(null)>] ?lang: ShortLang * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<List<string>, string>>
-    abstract member LookupWikipediaUriByNameAsync: name: string * [<Optional; DefaultParameterValue(null)>] ?lang: ShortLang * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<string, string>>
+    abstract member LookupByNameAsync : context: UserContext * name: string * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<AuthorMetadata, string>>
+    abstract member LookupImageUrlByNameAndThumbSizeAsync: context: UserContext * name: string * [<Optional; DefaultParameterValue(null)>] ?pitThumbSize: int * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<string, string>>
+    abstract member LookupBioByNameAsync: context:UserContext * name: string * [<Optional; DefaultParameterValue(null)>] ?lang: ShortLang * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<List<string>, string>>
+    abstract member LookupWikipediaUriByNameAsync: context:UserContext * name: string * [<Optional; DefaultParameterValue(null)>] ?lang: ShortLang * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<string, string>>

@@ -9,6 +9,7 @@ open BookLibrary.Shared.Services
 open BookLibrary.Shared.Commons
 open System.IO
 open System.Threading
+open TestSetup
 
 module GoogleBooksTests =
     let getService () =
@@ -28,7 +29,7 @@ module GoogleBooksTests =
         testList "Google Books Service Tests" [
             ptestCaseTask "can lookup book by ISBN and populate Description" <| fun _ -> task {
                 let isbn = "9780132350884" // Clean Code
-                let! result = googleService.LookupByIsbnAsync(isbn)
+                let! result = googleService.LookupByIsbnAsync(adminContext, isbn)
                 match result with
                 | Ok (Some metadata) ->
                     Expect.isNotNull metadata.Title "Title should not be null"
@@ -43,7 +44,7 @@ module GoogleBooksTests =
             }
             ptestCaseTask "can lookup book by Title" <| fun _ -> task {
                 let title = "The Lord of the Rings"
-                let! result = googleService.LookupByTitleAsync(title)
+                let! result = googleService.LookupByTitleAsync(adminContext, title)
                 match result with
                 | Ok (Some metadata) ->
                     Expect.isNotNull metadata.Title "Title should not be null"
@@ -56,7 +57,7 @@ module GoogleBooksTests =
             }
             ptestCaseTask "can lookup multiple books by Title" <| fun _ -> task {
                 let title = "The Lord of the Rings"
-                let! result = googleService.LookupMultipleByTitleAsync(title)
+                let! result = googleService.LookupMultipleByTitleAsync(adminContext, title)
                 match result with
                 | Ok list ->
                     Expect.isTrue (list.Length > 0) "Should find at least one book"
@@ -69,7 +70,7 @@ module GoogleBooksTests =
                 let isbn = Isbn isbnStr
                 
                 // Test default size (Medium)
-                let! resultM = googleService.LookupCoverImageByIsbnAsync(isbn)
+                let! resultM = googleService.LookupCoverImageByIsbnAsync(adminContext, isbn)
                 match resultM with
                 | Ok (Some url) ->
                     // The URL now should be the final redirected URL, usually on archive.org
@@ -83,14 +84,14 @@ module GoogleBooksTests =
                     failwith e
 
                 // Test Small size
-                let! resultS = googleService.LookupCoverImageByIsbnAsync(isbn, ThumbRoughSize.Small)
+                let! resultS = googleService.LookupCoverImageByIsbnAsync(adminContext, isbn, ThumbRoughSize.Small)
                 match resultS with
                 | Ok (Some url) ->
                     Expect.isTrue (url.Contains("archive.org")) "Small cover should also point to archive.org"
                 | _ -> failwith "Failed to lookup Small cover"
 
                 // Test Large size
-                let! resultL = googleService.LookupCoverImageByIsbnAsync(isbn, ThumbRoughSize.Large)
+                let! resultL = googleService.LookupCoverImageByIsbnAsync(adminContext, isbn, ThumbRoughSize.Large)
                 match resultL with
                 | Ok (Some url) ->
                     Expect.isTrue (url.Contains("archive.org")) "Large cover should also point to archive.org"
@@ -98,7 +99,7 @@ module GoogleBooksTests =
             }
             ptestCaseTask "returns error for invalid ISBN in cover lookup" <| fun _ -> task {
                 let isbn = InvalidIsbn "123"
-                let! result = googleService.LookupCoverImageByIsbnAsync(isbn)
+                let! result = googleService.LookupCoverImageByIsbnAsync(adminContext, isbn)
                 match result with
                 | Error msg -> Expect.stringContains msg "invalid" "Should return error message for invalid ISBN"
                 | _ -> failwith "Should have returned an error"
@@ -108,7 +109,7 @@ module GoogleBooksTests =
             ptestCaseTask "can lookup cover image from Google API" <| fun _ -> task {
                 let isbnStr = "9780132350884" // Clean Code
                 let isbn = Isbn isbnStr
-                let! result = googleService.LookupGoogleApiCoverImageByIsbnAsync(isbn)
+                let! result = googleService.LookupGoogleApiCoverImageByIsbnAsync(adminContext, isbn)
                 match result with
                 | Ok (Some url) ->
                     Expect.isTrue (url.StartsWith("http")) "Should return a valid URL"

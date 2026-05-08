@@ -400,7 +400,9 @@
         isSearchingImage = true;
         try
         {
-            var result = await AuthorsSearchService.LookupImageUrlByNameAndThumbSizeAsync(newAuthorName, FSharpOption<int>.Some(200));
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var userContext = blazorBookLibrary.Shared.ConverterUtils.fromClaimsPrincipal(authState.User);
+            var result = await AuthorsSearchService.LookupImageUrlByNameAndThumbSizeAsync(userContext, newAuthorName, FSharpOption<int>.Some(200));
             if (result.IsOk)
             {
                 newAuthorImageUrl = result.ResultValue;
@@ -428,8 +430,10 @@
         isSearchingBio = true;
         try
         {
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var userContext = blazorBookLibrary.Shared.ConverterUtils.fromClaimsPrincipal(authState.User);
             var lang = ShortLang.New(System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName);
-            var result = await AuthorsSearchService.LookupBioByNameAsync(newAuthorName, lang);
+            var result = await AuthorsSearchService.LookupBioByNameAsync(userContext, newAuthorName, FSharpOption<ShortLang>.Some(lang));
             if (result.IsOk)
             {
                 candidateBios = result.ResultValue.ToList();
@@ -464,8 +468,9 @@
         isSearchingUri = true;
         try
         {
+            var context = await GetContext();
             var lang = ShortLang.New(System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName);
-            var result = await AuthorsSearchService.LookupWikipediaUriByNameAsync(newAuthorName, lang);
+            var result = await AuthorsSearchService.LookupWikipediaUriByNameAsync(context, newAuthorName, lang);
             if (result.IsOk)
             {
                 newAuthorWikipediaUrl = result.ResultValue;

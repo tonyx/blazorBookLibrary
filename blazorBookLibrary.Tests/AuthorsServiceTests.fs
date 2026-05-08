@@ -218,7 +218,7 @@ let tests =
             
             let! _ = authorService.AddAuthorAsync(UserContext.Anonymous, author)
             
-            let! removeResult = (authorService :> IAuthorService).RemoveAsync(UserContext.Anonymous, author.AuthorId)
+            let! removeResult = (authorService :> IAuthorService).RemoveAsync(adminContext, author.AuthorId)
             Expect.isOk removeResult "should be ok"
             
             let! getResult = authorService.GetAuthorAsync(UserContext.Anonymous, author.AuthorId)

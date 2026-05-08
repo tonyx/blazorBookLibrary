@@ -7,24 +7,17 @@ open Sharpino.Cache
 open FSharpPlus.Operators
 open Sharpino.CommandHandler
 open Sharpino.EventBroker
-open Sharpino.Definitions
-open Sharpino.Core
-open Sharpino.EventBroker
 open Sharpino.Storage
 open Sharpino.StateView
 
 open BookLibrary.Domain
-open BookLibrary.Details
 open FsToolkit.ErrorHandling
-open System.Threading.Tasks
 
 open BookLibrary.Shared.Details
 open BookLibrary.Details.Details
 
 open BookLibrary.Shared.Services
 open BookLibrary.Shared.Commons
-open BookLibrary.Shared.Details
-open Microsoft.Extensions.Configuration
 open BookLibrary.Utils
 
 type AuthorService 
@@ -171,6 +164,9 @@ type AuthorService
     member this.UpdateBioAsync (context: UserContext, authorId: AuthorId, bio: string, ?ct: CancellationToken) = 
         taskResult
             {
+                do!
+                    (context.IsInRole Role.Admin || context.IsInRole Role.Manager)
+                    |> Result.ofBool "Updating of author bio allowed only to admins or managers"
                 let updateBioCommand = AuthorCommand.UpdateBio (bio, DateTime.UtcNow)
                 let result = 
                     runAggregateCommandMdAsync<Author, AuthorEvent, string>
@@ -186,6 +182,9 @@ type AuthorService
     member this.UpdateWikipediaUriAsync (context: UserContext, authorId: AuthorId, wikipediaUri: Uri, ?ct: CancellationToken) = 
         taskResult
             {
+                do!
+                    (context.IsInRole Role.Admin || context.IsInRole Role.Manager)
+                    |> Result.ofBool "Updating of author wikipedia uri allowed only to admins or managers"
                 let updateWikipediaUriCommand = AuthorCommand.UpdateWikipediaUri (wikipediaUri, DateTime.UtcNow)
                 let result = 
                     runAggregateCommandMdAsync<Author, AuthorEvent, string>
@@ -201,6 +200,9 @@ type AuthorService
     member this.UpdateImageUrlAsync (context: UserContext, authorId: AuthorId, imageUrl: Uri, ?ct: CancellationToken) = 
         taskResult
             {
+                do!
+                    (context.IsInRole Role.Admin || context.IsInRole Role.Manager)
+                    |> Result.ofBool "Updating of author image url allowed only to admins or managers"
                 let updateImageUrlCommand = AuthorCommand.UpdateImageUrl (imageUrl, DateTime.UtcNow)
                 let result = 
                     runAggregateCommandMdAsync<Author, AuthorEvent, string>
@@ -216,6 +218,9 @@ type AuthorService
     member this.RemoveImageUrlAsync (context: UserContext, authorId: AuthorId, ?ct: CancellationToken) = 
         taskResult
             {
+                do!
+                    (context.IsInRole Role.Admin || context.IsInRole Role.Manager)
+                    |> Result.ofBool "Removing of author image url allowed only to admins or managers"    
                 let removeImageUrlCommand = AuthorCommand.RemoveImageUrl (DateTime.UtcNow)
                 let result = 
                     runAggregateCommandMdAsync<Author, AuthorEvent, string>
@@ -231,6 +236,9 @@ type AuthorService
     member this.SealAsync (context: UserContext, authorId: AuthorId, ?ct: CancellationToken) = 
         taskResult
             {
+                do!
+                    (context.IsInRole Role.Admin || context.IsInRole Role.Manager)
+                    |> Result.ofBool "Sealing of author allowed only to admins or managers"    
                 let sealCommand = AuthorCommand.Seal (DateTime.UtcNow)
                 let result = 
                     runAggregateCommandMdAsync<Author, AuthorEvent, string>
@@ -246,6 +254,9 @@ type AuthorService
     member this.UnsealAsync (context: UserContext, authorId: AuthorId, ?ct: CancellationToken) = 
         taskResult
             {
+                do!
+                    (context.IsInRole Role.Admin || context.IsInRole Role.Manager)
+                    |> Result.ofBool "Unsealing of author allowed only to admins or managers"    
                 let unsealCommand = AuthorCommand.Unseal (DateTime.UtcNow)
                 let result = 
                     runAggregateCommandMdAsync<Author, AuthorEvent, string>
@@ -261,6 +272,9 @@ type AuthorService
     member this.RemoveAuthorAsync(context: UserContext, authorId: AuthorId, ?ct: CancellationToken) = 
         taskResult
             {
+                do!
+                    (context.IsInRole Role.Admin || context.IsInRole Role.Manager)
+                    |> Result.ofBool "Removing of author allowed only to admins or managers"    
                 let! author = authorViewerAsync ct authorId.Value |> TaskResult.map snd
                 return!
                     runDeleteAsync<Author, AuthorEvent, string>

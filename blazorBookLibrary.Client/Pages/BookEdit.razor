@@ -1470,7 +1470,8 @@
                 if (coverSizeLookup == "Small") size = ThumbRoughSize.Small;
                 else if (coverSizeLookup == "Large") size = ThumbRoughSize.Large;
 
-                result = await GoogleBooksService.LookupCoverImageByIsbnWithOpenApiAndThenGoogleAsync(bookDetails.Book.Isbn, FSharpOption<ThumbRoughSize>.Some(size));
+                var context = await GetContext();
+                result = await GoogleBooksService.LookupCoverImageByIsbnWithOpenApiAndThenGoogleAsync(context, bookDetails.Book.Isbn, FSharpOption<ThumbRoughSize>.Some(size));
             }
             else
             {
@@ -1479,7 +1480,8 @@
                 var firstAuthor = bookDetails.Authors.FirstOrDefault();
                 var authorName = firstAuthor != null ? FSharpOption<string>.Some(firstAuthor.Name.Value) : FSharpOption<string>.None;
                 
-                result = await GoogleBooksService.LookupGoogleApiCoverImageByTitleAndOptionalAuthorAsync(title, authorName);
+                var context = await GetContext();
+                result = await GoogleBooksService.LookupGoogleApiCoverImageByTitleAndOptionalAuthorAsync(context, title, authorName);
             }
 
             if (result.IsOk && FSharpOption<string>.get_IsSome(result.ResultValue))

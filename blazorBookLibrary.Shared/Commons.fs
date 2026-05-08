@@ -464,9 +464,9 @@ type UserContext =
     | Authenticated of UserId: UserId * Roles: List<Role>
     | Anonymous
     with 
-        member this.IsInRole (role: string) = 
+        member this.IsInRole (role: Role) = 
             match this with
-            | Authenticated(_, roles) -> roles |> List.exists (fun r -> r.ToString() = role)
+            | Authenticated(_, roles) -> roles |> List.exists (fun r -> r = role)
             | Anonymous -> false
         
         member this.UserId = 
