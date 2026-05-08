@@ -21,7 +21,8 @@
 @inject ILogger<BookSearch> Logger
 @inject IJSRuntime JSRuntime
 @inject IStringLocalizer<SharedResources> L
-@rendermode InteractiveServer
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@rendermode InteractiveAuto
 
 <PageTitle>@L["BookSearch"] — @L["TheModernArchivist"]</PageTitle>
 
@@ -281,7 +282,8 @@
             
             var desc = FSharpOption<string>.get_IsSome(res.Book.Description) ? res.Book.Description.Value : "";
             var bookText = $"{res.Book.Title.Value}. {desc}";
-            var explanationResult = await TextEmbeddingService.GetMatchExplanationAsync(query, bookText);
+            var context = await GetUserContextAsync();
+            var explanationResult = await TextEmbeddingService.GetMatchExplanationAsync(context, query, bookText);
             if (explanationResult.IsOk)
             {
                 var newRes = new BookSearchResult(res.Book, res.Score, FSharpOption<string>.Some(explanationResult.ResultValue));
@@ -306,5 +308,11 @@
             explanationSemaphore.Release();
             StateHasChanged();
         }
+    }
+
+    private async Task<UserContext> GetUserContextAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        return blazorBookLibrary.Shared.ConverterUtils.fromClaimsPrincipal(authState.User);
     }
 }

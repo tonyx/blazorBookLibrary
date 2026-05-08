@@ -33,7 +33,7 @@ public class Program
         builder.Services.AddScoped<IAdminServices, AdminClientService>();
         builder.Services.AddScoped<IGoogleBooksService, GoogleBooksClientService>();
         builder.Services.AddScoped<IDataExportService, DataExportClientService>();
-        builder.Services.AddScoped<ITextEmbeddingService, AIAssistantClientService>();
+        builder.Services.AddScoped<ITextEmbeddingService, TextEmbeddingClientService>();
         builder.Services.AddScoped<IDetailsService, DetailsClientService>();
         builder.Services.AddScoped<IBotScoreService, BotScoreClientService>();
         builder.Services.AddScoped<IVectorDbService, VectorDbClientService>();

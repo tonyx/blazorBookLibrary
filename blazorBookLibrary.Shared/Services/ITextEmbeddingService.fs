@@ -50,7 +50,7 @@ type PartialBookDataMatch =
             None
 
 type ITextEmbeddingService = 
-    abstract member GetEmbeddingAsync: text: string * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<EmbeddingData,string>>
-    abstract member GetMatchExplanationAsync: query: string * itemText: string * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<string,string>>
-    abstract member GetPartialBookMatchByCoverImage: base64Image: string * mimeType: string * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<PartialBookDataMatch, string>>
-    abstract member GetBookDescriptionAsync: bookData: PartialBookDataMatch * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<string,string>>
+    abstract member GetEmbeddingAsync: context: UserContext * text: string * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<EmbeddingData,string>>
+    abstract member GetMatchExplanationAsync: context: UserContext * query: string * itemText: string * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<string,string>>
+    abstract member GetPartialBookMatchByCoverImage: context: UserContext * base64Image: string * mimeType: string * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<PartialBookDataMatch, string>>
+    abstract member GetBookDescriptionAsync: context: UserContext * bookData: PartialBookDataMatch * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<string,string>>

@@ -494,7 +494,8 @@
         {
             if (!string.IsNullOrWhiteSpace(semanticSearchText))
             {
-                var embeddingResult = await TextEmbeddingService.GetEmbeddingAsync(semanticSearchText);
+                var context = await GetUserContextAsync();
+                var embeddingResult = await TextEmbeddingService.GetEmbeddingAsync(context, semanticSearchText);
                 if (!embeddingResult.IsOk)
                 {
                     await OnError.InvokeAsync($"{L["SemanticAnalysisFailed"]}: {embeddingResult.ErrorValue}");

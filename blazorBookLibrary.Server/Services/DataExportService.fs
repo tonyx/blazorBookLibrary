@@ -258,7 +258,7 @@ type DataExportService
                                             task {
                                                 reportProgress (Some (sprintf "Generating AI description for '%s'..." metadata.Title))
                                                 let bookMatch = All (isbn.Value, metadata.Title, authorsToProcess)
-                                                let! genResult = textEmbeddingService.GetBookDescriptionAsync(bookMatch, ct)
+                                                let! genResult = textEmbeddingService.GetBookDescriptionAsync(context, bookMatch, ct)
                                                 match genResult with
                                                 | Ok desc -> return Some desc
                                                 | Error _ -> return None
@@ -299,7 +299,7 @@ type DataExportService
                                                 
                                                 let rec getEmbeddingWithRetry (text: string) (retries: int) =
                                                     task {
-                                                        let! res = textEmbeddingService.GetEmbeddingAsync(text, ct = ct)
+                                                        let! res = textEmbeddingService.GetEmbeddingAsync(context, text, ct = ct)
                                                         match res with
                                                         | Error e when (e.Contains("429") || e.Contains("quota") || e.Contains("limit") || e.Contains("503")) && retries > 0 ->
                                                             do! Task.Delay(2000, ct)

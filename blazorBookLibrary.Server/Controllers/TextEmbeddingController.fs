@@ -8,11 +8,10 @@ open BookLibrary.Shared.Commons
 open BookLibrary.Domain
 open System.Threading.Tasks
 open System
-open System.Collections.Generic
 
 [<ApiController>]
 [<Route("api/[controller]")>]
-type AIAssistantController(textEmbeddingService: ITextEmbeddingService) =
+type TextEmbeddingController(textEmbeddingService: ITextEmbeddingService) =
     inherit ControllerBase()
 
     [<HttpPost("embedding")>]
@@ -35,16 +34,6 @@ type AIAssistantController(textEmbeddingService: ITextEmbeddingService) =
             | Error msg -> return this.BadRequest(msg) :> IActionResult
         }
 
-    [<HttpPost("generate-description")>]
-    member this.GenerateDescription([<FromBody>] bookData: PartialBookDataMatch) =
-        task {
-            let context = UserContextMapper.mapFromClaimsPrincipal this.User
-            let! result = textEmbeddingService.GetBookDescriptionAsync(context, bookData)
-            match result with
-            | Ok description -> return this.Ok(description) :> IActionResult
-            | Error msg -> return this.BadRequest(msg) :> IActionResult
-        }
-
     [<HttpPost("identify-from-cover")>]
     member this.IdentifyFromCover([<FromBody>] request: {| base64Image: string; mimeType: string |}) =
         task {
@@ -52,5 +41,15 @@ type AIAssistantController(textEmbeddingService: ITextEmbeddingService) =
             let! result = textEmbeddingService.GetPartialBookMatchByCoverImage(context, request.base64Image, request.mimeType)
             match result with
             | Ok matchResult -> return this.Ok(matchResult) :> IActionResult
+            | Error msg -> return this.BadRequest(msg) :> IActionResult
+        }
+
+    [<HttpPost("generate-description")>]
+    member this.GenerateDescription([<FromBody>] bookData: PartialBookDataMatch) =
+        task {
+            let context = UserContextMapper.mapFromClaimsPrincipal this.User
+            let! result = textEmbeddingService.GetBookDescriptionAsync(context, bookData)
+            match result with
+            | Ok description -> return this.Ok(description) :> IActionResult
             | Error msg -> return this.BadRequest(msg) :> IActionResult
         }

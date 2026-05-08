@@ -27,7 +27,7 @@
 @inject IConfiguration Configuration
 @inject ITextEmbeddingService TextEmbeddingService
 @inject IVectorDbService VectorDbService
-@rendermode InteractiveServer
+@rendermode InteractiveAuto
 
 <PageTitle>@L["BooksManager"] — @L["TheModernArchivist"]</PageTitle>
 
@@ -949,7 +949,8 @@
             var base64Content = base64Data.Split(',')[1];
             var mimeType = "image/jpeg";
 
-            var result = await TextEmbeddingService.GetPartialBookMatchByCoverImage(base64Content, mimeType);
+            var context = await GetUserContextAsync();
+            var result = await TextEmbeddingService.GetPartialBookMatchByCoverImage(context, base64Content, mimeType);
             
             if (result.IsOk)
             {
@@ -1285,10 +1286,11 @@
     {
         try
         {
-            var embeddingResult = await TextEmbeddingService.GetEmbeddingAsync(description);
+            var context = await GetUserContextAsync();
+            var embeddingResult = await TextEmbeddingService.GetEmbeddingAsync(context, description);
             if (embeddingResult.IsOk)
             {
-                var context = await GetUserContextAsync();
+                context = await GetUserContextAsync();
                 var embeddingId = EmbeddingDataId.New();
                 var storeResult = await VectorDbService.StoreEmbeddingAsync(embeddingId, bookId, embeddingResult.ResultValue, CancellationToken.None);
                 
@@ -1750,7 +1752,8 @@
 
         try
         {
-            var result = await TextEmbeddingService.GetBookDescriptionAsync(bookData, descriptionGenerationCts.Token);
+            var context = await GetUserContextAsync();
+            var result = await TextEmbeddingService.GetBookDescriptionAsync(context, bookData, descriptionGenerationCts.Token);
             if (result.IsOk)
             {
                 previousDescriptionBuffer = newBookDescription;

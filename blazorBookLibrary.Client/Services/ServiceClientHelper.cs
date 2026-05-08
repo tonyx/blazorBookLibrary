@@ -15,6 +15,14 @@ public static class ServiceClientHelper
     {
         if (response.IsSuccessStatusCode)
         {
+            if (typeof(T) == typeof(string))
+            {
+                var content = await response.Content.ReadAsStringAsync();
+                // If it's a string, it might be quoted JSON or raw. 
+                // ReadFromJsonAsync handles quotes, ReadAsStringAsync gets raw.
+                // In many cases, the server returns raw strings for Ok(string).
+                return (FSharpResult<T, string>)(object)FSharpResult<string, string>.NewOk(content);
+            }
             var data = await response.Content.ReadFromJsonAsync<T>(JsonOptions);
             return FSharpResult<T, string>.NewOk(data!);
         }
