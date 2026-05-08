@@ -229,35 +229,27 @@
             {
                 var authorId = AuthorId.NewAuthorId(guid);
                 var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-                @* Console.WriteLine($"[AuthorView] user is null!!!: {authState.User == null}");
-                Console.WriteLine($"[AuthorView] AuthenticationState: {authState}");
-                Console.WriteLine($"[AuthorView] AuthenticationState: {authState.User}"); *@
                 var context = blazorBookLibrary.Shared.ConverterUtils.fromClaimsPrincipal(authState.User);
                 
-                @* Console.WriteLine($"[AuthorView] Calling DetailsService.GetAuthorDetailsAsync for {guid}"); *@
                 var result = await DetailsService.GetAuthorDetailsAsync(context, authorId);
 
                 if (result.IsOk)
                 {
                     authorDetails = result.ResultValue;
-                    @* Console.WriteLine($"[AuthorView] Successfully loaded author: {authorDetails.Author.Name.Value}"); *@
                 }
                 else
                 {
                     errorMessage = result.ErrorValue;
-                    @* Console.WriteLine($"[AuthorView] Error from service: {errorMessage}"); *@
                 }
             }
             else
             {
                 errorMessage = "Invalid Author ID format";
-                Console.WriteLine($"[AuthorView] {errorMessage}: {AuthorIdStr}");
             }
         }
         catch (Exception ex)
         {
             errorMessage = ex.Message;
-            Console.WriteLine($"[AuthorView] Exception during LoadAuthorDetails: {ex}");
         }
         finally
         {

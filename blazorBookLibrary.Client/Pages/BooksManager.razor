@@ -933,7 +933,6 @@
         
         try
         {
-            Console.WriteLine("CaptureCoverPhoto: Starting...");
             // Small delay to ensure UI is stable
             await Task.Delay(300);
 
@@ -942,19 +941,15 @@
             
             if (string.IsNullOrEmpty(base64Data))
             {
-                Console.WriteLine("CaptureCoverPhoto: Failed to capture base64Data.");
                 await ShowStatus("Failed to capture image from camera.", "warning");
                 return;
             }
 
-            Console.WriteLine("CaptureCoverPhoto: Image captured, length: " + base64Data.Length);
             // Extract base64 part
             var base64Content = base64Data.Split(',')[1];
             var mimeType = "image/jpeg";
 
-            Console.WriteLine("CaptureCoverPhoto: Calling TextEmbeddingService...");
             var result = await TextEmbeddingService.GetPartialBookMatchByCoverImage(base64Content, mimeType);
-            Console.WriteLine("CaptureCoverPhoto: Service returned. Success: " + result.IsOk);
             
             if (result.IsOk)
             {
