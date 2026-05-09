@@ -25,6 +25,16 @@ type AdminController(adminService: IAdminServices) =
             | Error msg -> return this.BadRequest(msg) :> IActionResult
         }
 
+    [<HttpPost("vectors/purge-duplicates")>]
+    member this.PurgeDuplicatedVectors() =
+        task {
+            let context = UserContextMapper.mapFromClaimsPrincipal this.User
+            let! result = adminService.PurgeDuplicatedVectorsAsync(context)
+            match result with
+            | Ok _ -> return this.Ok() :> IActionResult
+            | Error msg -> return this.BadRequest(msg) :> IActionResult
+        }
+
     [<HttpPost("books/adjust-states")>]
     member this.AdjustBookStates() =
         task {

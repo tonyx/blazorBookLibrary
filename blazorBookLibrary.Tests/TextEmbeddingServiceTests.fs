@@ -14,7 +14,7 @@ let tests =
         testCaseTask "get embedding for a simple text - Ok" <| fun _ -> task {
             let textEmbeddingService = getTextEmbeddingService()
             let text = "The Constitution of the United States is the supreme law of the United States of America."
-            let! result = textEmbeddingService.GetEmbeddingAsync(text)
+            let! result = textEmbeddingService.GetEmbeddingAsync(adminContext, text)
             
             match result with
             | Ok embedding ->
@@ -31,7 +31,7 @@ let tests =
             let vectorDbService = getVectorDbService()
             let text = "Deep Learning is a subset of machine learning."
             
-            let! embeddingResult = textEmbeddingService.GetEmbeddingAsync(text)
+            let! embeddingResult = textEmbeddingService.GetEmbeddingAsync(adminContext, text)
             match embeddingResult with
             | Error e -> failwithf "embedding failed: %s" e
             | Ok embedding ->
@@ -58,7 +58,7 @@ let tests =
             let text1 = "Machine Learning"
             let text2 = "Deep Learning"
             
-            let! embedding1Result = textEmbeddingService.GetEmbeddingAsync(text1)
+            let! (embedding1Result: Result<EmbeddingData, string>) = textEmbeddingService.GetEmbeddingAsync(adminContext, text1)
             match embedding1Result with
             | Error e -> failwithf "embedding 1 failed: %s" e
             | Ok embedding1 ->
@@ -66,7 +66,7 @@ let tests =
                 let bookId = BookId.New()
                 let! _ = vectorDbService.StoreEmbeddingAsync(id, bookId, embedding1)
                 
-                let! embedding2Result = textEmbeddingService.GetEmbeddingAsync(text2)
+                let! (embedding2Result: Result<EmbeddingData, string>) = textEmbeddingService.GetEmbeddingAsync(adminContext, text2)
                 match embedding2Result with
                 | Error e -> failwithf "embedding 2 failed: %s" e
                 | Ok embedding2 ->
@@ -86,7 +86,7 @@ let tests =
             let vectorDbService = getVectorDbService()
             let text = "To be deleted"
             
-            let! embeddingResult = textEmbeddingService.GetEmbeddingAsync(text)
+            let! embeddingResult = textEmbeddingService.GetEmbeddingAsync(adminContext, text)
             match embeddingResult with
             | Error e -> failwithf "embedding failed: %s" e
             | Ok embedding ->
@@ -105,10 +105,10 @@ let tests =
             let textEmbeddingService = getTextEmbeddingService()
             let text = "Artificial Intelligence is transforming the world."
             
-            let! embeddingResult = textEmbeddingService.GetEmbeddingAsync(text)
+            let! embeddingResult = textEmbeddingService.GetEmbeddingAsync(adminContext, text)
             match embeddingResult with
             | Error e -> failwithf "embedding failed: %s" e
-            | Ok embedding ->
+            | Ok (embedding: EmbeddingData) ->
                 let similarityResult = embedding.Similarity embedding
                 match similarityResult with
                 | Error e -> failwithf "similarity calculation failed: %s" e
@@ -120,10 +120,10 @@ let tests =
             let textEmbeddingService = getTextEmbeddingService()
             let text = "Artificial Intelligence is transforming the world."
             
-            let! embeddingResult = textEmbeddingService.GetEmbeddingAsync(text)
+            let! embeddingResult = textEmbeddingService.GetEmbeddingAsync(adminContext, text)
             match embeddingResult with
             | Error e -> failwithf "embedding failed: %s" e
-            | Ok embedding ->
+            | Ok (embedding: EmbeddingData) ->
                 let distanceResult = embedding.Distance embedding
                 match distanceResult with
                 | Error e -> failwithf "distance calculation failed: %s" e
@@ -142,13 +142,13 @@ let tests =
 
             let! results = 
                 [| textA; textB; textC; textQuery |]
-                |> Array.map (fun t -> textEmbeddingService.GetEmbeddingAsync(t))
+                |> Array.map (fun t -> textEmbeddingService.GetEmbeddingAsync(adminContext, t))
                 |> Array.toList
                 |> Task.WhenAll
             
-            let embeddings = 
+            let (embeddings: EmbeddingData array) = 
                 results 
-                |> Array.map (function Ok e -> e | Error e -> failwithf "embedding failed: %s" e)
+                |> Array.map (function Ok (e: EmbeddingData) -> e | Error e -> failwithf "embedding failed: %s" e)
             
             let idA = EmbeddingDataId.New()
             let idB = EmbeddingDataId.New()
@@ -182,7 +182,7 @@ let tests =
             use cts = new CancellationTokenSource()
             cts.Cancel()
             
-            let! (result: Result<EmbeddingData, string>) = textEmbeddingService.GetEmbeddingAsync(text, ?ct = Some cts.Token)
+            let! (result: Result<EmbeddingData, string>) = textEmbeddingService.GetEmbeddingAsync(adminContext, text, ?ct = Some cts.Token)
             
             match result with
             | Error e when e.Contains("A task was canceled") || e.Contains("The operation was canceled") -> 

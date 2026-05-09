@@ -174,6 +174,44 @@ type AdminService
                         ct
             }
 
+    member this.PurgeDuplicatedVectorsAsync (context: UserContext, ?ct) =
+        taskResult {
+            do! (context.IsInRole Role.Admin || context.IsInRole Role.Manager)
+                |> Result.ofBool "Only admins or managers can purge duplicated vectors"
+            
+            let! allPairs = vectorDbService.ReadAllEmbeddingIdsWithBookIdsAsync(?ct = ct)
+            
+            let duplicates = 
+                allPairs
+                |> Seq.groupBy snd // Group by BookId
+                |> Seq.filter (fun (_, group) -> Seq.length group > 1)
+                |> Seq.toList
+            
+            for (bookId, group) in duplicates do
+                let! book = bookService.GetBookAsync(context, bookId, ?ct = ct)
+                match book.OptionalEmbedding with
+                | None ->
+                    // Link to the first one and remove others
+                    let firstEmbeddingId, _ = Seq.head group
+                    let others = Seq.tail group |> Seq.map fst |> Seq.toList
+                    let! _ = bookService.EmbedDescriptionAsync(context, bookId, firstEmbeddingId, ?ct = ct)
+                    if not others.IsEmpty then
+                        let! _ = vectorDbService.RemoveEmbeddingsAsync(others, ?ct = ct)
+                        ()
+                | Some embeddingId ->
+                    // Remove all except the one pointed by OptionalEmbedding
+                    let toRemove = 
+                        group 
+                        |> Seq.map fst 
+                        |> Seq.filter (fun id -> id <> embeddingId)
+                        |> Seq.toList
+                    if not toRemove.IsEmpty then
+                        let! _ = vectorDbService.RemoveEmbeddingsAsync(toRemove, ?ct = ct)
+                        ()
+            
+            return ()
+        }
+
     interface IAdminServices with
         member this.PurgeVectorsReferringDroppedBooksAsync (context, ?ct) = 
             this.PurgeVectorsReferringDroppedBooksAsync (context, ?ct = ct)
@@ -187,6 +225,8 @@ type AdminService
             this.UpdateDistributionPointInfoAsync(context, distributionPointId, info, ?ct = ct)        
         member this.RenameDistributionPointAsync(context, distributionPointId, name, ct) = 
             this.RenameDistributionPointAsync(context, distributionPointId, name, ?ct = ct)
+        member this.PurgeDuplicatedVectorsAsync(context, ct) =
+            this.PurgeDuplicatedVectorsAsync(context, ?ct = ct)
         
 
         

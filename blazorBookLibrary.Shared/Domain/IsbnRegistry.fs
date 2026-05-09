@@ -4,6 +4,7 @@ open System.Text.Json
 open BookLibrary.Shared.Commons
 open System
 
+// I decided to not use this approach to keep book/isbn mapping (at least not yet). Keeping this type as a placeholder for brainstorming
 type BookTitleAndId =
     {
         Title: Title

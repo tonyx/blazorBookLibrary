@@ -25,6 +25,7 @@ open Microsoft.AspNetCore.Identity
 open blazorBookLibrary.Data
 open Microsoft.Extensions.DependencyInjection
 open BookLibrary.Services.UserMapping
+open Microsoft.Extensions.Logging
 
 type UserService 
     (
@@ -39,9 +40,10 @@ type UserService
         reviewsViewerAsync: AggregateViewerAsync2<Review>,
         distributionPointViewerAsync: AggregateViewerAsync2<DistributionPoint>,
         reviewService: IReviewService,
-        scopeFactory: IServiceScopeFactory)
+        scopeFactory: IServiceScopeFactory,
+        logger: ILogger<UserService>)
     =
-    new (eventStore: IEventStore<string>, scopeFactory: IServiceScopeFactory, reviewService: IReviewService) 
+    new (eventStore: IEventStore<string>, scopeFactory: IServiceScopeFactory, reviewService: IReviewService, logger: ILogger<UserService>) 
         =
         let messageSenders = MessageSenders.NoSender
         let bookViewerAsync = getAggregateStorageFreshStateViewerAsync<Book, BookEvent, string> eventStore
@@ -64,14 +66,15 @@ type UserService
             reviewsViewerAsync,
             distributionPointViewerAsync,
             reviewService,
-            scopeFactory
+            scopeFactory,
+            logger
         )    
 
-    new (configuration: IConfiguration, scopeFactory: IServiceScopeFactory, secretsReader: BookLibrary.Utils.SecretsReader, reviewService: IReviewService)
+    new (configuration: IConfiguration, scopeFactory: IServiceScopeFactory, secretsReader: BookLibrary.Utils.SecretsReader, reviewService: IReviewService, logger: ILogger<UserService>)
         =
         let connectionString = secretsReader.GetBookLibraryConnectionString ()
         let eventStore = PgStorage.PgEventStore connectionString
-        UserService(eventStore, scopeFactory, reviewService)
+        UserService(eventStore, scopeFactory, reviewService, logger)
 
     member this.MakeUserDetailsRefresherAsync(context: UserContext, id: UserId, ?ct: CancellationToken) = 
         fun (ct: Option<CancellationToken>) -> 
@@ -203,6 +206,23 @@ type UserService
             return res
         }
 
+    member private this.GdprGhostEvents (userId: UserId) =
+        // predicate to detect events to be ghosted, i.e. replaced withGdprGhost command
+        let predicate =
+            fun (strEvent: string) ->
+                result
+                    {
+                        let! event = UserEvent.Deserialize strEvent
+                        return!
+                            match event with
+                                | NomeSet _ -> Ok true
+                                | CodiceFiscaleSet _ -> Ok true
+                                | PhoneNumberSet _ -> Ok true
+                                | _ -> Ok false
+                    }
+        let replacement = UserEvent.GdprGhosted.Serialize
+        eventStore.GDPRReplaceEventsByPredicate User.Version User.StorageName userId.Value  predicate replacement
+
     member this.SetFiscalCodeAsync (context: UserContext, userId: UserId, fiscalCode: FiscalCode, ?ct: CancellationToken) : Task<Result<unit, string>> =
         this.UpdateAppUserAndAggregateAsync(context, userId, (fun u -> u.CodiceFiscale <- fiscalCode.Value), SetCodiceFiscale fiscalCode, ?ct = ct)
 
@@ -221,25 +241,32 @@ type UserService
     member this.UnSetIsPhysicallyIdentifiedAsync (context: UserContext, userId: UserId, ?ct: CancellationToken) : Task<Result<unit, string>> =
         this.UpdateAppUserAndAggregateAsync(context, userId, (fun u -> u.IsIdentifiedPhysically <- false), UnsetPhysicalIdentification, ?ct = ct)
 
-
-    
     member this.GhostUserAsync (context: UserContext, userId: UserId, ?ct: CancellationToken) : Task<Result<unit, string>> =
-        this.UpdateAppUserAndAggregateAsync(context, userId, (fun u -> 
-                    let ghostId = Guid.NewGuid().ToString().Substring(0, 8)
-                    let ghostName = sprintf "ghosted_%s" ghostId
-                    let ghostEmail = sprintf "ghosted_%s@example.com" ghostId
-                    u.UserName <- ghostName
-                    u.NormalizedUserName <- ghostName.ToUpper()
-                    u.Email <- ghostEmail
-                    u.NormalizedEmail <- ghostEmail.ToUpper()
-                    u.Nome <- "Ghosted"
-                    u.Cognome <- "Ghosted"
-                    u.CodiceFiscale <- "GHOSTED"
-                    u.PhoneNumber <- null
-                    u.PasswordHash <- null
-                    u.LockoutEnabled <- true
-                    u.LockoutEnd <- Nullable<DateTimeOffset>(DateTimeOffset.MaxValue)
-                ), GdprGhost, ?ct = ct)
+        let authorized =
+            context.IsInRole Role.Admin || 
+            (context.UserId.IsSome && context.UserId.Value = userId)
+
+        if not authorized then
+            task {
+                return Error ("You are not authorized to perform this operation")
+            }
+        else
+            this.UpdateAppUserAndAggregateAsync(context, userId, (fun u -> 
+                        let ghostId = Guid.NewGuid().ToString().Substring(0, 8)
+                        let ghostName = sprintf "ghosted_%s" ghostId
+                        let ghostEmail = sprintf "ghosted_%s@example.com" ghostId
+                        u.UserName <- ghostName
+                        u.NormalizedUserName <- ghostName.ToUpper()
+                        u.Email <- ghostEmail
+                        u.NormalizedEmail <- ghostEmail.ToUpper()
+                        u.Nome <- "Ghosted"
+                        u.Cognome <- "Ghosted"
+                        u.CodiceFiscale <- "GHOSTED"
+                        u.PhoneNumber <- null
+                        u.PasswordHash <- null
+                        u.LockoutEnabled <- true
+                        u.LockoutEnd <- Nullable<DateTimeOffset>(DateTimeOffset.MaxValue)
+                    ), GdprGhost, ?ct = ct)
 
     member private this.GetUser (context: UserContext, userId: UserId, ?ct: CancellationToken) : Task<Result<User, string>> =
         let ct = defaultArg ct CancellationToken.None
@@ -309,6 +336,22 @@ type UserService
             this.UnSetIsPhysicallyIdentifiedAsync(context, userId, ct)
         member this.GhostUserAsync (context, userId: UserId, ?ct: CancellationToken) : Task<Result<unit, string>> =
             let ct = defaultArg ct CancellationToken.None
+
+            // Todo: code in progress
+
+            // let eventsGhosted =
+            //     task {
+            //         return this.GdprGhostEvents(userId)
+            //     }
+            //     |> Async.AwaitTask
+            //     |> Async.RunSynchronously
+            // let _ =
+            //     if (eventsGhosted.IsError) then
+            //         let (Error e) = eventsGhosted
+            //         Console.WriteLine("Error ghosting user: " + e)
+            //     else
+            //         Console.WriteLine("User ghosted successfully")
+
             this.GhostUserAsync(context, userId, ct)
                  
         member this.GetUser (context, userId: UserId, ?ct: CancellationToken) : Task<Result<User, string>> =

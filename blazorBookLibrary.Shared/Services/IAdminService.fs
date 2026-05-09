@@ -15,5 +15,6 @@ type IAdminServices =
     abstract member UnassignUserFromDistributionPointAsync: context:UserContext * distributionPointId:DistributionPointId * userId:UserId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<unit, string>>
     abstract member UpdateDistributionPointInfoAsync: context:UserContext * distributionPointId:DistributionPointId * info:Info * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<unit, string>>
     abstract member RenameDistributionPointAsync: context:UserContext * distributionPointId:DistributionPointId * name:NonEmptyName * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<unit, string>>
+    abstract member PurgeDuplicatedVectorsAsync: context:UserContext * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<unit, string>>
 
     

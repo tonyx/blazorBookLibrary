@@ -130,9 +130,9 @@ module GoogleBooksTests =
                     let fallbackPath = Path.Combine("..", "..", "..", "testImgData", "sampleCover.jpg")
                     if File.Exists fallbackPath then
                         let base64Image = System.Convert.ToBase64String(File.ReadAllBytes fallbackPath)
-                        let! result = embeddingService.GetPartialBookMatchByCoverImage(base64Image, "image/jpeg")
+                        let! (result: Result<PartialBookDataMatch, string>) = embeddingService.GetPartialBookMatchByCoverImage(adminContext, base64Image, "image/jpeg")
                         match result with
-                        | Ok matchData -> 
+                        | Ok (matchData: PartialBookDataMatch) -> 
                             printfn "Identified Book: %A" matchData
                             Expect.isTrue (matchData.IsValidTitle || matchData.IsValidIsbn) "Should identify metadata"
                         | Error e -> failwith e
@@ -140,9 +140,9 @@ module GoogleBooksTests =
                         failwithf "Test image not found at %s or %s" imgPath fallbackPath
                 else
                     let base64Image = System.Convert.ToBase64String(File.ReadAllBytes imgPath)
-                    let! result = embeddingService.GetPartialBookMatchByCoverImage(base64Image, "image/jpeg")
+                    let! (result: Result<PartialBookDataMatch, string>) = embeddingService.GetPartialBookMatchByCoverImage(adminContext, base64Image, "image/jpeg")
                     match result with
-                    | Ok matchData ->
+                    | Ok (matchData: PartialBookDataMatch) ->
                         printfn "Identified Book: %A" matchData
                         Expect.isTrue (matchData.IsValidTitle || matchData.IsValidIsbn) "Should identify either title or ISBN from cover"
                     | Error e ->

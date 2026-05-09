@@ -147,6 +147,9 @@ let fakeLocalizer: IStringLocalizer<SharedResources> = new FakeLocalizer<SharedR
 
 let dummyLogger = 
     LoggerFactory.Create(fun builder -> builder.AddConsole() |> ignore).CreateLogger<MailResenderService>()
+
+let getDummyLogger<'T> () = 
+    LoggerFactory.Create(fun builder -> builder.AddConsole() |> ignore).CreateLogger<'T>()
 let dummyMailJetClient = new Mailjet.Client.MailjetClient("", "")
 
 let getAuthorService () : IAuthorService = 
@@ -186,7 +189,8 @@ let getUserService () : IUserService =
         reviewViewerAsync,
         distributionPointViewerAsync,
         getReviewService(),
-        getServiceScopeFactory()) :> IUserService
+        getServiceScopeFactory(),
+        getDummyLogger<UserService>()) :> IUserService
 
 let getReservationService () : IReservationService =
     ReservationService(

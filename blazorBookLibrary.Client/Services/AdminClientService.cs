@@ -23,6 +23,12 @@ public class AdminClientService : IAdminServices
         return await ServiceClientHelper.HandleUnitResponse(response);
     }
 
+    public async Task<FSharpResult<Unit, string>> PurgeDuplicatedVectorsAsync(Commons.UserContext context, FSharpOption<CancellationToken> ct)
+    {
+        var response = await _httpClient.PostAsync("api/Admin/vectors/purge-duplicates", null, ServiceClientHelper.GetValue(ct, CancellationToken.None));
+        return await ServiceClientHelper.HandleUnitResponse(response);
+    }
+
     public async Task<FSharpResult<Unit, string>> AdjustBookStatesReferringMissingEmbeddingsAsync(Commons.UserContext context, FSharpOption<CancellationToken> ct)
     {
         var response = await _httpClient.PostAsync("api/Admin/books/adjust-states", null, ServiceClientHelper.GetValue(ct, CancellationToken.None));

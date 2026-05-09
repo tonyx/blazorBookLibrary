@@ -406,4 +406,6 @@
   <data name="TargetDistributionPoint" xml:space="preserve"><value>Target Distribution Point</value></data>
   <data name="SwitchAllBooks" xml:space="preserve"><value>Move All Books</value></data>
   <data name="ConfirmSwitchAllBooks" xml:space="preserve"><value>Are you sure you want to move all books from {0} to {1}?</value></data>
+  <data name="CleanDuplicatedVectors" xml:space="preserve"><value>Clean Duplicated Vectors</value></data>
+  <data name="CleanDuplicatedVectorsDescription" xml:space="preserve"><value>Identify and remove redundant vector embeddings that point to the same BookId, ensuring each book has only one unique semantic representation.</value></data>
 </root>

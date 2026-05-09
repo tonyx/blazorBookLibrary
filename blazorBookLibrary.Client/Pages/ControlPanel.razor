@@ -99,6 +99,40 @@
         </div>
     </div>
 
+    <div class="row g-4 mt-2">
+        <!-- Clean Duplicated Vectors -->
+        <div class="col-md-6">
+            <div class="sanctuary-card p-4 h-100 d-flex flex-column border shadow-sm transition-hover bg-surface-low">
+                <div class="d-flex align-items-center mb-3">
+                    <div class="p-3 bg-info bg-opacity-10 rounded-circle me-3">
+                        <i class="bi bi-stack text-info h4 mb-0"></i>
+                    </div>
+                    <h3 class="h5 text-serif mb-0">@L["CleanDuplicatedVectors"]</h3>
+                </div>
+                <p class="text-muted small flex-grow-1">@L["CleanDuplicatedVectorsDescription"]</p>
+                <div class="d-flex gap-2 mt-4">
+                    <button class="btn btn-outline-info flex-grow-1 py-3" @onclick="CleanDuplicatedVectors" disabled="@(isProcessing && !isCleaning)">
+                        @if (isCleaning)
+                        {
+                            <span class="spinner-border spinner-border-sm me-2"></span>
+                        }
+                        else
+                        {
+                            <i class="bi bi-magic me-2"></i>
+                        }
+                        @L["CleanDuplicatedVectors"]
+                    </button>
+                    @if (isCleaning)
+                    {
+                        <button class="btn btn-outline-danger px-4 animate-fade-in" @onclick="CancelOperation" title="@L["Cancel"]">
+                            <i class="bi bi-x-lg"></i>
+                        </button>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Distribution Point Maintenance -->
     <div class="row mt-4">
         <div class="col-12">
@@ -261,9 +295,10 @@
 @code {
     private bool isPurging = false;
     private bool isAdjusting = false;
+    private bool isCleaning = false;
     private bool isDetaching = false;
     private bool isSwitching = false;
-    private bool isProcessing => isPurging || isAdjusting || isDetaching || isSwitching;
+    private bool isProcessing => isPurging || isAdjusting || isCleaning || isDetaching || isSwitching;
     private CancellationTokenSource? cts;
 
     private List<Tag> allTags = new();
@@ -473,6 +508,47 @@
         finally
         {
             isAdjusting = false;
+            cts.Dispose();
+            cts = null;
+        }
+    }
+
+    private async Task CleanDuplicatedVectors()
+    {
+        isCleaning = true;
+        cts = new CancellationTokenSource();
+        try
+        {
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            var userContext = blazorBookLibrary.Shared.ConverterUtils.fromClaimsPrincipal(authState.User);
+            var result = await ReconciliationService.PurgeDuplicatedVectorsAsync(userContext, cts.Token);
+            if (result.IsOk)
+            {
+                await JSRuntime.InvokeVoidAsync("showToast", L["ActionSuccessful"].Value, "success");
+            }
+            else
+            {
+                if (cts.IsCancellationRequested)
+                {
+                    await JSRuntime.InvokeVoidAsync("showToast", L["ImportCancelled"].Value, "warning");
+                }
+                else
+                {
+                    await JSRuntime.InvokeVoidAsync("showToast", $"{L["ActionFailed"]}: {result.ErrorValue}", "error");
+                }
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            await JSRuntime.InvokeVoidAsync("showToast", L["ImportCancelled"].Value, "warning");
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("showToast", $"{L["ActionFailed"]}: {ex.Message}", "error");
+        }
+        finally
+        {
+            isCleaning = false;
             cts.Dispose();
             cts = null;
         }
