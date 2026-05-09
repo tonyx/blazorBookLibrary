@@ -70,7 +70,6 @@ type TextEmbeddingService
         member this.GetEmbeddingAsync(context: UserContext, text: string, [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken) =
             let ct = defaultArg ct CancellationToken.None
             taskResult {
-                do! (context.IsInRole Manager || context.IsInRole Admin) |> Result.ofBool "Access denied"
                 try
                     let modelName = "models/gemini-embedding-2"
                     let url = $"https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-2:embedContent?key={apiKey}"
@@ -101,7 +100,6 @@ type TextEmbeddingService
         member this.GetMatchExplanationAsync(context: UserContext, query: string, itemText: string, [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken) =
             let ct = defaultArg ct CancellationToken.None
             taskResult {
-                do! (context.IsInRole Manager || context.IsInRole Admin) |> Result.ofBool "Access denied"
                 try
                     let modelName = "gemini-2.5-flash-lite"
                     let url = $"https://generativelanguage.googleapis.com/v1beta/models/{modelName}:generateContent?key={apiKey}"

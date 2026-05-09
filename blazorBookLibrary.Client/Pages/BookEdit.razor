@@ -1461,6 +1461,12 @@
             FSharpResult<FSharpOption<string>, string> result;
             string searchMode = "";
 
+            /*
+            todo improve the fallback mechanism on the service part 
+            check the open api call result, if it returns None value for the cover
+            then try to find the cover using the title and author name in 
+            */
+
             if (isBookIsbnValid())
             {
                 searchMode = "ISBN";

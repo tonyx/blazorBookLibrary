@@ -15,16 +15,31 @@ public static class ServiceClientHelper
     {
         if (response.IsSuccessStatusCode)
         {
+            var content = await response.Content.ReadAsStringAsync();
+            if (string.IsNullOrWhiteSpace(content))
+            {
+                return FSharpResult<T, string>.NewOk(default!);
+            }
+
             if (typeof(T) == typeof(string))
             {
-                var content = await response.Content.ReadAsStringAsync();
-                // If it's a string, it might be quoted JSON or raw. 
-                // ReadFromJsonAsync handles quotes, ReadAsStringAsync gets raw.
-                // In many cases, the server returns raw strings for Ok(string).
                 return (FSharpResult<T, string>)(object)FSharpResult<string, string>.NewOk(content);
             }
-            var data = await response.Content.ReadFromJsonAsync<T>(JsonOptions);
-            return FSharpResult<T, string>.NewOk(data!);
+
+            try
+            {
+                var data = JsonSerializer.Deserialize<T>(content, JsonOptions);
+                return FSharpResult<T, string>.NewOk(data!);
+            }
+            catch (JsonException)
+            {
+                // Fallback for FSharpOption<string> if it's a raw string instead of a JSON-quoted string
+                if (typeof(T) == typeof(FSharpOption<string>))
+                {
+                    return (FSharpResult<T, string>)(object)FSharpResult<FSharpOption<string>, string>.NewOk(FSharpOption<string>.Some(content));
+                }
+                throw;
+            }
         }
         else
         {
