@@ -216,6 +216,7 @@ type UserService
                         return!
                             match event with
                                 | NomeSet _ -> Ok true
+                                | CognomeSet _ -> Ok true
                                 | CodiceFiscaleSet _ -> Ok true
                                 | PhoneNumberSet _ -> Ok true
                                 | _ -> Ok false
@@ -337,7 +338,7 @@ type UserService
         member this.GhostUserAsync (context, userId: UserId, ?ct: CancellationToken) : Task<Result<unit, string>> =
             let ct = defaultArg ct CancellationToken.None
 
-            // Todo: code in progress
+            // Todo: code in progress to complete the GDPR Ghosting implementation.
 
             // let eventsGhosted =
             //     task {
@@ -348,9 +349,9 @@ type UserService
             // let _ =
             //     if (eventsGhosted.IsError) then
             //         let (Error e) = eventsGhosted
-            //         Console.WriteLine("Error ghosting user: " + e)
+            //         logger.LogError(e, "Error ghosting user")
             //     else
-            //         Console.WriteLine("User ghosted successfully")
+            //         logger.LogInformation("User ghosted successfully")
 
             this.GhostUserAsync(context, userId, ct)
                  
