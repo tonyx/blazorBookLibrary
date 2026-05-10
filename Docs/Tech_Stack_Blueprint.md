@@ -361,11 +361,13 @@ type ReviewEvent =
     interface AggregateEvent<Review> with
         member this.Process (review: Review) =
             match this with
-            | ReviewApproved dateTime -> { review with ApprovalStatus = Approved dateTime } |> Ok
+            | ReviewApproved dateTime -> review.Approve dateTime
             | ...
 ```
 
 > **Rule:** Each command produces a `(newState, events list)` tuple. Each event replays deterministically on the aggregate.
+
+> **Rule:** Each event, in its `Process` method, calls directly the aggregate's method that transforms the state and returns a result.
 
 ---
 
