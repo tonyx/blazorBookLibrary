@@ -63,7 +63,7 @@ The Blazor Book Library is a state-of-the-art archival and lending system built 
 
 ### 🤖 AI & Search Infrastructure
 *   **Semantic Vector Database**: Powered by **PostgreSQL + pgvector**, storing high-dimensional embeddings of book descriptions.
-*   **Large Language Model Integration**: Uses **GPT-4** (and Vision) for metadata resolution, text synthesis, and match explanations.
+*   **Large Language Model Integration**: Uses **gemini 2.5 flash lite** (and Vision) for metadata resolution, text synthesis, and match explanations.
 *   **Match Explanations**: The AI doesn't just find a book; it can explain *why* it matches a semantic query.
 
 ### 📦 Infrastructure & Reliability

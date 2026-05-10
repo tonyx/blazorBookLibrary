@@ -15,7 +15,7 @@ Blazor Book Library è un sistema di archiviazione e prestito all'avanguardia, c
 *Focalizzato sulla scoperta e sul prestito semplificato.*
 
 *   **Ricerca Catalogo Avanzata**: filtraggio tradizionale per Titolo, ISBN, Anno e Categoria.
-*   **Scoperta Semantica tramite IA**: Ricerca per significato piuttosto che per parole chiave. Gli utenti possono descrivere ciò che stanno cercando (es. *"una tragica storia d'amore ambientata durante la rivoluzione industriale"*) e il sistema trova i libri concettualmente rilevanti.
+*   **Scoperta Semantica tramite IA**: Ricerca per significato. Gli utenti possono descrivere ciò che stanno cercando (es. *"una tragica storia d'amore ambientata durante la rivoluzione industriale"*) e il sistema trova i libri concettualmente rilevanti.
 *   **Filtraggio basato su Tag**: Scoperta flessibile utilizzando tag d'archivio (es. "Prima Edizione", "Interesse Locale") con supporto per il filtraggio logico "OR".
 *   **Disponibilità in Tempo Reale**: Feedback istantaneo se un libro è "Immediatamente Disponibile", "Sola Consultazione" o "Attualmente in Prestito".
 *   **Prestiti e Prenotazioni Self-Service**: I membri possono prendere in prestito i titoli disponibili o prenotare libri attualmente in prestito, ricevendo notifiche automatiche quando tornano disponibili.
@@ -63,7 +63,7 @@ Blazor Book Library è un sistema di archiviazione e prestito all'avanguardia, c
 
 ### 🤖 Infrastruttura IA e Ricerca
 *   **Database Vettoriale Semantico**: Alimentato da **PostgreSQL + pgvector**, memorizza embedding ad alta dimensionalità delle descrizioni dei libri.
-*   **Integrazione Large Language Model**: Utilizza **GPT-4** (e Vision) per la risoluzione dei metadati, la sintesi del testo e le spiegazioni dei match.
+*   **Integrazione Large Language Model**: Utilizza **Gemini 2.5 Flash Lite** (e Vision) per la risoluzione dei metadati, la sintesi del testo e le spiegazioni dei match.
 *   **Spiegazioni dei Match**: L'IA non trova solo un libro; può spiegare *perché* corrisponde a una query semantica.
 
 ### 📦 Infrastruttura e Affidabilità

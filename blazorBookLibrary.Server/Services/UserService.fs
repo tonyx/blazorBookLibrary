@@ -338,8 +338,7 @@ type UserService
         member this.GhostUserAsync (context, userId: UserId, ?ct: CancellationToken) : Task<Result<unit, string>> =
             let ct = defaultArg ct CancellationToken.None
 
-            // Todo: code in progress to complete the GDPR Ghosting implementation.
-
+            // todo ghosting to be reviewed
             // let eventsGhosted =
             //     task {
             //         return this.GdprGhostEvents(userId)
@@ -352,6 +351,33 @@ type UserService
             //         logger.LogError(e, "Error ghosting user")
             //     else
             //         logger.LogInformation("User ghosted successfully")
+
+            // let updateSnapshots =
+            //     fun (s: string) ->
+            //         result
+            //             {
+            //                 let! user = User.Deserialize s
+            //                 let replacement =
+            //                     {
+            //                         user with
+            //                             AppUserInfo = 
+            //                                 {
+            //                                     user.AppUserInfo with
+            //                                         PhoneNumber = "0000000000"
+            //                                         Nome = "Ghosted"
+            //                                         Cognome = "Ghosted"
+            //                                         CodiceFiscale = "GHOSTED"
+            //                                         Email = "ghosted@asdflkjsdfjksdafs.com"
+            //                                 }
+            //                     }
+            //                 return replacement.Serialize  
+            //             }
+            // let snapshotsGhosted =
+            //     task {
+            //         return eventStore.GDPRPartialUpdateSnapshots User.Version User.StorageName userId.Value updateSnapshots
+            //     } 
+            //     |> Async.AwaitTask
+            //     |> Async.RunSynchronously
 
             this.GhostUserAsync(context, userId, ct)
                  

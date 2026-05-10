@@ -65,7 +65,6 @@ The **Library Search** page is your primary tool for finding literature.
 Clicking on a book title opens the **Book View** page.
 - **Overview**: View cover images, summaries, and metadata.
 - **Availability Status**: See at a glance if the book is on the shelf, on loan, or reference-only.
-- **Return Dates**: If on loan, the expected return date is displayed.
 
 ---
 

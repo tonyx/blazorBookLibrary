@@ -65,7 +65,6 @@ La pagina di **Ricerca Biblioteca** è lo strumento principale per trovare lette
 Cliccando sul titolo di un libro si apre la pagina **Visualizza Libro**.
 - **Panoramica**: Visualizza immagini di copertina, riassunti e metadati.
 - **Stato Disponibilità**: Vedi a colpo d'occhio se il libro è sullo scaffale, in prestito o solo per consultazione.
-- **Date di Restituzione**: Se in prestito, viene visualizzata la data di restituzione prevista.
 
 ---
 
