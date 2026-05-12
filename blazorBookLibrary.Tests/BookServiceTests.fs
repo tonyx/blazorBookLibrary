@@ -23,14 +23,14 @@ let tests =
             let! userId = registerUserTask "test@example.com" "Password123!"
 
             let author = Author.NewWithoutIsni (Name.New "John Doe")
-            let! addAuthor = authorService.AddAuthorAsync(UserContext.Anonymous, author)
+            let! addAuthor = authorService.AddAuthorAsync(adminContext, author)
             Expect.isOk addAuthor "should be ok"
 
             let book = Book.New (Title.New "The Great Gatsby") [author.AuthorId] [] [] None  Category.Other [] (Year.New 1924) (Isbn.NewEmpty()) None
-            let! addBook = bookService.AddBookAsync(UserContext.Anonymous, book, CancellationToken.None)
+            let! addBook = bookService.AddBookAsync(adminContext, book, CancellationToken.None)
             Expect.isOk addBook "should be ok"
 
-            let! retrieveBook = bookService.GetBookAsync(UserContext.Anonymous, book.BookId)
+            let! retrieveBook = bookService.GetBookAsync(adminContext, book.BookId)
             Expect.isOk retrieveBook "should be ok"
 
             let (bookRetrieved: Book) = retrieveBook |> Result.get
@@ -39,13 +39,13 @@ let tests =
             let timeSlot = TimeSlot.New (System.DateTime.Now.AddHours(1)) (System.DateTime.Now.AddDays(timeSlotDurationInDays))
 
             let reservation = Reservation.New book.BookId userId timeSlot System.DateTime.Now
-            let! addReservation = reservationService.AddReservationAsync(UserContext.Anonymous, reservation, ShortLang.New "en")
+            let! addReservation = reservationService.AddReservationAsync(adminContext, reservation, ShortLang.New "en")
             Expect.isOk addReservation "should be ok"
 
-            let! retrieveReservation = reservationService.GetReservationAsync (UserContext.Anonymous, reservation.ReservationId)
+            let! retrieveReservation = reservationService.GetReservationAsync (adminContext, reservation.ReservationId)
             Expect.isOk retrieveReservation "should be ok"
 
-            let! retrieveBook2 = bookService.GetBookAsync(UserContext.Anonymous, book.BookId)
+            let! retrieveBook2 = bookService.GetBookAsync(adminContext, book.BookId)
             Expect.isOk retrieveBook2 "should be ok"
 
             let (bookRetrieved2: Book) = retrieveBook2 |> Result.get
@@ -59,7 +59,7 @@ let tests =
             let userService = getUserService()
             let reservationService = getReservationService()
             let book = Book.New (Title.New "the constitution") [] [] [] None  Category.Other [] (Year.New 1924) (Isbn.NewEmpty()) None
-            let! addBook = bookService.AddBookAsync (UserContext.Anonymous, book, CancellationToken.None)
+            let! addBook = bookService.AddBookAsync (adminContext, book, CancellationToken.None)
             Expect.isOk addBook "should be ok"
 
             let! userId = registerUserTask "test@example.com" "Password123!"
@@ -67,13 +67,13 @@ let tests =
             let timeSlot = TimeSlot.New (System.DateTime.Now) (System.DateTime.Now.AddDays(timeSlotDurationInDays))
             let loan = Loan.New book.BookId userId (System.DateTime.Now) timeSlot
 
-            let! addLoan = loanService.AddLoanAsync (UserContext.Anonymous, loan, ShortLang.New "en")
+            let! addLoan = loanService.AddLoanAsync (adminContext, loan, ShortLang.New "en")
             Expect.isOk addLoan "should be ok"
 
-            let! retrieveLoan = loanService.GetLoanAsync (UserContext.Anonymous, loan.LoanId)
+            let! retrieveLoan = loanService.GetLoanAsync (adminContext, loan.LoanId)
             Expect.isOk retrieveLoan "should be ok"
 
-            let! bookRetrieved = bookService.GetBookAsync(UserContext.Anonymous, book.BookId)
+            let! bookRetrieved = bookService.GetBookAsync(adminContext, book.BookId)
             Expect.isOk bookRetrieved "should be ok"
 
             let (bookRetrieved: Book) = bookRetrieved |> Result.get
@@ -89,7 +89,7 @@ let tests =
             let loanService = getLoanService()
             let userService = getUserService()
             let book = Book.New (Title.New "the constitution") [] [] [] None  Category.Other [] (Year.New 1924) (Isbn.NewEmpty()) None
-            let! addBook = bookService.AddBookAsync(UserContext.Anonymous, book)
+            let! addBook = bookService.AddBookAsync(adminContext, book)
             Expect.isOk addBook "should be ok"
 
             let! userId1 = registerUserTask "test1@example.com" "Password123!"
@@ -98,13 +98,13 @@ let tests =
             let timeSlot = TimeSlot.New (System.DateTime.Now) (System.DateTime.Now.AddDays(timeSlotDurationInDays))
             let loan = Loan.New book.BookId userId1 (System.DateTime.Now) timeSlot
 
-            let! addLoan = loanService.AddLoanAsync (UserContext.Anonymous, loan, ShortLang.New "en")
+            let! addLoan = loanService.AddLoanAsync (adminContext, loan, ShortLang.New "en")
             Expect.isOk addLoan "should be ok"
 
-            let! retrieveLoan = loanService.GetLoanAsync (UserContext.Anonymous, loan.LoanId)
+            let! retrieveLoan = loanService.GetLoanAsync (adminContext, loan.LoanId)
             Expect.isOk retrieveLoan "should be ok"
 
-            let! bookRetrieved = bookService.GetBookAsync(UserContext.Anonymous, book.BookId)
+            let! bookRetrieved = bookService.GetBookAsync(adminContext, book.BookId)
             Expect.isOk bookRetrieved "should be ok"
 
             let (bookRetrieved: Book) = bookRetrieved |> Result.get
@@ -116,7 +116,7 @@ let tests =
             let timeSlot2 = TimeSlot.New (System.DateTime.Now) (System.DateTime.Now.AddDays(timeSlotDurationInDays))
             let loan2 = Loan.New book.BookId userId2 (System.DateTime.Now) timeSlot2
 
-            let! addLoan2 = loanService.AddLoanAsync (UserContext.Anonymous, loan2, ShortLang.New "en")
+            let! addLoan2 = loanService.AddLoanAsync (adminContext, loan2, ShortLang.New "en")
             Expect.isError addLoan2 "should be error"
         }
 
@@ -126,7 +126,7 @@ let tests =
             let loanService = getLoanService()
             let userService = getUserService()
             let book = Book.New (Title.New "the constitution") [] [] [] None  Category.Other [] (Year.New 1924) (Isbn.NewEmpty()) None
-            let! addBook = bookService.AddBookAsync(UserContext.Anonymous, book)
+            let! addBook = bookService.AddBookAsync(adminContext, book)
             Expect.isOk addBook "should be ok"
 
             let! userId = registerUserTask "test@example.com" "Password123!"
@@ -134,13 +134,13 @@ let tests =
             let timeSlot = TimeSlot.New (System.DateTime.Now) (System.DateTime.Now.AddDays(timeSlotDurationInDays))
             let loan = Loan.New book.BookId userId (System.DateTime.Now) timeSlot
 
-            let! addLoan = loanService.AddLoanAsync (UserContext.Anonymous, loan, ShortLang.New "en")
+            let! addLoan = loanService.AddLoanAsync (adminContext, loan, ShortLang.New "en")
             Expect.isOk addLoan "should be ok"
 
-            let! retrieveLoan = loanService.GetLoanAsync (UserContext.Anonymous, loan.LoanId)
+            let! retrieveLoan = loanService.GetLoanAsync (adminContext, loan.LoanId)
             Expect.isOk retrieveLoan "should be ok"
 
-            let! bookRetrieved = bookService.GetBookAsync(UserContext.Anonymous, book.BookId)
+            let! bookRetrieved = bookService.GetBookAsync(adminContext, book.BookId)
             Expect.isOk bookRetrieved "should be ok"
 
             let (bookRetrieved: Book) = bookRetrieved |> Result.get
@@ -149,13 +149,13 @@ let tests =
             let (loanRetrieved: Loan) = retrieveLoan |> Result.get
             Expect.isTrue (loanRetrieved.BookId = book.BookId) "should contain the book"
 
-            let! releaseLoan = loanService.ReleaseLoanAsync (UserContext.Anonymous, loan.LoanId, ShortLang.New "en", System.DateTime.Now)
+            let! releaseLoan = loanService.ReleaseLoanAsync (adminContext, loan.LoanId, ShortLang.New "en", System.DateTime.Now)
             Expect.isOk releaseLoan "should be ok"
 
-            let! retrieveLoan2 = loanService.GetLoanAsync (UserContext.Anonymous, loan.LoanId)
+            let! retrieveLoan2 = loanService.GetLoanAsync (adminContext, loan.LoanId)
             Expect.isOk retrieveLoan2 "should be ok"
 
-            let! bookRetrieved2 = bookService.GetBookAsync(UserContext.Anonymous, book.BookId)
+            let! bookRetrieved2 = bookService.GetBookAsync(adminContext, book.BookId)
             Expect.isOk bookRetrieved2 "should be ok"
 
             let (bookRetrieved2: Book) = bookRetrieved2 |> Result.get
@@ -172,24 +172,24 @@ let tests =
             let userService = getUserService()
             let detailsService = getDetailsService()
             let book = Book.New (Title.New "the constitution") [] [] [] None  Category.Other [] (Year.New 1924) (Isbn.NewEmpty()) None
-            let! addBook = bookService.AddBookAsync(UserContext.Anonymous, book)
+            let! addBook = bookService.AddBookAsync(adminContext, book)
             Expect.isOk addBook "should be ok"
 
             let! userId = registerUserTask "test@example.com" "Password123!"
 
-            let! retrieveBook = bookService.GetBookAsync(UserContext.Anonymous, book.BookId)
+            let! retrieveBook = bookService.GetBookAsync(adminContext, book.BookId)
             Expect.isOk retrieveBook "should be ok"
 
             let timeSlot = TimeSlot.New (System.DateTime.Now) (System.DateTime.Now.AddDays(timeSlotDurationInDays))
             let loan = Loan.New book.BookId userId (System.DateTime.Now) timeSlot
 
-            let! addLoan = loanService.AddLoanAsync (UserContext.Anonymous, loan, ShortLang.New "en")
+            let! addLoan = loanService.AddLoanAsync (adminContext, loan, ShortLang.New "en")
             Expect.isOk addLoan "should be ok"
 
             let (bookRetrieved: Book) = retrieveBook |> Result.get
             Expect.isTrue (bookRetrieved.CurrentLoan |> Option.isNone) "should not contain the loan"
 
-            let! bookDetail = detailsService.GetBookDetailsAsync (UserContext.Anonymous, book.BookId)
+            let! bookDetail = detailsService.GetBookDetailsAsync (adminContext, book.BookId)
             Expect.isOk bookDetail "should be ok"
 
             let (bookDetail: BookDetails) = bookDetail |> Result.get
@@ -207,21 +207,21 @@ let tests =
             let userService = getUserService()
             let detailsService = getDetailsService()
             let book = Book.New (Title.New "the constitution") [] [] [] None  Category.Other [] (Year.New 1924) (Isbn.NewEmpty()) None
-            let! addBook = bookService.AddBookAsync(UserContext.Anonymous, book)
+            let! addBook = bookService.AddBookAsync(adminContext, book)
             Expect.isOk addBook "should be ok"
 
             let! userId = registerUserTask "test@example.com" "Password123!"
 
-            let! retrieveBook = bookService.GetBookAsync(UserContext.Anonymous, book.BookId)
+            let! retrieveBook = bookService.GetBookAsync(adminContext, book.BookId)
             Expect.isOk retrieveBook "should be ok"
 
             let timeSlot = TimeSlot.New (System.DateTime.Now) (System.DateTime.Now.AddDays(timeSlotDurationInDays))
             let loan = Loan.New book.BookId userId System.DateTime.Now timeSlot
 
-            let! addLoan = loanService.AddLoanAsync (UserContext.Anonymous, loan, ShortLang.New "en")
+            let! addLoan = loanService.AddLoanAsync (adminContext, loan, ShortLang.New "en")
             Expect.isOk addLoan "should be ok"
 
-            let! bookDetail = detailsService.GetBookDetailsAsync (UserContext.Anonymous, book.BookId)
+            let! bookDetail = detailsService.GetBookDetailsAsync (adminContext, book.BookId)
             Expect.isOk bookDetail "should be ok"
 
             let (bookDetail: BookDetails) = bookDetail |> Result.get
@@ -230,10 +230,10 @@ let tests =
             Expect.isTrue ((bookDetail.CurrentLoan.Value).Loan.LoanId = loan.LoanId) "should contain the loan"
             Expect.isTrue (bookDetail.ReservationsDetails |> List.isEmpty) "should not contain reservations"
 
-            let! releaseLoan = loanService.ReleaseLoanAsync (UserContext.Anonymous, loan.LoanId, ShortLang.New "en", System.DateTime.Now)
+            let! releaseLoan = loanService.ReleaseLoanAsync (adminContext, loan.LoanId, ShortLang.New "en", System.DateTime.Now)
             Expect.isOk releaseLoan "should be ok"
 
-            let! bookDetail2 = detailsService.GetBookDetailsAsync (UserContext.Anonymous, book.BookId)
+            let! bookDetail2 = detailsService.GetBookDetailsAsync (adminContext, book.BookId)
             Expect.isOk bookDetail2 "should be ok"
 
             let (bookDetail2: BookDetails) = bookDetail2 |> Result.get
@@ -250,21 +250,21 @@ let tests =
             let userService = getUserService()
             let detailsService = getDetailsService()
             let book = Book.New (Title.New "the constitution") [] [] [] None  Category.Other [] (Year.New 1924) (Isbn.NewEmpty()) None
-            let! addBook = bookService.AddBookAsync(UserContext.Anonymous, book)
+            let! addBook = bookService.AddBookAsync(adminContext, book)
             Expect.isOk addBook "should be ok"
 
             let! userId = registerUserTask "test@example.com" "Password123!"
 
-            let! retrieveBook = bookService.GetBookAsync(UserContext.Anonymous, book.BookId)
+            let! retrieveBook = bookService.GetBookAsync(adminContext, book.BookId)
             Expect.isOk retrieveBook "should be ok"
 
             let timeSlot = TimeSlot.New (System.DateTime.Now) (System.DateTime.Now.AddDays(timeSlotDurationInDays))
             let loan = Loan.New book.BookId userId System.DateTime.Now timeSlot
 
-            let! addLoan = loanService.AddLoanAsync (UserContext.Anonymous, loan, ShortLang.New "en")
+            let! addLoan = loanService.AddLoanAsync (adminContext, loan, ShortLang.New "en")
             Expect.isOk addLoan "should be ok"
 
-            let! bookDetail = detailsService.GetBookDetailsAsync (UserContext.Anonymous, book.BookId)
+            let! bookDetail = detailsService.GetBookDetailsAsync (adminContext, book.BookId)
             Expect.isOk bookDetail "should be ok"
 
             let (bookDetail: BookDetails) = bookDetail |> Result.get
@@ -273,10 +273,10 @@ let tests =
             Expect.isTrue ((bookDetail.CurrentLoan.Value).Loan.LoanId = loan.LoanId) "should contain the loan"
             Expect.isTrue (bookDetail.ReservationsDetails |> List.isEmpty) "should not contain reservations"
 
-            let! releaseLoan = loanService.ReleaseLoanAsync (UserContext.Anonymous, loan.LoanId, ShortLang.New "en", System.DateTime.Now)
+            let! releaseLoan = loanService.ReleaseLoanAsync (adminContext, loan.LoanId, ShortLang.New "en", System.DateTime.Now)
             Expect.isOk releaseLoan "should be ok"
 
-            let! bookDetail2 = detailsService.GetBookDetailsAsync (UserContext.Anonymous, book.BookId)
+            let! bookDetail2 = detailsService.GetBookDetailsAsync (adminContext, book.BookId)
             Expect.isOk bookDetail2 "should be ok"
 
             let (bookDetail2: BookDetails) = bookDetail2 |> Result.get
@@ -291,10 +291,10 @@ let tests =
             let book1 = Book.New (Title.New "Book One") [] [] [] None  Category.Other [] (Year.New 2000) (Isbn.NewEmpty()) None
             let book2 = Book.New (Title.New "Book Two") [] [] [] None  Category.Other [] (Year.New 2010) (Isbn.NewEmpty()) None
             
-            let! _ = (bookService :> IBookService).AddBookAsync(UserContext.Anonymous, book1)
-            let! _ = (bookService :> IBookService).AddBookAsync(UserContext.Anonymous, book2)
+            let! _ = (bookService :> IBookService).AddBookAsync(adminContext, book1)
+            let! _ = (bookService :> IBookService).AddBookAsync(adminContext, book2)
             
-            let! getAllResult = (bookService :> IBookService).GetAllAsync(UserContext.Anonymous)
+            let! getAllResult = (bookService :> IBookService).GetAllAsync(adminContext)
             
             Expect.isOk getAllResult "should be ok"
             let allBooks = getAllResult |> Result.get
@@ -307,10 +307,10 @@ let tests =
             let book1 = Book.New (Title.New "Star Wars") [] [] [] None  Category.Other [] (Year.New 1977) (Isbn.NewEmpty()) None
             let book2 = Book.New (Title.New "Star Trek") [] [] [] None  Category.Other [] (Year.New 1966) (Isbn.NewEmpty()) None
             
-            let! _ = (bookService :> IBookService).AddBookAsync(UserContext.Anonymous, book1)
-            let! _ = (bookService :> IBookService).AddBookAsync(UserContext.Anonymous, book2)
+            let! _ = (bookService :> IBookService).AddBookAsync(adminContext, book1)
+            let! _ = (bookService :> IBookService).AddBookAsync(adminContext, book2)
             
-            let! filteredResult = (bookService :> IBookService).SearchByTitleAsync(UserContext.Anonymous, Title.New "Wars")
+            let! filteredResult = (bookService :> IBookService).SearchByTitleAsync(adminContext, Title.New "Wars")
             let filtered = filteredResult |> Result.get
             Expect.equal filtered.Length 1 "should have 1 book"
             Expect.equal filtered.[0].BookId book1.BookId "should be book 1"
@@ -324,11 +324,11 @@ let tests =
             let book1 = Book.New (Title.New "Book One") [] [] [] None  Category.Other [] (Year.New 2000) isbn1 None
             let book2 = Book.New (Title.New "Book Two") [] [] [] None  Category.Other [] (Year.New 2010) isbn2 None
             
-            let! _ = (bookService :> IBookService).AddBookAsync(UserContext.Anonymous, book1)
-            let! _ = (bookService :> IBookService).AddBookAsync(UserContext.Anonymous, book2)
+            let! _ = (bookService :> IBookService).AddBookAsync(adminContext, book1)
+            let! _ = (bookService :> IBookService).AddBookAsync(adminContext, book2)
             
             // Partial match
-            let! filteredResult = (bookService :> IBookService).SearchByIsbnAsync(UserContext.Anonymous, Isbn.NewInvalid "148410")
+            let! filteredResult = (bookService :> IBookService).SearchByIsbnAsync(adminContext, Isbn.NewInvalid "148410")
             let filtered = filteredResult |> Result.get
             Expect.equal filtered.Length 1 "should have 1 book"
             Expect.equal filtered.[0].BookId book1.BookId "should be book 1"
@@ -342,17 +342,17 @@ let tests =
             let book1 = Book.New (Title.New "Star Wars") [] [] [] None  Category.Other [] (Year.New 1977) isbn1 None
             let book2 = Book.New (Title.New "Star Trek") [] [] [] None  Category.Other [] (Year.New 1966) isbn2 None
             
-            let! _ = (bookService :> IBookService).AddBookAsync(UserContext.Anonymous, book1)
-            let! _ = (bookService :> IBookService).AddBookAsync(UserContext.Anonymous, book2)
+            let! _ = (bookService :> IBookService).AddBookAsync(adminContext, book1)
+            let! _ = (bookService :> IBookService).AddBookAsync(adminContext, book2)
             
             // Match by title
-            let! filteredTitleResult = (bookService :> IBookService).SearchByTitleAndIsbnAsync(UserContext.Anonymous, Title.New "Star Wars", Isbn.NewEmpty())
+            let! filteredTitleResult = (bookService :> IBookService).SearchByTitleAndIsbnAsync(adminContext, Title.New "Star Wars", Isbn.NewEmpty())
             let filteredTitle = filteredTitleResult |> Result.get
             Expect.equal filteredTitle.Length 1 "should have 1 book exactly"
             Expect.equal filteredTitle.[0].BookId book1.BookId "should be book 1"
 
             // Match by isbn
-            let! filteredIsbnResult = (bookService :> IBookService).SearchByTitleAndIsbnAsync(UserContext.Anonymous, Title.New "Nothing", Isbn.NewInvalid "40615")
+            let! filteredIsbnResult = (bookService :> IBookService).SearchByTitleAndIsbnAsync(adminContext, Title.New "Nothing", Isbn.NewInvalid "40615")
             let filteredIsbn = filteredIsbnResult |> Result.get
             Expect.equal filteredIsbn.Length 1 "should have 1 book exactly"
             Expect.equal filteredIsbn.[0].BookId book2.BookId "should be book 2"
@@ -362,13 +362,13 @@ let tests =
             setUp ()
             let bookService = getBookService()
             let book = Book.New (Title.New "Star Wars") [] [] [] None  Category.Other [] (Year.New 1977) (Isbn.NewEmpty()) None
-            let! addResult = bookService.AddBookAsync(UserContext.Anonymous, book)
+            let! addResult = bookService.AddBookAsync(adminContext, book)
             Expect.isOk addResult "should be ok"
             
-            let! result = (bookService :> IBookService).ChangeMainCategoryAsync(UserContext.Anonymous, Category.ScienceFiction, book.BookId)
+            let! result = (bookService :> IBookService).ChangeMainCategoryAsync(adminContext, Category.ScienceFiction, book.BookId)
             Expect.isOk result (sprintf "should be ok but was %A" result)
             
-            let! freshBookResult = (bookService :> IBookService).GetBookAsync(UserContext.Anonymous, book.BookId)
+            let! freshBookResult = (bookService :> IBookService).GetBookAsync(adminContext, book.BookId)
             let freshBook = freshBookResult |> Result.get
             Expect.equal freshBook.MainCategory Category.ScienceFiction "should be ScienceFiction"
         }
@@ -377,15 +377,15 @@ let tests =
             setUp ()
             let bookService = getBookService()
             let book = Book.New (Title.New "Star Wars 2") [] [] [] None  Category.Other [] (Year.New 1980) (Isbn.NewEmpty()) None
-            let! _ = bookService.AddBookAsync(UserContext.Anonymous, book)
+            let! _ = bookService.AddBookAsync(adminContext, book)
             
-            let! res1 = (bookService :> IBookService).AddAdditionalCategoryAsync(UserContext.Anonymous, Category.Fantasy, book.BookId)
+            let! res1 = (bookService :> IBookService).AddAdditionalCategoryAsync(adminContext, Category.Fantasy, book.BookId)
             Expect.isOk res1 (sprintf "first add should be ok but was %A" res1)
             
-            let! res2 = (bookService :> IBookService).AddAdditionalCategoryAsync(UserContext.Anonymous, Category.History, book.BookId)
+            let! res2 = (bookService :> IBookService).AddAdditionalCategoryAsync(adminContext, Category.History, book.BookId)
             Expect.isOk res2 (sprintf "second add should be ok but was %A" res2)
 
-            let! freshBookResult = (bookService :> IBookService).GetBookAsync(UserContext.Anonymous, book.BookId)
+            let! freshBookResult = (bookService :> IBookService).GetBookAsync(adminContext, book.BookId)
             let freshBook = freshBookResult |> Result.get
             Expect.equal freshBook.AdditionalCategories.Length 2 (sprintf "should have 2 additional categories but has %d: %A" freshBook.AdditionalCategories.Length freshBook.AdditionalCategories)
             Expect.isTrue (freshBook.AdditionalCategories |> List.contains Category.Fantasy) "should contain Fantasy"
@@ -396,15 +396,15 @@ let tests =
             setUp ()
             let bookService = getBookService()
             let book = Book.New (Title.New "Star Wars 3") [] [] [] None  Category.Other [] (Year.New 1983) (Isbn.NewEmpty()) None
-            let! _ = bookService.AddBookAsync(UserContext.Anonymous, book)
+            let! _ = bookService.AddBookAsync(adminContext, book)
             
-            let! res1 = (bookService :> IBookService).AddAdditionalCategoryAsync(UserContext.Anonymous, Category.Fantasy, book.BookId)
+            let! res1 = (bookService :> IBookService).AddAdditionalCategoryAsync(adminContext, Category.Fantasy, book.BookId)
             Expect.isOk res1 "add should be ok"
             
-            let! res2 = (bookService :> IBookService).RemoveAdditionalCategoryAsync (UserContext.Anonymous, Category.Fantasy, book.BookId)
+            let! res2 = (bookService :> IBookService).RemoveAdditionalCategoryAsync (adminContext, Category.Fantasy, book.BookId)
             Expect.isOk res2 (sprintf "remove should be ok but was %A" res2)
 
-            let! freshBookResult = (bookService :> IBookService).GetBookAsync(UserContext.Anonymous, book.BookId)
+            let! freshBookResult = (bookService :> IBookService).GetBookAsync(adminContext, book.BookId)
             let freshBook = freshBookResult |> Result.get
             Expect.isFalse (freshBook.AdditionalCategories |> List.contains Category.Fantasy) "should not contain Fantasy anymore"
         }
@@ -413,10 +413,10 @@ let tests =
             setUp ()
             let bookService = getBookService()
             let book = Book.New (Title.New "Star Wars 4") [] [] [] None  Category.Other [] (Year.New 1980) (Isbn.NewEmpty()) None
-            let! _ = bookService.AddBookAsync(UserContext.Anonymous, book)
+            let! _ = bookService.AddBookAsync(adminContext, book)
             
-            let! _ = (bookService :> IBookService).AddAdditionalCategoryAsync (UserContext.Anonymous, Category.Fantasy, book.BookId)
-            let! result = (bookService :> IBookService).AddAdditionalCategoryAsync (UserContext.Anonymous, Category.Fantasy, book.BookId)
+            let! _ = (bookService :> IBookService).AddAdditionalCategoryAsync (adminContext, Category.Fantasy, book.BookId)
+            let! result = (bookService :> IBookService).AddAdditionalCategoryAsync (adminContext, Category.Fantasy, book.BookId)
             Expect.isError result "should be error"
         }
 
@@ -424,10 +424,10 @@ let tests =
             setUp ()
             let bookService = getBookService()
             let book = Book.New (Title.New "Star Wars 5") [] [] [] None  Category.Other [] (Year.New 1977) (Isbn.NewEmpty()) None
-            let! _ = bookService.AddBookAsync(UserContext.Anonymous, book)
+            let! _ = bookService.AddBookAsync(adminContext, book)
             
             // default main category is Category.Other in Book.fs constructor
-            let! result = (bookService :> IBookService).AddAdditionalCategoryAsync (UserContext.Anonymous, Category.Other, book.BookId)
+            let! result = (bookService :> IBookService).AddAdditionalCategoryAsync (adminContext, Category.Other, book.BookId)
             Expect.isError result "should be error"
         }
 
@@ -437,10 +437,10 @@ let tests =
             let book1 = Book.New (Title.New "Book 1900") [] [] [] None  Category.Other [] (Year.New 1900) (Isbn.NewEmpty()) None
             let book2 = Book.New (Title.New "Book 2000") [] [] [] None  Category.Other [] (Year.New 2000) (Isbn.NewEmpty()) None
             
-            let! _ = (bookService :> IBookService).AddBookAsync(UserContext.Anonymous, book1)
-            let! _ = (bookService :> IBookService).AddBookAsync(UserContext.Anonymous, book2)
+            let! _ = (bookService :> IBookService).AddBookAsync(adminContext, book1)
+            let! _ = (bookService :> IBookService).AddBookAsync(adminContext, book2)
             
-            let! filteredResult = (bookService :> IBookService).SearchByYearAsync (UserContext.Anonymous, YearSearch.Exact 2000)
+            let! filteredResult = (bookService :> IBookService).SearchByYearAsync (adminContext, YearSearch.Exact 2000)
             let filtered = filteredResult |> Result.get
             Expect.equal filtered.Length 1 "should have 1 book"
             Expect.equal filtered.[0].BookId book2.BookId "should be book 2"
@@ -452,10 +452,10 @@ let tests =
             let book1 = Book.New (Title.New "Book 1900") [] [] [] None  Category.Other [] (Year.New 1900) (Isbn.NewEmpty()) None
             let book2 = Book.New (Title.New "Book 2000") [] [] [] None  Category.Other [] (Year.New 2000) (Isbn.NewEmpty()) None
             
-            let! _ = (bookService :> IBookService).AddBookAsync(UserContext.Anonymous, book1)
-            let! _ = (bookService :> IBookService).AddBookAsync(UserContext.Anonymous, book2)
+            let! _ = (bookService :> IBookService).AddBookAsync(adminContext, book1)
+            let! _ = (bookService :> IBookService).AddBookAsync(adminContext, book2)
             
-            let! filteredResult = (bookService :> IBookService).SearchByYearAsync (UserContext.Anonymous, YearSearch.Before 1950)
+            let! filteredResult = (bookService :> IBookService).SearchByYearAsync (adminContext, YearSearch.Before 1950)
             let filtered = filteredResult |> Result.get
             Expect.equal filtered.Length 1 "should have 1 book"
             Expect.equal filtered.[0].BookId book1.BookId "should be book 1"
@@ -467,10 +467,10 @@ let tests =
             let book1 = Book.New (Title.New "Book 1900") [] [] [] None  Category.Other [] (Year.New 1900) (Isbn.NewEmpty()) None
             let book2 = Book.New (Title.New "Book 2000") [] [] [] None  Category.Other [] (Year.New 2000) (Isbn.NewEmpty()) None
             
-            let! _ = (bookService :> IBookService).AddBookAsync(UserContext.Anonymous, book1)
-            let! _ = (bookService :> IBookService).AddBookAsync(UserContext.Anonymous, book2)
+            let! _ = (bookService :> IBookService).AddBookAsync(adminContext, book1)
+            let! _ = (bookService :> IBookService).AddBookAsync(adminContext, book2)
             
-            let! filteredResult = (bookService :> IBookService).SearchByYearAsync (UserContext.Anonymous, YearSearch.After 1950)
+            let! filteredResult = (bookService :> IBookService).SearchByYearAsync (adminContext, YearSearch.After 1950)
             let filtered = filteredResult |> Result.get
             Expect.equal filtered.Length 1 "should have 1 book"
             Expect.equal filtered.[0].BookId book2.BookId "should be book 2"
@@ -483,11 +483,11 @@ let tests =
             let book2 = Book.New (Title.New "Book 1950") [] [] [] None  Category.Other [] (Year.New 1950) (Isbn.NewEmpty()) None
             let book3 = Book.New (Title.New "Book 2000") [] [] [] None  Category.Other [] (Year.New 2000) (Isbn.NewEmpty()) None
             
-            let! _ = (bookService :> IBookService).AddBookAsync(UserContext.Anonymous, book1)
-            let! _ = (bookService :> IBookService).AddBookAsync(UserContext.Anonymous, book2)
-            let! _ = (bookService :> IBookService).AddBookAsync(UserContext.Anonymous, book3)
+            let! _ = (bookService :> IBookService).AddBookAsync(adminContext, book1)
+            let! _ = (bookService :> IBookService).AddBookAsync(adminContext, book2)
+            let! _ = (bookService :> IBookService).AddBookAsync(adminContext, book3)
             
-            let! filteredResult = (bookService :> IBookService).SearchByYearAsync (UserContext.Anonymous, YearSearch.Range (1940, 1960))
+            let! filteredResult = (bookService :> IBookService).SearchByYearAsync (adminContext, YearSearch.Range (1940, 1960))
             let filtered = filteredResult |> Result.get
             Expect.equal filtered.Length 1 "should have 1 book"
             Expect.equal filtered.[0].BookId book2.BookId "should be book 2"
@@ -500,11 +500,11 @@ let tests =
             let book2 = Book.New (Title.New "Star Trek") [] [] [] None  Category.Other [] (Year.New 1966) (Isbn.NewEmpty()) None
             let book3 = Book.New (Title.New "Star Wars 2") [] [] [] None  Category.Other [] (Year.New 1980) (Isbn.NewEmpty()) None
             
-            let! _ = (bookService :> IBookService).AddBookAsync(UserContext.Anonymous, book1)
-            let! _ = (bookService :> IBookService).AddBookAsync(UserContext.Anonymous, book2)
-            let! _ = (bookService :> IBookService).AddBookAsync(UserContext.Anonymous, book3)
+            let! _ = (bookService :> IBookService).AddBookAsync(adminContext, book1)
+            let! _ = (bookService :> IBookService).AddBookAsync(adminContext, book2)
+            let! _ = (bookService :> IBookService).AddBookAsync(adminContext, book3)
             
-            let! filteredResult = (bookService :> IBookService).SearchByTitleAndYearAsync(UserContext.Anonymous, Title.New "Wars", YearSearch.Exact 1977)
+            let! filteredResult = (bookService :> IBookService).SearchByTitleAndYearAsync(adminContext, Title.New "Wars", YearSearch.Exact 1977)
             let filtered = filteredResult |> Result.get
             Expect.equal filtered.Length 1 "should have 1 book exactly"
             Expect.equal filtered.[0].BookId book1.BookId "should be book 1"
@@ -517,11 +517,11 @@ let tests =
             let book2 = Book.New (Title.New "Star Trek") [] [] [] None  Category.Other [] (Year.New 1966) (Isbn.NewEmpty()) None
             let book3 = Book.New (Title.New "Star Wars 2") [] [] [] None  Category.Other [] (Year.New 1980) (Isbn.NewEmpty()) None
             
-            let! _ = (bookService :> IBookService).AddBookAsync(UserContext.Anonymous, book1)
-            let! _ = (bookService :> IBookService).AddBookAsync(UserContext.Anonymous, book2)
-            let! _ = (bookService :> IBookService).AddBookAsync(UserContext.Anonymous, book3)
+            let! _ = (bookService :> IBookService).AddBookAsync(adminContext, book1)
+            let! _ = (bookService :> IBookService).AddBookAsync(adminContext, book2)
+            let! _ = (bookService :> IBookService).AddBookAsync(adminContext, book3)
             
-            let! filteredResult = (bookService :> IBookService).SearchByTitleAndYearAsync(UserContext.Anonymous, Title.New "Wars", YearSearch.Range (1975, 1985))
+            let! filteredResult = (bookService :> IBookService).SearchByTitleAndYearAsync(adminContext, Title.New "Wars", YearSearch.Range (1975, 1985))
             let filtered = filteredResult |> Result.get
             Expect.equal filtered.Length 2 "should have 2 books"
             Expect.isTrue (filtered |> List.exists (fun b -> b.BookId = book1.BookId)) "should contain book 1"
@@ -534,10 +534,10 @@ let tests =
             let book1 = Book.New (Title.New "Star Wars") [] [] [] None  Category.Other [] (Year.New 1977) (Isbn.NewEmpty()) None
             let book2 = Book.New (Title.New "A New Hope") [] [] [] None  Category.Other [] (Year.New 1977) (Isbn.NewEmpty()) None
             
-            let! _ = (bookService :> IBookService).AddBookAsync(UserContext.Anonymous, book1)
-            let! _ = (bookService :> IBookService).AddBookAsync(UserContext.Anonymous, book2)
+            let! _ = (bookService :> IBookService).AddBookAsync(adminContext, book1)
+            let! _ = (bookService :> IBookService).AddBookAsync(adminContext, book2)
             
-            let! filteredResult = (bookService :> IBookService).SearchByTitleAndYearAsync(UserContext.Anonymous, Title.New "Star", YearSearch.Before 1980)
+            let! filteredResult = (bookService :> IBookService).SearchByTitleAndYearAsync(adminContext, Title.New "Star", YearSearch.Before 1980)
             let filtered = filteredResult |> Result.get
             Expect.equal filtered.Length 1 "should have 1 book"
             Expect.equal filtered.[0].BookId book1.BookId "should be book 1"
@@ -549,10 +549,10 @@ let tests =
             let book1 = Book.New (Title.New "Star Wars") [] [] [] None  Category.Other [] (Year.New 1977) (Isbn.NewEmpty()) None
             let book2 = Book.New (Title.New "Star Wars 2") [] [] [] None  Category.Other [] (Year.New 1980) (Isbn.NewEmpty()) None
             
-            let! _ = (bookService :> IBookService).AddBookAsync(UserContext.Anonymous, book1)
-            let! _ = (bookService :> IBookService).AddBookAsync(UserContext.Anonymous, book2)
+            let! _ = (bookService :> IBookService).AddBookAsync(adminContext, book1)
+            let! _ = (bookService :> IBookService).AddBookAsync(adminContext, book2)
             
-            let! filteredResult = (bookService :> IBookService).SearchByTitleAndYearAsync(UserContext.Anonymous, Title.New "Wars", YearSearch.After 1978)
+            let! filteredResult = (bookService :> IBookService).SearchByTitleAndYearAsync(adminContext, Title.New "Wars", YearSearch.After 1978)
             let filtered = filteredResult |> Result.get
             Expect.equal filtered.Length 1 "should have 1 book"
             Expect.equal filtered.[0].BookId book2.BookId "should be book 2"
@@ -564,9 +564,9 @@ let tests =
             let isbn1 = Isbn.New "978-3-16-148410-0" |> Result.get
             let book1 = Book.New (Title.New "Book One") [] [] [] None  Category.Other [] (Year.New 2000) isbn1 None
             
-            let! _ = (bookService :> IBookService).AddBookAsync(UserContext.Anonymous, book1)
+            let! _ = (bookService :> IBookService).AddBookAsync(adminContext, book1)
             
-            let! filteredResult = (bookService :> IBookService).SearchByIsbnAndYearAsync(UserContext.Anonymous, isbn1, YearSearch.Exact 2000)
+            let! filteredResult = (bookService :> IBookService).SearchByIsbnAndYearAsync(adminContext, isbn1, YearSearch.Exact 2000)
             let filtered = filteredResult |> Result.get
             Expect.equal filtered.Length 1 "should have 1 book"
             Expect.equal filtered.[0].BookId book1.BookId "should be book 1"
@@ -578,9 +578,9 @@ let tests =
             let isbn1 = Isbn.NewInvalid "INVALID123"
             let book1 = Book.New (Title.New "Book One") [] [] [] None  Category.Other [] (Year.New 2000) isbn1 None
             
-            let! _ = (bookService :> IBookService).AddBookAsync(UserContext.Anonymous, book1)
+            let! _ = (bookService :> IBookService).AddBookAsync(adminContext, book1)
             
-            let! filteredResult = (bookService :> IBookService).SearchByIsbnAndYearAsync(UserContext.Anonymous, Isbn.NewInvalid "INVALID", YearSearch.Exact 2000)
+            let! filteredResult = (bookService :> IBookService).SearchByIsbnAndYearAsync(adminContext, Isbn.NewInvalid "INVALID", YearSearch.Exact 2000)
             let filtered = filteredResult |> Result.get
             Expect.equal filtered.Length 1 "should have 1 book"
             Expect.equal filtered.[0].BookId book1.BookId "should be book 1"
@@ -594,9 +594,9 @@ let tests =
             let year = Year.New 1977
             let book1 = Book.New title [] [] [] None  Category.Other [] year isbn None
             
-            let! _ = (bookService :> IBookService).AddBookAsync(UserContext.Anonymous, book1)
+            let! _ = (bookService :> IBookService).AddBookAsync(adminContext, book1)
             
-            let! filteredResult = (bookService :> IBookService).SearchByTitleAndIsbnAndYearAsync(UserContext.Anonymous, title, isbn, YearSearch.Exact 1977)
+            let! filteredResult = (bookService :> IBookService).SearchByTitleAndIsbnAndYearAsync(adminContext, title, isbn, YearSearch.Exact 1977)
             let filtered = filteredResult |> Result.get
             Expect.equal filtered.Length 1 "should have 1 book"
             Expect.equal filtered.[0].BookId book1.BookId "should be book 1"
@@ -614,11 +614,11 @@ let tests =
             let book3 = Book.New 
                             (Title.New "Book 3") [] [] [] None Category.Science [Category.Photography] (Year.New 2002) (Isbn.NewEmpty()) None
             
-            let! _ = (bookService :> IBookService).AddBookAsync(UserContext.Anonymous, book1)
-            let! _ = (bookService :> IBookService).AddBookAsync(UserContext.Anonymous, book2)
-            let! _ = (bookService :> IBookService).AddBookAsync(UserContext.Anonymous, book3)
+            let! _ = (bookService :> IBookService).AddBookAsync(adminContext, book1)
+            let! _ = (bookService :> IBookService).AddBookAsync(adminContext, book2)
+            let! _ = (bookService :> IBookService).AddBookAsync(adminContext, book3)
             
-            let! filteredResult = (bookService :> IBookService).SearchByCategoriesAsync(UserContext.Anonymous, [Category.Photography])
+            let! filteredResult = (bookService :> IBookService).SearchByCategoriesAsync(adminContext, [Category.Photography])
             let filtered = filteredResult |> Result.get
             Expect.equal filtered.Length 2 "should have 2 books"
             Expect.isTrue (filtered |> List.exists (fun b -> b.BookId = book2.BookId)) "should contain book 2"
@@ -634,10 +634,10 @@ let tests =
             let book2 = Book.New 
                             title [] [] [] None Category.Fiction [] (Year.New 1977) (Isbn.NewEmpty()) None
             
-            let! _ = (bookService :> IBookService).AddBookAsync(UserContext.Anonymous, book1)
-            let! _ = (bookService :> IBookService).AddBookAsync(UserContext.Anonymous, book2)
+            let! _ = (bookService :> IBookService).AddBookAsync(adminContext, book1)
+            let! _ = (bookService :> IBookService).AddBookAsync(adminContext, book2)
             
-            let! filteredResult = (bookService :> IBookService).SearchByTitleAndCategoriesAsync(UserContext.Anonymous, title, [Category.ScienceFiction])
+            let! filteredResult = (bookService :> IBookService).SearchByTitleAndCategoriesAsync(adminContext, title, [Category.ScienceFiction])
             let filtered = filteredResult |> Result.get
             Expect.equal filtered.Length 1 "should have 1 book"
             Expect.equal filtered.[0].BookId book1.BookId "should be book 1"
@@ -651,10 +651,10 @@ let tests =
             let book2 = Book.New 
                             (Title.New "Star Wars 2") [] [] [] None Category.ScienceFiction [] (Year.New 1980) (Isbn.NewEmpty()) None
             
-            let! _ = (bookService :> IBookService).AddBookAsync(UserContext.Anonymous, book1)
-            let! _ = (bookService :> IBookService).AddBookAsync(UserContext.Anonymous, book2)
+            let! _ = (bookService :> IBookService).AddBookAsync(adminContext, book1)
+            let! _ = (bookService :> IBookService).AddBookAsync(adminContext, book2)
             
-            let! filteredResult = (bookService :> IBookService).SearchByYearAndCategoriesAsync(UserContext.Anonymous, YearSearch.Exact 1977, [Category.ScienceFiction])
+            let! filteredResult = (bookService :> IBookService).SearchByYearAndCategoriesAsync(adminContext, YearSearch.Exact 1977, [Category.ScienceFiction])
             let filtered = filteredResult |> Result.get
             Expect.equal filtered.Length 1 "should have 1 book"
             Expect.equal filtered.[0].BookId book1.BookId "should be book 1"
@@ -667,9 +667,9 @@ let tests =
             let book1 = Book.New 
                             title [] [] [] None Category.ScienceFiction [] (Year.New 1977) (Isbn.NewEmpty()) None
             
-            let! _ = (bookService :> IBookService).AddBookAsync(UserContext.Anonymous, book1)
+            let! _ = (bookService :> IBookService).AddBookAsync(adminContext, book1)
             
-            let! filteredResult = (bookService :> IBookService).SearchByTitleAndYearAndCategoriesAsync(UserContext.Anonymous, title, YearSearch.Exact 1977, [Category.ScienceFiction])
+            let! filteredResult = (bookService :> IBookService).SearchByTitleAndYearAndCategoriesAsync(adminContext, title, YearSearch.Exact 1977, [Category.ScienceFiction])
             let filtered = filteredResult |> Result.get
             Expect.equal filtered.Length 1 "should have 1 book"
             Expect.equal filtered.[0].BookId book1.BookId "should be book 1"
@@ -683,8 +683,8 @@ let tests =
             let author1 = Author.New (Name.New "Author 1") (Isni.NewEmpty())
             let author2 = Author.New (Name.New "Author 2") (Isni.NewEmpty())
             
-            let! _ = (authorService :> IAuthorService).AddAuthorAsync(UserContext.Anonymous, author1)
-            let! _ = (authorService :> IAuthorService).AddAuthorAsync(UserContext.Anonymous, author2)
+            let! _ = (authorService :> IAuthorService).AddAuthorAsync(adminContext, author1)
+            let! _ = (authorService :> IAuthorService).AddAuthorAsync(adminContext, author2)
             
             let authorId1 = author1.AuthorId
             let authorId2 = author2.AuthorId
@@ -693,11 +693,11 @@ let tests =
             let book2 = Book.New (Title.New "Book 2") [authorId2] [] [] None  Category.Other [] (Year.New 2001) (Isbn.NewEmpty()) None
             let book3 = Book.New (Title.New "Book 3") [authorId1; authorId2] [] [] None  Category.Other [] (Year.New 2002) (Isbn.NewEmpty()) None
             
-            let! _ = (bookService :> IBookService).AddBookAsync(UserContext.Anonymous, book1)
-            let! _ = (bookService :> IBookService).AddBookAsync(UserContext.Anonymous, book2)
-            let! _ = (bookService :> IBookService).AddBookAsync(UserContext.Anonymous, book3)
+            let! _ = (bookService :> IBookService).AddBookAsync(adminContext, book1)
+            let! _ = (bookService :> IBookService).AddBookAsync(adminContext, book2)
+            let! _ = (bookService :> IBookService).AddBookAsync(adminContext, book3)
             
-            let! filteredResult = (bookService :> IBookService).SearchByAuthorAsync(UserContext.Anonymous, authorId1)
+            let! filteredResult = (bookService :> IBookService).SearchByAuthorAsync(adminContext, authorId1)
             let filtered = filteredResult |> Result.get
             Expect.equal filtered.Length 2 "should have 2 books for author 1"
             Expect.isTrue (filtered |> List.exists (fun b -> b.BookId = book1.BookId)) "should contain book 1"
@@ -713,9 +713,9 @@ let tests =
             let author2 = Author.New (Name.New "Author 2") (Isni.NewEmpty())
             let author3 = Author.New (Name.New "Author 3") (Isni.NewEmpty())
             
-            let! _ = (authorService :> IAuthorService).AddAuthorAsync(UserContext.Anonymous, author1)
-            let! _ = (authorService :> IAuthorService).AddAuthorAsync(UserContext.Anonymous, author2)
-            let! _ = (authorService :> IAuthorService).AddAuthorAsync(UserContext.Anonymous, author3)
+            let! _ = (authorService :> IAuthorService).AddAuthorAsync(adminContext, author1)
+            let! _ = (authorService :> IAuthorService).AddAuthorAsync(adminContext, author2)
+            let! _ = (authorService :> IAuthorService).AddAuthorAsync(adminContext, author3)
             
             let authorId1 = author1.AuthorId
             let authorId2 = author2.AuthorId
@@ -726,12 +726,12 @@ let tests =
             let book3 = Book.New (Title.New "Book 3") [authorId3] [] [] None  Category.Other [] (Year.New 2002) (Isbn.NewEmpty()) None
             let book4 = Book.New (Title.New "Book 4") [authorId1; authorId2] [] [] None  Category.Other [] (Year.New 2003) (Isbn.NewEmpty()) None
             
-            let! _ = (bookService :> IBookService).AddBookAsync(UserContext.Anonymous, book1)
-            let! _ = (bookService :> IBookService).AddBookAsync(UserContext.Anonymous, book2)
-            let! _ = (bookService :> IBookService).AddBookAsync(UserContext.Anonymous, book3)
-            let! _ = (bookService :> IBookService).AddBookAsync(UserContext.Anonymous, book4)
+            let! _ = (bookService :> IBookService).AddBookAsync(adminContext, book1)
+            let! _ = (bookService :> IBookService).AddBookAsync(adminContext, book2)
+            let! _ = (bookService :> IBookService).AddBookAsync(adminContext, book3)
+            let! _ = (bookService :> IBookService).AddBookAsync(adminContext, book4)
             
-            let! filteredResult = (bookService :> IBookService).SearchByAuthorsAsync(UserContext.Anonymous, [authorId1; authorId2])
+            let! filteredResult = (bookService :> IBookService).SearchByAuthorsAsync(adminContext, [authorId1; authorId2])
             let filtered = filteredResult |> Result.get
             Expect.equal filtered.Length 3 "should have 3 books for authors 1 and 2"
             Expect.isTrue (filtered |> List.exists (fun b -> b.BookId = book4.BookId)) "should contain book 4"
@@ -746,8 +746,8 @@ let tests =
             let author1 = Author.New (Name.New "Author 1") (Isni.NewEmpty())
             let author2 = Author.New (Name.New "Author 2") (Isni.NewEmpty())
             
-            let! _ = (authorService :> IAuthorService).AddAuthorAsync(UserContext.Anonymous, author1)
-            let! _ = (authorService :> IAuthorService).AddAuthorAsync(UserContext.Anonymous, author2)
+            let! _ = (authorService :> IAuthorService).AddAuthorAsync(adminContext, author1)
+            let! _ = (authorService :> IAuthorService).AddAuthorAsync(adminContext, author2)
             
             let authorId1 = author1.AuthorId
             let authorId2 = author2.AuthorId
@@ -757,13 +757,13 @@ let tests =
             let book3 = Book.New (Title.New "Star Wars 2") [authorId2] [] [] None  Category.Other [] (Year.New 2002) (Isbn.NewEmpty()) None
             let book4 = Book.New (Title.New "Interstellar") [authorId1] [] [] None  Category.Other [] (Year.New 2003) (Isbn.NewEmpty()) None
             
-            let! _ = (bookService :> IBookService).AddBookAsync(UserContext.Anonymous, book1)
-            let! _ = (bookService :> IBookService).AddBookAsync(UserContext.Anonymous, book2)
-            let! _ = (bookService :> IBookService).AddBookAsync(UserContext.Anonymous, book3)
-            let! _ = (bookService :> IBookService).AddBookAsync(UserContext.Anonymous, book4)
+            let! _ = (bookService :> IBookService).AddBookAsync(adminContext, book1)
+            let! _ = (bookService :> IBookService).AddBookAsync(adminContext, book2)
+            let! _ = (bookService :> IBookService).AddBookAsync(adminContext, book3)
+            let! _ = (bookService :> IBookService).AddBookAsync(adminContext, book4)
             
             let title = Title.New "Star"
-            let! filteredResult = (bookService :> IBookService).SearchByTitleAndAuthorsAsync(UserContext.Anonymous, title, [authorId1; authorId2])
+            let! filteredResult = (bookService :> IBookService).SearchByTitleAndAuthorsAsync(adminContext, title, [authorId1; authorId2])
             let filtered = filteredResult |> Result.get
             Expect.equal filtered.Length 3 "should have 3 books with 'Star' by authors 1 or 2"
             Expect.isTrue (filtered |> List.exists (fun b -> b.BookId = book1.BookId)) "should contain book 1"
@@ -780,8 +780,8 @@ let tests =
             let author1 = Author.New (Name.New "Author 1") (Isni.NewEmpty())
             let author2 = Author.New (Name.New "Author 2") (Isni.NewEmpty())
             
-            let! _ = (authorService :> IAuthorService).AddAuthorAsync(UserContext.Anonymous, author1)
-            let! _ = (authorService :> IAuthorService).AddAuthorAsync(UserContext.Anonymous, author2)
+            let! _ = (authorService :> IAuthorService).AddAuthorAsync(adminContext, author1)
+            let! _ = (authorService :> IAuthorService).AddAuthorAsync(adminContext, author2)
             
             let authorId1 = author1.AuthorId
             let authorId2 = author2.AuthorId
@@ -791,14 +791,14 @@ let tests =
             let book3 = Book.New (Title.New "Star Wars 2") [authorId2] [] [] None  Category.Other [] (Year.New 1980) (Isbn.NewEmpty()) None
             let book4 = Book.New (Title.New "Star Wars 3") [authorId1] [] [] None  Category.Other [] (Year.New 1983) (Isbn.NewEmpty()) None
             
-            let! _ = (bookService :> IBookService).AddBookAsync(UserContext.Anonymous, book1)
-            let! _ = (bookService :> IBookService).AddBookAsync(UserContext.Anonymous, book2)
-            let! _ = (bookService :> IBookService).AddBookAsync(UserContext.Anonymous, book3)
-            let! _ = (bookService :> IBookService).AddBookAsync(UserContext.Anonymous, book4)
+            let! _ = (bookService :> IBookService).AddBookAsync(adminContext, book1)
+            let! _ = (bookService :> IBookService).AddBookAsync(adminContext, book2)
+            let! _ = (bookService :> IBookService).AddBookAsync(adminContext, book3)
+            let! _ = (bookService :> IBookService).AddBookAsync(adminContext, book4)
             
             let title = Title.New "Star"
             let yearSearch = YearSearch.After 1975
-            let! filteredResult = (bookService :> IBookService).SearchByTitleAndAuthorsAndYearAsync(UserContext.Anonymous, title, [authorId1; authorId2], yearSearch)
+            let! filteredResult = (bookService :> IBookService).SearchByTitleAndAuthorsAndYearAsync(adminContext, title, [authorId1; authorId2], yearSearch)
             let filtered = filteredResult |> Result.get
             Expect.equal filtered.Length 3 "should have 3 books with 'Star' by authors 1 or 2 after 1975"
             Expect.isTrue (filtered |> List.exists (fun b -> b.BookId = book1.BookId)) "should contain book 1"
@@ -815,8 +815,8 @@ let tests =
             let author1 = Author.New (Name.New "Author 1") (Isni.NewEmpty())
             let author2 = Author.New (Name.New "Author 2") (Isni.NewEmpty())
             
-            let! _ = (authorService :> IAuthorService).AddAuthorAsync(UserContext.Anonymous, author1)
-            let! _ = (authorService :> IAuthorService).AddAuthorAsync(UserContext.Anonymous, author2)
+            let! _ = (authorService :> IAuthorService).AddAuthorAsync(adminContext, author1)
+            let! _ = (authorService :> IAuthorService).AddAuthorAsync(adminContext, author2)
             
             let authorId1 = author1.AuthorId
             let authorId2 = author2.AuthorId
@@ -826,15 +826,15 @@ let tests =
             let book3 = Book.New (Title.New "Star Wars 2") [authorId2] [] [] None Category.ScienceFiction [Category.Other] (Year.New 1980) (Isbn.NewEmpty()) None
             let book4 = Book.New (Title.New "Star Wars 3") [authorId1] [] [] None Category.History [Category.Other] (Year.New 1983) (Isbn.NewEmpty()) None
             
-            let! _ = (bookService :> IBookService).AddBookAsync(UserContext.Anonymous, book1)
-            let! _ = (bookService :> IBookService).AddBookAsync(UserContext.Anonymous, book2)
-            let! _ = (bookService :> IBookService).AddBookAsync(UserContext.Anonymous, book3)
-            let! _ = (bookService :> IBookService).AddBookAsync(UserContext.Anonymous, book4)
+            let! _ = (bookService :> IBookService).AddBookAsync(adminContext, book1)
+            let! _ = (bookService :> IBookService).AddBookAsync(adminContext, book2)
+            let! _ = (bookService :> IBookService).AddBookAsync(adminContext, book3)
+            let! _ = (bookService :> IBookService).AddBookAsync(adminContext, book4)
             
             let title = Title.New "Star"
             let yearSearch = YearSearch.After 1975
             let categories = [Category.ScienceFiction]
-            let! filteredResult = (bookService :> IBookService).SearchByTitleAndAuthorsAndYearAndCategoriesAsync(UserContext.Anonymous, title, [authorId1; authorId2], yearSearch, categories)
+            let! filteredResult = (bookService :> IBookService).SearchByTitleAndAuthorsAndYearAndCategoriesAsync(adminContext, title, [authorId1; authorId2], yearSearch, categories)
             let filtered = filteredResult |> Result.get
             Expect.equal filtered.Length 2 "should have 2 ScienceFiction books with 'Star' by authors 1 or 2 after 1975"
             Expect.isTrue (filtered |> List.exists (fun b -> b.BookId = book1.BookId)) "should contain book 1"
@@ -846,13 +846,13 @@ let tests =
             setUp ()
             let bookService = getBookService()
             let book = Book.New (Title.New "The Sealing Book") [] [] [] None  Category.Other [] (Year.New 2024) (Isbn.NewEmpty()) None
-            let! addBook = bookService.AddBookAsync(UserContext.Anonymous, book)
+            let! addBook = bookService.AddBookAsync(adminContext, book)
             Expect.isOk addBook "should be ok"
 
-            let! sealBook = bookService.SealAsync(UserContext.Anonymous, book.BookId)
+            let! sealBook = bookService.SealAsync(adminContext, book.BookId)
             Expect.isOk sealBook "should be ok"
 
-            let! retrieveBook = bookService.GetBookAsync(UserContext.Anonymous, book.BookId)
+            let! retrieveBook = bookService.GetBookAsync(adminContext, book.BookId)
             let (bookRetrieved: Book) = retrieveBook |> Result.get
             Expect.isTrue (bookRetrieved.Sealed.IsSealed(DateTime.UtcNow)) "book should be sealed (manually)"
         }
@@ -862,14 +862,14 @@ let tests =
             let bookService = getBookService()
             let authorService = getAuthorService()
             let author = Author.New (Name.New "The Test Author") (Isni.NewEmpty())
-            let! _ = (authorService :> IAuthorService).AddAuthorAsync(UserContext.Anonymous, author)
+            let! _ = (authorService :> IAuthorService).AddAuthorAsync(adminContext, author)
             
             let book = Book.New (Title.New "The Unmodifiable Book") [] [] [] None  Category.Other [] (Year.New 2024) (Isbn.NewEmpty()) None
-            let! _ = bookService.AddBookAsync(UserContext.Anonymous, book)
+            let! _ = bookService.AddBookAsync(adminContext, book)
 
-            let! _ = bookService.SealAsync(UserContext.Anonymous, book.BookId)
+            let! _ = bookService.SealAsync(adminContext, book.BookId)
 
-            let! addAuthor = (bookService :> IBookService).AddAuthorToBookAsync(UserContext.Anonymous, author.AuthorId, book.BookId)
+            let! addAuthor = (bookService :> IBookService).AddAuthorToBookAsync(adminContext, author.AuthorId, book.BookId)
             
             Expect.isOk addAuthor "adding author to sealed book should be ok"
         }
@@ -878,16 +878,16 @@ let tests =
             setUp ()
             let bookService = getBookService()
             let book = Book.New (Title.New "The Unsealing Book") [] [] [] None  Category.Other [] (Year.New 2024) (Isbn.NewEmpty()) None
-            let! addBook = bookService.AddBookAsync(UserContext.Anonymous, book)
+            let! addBook = bookService.AddBookAsync(adminContext, book)
             Expect.isOk addBook "should be ok"
 
-            let! sealBook = bookService.SealAsync(UserContext.Anonymous, book.BookId)
+            let! sealBook = bookService.SealAsync(adminContext, book.BookId)
             Expect.isOk sealBook "should be ok"
 
-            let! unsealBook = bookService.UnsealAsync(UserContext.Anonymous, book.BookId)
+            let! unsealBook = bookService.UnsealAsync(adminContext, book.BookId)
             Expect.isOk unsealBook "should be ok"
 
-            let! retrieveBook = bookService.GetBookAsync(UserContext.Anonymous, book.BookId)
+            let! retrieveBook = bookService.GetBookAsync(adminContext, book.BookId)
             let bookRetrieved = retrieveBook |> Result.get
             Expect.isFalse (bookRetrieved.Sealed.IsSealed(DateTime.UtcNow)) "book should be unsealed"
         }
@@ -896,20 +896,20 @@ let tests =
             setUp ()
             let bookService = getBookService()
             let book = Book.New (Title.New "The Image Book") [] [] [] None  Category.Other [] (Year.New 2024) (Isbn.NewEmpty()) None
-            let! _ = (bookService :> IBookService).AddBookAsync(UserContext.Anonymous, book)
+            let! _ = (bookService :> IBookService).AddBookAsync(adminContext, book)
 
             let imageUrl = Uri "https://example.com/cover.jpg"
-            let! setImageUrl = (bookService :> IBookService).SetImageUrlAsync(UserContext.Anonymous, book.BookId, imageUrl)
+            let! setImageUrl = (bookService :> IBookService).SetImageUrlAsync(adminContext, book.BookId, imageUrl)
             Expect.isOk setImageUrl "should set image URL ok"
 
-            let! bookAfterSetResult = (bookService :> IBookService).GetBookAsync(UserContext.Anonymous, book.BookId)
+            let! bookAfterSetResult = (bookService :> IBookService).GetBookAsync(adminContext, book.BookId)
             let bookAfterSet = bookAfterSetResult |> Result.get
             Expect.equal bookAfterSet.ImageUrl (Some imageUrl) "image URL should be set"
 
-            let! removeImageUrl = (bookService :> IBookService).RemoveImageUrlAsync(UserContext.Anonymous, book.BookId)
+            let! removeImageUrl = (bookService :> IBookService).RemoveImageUrlAsync(adminContext, book.BookId)
             Expect.isOk removeImageUrl "should remove image URL ok"
 
-            let! bookAfterRemoveResult = (bookService :> IBookService).GetBookAsync(UserContext.Anonymous, book.BookId)
+            let! bookAfterRemoveResult = (bookService :> IBookService).GetBookAsync(adminContext, book.BookId)
             let bookAfterRemove = bookAfterRemoveResult |> Result.get
             Expect.equal bookAfterRemove.ImageUrl None "image URL should be removed"
         }

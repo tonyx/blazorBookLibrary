@@ -15,9 +15,9 @@ let tests =
             let authorService = getAuthorService()
             let author = Author.NewWithoutIsni (Name.New "John Doe")
 
-            let! addAuthor = authorService.AddAuthorAsync(UserContext.Anonymous, author)
+            let! addAuthor = authorService.AddAuthorAsync(adminContext, author)
             Expect.isOk addAuthor "should be ok"
-            let! getAuthor = authorService.GetAuthorAsync(UserContext.Anonymous, author.AuthorId)
+            let! getAuthor = authorService.GetAuthorAsync(adminContext, author.AuthorId)
             Expect.isOk getAuthor "should be ok"
         }
 
@@ -26,14 +26,14 @@ let tests =
             let authorService = getAuthorService()
             let bookService = getBookService()
             let author = Author.NewWithoutIsni (Name.New "John Doe")
-            let! addAuthor = authorService.AddAuthorAsync(UserContext.Anonymous, author)
+            let! addAuthor = authorService.AddAuthorAsync(adminContext, author)
             Expect.isOk addAuthor "should be ok"
 
             let book = Book.New (Title.New "The Great Gatsby") [author.AuthorId] [] [] None  Category.Other [] (Year.New 1924) (Isbn.NewEmpty()) None
-            let! addBook = bookService.AddBookAsync(UserContext.Anonymous, book)
+            let! addBook = bookService.AddBookAsync(adminContext, book)
             Expect.isOk addBook "should be ok"
 
-            let! getAuthorResult = authorService.GetAuthorAsync(UserContext.Anonymous, author.AuthorId)
+            let! getAuthorResult = authorService.GetAuthorAsync(adminContext, author.AuthorId)
             let (author: Author ) = getAuthorResult |> Result.get
             Expect.isTrue (List.contains book.BookId author.Books) "should contain the book"
         }
@@ -43,23 +43,23 @@ let tests =
             let authorService = getAuthorService()
             let bookService = getBookService()
             let author = Author.NewWithoutIsni (Name.New "John Doe")
-            let! addAuthor = authorService.AddAuthorAsync(UserContext.Anonymous, author)
+            let! addAuthor = authorService.AddAuthorAsync(adminContext, author)
             Expect.isOk addAuthor "should be ok"
 
             let author2 = Author.NewWithoutIsni (Name.New "Murakami")
-            let! addAuthor2 = authorService.AddAuthorAsync(UserContext.Anonymous, author2)
+            let! addAuthor2 = authorService.AddAuthorAsync(adminContext, author2)
             Expect.isOk addAuthor2 "should be ok"
 
             let book = Book.New (Title.New "The Great Gatsby") [author.AuthorId; author2.AuthorId] [] [] None  Category.Other [] (Year.New 1924) (Isbn.NewEmpty()) None
-            let! addBook = bookService.AddBookAsync(UserContext.Anonymous, book)
+            let! addBook = bookService.AddBookAsync(adminContext, book)
             Expect.isOk addBook "should be ok"
-            let! retrieveAuthorResult = authorService.GetAuthorAsync(UserContext.Anonymous, author.AuthorId)
+            let! retrieveAuthorResult = authorService.GetAuthorAsync(adminContext, author.AuthorId)
             Expect.isOk retrieveAuthorResult "should be ok"
 
             let (authorRetrieved: Author) = retrieveAuthorResult |> Result.get
             Expect.isTrue (authorRetrieved.Books |> List.contains book.BookId) "should contain the book"
 
-            let! retrieveAuthor2Result = authorService.GetAuthorAsync(UserContext.Anonymous, author2.AuthorId)
+            let! retrieveAuthor2Result = authorService.GetAuthorAsync(adminContext, author2.AuthorId)
             Expect.isOk retrieveAuthor2Result "should be ok"
 
             let (authorRetrieved2: Author) = retrieveAuthor2Result |> Result.get
@@ -71,22 +71,22 @@ let tests =
             let authorService = getAuthorService()
             let bookService = getBookService()
             let author = Author.NewWithoutIsni (Name.New "John Doe")
-            let! addAuthor = authorService.AddAuthorAsync(UserContext.Anonymous, author)
+            let! addAuthor = authorService.AddAuthorAsync(adminContext, author)
             Expect.isOk addAuthor "should be ok"
 
             let book = Book.New (Title.New "The Great Gatsby") [] [] [] None  Category.Other [] (Year.New 1924) (Isbn.NewEmpty()) None
-            let! addBook = bookService.AddBookAsync(UserContext.Anonymous, book)
+            let! addBook = bookService.AddBookAsync(adminContext, book)
             Expect.isOk addBook "should be ok"
             
-            let! _ = (bookService :> IBookService).AddAuthorToBookAsync(UserContext.Anonymous, author.AuthorId, book.BookId)
+            let! _ = (bookService :> IBookService).AddAuthorToBookAsync(adminContext, author.AuthorId, book.BookId)
 
-            let! retrieveAuthorResult = authorService.GetAuthorAsync(UserContext.Anonymous, author.AuthorId)
+            let! retrieveAuthorResult = authorService.GetAuthorAsync(adminContext, author.AuthorId)
             Expect.isOk retrieveAuthorResult "should be ok"
 
             let (authorRetrieved: Author) = retrieveAuthorResult |> Result.get
             Expect.isTrue (authorRetrieved.Books |> List.contains book.BookId) "should contain the book"
 
-            let! retrieveBookResult = bookService.GetBookAsync(UserContext.Anonymous, book.BookId)
+            let! retrieveBookResult = bookService.GetBookAsync(adminContext, book.BookId)
             Expect.isOk retrieveBookResult "should be ok"
 
             let (bookRetrieved: Book) = retrieveBookResult |> Result.get
@@ -98,22 +98,22 @@ let tests =
             let authorService = getAuthorService()
             let bookService = getBookService()
             let author = Author.NewWithoutIsni (Name.New "John Doe")
-            let! addAuthor = authorService.AddAuthorAsync(UserContext.Anonymous, author)
+            let! addAuthor = authorService.AddAuthorAsync(adminContext, author)
             Expect.isOk addAuthor "should be ok"
 
             let book = Book.New (Title.New "The Great Gatsby") [] [] [] None  Category.Other [] (Year.New 1924) (Isbn.NewEmpty()) None
-            let! addBook = bookService.AddBookAsync(UserContext.Anonymous, book)
+            let! addBook = bookService.AddBookAsync(adminContext, book)
             Expect.isOk addBook "should be ok"
             
-            let! _ = (bookService :> IBookService).AddAuthorToBookAsync(UserContext.Anonymous, author.AuthorId, book.BookId)
+            let! _ = (bookService :> IBookService).AddAuthorToBookAsync(adminContext, author.AuthorId, book.BookId)
 
-            let! retrieveAuthorResult = authorService.GetAuthorAsync(UserContext.Anonymous, author.AuthorId)
+            let! retrieveAuthorResult = authorService.GetAuthorAsync(adminContext, author.AuthorId)
             Expect.isOk retrieveAuthorResult "should be ok"
 
             let (authorRetrieved: Author) = retrieveAuthorResult |> Result.get
             Expect.isTrue (authorRetrieved.Books |> List.contains book.BookId) "should contain the book"
 
-            let! retrieveBookResult = bookService.GetBookAsync(UserContext.Anonymous, book.BookId)
+            let! retrieveBookResult = bookService.GetBookAsync(adminContext, book.BookId)
             Expect.isOk retrieveBookResult "should be ok"
 
             let (bookRetrieved: Book) = retrieveBookResult |> Result.get
@@ -126,13 +126,13 @@ let tests =
             let author1 = Author.NewWithoutIsni (Name.New "Author One")
             let author2 = Author.NewWithoutIsni (Name.New "Author Two")
             
-            let! addAuthor1 = authorService.AddAuthorAsync(UserContext.Anonymous, author1)
+            let! addAuthor1 = authorService.AddAuthorAsync(adminContext, author1)
             Expect.isOk addAuthor1 "should be ok"
             
-            let! addAuthor2 = authorService.AddAuthorAsync(UserContext.Anonymous, author2)
+            let! addAuthor2 = authorService.AddAuthorAsync(adminContext, author2)
             Expect.isOk addAuthor2 "should be ok"
             
-            let! getAllResult = (authorService :> IAuthorService).GetAllAsync(UserContext.Anonymous)
+            let! getAllResult = (authorService :> IAuthorService).GetAllAsync(adminContext)
             
             Expect.isOk getAllResult "should be ok"
             let allAuthors = getAllResult |> Result.get
@@ -151,10 +151,10 @@ let tests =
                     Author.NewWithoutIsni (Name.New "Author C")
                 ]
             
-            let! addAuthorsResult = (authorService :> IAuthorService).AddAuthorsAsync(UserContext.Anonymous, authors)
+            let! addAuthorsResult = (authorService :> IAuthorService).AddAuthorsAsync(adminContext, authors)
             Expect.isOk addAuthorsResult "should be ok"
             
-            let! getAllResult = (authorService :> IAuthorService).GetAllAsync(UserContext.Anonymous)
+            let! getAllResult = (authorService :> IAuthorService).GetAllAsync(adminContext)
             
             Expect.isOk getAllResult "should be ok"
             let all = getAllResult |> Result.get
@@ -169,9 +169,9 @@ let tests =
             let author1 = Author.NewWithoutIsni name1
             let author2 = Author.NewWithoutIsni name2
             
-            let! _ = (authorService :> IAuthorService).AddAuthorsAsync(UserContext.Anonymous, [author1; author2])
+            let! _ = (authorService :> IAuthorService).AddAuthorsAsync(adminContext, [author1; author2])
             
-            let! filteredResult = (authorService :> IAuthorService).SearchByNameAsync(UserContext.Anonymous, name1)
+            let! filteredResult = (authorService :> IAuthorService).SearchByNameAsync(adminContext, name1)
             let filtered = filteredResult |> Result.get
 
             Expect.equal filtered.Length 1 "should have 1 author"
@@ -186,9 +186,9 @@ let tests =
             let author1 = Author.New (Name.New "Austen") isni1
             let author2 = Author.New (Name.New "Shakespeare") isni2
             
-            let! _ = (authorService :> IAuthorService).AddAuthorsAsync(UserContext.Anonymous, [author1; author2])
+            let! _ = (authorService :> IAuthorService).AddAuthorsAsync(adminContext, [author1; author2])
             
-            let! filteredResult = (authorService :> IAuthorService).SearchByIsniAsync(UserContext.Anonymous, isni1)
+            let! filteredResult = (authorService :> IAuthorService).SearchByIsniAsync(adminContext, isni1)
             let filtered = filteredResult |> Result.get
             Expect.equal filtered.Length 1 "should have 1 author"
             Expect.equal filtered.[0].Isni isni1 "should have correct isni"
@@ -203,9 +203,9 @@ let tests =
             let author1 = Author.New name isni
             let author2 = Author.New name2 (Isni.New "0000 0001 2103 2691" |> Result.get)
             
-            let! _ = (authorService :> IAuthorService).AddAuthorsAsync(UserContext.Anonymous, [author1; author2])
+            let! _ = (authorService :> IAuthorService).AddAuthorsAsync(adminContext, [author1; author2])
             
-            let! filteredResult = (authorService :> IAuthorService).SearchByIsniAndNameAsync(UserContext.Anonymous, isni, name)
+            let! filteredResult = (authorService :> IAuthorService).SearchByIsniAndNameAsync(adminContext, isni, name)
             let filtered = filteredResult |> Result.get
             Expect.equal filtered.Length 1 "should have 1 author"
             Expect.equal filtered.[0].AuthorId author1.AuthorId "should be author 1"
@@ -216,12 +216,12 @@ let tests =
             let authorService = getAuthorService()
             let author = Author.NewWithoutIsni (Name.New "John Doe")
             
-            let! _ = authorService.AddAuthorAsync(UserContext.Anonymous, author)
+            let! _ = authorService.AddAuthorAsync(adminContext, author)
             
             let! removeResult = (authorService :> IAuthorService).RemoveAsync(adminContext, author.AuthorId)
             Expect.isOk removeResult "should be ok"
             
-            let! getResult = authorService.GetAuthorAsync(UserContext.Anonymous, author.AuthorId)
+            let! getResult = authorService.GetAuthorAsync(adminContext, author.AuthorId)
             Expect.isError getResult "should be error as it's removed"
         }
 
@@ -231,14 +231,15 @@ let tests =
             let bookService = getBookService()
             let author = Author.NewWithoutIsni (Name.New "John Doe")
             
-            let! _ = authorService.AddAuthorAsync(UserContext.Anonymous, author)
+            let! _ = authorService.AddAuthorAsync(adminContext, author)
             
             let book = Book.New (Title.New "The Great Gatsby") [author.AuthorId] [] [] None  Category.Other [] (Year.New 1924) (Isbn.NewEmpty()) None
-            let! _ = bookService.AddBookAsync(UserContext.Anonymous, book)
+            let! _ = bookService.AddBookAsync(adminContext, book)
             
-            let! removeResult = (authorService :> IAuthorService).RemoveAsync(UserContext.Anonymous, author.AuthorId)
+            let! removeResult = (authorService :> IAuthorService).RemoveAsync(adminContext, author.AuthorId)
             Expect.isError removeResult "should be error as author has books"
         }
+
     ]
 
     |> testSequenced

@@ -94,6 +94,7 @@ let getServiceScopeFactory () =
         options.UseNpgsql(usersDbConnection) |> ignore) |> ignore
     services.AddIdentityCore<ApplicationUser>()
         .AddEntityFrameworkStores<ApplicationDbContext>()
+        .AddClaimsPrincipalFactory<UserClaimsPrincipalFactory<ApplicationUser>>()
         .AddDefaultTokenProviders() |> ignore
     services.AddSingleton<BookLibrary.Utils.SecretsReader>(fun _ -> new BookLibrary.Utils.SecretsReader(config)) |> ignore
 
@@ -119,6 +120,11 @@ let getUserManager () =
     let serviceScopeFacotry = getServiceScopeFactory()
     let scope = serviceScopeFacotry.CreateScope()
     scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>()
+
+let getClaimsFactory () =
+    let serviceScopeFacotry = getServiceScopeFactory()
+    let scope = serviceScopeFacotry.CreateScope()
+    scope.ServiceProvider.GetRequiredService<IUserClaimsPrincipalFactory<ApplicationUser>>()
 
 let getSecretReader () =
     let serviceScopeFacotry = getServiceScopeFactory()
@@ -329,7 +335,7 @@ let registerUser (email: string) (password: string) =
     let userService = getUserService()
     let user = User.New userId
     let addUser = 
-        userService.CreateUserAsync(UserContext.Anonymous, user)
+        userService.CreateUserAsync(adminContext, user)
         |> Async.AwaitTask
         |> Async.RunSynchronously
     
@@ -359,7 +365,7 @@ let registerUserTask (email: string) (password: string) =
         let userId = UserId guid
         let userService = getUserService()
         let user = User.New userId
-        let! addUser = userService.CreateUserAsync(UserContext.Anonymous, user)
+        let! addUser = userService.CreateUserAsync(adminContext, user)
         
         if not (addUser |> Result.isOk) then
             failwithf "Domain user creation failed: %A" addUser
