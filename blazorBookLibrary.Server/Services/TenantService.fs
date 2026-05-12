@@ -57,8 +57,7 @@ type TenantService
                 if defaultTenantExists then
                     return! Ok()
                 else
-                    let! tenantName = TenantName.New (configuration.GetValue<string>("BooksLibrary:DefaultTenantName", "Public Library"))
-                    let initialInstance = Tenant.New(tenantName, "Elm Street")
+                    let initialInstance = Tenant.Default
                     let! result  =
                         runInitAsync<Tenant, TenantEvent, string>
                             eventStore

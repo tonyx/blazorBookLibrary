@@ -6,33 +6,6 @@ open FsToolkit.ErrorHandling
 open BookLibrary.Shared.Commons
 open System
 
-// type Reservation001 =
-//     {
-//         ReservationId: ReservationId
-//         BookId: BookId
-//         UserId: UserId
-//         TimeSlot: TimeSlot
-//         ReservedAt: DateTime
-//         CanceledAt: Option<Cancellation>
-//         ReservationCode: ReservationCode
-//         Status: ReservationStatus
-//         Sealed: Sealed
-//     }
-//     with 
-//         member this.Upcast() = 
-//             {
-//                 TenantId = TenantId.Default
-//                 ReservationId = this.ReservationId
-//                 BookId = this.BookId
-//                 UserId = this.UserId
-//                 TimeSlot = this.TimeSlot
-//                 ReservedAt = this.ReservedAt
-//                 CanceledAt = this.CanceledAt
-//                 ReservationCode = this.ReservationCode
-//                 Status = this.Status
-//                 Sealed = this.Sealed
-//             }
-
 type Reservation =
     {
         TenantId: TenantId
@@ -57,6 +30,19 @@ type Reservation =
                 CanceledAt = None;
                 ReservationCode = ReservationCode.New();
                 Status = ReservationStatus.Pending;
+                Sealed = Sealed.New(dateTime)
+            }
+        static member NewWithTenantId (tenantId: TenantId) (bookId: BookId) (userId: UserId) (timeSlot: TimeSlot) (dateTime: DateTime): Reservation = 
+            {
+                TenantId = tenantId
+                ReservationId = ReservationId.New() 
+                BookId = bookId
+                UserId = userId
+                TimeSlot = timeSlot
+                ReservedAt = dateTime
+                CanceledAt = None
+                ReservationCode = ReservationCode.New()
+                Status = ReservationStatus.Pending
                 Sealed = Sealed.New(dateTime)
             }
 

@@ -122,10 +122,17 @@ type LoanService
                 let! book = 
                     bookViewerAsync (Some ct) loan.BookId.Value 
                     |> TaskResult.map snd
-
+                do!
+                    book.TenantId = context.TenantId
+                    |> Result.ofBool $"Book tenant id {book.TenantId} does not match user tenant id {context.TenantId}"
+                    
                 let! user =
                     userViewerAsync (Some ct) loan.UserId.Value
                     |> TaskResult.map snd
+
+                do!    
+                    user.Tenants |> List.contains context.TenantId
+                    |> Result.ofBool $"User tenant does not contains tenant id {context.TenantId}"
                 
                 let! userDetails = 
                     usersService.GetUserDetailsAsync (context, user.UserId, ct)
@@ -192,6 +199,10 @@ type LoanService
                                 bookViewerAsync (ct |> Some) loan.BookId.Value |> TaskResult.map snd
                             let! userDetail = 
                                 usersService.GetUserDetailsAsync (context, loan.UserId, ct)
+                            do!
+                                book.TenantId = context.TenantId
+                                |> Result.ofBool $"Book tenant id {book.TenantId} does not match user tenant id {context.TenantId}"
+
                             return
                                 { 
                                     Loan = loan

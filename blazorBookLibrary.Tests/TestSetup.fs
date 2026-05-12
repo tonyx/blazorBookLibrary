@@ -262,6 +262,7 @@ let getBookService () : IBookService =
         reservationViewerAsync, 
         loanViewerAsync,
         userViewerAsync,
+        distributionPointViewerAsync,
         getVectorDbService()) :> IBookService
 
 

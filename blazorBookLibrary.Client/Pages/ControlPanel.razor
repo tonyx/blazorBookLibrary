@@ -341,7 +341,7 @@
     {
         var authState = await AuthStateProvider.GetAuthenticationStateAsync();
         var userContext = blazorBookLibrary.Shared.ConverterUtils.fromClaimsPrincipal(authState.User);
-        var result = await TagService.GetTagsAsync(CancellationToken.None);
+        var result = await TagService.GetTagsAsync(userContext, CancellationToken.None);
         if (result.IsOk)
         {
             allTags = result.ResultValue.ToList();
@@ -610,7 +610,7 @@
             
             // Note: Service expects (context, from, to, bookId, userId)
             // Passing BookId.NewBookId(Guid.Empty) as bookId is ignored by implementation for batch move
-            var result = await BookService.MoveFromDpToAnotherDPAsync(userContext, fromId, toId, BookId.NewBookId(Guid.Empty), currentUserId);
+            var result = await BookService.MoveFromDpToAnotherDPAsync(userContext, fromId, toId,  currentUserId);
             
             if (result.IsOk)
             {

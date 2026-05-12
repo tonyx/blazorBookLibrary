@@ -356,11 +356,11 @@ type BooksController(bookService: IBookService) =
             | Error msg -> return this.BadRequest(msg) :> IActionResult
         }
 
-    [<HttpPost("move-distribution-point/{fromDpId}/{toDpId}/{bookId}/{userId}")>]
-    member this.MoveFromDpToAnotherDP(fromDpId: Guid, toDpId: Guid, bookId: Guid, userId: Guid) =
+    [<HttpPost("move-distribution-point/{fromDpId}/{toDpId}/{userId}")>]
+    member this.MoveFromDpToAnotherDP(fromDpId: Guid, toDpId: Guid, userId: Guid) =
         task {
             let context = UserContextMapper.mapFromRequest this.Request
-            let! result = bookService.MoveFromDpToAnotherDPAsync(context, DistributionPointId fromDpId, DistributionPointId toDpId, BookId bookId, UserId userId)
+            let! result = bookService.MoveFromDpToAnotherDPAsync(context, DistributionPointId fromDpId, DistributionPointId toDpId, UserId userId)
             match result with
             | Ok _ -> return this.Ok() :> IActionResult
             | Error msg -> return this.BadRequest(msg) :> IActionResult

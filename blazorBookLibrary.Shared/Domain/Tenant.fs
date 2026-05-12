@@ -18,6 +18,12 @@ with
         Address = address
         TenantState = TenantState.Active
     }
+    static member Default= {
+        TenantId = TenantId.Default
+        TentantName = TenantName.New "Default" |> Result.get
+        Address = ""
+        TenantState = TenantState.Active
+    }
     member this.Deactivate  =
         match this.TenantState with
         | Active -> { this with TenantState = TenantState.Deactivated } |> Ok

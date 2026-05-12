@@ -18,7 +18,8 @@ type TagsController(tagService: ITagService) =
     [<HttpGet>]
     member this.GetTags() =
         task {
-            let! result = tagService.GetTagsAsync()
+            let context = UserContextMapper.mapFromClaimsPrincipal this.User
+            let! result = tagService.GetTagsAsync(context)
             match result with
             | Ok tags -> return this.Ok(tags) :> IActionResult
             | Error msg -> return this.BadRequest(msg) :> IActionResult
@@ -47,7 +48,8 @@ type TagsController(tagService: ITagService) =
     [<HttpGet("books")>]
     member this.GetBookTags() =
         task {
-            let! result = tagService.GetBookTypeTagsAsync()
+            let context = UserContextMapper.mapFromClaimsPrincipal this.User
+            let! result = tagService.GetBookTypeTagsAsync(context)
             match result with
             | Ok tags -> return this.Ok(tags) :> IActionResult
             | Error msg -> return this.BadRequest(msg) :> IActionResult
@@ -56,7 +58,8 @@ type TagsController(tagService: ITagService) =
     [<HttpGet("authors")>]
     member this.GetAuthorTags() =
         task {
-            let! result = tagService.GetAuthorTypeTagsAsync()
+            let context = UserContextMapper.mapFromClaimsPrincipal this.User
+            let! result = tagService.GetAuthorTypeTagsAsync(context)
             match result with
             | Ok tags -> return this.Ok(tags) :> IActionResult
             | Error msg -> return this.BadRequest(msg) :> IActionResult
@@ -65,7 +68,8 @@ type TagsController(tagService: ITagService) =
     [<HttpGet("general")>]
     member this.GetGeneralTags() =
         task {
-            let! result = tagService.GetGeneralTypeTagsAsync()
+            let context = UserContextMapper.mapFromClaimsPrincipal this.User
+            let! result = tagService.GetGeneralTypeTagsAsync(context)
             match result with
             | Ok tags -> return this.Ok(tags) :> IActionResult
             | Error msg -> return this.BadRequest(msg) :> IActionResult
@@ -74,7 +78,8 @@ type TagsController(tagService: ITagService) =
     [<HttpGet("person")>]
     member this.GetPersonTags() =
         task {
-            let! result = tagService.GetPersonTypeTagsAsync()
+            let context = UserContextMapper.mapFromClaimsPrincipal this.User
+            let! result = tagService.GetPersonTypeTagsAsync(context)
             match result with
             | Ok tags -> return this.Ok(tags) :> IActionResult
             | Error msg -> return this.BadRequest(msg) :> IActionResult

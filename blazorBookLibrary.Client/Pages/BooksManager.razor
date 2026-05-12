@@ -1087,7 +1087,7 @@
             }
         }
 
-        var tagsResult = await TagService.GetBookTypeTagsAsync(CancellationToken.None);
+        var tagsResult = await TagService.GetBookTypeTagsAsync(context, FSharpOption<CancellationToken>.None);
         if (tagsResult.IsOk)
         {
             allAvailableTags = tagsResult.ResultValue.ToList();

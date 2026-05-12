@@ -1849,7 +1849,7 @@
         await LoadBookDetails();
         
         var context = await GetContext();
-        var tagsResult = await TagService.GetBookTypeTagsAsync();
+        var tagsResult = await TagService.GetBookTypeTagsAsync(context, FSharpOption<CancellationToken>.None);
         if (tagsResult.IsOk)
         {
             allAvailableTags = tagsResult.ResultValue.ToList();

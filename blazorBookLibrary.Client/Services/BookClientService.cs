@@ -366,9 +366,9 @@ public class BookClientService : IBookService
         return await ServiceClientHelper.HandleUnitResponse(response);
     }
 
-    public async Task<FSharpResult<Unit, string>> MoveFromDpToAnotherDPAsync(Commons.UserContext context, Commons.DistributionPointId fromPoint, Commons.DistributionPointId toPoint, Commons.BookId bookId, Commons.UserId userId, FSharpOption<CancellationToken> ct)
+    public async Task<FSharpResult<Unit, string>> MoveFromDpToAnotherDPAsync(Commons.UserContext context, Commons.DistributionPointId fromPoint, Commons.DistributionPointId toPoint, Commons.UserId userId, FSharpOption<CancellationToken> ct)
     {
-        var response = await _httpClient.PostAsync($"api/Books/move-distribution-point/{fromPoint.Value}/{toPoint.Value}/{bookId.Value}/{userId.Value}", null, ServiceClientHelper.GetValue(ct, CancellationToken.None));
+        var response = await _httpClient.PostAsync($"api/Books/move-distribution-point/{fromPoint.Value}/{toPoint.Value}/{userId.Value}", null, ServiceClientHelper.GetValue(ct, CancellationToken.None));
         return await ServiceClientHelper.HandleUnitResponse(response);
     }
 

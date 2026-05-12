@@ -309,7 +309,7 @@
             }
         }
 
-        var result = await TagService.GetBookTypeTagsAsync(CancellationToken.None);
+        var result = await TagService.GetBookTypeTagsAsync(userContext, FSharpOption<CancellationToken>.None);
         if (result.IsOk)
         {
             allBookTags = result.ResultValue.ToList();

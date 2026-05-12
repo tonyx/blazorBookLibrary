@@ -17,11 +17,6 @@ open FsToolkit.ErrorHandling
 open BookLibrary.Shared.Services
 open BookLibrary.Shared.Commons
 open BookLibrary.Utils
-open Microsoft.Extensions.DependencyInjection
-open Microsoft.AspNetCore.Identity
-open blazorBookLibrary.Data
-open Sharpino.Cache
-open BookLibrary.Details.Details
 
 type TagService
     (
@@ -107,7 +102,7 @@ type TagService
                     (ct |> Some)
         }
 
-    member this.GetTagsAsync(?ct: CancellationToken) =
+    member this.GetTagsAsync(context: UserContext, ?ct: CancellationToken) =
         taskResult {
             let tagId = TagsId.UniqueTagId
             let! tags =
@@ -116,27 +111,27 @@ type TagService
             return tags.Tags
         }
 
-    member this.GetBookTypeTagsAsync(?ct: CancellationToken) =
+    member this.GetBookTypeTagsAsync(context: UserContext, ?ct: CancellationToken) =
         taskResult {
-            let! allTags = this.GetTagsAsync(?ct = ct)
+            let! allTags = this.GetTagsAsync(context, ?ct = ct)
             return allTags |> List.filter (fun t -> t.IsBookTag)
         }
 
-    member this.GetAuthorTypeTagsAsync(?ct: CancellationToken) =
+    member this.GetAuthorTypeTagsAsync(context: UserContext, ?ct: CancellationToken) =
         taskResult {
-            let! allTags = this.GetTagsAsync(?ct = ct)
+            let! allTags = this.GetTagsAsync(context, ?ct = ct)
             return allTags |> List.filter (fun t -> t.IsAuthorTag)
         }
 
-    member this.GetGeneralTypeTagsAsync(?ct: CancellationToken) =
+    member this.GetGeneralTypeTagsAsync(context: UserContext, ?ct: CancellationToken) =
         taskResult {
-            let! allTags = this.GetTagsAsync(?ct = ct)
+            let! allTags = this.GetTagsAsync(context, ?ct = ct)
             return allTags |> List.filter (fun t -> t.IsGeneralTag)
         }
 
-    member this.GetPersonTypeTagsAsync(?ct: CancellationToken) =
+    member this.GetPersonTypeTagsAsync(context: UserContext, ?ct: CancellationToken) =
         taskResult {
-            let! allTags = this.GetTagsAsync(?ct = ct)
+            let! allTags = this.GetTagsAsync(context, ?ct = ct)
             return allTags |> List.filter (fun t -> t.IsPersonTag)
         }
 
@@ -152,13 +147,13 @@ type TagService
 
         member this.ReplaceTagAsync (userContext:UserContext, oldTag: Tag, newTag: Tag, ?ct: CancellationToken) =
             this.ReplaceTagAsync (userContext, oldTag, newTag, ?ct = ct)            
-        member this.GetTagsAsync(?ct: CancellationToken): Tasks.Task<Result<Tag list,string>> = 
-            this.GetTagsAsync(?ct = ct)
-        member this.GetBookTypeTagsAsync(?ct: CancellationToken) =
-            this.GetBookTypeTagsAsync(?ct = ct)
-        member this.GetAuthorTypeTagsAsync(?ct: CancellationToken) =
-            this.GetAuthorTypeTagsAsync(?ct = ct)
-        member this.GetGeneralTypeTagsAsync(?ct: CancellationToken) =
-            this.GetGeneralTypeTagsAsync(?ct = ct)
-        member this.GetPersonTypeTagsAsync(?ct: CancellationToken) =
-            this.GetPersonTypeTagsAsync(?ct = ct)
+        member this.GetTagsAsync(context: UserContext, ?ct: CancellationToken): Tasks.Task<Result<Tag list,string>> = 
+            this.GetTagsAsync(context, ?ct = ct)
+        member this.GetBookTypeTagsAsync(context: UserContext, ?ct: CancellationToken) =
+            this.GetBookTypeTagsAsync(context, ?ct = ct)
+        member this.GetAuthorTypeTagsAsync(context: UserContext, ?ct: CancellationToken) =
+            this.GetAuthorTypeTagsAsync(context, ?ct = ct)
+        member this.GetGeneralTypeTagsAsync(context: UserContext, ?ct: CancellationToken) =
+            this.GetGeneralTypeTagsAsync(context, ?ct = ct)
+        member this.GetPersonTypeTagsAsync(context: UserContext, ?ct: CancellationToken) =
+            this.GetPersonTypeTagsAsync(context, ?ct = ct)

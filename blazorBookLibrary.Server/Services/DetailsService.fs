@@ -80,6 +80,11 @@ type DetailsService (
             let ct = ct |> Option.defaultValue CancellationToken.None
             taskResult
                 {
+
+                    let! user = userViewerAsync (Some ct) userId.Value |> TaskResult.map snd
+                    do!
+                        user.Tenants |> Seq.contains context.TenantId |> Result.ofBool $"User '{user.AppUserInfo.Email}' doesn't have access to this tenant '{context.TenantId}'"
+
                     let! reviewsWithId = 
                         StateView.getAllFilteredAggregateStatesAsync<Review, ReviewEvent, string> (fun review -> review.UserId = userId) eventStore (Some ct)
                     let reviews = 
@@ -101,6 +106,10 @@ type DetailsService (
                         {
                             let ct = ct |> Option.defaultValue CancellationToken.None
                             let! user = userViewerAsync (Some ct) id.Value |> TaskResult.map snd
+
+                            do!
+                                user.Tenants |> Seq.contains context.TenantId |> Result.ofBool $"User '{user.AppUserInfo.Email}' doesn't have access to this tenant '{context.TenantId}'"
+
                             let! futurereservations = 
                                 user.Reservations 
                                 |> List.traverseTaskResultM (fun reservationId -> reservationViewerAsync (Some ct) reservationId.Value |> TaskResult.map snd)
@@ -170,6 +179,7 @@ type DetailsService (
             }
 
         member private this.GetRefreshableLoanDetailsAsync (context: UserContext, loanId: LoanId, ?ct: CancellationToken): TaskResult<RefreshableLoanDetails, string> = 
+            // todo: fix/clarify the ct
             let detailsBuilder =
                 fun (ct: Option<CancellationToken>) ->
                     let ct = ct |> Option.defaultValue CancellationToken.None
@@ -178,6 +188,8 @@ type DetailsService (
                             taskResult {
                                 let! loan = 
                                     loanViewerAsync ct loanId.Value |> TaskResult.map snd
+                                do!
+                                    loan.TenantId = context.TenantId |> Result.ofBool $"Loan '{loanId}' doesn't belong to this tenant '{context.TenantId}'"
                                 let! book = 
                                     bookViewerAsync ct loan.BookId.Value |> TaskResult.map snd
                                 let! userDetail = 
@@ -232,6 +244,8 @@ type DetailsService (
                         let ct = ct |> Option.defaultValue CancellationToken.None
                         let! reservation = 
                             reservationViewerAsync (ct |> Some) id.Value |> TaskResult.map snd
+                        do!
+                            reservation.TenantId = context.TenantId |> Result.ofBool $"Reservation '{id}' doesn't belong to this tenant '{context.TenantId}'"
                         let! book = 
                             bookViewerAsync (ct |> Some) reservation.BookId.Value |> TaskResult.map snd
                         let! userDetails = 
@@ -289,6 +303,8 @@ type DetailsService (
                                     let ct = ct |> Option.defaultValue CancellationToken.None
                                     let! author = 
                                         authorViewerAsync (Some ct) id.Value |> TaskResult.map snd
+                                    do!
+                                        author.TenantId = context.TenantId |> Result.ofBool $"Author '{id}' doesn't belong to this tenant '{context.TenantId}'"
                                     let! books = 
                                         author.Books
                                         |> List.traverseTaskResultM (fun bookId -> bookViewerAsync (Some ct) bookId.Value |> TaskResult.map snd)
@@ -329,6 +345,8 @@ type DetailsService (
                                     let ct = ct |> Option.defaultValue CancellationToken.None
                                     let! book = 
                                         bookViewerAsync (ct |> Some) bookId.Value |> TaskResult.map snd
+                                    do!
+                                        book.TenantId = context.TenantId |> Result.ofBool $"Book '{bookId}' doesn't belong to this tenant '{context.TenantId}'"
                                     let! currentLoan = 
                                         match book.CurrentLoan with
                                         | Some loanId -> 
@@ -398,7 +416,7 @@ type DetailsService (
                 {
                     let ct = defaultArg ct CancellationToken.None
                     let! reservations = 
-                        StateView.getAllFilteredAggregateStatesAsync<Reservation, ReservationEvent, string> (fun reservation -> reservation.IsPending) eventStore (Some ct)
+                        StateView.getAllFilteredAggregateStatesAsync<Reservation, ReservationEvent, string> (fun reservation -> reservation.IsPending && reservation.TenantId = context.TenantId) eventStore (Some ct)
                         |> TaskResult.map (fun reservations -> reservations |> List.map snd)
                     let! reservationDetails = 
                         reservations
@@ -417,6 +435,8 @@ type DetailsService (
                                 let ct = ct |> Option.defaultValue CancellationToken.None
                                 let! review = 
                                     reviewsViewerAsync (Some ct) reviewId.Value |> TaskResult.map snd
+                                do!
+                                    review.TenantId = context.TenantId |> Result.ofBool $"Review '{reviewId}' doesn't belong to this tenant '{context.TenantId}'"
                                 let! user = userViewerAsync (Some ct) review.UserId.Value |> TaskResult.map snd
                                 let! book = 
                                     bookViewerAsync (Some ct) review.BookId.Value
@@ -461,7 +481,7 @@ type DetailsService (
             taskResult
                 {
                     let! reviews = 
-                        StateView.getAllAggregateStatesAsync<Review, ReviewEvent, string> eventStore (Some ct)
+                        StateView.getAllFilteredAggregateStatesAsync<Review, ReviewEvent, string> (fun review -> review.TenantId = context.TenantId) eventStore (Some ct)
                         |> TaskResult.map (fun reviews -> reviews |> List.map snd)
                     let! reviewDetails = 
                         reviews
@@ -472,6 +492,10 @@ type DetailsService (
         member this.GetApprovedVisibleReviewsOfBookAsync (context: UserContext, bookId:BookId, ?ct: CancellationToken): TaskResult<List<ReviewDetails>, string> = 
             let ct = defaultArg ct CancellationToken.None
             taskResult {
+                let! book = 
+                    bookViewerAsync (Some ct) bookId.Value |> TaskResult.map snd
+                do!
+                    book.TenantId = context.TenantId |> Result.ofBool $"Book '{bookId}' doesn't belong to this tenant '{context.TenantId}'"
 
                 let! reviews = 
                     reviewService.GetApprovedVisibleReviewsOfBookAsync (context, bookId, ct) |> TaskResult.map (fun reviews -> reviews |> List.map snd)

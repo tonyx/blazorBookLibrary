@@ -4,15 +4,12 @@ open System.Threading
 open System
 open Sharpino
 open Sharpino.Cache
-open FSharpPlus.Operators
 open Sharpino.CommandHandler
 open Sharpino.EventBroker
 open Sharpino.Definitions
 open Sharpino.Core
-open Sharpino.EventBroker
 open Sharpino.Storage
 open BookLibrary.Domain
-open BookLibrary.Details
 open FsToolkit.ErrorHandling
 open System.Threading.Tasks
 open BookLibrary.Domain
@@ -88,6 +85,9 @@ type ReservationService
                             bookViewerAsync (ct |> Some) reservation.BookId.Value |> TaskResult.map snd
                         let! userDetails = 
                             usersService.GetUserDetailsAsync (context, reservation.UserId, ct)
+                        do!
+                            book.TenantId = context.TenantId
+                            |> Result.ofBool $"Book tenant id {book.TenantId} does not match user tenant id {context.TenantId}"
                         return 
                             {
                                 Reservation = reservation
@@ -190,12 +190,15 @@ type ReservationService
                 }
 
     member this.GetReservationAsync (context: UserContext, id: ReservationId, ?ct: CancellationToken) = 
+        let ct = defaultArg ct CancellationToken.None
         taskResult
             {
-                let ct = defaultArg ct CancellationToken.None
                 let! result = 
                     reservationViewerAsync (Some ct) id.Value
                     |> TaskResult.map snd
+                do!
+                    result.TenantId = context.TenantId
+                    |> Result.ofBool $"Reservation tenant id {result.TenantId} does not match user tenant id {context.TenantId}"
                 return result
             }
     member this.GetRefreshableReservationDetailsAsync (context: UserContext, id: ReservationId, ?ct: CancellationToken) = 
@@ -213,6 +216,11 @@ type ReservationService
                 let ct = defaultArg ct CancellationToken.None
                 let! reservation = 
                     this.GetReservationAsync(context, reservationId, ct)
+
+                do!
+                    reservation.TenantId = context.TenantId
+                    |> Result.ofBool $"Reservation tenant id {reservation.TenantId} does not match user tenant id {context.TenantId}"
+                
                 let! book =
                     bookViewerAsync (Some ct) reservation.BookId.Value
                     |> TaskResult.map snd

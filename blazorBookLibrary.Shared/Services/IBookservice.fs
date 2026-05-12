@@ -68,7 +68,7 @@ type IBookService =
     abstract member UnSetDistributionPointAsync: context:UserContext * distributionPointId: DistributionPointId * bookId: BookId * userId: UserId *  [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<unit, string>>
 
     abstract member UnsetAllBookRelatedToDPAsync: context:UserContext * distributionPointId: DistributionPointId * userId: UserId *  [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<unit, string>>
-    abstract member MoveFromDpToAnotherDPAsync: context:UserContext * fromPoint: DistributionPointId * toPoint: DistributionPointId * bookId: BookId * userId: UserId *  [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<unit, string>>
+    abstract member MoveFromDpToAnotherDPAsync: context:UserContext * fromPoint: DistributionPointId * toPoint: DistributionPointId * userId: UserId *  [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<unit, string>>
 
     abstract member SearchByTitleAndIsbnAsync : context:UserContext * title: Title * isbn: Isbn * [<Optional; DefaultParameterValue(null)>] ?criteria: BookSearchCriteria * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<List<Book>, string>>
     abstract member ChangeMainCategoryAsync : context:UserContext * category: Category * bookId: BookId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<unit, string>>

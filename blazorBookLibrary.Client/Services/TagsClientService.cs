@@ -4,6 +4,7 @@ using BookLibrary.Shared.Services;
 using BookLibrary.Domain;
 using BookLibrary.Shared;
 using System.Runtime.InteropServices;
+using static BookLibrary.Shared.Commons;
 using Microsoft.FSharp.Collections;
 
 namespace blazorBookLibrary.Client.Services;
@@ -17,35 +18,35 @@ public class TagsClientService : ITagService
         _httpClient = httpClient;
     }
 
-    public async Task<FSharpResult<FSharpList<Tag>, string>> GetTagsAsync(FSharpOption<CancellationToken> ct)
+    public async Task<FSharpResult<FSharpList<Tag>, string>> GetTagsAsync(UserContext context, FSharpOption<CancellationToken> ct)
     {
         var response = await _httpClient.GetAsync("api/Tags", ServiceClientHelper.GetValue(ct, CancellationToken.None));
         var result = await ServiceClientHelper.HandleResponse<List<Tag>>(response);
         return result.IsOk ? FSharpResult<FSharpList<Tag>, string>.NewOk(ListModule.OfSeq(result.ResultValue)) : FSharpResult<FSharpList<Tag>, string>.NewError(result.ErrorValue);
     }
 
-    public async Task<FSharpResult<FSharpList<Tag>, string>> GetBookTypeTagsAsync(FSharpOption<CancellationToken> ct)
+    public async Task<FSharpResult<FSharpList<Tag>, string>> GetBookTypeTagsAsync(UserContext context, FSharpOption<CancellationToken> ct)
     {
         var response = await _httpClient.GetAsync("api/Tags/books", ServiceClientHelper.GetValue(ct, CancellationToken.None));
         var result = await ServiceClientHelper.HandleResponse<List<Tag>>(response);
         return result.IsOk ? FSharpResult<FSharpList<Tag>, string>.NewOk(ListModule.OfSeq(result.ResultValue)) : FSharpResult<FSharpList<Tag>, string>.NewError(result.ErrorValue);
     }
 
-    public async Task<FSharpResult<FSharpList<Tag>, string>> GetAuthorTypeTagsAsync(FSharpOption<CancellationToken> ct)
+    public async Task<FSharpResult<FSharpList<Tag>, string>> GetAuthorTypeTagsAsync(UserContext context, FSharpOption<CancellationToken> ct)
     {
         var response = await _httpClient.GetAsync("api/Tags/authors", ServiceClientHelper.GetValue(ct, CancellationToken.None));
         var result = await ServiceClientHelper.HandleResponse<List<Tag>>(response);
         return result.IsOk ? FSharpResult<FSharpList<Tag>, string>.NewOk(ListModule.OfSeq(result.ResultValue)) : FSharpResult<FSharpList<Tag>, string>.NewError(result.ErrorValue);
     }
 
-    public async Task<FSharpResult<FSharpList<Tag>, string>> GetGeneralTypeTagsAsync(FSharpOption<CancellationToken> ct)
+    public async Task<FSharpResult<FSharpList<Tag>, string>> GetGeneralTypeTagsAsync(UserContext context, FSharpOption<CancellationToken> ct)
     {
         var response = await _httpClient.GetAsync("api/Tags/general", ServiceClientHelper.GetValue(ct, CancellationToken.None));
         var result = await ServiceClientHelper.HandleResponse<List<Tag>>(response);
         return result.IsOk ? FSharpResult<FSharpList<Tag>, string>.NewOk(ListModule.OfSeq(result.ResultValue)) : FSharpResult<FSharpList<Tag>, string>.NewError(result.ErrorValue);
     }
 
-    public async Task<FSharpResult<FSharpList<Tag>, string>> GetPersonTypeTagsAsync(FSharpOption<CancellationToken> ct)
+    public async Task<FSharpResult<FSharpList<Tag>, string>> GetPersonTypeTagsAsync(UserContext context, FSharpOption<CancellationToken> ct)
     {
         var response = await _httpClient.GetAsync("api/Tags/person", ServiceClientHelper.GetValue(ct, CancellationToken.None));
         var result = await ServiceClientHelper.HandleResponse<List<Tag>>(response);

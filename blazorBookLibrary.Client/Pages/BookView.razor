@@ -367,9 +367,9 @@
             var now = DateTime.UtcNow;
             var nextSlot = bookDetails.GetNextAvailableTimeSlot(loanDuration, now);
             
-            var reservation = Reservation.New(bookDetails.Book.BookId, sharpinoUserId, nextSlot, now);
-            
             var context = blazorBookLibrary.Shared.ConverterUtils.fromClaimsPrincipal(authState.User);
+            var reservation = Reservation.NewWithTenantId(context.TenantId, bookDetails.Book.BookId, sharpinoUserId, nextSlot, now);
+            
             var result = await ReservationService.AddReservationAsync(context, reservation, ShortLang.New(CultureInfo.CurrentCulture.Name.Substring(0,2)), FSharpOption<System.Threading.CancellationToken>.None);
             
             if (result.IsOk)
