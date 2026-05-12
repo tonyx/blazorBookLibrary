@@ -63,6 +63,23 @@ public static class ServiceClientHelper
 
     public static T GetValue<T>(FSharpOption<T> option, T defaultValue) => 
         (option != null && FSharpOption<T>.get_IsSome(option)) ? option.Value : defaultValue;
+    
+    public static HttpRequestMessage CreateRequest(HttpMethod method, string uri, Commons.UserContext context)
+    {
+        var request = new HttpRequestMessage(method, uri);
+        if (context.IsAuthenticated)
+        {
+            request.Headers.Add("X-Tenant-Id", context.TenantId.Value.ToString());
+        }
+        return request;
+    }
+
+    public static HttpRequestMessage CreateRequest<T>(HttpMethod method, string uri, Commons.UserContext context, T content)
+    {
+        var request = CreateRequest(method, uri, context);
+        request.Content = JsonContent.Create(content, options: JsonOptions);
+        return request;
+    }
 
 }
 

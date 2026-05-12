@@ -86,10 +86,23 @@ type BookService
         taskResult
             {
                 let ct = defaultArg ct CancellationToken.None
+
+                do! 
+                    (context.IsInRole Role.Admin || context.IsInRole Role.Manager)
+                    |> Result.ofBool "Updating of book allowed only to admins or managers"
+
+                do! 
+                    context.TenantId = book.TenantId
+                    |> Result.ofBool "Book tenant id not matching"
+
                 let! authors: List<Author> = 
                     book.Authors
                     |> List.traverseTaskResultM 
                         (fun authorId -> authorViewerAsync (Some ct) authorId.Value  |> TaskResult.map snd )
+
+                do! 
+                    (authors |> List.forall (fun author -> context.TenantId = author.TenantId))
+                    |> Result.ofBool "Author tenant id not matching"
 
                 let authorAddBooks: List<AggregateCommand<Author, AuthorEvent>> = 
                     authors
@@ -110,6 +123,15 @@ type BookService
         taskResult
             {
                 let ct = defaultArg ct CancellationToken.None
+
+                do! 
+                    (context.IsInRole Role.Admin || context.IsInRole Role.Manager)
+                    |> Result.ofBool "Adding of books allowed only to admins or managers"
+
+                do! 
+                    (books |> List.forall (fun book -> context.TenantId = book.TenantId))
+                    |> Result.ofBool "Book tenant id not matching"
+
                 let! result =
                     books
                     |> List.traverseTaskResultM (fun book -> this.AddBookAsync(context, book, ct))

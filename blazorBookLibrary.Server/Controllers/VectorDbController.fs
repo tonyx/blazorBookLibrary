@@ -15,10 +15,10 @@ type VectorDbController(vectorDbService: IVectorDbService) =
     inherit ControllerBase()
 
     [<HttpPost("store")>]
-    member this.StoreEmbedding([<FromBody>] request: {| id: Guid; bookId: Guid; model: string; vector: float32[] |}) =
+    member this.StoreEmbedding([<FromBody>] request: {| id: Guid; tenantId: Guid; bookId: Guid; model: string; vector: float32[] |}) =
         task {
             let embedding = { Model = request.model; Vector = request.vector }
-            let! result = vectorDbService.StoreEmbeddingAsync(EmbeddingDataId request.id, BookId request.bookId, embedding)
+            let! result = vectorDbService.StoreEmbeddingAsync(EmbeddingDataId request.id, TenantId request.tenantId, BookId request.bookId, embedding)
             match result with
             | Ok () -> return this.Ok() :> IActionResult
             | Error msg -> return this.BadRequest(msg) :> IActionResult
@@ -63,10 +63,10 @@ type VectorDbController(vectorDbService: IVectorDbService) =
         }
 
     [<HttpPost("search")>]
-    member this.SearchSimilar([<FromBody>] request: {| model: string; vector: float32[]; limit: int |}) =
+    member this.SearchSimilar([<FromBody>] request: {| model: string; vector: float32[]; tenantId: Guid; limit: int |}) =
         task {
             let embedding = { Model = request.model; Vector = request.vector }
-            let! result = vectorDbService.SearchSimilarEmbeddingsAsync(embedding, request.limit)
+            let! result = vectorDbService.SearchSimilarEmbeddingsAsync(embedding, TenantId request.tenantId, request.limit)
             match result with
             | Ok results -> 
                 let response = 
@@ -78,10 +78,10 @@ type VectorDbController(vectorDbService: IVectorDbService) =
         }
 
     [<HttpPost("search-with-score")>]
-    member this.SearchSimilarWithScore([<FromBody>] request: {| model: string; vector: float32[]; limit: int; threshold: float option |}) =
+    member this.SearchSimilarWithScore([<FromBody>] request: {| model: string; vector: float32[]; tenantId: Guid; limit: int; threshold: float option |}) =
         task {
             let embedding = { Model = request.model; Vector = request.vector }
-            let! result = vectorDbService.SearchSimilarEmbeddingsWithScoreAsync(embedding, request.limit, ?threshold = request.threshold)
+            let! result = vectorDbService.SearchSimilarEmbeddingsWithScoreAsync(embedding, TenantId request.tenantId, request.limit, ?threshold = request.threshold)
             match result with
             | Ok results -> 
                 let response = 
@@ -93,11 +93,11 @@ type VectorDbController(vectorDbService: IVectorDbService) =
         }
 
     [<HttpPost("search-filtered")>]
-    member this.SearchSimilarFiltered([<FromBody>] request: {| model: string; vector: float32[]; bookIds: seq<Guid>; limit: int |}) =
+    member this.SearchSimilarFiltered([<FromBody>] request: {| model: string; vector: float32[]; tenantId: Guid; bookIds: seq<Guid>; limit: int |}) =
         task {
             let embedding = { Model = request.model; Vector = request.vector }
             let bookIds = request.bookIds |> Seq.map BookId |> Seq.toList
-            let! result = vectorDbService.SearchSimilarEmbeddingsFilteringByBookIdsAsync(embedding, bookIds, request.limit)
+            let! result = vectorDbService.SearchSimilarEmbeddingsFilteringByBookIdsAsync(embedding, bookIds, TenantId request.tenantId, request.limit)
             match result with
             | Ok results -> 
                 let response = 
@@ -109,11 +109,11 @@ type VectorDbController(vectorDbService: IVectorDbService) =
         }
 
     [<HttpPost("search-with-score-filtered")>]
-    member this.SearchSimilarWithScoreFiltered([<FromBody>] request: {| model: string; vector: float32[]; bookIds: seq<Guid>; limit: int; threshold: float option |}) =
+    member this.SearchSimilarWithScoreFiltered([<FromBody>] request: {| model: string; vector: float32[]; tenantId: Guid; bookIds: seq<Guid>; limit: int; threshold: float option |}) =
         task {
             let embedding = { Model = request.model; Vector = request.vector }
             let bookIds = request.bookIds |> Seq.map BookId |> Seq.toList
-            let! result = vectorDbService.SearchSimilarEmbeddingsWithScoreFilteringByBookIdsAsync(embedding, bookIds, request.limit, ?threshold = request.threshold)
+            let! result = vectorDbService.SearchSimilarEmbeddingsWithScoreFilteringByBookIdsAsync(embedding, bookIds, TenantId request.tenantId, request.limit, ?threshold = request.threshold)
             match result with
             | Ok results -> 
                 let response = 
@@ -125,9 +125,9 @@ type VectorDbController(vectorDbService: IVectorDbService) =
         }
 
     [<HttpGet("all-ids")>]
-    member this.ReadAllIds() =
+    member this.ReadAllIds([<FromQuery>] tenantId: Guid) =
         task {
-            let! result = vectorDbService.ReadAllEmbeddingIdsWithBookIdsAsync()
+            let! result = vectorDbService.ReadAllEmbeddingIdsWithBookIdsAsync(TenantId tenantId)
             match result with
             | Ok results -> 
                 let response = 

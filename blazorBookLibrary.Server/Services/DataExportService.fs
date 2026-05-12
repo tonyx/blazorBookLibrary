@@ -267,6 +267,7 @@ type DataExportService
 
                                     let book = 
                                         {
+                                            TenantId = context.TenantId
                                             BookId = BookId.New()
                                             Title = Title.New metadata.Title
                                             ImageUrl = imageUrl
@@ -309,7 +310,7 @@ type DataExportService
                                                 
                                                 let! (embeddingResult: EmbeddingData) = getEmbeddingWithRetry textToEmbed 3
                                                 let embeddingId = EmbeddingDataId.New()
-                                                let! _ = vectorDbService.StoreEmbeddingAsync(embeddingId, book.BookId, embeddingResult, ct)
+                                                let! _ = vectorDbService.StoreEmbeddingAsync(embeddingId, context.TenantId, book.BookId, embeddingResult, ct)
                                                 return { book with OptionalEmbedding = Some embeddingId }
                                             else
                                                 return book

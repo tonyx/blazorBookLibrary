@@ -17,7 +17,7 @@ type TextEmbeddingController(textEmbeddingService: ITextEmbeddingService) =
     [<HttpPost("embedding")>]
     member this.GetEmbedding([<FromBody>] text: string) =
         task {
-            let context = UserContextMapper.mapFromClaimsPrincipal this.User
+            let context = UserContextMapper.mapFromRequest this.Request
             let! result = textEmbeddingService.GetEmbeddingAsync(context, text)
             match result with
             | Ok embedding -> return this.Ok(embedding) :> IActionResult
@@ -27,7 +27,7 @@ type TextEmbeddingController(textEmbeddingService: ITextEmbeddingService) =
     [<HttpPost("explain-match")>]
     member this.ExplainMatch([<FromBody>] request: {| query: string; itemText: string |}) =
         task {
-            let context = UserContextMapper.mapFromClaimsPrincipal this.User
+            let context = UserContextMapper.mapFromRequest this.Request
             let! result = textEmbeddingService.GetMatchExplanationAsync(context, request.query, request.itemText)
             match result with
             | Ok explanation -> return this.Ok(explanation) :> IActionResult
@@ -37,7 +37,7 @@ type TextEmbeddingController(textEmbeddingService: ITextEmbeddingService) =
     [<HttpPost("identify-from-cover")>]
     member this.IdentifyFromCover([<FromBody>] request: {| base64Image: string; mimeType: string |}) =
         task {
-            let context = UserContextMapper.mapFromClaimsPrincipal this.User
+            let context = UserContextMapper.mapFromRequest this.Request
             let! result = textEmbeddingService.GetPartialBookMatchByCoverImage(context, request.base64Image, request.mimeType)
             match result with
             | Ok matchResult -> return this.Ok(matchResult) :> IActionResult

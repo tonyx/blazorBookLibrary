@@ -43,7 +43,7 @@ type AdminService
                 do!
                     (context.IsInRole Role.Admin || context.IsInRole Role.Manager)
                     |> Result.ofBool "Adjusting of book states referring missing embeddings allowed only to admins or managers"
-                let! vectorDbItemsWithBookIds = vectorDbService.ReadAllEmbeddingIdsWithBookIdsAsync (?ct = ct)
+                let! vectorDbItemsWithBookIds = vectorDbService.ReadAllEmbeddingIdsWithBookIdsAsync (context.TenantId, ?ct = ct)
                 let! results = 
                     vectorDbItemsWithBookIds
                     |> Seq.map (fun (embeddingDataId, bookId) -> 
@@ -179,7 +179,7 @@ type AdminService
             do! (context.IsInRole Role.Admin || context.IsInRole Role.Manager)
                 |> Result.ofBool "Only admins or managers can purge duplicated vectors"
             
-            let! allPairs = vectorDbService.ReadAllEmbeddingIdsWithBookIdsAsync(?ct = ct)
+            let! allPairs = vectorDbService.ReadAllEmbeddingIdsWithBookIdsAsync(context.TenantId, ?ct = ct)
             
             let duplicates = 
                 allPairs

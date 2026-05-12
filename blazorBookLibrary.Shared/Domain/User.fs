@@ -7,23 +7,11 @@ open BookLibrary.Shared.Commons
 open System
 open System.Globalization
 
-type User001 =
+type User =
     {
         UserId: UserId
-        Reservations: List<ReservationId>
-        CurrentLoans: List<LoanId>
-    }
-    member this.Upcast(): User =
-        { 
-            UserId = this.UserId 
-            AppUserInfo = AppUserInfo.NewEmpty(this.UserId)
-            Reservations = this.Reservations 
-            CurrentLoans = this.CurrentLoans 
-        }
-
-and  User =
-    {
-        UserId: UserId
+        Tenants: List<TenantId>
+        CurrentTenant: TenantId
         AppUserInfo: AppUserInfo
         Reservations: List<ReservationId>
         CurrentLoans: List<LoanId>
@@ -31,6 +19,8 @@ and  User =
     with
         static member New (userId: UserId) = 
             { 
+                Tenants = [TenantId.Default]
+                CurrentTenant = TenantId.Default
                 UserId = userId
                 AppUserInfo = AppUserInfo.NewEmpty(userId)
                 Reservations = []
@@ -38,6 +28,8 @@ and  User =
             }
         static member NewWithUserInfo(userId: UserId, appUserInfo: AppUserInfo) = 
             { 
+                Tenants = [TenantId.Default];
+                CurrentTenant = TenantId.Default;
                 UserId = userId
                 AppUserInfo = appUserInfo
                 Reservations = []
@@ -122,22 +114,19 @@ and  User =
         member this.HasCurrentLoan (loanId: LoanId) = 
             this.CurrentLoans |> List.contains loanId
 
+        member this.IsTenantMember (tenantId: TenantId) = 
+            this.Tenants |> List.contains tenantId
+
         member this.Id = this.UserId.Value
         static member StorageName = "_User"
         static member SnapshotsInterval = 100
         static member Version = "_01"
         member this.Serialize = 
             (this, jsonOptions) |> JsonSerializer.Serialize
-        static member Deserialize (json: string) = 
+        static member Deserialize (data: string) = 
             try
-                (json, jsonOptions) |> JsonSerializer.Deserialize<User> |> Ok
+                (data, jsonOptions) |> JsonSerializer.Deserialize<User> |> Ok
             with
-                | ex -> 
-                    try
-                        let user001 = 
-                            (json, jsonOptions) |> JsonSerializer.Deserialize<User001> 
-                        user001.Upcast() |> Ok
-                    with
-                    | ex2 -> Error (ex.Message + "; " + ex2.Message)
+                | ex -> Error (ex.Message)
 
     

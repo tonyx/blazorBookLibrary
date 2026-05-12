@@ -18,6 +18,7 @@
 @inject IStringLocalizer<SharedResources> L
 @inject ILogger<BookSearchToolbar> Logger
 @inject AuthenticationStateProvider AuthStateProvider
+@inject IUserService UserService
 
 <div class="card-sanctuary bg-surface-lowest floating mb-5 p-0 overflow-hidden">
     <div class="px-3 px-md-5 pt-4 pt-md-5 pb-4">
@@ -281,6 +282,7 @@
 
     private bool isInitialSearchTriggered = false;
     private UserContext? _userContext;
+    private TenantId _currentTenant = TenantId.Default;
 
     private async Task<UserContext> GetUserContextAsync()
     {
@@ -295,6 +297,18 @@
     protected override async Task OnInitializedAsync()
     {
         var userContext = await GetUserContextAsync();
+
+        if (userContext.IsAuthenticated)
+        {
+            var userId = userContext.UserId.Value;
+            var userResult = await UserService.GetUserAsync(userContext, userId);
+            if (userResult.IsOk)
+            {
+                _currentTenant = userResult.ResultValue.CurrentTenant;
+                _userContext = _userContext.WithNewTenant(_currentTenant);
+            }
+        }
+
         var result = await TagService.GetBookTypeTagsAsync(CancellationToken.None);
         if (result.IsOk)
         {
@@ -522,6 +536,7 @@
                     var vectorResult = await VectorDbService.SearchSimilarEmbeddingsWithScoreFilteringByBookIdsAsync(
                         embeddingResult.ResultValue, 
                         ListModule.OfSeq(filteredIds), 
+                        _currentTenant,
                         semanticSearchLimit);
                     
                     if (!vectorResult.IsOk)
@@ -535,6 +550,7 @@
                 {
                     var vectorResult = await VectorDbService.SearchSimilarEmbeddingsWithScoreAsync(
                         embeddingResult.ResultValue, 
+                        _currentTenant,
                         semanticSearchLimit);
                     
                     if (!vectorResult.IsOk)

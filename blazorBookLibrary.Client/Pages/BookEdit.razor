@@ -849,10 +849,13 @@
 
 
 @code {
+    private UserContext? _cachedContext;
     private async Task<UserContext> GetContext()
     {
+        if (_cachedContext != null) return _cachedContext;
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-        return blazorBookLibrary.Shared.ConverterUtils.fromClaimsPrincipal(authState.User);
+        _cachedContext = blazorBookLibrary.Shared.ConverterUtils.fromClaimsPrincipal(authState.User);
+        return _cachedContext;
     }
 
     [Parameter]
@@ -904,6 +907,7 @@
     private string selectedDistributionPointIdToSet = "";
     private bool isUpdatingDP = false;
     private UserId currentUserId;
+    private TenantId _currentTenant = TenantId.Default;
 
     private bool isEditingIsbn = false;
     private string editedIsbn = "";
@@ -1603,7 +1607,7 @@
             }
 
             var embeddingId = EmbeddingDataId.New();
-            var storeResult = await VectorDbService.StoreEmbeddingAsync(embeddingId, bookDetails.Book.BookId, embeddingResult.ResultValue, FSharpOption<System.Threading.CancellationToken>.None);
+            var storeResult = await VectorDbService.StoreEmbeddingAsync(embeddingId, _currentTenant, bookDetails.Book.BookId, embeddingResult.ResultValue, FSharpOption<System.Threading.CancellationToken>.None);
             
             if (!storeResult.IsOk)
             {
@@ -1650,7 +1654,7 @@
                 return;
             }
 
-            var searchResult = await VectorDbService.SearchSimilarEmbeddingsWithScoreAsync(embeddingResult.ResultValue, sanityCheckLimit);
+            var searchResult = await VectorDbService.SearchSimilarEmbeddingsWithScoreAsync(embeddingResult.ResultValue, _currentTenant, sanityCheckLimit);
             if (!searchResult.IsOk)
             {
                 await ShowStatus($"Semantic search failed: {searchResult.ErrorValue}", "alert-danger");
@@ -1860,6 +1864,15 @@
             {
                 currentUserId = UserId.NewUserId(guid);
                 context = await GetContext();
+                
+                var userResult = await UserService.GetUserAsync(context, currentUserId);
+                if (userResult.IsOk)
+                {
+                    _currentTenant = userResult.ResultValue.CurrentTenant;
+                    _cachedContext = context.WithNewTenant(_currentTenant);
+                    context = _cachedContext;
+                }
+
                 var dpResult = await UserService.GetDistributionPointsManagedByUserAsync(context, currentUserId, FSharpOption<CancellationToken>.None);
                 if (dpResult.IsOk)
                 {

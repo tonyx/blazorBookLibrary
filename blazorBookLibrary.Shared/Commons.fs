@@ -69,11 +69,51 @@ type DistributionPointId =
 type TagsId =
     | TagsId of Guid
     with
-        static member New() = TagsId(Guid.NewGuid())
-        static member UniqueTagId = TagsId(Guid.Parse("27ce5da6-2a03-4afd-bf3f-43ce258ead4c"))
+        static member New () = TagsId (Guid.NewGuid())
+        static member UniqueTagId = TagsId (Guid.Parse("27ce5da6-2a03-4afd-bf3f-43ce258ead4c"))
         member this.Value = 
             match this with
             | TagsId v -> v
+
+type TenantId = 
+    | TenantId of Guid
+    with
+        static member New () = TenantId (Guid.NewGuid())
+        static member Default = TenantId (Guid.Parse("5a982f45-1c3a-4f7d-9a54-794ed7696f23"))
+        member this.Value = 
+            match this with
+            | TenantId v -> v
+
+type TenantState =
+    | Active
+    | Deactivated
+    | ScheduledForDeletion of System.DateTime
+    with
+        member this.Value = 
+            match this with
+            | Active -> "Active"
+            | Deactivated -> "Deactivated"
+            | ScheduledForDeletion dt -> $"ScheduledForDeletion {dt}"
+
+type TenantInfo = 
+    | TenantInfo of TenantInfo
+    with 
+        static member New (tenantInfo: TenantInfo) = TenantInfo tenantInfo
+        member this.Value = 
+            match this with
+            | TenantInfo v -> v
+
+type TenantName = 
+    | TenantName of string
+    with
+        static member New(name: string) = 
+            if String.IsNullOrEmpty(name) then 
+                Error "Tenant name is empty"
+            else
+                TenantName(name) |> Ok
+        member this.Value = 
+            match this with
+            | TenantName v -> v
 
 type ExportFormat = 
     | Csv
@@ -460,20 +500,36 @@ type Role =
             | "admin" -> Admin
             | "manager" ->  Manager
             | _ -> failwith ("unrecognized role: " + role)
+        static member FromStrings (roles: List<string>) = 
+            roles 
+            |> List.map (fun r -> r |> Role.FromString)
 
 type UserContext = 
-    | Authenticated of UserId: UserId * Roles: List<Role>
+    | Authenticated of UserId: UserId * Roles: List<Role> * CurrentTenant: TenantId
     | Anonymous
     with 
         member this.IsInRole (role: Role) = 
             match this with
-            | Authenticated(_, roles) -> roles |> List.exists (fun r -> r = role)
+            | Authenticated(_, roles, _) -> roles |> List.exists (fun r -> r = role)
             | Anonymous -> false
         
         member this.UserId = 
             match this with
-            | Authenticated(userId, _) -> Some userId
+            | Authenticated(userId, _, _) -> Some userId
             | Anonymous -> None
+
+        member this.TenantId =
+            match this with
+            | Authenticated(_, _, tenantId) -> tenantId
+            | Anonymous -> TenantId.Default
+        member this.Roles =
+            match this with
+            | Authenticated(_, roles, _) -> roles
+            | Anonymous -> []
+        member this.WithNewTenant (tenantId: TenantId) =
+            match this with
+            | Authenticated(userId, roles, _) -> Authenticated(userId, roles, tenantId)
+            | Anonymous -> Anonymous
 
 type Name =
     | Name of string

@@ -57,6 +57,10 @@ type AuthorService
     member this.AddAuthorAsync(context: UserContext, author: Author, ?ct: CancellationToken) = 
         taskResult
             {
+                do! 
+                    context.TenantId = author.TenantId
+                    |> Result.ofBool "Tenant ids not matching"
+
                 return!
                     runInitAsync<Author, AuthorEvent, string>
                     eventStore
@@ -68,6 +72,11 @@ type AuthorService
     member this.AddAuthorsAsync(context: UserContext, authors: list<Author>, ?ct: CancellationToken) = 
         taskResult
             {
+                do!
+                    authors     
+                    |> Seq.forall (fun a -> context.TenantId = a.TenantId)    
+                    |> Result.ofBool "Tenant ids not matching"
+
                 return!
                     runMultipleInitAsync<Author, AuthorEvent, string>
                     eventStore
@@ -94,6 +103,9 @@ type AuthorService
                                 let! books = 
                                     author.Books
                                     |> List.traverseTaskResultM (fun bookId -> bookViewerAsync ct bookId.Value |> TaskResult.map snd)
+                                do!
+                                    author.TenantId = context.TenantId
+                                    |> Result.ofBool "Tenant ids not matching"
                                 return
                                     {
                                         Author = author
@@ -125,15 +137,24 @@ type AuthorService
         taskResult
             {
                 let ct = defaultArg ct CancellationToken.None
-                let authors =
+                let! authors =
                     ids
                     |> List.traverseTaskResultM (fun id -> this.GetAuthorAsync(context, id, ct))
-                return! authors
+                do!
+                    authors     
+                    |> Seq.forall (fun a -> context.TenantId = a.TenantId)    
+                    |> Result.ofBool "Tenant ids not matching"
+                return authors
             }
 
     member this.RenameAsync (context: UserContext, authorId: AuthorId, newName: Name, ?ct: CancellationToken) = 
         taskResult
             {
+                let! author = this.GetAuthorAsync(context, authorId, ?ct = ct)
+                do! 
+                    context.TenantId = author.TenantId
+                    |> Result.ofBool "Tenant ids not matching"
+                
                 let reamecommand = AuthorCommand.Rename (newName, DateTime.UtcNow)
                 let result = 
                     runAggregateCommandMdAsync<Author, AuthorEvent, string>
@@ -149,6 +170,13 @@ type AuthorService
     member this.UpdateIsniAsync (context: UserContext, authorId: AuthorId, isni: Isni, ?ct: CancellationToken) = 
         taskResult
             {
+                let! author = this.GetAuthorAsync(context, authorId, ?ct = ct)
+                do! 
+                    context.TenantId = author.TenantId
+                    |> Result.ofBool "Tenant ids not matching"
+                do!
+                    (context.IsInRole Role.Admin || context.IsInRole Role.Manager)
+                    |> Result.ofBool "Updating of author isni allowed only to admins or managers"
                 let updateIsniCommand = AuthorCommand.UpdateIsni (isni, DateTime.UtcNow)
                 let result = 
                     runAggregateCommandMdAsync<Author, AuthorEvent, string>
@@ -164,6 +192,10 @@ type AuthorService
     member this.UpdateBioAsync (context: UserContext, authorId: AuthorId, bio: string, ?ct: CancellationToken) = 
         taskResult
             {
+                let! author = this.GetAuthorAsync(context, authorId, ?ct = ct)
+                do! 
+                    context.TenantId = author.TenantId
+                    |> Result.ofBool "Tenant ids not matching"
                 do!
                     (context.IsInRole Role.Admin || context.IsInRole Role.Manager)
                     |> Result.ofBool "Updating of author bio allowed only to admins or managers"
@@ -182,6 +214,10 @@ type AuthorService
     member this.UpdateWikipediaUriAsync (context: UserContext, authorId: AuthorId, wikipediaUri: Uri, ?ct: CancellationToken) = 
         taskResult
             {
+                let! author = this.GetAuthorAsync(context, authorId, ?ct = ct)
+                do! 
+                    context.TenantId = author.TenantId
+                    |> Result.ofBool "Tenant ids not matching"
                 do!
                     (context.IsInRole Role.Admin || context.IsInRole Role.Manager)
                     |> Result.ofBool "Updating of author wikipedia uri allowed only to admins or managers"
@@ -200,6 +236,10 @@ type AuthorService
     member this.UpdateImageUrlAsync (context: UserContext, authorId: AuthorId, imageUrl: Uri, ?ct: CancellationToken) = 
         taskResult
             {
+                let! author = this.GetAuthorAsync(context, authorId, ?ct = ct)
+                do! 
+                    context.TenantId = author.TenantId
+                    |> Result.ofBool "Tenant ids not matching"
                 do!
                     (context.IsInRole Role.Admin || context.IsInRole Role.Manager)
                     |> Result.ofBool "Updating of author image url allowed only to admins or managers"
@@ -218,6 +258,10 @@ type AuthorService
     member this.RemoveImageUrlAsync (context: UserContext, authorId: AuthorId, ?ct: CancellationToken) = 
         taskResult
             {
+                let! author = this.GetAuthorAsync(context, authorId, ?ct = ct)
+                do! 
+                    context.TenantId = author.TenantId
+                    |> Result.ofBool "Tenant ids not matching"
                 do!
                     (context.IsInRole Role.Admin || context.IsInRole Role.Manager)
                     |> Result.ofBool "Removing of author image url allowed only to admins or managers"    
@@ -236,6 +280,10 @@ type AuthorService
     member this.SealAsync (context: UserContext, authorId: AuthorId, ?ct: CancellationToken) = 
         taskResult
             {
+                let! author = this.GetAuthorAsync(context, authorId, ?ct = ct)
+                do! 
+                    context.TenantId = author.TenantId
+                    |> Result.ofBool "Tenant ids not matching"
                 do!
                     (context.IsInRole Role.Admin || context.IsInRole Role.Manager)
                     |> Result.ofBool "Sealing of author allowed only to admins or managers"    
@@ -254,6 +302,10 @@ type AuthorService
     member this.UnsealAsync (context: UserContext, authorId: AuthorId, ?ct: CancellationToken) = 
         taskResult
             {
+                let! author = this.GetAuthorAsync(context, authorId, ?ct = ct)
+                do! 
+                    context.TenantId = author.TenantId
+                    |> Result.ofBool "Tenant ids not matching"
                 do!
                     (context.IsInRole Role.Admin || context.IsInRole Role.Manager)
                     |> Result.ofBool "Unsealing of author allowed only to admins or managers"    
@@ -272,10 +324,13 @@ type AuthorService
     member this.RemoveAuthorAsync(context: UserContext, authorId: AuthorId, ?ct: CancellationToken) = 
         taskResult
             {
+                let! author = this.GetAuthorAsync(context, authorId, ?ct = ct)
+                do! 
+                    context.TenantId = author.TenantId
+                    |> Result.ofBool "Tenant ids not matching"
                 do!
                     (context.IsInRole Role.Admin || context.IsInRole Role.Manager)
                     |> Result.ofBool "Removing of author allowed only to admins or managers"    
-                let! author = authorViewerAsync ct authorId.Value |> TaskResult.map snd
                 return!
                     runDeleteAsync<Author, AuthorEvent, string>
                     eventStore
@@ -289,7 +344,9 @@ type AuthorService
         taskResult
             {
                 let! authorsWithId = getAllAggregateStatesAsync<Author, AuthorEvent, string> eventStore ct 
-                return authorsWithId |> List.ofSeq |> List.map snd
+                return 
+                    authorsWithId |> List.ofSeq |> List.map snd
+                    |> List.filter (fun a -> context.TenantId = a.TenantId)
             }
 
     member this.GetAllAuthorsFilteredByName(context: UserContext, name: Name, ?ct: CancellationToken) = 
@@ -297,7 +354,11 @@ type AuthorService
             {
                 let filter (author: Author) = author.Name.Value.Contains(name.Value, StringComparison.OrdinalIgnoreCase)
                 let! authorsWithId = getAllFilteredAggregateStatesAsync<Author, AuthorEvent, string> filter eventStore ct 
-                return authorsWithId |> List.ofSeq |> List.map snd
+                return 
+                    authorsWithId 
+                    |> List.ofSeq 
+                    |> List.map snd
+                    |> List.filter (fun a -> context.TenantId = a.TenantId)
             }
 
 
@@ -306,7 +367,11 @@ type AuthorService
             {
                 let filter (author: Author) = author.Isni.Value.Contains(isni.Value, StringComparison.OrdinalIgnoreCase)
                 let! authorsWithId = getAllFilteredAggregateStatesAsync<Author, AuthorEvent, string> filter eventStore ct 
-                return authorsWithId |> List.ofSeq |> List.map snd
+                return 
+                    authorsWithId 
+                    |> List.ofSeq 
+                    |> List.map snd
+                    |> List.filter (fun a -> context.TenantId = a.TenantId)
             }
 
     member this.GetAllAuthorsFilteredByIsniAndName(context: UserContext, isni: Isni, name: Name, ?ct: CancellationToken) = 
@@ -316,7 +381,11 @@ type AuthorService
                     author.Isni.Value.Contains(isni.Value, StringComparison.OrdinalIgnoreCase) || 
                     author.Name.Value.Contains(name.Value, StringComparison.OrdinalIgnoreCase)
                 let! authorsWithId = getAllFilteredAggregateStatesAsync<Author, AuthorEvent, string> filter eventStore ct 
-                return authorsWithId |> List.ofSeq |> List.map snd
+                return 
+                    authorsWithId 
+                    |> List.ofSeq 
+                    |> List.map snd
+                    |> List.filter (fun a -> context.TenantId = a.TenantId)
             }
                     
     interface IAuthorService with

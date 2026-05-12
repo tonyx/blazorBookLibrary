@@ -21,32 +21,37 @@ public class BookClientService : IBookService
 
     public async Task<FSharpResult<Unit, string>> AddBookAsync(Commons.UserContext context, Book book, FSharpOption<CancellationToken> ct)
     {
-        var response = await _httpClient.PostAsJsonAsync("api/Books", book, ServiceClientHelper.JsonOptions, ServiceClientHelper.GetValue(ct, CancellationToken.None));
+        var request = ServiceClientHelper.CreateRequest(HttpMethod.Post, "api/Books", context, book);
+        var response = await _httpClient.SendAsync(request, ServiceClientHelper.GetValue(ct, CancellationToken.None));
         return await ServiceClientHelper.HandleUnitResponse(response);
     }
 
     public async Task<FSharpResult<Unit, string>> AddBooksAsync(Commons.UserContext context, FSharpList<Book> books, FSharpOption<CancellationToken> ct)
     {
-        var response = await _httpClient.PostAsJsonAsync("api/Books/bulk", Enumerable.ToList(books), ServiceClientHelper.JsonOptions, ServiceClientHelper.GetValue(ct, CancellationToken.None));
+        var request = ServiceClientHelper.CreateRequest(HttpMethod.Post, "api/Books/bulk", context, Enumerable.ToList(books));
+        var response = await _httpClient.SendAsync(request, ServiceClientHelper.GetValue(ct, CancellationToken.None));
         return await ServiceClientHelper.HandleUnitResponse(response);
     }
 
     public async Task<FSharpResult<Book, string>> GetBookAsync(Commons.UserContext context, Commons.BookId id, FSharpOption<CancellationToken> ct)
     {
-        var response = await _httpClient.GetAsync($"api/Books/{id.Value}", ServiceClientHelper.GetValue(ct, CancellationToken.None));
+        var request = ServiceClientHelper.CreateRequest(HttpMethod.Get, $"api/Books/{id.Value}", context);
+        var response = await _httpClient.SendAsync(request, ServiceClientHelper.GetValue(ct, CancellationToken.None));
         return await ServiceClientHelper.HandleResponse<Book>(response);
     }
 
     public async Task<FSharpResult<FSharpList<Book>, string>> GetBooksAsync(Commons.UserContext context, FSharpList<Commons.BookId> bookIds, FSharpOption<CancellationToken> ct)
     {
-        var response = await _httpClient.PostAsJsonAsync("api/Books/get-multiple", Enumerable.Select(bookIds, i => i.Value).ToList(), ServiceClientHelper.JsonOptions, ServiceClientHelper.GetValue(ct, CancellationToken.None));
+        var request = ServiceClientHelper.CreateRequest(HttpMethod.Post, "api/Books/get-multiple", context, Enumerable.Select(bookIds, i => i.Value).ToList());
+        var response = await _httpClient.SendAsync(request, ServiceClientHelper.GetValue(ct, CancellationToken.None));
         var result = await ServiceClientHelper.HandleResponse<List<Book>>(response);
         return result.IsOk ? FSharpResult<FSharpList<Book>, string>.NewOk(ListModule.OfSeq(result.ResultValue)) : FSharpResult<FSharpList<Book>, string>.NewError(result.ErrorValue);
     }
 
     public async Task<FSharpResult<FSharpList<Book>, string>> GetAllAsync(Commons.UserContext context, FSharpOption<BookSearchCriteria> criteria, FSharpOption<CancellationToken> ct)
     {
-        var response = await _httpClient.GetAsync("api/Books", ServiceClientHelper.GetValue(ct, CancellationToken.None));
+        var request = ServiceClientHelper.CreateRequest(HttpMethod.Get, "api/Books", context);
+        var response = await _httpClient.SendAsync(request, ServiceClientHelper.GetValue(ct, CancellationToken.None));
         var result = await ServiceClientHelper.HandleResponse<List<Book>>(response);
         return result.IsOk ? FSharpResult<FSharpList<Book>, string>.NewOk(ListModule.OfSeq(result.ResultValue)) : FSharpResult<FSharpList<Book>, string>.NewError(result.ErrorValue);
     }

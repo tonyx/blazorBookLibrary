@@ -140,12 +140,6 @@ type TagService
             return allTags |> List.filter (fun t -> t.IsPersonTag)
         }
 
-    // member this.GetGenericTypeTagsAsync(?ct: CancellationToken) =
-    //     taskResult {
-    //         let! allTags = this.GetTagsAsync(?ct = ct)
-    //         return allTags |> List.filter (fun t -> t.IsGenericTag)
-    //     }
-    
     interface ITagService with
         member this.EnsureTagsRepoCreatedAsync (?ct: CancellationToken) =
             this.EnsureTagsRepoCreatedAsync (?ct = ct)
@@ -168,5 +162,3 @@ type TagService
             this.GetGeneralTypeTagsAsync(?ct = ct)
         member this.GetPersonTypeTagsAsync(?ct: CancellationToken) =
             this.GetPersonTypeTagsAsync(?ct = ct)
-        // member this.GetGenericTypeTagsAsync(?ct: CancellationToken) =
-        //     this.GetGenericTypeTagsAsync(?ct = ct)

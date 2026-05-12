@@ -37,7 +37,7 @@ let tests =
             | Ok embedding ->
                 let id = EmbeddingDataId.New()
                 let bookId = BookId.New()
-                let! storeResult = vectorDbService.StoreEmbeddingAsync(id, bookId, embedding)
+                let! storeResult = vectorDbService.StoreEmbeddingAsync(id, TenantId.Default, bookId, embedding)
                 Expect.isOk storeResult "storing should be ok"
                 
                 let! readResult = vectorDbService.ReadEmbeddingAsync id
@@ -64,7 +64,7 @@ let tests =
             | Ok embedding1 ->
                 let id = EmbeddingDataId.New()
                 let bookId = BookId.New()
-                let! _ = vectorDbService.StoreEmbeddingAsync(id, bookId, embedding1)
+                let! _ = vectorDbService.StoreEmbeddingAsync(id, TenantId.Default, bookId, embedding1)
                 
                 let! (embedding2Result: Result<EmbeddingData, string>) = textEmbeddingService.GetEmbeddingAsync(adminContext, text2)
                 match embedding2Result with
@@ -92,7 +92,7 @@ let tests =
             | Ok embedding ->
                 let id = EmbeddingDataId.New()
                 let bookId = BookId.New()
-                let! _ = vectorDbService.StoreEmbeddingAsync(id, bookId, embedding)
+                let! _ = vectorDbService.StoreEmbeddingAsync(id, TenantId.Default, bookId, embedding)
                 
                 let! deleteResult = vectorDbService.RemoveEmbeddingAsync id
                 Expect.isOk deleteResult "delete should be ok"
@@ -157,12 +157,12 @@ let tests =
             let bookIdB = BookId.New()
             let bookIdC = BookId.New()
 
-            let! _ = vectorDbService.StoreEmbeddingAsync(idA, bookIdA, embeddings.[0])
-            let! _ = vectorDbService.StoreEmbeddingAsync(idB, bookIdB, embeddings.[1])
-            let! _ = vectorDbService.StoreEmbeddingAsync(idC, bookIdC, embeddings.[2])
+            let! _ = vectorDbService.StoreEmbeddingAsync(idA, TenantId.Default, bookIdA, embeddings.[0])
+            let! _ = vectorDbService.StoreEmbeddingAsync(idB, TenantId.Default, bookIdB, embeddings.[1])
+            let! _ = vectorDbService.StoreEmbeddingAsync(idC, TenantId.Default, bookIdC, embeddings.[2])
 
             // Search for items similar to textQuery (embeddings.[3]) without storing it first
-            let! searchResult = vectorDbService.SearchSimilarEmbeddingsAsync(embeddings.[3], 2)
+            let! searchResult = vectorDbService.SearchSimilarEmbeddingsAsync(embeddings.[3], TenantId.Default, 2)
             match searchResult with
             | Error e -> failwithf "search failed: %s" e
             | Ok similarItems ->

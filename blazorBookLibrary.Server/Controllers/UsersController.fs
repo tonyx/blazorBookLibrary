@@ -18,7 +18,7 @@ type UsersController(userService: IUserService) =
     [<HttpGet("{id}")>]
     member this.GetUser(id: Guid) =
         task {
-            let context = UserContextMapper.mapFromClaimsPrincipal this.User
+            let context = UserContextMapper.mapFromRequest this.Request
             let! result = userService.GetUserAsync(context, UserId id)
             match result with
             | Ok user -> return this.Ok(user) :> IActionResult
@@ -28,7 +28,7 @@ type UsersController(userService: IUserService) =
     [<HttpGet("{id}/details")>]
     member this.GetUserDetails(id: Guid) =
         task {
-            let context = UserContextMapper.mapFromClaimsPrincipal this.User
+            let context = UserContextMapper.mapFromRequest this.Request
             let! result = userService.GetUserDetailsAsync(context, UserId id)
             match result with
             | Ok details -> return this.Ok(details) :> IActionResult
@@ -38,7 +38,7 @@ type UsersController(userService: IUserService) =
     [<HttpPost("{id}/fiscal-code")>]
     member this.SetFiscalCode(id: Guid, [<FromBody>] fiscalCode: string) =
         task {
-            let context = UserContextMapper.mapFromClaimsPrincipal this.User
+            let context = UserContextMapper.mapFromRequest this.Request
             match FiscalCode.New fiscalCode with
             | Ok fc -> 
                 let! result = userService.SetFiscalCodeAsync(context, UserId id, fc)
@@ -51,7 +51,7 @@ type UsersController(userService: IUserService) =
     [<HttpPost("{id}/name")>]
     member this.SetName(id: Guid, [<FromBody>] name: string) =
         task {
-            let context = UserContextMapper.mapFromClaimsPrincipal this.User
+            let context = UserContextMapper.mapFromRequest this.Request
             let! result = userService.SetNameAsync(context, UserId id, name)
             match result with
             | Ok _ -> return this.Ok() :> IActionResult
@@ -61,7 +61,7 @@ type UsersController(userService: IUserService) =
     [<HttpPost("{id}/surname")>]
     member this.SetSurname(id: Guid, [<FromBody>] surname: string) =
         task {
-            let context = UserContextMapper.mapFromClaimsPrincipal this.User
+            let context = UserContextMapper.mapFromRequest this.Request
             let! result = userService.SetSurnameAsync(context, UserId id, surname)
             match result with
             | Ok _ -> return this.Ok() :> IActionResult
@@ -71,7 +71,7 @@ type UsersController(userService: IUserService) =
     [<HttpPost("{id}/phone")>]
     member this.SetPhoneNumber(id: Guid, [<FromBody>] phoneNumber: string) =
         task {
-            let context = UserContextMapper.mapFromClaimsPrincipal this.User
+            let context = UserContextMapper.mapFromRequest this.Request
             match PhoneNumber.New phoneNumber with
             | Ok pn -> 
                 let! result = userService.SetPhoneNumberAsync(context, UserId id, pn)

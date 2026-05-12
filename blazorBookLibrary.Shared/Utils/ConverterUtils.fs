@@ -36,7 +36,7 @@ module ConverterUtils =
                     | _ -> None)
                 |> Seq.toList
             
-            UserContext.Authenticated(UserId(guid), roles)
+            UserContext.Authenticated(UserId(guid), roles, TenantId.Default)
         else
             UserContext.Anonymous
 

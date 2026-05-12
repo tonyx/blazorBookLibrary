@@ -5,26 +5,30 @@ open FsToolkit.ErrorHandling
 open BookLibrary.Shared.Commons
 open System
 
-type Author001 = {
-    AuthorId: AuthorId
-    Name: Name
-    Isni: Isni
-    ImageUri: Option<Uri>
-    Sealed: Sealed
-    Books: List<BookId>}
-    with
-        member this.Upcast() = {
-            AuthorId = this.AuthorId
-            Name = this.Name
-            Isni = this.Isni
-            Bio = ""
-            ImageUri = this.ImageUri
-            WikipediaUri = None
-            Sealed = this.Sealed
-            Books = this.Books
-        }
+// type Author001 = {
+//     AuthorId: AuthorId
+//     Name: Name
+//     Isni: Isni
+//     Bio: string
+//     ImageUri: Option<Uri>
+//     WikipediaUri: Option<Uri>
+//     Sealed: Sealed
+//     Books: List<BookId> }
+//     with
+//         member this.Upcast() = {
+//             TenantId = TenantId.Default
+//             AuthorId = this.AuthorId
+//             Name = this.Name
+//             Isni = this.Isni
+//             Bio = ""
+//             ImageUri = this.ImageUri
+//             WikipediaUri = None
+//             Sealed = this.Sealed
+//             Books = this.Books
+//         }
 
-and Author = {
+type Author = {
+    TenantId: TenantId
     AuthorId: AuthorId
     Name: Name
     Isni: Isni
@@ -36,6 +40,7 @@ and Author = {
 } with 
     static member New (name: Name) (isni: Isni) = 
         {
+            TenantId = TenantId.Default
             AuthorId = AuthorId.New(); 
             Name = name;
             Isni = isni;
@@ -47,6 +52,7 @@ and Author = {
         }
     static member NewWithoutIsni (name: Name) = 
         {   
+            TenantId = TenantId.Default
             AuthorId = AuthorId.New(); 
             Name = name;
             Isni = Isni.EmptyIsni
@@ -58,6 +64,7 @@ and Author = {
         }
     static member NewWithOptionalIsniAndImageUrl(name: Name, ?isni: Isni, ?imageUrl: Uri) =
         {   
+            TenantId = TenantId.Default
             AuthorId = AuthorId.New(); 
             Name = name;
             Isni = isni |> Option.defaultValue Isni.EmptyIsni
@@ -69,6 +76,7 @@ and Author = {
         }
     static member NewWithOptionalIsniAndImageUrlAndBio(name: Name, ?isni: Isni, ?imageUrl: Uri, ?bio: string, ?wikipediaUri: Uri) = 
         {   
+            TenantId = TenantId.Default
             AuthorId = AuthorId.New(); 
             Name = name;
             Isni = isni |> Option.defaultValue Isni.EmptyIsni
@@ -191,10 +199,4 @@ and Author = {
             Ok author
         with
             | ex -> 
-                try
-                    let oldAuthor = JsonSerializer.Deserialize<Author001> (data, jsonOptions)
-                    let author = oldAuthor.Upcast() 
-                    Ok author
-                with
-                    | ex2 -> 
-                        Error (ex.Message + " " + ex2.Message)
+                Error (ex.Message)

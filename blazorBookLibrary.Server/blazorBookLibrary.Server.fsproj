@@ -45,6 +45,8 @@
     <Compile Include="Domain/Tags/Commands.fs" />
     <Compile Include="Domain/DistributionPoint/Events.fs" />
     <Compile Include="Domain/DistributionPoint/Commands.fs" />
+    <Compile Include="Domain/Tenant/Events.fs" />
+    <Compile Include="Domain/Tenant/Commands.fs" />
 
     <Compile Include="Utils/SecretReader.fs" />
     
@@ -81,6 +83,7 @@
     <Compile Include="Services/TextEmbeddingService.fs" />
     <Compile Include="Services/DataExportService.fs" />
     <Compile Include="Services/AdminService.fs" />
+    <Compile Include="Services/TenantService.fs" />
     <Compile Include="Controllers/AuthorsSearchController.fs" />
     <Compile Include="Controllers/BooksController.fs" />
     <Compile Include="Controllers/LoansController.fs" />

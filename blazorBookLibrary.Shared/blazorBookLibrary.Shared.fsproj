@@ -22,6 +22,7 @@
     <Compile Include="Domain/IsbnRegistry.fs" />
     <Compile Include="Domain/Review.fs" />
     <Compile Include="Domain/DistributionPoint.fs" />
+    <Compile Include="Domain/Tenant.fs" />
 
     <Compile Include="SearchModels.fs" />
     <Compile Include="Details/Details.fs" />
@@ -42,6 +43,7 @@
     <Compile Include="Services/ITextEmbeddingService.fs" />
     <Compile Include="Services/IAdminService.fs" />
     <Compile Include="Services/IDistributionPointService.fs" />
+    <Compile Include="Services/ITenantService.fs" />
 
     <Compile Include="SearchCriteria.fs" />
     <Compile Include="Infrastructure/Services/IMailNotificator.fs" />

@@ -26,7 +26,8 @@ public class UsersClientService : IUserService
 
     public async Task<FSharpResult<User, string>> GetUserAsync(Commons.UserContext context, Commons.UserId userId, FSharpOption<CancellationToken> ct)
     {
-        var response = await _httpClient.GetAsync($"api/Users/{userId.Value}", ServiceClientHelper.GetValue(ct, CancellationToken.None));
+        var request = ServiceClientHelper.CreateRequest(HttpMethod.Get, $"api/Users/{userId.Value}", context);
+        var response = await _httpClient.SendAsync(request, ServiceClientHelper.GetValue(ct, CancellationToken.None));
         return await ServiceClientHelper.HandleResponse<User>(response);
     }
 

@@ -6,54 +6,9 @@ open BookLibrary.Shared.Commons
 open System
 open System.Globalization
 
-type Book002 =
+type Book =
     {
-        BookId: BookId
-        Title: Title
-        ImageUrl: Option<Uri>   
-        Description: Option<string>
-        OptionalEmbedding: Option<EmbeddingDataId>
-        Availability: Availability
-
-        Authors: List<AuthorId>
-        Translators: List<AuthorId>
-        Languages: List<CultureInfo>
-        CurrentReservations: List<ReservationId>
-        CurrentLoan: Option<LoanId>
-        Editor: Option<EditorId>
-        MainCategory: Category
-        AdditionalCategories: List<Category>
-        Tags: List<Tag>
-        Year: Year
-        Isbn: Isbn
-        Sealed: Sealed
-    }
-    member
-        this.Upcast(): Book =
-            {
-                BookId = this.BookId;
-                Title = this.Title;
-                ImageUrl = this.ImageUrl;
-                Description = this.Description;
-                OptionalEmbedding = this.OptionalEmbedding;
-                Availability = this.Availability;
-                DistributionPoint = None
-                Authors = this.Authors;
-                Translators = this.Translators;
-                Languages = this.Languages;
-                CurrentReservations = this.CurrentReservations;
-                CurrentLoan = this.CurrentLoan;
-                Editor = this.Editor;
-                MainCategory = this.MainCategory;
-                AdditionalCategories = this.AdditionalCategories;
-                Tags = this.Tags;
-                Year = this.Year;
-                Isbn = this.Isbn;
-                Sealed = this.Sealed
-            }
-
-and Book =
-    {
+        TenantId: TenantId
         BookId: BookId
         Title: Title
         ImageUrl: Option<Uri>   
@@ -90,6 +45,7 @@ with
         (imageUrl: Option<Uri>)
         = 
         {
+            TenantId = TenantId.Default
             BookId = BookId.New(); 
             Title = title; 
             Description = None;
@@ -582,10 +538,5 @@ with
             Ok book
         with
             | ex -> 
-                try
-                    let book001 = JsonSerializer.Deserialize<Book002> (data, jsonOptions)
-                    Ok (book001.Upcast())
-                with
-                    | ex -> 
-                        Error(ex.Message)
+                sprintf "Failed to deserialize book: %s" ex.Message |> Error
 

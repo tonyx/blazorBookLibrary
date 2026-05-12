@@ -903,6 +903,7 @@
     private bool showImportSummaryModal = false;
     private Guid selectedDistributionPointId = Guid.Empty;
     private UserId? currentUserId;
+    private TenantId _currentTenant = TenantId.Default;
 
     private void CancelImport()
     {
@@ -1073,6 +1074,19 @@
     protected override async Task OnInitializedAsync()
     {
         var context = await GetUserContextAsync();
+
+        if (context.IsAuthenticated)
+        {
+            var userId = context.UserId.Value;
+            var userResult = await UserService.GetUserAsync(context, userId);
+            if (userResult.IsOk)
+            {
+                _currentTenant = userResult.ResultValue.CurrentTenant;
+                _cachedUserContext = context.WithNewTenant(_currentTenant);
+                context = _cachedUserContext;
+            }
+        }
+
         var tagsResult = await TagService.GetBookTypeTagsAsync(CancellationToken.None);
         if (tagsResult.IsOk)
         {
@@ -1292,7 +1306,7 @@
             {
                 context = await GetUserContextAsync();
                 var embeddingId = EmbeddingDataId.New();
-                var storeResult = await VectorDbService.StoreEmbeddingAsync(embeddingId, bookId, embeddingResult.ResultValue, CancellationToken.None);
+                var storeResult = await VectorDbService.StoreEmbeddingAsync(embeddingId, _currentTenant, bookId, embeddingResult.ResultValue, CancellationToken.None);
                 
                 if (storeResult.IsOk)
                 {

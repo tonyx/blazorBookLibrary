@@ -6,8 +6,36 @@ open FsToolkit.ErrorHandling
 open BookLibrary.Shared.Commons
 open System
 
+// type Reservation001 =
+//     {
+//         ReservationId: ReservationId
+//         BookId: BookId
+//         UserId: UserId
+//         TimeSlot: TimeSlot
+//         ReservedAt: DateTime
+//         CanceledAt: Option<Cancellation>
+//         ReservationCode: ReservationCode
+//         Status: ReservationStatus
+//         Sealed: Sealed
+//     }
+//     with 
+//         member this.Upcast() = 
+//             {
+//                 TenantId = TenantId.Default
+//                 ReservationId = this.ReservationId
+//                 BookId = this.BookId
+//                 UserId = this.UserId
+//                 TimeSlot = this.TimeSlot
+//                 ReservedAt = this.ReservedAt
+//                 CanceledAt = this.CanceledAt
+//                 ReservationCode = this.ReservationCode
+//                 Status = this.Status
+//                 Sealed = this.Sealed
+//             }
+
 type Reservation =
     {
+        TenantId: TenantId
         ReservationId: ReservationId
         BookId: BookId
         UserId: UserId
@@ -18,8 +46,9 @@ type Reservation =
         Status: ReservationStatus
         Sealed: Sealed
     } with 
-        static member New (bookId: BookId) (userId: UserId) (timeSlot: TimeSlot) (dateTime: DateTime)= 
+        static member New (bookId: BookId) (userId: UserId) (timeSlot: TimeSlot) (dateTime: DateTime): Reservation = 
             {
+                TenantId = TenantId.Default;
                 ReservationId = ReservationId.New(); 
                 BookId = bookId;
                 UserId = userId;
@@ -95,4 +124,5 @@ type Reservation =
                 let reservation = JsonSerializer.Deserialize<Reservation> (data, jsonOptions)
                 Ok reservation
             with
-                | ex -> Error ex.Message
+                | ex -> 
+                    sprintf "Failed to deserialize reservation: %s" ex.Message |> Error

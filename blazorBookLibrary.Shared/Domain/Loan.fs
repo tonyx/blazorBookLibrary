@@ -6,6 +6,7 @@ open BookLibrary.Shared.Commons
 open System
 
 type Loan = {
+    TenantId: TenantId
     LoanId: LoanId
     BookId: BookId
     UserId: UserId
@@ -16,6 +17,7 @@ type Loan = {
 } with
     static member New (bookId: BookId) (userId: UserId) (loanedAt: DateTime) (timeSlot: TimeSlot) = 
         {
+            TenantId = TenantId.Default
             LoanId = LoanId.New(); 
             BookId = bookId;
             UserId = userId;
@@ -26,6 +28,7 @@ type Loan = {
         }
     static member NewFromReservation (reservation: Reservation) (loanedAt: DateTime) = 
         {
+            TenantId = TenantId.Default
             LoanId = LoanId.New(); 
             BookId = reservation.BookId;
             UserId = reservation.UserId;
@@ -65,4 +68,4 @@ type Loan = {
             Ok loan
         with
             | ex -> 
-                Error ex.Message
+                sprintf "Failed to deserialize loan: %s" ex.Message |> Error

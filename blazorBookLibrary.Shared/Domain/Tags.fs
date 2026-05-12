@@ -16,11 +16,14 @@ type Tag =
 
 type Tags =
     {
+        TenantId: TenantId
         TagsId: TagsId
         Tags: list<Tag>
     }
     static member New = 
-        { TagsId = TagsId.UniqueTagId; Tags = [] }
+        {   TenantId = TenantId.Default
+            TagsId = TagsId.UniqueTagId; 
+            Tags = [] }
     member this.AddTag (tag: Tag) = 
         result
             {
@@ -79,7 +82,8 @@ type Tags =
         try
             JsonSerializer.Deserialize<Tags>(json, jsonOptions) |> Ok
         with
-            | ex -> Error ex.Message
+            | ex -> 
+                sprintf "Failed to deserialize tags: %s" ex.Message |> Error
 
     
     

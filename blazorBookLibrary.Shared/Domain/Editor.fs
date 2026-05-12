@@ -7,12 +7,14 @@ open BookLibrary.Shared.Commons
 open System
 
 type Editor = {
+    TenantId: TenantId
     EditorId: EditorId
     Name: Name
     Sealed: Sealed
 } with 
     static member New (name: Name) (dateTime: DateTime)= 
         {   
+            TenantId = TenantId.Default
             EditorId = EditorId.New(); 
             Name = name;
             Sealed = Sealed.New(dateTime)
@@ -53,4 +55,5 @@ type Editor = {
             let editor = JsonSerializer.Deserialize<Editor> (data, jsonOptions)
             Ok editor
         with
-            | ex -> Error ex.Message
+            | ex -> 
+                sprintf "Failed to deserialize editor: %s" ex.Message |> Error

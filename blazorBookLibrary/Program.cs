@@ -119,6 +119,7 @@ builder.Services.AddHttpClient<IAuthorsSearchService, AuthorsSearchService>(clie
 builder.Services.AddSingleton<IDistributionPointService, DistributionPointService>();
 
 builder.Services.AddSingleton<IAdminServices, AdminService>();
+builder.Services.AddSingleton<ITenantService, TenantService>();
 
 builder.Services.AddTransient<CleanUpService>();
 builder.Services.AddHttpClient();
@@ -290,6 +291,13 @@ using (var scope = app.Services.CreateScope())
     if (tagsResult.IsError)
     {
         Console.WriteLine($"[Startup] Failed to ensure Tags repository: {tagsResult.ErrorValue}");
+    }
+
+    var tenantService = scope.ServiceProvider.GetRequiredService<ITenantService>();
+    var tenantResult = await tenantService.EnsureDefaultTenantExistsAsync();
+    if (tenantResult.IsError)
+    {
+        Console.WriteLine($"[Startup] Failed to ensure default tenant: {tenantResult.ErrorValue}");
     }
 }
 

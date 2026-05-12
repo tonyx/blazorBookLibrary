@@ -158,7 +158,6 @@
                 identityErrors = new List<IdentityError> { new IdentityError { Description = L["RegistrationFinalizationError"] } };
                 return;
             }
-
         }
 
         var userId = await UserManager.GetUserIdAsync(user);

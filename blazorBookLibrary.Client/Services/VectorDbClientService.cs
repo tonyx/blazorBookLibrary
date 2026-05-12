@@ -21,11 +21,12 @@ public class VectorDbClientService : IVectorDbService
     private record EmbeddingScoreResponse(string model, float[] vector, Guid bookId, double score);
     private record IdBookIdResponse(Guid id, Guid bookId);
 
-    public async Task<FSharpResult<Unit, string>> StoreEmbeddingAsync(EmbeddingDataId id, BookId bookId, EmbeddingData embedding, FSharpOption<CancellationToken> ct)
+    public async Task<FSharpResult<Unit, string>> StoreEmbeddingAsync(EmbeddingDataId id, TenantId tenantId, BookId bookId, EmbeddingData embedding, FSharpOption<CancellationToken> ct)
     {
         var request = new
         {
             id = id.Value,
+            tenantId = tenantId.Value,
             bookId = bookId.Value,
             model = embedding.Model,
             vector = embedding.Vector
@@ -72,12 +73,13 @@ public class VectorDbClientService : IVectorDbService
         return await ServiceClientHelper.HandleUnitResponse(response);
     }
 
-    public async Task<FSharpResult<IEnumerable<Tuple<EmbeddingData, BookId>>, string>> SearchSimilarEmbeddingsAsync(EmbeddingData embedding, int limit, FSharpOption<CancellationToken> ct)
+    public async Task<FSharpResult<IEnumerable<Tuple<EmbeddingData, BookId>>, string>> SearchSimilarEmbeddingsAsync(EmbeddingData embedding, TenantId tenantId, int limit, FSharpOption<CancellationToken> ct)
     {
         var request = new
         {
             vector = embedding.Vector,
             model = embedding.Model,
+            tenantId = tenantId.Value,
             limit = limit
         };
         var response = await _httpClient.PostAsJsonAsync("api/VectorDb/search", request, ServiceClientHelper.JsonOptions, ServiceClientHelper.GetValue(ct, CancellationToken.None));
@@ -90,12 +92,13 @@ public class VectorDbClientService : IVectorDbService
         return FSharpResult<IEnumerable<Tuple<EmbeddingData, BookId>>, string>.NewError(result.ErrorValue);
     }
 
-    public async Task<FSharpResult<IEnumerable<Tuple<EmbeddingData, BookId, double>>, string>> SearchSimilarEmbeddingsWithScoreAsync(EmbeddingData embedding, int limit, FSharpOption<double> threshold, FSharpOption<CancellationToken> ct)
+    public async Task<FSharpResult<IEnumerable<Tuple<EmbeddingData, BookId, double>>, string>> SearchSimilarEmbeddingsWithScoreAsync(EmbeddingData embedding, TenantId tenantId, int limit, FSharpOption<double> threshold, FSharpOption<CancellationToken> ct)
     {
         var request = new
         {
             vector = embedding.Vector,
             model = embedding.Model,
+            tenantId = tenantId.Value,
             limit = limit,
             threshold = threshold != null && FSharpOption<double>.get_IsSome(threshold) ? (double?)threshold.Value : null
         };
@@ -109,12 +112,13 @@ public class VectorDbClientService : IVectorDbService
         return FSharpResult<IEnumerable<Tuple<EmbeddingData, BookId, double>>, string>.NewError(result.ErrorValue);
     }
 
-    public async Task<FSharpResult<IEnumerable<Tuple<EmbeddingData, BookId>>, string>> SearchSimilarEmbeddingsFilteringByBookIdsAsync(EmbeddingData embedding, FSharpList<BookId> bookIds, int limit, FSharpOption<CancellationToken> ct)
+    public async Task<FSharpResult<IEnumerable<Tuple<EmbeddingData, BookId>>, string>> SearchSimilarEmbeddingsFilteringByBookIdsAsync(EmbeddingData embedding, FSharpList<BookId> bookIds, TenantId tenantId, int limit, FSharpOption<CancellationToken> ct)
     {
         var request = new
         {
             vector = embedding.Vector,
             model = embedding.Model,
+            tenantId = tenantId.Value,
             bookIds = bookIds.Select(b => b.Value).ToList(),
             limit = limit
         };
@@ -128,12 +132,13 @@ public class VectorDbClientService : IVectorDbService
         return FSharpResult<IEnumerable<Tuple<EmbeddingData, BookId>>, string>.NewError(result.ErrorValue);
     }
 
-    public async Task<FSharpResult<IEnumerable<Tuple<EmbeddingData, BookId, double>>, string>> SearchSimilarEmbeddingsWithScoreFilteringByBookIdsAsync(EmbeddingData embedding, FSharpList<BookId> bookIds, int limit, FSharpOption<double> threshold, FSharpOption<CancellationToken> ct)
+    public async Task<FSharpResult<IEnumerable<Tuple<EmbeddingData, BookId, double>>, string>> SearchSimilarEmbeddingsWithScoreFilteringByBookIdsAsync(EmbeddingData embedding, FSharpList<BookId> bookIds, TenantId tenantId, int limit, FSharpOption<double> threshold, FSharpOption<CancellationToken> ct)
     {
         var request = new
         {
             vector = embedding.Vector,
             model = embedding.Model,
+            tenantId = tenantId.Value,
             bookIds = bookIds.Select(b => b.Value).ToList(),
             limit = limit,
             threshold = threshold != null && FSharpOption<double>.get_IsSome(threshold) ? (double?)threshold.Value : null
@@ -148,9 +153,9 @@ public class VectorDbClientService : IVectorDbService
         return FSharpResult<IEnumerable<Tuple<EmbeddingData, BookId, double>>, string>.NewError(result.ErrorValue);
     }
 
-    public async Task<FSharpResult<IEnumerable<Tuple<EmbeddingDataId, BookId>>, string>> ReadAllEmbeddingIdsWithBookIdsAsync(FSharpOption<CancellationToken> ct)
+    public async Task<FSharpResult<IEnumerable<Tuple<EmbeddingDataId, BookId>>, string>> ReadAllEmbeddingIdsWithBookIdsAsync(TenantId tenantId, FSharpOption<CancellationToken> ct)
     {
-        var response = await _httpClient.GetAsync("api/VectorDb/all-ids", ServiceClientHelper.GetValue(ct, CancellationToken.None));
+        var response = await _httpClient.GetAsync($"api/VectorDb/all-ids?tenantId={tenantId.Value}", ServiceClientHelper.GetValue(ct, CancellationToken.None));
         var result = await ServiceClientHelper.HandleResponse<List<IdBookIdResponse>>(response);
         if (result.IsOk)
         {

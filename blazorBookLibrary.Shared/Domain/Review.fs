@@ -5,8 +5,31 @@ open FsToolkit.ErrorHandling
 open BookLibrary.Shared.Commons
 open System
 
+// type Review001 = {
+//     ReviewId: ReviewId
+//     BookId: BookId
+//     UserId: UserId
+//     Comment: string
+//     Date: DateTime
+//     Hidden: bool
+//     Edited: bool
+//     ApprovalStatus: ApprovalStatus
+// } with
+//     member this.Upcast() =
+//         {
+//             TenantId = TenantId.Default
+//             ReviewId = this.ReviewId
+//             BookId = this.BookId
+//             UserId = this.UserId
+//             Comment = this.Comment
+//             Date = this.Date
+//             Hidden = this.Hidden
+//             Edited = this.Edited
+//             ApprovalStatus = this.ApprovalStatus
+//         }
 type Review =
     {
+        TenantId: TenantId
         ReviewId: ReviewId
         BookId: BookId
         UserId: UserId
@@ -18,6 +41,7 @@ type Review =
     } with 
         static member New (bookId: BookId) (userId: UserId) (comment: string) (dateTime: DateTime) = 
             {   
+                TenantId = TenantId.Default
                 ReviewId = ReviewId.New();
                 BookId = bookId;
                 UserId = userId;
@@ -29,6 +53,7 @@ type Review =
             }
         static member NewHidden (bookId: BookId) (userId: UserId) (comment: string) (dateTime: DateTime) = 
             {   
+                TenantId = TenantId.Default
                 ReviewId = ReviewId.New();
                 BookId = bookId;
                 UserId = userId;
@@ -62,9 +87,10 @@ type Review =
         member this.Serialize =
             (this, jsonOptions) |> JsonSerializer.Serialize
 
-        static member Deserialize (json: string) = 
+        static member Deserialize (data: string) = 
             try
-                JsonSerializer.Deserialize<Review>(json, jsonOptions) |> Ok
+                JsonSerializer.Deserialize<Review>(data, jsonOptions) |> Ok
             with
-                ex -> Error (ex.Message)
+                ex -> 
+                    sprintf "Failed to deserialize review: %s" ex.Message |> Error
 

@@ -56,7 +56,7 @@ type IsbnRegistry =
             Error $"Isbn {isbn} not found"
 
     member this.Id = this.IsbnRegistryId.Value
-    static member SnapshotsInterval = 50
+    static member SnapshotsInterval = 100 
     static member StorageName = "_IsbnRegistry"
     static member Version = "_01"
     member this.Serialize = 

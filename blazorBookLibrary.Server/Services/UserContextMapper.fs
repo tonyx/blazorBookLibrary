@@ -21,7 +21,20 @@ module UserContextMapper =
                             | "manager" -> Some Manager
                             | _ -> None)
                         |> Seq.toList
-                    Authenticated(UserId guid, roles)
+                    Authenticated(UserId guid, roles, TenantId.Default)
                 | _ -> Anonymous
         else
             Anonymous
+
+    let mapFromRequest (request: Microsoft.AspNetCore.Http.HttpRequest) =
+        let context = mapFromClaimsPrincipal request.HttpContext.User
+        match context with
+        | Authenticated(userId, roles, _) ->
+            let tenantHeader = request.Headers.["X-Tenant-Id"]
+            if tenantHeader.Count > 0 then
+                match System.Guid.TryParse(tenantHeader.[0]) with
+                | (true, guid) -> Authenticated(userId, roles, TenantId(guid))
+                | _ -> context
+            else
+                context
+        | _ -> context

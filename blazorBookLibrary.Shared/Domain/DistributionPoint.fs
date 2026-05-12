@@ -8,6 +8,7 @@ open System
 open System.Globalization
 
 type DistributionPoint = {
+    TenantId: TenantId
     DistributionPointId: DistributionPointId
     Name: NonEmptyName
     Info: Info
@@ -15,10 +16,22 @@ type DistributionPoint = {
 }
 with 
     static member New (name: NonEmptyName, info: Info) = 
-        { DistributionPointId = DistributionPointId.New (); Name = name; Info = info; ReferenceUsers = [] }
+        { 
+            TenantId = TenantId.Default
+            DistributionPointId = DistributionPointId.New (); 
+            Name = name; 
+            Info = info; 
+            ReferenceUsers = [] 
+        }
 
     static member New (name: NonEmptyName, info: Info, referenceUser: UserId) = 
-        { DistributionPointId = DistributionPointId.New (); Name = name; Info = info; ReferenceUsers = [referenceUser] }
+        { 
+            TenantId = TenantId.Default
+            DistributionPointId = DistributionPointId.New (); 
+            Name = name; 
+            Info = info; 
+            ReferenceUsers = [referenceUser] 
+        }
     
     member this.AddReferenceUser (referenceUser: UserId) = 
         if this.ReferenceUsers |> List.contains referenceUser then

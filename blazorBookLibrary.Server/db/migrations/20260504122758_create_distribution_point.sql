@@ -130,7 +130,6 @@ return event_id;
 END;
 $$;
 
-
 -- migrate:down
 
 
