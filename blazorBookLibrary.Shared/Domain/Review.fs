@@ -5,28 +5,6 @@ open FsToolkit.ErrorHandling
 open BookLibrary.Shared.Commons
 open System
 
-// type Review001 = {
-//     ReviewId: ReviewId
-//     BookId: BookId
-//     UserId: UserId
-//     Comment: string
-//     Date: DateTime
-//     Hidden: bool
-//     Edited: bool
-//     ApprovalStatus: ApprovalStatus
-// } with
-//     member this.Upcast() =
-//         {
-//             TenantId = TenantId.Default
-//             ReviewId = this.ReviewId
-//             BookId = this.BookId
-//             UserId = this.UserId
-//             Comment = this.Comment
-//             Date = this.Date
-//             Hidden = this.Hidden
-//             Edited = this.Edited
-//             ApprovalStatus = this.ApprovalStatus
-//         }
 type Review =
     {
         TenantId: TenantId

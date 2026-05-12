@@ -36,6 +36,8 @@ Blazor Book Library è un sistema di archiviazione moderno e ad alte prestazioni
 - Accedi al sistema tramite il link **Login** nel menu di navigazione.
 - Puoi registrare un nuovo account o accedere con le tue credenziali esistenti.
 - Il sistema supporta il **Social Login** (es. Google OAuth) per un'esperienza immediata.
+- Il sistema supporta autenticazione a due fattori (2FA).   
+- Il sistema supporta l'autenticazione tramite passkey.
 
 ### Dashboard Principale
 - Una volta effettuato l'accesso, la pagina **Home** offre una panoramica rapida delle ultime aggiunte in biblioteca.
@@ -81,7 +83,7 @@ I membri possono gestire i propri prestiti.
 ### Prenotazioni
 Se un libro è attualmente in prestito, puoi effettuare una **Prenotazione**.
 - Verrai avvisato quando il libro verrà restituito e sarà riservato per te.
-- Le prenotazioni possono essere annullate in qualsiasi momento dal tuo profilo o dalla pagina del libro.
+- Le prenotazioni possono essere annullate in qualsiasi momento dal tuo profilo o dalla pagina del libro (todo: implementare).
 
 ---
 

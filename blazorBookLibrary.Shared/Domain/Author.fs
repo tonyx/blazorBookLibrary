@@ -5,27 +5,6 @@ open FsToolkit.ErrorHandling
 open BookLibrary.Shared.Commons
 open System
 
-// type Author001 = {
-//     AuthorId: AuthorId
-//     Name: Name
-//     Isni: Isni
-//     Bio: string
-//     ImageUri: Option<Uri>
-//     WikipediaUri: Option<Uri>
-//     Sealed: Sealed
-//     Books: List<BookId> }
-//     with
-//         member this.Upcast() = {
-//             TenantId = TenantId.Default
-//             AuthorId = this.AuthorId
-//             Name = this.Name
-//             Isni = this.Isni
-//             Bio = ""
-//             ImageUri = this.ImageUri
-//             WikipediaUri = None
-//             Sealed = this.Sealed
-//             Books = this.Books
-//         }
 
 type Author = {
     TenantId: TenantId
