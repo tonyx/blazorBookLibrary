@@ -289,6 +289,7 @@ type LoanService
                         }
                 return result
             }
+
     member this.GetHistoryLoansOfUserAsync (context: UserContext, userId: UserId, ?ct: CancellationToken) = 
         let ct = defaultArg ct CancellationToken.None
         taskResult

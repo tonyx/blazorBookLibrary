@@ -13,7 +13,7 @@ module AuthorsSearchTests =
         httpClient.DefaultRequestHeaders.Add("User-Agent", "BlazorBookLibrary/1.0")
         AuthorsSearchService(httpClient) :> IAuthorsSearchService
 
-    let authService = getService()
+    let authorsSearchService = getService()
 
     [<Tests>]
     let tests =
@@ -21,7 +21,7 @@ module AuthorsSearchTests =
         ptestList "Authors Search Service Tests" [
             testCaseTask "can lookup author by name" <| fun _ -> task {
                 let name = "J. R. R. Tolkien"
-                let! result = authService.LookupByNameAsync(adminContext, name)
+                let! result = authorsSearchService.LookupByNameAsync(adminContext, name)
                 match result with
                 | Ok metadata ->
                     Expect.isNotNull metadata.Name "Author Name should not be null"
@@ -34,7 +34,7 @@ module AuthorsSearchTests =
 
             testCaseTask "can lookup author thumbnail by name" <| fun _ -> task {
                 let name = "Dante Alighieri"
-                let! result = authService.LookupImageUrlByNameAndThumbSizeAsync(adminContext, name, 200)
+                let! result = authorsSearchService.LookupImageUrlByNameAndThumbSizeAsync(adminContext, name, 200)
                 match result with
                 | Ok url ->
                     Expect.isNotNull url "Thumbnail URL should not be null"

@@ -204,8 +204,9 @@ let tests =
             Expect.isOk addBook "should be ok"
 
             let! userId = registerUserTask "test@example.com" "Password123!"
+            let! userContext = getUserContext userId
 
-            let! user = userService.GetUserAsync(adminContext, userId)
+            let! user = userService.GetUserAsync(userContext, userId)
             Expect.isOk user "should be ok"
 
             let timeSlot = 
@@ -270,8 +271,9 @@ let tests =
             Expect.isOk addBook "should be ok"
 
             let! userId = registerUserTask "test@example.com" "Password123!"
+            let! userContext = getUserContext userId
 
-            let! user = userService.GetUserAsync(adminContext, userId)
+            let! user = userService.GetUserAsync(userContext, userId)
             Expect.isOk user "should be ok"
 
             let timeSlot = 
@@ -340,8 +342,9 @@ let tests =
             Expect.isOk addBook "should be ok"
 
             let! userId = registerUserTask "test@example.com" "Password123!"
+            let! userContext = getUserContext userId
 
-            let! user = userService.GetUserAsync(adminContext, userId)
+            let! user = userService.GetUserAsync(userContext, userId)
             Expect.isOk user "should be ok"
 
             let timeSlot = 

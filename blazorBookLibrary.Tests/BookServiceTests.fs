@@ -8,12 +8,15 @@ open BookLibrary.Shared.Details
 open BookLibrary.Shared.Commons
 open BookLibrary.Shared.Services
 open System.Threading
+open Sharpino.Cache
+open FsToolkit.ErrorHandling.Operator.Task
 
 [<Tests>]
 let tests =
     let timeSlotDurationInDays = 30
+    let waitTime = 50
     testList "books service" [
-        testCaseTask "create a book and then attach an author to it  - Ok" <| fun _ -> task {
+        testCaseTask "create a book and then attach an author to it, then reserve it  - Ok" <| fun _ -> task {
             setUp ()
             let bookService = getBookService()
             let authorService = getAuthorService()
@@ -30,7 +33,7 @@ let tests =
             let! addBook = bookService.AddBookAsync(adminContext, book, CancellationToken.None)
             Expect.isOk addBook "should be ok"
 
-            let! retrieveBook = bookService.GetBookAsync(adminContext, book.BookId)
+            let! retrieveBook = bookService.GetBookAsync(UserContext.Anonymous, book.BookId)
             Expect.isOk retrieveBook "should be ok"
 
             let (bookRetrieved: Book) = retrieveBook |> Result.get
@@ -200,7 +203,7 @@ let tests =
         }
 
         // todo: handle the delay or force refresh dependencies
-        ptestCaseTask "verify that when the loan is released then the book details are always in sync - Ok" <| fun _ -> task {
+        testCaseTask "verify that when the loan is released then the book details are always in sync - Ok" <| fun _ -> task {
             setUp ()
             let bookService = getBookService()
             let loanService = getLoanService()
@@ -232,6 +235,8 @@ let tests =
 
             let! releaseLoan = loanService.ReleaseLoanAsync (adminContext, loan.LoanId, ShortLang.New "en", System.DateTime.Now)
             Expect.isOk releaseLoan "should be ok"
+
+            do! Async.Sleep waitTime
 
             let! bookDetail2 = detailsService.GetBookDetailsAsync (adminContext, book.BookId)
             Expect.isOk bookDetail2 "should be ok"
@@ -242,8 +247,7 @@ let tests =
             Expect.isTrue (bookDetail2.ReservationsDetails |> List.isEmpty) "should not contain reservations"
         }
 
-        // todo: add a delay or force the refresh of dependencies
-        ptestCaseTask "verify that when the loan is released then the details are always in sync 2 - Ok" <| fun _ -> task {
+        testCaseTask "verify that when the loan is released then the details are always in sync 2 - Ok" <| fun _ -> task {
             setUp ()
             let bookService = getBookService()
             let loanService = getLoanService()
@@ -276,6 +280,7 @@ let tests =
             let! releaseLoan = loanService.ReleaseLoanAsync (adminContext, loan.LoanId, ShortLang.New "en", System.DateTime.Now)
             Expect.isOk releaseLoan "should be ok"
 
+            do! Async.Sleep waitTime
             let! bookDetail2 = detailsService.GetBookDetailsAsync (adminContext, book.BookId)
             Expect.isOk bookDetail2 "should be ok"
 

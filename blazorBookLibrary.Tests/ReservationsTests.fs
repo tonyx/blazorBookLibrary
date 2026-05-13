@@ -13,6 +13,7 @@ open BookLibrary.Shared.Services
 [<Tests>]
 let tests =
     let timeSlotDurationInDays = 30
+    let waitTime = 100 
     testList "reservation service tests" [
         testCaseTask "add an overlapping reservation and verify it will be an error - Error" <| fun _ -> task {
             setUp ()
@@ -122,7 +123,7 @@ let tests =
         }
 
         // todo: handle the delay needed to refresh of dependencies
-        ptestCaseTask "should be able to add a reservation to a book and then retrieve the bookdetails containing the reservation" <| fun _ -> task {
+        testCaseTask "should be able to add a reservation to a book and then retrieve the bookdetails containing the reservation" <| fun _ -> task {
             setUp ()
             let bookService = getBookService()
             let detailsService = getDetailsService()
@@ -155,6 +156,8 @@ let tests =
             let! releaseLoan = loanService.ReleaseLoanAsync(adminContext, loan.LoanId, ShortLang.New "en", System.DateTime.Now)
             Expect.isOk releaseLoan "should be ok"
 
+            do! Async.Sleep waitTime
+
             let! bookDetail2Result = detailsService.GetBookDetailsAsync (adminContext, book.BookId)
             Expect.isOk bookDetail2Result "should be ok"
 
@@ -171,6 +174,8 @@ let tests =
             let! addReservation = reservationService.AddReservationAsync (adminContext, reservation, ShortLang.New "en")
             Expect.isOk addReservation "should be ok"
 
+            do! Async.Sleep waitTime
+
             let! bookDetail3Result = detailsService.GetBookDetailsAsync (adminContext, book.BookId)
             Expect.isOk bookDetail3Result "should be ok"
 
@@ -181,7 +186,7 @@ let tests =
         }
 
         // todo: handle the delay related to refresh dependencies or force a refersh
-        ptestCaseTask "should be able to add a reservation to a book and then retrieve the bookdetails containing the reservation 2" <| fun _ -> task {
+        testCaseTask "should be able to add a reservation to a book and then retrieve the bookdetails containing the reservation 2" <| fun _ -> task {
             setUp ()
             let bookService = getBookService()
             let detailsService = getDetailsService()
@@ -201,6 +206,7 @@ let tests =
             let! addLoan = loanService.AddLoanAsync (adminContext, loan, ShortLang.New "en")
             Expect.isOk addLoan "should be ok"
 
+            do! Async.Sleep waitTime
             let! bookDetailResult = detailsService.GetBookDetailsAsync (adminContext, book.BookId) 
             Expect.isOk bookDetailResult "should be ok"
 
@@ -213,6 +219,7 @@ let tests =
             let! releaseLoan = loanService.ReleaseLoanAsync(adminContext, loan.LoanId, ShortLang.New "en", System.DateTime.Now)
             Expect.isOk releaseLoan "should be ok"
 
+            do! Async.Sleep waitTime
             let! bookDetail2Result = detailsService.GetBookDetailsAsync (adminContext, book.BookId)
             Expect.isOk bookDetail2Result "should be ok"
 
@@ -229,6 +236,7 @@ let tests =
             let! addReservation = reservationService.AddReservationAsync (adminContext, reservation, ShortLang.New "en")
             Expect.isOk addReservation "should be ok"
 
+            do! Async.Sleep waitTime
             let! bookDetail3Result = detailsService.GetBookDetailsAsync (adminContext, book.BookId)
             Expect.isOk bookDetail3Result "should be ok"
 
@@ -240,7 +248,7 @@ let tests =
         }
 
         // todo: handle the delay related to refresh dependencies or force a refersh
-        ptestCaseTask "should be able to add a reservation to a book and then retrieve the bookdetails containing the reservation async" <| fun _ -> task {
+        testCaseTask "should be able to add a reservation to a book and then retrieve the bookdetails containing the reservation async" <| fun _ -> task {
             setUp ()
             let bookService = getBookService()
             let detailsService = getDetailsService()
@@ -261,6 +269,7 @@ let tests =
             let! addLoan = loanService.AddLoanAsync (adminContext, loan, ShortLang.New "en")
             Expect.isOk addLoan "should be ok"
 
+            do! Async.Sleep waitTime
             let! bookDetailResult = detailsService.GetBookDetailsAsync (adminContext, book.BookId)
             Expect.isOk bookDetailResult "should be ok"
 
@@ -273,6 +282,7 @@ let tests =
             let! releaseLoan = loanService.ReleaseLoanAsync(adminContext, loan.LoanId, ShortLang.New "en", System.DateTime.Now)
             Expect.isOk releaseLoan "should be ok"
 
+            do! Async.Sleep waitTime
             let! bookDetail2Result = detailsService.GetBookDetailsAsync (adminContext, book.BookId)
             Expect.isOk bookDetail2Result "should be ok"
 
@@ -287,6 +297,8 @@ let tests =
             let! addReservation = reservationService.AddReservationAsync (adminContext, reservation, ShortLang.New "en")
             Expect.isOk addReservation "should be ok"
 
+            do! Async.Sleep waitTime
+
             let! bookDetail3Result = detailsService.GetBookDetailsAsync (adminContext, book.BookId)
             Expect.isOk bookDetail3Result "should be ok"
 
@@ -297,7 +309,7 @@ let tests =
         }
 
         // todo: handle delay or force refresh
-        ptestCaseTask "should be able to add more than one reservation to a book and then retrieve the bookdetails containing the reservations" <| fun _ -> task {
+        testCaseTask "should be able to add more than one reservation to a book and then retrieve the bookdetails containing the reservations" <| fun _ -> task {
             setUp ()
             let bookService = getBookService()
             let detailsService = getDetailsService()
@@ -319,6 +331,7 @@ let tests =
             let! addLoan = loanService.AddLoanAsync (adminContext, loan, ShortLang.New "en")
             Expect.isOk addLoan "should be ok"
 
+            do! Async.Sleep waitTime
             let! bookDetailResult = detailsService.GetBookDetailsAsync (adminContext, book.BookId)
             Expect.isOk bookDetailResult "should be ok"
 
@@ -331,6 +344,7 @@ let tests =
             let! releaseLoan = loanService.ReleaseLoanAsync(adminContext, loan.LoanId, ShortLang.New "en", System.DateTime.Now)
             Expect.isOk releaseLoan "should be ok"
 
+            do! Async.Sleep waitTime
             let! bookDetail2Result = detailsService.GetBookDetailsAsync (adminContext, book.BookId)
             Expect.isOk bookDetail2Result "should be ok"
 
@@ -344,6 +358,8 @@ let tests =
 
             let! addReservation = reservationService.AddReservationAsync (adminContext, reservation, ShortLang.New "en")
             Expect.isOk addReservation "should be ok"
+
+            do! Async.Sleep waitTime
 
             let! bookDetail3Result = detailsService.GetBookDetailsAsync (adminContext, book.BookId)
             Expect.isOk bookDetail3Result "should be ok"
@@ -359,6 +375,7 @@ let tests =
             let! addSecondReservation = reservationService.AddReservationAsync (adminContext, secondReservation, ShortLang.New "en")
             Expect.isOk addSecondReservation "should be ok"
 
+            do! Async.Sleep waitTime
             let! bookDetail4Result = detailsService.GetBookDetailsAsync (adminContext, book.BookId)
             Expect.isOk bookDetail4Result "should be ok"
 
@@ -368,8 +385,7 @@ let tests =
             Expect.isTrue (bookDetail4.ReservationsDetails |> List.length = 2) "should contain the reservation"
         }
             
-        // todo: handle delay or force refresh    
-        ptestCaseTask "should be able to add more than one reservation to a book and then retrieve the bookdetails containing the reservations async - Ok" <| fun _ -> task {
+        testCaseTask "should be able to add more than one reservation to a book and then retrieve the bookdetails containing the reservations async - Ok" <| fun _ -> task {
             setUp ()
             let bookService = getBookService()
             let detailsService = getDetailsService()
@@ -403,6 +419,7 @@ let tests =
             let! releaseLoan = loanService.ReleaseLoanAsync(adminContext, loan.LoanId, ShortLang.New "en", System.DateTime.Now)
             Expect.isOk releaseLoan "should be ok"
 
+            do! Async.Sleep waitTime
             let! bookDetail2Result = detailsService.GetBookDetailsAsync (adminContext, book.BookId)
             Expect.isOk bookDetail2Result "should be ok"
 
@@ -417,6 +434,7 @@ let tests =
             let! addReservation = reservationService.AddReservationAsync (adminContext, reservation, ShortLang.New "en")
             Expect.isOk addReservation "should be ok"
 
+            do! Async.Sleep waitTime
             let! bookDetail3Result = detailsService.GetBookDetailsAsync (adminContext, book.BookId)
             Expect.isOk bookDetail3Result "should be ok"
 
@@ -431,6 +449,7 @@ let tests =
             let! addSecondReservation = reservationService.AddReservationAsync (adminContext, secondReservation, ShortLang.New "en")
             Expect.isOk addSecondReservation "should be ok"
 
+            do! Async.Sleep waitTime
             let! bookDetail4Result = detailsService.GetBookDetailsAsync (adminContext, book.BookId)
             Expect.isOk bookDetail4Result "should be ok"
 

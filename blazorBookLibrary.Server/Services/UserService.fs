@@ -133,7 +133,7 @@ type UserService
         taskResult 
             {
                 do! 
-                //TODO: vefify also tenant spaces (i.e. the user in context should be in the user's tenant space if not admin)
+                    //TODO: vefify also tenant spaces (i.e. the user in context should be in the user's tenant space if not admin)
                     match context with
                     | Authenticated(id, _, _) when id = userId -> Ok ()
                     | Authenticated(_, roles, _) when (roles |> List.contains Role.Admin) || (roles |> List.contains Role.Manager) -> Ok ()
