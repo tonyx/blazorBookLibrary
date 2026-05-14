@@ -5,24 +5,46 @@ open BookLibrary.Shared.Commons
 open Sharpino
 open System
 
-type Tenant = {
+
+type Tenant001 = {
     TenantId: TenantId
     TentantName: TenantName
     Address: string
     TenantState: TenantState
 }
 with
-    static member New (tenantName: TenantName, address: string) = {
+    member 
+        this.Upcast(): Tenant =
+            {
+                TenantId = this.TenantId
+                TentantName = this.TentantName
+                Address = this.Address
+                TenantState = this.TenantState
+                Public = true
+            }
+
+and Tenant = {
+    TenantId: TenantId
+    TentantName: TenantName
+    Address: string
+    TenantState: TenantState
+    Public: bool
+}
+
+with
+    static member New (tenantName: TenantName, address: string, ?pub: bool) = {
         TenantId = TenantId.New()
         TentantName = tenantName
         Address = address
         TenantState = TenantState.Active
+        Public = pub |> Option.defaultValue true
     }
     static member Default= {
         TenantId = TenantId.Default
         TentantName = TenantName.New "Default" |> Result.get
         Address = ""
         TenantState = TenantState.Active
+        Public = true
     }
     member this.Deactivate  =
         match this.TenantState with
@@ -51,5 +73,12 @@ with
         try
             (data, jsonOptions) |> JsonSerializer.Deserialize<Tenant> |> Ok
         with
-            | ex -> Error(ex.Message)
+            | ex -> 
+                try
+                    let result =
+                        (data, jsonOptions) |> JsonSerializer.Deserialize<Tenant001>
+                    result.Upcast() |> Ok
+                with
+                    | ex2 -> Error(ex.Message + "; " + ex2.Message)
+                    
 

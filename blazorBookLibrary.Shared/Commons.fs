@@ -5,6 +5,7 @@ open System.Text.Json.Serialization
 open Microsoft.Extensions.Configuration
 open System.Threading
 open System.Threading.Tasks
+open FsToolkit.ErrorHandling
 
 // Guid must be the AggregateId and int the EventId
 // this conflicts with the one in the library ouch
@@ -491,14 +492,17 @@ type AppUserInfo =
                 Cognome = ""
             }
 
+// the "admin" role is global, as the manager role is per tenant
 type Role = 
     | Admin
     | Manager
+    | User
     with
         static member FromString (role: string) = 
             match role.ToLowerInvariant() with
             | "admin" -> Admin
             | "manager" ->  Manager
+            | "user" -> User
             | _ -> failwith ("unrecognized role: " + role)
         static member FromStrings (roles: List<string>) = 
             roles 
@@ -530,6 +534,21 @@ type UserContext =
             match this with
             | Authenticated(userId, roles, _) -> Authenticated(userId, roles, tenantId)
             | Anonymous -> Anonymous
+
+// we are going to use this one instead of the previous for a complete user to role extraction
+let inline userRolesForTenant<'U when 'U: (member GetTenantRoles: TenantId -> List<Role>)> 
+    (viewer: AggregateViewerAsync2<'U>) 
+    (tenantId: TenantId) 
+    (optUserId: Option<UserId>)
+    (ct: Option<CancellationToken>) =
+        taskResult
+            {
+                match optUserId with 
+                | None -> return []
+                | Some userId ->
+                    let! user = viewer ct userId.Value |> TaskResult.map snd
+                    return user.GetTenantRoles tenantId
+            }
 
 type Name =
     | Name of string

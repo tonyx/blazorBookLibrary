@@ -33,9 +33,41 @@ type BookService
         reservationViewerAsync: AggregateViewerAsync2<Reservation>,
         loanViewerAsync: AggregateViewerAsync2<Loan>,
         userViewerAsync: AggregateViewerAsync2<User>,
+        tenantViewerAsync: AggregateViewerAsync2<Tenant>,
         distributionPointViewerAsync: AggregateViewerAsync2<DistributionPoint>,
         vectorDbService: IVectorDbService
     ) =
+
+    let checkIsGlobalAdminOrTenantManager (context: UserContext) (ct: CancellationToken)= 
+        taskResult {
+            let! rolesForThisTenant = userRolesForTenant userViewerAsync context.TenantId context.UserId (ct |> Some)
+            let allowed = 
+                match context with
+                | UserContext.Anonymous -> false
+                | UserContext.Authenticated _ when context.IsInRole Role.Admin -> true
+                | UserContext.Authenticated _ when rolesForThisTenant |> (List.exists (fun r -> r = Role.Manager || r = Role.Admin)) -> true
+                | _ -> false
+            do! 
+                allowed
+                |> Result.ofBool "Updating of book allowed only to admins or managers"
+            return ()   
+        }
+    let checkIsGlobalAdminOrTenantManagerOrPublicTenant (context: UserContext) (ct: CancellationToken)= 
+        taskResult {
+            let! rolesForThisTenant = userRolesForTenant userViewerAsync context.TenantId context.UserId (ct |> Some)
+            let! isPublicTenant = tenantViewerAsync (ct |> Some) context.TenantId.Value |> TaskResult.map (fun (_, tenant) -> tenant.Public)
+            let allowed = 
+                match context, isPublicTenant with
+                | (_, true) -> true
+                | UserContext.Anonymous, _ -> false
+                | UserContext.Authenticated _, _ when context.IsInRole Role.Admin -> true
+                | UserContext.Authenticated _, _ when rolesForThisTenant |> (List.exists (fun r -> r = Role.Manager || r = Role.Admin)) -> true
+                | _ -> false
+            do! 
+                allowed
+                |> Result.ofBool "Updating of book allowed only to admins or managers"
+            return ()   
+        }
 
     new (eventStore: IEventStore<string>, vectorDbService: IVectorDbService)
         =
@@ -47,6 +79,7 @@ type BookService
         let loanViewerAsync = getAggregateStorageFreshStateViewerAsync<Loan, LoanEvent, string> eventStore
         let userViewerAsync = getAggregateStorageFreshStateViewerAsync<User, UserEvent, string> eventStore
         let reviewViewerAsync = getAggregateStorageFreshStateViewerAsync<Review, ReviewEvent, string> eventStore
+        let tenantViewerAsync = getAggregateStorageFreshStateViewerAsync<Tenant, TenantEvent, string> eventStore
         let distributionPointViewerAsync = getAggregateStorageFreshStateViewerAsync<DistributionPoint, DistributionPointEvent, string> eventStore
 
         BookService (
@@ -58,6 +91,7 @@ type BookService
             reservationViewerAsync,
             loanViewerAsync,
             userViewerAsync,
+            tenantViewerAsync,
             distributionPointViewerAsync,
             vectorDbService
         )
@@ -72,6 +106,7 @@ type BookService
         let reservationViewerAsync = getAggregateStorageFreshStateViewerAsync<Reservation, ReservationEvent, string> eventStore
         let loanViewerAsync = getAggregateStorageFreshStateViewerAsync<Loan, LoanEvent, string> eventStore
         let userViewerAsync = getAggregateStorageFreshStateViewerAsync<User, UserEvent, string> eventStore
+        let tenantViewerAsync = getAggregateStorageFreshStateViewerAsync<Tenant, TenantEvent, string> eventStore
         let distributionPointViewerAsync = getAggregateStorageFreshStateViewerAsync<DistributionPoint, DistributionPointEvent, string> eventStore
 
         BookService (
@@ -83,22 +118,19 @@ type BookService
             reservationViewerAsync,
             loanViewerAsync,
             userViewerAsync,
+            tenantViewerAsync,
             distributionPointViewerAsync,
             vectorDbService
         )
+
 
     member this.AddBookAsync (context: UserContext, book: Book, ?ct: CancellationToken) =
         taskResult
             {
                 let ct = defaultArg ct CancellationToken.None
 
-                do! 
-                    (context.IsInRole Role.Admin || context.IsInRole Role.Manager)
-                    |> Result.ofBool "Updating of book allowed only to admins or managers"
-
-                do! 
-                    context.TenantId = book.TenantId
-                    |> Result.ofBool "Book tenant id not matching"
+                do!
+                    checkIsGlobalAdminOrTenantManager context ct
 
                 let! authors: List<Author> = 
                     book.Authors
@@ -130,12 +162,10 @@ type BookService
                 let ct = defaultArg ct CancellationToken.None
 
                 do! 
-                    (context.IsInRole Role.Admin || context.IsInRole Role.Manager)
-                    |> Result.ofBool "Adding of books allowed only to admins or managers"
-
-                do! 
                     (books |> List.forall (fun book -> context.TenantId = book.TenantId))
                     |> Result.ofBool "Book tenant id not matching"
+                do!
+                    checkIsGlobalAdminOrTenantManager context ct
 
                 let! result =
                     books
@@ -151,12 +181,11 @@ type BookService
                     bookViewerAsync (Some ct) bookId.Value 
 
                 do! 
-                    (context.IsInRole Role.Admin || context.IsInRole Role.Manager)
-                    |> Result.ofBool "Updating of book allowed only to admins or managers"
-
-                do! 
                     context.TenantId = book.TenantId
                     |> Result.ofBool "Book tenant id not matching"
+
+                do!
+                    checkIsGlobalAdminOrTenantManager context ct
 
                 // 3-Phase removal for consistency
                 match book.OptionalEmbedding with
@@ -187,12 +216,11 @@ type BookService
                     bookViewerAsync (Some ct) bookId.Value |> TaskResult.map snd
 
                 do! 
-                    (context.IsInRole Role.Admin || context.IsInRole Role.Manager)
-                    |> Result.ofBool "Updating of book allowed only to admins or managers"
-
-                do! 
                     context.TenantId = book.TenantId
                     |> Result.ofBool "Book tenant id not matching"
+
+                do!
+                    checkIsGlobalAdminOrTenantManager context ct
 
                 let! author =
                     authorViewerAsync (Some ct) authorId.Value |> TaskResult.map snd
@@ -225,14 +253,12 @@ type BookService
                 let ct = defaultArg ct CancellationToken.None
                 let! book = 
                     bookViewerAsync (Some ct) bookId.Value |> TaskResult.map snd
-
-                do! 
-                    (context.IsInRole Role.Admin || context.IsInRole Role.Manager)
-                    |> Result.ofBool "Updating of book allowed only to admins or managers"
-
                 do! 
                     context.TenantId = book.TenantId
                     |> Result.ofBool "Book tenant id not matching"
+
+                do!
+                    checkIsGlobalAdminOrTenantManager context ct
 
                 let dateTime = System.DateTime.UtcNow
                 let bookUpdateTitleCommand = 
@@ -254,13 +280,13 @@ type BookService
                 let ct = defaultArg ct CancellationToken.None
                 let! book = 
                     bookViewerAsync (Some ct) bookId.Value |> TaskResult.map snd
-                do! 
-                    (context.IsInRole Role.Admin || context.IsInRole Role.Manager)
-                    |> Result.ofBool "Updating of book allowed only to admins or managers"
 
                 do! 
                     context.TenantId = book.TenantId
                     |> Result.ofBool "Book tenant id not matching"
+
+                do!
+                    checkIsGlobalAdminOrTenantManager context ct
                     
                 let dateTime = System.DateTime.UtcNow
                 let bookUpdateDescriptionCommand = 
@@ -282,18 +308,17 @@ type BookService
                 let ct = defaultArg ct CancellationToken.None
                 let! book = 
                     bookViewerAsync (Some ct) bookId.Value |> TaskResult.map snd
-                let dateTime = System.DateTime.UtcNow
-                let bookRemoveDescriptionCommand = 
-                    BookCommand.RemoveDescription dateTime
-                
-                do! 
-                    (context.IsInRole Role.Admin || context.IsInRole Role.Manager)
-                    |> Result.ofBool "Updating of book allowed only to admins or managers"
 
                 do! 
                     context.TenantId = book.TenantId
                     |> Result.ofBool "Book tenant id not matching"
 
+                do!
+                    checkIsGlobalAdminOrTenantManager context ct
+
+                let dateTime = System.DateTime.UtcNow
+                let bookRemoveDescriptionCommand = 
+                    BookCommand.RemoveDescription dateTime
                 let! result = 
                     runAggregateCommandMdAsync<Book, BookEvent, string>
                         book.Id
@@ -316,12 +341,11 @@ type BookService
                     BookCommand.EmbedDescription (embeddingId, dateTime)
                 
                 do! 
-                    (context.IsInRole Role.Admin || context.IsInRole Role.Manager)
-                    |> Result.ofBool "Updating of book allowed only to admins or managers"
-
-                do! 
                     context.TenantId = book.TenantId
                     |> Result.ofBool "Book tenant id not matching"
+
+                do!
+                    checkIsGlobalAdminOrTenantManager context ct
                 
                 let! result = 
                     runAggregateCommandMdAsync<Book, BookEvent, string>
@@ -338,8 +362,15 @@ type BookService
         taskResult
             {
                 let ct = defaultArg ct CancellationToken.None
+
                 let! book = 
                     bookViewerAsync (Some ct) bookId.Value |> TaskResult.map snd
+                do! 
+                    context.TenantId = book.TenantId
+                    |> Result.ofBool "Book tenant id not matching"
+                do!
+                    checkIsGlobalAdminOrTenantManager context ct
+
                 let dateTime = System.DateTime.UtcNow
                 let bookRemoveEmbeddingCommand = 
                     BookCommand.RemoveEmbedding dateTime
@@ -348,9 +379,6 @@ type BookService
                     (context.IsInRole Role.Admin || context.IsInRole Role.Manager)
                     |> Result.ofBool "Updating of book allowed only to admins or managers"
 
-                do! 
-                    context.TenantId = book.TenantId
-                    |> Result.ofBool "Book tenant id not matching"
                 
                 let! result = 
                     runAggregateCommandMdAsync<Book, BookEvent, string>
@@ -376,6 +404,8 @@ type BookService
                 do! 
                     books |> List.forall (fun book -> context.TenantId = book.TenantId)
                     |> Result.ofBool "Book tenant id not matching"
+                do!
+                    checkIsGlobalAdminOrTenantManager context ct
 
                 //todo: this will fail if one of them fails. Consider later being more "forcing" on the failures (logging more and keep going)
                 let! _ =
@@ -403,14 +433,12 @@ type BookService
                 let dateTime = System.DateTime.UtcNow
                 let bookUpdateIsbnCommand = 
                     BookCommand.UpdateIsbn (isbn, dateTime)
-                
-                do! 
-                    (context.IsInRole Role.Admin || context.IsInRole Role.Manager)
-                    |> Result.ofBool "Updating of book allowed only to admins or managers"
 
                 do! 
                     context.TenantId = book.TenantId
                     |> Result.ofBool "Book tenant id not matching"
+                do!
+                    checkIsGlobalAdminOrTenantManager context ct
                 
                 let! result = 
                     runAggregateCommandMdAsync<Book, BookEvent, string>
@@ -427,9 +455,6 @@ type BookService
         taskResult
             {
                 let ct = defaultArg ct CancellationToken.None
-                do! 
-                    (context.IsInRole Role.Admin || context.IsInRole Role.Manager)
-                    |> Result.ofBool "Updating of book allowed only to admins or managers"
 
                 let! book = 
                     bookViewerAsync (Some ct) bookId.Value |> TaskResult.map snd
@@ -437,6 +462,9 @@ type BookService
                 do! 
                     context.TenantId = book.TenantId
                     |> Result.ofBool "Book tenant id not matching"
+
+                do!
+                    checkIsGlobalAdminOrTenantManager context ct
                 
                 let dateTime = System.DateTime.UtcNow
                 let bookRemoveImageUrlCommand = 
@@ -457,9 +485,6 @@ type BookService
         taskResult
             {
                 let ct = defaultArg ct CancellationToken.None
-                do! 
-                    (context.IsInRole Role.Admin || context.IsInRole Role.Manager)
-                    |> Result.ofBool "Updating of book allowed only to admins or managers"
 
                 let! book = 
                     bookViewerAsync (Some ct) bookId.Value |> TaskResult.map snd
@@ -467,6 +492,8 @@ type BookService
                 do! 
                     context.TenantId = book.TenantId
                     |> Result.ofBool "Book tenant id not matching"
+                do!
+                    checkIsGlobalAdminOrTenantManager context ct
                 
                 let dateTime = System.DateTime.UtcNow
                 let bookSetImageUrlCommand = 
@@ -496,6 +523,9 @@ type BookService
                 do! 
                     context.TenantId = book.TenantId
                     |> Result.ofBool "Book tenant id not matching"
+
+                do!
+                    checkIsGlobalAdminOrTenantManager context ct
                 
                 let dateTime = System.DateTime.UtcNow
                 let command = 
@@ -514,9 +544,6 @@ type BookService
         let ct = defaultArg ct CancellationToken.None
         taskResult
             {
-                do! 
-                    (context.IsInRole Role.Admin || context.IsInRole Role.Manager)
-                    |> Result.ofBool "Updating of book allowed only to admins or managers"
                 let! books = 
                     bookIds
                     |> List.traverseTaskResultM (fun bookId -> bookViewerAsync (Some ct) bookId.Value |> TaskResult.map snd)
@@ -525,6 +552,9 @@ type BookService
                     |> Result.ofBool "Book tenant id not matching"
                 let! userId = 
                     context.UserId |> Result.ofOption "user must be some for bulkEdit"
+
+                do!
+                    checkIsGlobalAdminOrTenantManager context ct
                 
                 let dateTime = System.DateTime.UtcNow
                 let preExecutedYearEditCommands = 
@@ -665,9 +695,6 @@ type BookService
         taskResult
             {
                 let ct = defaultArg ct CancellationToken.None
-                do! 
-                    (context.IsInRole Role.Admin || context.IsInRole Role.Manager)
-                    |> Result.ofBool "Updating of book allowed only to admins or managers"
                 let! book = 
                     bookViewerAsync (Some ct) bookId.Value |> TaskResult.map snd
                 let! author = 
@@ -676,6 +703,8 @@ type BookService
                 do! 
                     context.TenantId = book.TenantId
                     |> Result.ofBool "Book tenant id not matching"
+                do!
+                    checkIsGlobalAdminOrTenantManager context ct
                 
                 let bookRemoveAuthorCommand = 
                     BookCommand.RemoveAuthor (authorId, dateTime)
@@ -700,10 +729,10 @@ type BookService
                 let ct = defaultArg ct CancellationToken.None
                 let! book = 
                     bookViewerAsync (Some ct) id.Value |> TaskResult.map snd
-
                 do! 
                     context.TenantId = book.TenantId
                     |> Result.ofBool "Book tenant id not matching"
+                do! checkIsGlobalAdminOrTenantManagerOrPublicTenant context ct
                 
                 return book
             }

@@ -7,10 +7,34 @@ open BookLibrary.Shared.Commons
 open System
 open System.Globalization
 
-type User =
+
+type User001 = 
+    { 
+        UserId: UserId
+        Tenants: List<TenantId>
+        CurrentTenant: TenantId
+        AppUserInfo: AppUserInfo
+        Reservations: List<ReservationId>
+        CurrentLoans: List<LoanId>
+    }
+    with
+        member 
+            this.Upcast() : User =
+            {
+                UserId = this.UserId
+                Tenants = this.Tenants 
+                TenantRoles = 
+                    this.Tenants |> List.map (fun tenantId -> (tenantId, [Role.User])) |> Map
+                CurrentTenant = this.CurrentTenant
+                AppUserInfo = this.AppUserInfo
+                Reservations = this.Reservations
+                CurrentLoans = this.CurrentLoans
+            }
+and User =
     {
         UserId: UserId
         Tenants: List<TenantId>
+        TenantRoles: Map<TenantId, List<Role>>
         CurrentTenant: TenantId
         AppUserInfo: AppUserInfo
         Reservations: List<ReservationId>
@@ -21,6 +45,7 @@ type User =
             { 
                 Tenants = [TenantId.Default]
                 CurrentTenant = TenantId.Default
+                TenantRoles = [(TenantId.Default, [Role.User])] |> Map
                 UserId = userId
                 AppUserInfo = AppUserInfo.NewEmpty(userId)
                 Reservations = []
@@ -28,8 +53,9 @@ type User =
             }
         static member NewWithUserInfo(userId: UserId, appUserInfo: AppUserInfo) = 
             { 
-                Tenants = [TenantId.Default];
-                CurrentTenant = TenantId.Default;
+                Tenants = [TenantId.Default]
+                CurrentTenant = TenantId.Default
+                TenantRoles = [(TenantId.Default, [Role.User])] |> Map
                 UserId = userId
                 AppUserInfo = appUserInfo
                 Reservations = []
@@ -114,8 +140,14 @@ type User =
         member this.HasCurrentLoan (loanId: LoanId) = 
             this.CurrentLoans |> List.contains loanId
 
+        // will use tenantRoles instead
         member this.IsTenantMember (tenantId: TenantId) = 
             this.Tenants |> List.contains tenantId
+
+        member this.GetTenantRoles (tenantId: TenantId) =
+            match this.TenantRoles.TryFind tenantId with
+            | Some roles -> roles
+            | None -> []
 
         member this.Id = this.UserId.Value
         static member StorageName = "_User"
@@ -127,6 +159,11 @@ type User =
             try
                 (data, jsonOptions) |> JsonSerializer.Deserialize<User> |> Ok
             with
-                | ex -> Error (ex.Message)
+                | ex -> 
+                try
+                    let user001 = (data, jsonOptions) |> JsonSerializer.Deserialize<User001>
+                    user001.Upcast() |> Ok
+                with
+                    | ex1 -> Error (ex.Message + "; " + ex1.Message)
 
     
