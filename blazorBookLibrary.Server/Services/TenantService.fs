@@ -51,13 +51,13 @@ type TenantService
                 return exists.IsOk
             }
 
-        member this.EnsureDefaultTenantExists (?ct: CancellationToken) =
+        member this.EnsureDefaultTenantExists (userId: UserId, ?ct: CancellationToken) =
             taskResult {
                 let! defaultTenantExists = this.DefaultTenantIdExists(?ct = ct)
                 if defaultTenantExists then
                     return! Ok()
                 else
-                    let initialInstance = Tenant.Default
+                    let initialInstance = Tenant.NewDefault(userId, TenantName.New "Default" |> Result.get, "")
                     let! result  =
                         runInitAsync<Tenant, TenantEvent, string>
                             eventStore
@@ -69,5 +69,5 @@ type TenantService
 
 
         interface ITenantService with
-            member this.EnsureDefaultTenantExistsAsync (?ct: CancellationToken) =
-                this.EnsureDefaultTenantExists(?ct = ct)
+            member this.EnsureDefaultTenantExistsAsync (userId: UserId,?ct: CancellationToken) =
+                this.EnsureDefaultTenantExists(userId, ?ct = ct)

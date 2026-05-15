@@ -33,6 +33,7 @@ type ReservationService
         reservationViewerAsync: AggregateViewerAsync2<Reservation>,
         loanViewerAsync: AggregateViewerAsync2<Loan>,
         userViewerAsync: AggregateViewerAsync2<User>,
+        tenantViewerAsync: AggregateViewerAsync2<Tenant>,
         usersService: IUserService,
         mailNotificator: IMailNotificator,
         maxReservations: int,
@@ -40,6 +41,38 @@ type ReservationService
         fromName: string,
         mailBodyRetriever: IMailBodyRetriever
     ) =
+    let checkIsGlobalAdminOrTenantManager (context: UserContext) (ct: CancellationToken)= 
+        taskResult {
+            let! rolesForThisTenant = userRolesForTenant userViewerAsync context.TenantId context.UserId (ct |> Some)
+            let allowed = 
+                match context with
+                | UserContext.Anonymous -> false
+                | UserContext.Authenticated _ when context.IsInRole Role.Admin -> true
+                | UserContext.Authenticated _ when rolesForThisTenant |> (List.exists (fun r -> r = Role.Manager || r = Role.Admin)) -> true
+                | _ -> false
+            do! 
+                allowed
+                |> Result.ofBool "Updating of book allowed only to admins or managers"
+            return ()   
+        }
+    let checkIsGlobalAdminOrTenantManagerOrPublicTenant (context: UserContext) (ct: CancellationToken)= 
+        taskResult {
+            let! rolesForThisTenant = userRolesForTenant userViewerAsync context.TenantId context.UserId (ct |> Some)
+            let! tenant = tenantViewerAsync (ct |> Some) context.TenantId.Value |> TaskResult.map snd
+            let isPublicTenant = tenant.Public
+            let allowed = 
+                match context, isPublicTenant with
+                | (_, true) -> true
+                | UserContext.Anonymous, _ -> false
+                | UserContext.Authenticated (userId, _, _), _ when context.IsInRole Role.Admin -> true
+                | UserContext.Authenticated _, _ when rolesForThisTenant |> (List.exists (fun r -> r = Role.Manager || r = Role.Admin)) -> true
+                | _ -> false
+            do! 
+                allowed
+                |> Result.ofBool "Updating of book allowed only to admins or managers"
+            return ()   
+        }
+
     new (eventStore: IEventStore<string>, userService: IUserService, mailNotificator: IMailNotificator, configuration: IConfiguration, mailBodyRetriever: IMailBodyRetriever)
         =
         let messageSenders = MessageSenders.NoSender
@@ -49,6 +82,7 @@ type ReservationService
         let reservationViewerAsync = getAggregateStorageFreshStateViewerAsync<Reservation, ReservationEvent, string> eventStore
         let loanViewerAsync = getAggregateStorageFreshStateViewerAsync<Loan, LoanEvent, string> eventStore
         let userViewerAsync = getAggregateStorageFreshStateViewerAsync<User, UserEvent, string> eventStore
+        let tenantViewerAsync = getAggregateStorageFreshStateViewerAsync<Tenant, TenantEvent, string> eventStore
         let maxReservations = configuration.GetValue<int>("BooksLibrary:MaxReservationsPerUser", 3)
         let fromEmail = configuration.GetValue<string>("BooksLibrary:FromEmail", "noreply@blazorbooklibrary.com")
         let fromName = configuration.GetValue<string>("BooksLibrary:FromName", "Blazor Book Library")
@@ -61,6 +95,7 @@ type ReservationService
             reservationViewerAsync,
             loanViewerAsync,
             userViewerAsync,
+            tenantViewerAsync,
             userService,
             mailNotificator,
             maxReservations,
@@ -131,6 +166,10 @@ type ReservationService
 
                     let! alreadyExistingReservations =
                         this.GetReservationsAsync (context, book.CurrentReservations)
+
+                    do! 
+                        context.TenantId = book.TenantId
+                        |> Result.ofBool $"Book tenant id {book.TenantId} does not match user tenant id {context.TenantId}"
 
                     let! noOverlaps =
                         alreadyExistingReservations

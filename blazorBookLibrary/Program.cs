@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Localization;
 using System.Globalization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.DependencyInjection;
+using System.Linq;
 
 using Microsoft.EntityFrameworkCore;
 using blazorBookLibrary.Client.Pages;
@@ -293,11 +294,21 @@ using (var scope = app.Services.CreateScope())
         Console.WriteLine($"[Startup] Failed to ensure Tags repository: {tagsResult.ErrorValue}");
     }
 
-    var tenantService = scope.ServiceProvider.GetRequiredService<ITenantService>();
-    var tenantResult = await tenantService.EnsureDefaultTenantExistsAsync();
-    if (tenantResult.IsError)
+    var firstAdmin = (await userManager.GetUsersInRoleAsync("Admin")).FirstOrDefault();
+    if (firstAdmin != null)
     {
-        Console.WriteLine($"[Startup] Failed to ensure default tenant: {tenantResult.ErrorValue}");
+        var adminUserId = UserId.NewUserId(Guid.Parse(firstAdmin.Id));
+        // var userServie = scope.ServiceProvider.GetRequiredService<IUserService>();
+        var tenantService = scope.ServiceProvider.GetRequiredService<ITenantService>();
+        var tenantResult = await tenantService.EnsureDefaultTenantExistsAsync(adminUserId);
+        if (tenantResult.IsError)
+        {
+            Console.WriteLine($"[Startup] Failed to ensure default tenant: {tenantResult.ErrorValue}");
+        }
+    }
+    else
+    {
+        Console.WriteLine($"[Startup] No admin user found");
     }
 }
 

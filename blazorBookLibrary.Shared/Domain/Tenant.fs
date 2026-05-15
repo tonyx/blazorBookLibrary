@@ -5,51 +5,62 @@ open BookLibrary.Shared.Commons
 open Sharpino
 open System
 
-
-type Tenant001 = {
-    TenantId: TenantId
-    TentantName: TenantName
-    Address: string
-    TenantState: TenantState
-}
-with
-    member 
-        this.Upcast(): Tenant =
-            {
-                TenantId = this.TenantId
-                TentantName = this.TentantName
-                Address = this.Address
-                TenantState = this.TenantState
-                Public = true
-            }
-
-and Tenant = {
-    TenantId: TenantId
-    TentantName: TenantName
-    Address: string
-    TenantState: TenantState
-    Public: bool
-}
+type 
+    Tenant = {
+        OwnerId: UserId
+        TenantId: TenantId
+        TentantName: TenantName
+        Address: string
+        TenantState: TenantState
+        Public: bool
+        Tags: List<Tag>
+    }
 
 with
-    static member New (tenantName: TenantName, address: string, ?pub: bool) = {
+    static member New (userId: UserId, tenantName: TenantName, address: string, ?pub: bool) = {
+        OwnerId = userId
         TenantId = TenantId.New()
         TentantName = tenantName
         Address = address
         TenantState = TenantState.Active
         Public = pub |> Option.defaultValue true
+        Tags = []
     }
-    static member Default= {
-        TenantId = TenantId.Default
-        TentantName = TenantName.New "Default" |> Result.get
-        Address = ""
-        TenantState = TenantState.Active
-        Public = true
-    }
+    static member NewDefault (userId: UserId, tenantName: TenantName, address: string) =
+        { Tenant.New(userId, tenantName, address, true) with 
+            TenantId = TenantId.Default }
     member this.Deactivate  =
         match this.TenantState with
         | Active -> { this with TenantState = TenantState.Deactivated } |> Ok
         | _ -> Error "Tenant is already deactivated"
+
+    member this.AddTag (tag: Tag) =
+        result
+            {
+                do! 
+                    this.Tags |> List.exists (fun t -> t = tag)
+                    |> not
+                    |> Result.ofBool "Tag already exists"
+                return { this with Tags = this.Tags @ [tag] }
+            }
+
+    member this.RemoveTag (tag: Tag) =
+        result
+            {
+                do! 
+                    this.Tags |> List.exists (fun t -> t = tag)
+                    |> Result.ofBool "Tag does not exist"
+                return { this with Tags = this.Tags |> List.filter (fun t -> t <> tag) }
+            }
+
+    member this.ReplaceTag (oldTag: Tag, newTag: Tag) =
+        result
+            {
+                do! 
+                    this.Tags |> List.exists (fun t -> t = oldTag)
+                    |> Result.ofBool "Tag does not exist"
+                return { this with Tags = this.Tags |> List.map (fun t -> if t = oldTag then newTag else t) }
+            }
 
     member this.Activate  =
         match this.TenantState with
@@ -70,15 +81,11 @@ with
         (this, jsonOptions) |> JsonSerializer.Serialize
         
     static member Deserialize (data: string) = 
+        // reminder: a proper computation expression could be used here.
         try
             (data, jsonOptions) |> JsonSerializer.Deserialize<Tenant> |> Ok
         with
             | ex -> 
-                try
-                    let result =
-                        (data, jsonOptions) |> JsonSerializer.Deserialize<Tenant001>
-                    result.Upcast() |> Ok
-                with
-                    | ex2 -> Error(ex.Message + "; " + ex2.Message)
+                Error (ex.Message)
                     
 

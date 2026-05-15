@@ -916,6 +916,10 @@ type BookService
         let criteria = defaultArg (criteria |> Option.bind Option.ofObj) SearchCriteria.searchAllBooks
         taskResult
             {
+                let ct = defaultArg ct CancellationToken.None
+                do!
+                    checkIsGlobalAdminOrTenantManagerOrPublicTenant context ct
+
                 let filter (book: Book) = 
                     let titleMatch = book.Title.Value.Contains(title.Value, StringComparison.OrdinalIgnoreCase)
                     let yearMatch = 
@@ -929,7 +933,7 @@ type BookService
                             book.MainCategory = c || (book.AdditionalCategories |> List.contains c))
                     titleMatch && yearMatch && categoryMatch && criteria.Invoke book && book.TenantId = context.TenantId
                         
-                let! booksWithId = StateView.getAllFilteredAggregateStatesAsync<Book, BookEvent, string> filter eventStore ct 
+                let! booksWithId = StateView.getAllFilteredAggregateStatesAsync<Book, BookEvent, string> filter eventStore (ct |> Some)
                 return booksWithId |> List.ofSeq |> List.map snd
             }
 
@@ -937,12 +941,16 @@ type BookService
         let criteria = defaultArg (criteria |> Option.bind Option.ofObj) SearchCriteria.searchAllBooks
         taskResult
             {
+                let ct = defaultArg ct CancellationToken.None
+                do!
+                    checkIsGlobalAdminOrTenantManagerOrPublicTenant context ct
+
                 let filter (book: Book) = 
                     (book.Isbn.Value.Contains(isbn.Value, StringComparison.OrdinalIgnoreCase) ||
                     book.Title.Value.Contains(title.Value, StringComparison.OrdinalIgnoreCase))
-                    && criteria.Invoke book
+                    && criteria.Invoke book && book.TenantId = context.TenantId
                         
-                let! booksWithId = StateView.getAllFilteredAggregateStatesAsync<Book, BookEvent, string> filter eventStore ct 
+                let! booksWithId = StateView.getAllFilteredAggregateStatesAsync<Book, BookEvent, string> filter eventStore (ct |> Some)
                 return booksWithId |> List.ofSeq |> List.map snd
         }
 
@@ -950,13 +958,14 @@ type BookService
         taskResult
             {
                 let ct = defaultArg ct CancellationToken.None
-                do! 
-                    (context.IsInRole Role.Admin || context.IsInRole Role.Manager)
-                    |> Result.ofBool "Updating of book allowed only to admins or managers"
                 let! book = bookViewerAsync (ct |> Some) bookId.Value |> TaskResult.map snd
                 do!
                     book.TenantId = context.TenantId
                     |> Result.ofBool "Book not found in tenant"
+
+                do!
+                    checkIsGlobalAdminOrTenantManager context ct
+
                 let command = BookCommand.ChangeMainCategory (category, System.DateTime.Now)
                 return!
                     runAggregateCommandMdAsync<Book, BookEvent, string>
@@ -972,13 +981,14 @@ type BookService
         taskResult
             {
                 let ct = defaultArg ct CancellationToken.None
-                do! 
-                    (context.IsInRole Role.Admin || context.IsInRole Role.Manager)
-                    |> Result.ofBool "Updating of book allowed only to admins or managers"
                 let! book = bookViewerAsync (ct |> Some) bookId.Value |> TaskResult.map snd
                 do!
                     book.TenantId = context.TenantId
                     |> Result.ofBool "Book not found in tenant"
+
+                do!
+                    checkIsGlobalAdminOrTenantManager context ct
+
                 let command = BookCommand.AddAdditionalCategory (category, System.DateTime.Now)
                 return!
                     runAggregateCommandMdAsync<Book, BookEvent, string>
@@ -994,13 +1004,15 @@ type BookService
         taskResult
             {
                 let ct = defaultArg ct CancellationToken.None
-                do! 
-                    (context.IsInRole Role.Admin || context.IsInRole Role.Manager)
-                    |> Result.ofBool "Updating of book allowed only to admins or managers"
+
                 let! book = bookViewerAsync (ct |> Some) bookId.Value |> TaskResult.map snd
+
                 do!
                     book.TenantId = context.TenantId
                     |> Result.ofBool "Book not found in tenant"
+                do!
+                    checkIsGlobalAdminOrTenantManager context ct
+
                 let command = BookCommand.RemoveAdditionalCategory (category, System.DateTime.Now)
                 return!
                     runAggregateCommandMdAsync<Book, BookEvent, string>
@@ -1015,13 +1027,12 @@ type BookService
         taskResult
             {
                 let ct = defaultArg ct CancellationToken.None
-                do! 
-                    (context.IsInRole Role.Admin || context.IsInRole Role.Manager)
-                    |> Result.ofBool "Updating of book allowed only to admins or managers"
                 let! book = bookViewerAsync (ct |> Some) bookId.Value |> TaskResult.map snd
                 do!
                     book.TenantId = context.TenantId
                     |> Result.ofBool "Book not found in tenant"
+                do!
+                    checkIsGlobalAdminOrTenantManager context ct
                 let command = BookCommand.AddTag (tag, System.DateTime.Now)
                 return!
                     runAggregateCommandMdAsync<Book, BookEvent, string>
@@ -1036,13 +1047,12 @@ type BookService
         taskResult
             {
                 let ct = defaultArg ct CancellationToken.None
-                do! 
-                    (context.IsInRole Role.Admin || context.IsInRole Role.Manager)
-                    |> Result.ofBool "Updating of book allowed only to admins or managers"
                 let! book = bookViewerAsync (ct |> Some) bookId.Value |> TaskResult.map snd
                 do!
                     book.TenantId = context.TenantId
                     |> Result.ofBool "Book not found in tenant"
+                do!
+                    checkIsGlobalAdminOrTenantManager context ct
                 let command = BookCommand.RemoveTag (tag, System.DateTime.Now)
                 return!
                     runAggregateCommandMdAsync<Book, BookEvent, string>
@@ -1057,13 +1067,13 @@ type BookService
         taskResult
             {
                 let ct = defaultArg ct CancellationToken.None
-                do! 
-                    (context.IsInRole Role.Admin || context.IsInRole Role.Manager)
-                    |> Result.ofBool "Updating of book allowed only to admins or managers"
                 let! book = bookViewerAsync (ct |> Some) bookId.Value |> TaskResult.map snd
                 do!
                     book.TenantId = context.TenantId
                     |> Result.ofBool "Book not found in tenant"
+                do!
+                    checkIsGlobalAdminOrTenantManager context ct
+
                 let command = BookCommand.Seal (System.DateTime.UtcNow)
                 return!
                     runAggregateCommandMdAsync<Book, BookEvent, string>
@@ -1078,13 +1088,12 @@ type BookService
         taskResult
             {
                 let ct = defaultArg ct CancellationToken.None
-                do! 
-                    (context.IsInRole Role.Admin || context.IsInRole Role.Manager)
-                    |> Result.ofBool "Updating of book allowed only to admins or managers"
                 let! book = bookViewerAsync (ct |> Some) bookId.Value |> TaskResult.map snd
                 do!
                     book.TenantId = context.TenantId
                     |> Result.ofBool "Book not found in tenant"
+                do!
+                    checkIsGlobalAdminOrTenantManager context ct
                 let command = BookCommand.Unseal (System.DateTime.UtcNow)
                 return!
                     runAggregateCommandMdAsync<Book, BookEvent, string>
@@ -1100,19 +1109,18 @@ type BookService
         taskResult
             {
                 let ct = defaultArg ct CancellationToken.None
-                do! 
-                    (context.IsInRole Role.Admin || context.IsInRole Role.Manager)
-                    |> Result.ofBool "Updating of book allowed only to admins or managers"
+
                 let! book = bookViewerAsync (ct |> Some) bookId.Value |> TaskResult.map snd
                 let! distributionPoint = distributionPointViewerAsync (ct |> Some) distributionPointId.Value |> TaskResult.map snd
 
                 do!
                     book.TenantId = context.TenantId
                     |> Result.ofBool "Book not found in tenant"
-
                 do!
                     distributionPoint.TenantId = context.TenantId
                     |> Result.ofBool "Distribution point not found in tenant"
+                do!
+                    checkIsGlobalAdminOrTenantManager context ct
 
                 let command = BookCommand.SetDistributionPoint(distributionPointId, userId, DateTime.UtcNow)
                 return!
@@ -1129,9 +1137,6 @@ type BookService
         taskResult
             {
                 let ct = defaultArg ct CancellationToken.None
-                do! 
-                    (context.IsInRole Role.Admin || context.IsInRole Role.Manager)
-                    |> Result.ofBool "Updating of book allowed only to admins or managers"
                 let! book = bookViewerAsync (ct |> Some) bookId.Value |> TaskResult.map snd
                 let! distributionPoint = distributionPointViewerAsync (ct |> Some) distributionPointId.Value |> TaskResult.map snd
                 do!
@@ -1140,6 +1145,9 @@ type BookService
                 do!
                     distributionPoint.TenantId = context.TenantId
                     |> Result.ofBool "Distribution point not found in tenant"
+                do!
+                    checkIsGlobalAdminOrTenantManager context ct
+
                 let command = BookCommand.UnsetDistributionPoint(userId, DateTime.UtcNow)
                 return!
                     runAggregateCommandMdAsync<Book, BookEvent, string>
@@ -1155,9 +1163,6 @@ type BookService
         taskResult
             {
                 let ct = defaultArg ct CancellationToken.None
-                do! 
-                    (context.IsInRole Role.Admin || context.IsInRole Role.Manager)
-                    |> Result.ofBool "Updating of book allowed only to admins or managers"
                 let! books = 
                     StateView.getAllFilteredAggregateStatesAsync<Book, BookEvent, string> 
                         (fun book -> book.DistributionPoint = Some distributionPointId)
@@ -1168,6 +1173,10 @@ type BookService
                 do!
                     (books |> List.forall (fun book -> book.TenantId = context.TenantId))
                     |> Result.ofBool "Book not found in tenant"
+
+                do!
+                    checkIsGlobalAdminOrTenantManager context ct
+
                 let booksIds = books |>> _.Id
                 let unsetCommand: List<AggregateCommand<Book, BookEvent>> = 
                     [ 1 .. booksIds.Length ]
@@ -1193,13 +1202,14 @@ type BookService
                         (fun book -> book.DistributionPoint = Some fromPoint)
                         eventStore
                         (Some ct)
-                do! 
-                    (context.IsInRole Role.Admin || context.IsInRole Role.Manager)
-                    |> Result.ofBool "Updating of book allowed only to admins or managers"
                 let books = books |>> snd
                 do!
                     (books |> List.forall (fun book -> book.TenantId = context.TenantId))
                     |> Result.ofBool "Book not found in tenant"        
+
+                do!
+                    checkIsGlobalAdminOrTenantManager context ct
+
                 let bookIds = books |>> _.Id
 
                 let! dp1 = distributionPointViewerAsync (ct |> Some) fromPoint.Value |> TaskResult.map snd
@@ -1236,9 +1246,11 @@ type BookService
                     (author.TenantId = context.TenantId)
                     |> Result.ofBool "Author not found in tenant"
 
+                do! 
+                    checkIsGlobalAdminOrTenantManagerOrPublicTenant context ct
 
                 let filter (book: Book) = 
-                    book.Authors |> List.contains authorId && criteria.Invoke book
+                    book.Authors |> List.contains authorId && criteria.Invoke book && book.TenantId = context.TenantId
                         
                 let! booksWithId = StateView.getAllFilteredAggregateStatesAsync<Book, BookEvent, string> filter eventStore (ct  |> Some)
                 return booksWithId |> List.ofSeq |> List.map snd
@@ -1257,6 +1269,9 @@ type BookService
                 do!
                     authors |> List.forall (fun a -> a.TenantId = context.TenantId)
                     |> Result.ofBool "Author not found in tenant"
+
+                do! 
+                    checkIsGlobalAdminOrTenantManagerOrPublicTenant context ct
                 
                 let filter (book: Book) = 
                     book.Authors |> List.exists (fun a -> authorsIds |> List.contains a) && criteria.Invoke book
@@ -1273,6 +1288,9 @@ type BookService
                 let filter (book: Book) = 
                     book.Title.Value.Contains(title.Value, StringComparison.OrdinalIgnoreCase) &&
                     (book.Authors |> List.exists (fun a -> authors |> List.contains a)) && criteria.Invoke book && book.TenantId = context.TenantId
+
+                do! 
+                    checkIsGlobalAdminOrTenantManagerOrPublicTenant context ct
                         
                 let! booksWithId = StateView.getAllFilteredAggregateStatesAsync<Book, BookEvent, string> filter eventStore (ct |> Some)
                 return booksWithId |> List.ofSeq |> List.map snd
@@ -1283,6 +1301,8 @@ type BookService
         let ct = defaultArg ct CancellationToken.None
         taskResult
             {
+                do! 
+                    checkIsGlobalAdminOrTenantManagerOrPublicTenant context ct
                 let filter (book: Book) = 
                     let yearMatch = 
                         match year with
@@ -1293,7 +1313,8 @@ type BookService
                     book.Title.Value.Contains(title.Value, StringComparison.OrdinalIgnoreCase) &&
                     (book.Authors |> List.exists (fun a -> authors |> List.contains a)) &&
                     yearMatch && criteria.Invoke book && book.TenantId = context.TenantId
-                        
+
+
                 let! booksWithId = StateView.getAllFilteredAggregateStatesAsync<Book, BookEvent, string> filter eventStore (ct |> Some) 
                 return booksWithId |> List.ofSeq |> List.map snd
             }
@@ -1303,6 +1324,8 @@ type BookService
         let ct = defaultArg ct CancellationToken.None
         taskResult
             {
+                do! 
+                    checkIsGlobalAdminOrTenantManagerOrPublicTenant context ct
                 let filter (book: Book) = 
                     let yearMatch = 
                         match year with
@@ -1322,13 +1345,14 @@ type BookService
         let ct = defaultArg ct CancellationToken.None
         taskResult
             {
+                do! 
+                    checkIsGlobalAdminOrTenantManagerOrPublicTenant context ct        
                 let filter (book: Book) = 
                     let authorMatch = (book.Authors |> List.exists (fun a -> authors |> List.contains a))
                     let categoryMatch = 
                         categories |> Seq.exists (fun c -> 
                             book.MainCategory = c || (book.AdditionalCategories |> List.contains c))
                     authorMatch && categoryMatch && criteria.Invoke book && book.TenantId = context.TenantId
-                        
                 let! booksWithId = StateView.getAllFilteredAggregateStatesAsync<Book, BookEvent, string> filter eventStore (ct |> Some)
                 return booksWithId |> List.ofSeq |> List.map snd
             }
@@ -1338,6 +1362,8 @@ type BookService
         let ct = defaultArg ct CancellationToken.None
         taskResult
             {
+                do! 
+                    checkIsGlobalAdminOrTenantManagerOrPublicTenant context ct        
                 let filter (book: Book) = 
                     let titleMatch = book.Title.Value.Contains(title.Value, StringComparison.OrdinalIgnoreCase)
                     let authorMatch = (book.Authors |> List.exists (fun a -> authors |> List.contains a))
@@ -1355,6 +1381,8 @@ type BookService
         let ct = defaultArg ct CancellationToken.None
         taskResult
             {
+                do! 
+                    checkIsGlobalAdminOrTenantManagerOrPublicTenant context ct        
                 let filter (book: Book) = 
                     let yearMatch = 
                         match year with
@@ -1377,6 +1405,8 @@ type BookService
         let ct = defaultArg ct CancellationToken.None
         taskResult
             {
+                do! 
+                    checkIsGlobalAdminOrTenantManagerOrPublicTenant context ct        
                 let filter (book: Book) = 
                     let titleMatch = book.Title.Value.Contains(title.Value, StringComparison.OrdinalIgnoreCase)
                     let yearMatch = 
@@ -1401,6 +1431,13 @@ type BookService
             {
                 let! book =
                     bookViewerAsync (ct |> Some) bookId.Value |> TaskResult.map snd
+                let! user =
+                    userViewerAsync (ct |> Some) userId.Value |> TaskResult.map snd
+
+                // todo: speciy better the tenant roles and check avoid redoundant cheks
+                do! 
+                    user.CurrentTenant = book.TenantId
+                    |> Result.ofBool $"User tenant '{user.CurrentTenant}' doesn't match book tenant '{book.TenantId}'"
                 do!
                     book.TenantId = context.TenantId
                     |> Result.ofBool $"Book tenant '{book.TenantId}' doesn't match user tenant '{context.TenantId}'"

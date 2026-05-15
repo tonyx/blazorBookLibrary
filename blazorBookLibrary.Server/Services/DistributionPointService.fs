@@ -16,13 +16,29 @@ open BookLibrary.Utils
 type DistributionPointService
     (
         eventStore: IEventStore<string>,
-        messageSenders: MessageSenders
+        messageSenders: MessageSenders,
+        userViewerAsync: AggregateViewerAsync2<User>
     ) =
+    let checkIsGlobalAdminOrTenantManager (context: UserContext) (ct: CancellationToken)= 
+        taskResult {
+            let! rolesForThisTenant = userRolesForTenant userViewerAsync context.TenantId context.UserId (ct |> Some)
+            let allowed = 
+                match context with
+                | UserContext.Anonymous -> false
+                | UserContext.Authenticated _ when context.IsInRole Role.Admin -> true
+                | UserContext.Authenticated _ when rolesForThisTenant |> (List.exists (fun r -> r = Role.Manager || r = Role.Admin)) -> true
+                | _ -> false
+            do! 
+                allowed
+                |> Result.ofBool "Updating of book allowed only to admins or managers"
+            return ()   
+        }
     new(secretsReader: SecretsReader, configuration: IConfiguration) =
         let connectionString = secretsReader.GetBookLibraryConnectionString ()
         let eventStore = PgStorage.PgEventStore connectionString
         let messageSenders = MessageSenders.NoSender
-        DistributionPointService(eventStore, messageSenders)
+        let userViewerAsync = getAggregateStorageFreshStateViewerAsync<User, UserEvent, string> eventStore
+        DistributionPointService(eventStore, messageSenders, userViewerAsync)
     member this.GetAllDistributionPointsAsync(context: UserContext, ?ct: CancellationToken) = 
         taskResult
             {

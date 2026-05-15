@@ -18,19 +18,56 @@ open BookLibrary.Shared.Services
 open BookLibrary.Shared.Commons
 open BookLibrary.Utils
 
+// tag structure will not fint well in to the tenant system because it is a single aggregate 
 type TagService
     (
         eventStore: IEventStore<string>,
         messageSenders: MessageSenders,
+        userViewerAsync: AggregateViewerAsync2<User>,
+        tenantViewerAsync: AggregateViewerAsync2<Tenant>,
         tagsViewerAsync: AggregateViewerAsync2<Tags>
 
     ) =
+
+    let checkIsGlobalAdminOrTenantManager (context: UserContext) (ct: CancellationToken)= 
+        taskResult {
+            let! rolesForThisTenant = userRolesForTenant userViewerAsync context.TenantId context.UserId (ct |> Some)
+            let allowed = 
+                match context with
+                | UserContext.Anonymous -> false
+                | UserContext.Authenticated _ when context.IsInRole Role.Admin -> true
+                | UserContext.Authenticated _ when rolesForThisTenant |> (List.exists (fun r -> r = Role.Manager || r = Role.Admin)) -> true
+                | _ -> false
+            do! 
+                allowed
+                |> Result.ofBool "Updating of book allowed only to admins or managers"
+            return ()   
+        }
+    let checkIsGlobalAdminOrTenantManagerOrPublicTenant (context: UserContext) (ct: CancellationToken)= 
+        taskResult {
+            let! rolesForThisTenant = userRolesForTenant userViewerAsync context.TenantId context.UserId (ct |> Some)
+            let! isPublicTenant = tenantViewerAsync (ct |> Some) context.TenantId.Value |> TaskResult.map (fun (_, tenant) -> tenant.Public)
+            let allowed = 
+                match context, isPublicTenant with
+                | (_, true) -> true
+                | UserContext.Anonymous, _ -> false
+                | UserContext.Authenticated _, _ when context.IsInRole Role.Admin -> true
+                | UserContext.Authenticated _, _ when rolesForThisTenant |> (List.exists (fun r -> r = Role.Manager || r = Role.Admin)) -> true
+                | _ -> false
+            do! 
+                allowed
+                |> Result.ofBool "Updating of book allowed only to admins or managers"
+            return ()   
+        }
+
     new (secretsReader: SecretsReader) = 
         let connectionString = secretsReader.GetBookLibraryConnectionString()
         let messageSenders = MessageSenders.NoSender
         let eventStore = PgStorage.PgEventStore connectionString
+        let userViewerAsync = getAggregateStorageFreshStateViewerAsync<User, UserEvent, string> eventStore
+        let tenantViewerAsync = getAggregateStorageFreshStateViewerAsync<Tenant, TenantEvent, string> eventStore
         let tagsViewerAsync = getAggregateStorageFreshStateViewerAsync<Tags, TagEvent, string> eventStore
-        TagService (eventStore, messageSenders, tagsViewerAsync)
+        TagService (eventStore, messageSenders, userViewerAsync, tenantViewerAsync, tagsViewerAsync)
 
     member private this.TagsRepoExists (?ct: CancellationToken) =
         let tagId = TagsId.UniqueTagId
@@ -39,7 +76,7 @@ type TagService
             return exists.IsOk
         }
 
-    // this will be called at startup
+    // this will be called at startup. Note we will remove this stuff as tags are now part of the tenant
     member this.EnsureTagsRepoCreatedAsync (?ct: CancellationToken) =
         taskResult {
             let tagId = TagsId.UniqueTagId
@@ -57,32 +94,34 @@ type TagService
                 return ()
         }
 
-    member this.AddTagAsync (userContext: UserContext, tag: Tag, ?ct: CancellationToken) =
+    member this.AddTagAsync (context: UserContext, tag: Tag, ?ct: CancellationToken) =
         let ct = defaultArg ct CancellationToken.None
         taskResult {
-            let tagId = TagsId.UniqueTagId
-            let addTagCommand = TagCommand.AddTag tag
+
+            let tenantId = context.TenantId
+            let addTagCommand = TenantCommand.AddTag tag
             return!  
-                runAggregateCommandMdAsync<Tags, TagEvent, string>
-                    tagId.Value
+                runAggregateCommandMdAsync<Tenant, TenantEvent, string>
+                    tenantId.Value
                     eventStore
                     messageSenders
-                    (userContext.ToString())
+                    (context.ToString())
                     addTagCommand
                     (ct |> Some)
         }
 
-    member this.RemoveTagAsync (userContext: UserContext, tag: Tag, ?ct: CancellationToken) =
+    member this.RemoveTagAsync (context: UserContext, tag: Tag, ?ct: CancellationToken) =
         let ct = defaultArg ct CancellationToken.None
         taskResult {
-            let tagId = TagsId.UniqueTagId
-            let removeTagCommand = TagCommand.RemoveTag tag
+            let tenantId = context.TenantId
+            do! checkIsGlobalAdminOrTenantManager context ct
+            let removeTagCommand = TenantCommand.RemoveTag tag
             return!  
-                runAggregateCommandMdAsync<Tags, TagEvent, string>
-                    tagId.Value
+                runAggregateCommandMdAsync<Tenant, TenantEvent, string>
+                    tenantId.Value
                     eventStore
                     messageSenders
-                    (userContext.ToString())
+                    (context.ToString())
                     removeTagCommand
                     (ct |> Some)
         }
@@ -90,11 +129,12 @@ type TagService
     member this.ReplaceTagAsync (userContext: UserContext, oldTag: Tag, newTag: Tag, ?ct: CancellationToken) =
         let ct = defaultArg ct CancellationToken.None
         taskResult {
-            let tagId = TagsId.UniqueTagId
-            let replaceTagCommand = TagCommand.ReplaceTag (oldTag, newTag)
+            let tenantId = userContext.TenantId
+            do! checkIsGlobalAdminOrTenantManager userContext ct
+            let replaceTagCommand = TenantCommand.ReplaceTag (oldTag, newTag)
             return!  
-                runAggregateCommandMdAsync<Tags, TagEvent, string>
-                    tagId.Value
+                runAggregateCommandMdAsync<Tenant, TenantEvent, string>
+                    tenantId.Value
                     eventStore
                     messageSenders
                     (userContext.ToString())
@@ -103,12 +143,12 @@ type TagService
         }
 
     member this.GetTagsAsync(context: UserContext, ?ct: CancellationToken) =
+        let ct = defaultArg ct CancellationToken.None
         taskResult {
-            let tagId = TagsId.UniqueTagId
-            let! tags =
-                tagsViewerAsync ct TagsId.UniqueTagId.Value
-                |> TaskResult.map snd
-            return tags.Tags
+            let tenantId = context.TenantId
+            do! checkIsGlobalAdminOrTenantManagerOrPublicTenant context ct
+            let! tenant = tenantViewerAsync (ct |> Some) tenantId.Value |> TaskResult.map snd
+            return tenant.Tags
         }
 
     member this.GetBookTypeTagsAsync(context: UserContext, ?ct: CancellationToken) =

@@ -38,11 +38,59 @@ type UserService
         loanViewerAsync: AggregateViewerAsync2<Loan>,
         userViewerAsync: AggregateViewerAsync2<User>,
         reviewsViewerAsync: AggregateViewerAsync2<Review>,
+        tenantViewerAsync: AggregateViewerAsync2<Tenant>,
         distributionPointViewerAsync: AggregateViewerAsync2<DistributionPoint>,
         reviewService: IReviewService,
         scopeFactory: IServiceScopeFactory,
         logger: ILogger<UserService>)
     =
+    let checkIsGlobalAdminOrTenantManager (context: UserContext) (ct: CancellationToken)= 
+        taskResult {
+            let! rolesForThisTenant = userRolesForTenant userViewerAsync context.TenantId context.UserId (ct |> Some)
+            let allowed = 
+                match context with
+                | UserContext.Anonymous -> false
+                | UserContext.Authenticated _ when context.IsInRole Role.Admin -> true
+                | UserContext.Authenticated _ when rolesForThisTenant |> (List.exists (fun r -> r = Role.Manager || r = Role.Admin)) -> true
+                | _ -> false
+            do! 
+                allowed
+                |> Result.ofBool "Updating of book allowed only to admins or managers"
+            return ()   
+        }
+    let checkIsGlobalAdminOrTenantManagerOrSelf (context: UserContext) (ct: CancellationToken) (userId: UserId)= 
+        taskResult {
+            let! rolesForThisTenant = userRolesForTenant userViewerAsync context.TenantId context.UserId (ct |> Some)
+            let allowed = 
+                match context with
+                | UserContext.Anonymous -> false
+                | UserContext.Authenticated _ when context.IsInRole Role.Admin -> true
+                | UserContext.Authenticated _ when rolesForThisTenant |> (List.exists (fun r -> r = Role.Manager || r = Role.Admin)) -> true
+                | UserContext.Authenticated (id, _, _) when id = userId -> true
+                | _ -> false
+            do! 
+                allowed
+                |> Result.ofBool "Updating of book allowed only to admins or managers"
+            return ()   
+        }
+    let checkIsGlobalAdminOrTenantManagerOrPublicTenant (context: UserContext) (ct: CancellationToken)= 
+        taskResult {
+            let! rolesForThisTenant = userRolesForTenant userViewerAsync context.TenantId context.UserId (ct |> Some)
+            let! tenant = tenantViewerAsync (ct |> Some) context.TenantId.Value |> TaskResult.map snd
+            let isPublicTenant = tenant.Public
+            let allowed = 
+                match context, isPublicTenant with
+                | (_, true) -> true
+                | UserContext.Anonymous, _ -> false
+                | UserContext.Authenticated (userId, _, _), _ when context.IsInRole Role.Admin -> true
+                | UserContext.Authenticated _, _ when rolesForThisTenant |> (List.exists (fun r -> r = Role.Manager || r = Role.Admin)) -> true
+                | _ -> false
+            do! 
+                allowed
+                |> Result.ofBool "Updating of book allowed only to admins or managers"
+            return ()   
+        }
+
     new (eventStore: IEventStore<string>, scopeFactory: IServiceScopeFactory, reviewService: IReviewService, logger: ILogger<UserService>) 
         =
         let messageSenders = MessageSenders.NoSender
@@ -54,6 +102,7 @@ type UserService
         let userViewerAsync = getAggregateStorageFreshStateViewerAsync<User, UserEvent, string> eventStore
         let reviewsViewerAsync = getAggregateStorageFreshStateViewerAsync<Review, ReviewEvent, string> eventStore
         let distributionPointViewerAsync = getAggregateStorageFreshStateViewerAsync<DistributionPoint, DistributionPointEvent, string> eventStore
+        let tenantViewerAsync = getAggregateStorageFreshStateViewerAsync<Tenant, TenantEvent, string> eventStore
         UserService (
             eventStore,
             messageSenders,
@@ -64,6 +113,7 @@ type UserService
             loanViewerAsync,
             userViewerAsync,
             reviewsViewerAsync,
+            tenantViewerAsync,
             distributionPointViewerAsync,
             reviewService,
             scopeFactory,
@@ -132,14 +182,11 @@ type UserService
         let ct = defaultArg ct CancellationToken.None
         taskResult 
             {
-                do! 
-                    //TODO: vefify also tenant spaces (i.e. the user in context should be in the user's tenant space if not admin)
-                    match context with
-                    | Authenticated(id, _, _) when id = userId -> Ok ()
-                    | Authenticated(_, roles, _) when (roles |> List.contains Role.Admin) || (roles |> List.contains Role.Manager) -> Ok ()
-                    | _  -> Error "User is not authorized"
-                
+
+                do! checkIsGlobalAdminOrTenantManagerOrSelf context ct userId
+
                 let! user = userViewerAsync (Some ct) userId.Value |> TaskResult.map snd
+                
                 return user
             }
 

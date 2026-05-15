@@ -29,8 +29,42 @@ type ReviewService
         reservationViewerAsync: AggregateViewerAsync2<Reservation>,
         loanViewerAsync: AggregateViewerAsync2<Loan>,
         userViewerAsync: AggregateViewerAsync2<User>,
+        tenantViewerAsync: AggregateViewerAsync2<Tenant>,
         scopeFactory: IServiceScopeFactory
     ) =
+
+    let checkIsGlobalAdminOrTenantManager (context: UserContext) (ct: CancellationToken)= 
+        taskResult {
+            let! rolesForThisTenant = userRolesForTenant userViewerAsync context.TenantId context.UserId (ct |> Some)
+            let allowed = 
+                match context with
+                | UserContext.Anonymous -> false
+                | UserContext.Authenticated _ when context.IsInRole Role.Admin -> true
+                | UserContext.Authenticated _ when rolesForThisTenant |> (List.exists (fun r -> r = Role.Manager || r = Role.Admin)) -> true
+                | _ -> false
+            do! 
+                allowed
+                |> Result.ofBool "Updating of book allowed only to admins or managers"
+            return ()   
+        }
+    let checkIsGlobalAdminOrTenantManagerOrPublicTenant (context: UserContext) (ct: CancellationToken)= 
+        taskResult {
+            let! rolesForThisTenant = userRolesForTenant userViewerAsync context.TenantId context.UserId (ct |> Some)
+            let! isPublicTenant = tenantViewerAsync (ct |> Some) context.TenantId.Value |> TaskResult.map (fun (_, tenant) -> tenant.Public)
+            let allowed = 
+                match context, isPublicTenant with
+                | (_, true) -> true
+                | UserContext.Anonymous, _ -> false
+                | UserContext.Authenticated _, _ when context.IsInRole Role.Admin -> true
+                | UserContext.Authenticated _, _ when rolesForThisTenant |> (List.exists (fun r -> r = Role.Manager || r = Role.Admin)) -> true
+                | _ -> false
+            do! 
+                allowed
+                |> Result.ofBool "Updating of book allowed only to admins or managers"
+            return ()   
+        }
+
+
     new 
         (eventStore: IEventStore<string>, scopeFactory: IServiceScopeFactory) =
             let messageSenders = MessageSenders.NoSender
@@ -41,6 +75,7 @@ type ReviewService
             let reservationViewerAsync = getAggregateStorageFreshStateViewerAsync<Reservation, ReservationEvent, string> eventStore
             let loanViewerAsync = getAggregateStorageFreshStateViewerAsync<Loan, LoanEvent, string> eventStore
             let userViewerAsync = getAggregateStorageFreshStateViewerAsync<User, UserEvent, string> eventStore
+            let tenantViewerAsync = getAggregateStorageFreshStateViewerAsync<Tenant, TenantEvent, string> eventStore
 
             ReviewService(
                 eventStore,
@@ -52,6 +87,7 @@ type ReviewService
                 reservationViewerAsync,
                 loanViewerAsync,
                 userViewerAsync,
+                tenantViewerAsync,
                 scopeFactory
             )
 
@@ -64,6 +100,7 @@ type ReviewService
         let ct = ct |> Option.defaultValue CancellationToken.None
         taskResult
             {
+                do! checkIsGlobalAdminOrTenantManagerOrPublicTenant context ct
                 let! comment =
                     reviewViewerAsync (Some ct) commentId.Value 
                     |> TaskResult.map snd
@@ -77,6 +114,7 @@ type ReviewService
         let ct = ct |> Option.defaultValue CancellationToken.None
         taskResult
             {
+                do! checkIsGlobalAdminOrTenantManagerOrPublicTenant context ct
                 let! result =
                     StateView.getAllAggregateStatesAsync<Review, ReviewEvent, string> eventStore (Some ct)
                     |> TaskResult.map (fun x -> x |> List.map snd)
@@ -90,6 +128,7 @@ type ReviewService
         let ct = ct |> Option.defaultValue CancellationToken.None
         taskResult
             {
+                do! checkIsGlobalAdminOrTenantManagerOrPublicTenant context ct
                 let! result =
                     StateView.getAllFilteredAggregateStatesAsync<Review, ReviewEvent, string> (fun review -> review.ApprovalStatus = ApprovalStatus.Pending) eventStore (Some ct)
                     |> TaskResult.map (fun x -> x |> List.map snd)
@@ -161,6 +200,11 @@ type ReviewService
             do! 
                 review.TenantId = context.TenantId
                 |> Result.ofBool $"Review tenant id {review.TenantId} not matching"
+            do! 
+                match context with
+                | UserContext.Anonymous -> Error "User is not authenticated"
+                | UserContext.Authenticated (userId, _, _) -> userId = review.UserId |> Result.ofBool "You can only edit your own reviews"
+                | _ -> Error "You can only edit your own reviews"
                 
             let! result =
                 CommandHandler.runAggregateCommandMdAsync<Review, ReviewEvent, string> 
@@ -182,6 +226,8 @@ type ReviewService
             do!
                 review.TenantId = context.TenantId
                 |> Result.ofBool $"Review tenant id {review.TenantId} not matching"
+            do! checkIsGlobalAdminOrTenantManager context ct
+
             let! result =
                 CommandHandler.runAggregateCommandMdAsync<Review, ReviewEvent, string> 
                     commentId.Value
@@ -201,6 +247,9 @@ type ReviewService
             do! 
                 review.TenantId = context.TenantId
                 |> Result.ofBool $"Review tenant id {review.TenantId} not matching"
+
+            do! checkIsGlobalAdminOrTenantManager context ct
+
             let! result =
                 CommandHandler.runAggregateCommandMdAsync<Review, ReviewEvent, string> 
                     commentId.Value
@@ -221,6 +270,11 @@ type ReviewService
             do!
                 review.TenantId = context.TenantId
                 |> Result.ofBool $"Review tenant id {review.TenantId} not matching context id {context.TenantId}"
+            do! 
+                match context with
+                | UserContext.Anonymous -> Error "User is not authenticated"
+                | UserContext.Authenticated (userId, _, _) -> userId = review.UserId |> Result.ofBool "You can only edit your own reviews"
+                | _ -> Error "You can only edit your own reviews"
             let! result =
                 CommandHandler.runAggregateCommandMdAsync<Review, ReviewEvent, string> 
                     commentId.Value
@@ -241,6 +295,11 @@ type ReviewService
             do!
                 review.TenantId = context.TenantId
                 |> Result.ofBool $"Review tenant id {review.TenantId} not matching context id {context.TenantId}"
+            do! 
+                match context with
+                | UserContext.Anonymous -> Error "User is not authenticated"
+                | UserContext.Authenticated (userId, _, _) -> userId = review.UserId |> Result.ofBool "You can only edit your own reviews"
+                | _ -> Error "You can only edit your own reviews"
             let! result =
                 CommandHandler.runAggregateCommandMdAsync<Review, ReviewEvent, string> 
                     commentId.Value
@@ -271,6 +330,8 @@ type ReviewService
                     book.TenantId = context.TenantId
                     |> Result.ofBool $"Book tenant id {book.TenantId} not matching context id {context.TenantId}"
 
+                do! checkIsGlobalAdminOrTenantManagerOrPublicTenant context ct 
+
                 let! reviews = 
                     StateView.getAllFilteredAggregateStatesAsync<Review, ReviewEvent, string> (fun review -> review.BookId = bookId) eventStore (Some ct)
                     |> TaskResult.map (fun x -> x |> List.map snd)
@@ -293,6 +354,8 @@ type ReviewService
                 do!
                     book.TenantId = context.TenantId
                     |> Result.ofBool $"Book tenant id {book.TenantId} not matching context id {context.TenantId}"
+
+                do! checkIsGlobalAdminOrTenantManagerOrPublicTenant context ct 
 
                 let! reviews = 
                     StateView.getAllFilteredAggregateStatesAsync<Review, ReviewEvent, string> 
@@ -320,6 +383,8 @@ type ReviewService
                     user.Tenants 
                     |> List.contains context.TenantId
                     |> Result.ofBool $"User tenant ids don't contain {context.TenantId}"
+
+                do! checkIsGlobalAdminOrTenantManagerOrPublicTenant context ct 
 
                 let! reviewsWithId = 
                     StateView.getAllFilteredAggregateStatesAsync<Review, ReviewEvent, string> (fun review -> review.UserId = userId) eventStore (Some ct)

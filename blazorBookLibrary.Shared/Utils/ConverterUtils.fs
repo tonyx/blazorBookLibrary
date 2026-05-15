@@ -33,7 +33,7 @@ module ConverterUtils =
                     match c.Value.ToLowerInvariant() with
                     | "admin" -> Some Admin
                     | "manager" -> Some Manager
-                    | "user" -> Some User
+                    | "user" -> Some User // user is not a role. verify
                     | _ -> None)
                 |> Seq.toList
             UserContext.Authenticated(UserId(guid), roles, TenantId.Default)

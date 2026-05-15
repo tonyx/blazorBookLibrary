@@ -9,6 +9,9 @@ type TenantEvent =
     | Deactivated 
     | Activated
     | ScheduledForDeletion of DateTime
+    | TagAdded of Tag
+    | TagRemoved of Tag
+    | TagReplaced of (Tag * Tag)
     interface Event<Tenant> with
         member this.Process (tenant: Tenant) : Result<Tenant, string> =
             match this with
@@ -18,6 +21,12 @@ type TenantEvent =
                 tenant.Activate
             | ScheduledForDeletion date ->
                 tenant.ScheduleForDeletion date
+            | TagAdded tag ->
+                tenant.AddTag tag
+            | TagRemoved tag ->
+                tenant.RemoveTag tag
+            | TagReplaced (oldTag, newTag) ->
+                tenant.ReplaceTag (oldTag, newTag)
 
     static member Deserialize (x: string): Result<TenantEvent, string> =
         try

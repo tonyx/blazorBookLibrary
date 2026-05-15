@@ -144,6 +144,7 @@ let loanViewerAsync = getAggregateStorageFreshStateViewerAsync<Loan, LoanEvent, 
 let userViewerAsync = getAggregateStorageFreshStateViewerAsync<User, UserEvent, string> pgEventStore
 let reviewViewerAsync = getAggregateStorageFreshStateViewerAsync<Review, ReviewEvent, string> pgEventStore
 let distributionPointViewerAsync = getAggregateStorageFreshStateViewerAsync<DistributionPoint, DistributionPointEvent, string> pgEventStore
+let tenantViewerAsync = getAggregateStorageFreshStateViewerAsync<Tenant, TenantEvent, string> pgEventStore
 
 let adminContext = UserContext.Authenticated (UserId.New(), [Role.Admin], TenantId.Default)
 
@@ -180,6 +181,7 @@ let getReviewService () : IReviewService =
         reservationViewerAsync, 
         loanViewerAsync,
         userViewerAsync,
+        tenantViewerAsync,
         getServiceScopeFactory()) :> IReviewService
 
 let getUserService () : IUserService =
@@ -193,6 +195,7 @@ let getUserService () : IUserService =
         loanViewerAsync,
         userViewerAsync,
         reviewViewerAsync,
+        tenantViewerAsync,
         distributionPointViewerAsync,
         getReviewService(),
         getServiceScopeFactory(),
@@ -208,6 +211,7 @@ let getReservationService () : IReservationService =
         reservationViewerAsync, 
         loanViewerAsync,
         userViewerAsync,
+        tenantViewerAsync,
         getUserService(),
         fakeEmailNotificator,
         3,
@@ -268,6 +272,7 @@ let getBookService () : IBookService =
         reservationViewerAsync, 
         loanViewerAsync,
         userViewerAsync,
+        tenantViewerAsync,
         distributionPointViewerAsync,
         getVectorDbService()) :> IBookService
 
