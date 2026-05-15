@@ -144,6 +144,7 @@ let loanViewerAsync = getAggregateStorageFreshStateViewerAsync<Loan, LoanEvent, 
 let userViewerAsync = getAggregateStorageFreshStateViewerAsync<User, UserEvent, string> pgEventStore
 let reviewViewerAsync = getAggregateStorageFreshStateViewerAsync<Review, ReviewEvent, string> pgEventStore
 let distributionPointViewerAsync = getAggregateStorageFreshStateViewerAsync<DistributionPoint, DistributionPointEvent, string> pgEventStore
+let tagViewerAsync = getAggregateStorageFreshStateViewerAsync<Tags, TagEvent, string> pgEventStore
 let tenantViewerAsync = getAggregateStorageFreshStateViewerAsync<Tenant, TenantEvent, string> pgEventStore
 
 let adminContext = UserContext.Authenticated (UserId.New(), [Role.Admin], TenantId.Default)
@@ -253,6 +254,12 @@ let getDetailsService () : IDetailsService =
         getReservationService(),
         getReviewService(),
         getServiceScopeFactory()) :> IDetailsService
+
+let getTagService () : ITagService =
+    TagService(
+        pgEventStore,
+        MessageSenders.NoSender,
+        tagViewerAsync) :> ITagService
 
 let getTextEmbeddingService () =
     let httpClient = new HttpClient()
