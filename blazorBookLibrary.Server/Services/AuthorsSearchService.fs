@@ -10,6 +10,11 @@ open FsToolkit.ErrorHandling
 open BookLibrary.Shared.Commons
 open System.Threading
 open System.Runtime.InteropServices
+open Sharpino
+open Sharpino.Storage
+open BookLibrary.Domain
+open BookLibrary.Utils
+open Sharpino.CommandHandler
 
 type OpenLibraryAuthorSearchDoc = {
     [<JsonPropertyName("key")>] Key: string
@@ -30,13 +35,33 @@ type OpenLibraryAuthorDetails = {
 }
 
 
-type AuthorsSearchService(httpClient: HttpClient) =
+type AuthorsSearchService
+    (
+        httpClient: HttpClient,
+        tenantViewerAsync: AggregateViewerAsync2<Tenant>
+    ) =
+
+    let checkIsGlobalAdminOrTenantManager (context: UserContext) (ct: CancellationToken)= 
+        taskResult {
+            let! tenant = tenantViewerAsync (ct |> Some) context.TenantId.Value |> TaskResult.map snd
+            return! Security.checkIsGlobalAdminOrTenantManager tenant context
+        }
+
+
+
+    new(httpClient: HttpClient, secretsReader: SecretsReader) =
+        AuthorsSearchService(
+            httpClient, 
+            getAggregateStorageFreshStateViewerAsync<Tenant, TenantEvent, string> (PgStorage.PgEventStore (secretsReader.GetBookLibraryConnectionString()))
+        )
+
     interface IAuthorsSearchService with
         member this.LookupByNameAsync(context: UserContext, name: string, [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken) =
             let ct = defaultArg ct CancellationToken.None
             task {
                 try
-                    if not (context.IsInRole Role.Admin || context.IsInRole Role.Manager) then
+                    let! allowed = checkIsGlobalAdminOrTenantManager context ct
+                    if allowed |> Result.isError then
                         return Error "Only admin or managers can look up authors"
                     else
                         // URL encode the name
@@ -111,7 +136,8 @@ type AuthorsSearchService(httpClient: HttpClient) =
             let lang = defaultArg lang (ShortLang.New "it")
             task {
                 try
-                    if not (context.IsInRole Role.Admin || context.IsInRole Role.Manager) then
+                    let! allowed = checkIsGlobalAdminOrTenantManager context ct
+                    if allowed |> Result.isError then
                         return Error "Only admin or managers can look up authors"
                     else
                         let encodedName = System.Web.HttpUtility.UrlEncode(name)

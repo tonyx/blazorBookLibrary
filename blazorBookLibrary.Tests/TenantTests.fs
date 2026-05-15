@@ -132,4 +132,126 @@ let tests =
             
             Expect.isError getResult "Non-admin user should not be able to retrieve private tenant"
         }
+        testCaseTask "owner can add a patron to their tenant" <| fun _ -> task {
+            setUp()
+            let tenantService = getTenantService()
+            let! ownerId = registerUserTask "owner@test.com" "Password123!"
+            let ownerContext = UserContext.Authenticated(ownerId, [], TenantId.Default)
+            let tenant = Tenant.New(ownerId, TenantName.New "My Library" |> Result.get, "123 Main St")
+            let tenantId = tenant.TenantId
+            let! _ = tenantService.CreateTenantAsync(ownerContext, tenant)
+            
+            let! patronId = registerUserTask "patron@test.com" "Password123!"
+            let! result = tenantService.AddPatronAsync(ownerContext, tenantId, patronId, PatronRole.User)
+            
+            Expect.isOk result "Owner should be able to add a patron"
+            
+            let! getResult = tenantService.GetTenantAsync(ownerContext, tenantId)
+            match getResult with
+            | Ok t -> 
+                Expect.exists t.Patrons (fun (u, r) -> u = patronId && r = PatronRole.User) "Patron should be in the list"
+            | Error msg -> failwith msg
+        }
+        testCaseTask "owner can promote and demote a patron" <| fun _ -> task {
+            setUp()
+            let tenantService = getTenantService()
+            let! ownerId = registerUserTask "owner@test.com" "Password123!"
+            let ownerContext = UserContext.Authenticated(ownerId, [], TenantId.Default)
+            let tenant = Tenant.New(ownerId, TenantName.New "My Library" |> Result.get, "123 Main St")
+            let tenantId = tenant.TenantId
+            let! _ = tenantService.CreateTenantAsync(ownerContext, tenant)
+            
+            let! patronId = registerUserTask "patron@test.com" "Password123!"
+            let! _ = tenantService.AddPatronAsync(ownerContext, tenantId, patronId, PatronRole.User)
+            
+            let! promoteResult = tenantService.PromotePatronAsync(ownerContext, tenantId, patronId)
+            Expect.isOk promoteResult "Owner should be able to promote a patron"
+            
+            let! getResult1 = tenantService.GetTenantAsync(ownerContext, tenantId)
+            match getResult1 with
+            | Ok t -> Expect.exists t.Patrons (fun (u, r) -> u = patronId && r = PatronRole.Manager) "Patron should be a manager"
+            | Error msg -> failwith msg
+            
+            let! demoteResult = tenantService.DemotePatronAsync(ownerContext, tenantId, patronId)
+            Expect.isOk demoteResult "Owner should be able to demote a patron"
+            
+            let! getResult2 = tenantService.GetTenantAsync(ownerContext, tenantId)
+            match getResult2 with
+            | Ok t -> Expect.exists t.Patrons (fun (u, r) -> u = patronId && r = PatronRole.User) "Patron should be a user again"
+            | Error msg -> failwith msg
+        }
+        testCaseTask "owner can remove a patron" <| fun _ -> task {
+            setUp()
+            let tenantService = getTenantService()
+            let! ownerId = registerUserTask "owner@test.com" "Password123!"
+            let ownerContext = UserContext.Authenticated(ownerId, [], TenantId.Default)
+            let tenant = Tenant.New(ownerId, TenantName.New "My Library" |> Result.get, "123 Main St")
+            let tenantId = tenant.TenantId
+            let! _ = tenantService.CreateTenantAsync(ownerContext, tenant)
+            
+            let! patronId = registerUserTask "patron@test.com" "Password123!"
+            let! _ = tenantService.AddPatronAsync(ownerContext, tenantId, patronId, PatronRole.User)
+            
+            let! removeResult = tenantService.RemovePatronAsync(ownerContext, tenantId, patronId)
+            Expect.isOk removeResult "Owner should be able to remove a patron"
+            
+            let! getResult = tenantService.GetTenantAsync(ownerContext, tenantId)
+            match getResult with
+            | Ok t -> Expect.isFalse (t.Patrons |> List.exists (fun (u, _) -> u = patronId)) "Patron should be removed"
+            | Error msg -> failwith msg
+        }
+        testCaseTask "non-owner cannot add a patron" <| fun _ -> task {
+            setUp()
+            let tenantService = getTenantService()
+            let! ownerId = registerUserTask "owner@test.com" "Password123!"
+            let ownerContext = UserContext.Authenticated(ownerId, [], TenantId.Default)
+            let tenant = Tenant.New(ownerId, TenantName.New "My Library" |> Result.get, "123 Main St")
+            let tenantId = tenant.TenantId
+            let! _ = tenantService.CreateTenantAsync(ownerContext, tenant)
+            
+            let! otherUserId = registerUserTask "other@test.com" "Password123!"
+            let otherContext = UserContext.Authenticated(otherUserId, [], TenantId.Default)
+            
+            let! patronId = registerUserTask "patron@test.com" "Password123!"
+            let! result = tenantService.AddPatronAsync(otherContext, tenantId, patronId, PatronRole.User)
+            
+            Expect.isError result "Non-owner should not be able to add a patron"
+        }
+        testCaseTask "a patron can retrieve their own role" <| fun _ -> task {
+            setUp()
+            let tenantService = getTenantService()
+            let! ownerId = registerUserTask "owner@test.com" "Password123!"
+            let ownerContext = UserContext.Authenticated(ownerId, [], TenantId.Default)
+            let tenant = Tenant.New(ownerId, TenantName.New "My Library" |> Result.get, "123 Main St", false)
+            let tenantId = tenant.TenantId
+            let! _ = tenantService.CreateTenantAsync(ownerContext, tenant)
+            
+            let! patronId = registerUserTask "patron@test.com" "Password123!"
+            let! _ = tenantService.AddPatronAsync(ownerContext, tenantId, patronId, PatronRole.User)
+            
+            let patronContext = UserContext.Authenticated(patronId, [], tenantId)
+            let! roleResult = tenantService.GetUserRoleAsync(patronContext, tenantId, patronId)
+            
+            Expect.isOk roleResult "Patron should be able to retrieve their own role"
+            match roleResult with
+            | Ok role -> Expect.equal role PatronRole.User "Role should be correct"
+            | Error msg -> failwith msg
+        }
+        testCaseTask "a patron can retrieve a private tenant they belong to" <| fun _ -> task {
+            setUp()
+            let tenantService = getTenantService()
+            let! ownerId = registerUserTask "owner@test.com" "Password123!"
+            let ownerContext = UserContext.Authenticated(ownerId, [], TenantId.Default)
+            let tenant = Tenant.New(ownerId, TenantName.New "Private Library" |> Result.get, "123 Main St", false)
+            let tenantId = tenant.TenantId
+            let! _ = tenantService.CreateTenantAsync(ownerContext, tenant)
+            
+            let! patronId = registerUserTask "patron@test.com" "Password123!"
+            let! _ = tenantService.AddPatronAsync(ownerContext, tenantId, patronId, PatronRole.User)
+            
+            let patronContext = UserContext.Authenticated(patronId, [], tenantId)
+            let! getResult = tenantService.GetTenantAsync(patronContext, tenantId)
+            
+            Expect.isOk getResult "Patron should be able to retrieve a private tenant they belong to"
+        }
     ]

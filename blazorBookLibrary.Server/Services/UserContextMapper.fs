@@ -31,10 +31,17 @@ module UserContextMapper =
         match context with
         | Authenticated(userId, roles, _) ->
             let tenantHeader = request.Headers.["X-Tenant-Id"]
-            if tenantHeader.Count > 0 then
-                match System.Guid.TryParse(tenantHeader.[0]) with
+            let tenantCookie = request.Cookies.["selected_tenant"]
+            
+            let tenantIdValue = 
+                if not (string tenantCookie |> System.String.IsNullOrEmpty) then Some tenantCookie
+                elif tenantHeader.Count > 0 then Some tenantHeader.[0]
+                else None
+
+            match tenantIdValue with
+            | Some v ->
+                match System.Guid.TryParse(v) with
                 | (true, guid) -> Authenticated(userId, roles, TenantId(guid))
                 | _ -> context
-            else
-                context
+            | None -> context
         | _ -> context

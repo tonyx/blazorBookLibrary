@@ -19,6 +19,7 @@ type UserCommand =
     | SetNome of string
     | SetCognome of string
     | SetAppUserInfo of AppUserInfo
+    | SetCurrentTenant of TenantId
     interface AggregateCommand<User, UserEvent> with
         member this.Execute (user: User) =
             match this with
@@ -61,5 +62,8 @@ type UserCommand =
             | SetAppUserInfo appUserInfo ->
                 user.SetAppUserInfo appUserInfo
                 |> Result.map (fun u -> (u, [AppUserInfoSet(appUserInfo)]))
+            | SetCurrentTenant tenantId ->
+                user.SetCurrentTenant tenantId
+                |> Result.map (fun u -> (u, [CurrentTenantSet tenantId]))
 
         member this.Undoer = None

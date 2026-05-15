@@ -67,6 +67,7 @@
     <Compile Include="SeedServices/RandomBooksGeneratorService.fs" />
 
     <Compile Include="Services/MailBodyRetriever.fs" />
+    <Compile Include="Services/Security.fs" />
     <Compile Include="Services/TagService.fs" />
     <Compile Include="Services/UserMapping.fs" />
     <Compile Include="Services/UserContextMapper.fs" />

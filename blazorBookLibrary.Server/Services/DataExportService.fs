@@ -37,6 +37,7 @@ type DataExportService
             reservationViewerAsync: AggregateViewerAsync2<Reservation>,
             loanViewerAsync: AggregateViewerAsync2<Loan>,
             userViewerAsync: AggregateViewerAsync2<User>,
+            tenantViewerAsync: AggregateViewerAsync2<Tenant>,
             bookService: IBookService,
             authorService: IAuthorService,
             detailsService: IDetailsService,
@@ -65,6 +66,7 @@ type DataExportService
         let reservationViewerAsync = getAggregateStorageFreshStateViewerAsync<Reservation, ReservationEvent, string> eventStore
         let loanViewerAsync = getAggregateStorageFreshStateViewerAsync<Loan, LoanEvent, string> eventStore
         let userViewerAsync = getAggregateStorageFreshStateViewerAsync<User, UserEvent, string> eventStore
+        let tenantViewerAsync = getAggregateStorageFreshStateViewerAsync<Tenant, TenantEvent, string> eventStore
         let reviewViewerAsync = getAggregateStorageFreshStateViewerAsync<Review, ReviewEvent, string> eventStore
 
         DataExportService(
@@ -76,6 +78,7 @@ type DataExportService
             reservationViewerAsync,
             loanViewerAsync,
             userViewerAsync,
+            tenantViewerAsync,
             bookService,
             authorService,
             detailsService,

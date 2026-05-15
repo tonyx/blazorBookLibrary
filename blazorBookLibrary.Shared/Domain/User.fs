@@ -11,7 +11,6 @@ open System.Globalization
 type User001 = 
     { 
         UserId: UserId
-        Tenants: List<TenantId>
         CurrentTenant: TenantId
         AppUserInfo: AppUserInfo
         Reservations: List<ReservationId>
@@ -22,9 +21,6 @@ type User001 =
             this.Upcast() : User =
             {
                 UserId = this.UserId
-                Tenants = this.Tenants 
-                TenantRoles = 
-                    this.Tenants |> List.map (fun tenantId -> (tenantId, [Role.User])) |> Map
                 CurrentTenant = this.CurrentTenant
                 AppUserInfo = this.AppUserInfo
                 Reservations = this.Reservations
@@ -33,8 +29,6 @@ type User001 =
 and User =
     {
         UserId: UserId
-        Tenants: List<TenantId>
-        TenantRoles: Map<TenantId, List<Role>>
         CurrentTenant: TenantId
         AppUserInfo: AppUserInfo
         Reservations: List<ReservationId>
@@ -43,9 +37,7 @@ and User =
     with
         static member New (userId: UserId) = 
             { 
-                Tenants = [TenantId.Default]
                 CurrentTenant = TenantId.Default
-                TenantRoles = [(TenantId.Default, [Role.User])] |> Map
                 UserId = userId
                 AppUserInfo = AppUserInfo.NewEmpty(userId)
                 Reservations = []
@@ -53,9 +45,7 @@ and User =
             }
         static member NewWithUserInfo(userId: UserId, appUserInfo: AppUserInfo) = 
             { 
-                Tenants = [TenantId.Default]
                 CurrentTenant = TenantId.Default
-                TenantRoles = [(TenantId.Default, [Role.User])] |> Map
                 UserId = userId
                 AppUserInfo = appUserInfo
                 Reservations = []
@@ -96,6 +86,9 @@ and User =
 
         member this.GetAppUserInfo () =
             this.AppUserInfo
+
+        member this.SetCurrentTenant (tenantId: TenantId) =
+            { this with CurrentTenant = tenantId } |> Ok
 
         member this.SetAppUserInfo (appUserInfo: AppUserInfo) =
             { this with AppUserInfo = appUserInfo } |> Ok
@@ -139,15 +132,6 @@ and User =
     
         member this.HasCurrentLoan (loanId: LoanId) = 
             this.CurrentLoans |> List.contains loanId
-
-        // will use tenantRoles instead
-        member this.IsTenantMember (tenantId: TenantId) = 
-            this.Tenants |> List.contains tenantId
-
-        member this.GetTenantRoles (tenantId: TenantId) =
-            match this.TenantRoles.TryFind tenantId with
-            | Some roles -> roles
-            | None -> []
 
         member this.Id = this.UserId.Value
         static member StorageName = "_User"

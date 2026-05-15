@@ -17,28 +17,21 @@ type DistributionPointService
     (
         eventStore: IEventStore<string>,
         messageSenders: MessageSenders,
-        userViewerAsync: AggregateViewerAsync2<User>
+        userViewerAsync: AggregateViewerAsync2<User>,
+        tenantViewerAsync: AggregateViewerAsync2<Tenant>
     ) =
     let checkIsGlobalAdminOrTenantManager (context: UserContext) (ct: CancellationToken)= 
         taskResult {
-            let! rolesForThisTenant = userRolesForTenant userViewerAsync context.TenantId context.UserId (ct |> Some)
-            let allowed = 
-                match context with
-                | UserContext.Anonymous -> false
-                | UserContext.Authenticated _ when context.IsInRole Role.Admin -> true
-                | UserContext.Authenticated _ when rolesForThisTenant |> (List.exists (fun r -> r = Role.Manager || r = Role.Admin)) -> true
-                | _ -> false
-            do! 
-                allowed
-                |> Result.ofBool "Updating of book allowed only to admins or managers"
-            return ()   
+            let! tenant = tenantViewerAsync (ct |> Some) context.TenantId.Value |> TaskResult.map snd
+            return! Security.checkIsGlobalAdminOrTenantManager tenant context
         }
     new(secretsReader: SecretsReader, configuration: IConfiguration) =
         let connectionString = secretsReader.GetBookLibraryConnectionString ()
         let eventStore = PgStorage.PgEventStore connectionString
         let messageSenders = MessageSenders.NoSender
         let userViewerAsync = getAggregateStorageFreshStateViewerAsync<User, UserEvent, string> eventStore
-        DistributionPointService(eventStore, messageSenders, userViewerAsync)
+        let tenantViewerAsync = getAggregateStorageFreshStateViewerAsync<Tenant, TenantEvent, string> eventStore
+        DistributionPointService(eventStore, messageSenders, userViewerAsync, tenantViewerAsync)
     member this.GetAllDistributionPointsAsync(context: UserContext, ?ct: CancellationToken) = 
         taskResult
             {
@@ -80,9 +73,7 @@ type DistributionPointService
     member this.CreateDistributionPointAsync(context: UserContext, distributionPoint: DistributionPoint, ?ct: CancellationToken) = 
         taskResult
             {
-                do!  
-                    context.IsInRole Role.Admin
-                    |> Result.ofBool "Creation of distribution point allowed only to admins"
+                do! checkIsGlobalAdminOrTenantManager context (defaultArg ct CancellationToken.None)
                 do! 
                     distributionPoint.TenantId = context.TenantId
                     |> Result.ofBool $"Distribution point tenant id {distributionPoint.TenantId} does not match user tenant id {context.TenantId}"

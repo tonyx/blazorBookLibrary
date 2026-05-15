@@ -46,85 +46,20 @@ type UserService
     =
     let checkIsGlobalAdminOrTenantManager (context: UserContext) (ct: CancellationToken)= 
         taskResult {
-            let! rolesForThisTenant = userRolesForTenant userViewerAsync context.TenantId context.UserId (ct |> Some)
-            let allowed = 
-                match context with
-                | UserContext.Anonymous -> false
-                | UserContext.Authenticated _ when context.IsInRole Role.Admin -> true
-                | UserContext.Authenticated _ when rolesForThisTenant |> (List.exists (fun r -> r = Role.Manager || r = Role.Admin)) -> true
-                | _ -> false
-            do! 
-                allowed
-                |> Result.ofBool "Updating of book allowed only to admins or managers"
-            return ()   
+            let! tenant = tenantViewerAsync (ct |> Some) context.TenantId.Value |> TaskResult.map snd
+            return! Security.checkIsGlobalAdminOrTenantManager tenant context
         }
     let checkIsGlobalAdminOrTenantManagerOrSelf (context: UserContext) (ct: CancellationToken) (userId: UserId)= 
         taskResult {
-            let! rolesForThisTenant = userRolesForTenant userViewerAsync context.TenantId context.UserId (ct |> Some)
-            let allowed = 
-                match context with
-                | UserContext.Anonymous -> false
-                | UserContext.Authenticated _ when context.IsInRole Role.Admin -> true
-                | UserContext.Authenticated _ when rolesForThisTenant |> (List.exists (fun r -> r = Role.Manager || r = Role.Admin)) -> true
-                | UserContext.Authenticated (id, _, _) when id = userId -> true
-                | _ -> false
-            do! 
-                allowed
-                |> Result.ofBool "Updating of book allowed only to admins or managers"
-            return ()   
+            let! tenant = tenantViewerAsync (ct |> Some) context.TenantId.Value |> TaskResult.map snd
+            return! Security.checkIsGlobalAdminOrTenantManagerOrSelf tenant context userId
         }
     let checkIsGlobalAdminOrTenantManagerOrPublicTenant (context: UserContext) (ct: CancellationToken)= 
         taskResult {
-            let! rolesForThisTenant = userRolesForTenant userViewerAsync context.TenantId context.UserId (ct |> Some)
             let! tenant = tenantViewerAsync (ct |> Some) context.TenantId.Value |> TaskResult.map snd
-            let isPublicTenant = tenant.Public
-            let allowed = 
-                match context, isPublicTenant with
-                | (_, true) -> true
-                | UserContext.Anonymous, _ -> false
-                | UserContext.Authenticated (userId, _, _), _ when context.IsInRole Role.Admin -> true
-                | UserContext.Authenticated _, _ when rolesForThisTenant |> (List.exists (fun r -> r = Role.Manager || r = Role.Admin)) -> true
-                | _ -> false
-            do! 
-                allowed
-                |> Result.ofBool "Updating of book allowed only to admins or managers"
-            return ()   
+            return! Security.checkIsGlobalAdminOrTenantManagerOrPublicTenant tenant context
         }
 
-    new (eventStore: IEventStore<string>, scopeFactory: IServiceScopeFactory, reviewService: IReviewService, logger: ILogger<UserService>) 
-        =
-        let messageSenders = MessageSenders.NoSender
-        let bookViewerAsync = getAggregateStorageFreshStateViewerAsync<Book, BookEvent, string> eventStore
-        let authorViewerAsync = getAggregateStorageFreshStateViewerAsync<Author, AuthorEvent, string> eventStore
-        let editorViewerAsync = getAggregateStorageFreshStateViewerAsync<Editor, EditorEvent, string> eventStore
-        let reservationViewerAsync = getAggregateStorageFreshStateViewerAsync<Reservation, ReservationEvent, string> eventStore
-        let loanViewerAsync = getAggregateStorageFreshStateViewerAsync<Loan, LoanEvent, string> eventStore
-        let userViewerAsync = getAggregateStorageFreshStateViewerAsync<User, UserEvent, string> eventStore
-        let reviewsViewerAsync = getAggregateStorageFreshStateViewerAsync<Review, ReviewEvent, string> eventStore
-        let distributionPointViewerAsync = getAggregateStorageFreshStateViewerAsync<DistributionPoint, DistributionPointEvent, string> eventStore
-        let tenantViewerAsync = getAggregateStorageFreshStateViewerAsync<Tenant, TenantEvent, string> eventStore
-        UserService (
-            eventStore,
-            messageSenders,
-            bookViewerAsync,
-            authorViewerAsync,
-            editorViewerAsync,
-            reservationViewerAsync,
-            loanViewerAsync,
-            userViewerAsync,
-            reviewsViewerAsync,
-            tenantViewerAsync,
-            distributionPointViewerAsync,
-            reviewService,
-            scopeFactory,
-            logger
-        )    
-
-    new (configuration: IConfiguration, scopeFactory: IServiceScopeFactory, secretsReader: BookLibrary.Utils.SecretsReader, reviewService: IReviewService, logger: ILogger<UserService>)
-        =
-        let connectionString = secretsReader.GetBookLibraryConnectionString ()
-        let eventStore = PgStorage.PgEventStore connectionString
-        UserService(eventStore, scopeFactory, reviewService, logger)
 
     member this.MakeUserDetailsRefresherAsync(context: UserContext, id: UserId, ?ct: CancellationToken) = 
         fun (ct: Option<CancellationToken>) -> 
@@ -156,10 +91,13 @@ type UserService
                     let! booksAndReviews =
                         reviewService.GetReviewsOfUserAsync(context, id, ct)
                         
+                    let! currentTenant = tenantViewerAsync (Some ct) context.TenantId.Value |> TaskResult.map snd
+                        
                     return 
                         {
                             User = user
                             AppUser = user.AppUserInfo
+                            CurrentTenant = currentTenant
                             FutureReservations = reservationsAndBooks
                             CurrentLoans = loansAndBooks
                             BooksAndReviews = booksAndReviews
@@ -297,16 +235,9 @@ type UserService
         this.UpdateAppUserAndAggregateAsync(context, userId, (fun u -> u.IsIdentifiedPhysically <- false), UnsetPhysicalIdentification, ?ct = ct)
 
     member this.GhostUserAsync (context: UserContext, userId: UserId, ?ct: CancellationToken) : Task<Result<unit, string>> =
-        let authorized =
-            context.IsInRole Role.Admin || 
-            (context.UserId.IsSome && context.UserId.Value = userId)
-
-        if not authorized then
-            task {
-                return Error ("You are not authorized to perform this operation")
-            }
-        else
-            this.UpdateAppUserAndAggregateAsync(context, userId, (fun u -> 
+        taskResult {
+            do! checkIsGlobalAdminOrTenantManagerOrSelf context (defaultArg ct CancellationToken.None) userId
+            return! this.UpdateAppUserAndAggregateAsync(context, userId, (fun u -> 
                         let ghostId = Guid.NewGuid().ToString().Substring(0, 8)
                         let ghostName = sprintf "ghosted_%s" ghostId
                         let ghostEmail = sprintf "ghosted_%s@example.com" ghostId
@@ -322,6 +253,7 @@ type UserService
                         u.LockoutEnabled <- true
                         u.LockoutEnd <- Nullable<DateTimeOffset>(DateTimeOffset.MaxValue)
                     ), GdprGhost, ?ct = ct)
+        }
 
     member private this.GetUser (context: UserContext, userId: UserId, ?ct: CancellationToken) : Task<Result<User, string>> =
         let ct = defaultArg ct CancellationToken.None
@@ -361,6 +293,49 @@ type UserService
                 return distributionPoints |> List.map snd
             }
 
+    new(eventStore: IEventStore<string>, scopeFactory: IServiceScopeFactory, reviewService: IReviewService, logger: ILogger<UserService>) =
+        UserService(
+            eventStore,
+            MessageSenders.NoSender,
+            getAggregateStorageFreshStateViewerAsync<Book, BookEvent, string> eventStore,
+            getAggregateStorageFreshStateViewerAsync<Author, AuthorEvent, string> eventStore,
+            getAggregateStorageFreshStateViewerAsync<Editor, EditorEvent, string> eventStore,
+            getAggregateStorageFreshStateViewerAsync<Reservation, ReservationEvent, string> eventStore,
+            getAggregateStorageFreshStateViewerAsync<Loan, LoanEvent, string> eventStore,
+            getAggregateStorageFreshStateViewerAsync<User, UserEvent, string> eventStore,
+            getAggregateStorageFreshStateViewerAsync<Review, ReviewEvent, string> eventStore,
+            getAggregateStorageFreshStateViewerAsync<Tenant, TenantEvent, string> eventStore,
+            getAggregateStorageFreshStateViewerAsync<DistributionPoint, DistributionPointEvent, string> eventStore,
+            reviewService,
+            scopeFactory,
+            logger
+        )
+
+    member this.SetCurrentTenantAsync(context: UserContext, userId: UserId, tenantId: TenantId, ?ct: CancellationToken) =
+        taskResult {
+            let ct = defaultArg ct CancellationToken.None
+            let! tenant = tenantViewerAsync (Some ct) tenantId.Value |> TaskResult.map snd
+            let allowed =
+                match context with
+                | UserContext.Authenticated(u, roles, _) when roles |> List.contains(Role.Admin) -> true
+                | _ -> tenant.Patrons |> List.exists (fun (u, _) -> u = userId)
+            do! 
+                if not allowed then Error "Not allowed to set current tenant" else Ok ()
+            let setTenantCommand = SetCurrentTenant tenantId
+            let result =
+                runAggregateCommandMdAsync
+                    userId.Value
+                    eventStore
+                    messageSenders
+                    (context.ToString())
+                    setTenantCommand
+                    (Some ct)
+            return! result
+        }
+
+    new(configuration: IConfiguration, scopeFactory: IServiceScopeFactory, secretsReader: BookLibrary.Utils.SecretsReader, reviewService: IReviewService, logger: ILogger<UserService>) =
+        UserService(PgStorage.PgEventStore (secretsReader.GetBookLibraryConnectionString ()), scopeFactory, reviewService, logger)
+
     interface IUserService with
         member this.CreateUserAsync (context, user: User, ?ct: CancellationToken) : Task<Result<unit, string>> =
             let ct = defaultArg ct CancellationToken.None
@@ -391,58 +366,16 @@ type UserService
             this.UnSetIsPhysicallyIdentifiedAsync(context, userId, ct)
         member this.GhostUserAsync (context, userId: UserId, ?ct: CancellationToken) : Task<Result<unit, string>> =
             let ct = defaultArg ct CancellationToken.None
-
-            // todo ghosting to be reviewed
-            // let eventsGhosted =
-            //     task {
-            //         return this.GdprGhostEvents(userId)
-            //     }
-            //     |> Async.AwaitTask
-            //     |> Async.RunSynchronously
-            // let _ =
-            //     if (eventsGhosted.IsError) then
-            //         let (Error e) = eventsGhosted
-            //         logger.LogError(e, "Error ghosting user")
-            //     else
-            //         logger.LogInformation("User ghosted successfully")
-
-            // let updateSnapshots =
-            //     fun (s: string) ->
-            //         result
-            //             {
-            //                 let! user = User.Deserialize s
-            //                 let replacement =
-            //                     {
-            //                         user with
-            //                             AppUserInfo = 
-            //                                 {
-            //                                     user.AppUserInfo with
-            //                                         PhoneNumber = "0000000000"
-            //                                         Nome = "Ghosted"
-            //                                         Cognome = "Ghosted"
-            //                                         CodiceFiscale = "GHOSTED"
-            //                                         Email = "ghosted@asdflkjsdfjksdafs.com"
-            //                                 }
-            //                     }
-            //                 return replacement.Serialize  
-            //             }
-            // let snapshotsGhosted =
-            //     task {
-            //         return eventStore.GDPRPartialUpdateSnapshots User.Version User.StorageName userId.Value updateSnapshots
-            //     } 
-            //     |> Async.AwaitTask
-            //     |> Async.RunSynchronously
-
             this.GhostUserAsync(context, userId, ct)
-                 
         member this.GetUser (context, userId: UserId, ?ct: CancellationToken) : Task<Result<User, string>> =
             let ct = defaultArg ct CancellationToken.None
             this.GetUser(context, userId, ct)
-            
         member this.SetAppUserInfoAsync (context, userId: UserId, appUserInfo: AppUserInfo, ?ct: CancellationToken) : Task<Result<unit, string>> =
             let ct = defaultArg ct CancellationToken.None
             this.SetAppUserInfoAsync(context, userId, appUserInfo, ct)
-
         member this.GetDistributionPointsManagedByUserAsync (context, userId: UserId, ?ct: CancellationToken) : Task<Result<List<DistributionPoint>, string>> =
             let ct = defaultArg ct CancellationToken.None
             this.GetDistributionPointsManagedByUserAsync(context, userId, ct)
+        member this.SetCurrentTenantAsync (context, userId: UserId, tenantId: TenantId, ?ct: CancellationToken) : Task<Result<unit, string>> =
+            let ct = defaultArg ct CancellationToken.None
+            this.SetCurrentTenantAsync(context, userId, tenantId, ct)

@@ -11,6 +11,10 @@ type TenantCommand =
     | AddTag of Tag
     | RemoveTag of Tag
     | ReplaceTag of (Tag * Tag)
+    | AddPatron of (UserId * PatronRole)
+    | DemotePatron of UserId
+    | PromotePatron of UserId
+    | RemovePatron of UserId
     
     interface AggregateCommand<Tenant, TenantEvent> with
         member this.Execute (tenant: Tenant) =
@@ -33,5 +37,17 @@ type TenantCommand =
             | ReplaceTag (oldTag, newTag) ->
                 tenant.ReplaceTag (oldTag, newTag)
                 |> Result.map (fun t -> (t, [TenantEvent.TagReplaced (oldTag, newTag)]))
+            | AddPatron (userId, role) ->
+                tenant.AddPatron (userId, role)
+                |> Result.map (fun t -> (t, [TenantEvent.PatronAdded (userId, role)]))
+            | DemotePatron userId ->
+                tenant.DemotePatron userId
+                |> Result.map (fun t -> (t, [TenantEvent.PatronDemoted userId]))
+            | PromotePatron userId ->
+                tenant.PromotePatron userId
+                |> Result.map (fun t -> (t, [TenantEvent.PatronPromoted userId]))
+            | RemovePatron userId ->
+                tenant.RemovePatron userId
+                |> Result.map (fun t -> (t, [TenantEvent.PatronRemoved userId]))
 
         member this.Undoer = None

@@ -143,6 +143,7 @@ let getAuthorService () : IAuthorService =
         editorViewerAsync, 
         reservationViewerAsync, 
         loanViewerAsync,
+        tenantViewerAsync,
         getSecretReader()) :> IAuthorService
 
 let getReviewService () : IReviewService =
@@ -204,6 +205,7 @@ let getLoanService () : ILoanService =
         reservationViewerAsync, 
         loanViewerAsync,
         userViewerAsync,
+        tenantViewerAsync,
         getReservationService(),
         getUserService(),
         fakeEmailNotificator,
@@ -223,6 +225,7 @@ let getDetailsService () : IDetailsService =
         loanViewerAsync,
         userViewerAsync,
         reviewViewerAsync,
+        tenantViewerAsync,
         distributionPointViewerAsync,
         getLoanService(),
         getReservationService(),
@@ -257,12 +260,12 @@ let getBookService () : IBookService =
 let getGoogleBooksService () =
     let httpClient = new HttpClient()
     httpClient.DefaultRequestHeaders.Add("User-Agent", "BlazorBookLibraryTest/1.0")
-    GoogleBooksService(httpClient, config) :> IGoogleBooksService
+    GoogleBooksService(httpClient, config, tenantViewerAsync) :> IGoogleBooksService
 
 let getAuthorsSearchService () =
     let httpClient = new HttpClient()
     httpClient.DefaultRequestHeaders.Add("User-Agent", "BlazorBookLibraryTest/1.0")
-    AuthorsSearchService(httpClient) :> IAuthorsSearchService
+    AuthorsSearchService(httpClient, tenantViewerAsync) :> IAuthorsSearchService
 
 let getDataExportService () : IDataExportService =
     DataExportService(
@@ -274,6 +277,7 @@ let getDataExportService () : IDataExportService =
         reservationViewerAsync,
         loanViewerAsync,
         userViewerAsync,
+        tenantViewerAsync,
         getBookService(),
         getAuthorService(),
         getDetailsService(),
@@ -336,7 +340,7 @@ let setUp () =
         userManager.AddToRoleAsync(aspAdmin, "Admin").Result |> ignore
 
         let userService = getUserService()
-        let adminUser = { User.New adminId with TenantRoles = [(TenantId.Default, [Role.Admin])] |> Map }
+        let adminUser = User.New adminId
         userService.CreateUserAsync(UserContext.Anonymous, adminUser).Result |> ignore
 
         let tenantService = getTenantService()
@@ -441,7 +445,7 @@ let registerUserWithAdminRoleTask (email: string) (password: string) =
 
         let userId = UserId guid
         let userService = getUserService()
-        let user = { User.New userId with TenantRoles = [(TenantId.Default, [Role.Admin])] |> Map }
+        let user = User.New userId
         let! addUser = userService.CreateUserAsync(adminContext, user)
         
         if not (addUser |> Result.isOk) then

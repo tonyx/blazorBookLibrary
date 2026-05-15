@@ -29,30 +29,15 @@ type AuthorService
         editorViewerAsync: AggregateViewerAsync2<Editor>,
         reservationViewerAsync: AggregateViewerAsync2<Reservation>,
         loanViewerAsync: AggregateViewerAsync2<Loan>,
+        tenantViewerAsync: AggregateViewerAsync2<Tenant>,
         secretsReader: SecretsReader
     ) =
-    new (eventStore: IEventStore<string>, secretsReader: SecretsReader) =
-        let messageSenders = MessageSenders.NoSender
-        let bookViewerAsync = getAggregateStorageFreshStateViewerAsync<Book, BookEvent, string> eventStore
-        let authorViewerAsync = getAggregateStorageFreshStateViewerAsync<Author, AuthorEvent, string> eventStore
-        let editorViewerAsync = getAggregateStorageFreshStateViewerAsync<Editor, EditorEvent, string> eventStore
-        let reservationViewerAsync = getAggregateStorageFreshStateViewerAsync<Reservation, ReservationEvent, string> eventStore
-        let loanViewerAsync = getAggregateStorageFreshStateViewerAsync<Loan, LoanEvent, string> eventStore
-        AuthorService (
-            eventStore,
-            messageSenders,
-            bookViewerAsync,
-            authorViewerAsync,
-            editorViewerAsync,
-            reservationViewerAsync,
-            loanViewerAsync,
-            secretsReader
-        )
-    new (secretsReader: SecretsReader)
-        =   
-        let connectionString = secretsReader.GetBookLibraryConnectionString ()
-        let eventStore = PgStorage.PgEventStore connectionString
-        AuthorService(eventStore, secretsReader)
+    let checkIsGlobalAdminOrTenantManager (context: UserContext) (ct: CancellationToken)= 
+        taskResult {
+            let! tenant = tenantViewerAsync (ct |> Some) context.TenantId.Value |> TaskResult.map snd
+            return! Security.checkIsGlobalAdminOrTenantManager tenant context
+        }
+
 
     member this.AddAuthorAsync(context: UserContext, author: Author, ?ct: CancellationToken) = 
         taskResult
@@ -174,9 +159,7 @@ type AuthorService
                 do! 
                     context.TenantId = author.TenantId
                     |> Result.ofBool "Tenant ids not matching"
-                do!
-                    (context.IsInRole Role.Admin || context.IsInRole Role.Manager)
-                    |> Result.ofBool "Updating of author isni allowed only to admins or managers"
+                do! checkIsGlobalAdminOrTenantManager context (ct |> Option.defaultValue CancellationToken.None)
                 let updateIsniCommand = AuthorCommand.UpdateIsni (isni, DateTime.UtcNow)
                 let result = 
                     runAggregateCommandMdAsync<Author, AuthorEvent, string>
@@ -196,9 +179,7 @@ type AuthorService
                 do! 
                     context.TenantId = author.TenantId
                     |> Result.ofBool "Tenant ids not matching"
-                do!
-                    (context.IsInRole Role.Admin || context.IsInRole Role.Manager)
-                    |> Result.ofBool "Updating of author bio allowed only to admins or managers"
+                do! checkIsGlobalAdminOrTenantManager context (ct |> Option.defaultValue CancellationToken.None)
                 let updateBioCommand = AuthorCommand.UpdateBio (bio, DateTime.UtcNow)
                 let result = 
                     runAggregateCommandMdAsync<Author, AuthorEvent, string>
@@ -218,9 +199,7 @@ type AuthorService
                 do! 
                     context.TenantId = author.TenantId
                     |> Result.ofBool "Tenant ids not matching"
-                do!
-                    (context.IsInRole Role.Admin || context.IsInRole Role.Manager)
-                    |> Result.ofBool "Updating of author wikipedia uri allowed only to admins or managers"
+                do! checkIsGlobalAdminOrTenantManager context (ct |> Option.defaultValue CancellationToken.None)
                 let updateWikipediaUriCommand = AuthorCommand.UpdateWikipediaUri (wikipediaUri, DateTime.UtcNow)
                 let result = 
                     runAggregateCommandMdAsync<Author, AuthorEvent, string>
@@ -240,9 +219,7 @@ type AuthorService
                 do! 
                     context.TenantId = author.TenantId
                     |> Result.ofBool "Tenant ids not matching"
-                do!
-                    (context.IsInRole Role.Admin || context.IsInRole Role.Manager)
-                    |> Result.ofBool "Updating of author image url allowed only to admins or managers"
+                do! checkIsGlobalAdminOrTenantManager context (ct |> Option.defaultValue CancellationToken.None)
                 let updateImageUrlCommand = AuthorCommand.UpdateImageUrl (imageUrl, DateTime.UtcNow)
                 let result = 
                     runAggregateCommandMdAsync<Author, AuthorEvent, string>
@@ -262,9 +239,7 @@ type AuthorService
                 do! 
                     context.TenantId = author.TenantId
                     |> Result.ofBool "Tenant ids not matching"
-                do!
-                    (context.IsInRole Role.Admin || context.IsInRole Role.Manager)
-                    |> Result.ofBool "Removing of author image url allowed only to admins or managers"    
+                do! checkIsGlobalAdminOrTenantManager context (ct |> Option.defaultValue CancellationToken.None)
                 let removeImageUrlCommand = AuthorCommand.RemoveImageUrl (DateTime.UtcNow)
                 let result = 
                     runAggregateCommandMdAsync<Author, AuthorEvent, string>
@@ -284,9 +259,7 @@ type AuthorService
                 do! 
                     context.TenantId = author.TenantId
                     |> Result.ofBool "Tenant ids not matching"
-                do!
-                    (context.IsInRole Role.Admin || context.IsInRole Role.Manager)
-                    |> Result.ofBool "Sealing of author allowed only to admins or managers"    
+                do! checkIsGlobalAdminOrTenantManager context (ct |> Option.defaultValue CancellationToken.None)
                 let sealCommand = AuthorCommand.Seal (DateTime.UtcNow)
                 let result = 
                     runAggregateCommandMdAsync<Author, AuthorEvent, string>
@@ -306,9 +279,7 @@ type AuthorService
                 do! 
                     context.TenantId = author.TenantId
                     |> Result.ofBool "Tenant ids not matching"
-                do!
-                    (context.IsInRole Role.Admin || context.IsInRole Role.Manager)
-                    |> Result.ofBool "Unsealing of author allowed only to admins or managers"    
+                do! checkIsGlobalAdminOrTenantManager context (ct |> Option.defaultValue CancellationToken.None)
                 let unsealCommand = AuthorCommand.Unseal (DateTime.UtcNow)
                 let result = 
                     runAggregateCommandMdAsync<Author, AuthorEvent, string>
@@ -328,9 +299,7 @@ type AuthorService
                 do! 
                     context.TenantId = author.TenantId
                     |> Result.ofBool "Tenant ids not matching"
-                do!
-                    (context.IsInRole Role.Admin || context.IsInRole Role.Manager)
-                    |> Result.ofBool "Removing of author allowed only to admins or managers"    
+                do! checkIsGlobalAdminOrTenantManager context (ct |> Option.defaultValue CancellationToken.None)
                 return!
                     runDeleteAsync<Author, AuthorEvent, string>
                     eventStore
@@ -388,6 +357,22 @@ type AuthorService
                     |> List.filter (fun a -> context.TenantId = a.TenantId)
             }
                     
+    new (eventStore: IEventStore<string>, secretsReader: SecretsReader) =
+        AuthorService (
+            eventStore,
+            MessageSenders.NoSender,
+            getAggregateStorageFreshStateViewerAsync<Book, BookEvent, string> eventStore,
+            getAggregateStorageFreshStateViewerAsync<Author, AuthorEvent, string> eventStore,
+            getAggregateStorageFreshStateViewerAsync<Editor, EditorEvent, string> eventStore,
+            getAggregateStorageFreshStateViewerAsync<Reservation, ReservationEvent, string> eventStore,
+            getAggregateStorageFreshStateViewerAsync<Loan, LoanEvent, string> eventStore,
+            getAggregateStorageFreshStateViewerAsync<Tenant, TenantEvent, string> eventStore,
+            secretsReader
+        )
+
+    new(secretsReader: SecretsReader) =
+        AuthorService(PgStorage.PgEventStore (secretsReader.GetBookLibraryConnectionString ()), secretsReader)
+
     interface IAuthorService with
         member this.AddAuthorAsync(context, author: Author, ?ct: CancellationToken) = 
             let ct = defaultArg ct CancellationToken.None

@@ -5,7 +5,6 @@ open System
 module Details =
     open BookLibrary.Domain
     open Commons
-    // open blazorBookLibrary.Data
     open System.Threading.Tasks
 
     let random = System.Random()
@@ -14,6 +13,7 @@ module Details =
         {
             User: User
             AppUser: AppUserInfo
+            CurrentTenant: Tenant
             FutureReservations: List<Reservation*Book>
             CurrentLoans: List<Loan * Book> 
             BooksAndReviews: List<Book * Review>

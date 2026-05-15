@@ -30,25 +30,34 @@ type AdminService
         eventStore: IEventStore<string>,
         messageSender: MessageSenders,
         vectorDbService: IVectorDbService,
-        bookService: IBookService
+        bookService: IBookService,
+        tenantViewerAsync: AggregateViewerAsync2<Tenant>
     ) =
+    let checkIsGlobalAdminOrTenantManager (context: UserContext) (ct: CancellationToken)= 
+        taskResult {
+            let! tenant = tenantViewerAsync (Some ct) context.TenantId.Value |> TaskResult.map snd
+            return! Security.checkIsGlobalAdminOrTenantManager tenant context
+        }
+
     new(secretsReader: SecretsReader, configuration: IConfiguration, vectorDbService: IVectorDbService, bookService: IBookService) =
-        let connectionString = secretsReader.GetBookLibraryConnectionString()
-        let messageSenders = MessageSenders.NoSender
-        let eventStore = PgStorage.PgEventStore connectionString
-        AdminService (eventStore, messageSenders, vectorDbService, bookService)
+        AdminService (
+            PgStorage.PgEventStore (secretsReader.GetBookLibraryConnectionString()), 
+            MessageSenders.NoSender, 
+            vectorDbService, 
+            bookService, 
+            getAggregateStorageFreshStateViewerAsync<Tenant, TenantEvent, string> (PgStorage.PgEventStore (secretsReader.GetBookLibraryConnectionString()))
+        )
 
     member this.PurgeVectorsReferringDroppedBooksAsync (context: UserContext, ?ct) = 
+        let ct = defaultArg ct CancellationToken.None
         taskResult {
-                do!
-                    (context.IsInRole Role.Admin || context.IsInRole Role.Manager)
-                    |> Result.ofBool "Adjusting of book states referring missing embeddings allowed only to admins or managers"
-                let! vectorDbItemsWithBookIds = vectorDbService.ReadAllEmbeddingIdsWithBookIdsAsync (context.TenantId, ?ct = ct)
+                do! checkIsGlobalAdminOrTenantManager context ct
+                let! vectorDbItemsWithBookIds = vectorDbService.ReadAllEmbeddingIdsWithBookIdsAsync (context.TenantId, ?ct = Some ct)
                 let! results = 
                     vectorDbItemsWithBookIds
                     |> Seq.map (fun (embeddingDataId, bookId) -> 
                         task {
-                            let! bookResult = bookService.GetBookAsync (context, bookId, ?ct = ct)
+                            let! bookResult = bookService.GetBookAsync (context, bookId, ?ct = Some ct)
                             return (embeddingDataId, bookResult.IsError)
                         }
                     )
@@ -61,22 +70,21 @@ type AdminService
                     |> Array.toList
 
                 if not unexistingBookReferedBookIds.IsEmpty then
-                    let! _ = vectorDbService.RemoveEmbeddingsAsync (unexistingBookReferedBookIds, ?ct = ct)
+                    let! _ = vectorDbService.RemoveEmbeddingsAsync (unexistingBookReferedBookIds, ?ct = Some ct)
                     return ()
                 else
                     return ()
             }
     member this.AdjustBookStatesReferringMissingEmbeddingsAsync (context: UserContext, ?ct) = 
+        let ct = defaultArg ct CancellationToken.None
         taskResult {
-            do!
-                (context.IsInRole Role.Admin || context.IsInRole Role.Manager)
-                |> Result.ofBool "Adjusting of book states referring missing embeddings allowed only to admins or managers"
+            do! checkIsGlobalAdminOrTenantManager context ct
             let embeddingIsSome = BookSearchCriteria(fun b -> b.OptionalEmbedding.IsSome)
-            let! booksWithEmbeddings = bookService.GetAllAsync(context, criteria = embeddingIsSome, ?ct = ct)
+            let! booksWithEmbeddings = bookService.GetAllAsync(context, criteria = embeddingIsSome, ?ct = Some ct)
             
             let bookIdsEmbeddingIds = booksWithEmbeddings |> List.map (fun b -> b.Id, b.OptionalEmbedding.Value)
             let embeddingIds = bookIdsEmbeddingIds |>> snd
-            let! missingEmbeddingIds = vectorDbService.EnquiryForMissingEmbeddingsAsync (embeddingIds, ?ct = ct)
+            let! missingEmbeddingIds = vectorDbService.EnquiryForMissingEmbeddingsAsync (embeddingIds, ?ct = Some ct)
             
             let missingEmbeddingIdsSet = missingEmbeddingIds |> Set.ofList
             let booksToFix = 
@@ -85,7 +93,7 @@ type AdminService
                 |> List.map (fun b -> b.BookId)
             
             if not booksToFix.IsEmpty then
-                let! _ = bookService.ForceBulkRemoveEmbeddingsAsync (context, booksToFix, ?ct = ct)
+                let! _ = bookService.ForceBulkRemoveEmbeddingsAsync (context, booksToFix, ?ct = Some ct)
                 return ()
             else
                 return ()
@@ -94,23 +102,22 @@ type AdminService
     member this.CreateDistributionPointAsync(context: UserContext, distributionPoint: DistributionPoint, ?ct: CancellationToken) = 
         taskResult
             {
-                do!
-                    context.IsInRole Role.Admin
-                    |> Result.ofBool "Creating of distribution point allowed only to admins"
+                let ct = defaultArg ct CancellationToken.None
+                do! checkIsGlobalAdminOrTenantManager context ct
                 return!
                     runInitAsync<DistributionPoint, DistributionPointEvent, string>
                     eventStore
                     messageSender
                     distributionPoint
-                    ct
+                    (Some ct)
+                    |> TaskResult.ignore
             }
 
     member this.AssignUserToDistributionPointAsync(context: UserContext, id: DistributionPointId, userId: UserId, ?ct: CancellationToken) = 
         taskResult
             {
-                do!
-                    context.IsInRole Role.Admin
-                    |> Result.ofBool "Assigning user to distribution point allowed only to admins"
+                let ct = defaultArg ct CancellationToken.None
+                do! checkIsGlobalAdminOrTenantManager context ct
                 let command = DistributionPointCommand.AddReferenceUser userId
                 return!
                     runAggregateCommandMdAsync<DistributionPoint, DistributionPointEvent, string>
@@ -119,15 +126,15 @@ type AdminService
                         messageSender
                         (context.ToString())
                         command
-                        ct
+                        (Some ct)
+                    |> TaskResult.ignore
             }
 
     member this.UnassignUserFromDistributionPointAsync(context: UserContext, id: DistributionPointId, userId: UserId, ?ct: CancellationToken) = 
         taskResult
             {
-                do!
-                    context.IsInRole Role.Admin
-                    |> Result.ofBool "Unassigning user from distribution point allowed only to admins"
+                let ct = defaultArg ct CancellationToken.None
+                do! checkIsGlobalAdminOrTenantManager context ct
                 let command = DistributionPointCommand.RemoveReferenceUser userId
                 return!
                     runAggregateCommandMdAsync<DistributionPoint, DistributionPointEvent, string>
@@ -136,15 +143,15 @@ type AdminService
                         messageSender
                         (context.ToString())
                         command
-                        ct
+                        (Some ct)
+                    |> TaskResult.ignore
             }
 
     member this.UpdateDistributionPointInfoAsync(context: UserContext, id: DistributionPointId, info: Info, ?ct: CancellationToken) = 
         taskResult
             {
-                do!
-                    context.IsInRole Role.Admin
-                    |> Result.ofBool "Updating of distribution point allowed only to admins"
+                let ct = defaultArg ct CancellationToken.None
+                do! checkIsGlobalAdminOrTenantManager context ct
 
                 let command = DistributionPointCommand.UpdateInfo info
                 return!
@@ -154,15 +161,15 @@ type AdminService
                         messageSender
                         (context.ToString())
                         command
-                        ct
+                        (Some ct)
+                    |> TaskResult.ignore
             }
 
     member this.RenameDistributionPointAsync(context: UserContext, id: DistributionPointId, name: NonEmptyName, ?ct: CancellationToken) = 
         taskResult
             {
-                do!
-                    context.IsInRole Role.Admin
-                    |> Result.ofBool "Renaming of distribution point allowed only to admins"
+                let ct = defaultArg ct CancellationToken.None
+                do! checkIsGlobalAdminOrTenantManager context ct
                 let command = DistributionPointCommand.Rename name
                 return!
                     runAggregateCommandMdAsync<DistributionPoint, DistributionPointEvent, string>
@@ -171,15 +178,16 @@ type AdminService
                         messageSender
                         (context.ToString())
                         command
-                        ct
+                        (Some ct)
+                    |> TaskResult.ignore
             }
 
     member this.PurgeDuplicatedVectorsAsync (context: UserContext, ?ct) =
+        let ct = defaultArg ct CancellationToken.None
         taskResult {
-            do! (context.IsInRole Role.Admin || context.IsInRole Role.Manager)
-                |> Result.ofBool "Only admins or managers can purge duplicated vectors"
+            do! checkIsGlobalAdminOrTenantManager context ct
             
-            let! allPairs = vectorDbService.ReadAllEmbeddingIdsWithBookIdsAsync(context.TenantId, ?ct = ct)
+            let! allPairs = vectorDbService.ReadAllEmbeddingIdsWithBookIdsAsync(context.TenantId, ?ct = Some ct)
             
             let duplicates = 
                 allPairs
@@ -188,15 +196,15 @@ type AdminService
                 |> Seq.toList
             
             for (bookId, group) in duplicates do
-                let! book = bookService.GetBookAsync(context, bookId, ?ct = ct)
+                let! book = bookService.GetBookAsync(context, bookId, ?ct = Some ct)
                 match book.OptionalEmbedding with
                 | None ->
                     // Link to the first one and remove others
                     let firstEmbeddingId, _ = Seq.head group
                     let others = Seq.tail group |> Seq.map fst |> Seq.toList
-                    let! _ = bookService.EmbedDescriptionAsync(context, bookId, firstEmbeddingId, ?ct = ct)
+                    let! _ = bookService.EmbedDescriptionAsync(context, bookId, firstEmbeddingId, ?ct = Some ct)
                     if not others.IsEmpty then
-                        let! _ = vectorDbService.RemoveEmbeddingsAsync(others, ?ct = ct)
+                        let! _ = vectorDbService.RemoveEmbeddingsAsync(others, ?ct = Some ct)
                         ()
                 | Some embeddingId ->
                     // Remove all except the one pointed by OptionalEmbedding
@@ -206,7 +214,7 @@ type AdminService
                         |> Seq.filter (fun id -> id <> embeddingId)
                         |> Seq.toList
                     if not toRemove.IsEmpty then
-                        let! _ = vectorDbService.RemoveEmbeddingsAsync(toRemove, ?ct = ct)
+                        let! _ = vectorDbService.RemoveEmbeddingsAsync(toRemove, ?ct = Some ct)
                         ()
             
             return ()
@@ -221,11 +229,11 @@ type AdminService
             this.AssignUserToDistributionPointAsync(context, distributionPointId, userId, ?ct = ct)
         member this.UnassignUserFromDistributionPointAsync(context, distributionPointId, userId, ?ct) = 
             this.UnassignUserFromDistributionPointAsync(context, distributionPointId, userId, ?ct = ct)        
-        member this.UpdateDistributionPointInfoAsync(context, distributionPointId, info, ct) = 
+        member this.UpdateDistributionPointInfoAsync(context, distributionPointId, info, ?ct) = 
             this.UpdateDistributionPointInfoAsync(context, distributionPointId, info, ?ct = ct)        
-        member this.RenameDistributionPointAsync(context, distributionPointId, name, ct) = 
+        member this.RenameDistributionPointAsync(context, distributionPointId, name, ?ct) = 
             this.RenameDistributionPointAsync(context, distributionPointId, name, ?ct = ct)
-        member this.PurgeDuplicatedVectorsAsync(context, ct) =
+        member this.PurgeDuplicatedVectorsAsync(context, ?ct) =
             this.PurgeDuplicatedVectorsAsync(context, ?ct = ct)
         
 

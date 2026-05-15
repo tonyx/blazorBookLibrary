@@ -24,4 +24,5 @@ type IUserService =
     abstract member GetUser: context: UserContext * userId:UserId * [<Optional; DefaultParameterValue(null)>] ?ct:CancellationToken -> Task<Result<User, string>>
     abstract member SetAppUserInfoAsync: context: UserContext * userId:UserId * appUserInfo:AppUserInfo * [<Optional; DefaultParameterValue(null)>] ?ct:CancellationToken -> Task<Result<unit, string>>
     abstract member GetDistributionPointsManagedByUserAsync: context: UserContext * userId:UserId * [<Optional; DefaultParameterValue(null)>] ?ct:CancellationToken -> Task<Result<List<DistributionPoint>, string>>
+    abstract member SetCurrentTenantAsync: context: UserContext * userId:UserId * tenantId:TenantId * [<Optional; DefaultParameterValue(null)>] ?ct:CancellationToken -> Task<Result<unit, string>>
     

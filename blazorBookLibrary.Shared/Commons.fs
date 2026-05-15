@@ -535,21 +535,6 @@ type UserContext =
             | Authenticated(userId, roles, _) -> Authenticated(userId, roles, tenantId)
             | Anonymous -> Anonymous
 
-// we are going to use this one instead of the ones in ConverterUtils.fs for a complete user to role extraction
-let inline userRolesForTenant<'U when 'U: (member GetTenantRoles: TenantId -> List<Role>)> 
-    (viewer: AggregateViewerAsync2<'U>) 
-    (tenantId: TenantId) 
-    (optUserId: Option<UserId>)
-    (ct: Option<CancellationToken>) =
-        taskResult
-            {
-                match optUserId with 
-                | None -> return []
-                | Some userId ->
-                    let! user = viewer ct userId.Value |> TaskResult.map snd
-                    return user.GetTenantRoles tenantId
-            }
-
 type Name =
     | Name of string
     | EmptyName

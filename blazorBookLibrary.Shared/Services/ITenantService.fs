@@ -11,3 +11,12 @@ type ITenantService =
     abstract member EnsureDefaultTenantExistsAsync: userId:UserId * [<Optional; DefaultParameterValue(null)>] ?ct:CancellationToken -> Task<Result<unit, string>>
     abstract member CreateTenantAsync: UserContext * Tenant * [<Optional; DefaultParameterValue(null)>] ?ct:CancellationToken -> Task<Result<unit, string>>
     abstract member GetTenantAsync: UserContext * TenantId * [<Optional; DefaultParameterValue(null)>] ?ct:CancellationToken -> Task<Result<Tenant, string>>
+    abstract member AddPatronAsync: UserContext * TenantId * UserId * PatronRole * [<Optional; DefaultParameterValue(null)>] ?ct:CancellationToken -> Task<Result<unit, string>>
+    abstract member DemotePatronAsync: UserContext * TenantId * UserId * [<Optional; DefaultParameterValue(null)>] ?ct:CancellationToken -> Task<Result<unit, string>>
+    abstract member PromotePatronAsync: UserContext * TenantId * UserId * [<Optional; DefaultParameterValue(null)>] ?ct:CancellationToken -> Task<Result<unit, string>>
+    abstract member RemovePatronAsync: UserContext * TenantId * UserId * [<Optional; DefaultParameterValue(null)>] ?ct:CancellationToken -> Task<Result<unit, string>>
+    abstract member GetUserRoleAsync: UserContext * TenantId * UserId * [<Optional; DefaultParameterValue(null)>] ?ct:CancellationToken -> Task<Result<PatronRole, string>> 
+    abstract member GetAllPublicTenantsAsync: UserContext * [<Optional; DefaultParameterValue(null)>] ?ct:CancellationToken -> Task<Result<List<Tenant>, string>> 
+    abstract member GetAllowedTenantsAsync: UserContext * [<Optional; DefaultParameterValue(null)>] ?ct:CancellationToken -> Task<Result<List<Tenant>, string>>
+    abstract member GetMyTenantsAsync: UserContext * [<Optional; DefaultParameterValue(null)>] ?ct:CancellationToken -> Task<Result<List<Tenant>, string>>
+    abstract member GetMyOwnedTenantsAsync: UserContext * [<Optional; DefaultParameterValue(null)>] ?ct:CancellationToken -> Task<Result<List<Tenant>, string>>

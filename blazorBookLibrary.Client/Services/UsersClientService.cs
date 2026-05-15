@@ -93,4 +93,9 @@ public class UsersClientService : IUserService
         var result = await ServiceClientHelper.HandleResponse<List<DistributionPoint>>(response);
         return result.IsOk ? FSharpResult<FSharpList<DistributionPoint>, string>.NewOk(ListModule.OfSeq(result.ResultValue)) : FSharpResult<FSharpList<DistributionPoint>, string>.NewError(result.ErrorValue);
     }
+    public async Task<FSharpResult<Unit, string>> SetCurrentTenantAsync(Commons.UserContext context, Commons.UserId userId, Commons.TenantId tenantId, FSharpOption<CancellationToken> ct)
+    {
+        var response = await _httpClient.PostAsJsonAsync($"api/Users/{userId.Value}/current-tenant", tenantId.Value, ServiceClientHelper.JsonOptions, ServiceClientHelper.GetValue(ct, CancellationToken.None));
+        return await ServiceClientHelper.HandleUnitResponse(response);
+    }
 }

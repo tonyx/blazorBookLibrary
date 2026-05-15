@@ -33,6 +33,14 @@
                 <span class="bi bi-geo-alt" aria-hidden="true"></span> @L["DistributionPoints"]
             </NavLink>
         </div>
+        
+        <AuthorizeView>
+            <div class="nav-item">
+                <NavLink class="nav-link sanctuary-nav-link" href="tenants">
+                    <span class="bi bi-building" aria-hidden="true"></span> @L["Tenants"]
+                </NavLink>
+            </div>
+        </AuthorizeView>
 
         <AuthorizeView Roles="Admin">
             <div class="nav-item">

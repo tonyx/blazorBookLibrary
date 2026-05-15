@@ -34,6 +34,7 @@ type LoanService
         reservationViewerAsync: AggregateViewerAsync2<Reservation>,
         loanViewerAsync: AggregateViewerAsync2<Loan>,
         userViewerAsync: AggregateViewerAsync2<User>,
+        tenantViewerAsync: AggregateViewerAsync2<Tenant>,
         reservationService: IReservationService,
         usersService: IUserService,
         mailNotificator: IMailNotificator,
@@ -44,76 +45,12 @@ type LoanService
         mailBodyRetriever: IMailBodyRetriever
 
     ) =
-    new 
-        (eventStore: IEventStore<string>, 
-        reservationService: IReservationService, 
-        usersService: IUserService, 
-        mailNotificator: IMailNotificator, 
-        localizer: IStringLocalizer<SharedResources>, 
-        configuration: IConfiguration,
-        mailBodyRetriever: IMailBodyRetriever)
-        =
-        let messageSenders = MessageSenders.NoSender
-        let bookViewerAsync = getAggregateStorageFreshStateViewerAsync<Book, BookEvent, string> eventStore
-        let authorViewerAsync = getAggregateStorageFreshStateViewerAsync<Author, AuthorEvent, string> eventStore
-        let editorViewerAsync = getAggregateStorageFreshStateViewerAsync<Editor, EditorEvent, string> eventStore
-        let reservationViewerAsync = getAggregateStorageFreshStateViewerAsync<Reservation, ReservationEvent, string> eventStore
-        let loanViewerAsync = getAggregateStorageFreshStateViewerAsync<Loan, LoanEvent, string> eventStore
-        let userViewerAsync = getAggregateStorageFreshStateViewerAsync<User, UserEvent, string> eventStore
-        let maxLoanPerUser = configuration.GetValue<int>("BooksLibrary:MaxLoanPerUser", 3)
-        let fromEmail = configuration.GetValue<string>("BooksLibrary:FromEmail", "noreply@blazorbooklibrary.com")
-        let fromName = configuration.GetValue<string>("BooksLibrary:FromName", "Blazor Book Library")
 
-        LoanService (
-            eventStore,
-            messageSenders,
-            bookViewerAsync,
-            authorViewerAsync,
-            editorViewerAsync,
-            reservationViewerAsync,
-            loanViewerAsync,
-            userViewerAsync,
-            reservationService,
-            usersService,
-            mailNotificator,
-            maxLoanPerUser,
-            fromEmail,
-            fromName,
-            localizer,
-            mailBodyRetriever
-        )
-
-    new 
-        (configuration: IConfiguration, 
-        reservationService: IReservationService,
-        usersService: IUserService, 
-        mailNotificator: IMailNotificator, 
-        localizer: IStringLocalizer<SharedResources>,
-        mailBodyRetriever: IMailBodyRetriever,
-        secretsReader: SecretsReader) 
-        =
-        let connectionString = secretsReader.GetBookLibraryConnectionString ()
-        let eventStore = PgStorage.PgEventStore connectionString
-        LoanService
-            (eventStore, 
-            reservationService, 
-            usersService, 
-            mailNotificator, 
-            localizer, 
-            configuration, 
-            mailBodyRetriever)
-
-    new 
-        (connectionString: string, 
-        reservationService: IReservationService, 
-        usersService: IUserService, 
-        mailNotificator: IMailNotificator, 
-        localizer: IStringLocalizer<SharedResources>, 
-        configuration: IConfiguration,
-        mailBodyRetriever: IMailBodyRetriever)
-        =
-        let eventStore = PgStorage.PgEventStore connectionString
-        LoanService(eventStore, reservationService, usersService, mailNotificator, localizer, configuration, mailBodyRetriever)
+    let checkIsGlobalAdminOrTenantManager (context: UserContext) (ct: CancellationToken)= 
+        taskResult {
+            let! tenant = tenantViewerAsync (ct |> Some) context.TenantId.Value |> TaskResult.map snd
+            return! Security.checkIsGlobalAdminOrTenantManager tenant context
+        }
 
     member this.AddLoanAsync (context: UserContext, loan: Loan, shortLang: ShortLang, dateTime: System.DateTime, ?ct: CancellationToken)= 
         taskResult
@@ -130,9 +67,11 @@ type LoanService
                     userViewerAsync (Some ct) loan.UserId.Value
                     |> TaskResult.map snd
 
-                do!    
-                    user.Tenants |> List.contains context.TenantId
-                    |> Result.ofBool $"User tenant does not contains tenant id {context.TenantId}"
+                // todo: check permissions
+
+                // do!    
+                //     user.Tenants |> List.contains context.TenantId
+                //     |> Result.ofBool $"User tenant does not contains tenant id {context.TenantId}"
                 
                 let! userDetails = 
                     usersService.GetUserDetailsAsync (context, user.UserId, ct)
@@ -366,6 +305,33 @@ type LoanService
                 
                 return result
             }
+
+    new(eventStore: IEventStore<string>, reservationService: IReservationService, usersService: IUserService, mailNotificator: IMailNotificator, localizer: IStringLocalizer<SharedResources>, configuration: IConfiguration, mailBodyRetriever: IMailBodyRetriever) =
+        LoanService(
+            eventStore, 
+            MessageSenders.NoSender, 
+            getAggregateStorageFreshStateViewerAsync<Book, BookEvent, string> eventStore,
+            getAggregateStorageFreshStateViewerAsync<Author, AuthorEvent, string> eventStore,
+            getAggregateStorageFreshStateViewerAsync<Editor, EditorEvent, string> eventStore,
+            getAggregateStorageFreshStateViewerAsync<Reservation, ReservationEvent, string> eventStore,
+            getAggregateStorageFreshStateViewerAsync<Loan, LoanEvent, string> eventStore,
+            getAggregateStorageFreshStateViewerAsync<User, UserEvent, string> eventStore,
+            getAggregateStorageFreshStateViewerAsync<Tenant, TenantEvent, string> eventStore,
+            reservationService, 
+            usersService, 
+            mailNotificator, 
+            configuration.GetValue<int>("BooksLibrary:MaxLoanPerUser", 3),
+            configuration.GetValue<string>("BooksLibrary:FromEmail", "noreply@blazorbooklibrary.com"),
+            configuration.GetValue<string>("BooksLibrary:FromName", "Blazor Book Library"),
+            localizer, 
+            mailBodyRetriever
+        )
+
+    new(configuration: IConfiguration, reservationService: IReservationService, usersService: IUserService, mailNotificator: IMailNotificator, localizer: IStringLocalizer<SharedResources>, mailBodyRetriever: IMailBodyRetriever, secretsReader: SecretsReader) =
+        LoanService(PgStorage.PgEventStore (secretsReader.GetBookLibraryConnectionString ()), reservationService, usersService, mailNotificator, localizer, configuration, mailBodyRetriever)
+
+    new(connectionString: string, reservationService: IReservationService, usersService: IUserService, mailNotificator: IMailNotificator, localizer: IStringLocalizer<SharedResources>, configuration: IConfiguration, mailBodyRetriever: IMailBodyRetriever) =
+        LoanService(PgStorage.PgEventStore connectionString, reservationService, usersService, mailNotificator, localizer, configuration, mailBodyRetriever)
 
     interface ILoanService with
         member this.AddLoanAsync (context: UserContext, loan: Loan, shortLang:ShortLang, ?ct: CancellationToken) =

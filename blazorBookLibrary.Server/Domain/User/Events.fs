@@ -20,6 +20,7 @@ type UserEvent =
     | NomeSet of string
     | CognomeSet of string
     | AppUserInfoSet of AppUserInfo
+    | CurrentTenantSet of TenantId
     interface Event<User> with
         member this.Process (user: User) : Result<User, string> =
             match this with
@@ -49,6 +50,8 @@ type UserEvent =
                 user.SetCognome cognome
             | AppUserInfoSet appUserInfo ->
                 user.SetAppUserInfo appUserInfo
+            | CurrentTenantSet tenantId ->
+                user.SetCurrentTenant tenantId
 
     static member Deserialize (x: string): Result<UserEvent, string> =
         try

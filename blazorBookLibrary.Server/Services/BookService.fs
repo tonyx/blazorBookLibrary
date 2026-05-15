@@ -40,86 +40,32 @@ type BookService
 
     let checkIsGlobalAdminOrTenantManager (context: UserContext) (ct: CancellationToken)= 
         taskResult {
-            let! rolesForThisTenant = userRolesForTenant userViewerAsync context.TenantId context.UserId (ct |> Some)
-            let allowed = 
-                match context with
-                | UserContext.Anonymous -> false
-                | UserContext.Authenticated _ when context.IsInRole Role.Admin -> true
-                | UserContext.Authenticated _ when rolesForThisTenant |> (List.exists (fun r -> r = Role.Manager || r = Role.Admin)) -> true
-                | _ -> false
-            do! 
-                allowed
-                |> Result.ofBool "Updating of book allowed only to admins or managers"
-            return ()   
+            let! tenant = tenantViewerAsync (ct |> Some) context.TenantId.Value |> TaskResult.map snd
+            return! Security.checkIsGlobalAdminOrTenantManager tenant context
         }
     let checkIsGlobalAdminOrTenantManagerOrPublicTenant (context: UserContext) (ct: CancellationToken)= 
         taskResult {
-            let! rolesForThisTenant = userRolesForTenant userViewerAsync context.TenantId context.UserId (ct |> Some)
-            let! isPublicTenant = tenantViewerAsync (ct |> Some) context.TenantId.Value |> TaskResult.map (fun (_, tenant) -> tenant.Public)
-            let allowed = 
-                match context, isPublicTenant with
-                | (_, true) -> true
-                | UserContext.Anonymous, _ -> false
-                | UserContext.Authenticated _, _ when context.IsInRole Role.Admin -> true
-                | UserContext.Authenticated _, _ when rolesForThisTenant |> (List.exists (fun r -> r = Role.Manager || r = Role.Admin)) -> true
-                | _ -> false
-            do! 
-                allowed
-                |> Result.ofBool "Updating of book allowed only to admins or managers"
-            return ()   
+            let! tenant = tenantViewerAsync (ct |> Some) context.TenantId.Value |> TaskResult.map snd
+            return! Security.checkIsGlobalAdminOrTenantManagerOrPublicTenant tenant context
         }
 
-    new (eventStore: IEventStore<string>, vectorDbService: IVectorDbService)
-        =
-        let messageSenders = MessageSenders.NoSender
-        let bookViewerAsync = getAggregateStorageFreshStateViewerAsync<Book, BookEvent, string> eventStore
-        let authorViewerAsync = getAggregateStorageFreshStateViewerAsync<Author, AuthorEvent, string> eventStore
-        let editorViewerAsync = getAggregateStorageFreshStateViewerAsync<Editor, EditorEvent, string> eventStore
-        let reservationViewerAsync = getAggregateStorageFreshStateViewerAsync<Reservation, ReservationEvent, string> eventStore
-        let loanViewerAsync = getAggregateStorageFreshStateViewerAsync<Loan, LoanEvent, string> eventStore
-        let userViewerAsync = getAggregateStorageFreshStateViewerAsync<User, UserEvent, string> eventStore
-        let reviewViewerAsync = getAggregateStorageFreshStateViewerAsync<Review, ReviewEvent, string> eventStore
-        let tenantViewerAsync = getAggregateStorageFreshStateViewerAsync<Tenant, TenantEvent, string> eventStore
-        let distributionPointViewerAsync = getAggregateStorageFreshStateViewerAsync<DistributionPoint, DistributionPointEvent, string> eventStore
-
+    new (eventStore: IEventStore<string>, vectorDbService: IVectorDbService) =
         BookService (
             eventStore,
-            messageSenders,
-            bookViewerAsync,
-            authorViewerAsync,
-            editorViewerAsync,
-            reservationViewerAsync,
-            loanViewerAsync,
-            userViewerAsync,
-            tenantViewerAsync,
-            distributionPointViewerAsync,
+            MessageSenders.NoSender,
+            getAggregateStorageFreshStateViewerAsync<Book, BookEvent, string> eventStore,
+            getAggregateStorageFreshStateViewerAsync<Author, AuthorEvent, string> eventStore,
+            getAggregateStorageFreshStateViewerAsync<Editor, EditorEvent, string> eventStore,
+            getAggregateStorageFreshStateViewerAsync<Reservation, ReservationEvent, string> eventStore,
+            getAggregateStorageFreshStateViewerAsync<Loan, LoanEvent, string> eventStore,
+            getAggregateStorageFreshStateViewerAsync<User, UserEvent, string> eventStore,
+            getAggregateStorageFreshStateViewerAsync<Tenant, TenantEvent, string> eventStore,
+            getAggregateStorageFreshStateViewerAsync<DistributionPoint, DistributionPointEvent, string> eventStore,
             vectorDbService
         )
-    new (secretsReader: SecretsReader, vectorDbService: IVectorDbService)
-        =
-        let connectionString = secretsReader.GetBookLibraryConnectionString ()
-        let eventStore = PgStorage.PgEventStore connectionString
-        let messageSenders = MessageSenders.NoSender
-        let bookViewerAsync = getAggregateStorageFreshStateViewerAsync<Book, BookEvent, string> eventStore
-        let authorViewerAsync = getAggregateStorageFreshStateViewerAsync<Author, AuthorEvent, string> eventStore
-        let editorViewerAsync = getAggregateStorageFreshStateViewerAsync<Editor, EditorEvent, string> eventStore
-        let reservationViewerAsync = getAggregateStorageFreshStateViewerAsync<Reservation, ReservationEvent, string> eventStore
-        let loanViewerAsync = getAggregateStorageFreshStateViewerAsync<Loan, LoanEvent, string> eventStore
-        let userViewerAsync = getAggregateStorageFreshStateViewerAsync<User, UserEvent, string> eventStore
-        let tenantViewerAsync = getAggregateStorageFreshStateViewerAsync<Tenant, TenantEvent, string> eventStore
-        let distributionPointViewerAsync = getAggregateStorageFreshStateViewerAsync<DistributionPoint, DistributionPointEvent, string> eventStore
-
+    new (secretsReader: SecretsReader, vectorDbService: IVectorDbService) =
         BookService (
-            eventStore,
-            messageSenders,
-            bookViewerAsync,
-            authorViewerAsync,
-            editorViewerAsync,
-            reservationViewerAsync,
-            loanViewerAsync,
-            userViewerAsync,
-            tenantViewerAsync,
-            distributionPointViewerAsync,
+            PgStorage.PgEventStore (secretsReader.GetBookLibraryConnectionString ()),
             vectorDbService
         )
 
@@ -375,9 +321,6 @@ type BookService
                 let bookRemoveEmbeddingCommand = 
                     BookCommand.RemoveEmbedding dateTime
                 
-                do! 
-                    (context.IsInRole Role.Admin || context.IsInRole Role.Manager)
-                    |> Result.ofBool "Updating of book allowed only to admins or managers"
 
                 
                 let! result = 
@@ -394,9 +337,6 @@ type BookService
         taskResult
             {
                 let ct = defaultArg ct CancellationToken.None
-                do! 
-                    (context.IsInRole Role.Admin || context.IsInRole Role.Manager)
-                    |> Result.ofBool "Updating of book allowed only to admins or managers"
                 let! books = 
                     bookIds
                     |> List.traverseTaskResultM (fun bookId -> bookViewerAsync (Some ct) bookId.Value |> TaskResult.map snd)
@@ -513,9 +453,6 @@ type BookService
         taskResult
             {
                 let ct = defaultArg ct CancellationToken.None
-                do! 
-                    (context.IsInRole Role.Admin || context.IsInRole Role.Manager)
-                    |> Result.ofBool "Updating of book allowed only to admins or managers"
 
                 let! book = 
                     bookViewerAsync (Some ct) bookId.Value |> TaskResult.map snd

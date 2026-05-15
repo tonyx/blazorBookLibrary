@@ -9,8 +9,17 @@
 
     <main class="main-content">
         <div class="top-row">
-            <div class="top-row-inner d-flex align-items-center justify-content-end w-100 px-4">
-                <CultureSelector currentUrl="@currentUrl" />
+            <div class="top-row-inner d-flex align-items-center justify-content-between w-100 px-4">
+                <div class="current-tenant d-flex align-items-center gap-2">
+                    @if (TenantState.CurrentTenant != null)
+                    {
+                        <i class="bi bi-building"></i>
+                        <span class="tenant-name fw-bold">@TenantState.CurrentTenant.TentantName.Value</span>
+                    }
+                </div>
+                <div class="d-flex align-items-center gap-3">
+                    <CultureSelector currentUrl="@currentUrl" />
+                </div>
             </div>
         </div>
 
@@ -29,6 +38,11 @@
     </div>
 </div>
 
+@implements IDisposable
+@inject blazorBookLibrary.Client.Services.TenantStateService TenantState
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject BookLibrary.Shared.Services.IDetailsService DetailsService
+
 @code {
     private string? currentUrl;
 
@@ -39,6 +53,27 @@
             currentUrl = NavigationManager.ToBaseRelativePath(e.Location);
             StateHasChanged();
         };
+
+        TenantState.OnChange += StateHasChanged;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        if (authState.User.Identity?.IsAuthenticated == true)
+        {
+            var userContext = TenantState.GetUserContext(authState.User);
+            var result = await DetailsService.GetUserDetailsAsync(userContext, userContext.UserId.Value, CancellationToken.None);
+            if (result.IsOk)
+            {
+                TenantState.CurrentTenant = result.ResultValue.CurrentTenant;
+            }
+        }
+    }
+
+    public void Dispose()
+    {
+        TenantState.OnChange -= StateHasChanged;
     }
 }
 

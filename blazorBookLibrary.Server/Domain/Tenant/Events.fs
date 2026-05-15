@@ -12,6 +12,10 @@ type TenantEvent =
     | TagAdded of Tag
     | TagRemoved of Tag
     | TagReplaced of (Tag * Tag)
+    | PatronAdded of (UserId * PatronRole)
+    | PatronDemoted of UserId
+    | PatronPromoted of UserId
+    | PatronRemoved of UserId
     interface Event<Tenant> with
         member this.Process (tenant: Tenant) : Result<Tenant, string> =
             match this with
@@ -27,6 +31,14 @@ type TenantEvent =
                 tenant.RemoveTag tag
             | TagReplaced (oldTag, newTag) ->
                 tenant.ReplaceTag (oldTag, newTag)
+            | PatronAdded (userId, role) ->
+                tenant.AddPatron (userId, role)
+            | PatronDemoted userId ->
+                tenant.DemotePatron userId
+            | PatronPromoted userId ->
+                tenant.PromotePatron userId
+            | PatronRemoved userId ->
+                tenant.RemovePatron userId
 
     static member Deserialize (x: string): Result<TenantEvent, string> =
         try

@@ -31,33 +31,13 @@ type TagService
 
     let checkIsGlobalAdminOrTenantManager (context: UserContext) (ct: CancellationToken)= 
         taskResult {
-            let! rolesForThisTenant = userRolesForTenant userViewerAsync context.TenantId context.UserId (ct |> Some)
-            let allowed = 
-                match context with
-                | UserContext.Anonymous -> false
-                | UserContext.Authenticated _ when context.IsInRole Role.Admin -> true
-                | UserContext.Authenticated _ when rolesForThisTenant |> (List.exists (fun r -> r = Role.Manager || r = Role.Admin)) -> true
-                | _ -> false
-            do! 
-                allowed
-                |> Result.ofBool "Updating of book allowed only to admins or managers"
-            return ()   
+            let! tenant = tenantViewerAsync (ct |> Some) context.TenantId.Value |> TaskResult.map snd
+            return! Security.checkIsGlobalAdminOrTenantManager tenant context
         }
     let checkIsGlobalAdminOrTenantManagerOrPublicTenant (context: UserContext) (ct: CancellationToken)= 
         taskResult {
-            let! rolesForThisTenant = userRolesForTenant userViewerAsync context.TenantId context.UserId (ct |> Some)
-            let! isPublicTenant = tenantViewerAsync (ct |> Some) context.TenantId.Value |> TaskResult.map (fun (_, tenant) -> tenant.Public)
-            let allowed = 
-                match context, isPublicTenant with
-                | (_, true) -> true
-                | UserContext.Anonymous, _ -> false
-                | UserContext.Authenticated _, _ when context.IsInRole Role.Admin -> true
-                | UserContext.Authenticated _, _ when rolesForThisTenant |> (List.exists (fun r -> r = Role.Manager || r = Role.Admin)) -> true
-                | _ -> false
-            do! 
-                allowed
-                |> Result.ofBool "Updating of book allowed only to admins or managers"
-            return ()   
+            let! tenant = tenantViewerAsync (ct |> Some) context.TenantId.Value |> TaskResult.map snd
+            return! Security.checkIsGlobalAdminOrTenantManagerOrPublicTenant tenant context
         }
 
     new (secretsReader: SecretsReader) = 

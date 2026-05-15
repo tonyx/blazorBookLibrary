@@ -408,4 +408,29 @@
   <data name="ConfirmSwitchAllBooks" xml:space="preserve"><value>Are you sure you want to move all books from {0} to {1}?</value></data>
   <data name="CleanDuplicatedVectors" xml:space="preserve"><value>Clean Duplicated Vectors</value></data>
   <data name="CleanDuplicatedVectorsDescription" xml:space="preserve"><value>Identify and remove redundant vector embeddings that point to the same BookId, ensuring each book has only one unique semantic representation.</value></data>
+  <data name="Tenants" xml:space="preserve"><value>Tenants</value></data>
+  <data name="PublicTenants" xml:space="preserve"><value>Public Tenants</value></data>
+  <data name="TenantsDescription" xml:space="preserve"><value>Explore the public tenants available in our library network.</value></data>
+  <data name="NoPublicTenantsFound" xml:space="preserve"><value>No public tenants found.</value></data>
+  <data name="AllowedTenants" xml:space="preserve"><value>Allowed Tenants</value></data>
+  <data name="MyTenants" xml:space="preserve"><value>My Tenants</value></data>
+  <data name="OwnedTenants" xml:space="preserve"><value>Owned Tenants</value></data>
+  <data name="AllowedTenantsDescription" xml:space="preserve"><value>Explore all libraries you have access to.</value></data>
+  <data name="MyTenantsDescription" xml:space="preserve"><value>Manage the libraries where you are a member or owner.</value></data>
+  <data name="OwnedTenantsDescription" xml:space="preserve"><value>A focused view of the libraries you own.</value></data>
+  <data name="Allowed" xml:space="preserve"><value>Allowed</value></data>
+  <data name="My" xml:space="preserve"><value>My</value></data>
+  <data name="Owned" xml:space="preserve"><value>Owned</value></data>
+  <data name="TrySwitchingView" xml:space="preserve"><value>Try switching to a different view or check your connection.</value></data>
+  <data name="CreateNewLibrary" xml:space="preserve"><value>Create New Library</value></data>
+  <data name="LibraryName" xml:space="preserve"><value>Library Name</value></data>
+  <data name="LibraryAddress" xml:space="preserve"><value>Physical Address</value></data>
+  <data name="PublicStatus" xml:space="preserve"><value>Public Visibility</value></data>
+  <data name="CreateLibrary" xml:space="preserve"><value>Establish Library</value></data>
+  <data name="LibraryCreatedSuccessfully" xml:space="preserve"><value>New library established successfully.</value></data>
+  <data name="PublicDescription" xml:space="preserve"><value>If public, anyone can discover this library.</value></data>
+  <data name="EnterLibraryName" xml:space="preserve"><value>e.g. The Great Archive</value></data>
+  <data name="EnterAddress" xml:space="preserve"><value>e.g. 123 Scholar Street</value></data>
+  <data name="Public" xml:space="preserve"><value>Public</value></data>
+  <data name="ErrorCreatingLibrary" xml:space="preserve"><value>An error occurred while establishing the library: {0}</value></data>
 </root>

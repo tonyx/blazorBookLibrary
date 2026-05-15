@@ -90,3 +90,12 @@ type UsersController(userService: IUserService) =
             | Ok dps -> return this.Ok(dps) :> IActionResult
             | Error msg -> return this.BadRequest(msg) :> IActionResult
         }
+    [<HttpPost("{id}/current-tenant")>]
+    member this.SetCurrentTenant(id: Guid, [<FromBody>] tenantId: Guid) =
+        task {
+            let context = UserContextMapper.mapFromRequest this.Request
+            let! result = userService.SetCurrentTenantAsync(context, UserId id, TenantId tenantId)
+            match result with
+            | Ok _ -> return this.Ok() :> IActionResult
+            | Error msg -> return this.BadRequest(msg) :> IActionResult
+        }

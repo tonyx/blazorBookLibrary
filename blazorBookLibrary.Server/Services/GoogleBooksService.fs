@@ -11,6 +11,12 @@ open System.Text.Json.Serialization
 open System.Collections.Generic
 open System.Threading
 open System.Runtime.InteropServices
+open Sharpino
+open Sharpino.Storage
+open BookLibrary.Domain
+open BookLibrary.Utils
+open Sharpino.CommandHandler
+open FsToolkit.ErrorHandling
 
 type IndustryIdentifier = {
     [<JsonPropertyName("type")>] Type: string
@@ -44,12 +50,31 @@ type GoogleBooksResponse = {
     [<JsonPropertyName("items")>] Items: GoogleBookItem[]
 }
 
-type GoogleBooksService(httpClient: HttpClient, configuration: IConfiguration) =
+open BookLibrary.Utils
+open Sharpino
+open Sharpino.Storage
+open BookLibrary.Domain
+
+type GoogleBooksService
+    (
+        httpClient: HttpClient, 
+        configuration: IConfiguration,
+        tenantViewerAsync: AggregateViewerAsync2<Tenant>
+    ) =
     let apiKey = configuration.["GoogleBookApiKey"]
+
+    let checkIsGlobalAdminOrTenantManager (context: UserContext) (ct: CancellationToken)= 
+        taskResult {
+            let! tenant = tenantViewerAsync (ct |> Some) context.TenantId.Value |> TaskResult.map snd
+            return! Security.checkIsGlobalAdminOrTenantManager tenant context
+        }
+
     let timeoutMs = 
         match Int32.TryParse(configuration.["GoogleBooksApiTimeoutMs"]) with
         | true, v -> v
         | _ -> 5000
+
+
 
     let withTimeout (fn: System.Threading.CancellationToken -> Task<Result<'T, string>>) =
         task {
@@ -88,11 +113,19 @@ type GoogleBooksService(httpClient: HttpClient, configuration: IConfiguration) =
             Description = if String.IsNullOrWhiteSpace(item.Description) then None else Some item.Description
         }
 
+    new(httpClient: HttpClient, configuration: IConfiguration, secretsReader: SecretsReader) =
+        GoogleBooksService(
+            httpClient, 
+            configuration, 
+            getAggregateStorageFreshStateViewerAsync<Tenant, TenantEvent, string> (PgStorage.PgEventStore (secretsReader.GetBookLibraryConnectionString()))
+        )
+
     interface IGoogleBooksService with
         member this.LookupByIsbnAsync(context: UserContext, isbn: string, [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken) =
             let ct = defaultArg ct CancellationToken.None
             withTimeout (fun internalCt -> task {
-                if not (context.IsInRole (Role.Admin) || context.IsInRole (Role.Manager)) then
+                let! allowed = checkIsGlobalAdminOrTenantManager context internalCt
+                if allowed |> Result.isError then
                     return Error "Not authorized to lookup books"
                 else
                     use linkedCts = CancellationTokenSource.CreateLinkedTokenSource(ct, internalCt)
@@ -110,7 +143,8 @@ type GoogleBooksService(httpClient: HttpClient, configuration: IConfiguration) =
         member this.LookupByTitleAsync(context: UserContext, title: string, [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken) =
             let ct = defaultArg ct CancellationToken.None
             withTimeout (fun internalCt -> task {
-                if not (context.IsInRole (Role.Admin) || context.IsInRole (Role.Manager)) then
+                let! allowed = checkIsGlobalAdminOrTenantManager context internalCt
+                if allowed |> Result.isError then
                     return Error "Not authorized to lookup books"
                 else
                     use linkedCts = CancellationTokenSource.CreateLinkedTokenSource(ct, internalCt)
@@ -128,7 +162,8 @@ type GoogleBooksService(httpClient: HttpClient, configuration: IConfiguration) =
         member this.LookupMultipleByTitleAsync(context: UserContext, title: string, [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken) =
             let ct = defaultArg ct CancellationToken.None
             withTimeout (fun internalCt -> task {
-                if not (context.IsInRole (Role.Admin) || context.IsInRole (Role.Manager)) then
+                let! allowed = checkIsGlobalAdminOrTenantManager context internalCt
+                if allowed |> Result.isError then
                     return Error "Not authorized to lookup books"
                 else
                     use linkedCts = CancellationTokenSource.CreateLinkedTokenSource(ct, internalCt)
@@ -149,7 +184,8 @@ type GoogleBooksService(httpClient: HttpClient, configuration: IConfiguration) =
         member this.LookupCoverImageByIsbnAsync(context: UserContext, isbn: Isbn, [<Optional; DefaultParameterValue(null)>] ?thumbRoughSize: ThumbRoughSize, [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken) =
             let ct = defaultArg ct CancellationToken.None
             withTimeout (fun internalCt -> task {
-                if not (context.IsInRole Role.Admin || context.IsInRole Role.Manager) then
+                let! allowed = checkIsGlobalAdminOrTenantManager context internalCt
+                if allowed |> Result.isError then
                     return Error "Not authorized to lookup book covers"
                 else
                     use linkedCts = CancellationTokenSource.CreateLinkedTokenSource(ct, internalCt)
@@ -178,7 +214,8 @@ type GoogleBooksService(httpClient: HttpClient, configuration: IConfiguration) =
         member this.LookupGoogleApiCoverImageByIsbnAsync(context: UserContext, isbn: Isbn, [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken) =
             let ct = defaultArg ct CancellationToken.None
             withTimeout (fun internalCt -> task {
-                if not (context.IsInRole (Role.Admin) || context.IsInRole (Role.Manager)) then
+                let! allowed = checkIsGlobalAdminOrTenantManager context internalCt
+                if allowed |> Result.isError then
                     return Error "Not authorized to lookup book covers"
                 else
                     use linkedCts = CancellationTokenSource.CreateLinkedTokenSource(ct, internalCt)
@@ -202,7 +239,8 @@ type GoogleBooksService(httpClient: HttpClient, configuration: IConfiguration) =
             let ct = defaultArg ct CancellationToken.None
             task {
 
-                if not (context.IsInRole (Role.Admin) || context.IsInRole (Role.Manager)) then
+                let! allowed = checkIsGlobalAdminOrTenantManager context ct
+                if allowed |> Result.isError then
                     return Error "Not authorized to lookup book covers"
                 else
                     let size = defaultArg thumbRoughSize ThumbRoughSize.Medium

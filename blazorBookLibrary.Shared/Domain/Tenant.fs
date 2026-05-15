@@ -5,10 +5,14 @@ open BookLibrary.Shared.Commons
 open Sharpino
 open System
 
+type PatronRole = 
+    | Manager
+    | User
 type 
     Tenant = {
         OwnerId: UserId
         TenantId: TenantId
+        Patrons: List<UserId * PatronRole>
         TentantName: TenantName
         Address: string
         TenantState: TenantState
@@ -20,6 +24,7 @@ with
     static member New (userId: UserId, tenantName: TenantName, address: string, ?pub: bool) = {
         OwnerId = userId
         TenantId = TenantId.New()
+        Patrons = []
         TentantName = tenantName
         Address = address
         TenantState = TenantState.Active
@@ -52,7 +57,40 @@ with
                     |> Result.ofBool "Tag does not exist"
                 return { this with Tags = this.Tags |> List.filter (fun t -> t <> tag) }
             }
-
+    member this.AddPatron (user: UserId, role: PatronRole) = 
+        result
+            {
+                do! 
+                    this.Patrons |> List.exists (fun (u, _) -> u = user)
+                    |> not
+                    |> Result.ofBool "User is already a patron"
+                return { this with Patrons = this.Patrons @ [(user, role)] }
+            }
+    member this.DemotePatron (user: UserId) =
+        result
+            {
+                do! 
+                    this.Patrons |> List.exists (fun (u, _) -> u = user)
+                    |> Result.ofBool "User is not a patron"
+                return { this with Patrons = this.Patrons |> List.map (fun (u, r) -> if u = user then (u, PatronRole.User) else (u, r)) }
+            }
+    
+    member this.PromotePatron (user: UserId) =
+        result
+            {
+                do! 
+                    this.Patrons |> List.exists (fun (u, _) -> u = user)
+                    |> Result.ofBool "User is not a patron"
+                return { this with Patrons = this.Patrons |> List.map (fun (u, r) -> if u = user then (u, PatronRole.Manager) else (u, r)) }
+            }
+    member this.RemovePatron (user: UserId) =
+        result
+            {
+                do! 
+                    this.Patrons |> List.exists (fun (u, _) -> u = user)
+                    |> Result.ofBool "User is not a patron"
+                return { this with Patrons = this.Patrons |> List.filter (fun (u, _) -> u <> user) }
+            }
     member this.ReplaceTag (oldTag: Tag, newTag: Tag) =
         result
             {
@@ -61,6 +99,8 @@ with
                     |> Result.ofBool "Tag does not exist"
                 return { this with Tags = this.Tags |> List.map (fun t -> if t = oldTag then newTag else t) }
             }
+    member this.GetUserRole userId =
+        this.Patrons |> List.tryFind (fun (u, _) -> u = userId) |> Option.map snd
 
     member this.Activate  =
         match this.TenantState with

@@ -50,20 +50,27 @@ type TextEmbeddingService
         reviewViewerAsync: AggregateViewerAsync2<Review>,
         bookViewerAsync: AggregateViewerAsync2<Book>,
         detailsService: IDetailsService,
+        tenantViewerAsync: AggregateViewerAsync2<Tenant>,
         apiKey: string
     ) =
+    let checkIsGlobalAdminOrTenantManager (context: UserContext) (ct: CancellationToken)= 
+        taskResult {
+            let! tenant = tenantViewerAsync (ct |> Some) context.TenantId.Value |> TaskResult.map snd
+            return! Security.checkIsGlobalAdminOrTenantManager tenant context
+        }
+
     new (eventStore: IEventStore<string>, httpClient: HttpClient, detailsService: IDetailsService, apiKey: string) =
         let messageSenders = MessageSenders.NoSender
         let reviewViewerAsync = getAggregateStorageFreshStateViewerAsync<Review, ReviewEvent, string> eventStore
         let bookViewerAsync = getAggregateStorageFreshStateViewerAsync<Book, BookEvent, string> eventStore
-        TextEmbeddingService(eventStore, messageSenders, httpClient, reviewViewerAsync, bookViewerAsync, detailsService, apiKey)
+        let tenantViewerAsync = getAggregateStorageFreshStateViewerAsync<Tenant, TenantEvent, string> eventStore
+        TextEmbeddingService(eventStore, messageSenders, httpClient, reviewViewerAsync, bookViewerAsync, detailsService, tenantViewerAsync, apiKey)
 
     new (configuration: IConfiguration, httpClient: HttpClient, detailsService: IDetailsService, secretsReader: SecretsReader) = 
-        let connectionString = secretsReader.GetBookLibraryConnectionString ()
         let apiKey = configuration.GetValue<string>("GoogleVectorApiKey")
         if String.IsNullOrWhiteSpace apiKey then
             failwith "GoogleVectorApiKey is missing in configuration"
-        let eventStore = PgStorage.PgEventStore connectionString
+        let eventStore = PgStorage.PgEventStore (secretsReader.GetBookLibraryConnectionString ())
         TextEmbeddingService(eventStore, httpClient, detailsService, apiKey)
 
     interface ITextEmbeddingService with
@@ -140,7 +147,7 @@ type TextEmbeddingService
         member this.GetBookDescriptionAsync(context: UserContext, bookData: PartialBookDataMatch, [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken) =
             let ct = defaultArg ct CancellationToken.None
             taskResult {
-                do! (context.IsInRole Manager || context.IsInRole Admin) |> Result.ofBool "Access denied"
+                do! checkIsGlobalAdminOrTenantManager context ct
                 try
                     let modelName = "gemini-2.5-flash-lite"
                     let url = $"https://generativelanguage.googleapis.com/v1beta/models/{modelName}:generateContent?key={apiKey}"
@@ -196,7 +203,7 @@ type TextEmbeddingService
         member this.GetPartialBookMatchByCoverImage (context: UserContext, base64Image: string, mimeType: string, [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken) =
             let ct = defaultArg ct CancellationToken.None
             taskResult {
-                do! (context.IsInRole Manager || context.IsInRole Admin) |> Result.ofBool "Access denied"
+                do! checkIsGlobalAdminOrTenantManager context ct
                 try
                     let modelName = "gemini-2.5-flash-lite"
                     let url = $"https://generativelanguage.googleapis.com/v1beta/models/{modelName}:generateContent?key={apiKey}"

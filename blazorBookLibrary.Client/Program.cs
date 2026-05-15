@@ -2,6 +2,7 @@ using System.Globalization;
 using Microsoft.JSInterop;
 using blazorBookLibrary.Shared.Security;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
+using Microsoft.AspNetCore.Components.Authorization;
 using blazorBookLibrary.Client.Services;
 using BookLibrary.Shared.Services;
 
@@ -16,7 +17,7 @@ public class Program
         builder.Services.AddAuthorizationCore();
         builder.Services.AddCascadingAuthenticationState();
         builder.Services.AddLocalization();
-        builder.Services.AddAuthenticationStateDeserialization();
+        builder.Services.AddScoped<Microsoft.AspNetCore.Components.Authorization.AuthenticationStateProvider, PersistentAuthenticationStateProvider>();
 
         builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
 
@@ -38,6 +39,7 @@ public class Program
         builder.Services.AddScoped<IBotScoreService, BotScoreClientService>();
         builder.Services.AddScoped<IVectorDbService, VectorDbClientService>();
         builder.Services.AddScoped<ITenantService, TenantClientService>();
+        builder.Services.AddScoped<TenantStateService>();
 
         var host = builder.Build();
 
