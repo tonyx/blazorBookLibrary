@@ -57,35 +57,6 @@ let getDbContext () =
             .Options
     new ApplicationDbContext(options)
 
-let truncateVectorDb () =
-    let connStr = config.GetConnectionString "VectorDbConnection"
-    use conn = new NpgsqlConnection(connStr)
-    conn.Open()
-    use cmd = new NpgsqlCommand("TRUNCATE TABLE item_embeddings_projections", conn)
-    cmd.ExecuteNonQuery() |> ignore
-
-let setUp () =
-    pgEventStore.Reset Book.Version Book.StorageName
-    pgEventStore.ResetAggregateStream Book.Version Book.StorageName
-    pgEventStore.Reset Author.Version Author.StorageName
-    pgEventStore.ResetAggregateStream Author.Version Author.StorageName
-    pgEventStore.Reset Editor.Version Editor.StorageName
-    pgEventStore.ResetAggregateStream Editor.Version Editor.StorageName
-    pgEventStore.Reset Reservation.Version Reservation.StorageName
-    pgEventStore.ResetAggregateStream Reservation.Version Reservation.StorageName
-    pgEventStore.Reset Loan.Version Loan.StorageName
-    pgEventStore.ResetAggregateStream Loan.Version Loan.StorageName
-    pgEventStore.Reset User.Version User.StorageName
-    pgEventStore.ResetAggregateStream User.Version User.StorageName
-    AggregateCache3.Instance.Clear()            
-    try
-        let context = getDbContext()
-        context.Database.EnsureDeleted() |> ignore
-        context.Database.EnsureCreated() |> ignore
-    with
-    | ex -> printfn "Warning: Could not wipe identity database: %s" ex.Message
-    truncateVectorDb ()
-
 let getServiceScopeFactory () =
     let services = ServiceCollection()
     services.AddLogging() |> ignore
@@ -93,6 +64,7 @@ let getServiceScopeFactory () =
     services.AddDbContext<ApplicationDbContext>(fun options -> 
         options.UseNpgsql(usersDbConnection) |> ignore) |> ignore
     services.AddIdentityCore<ApplicationUser>()
+        .AddRoles<IdentityRole>()
         .AddEntityFrameworkStores<ApplicationDbContext>()
         .AddClaimsPrincipalFactory<UserClaimsPrincipalFactory<ApplicationUser>>()
         .AddDefaultTokenProviders() |> ignore
@@ -102,6 +74,7 @@ let getServiceScopeFactory () =
     
     let serviceProvider = services.BuildServiceProvider()
     serviceProvider.GetRequiredService<IServiceScopeFactory>()
+
 
 let getUserManagerOld () =
     let services = ServiceCollection()
@@ -147,7 +120,8 @@ let distributionPointViewerAsync = getAggregateStorageFreshStateViewerAsync<Dist
 let tagViewerAsync = getAggregateStorageFreshStateViewerAsync<Tags, TagEvent, string> pgEventStore
 let tenantViewerAsync = getAggregateStorageFreshStateViewerAsync<Tenant, TenantEvent, string> pgEventStore
 
-let adminContext = UserContext.Authenticated (UserId.New(), [Role.Admin], TenantId.Default)
+let adminId = UserId (System.Guid.Parse("787b784e-42d8-416b-9d57-f1e62f857f47"))
+let adminContext = UserContext.Authenticated (adminId, [Role.Admin], TenantId.Default)
 
 let fakeEmailNotificator: IMailNotificator = new FakeEmailNotificator()
 let fakeReservationService: IReservationService = new FakeReservationService()
@@ -255,11 +229,6 @@ let getDetailsService () : IDetailsService =
         getReviewService(),
         getServiceScopeFactory()) :> IDetailsService
 
-let getTagService () : ITagService =
-    TagService(
-        pgEventStore,
-        MessageSenders.NoSender,
-        tagViewerAsync) :> ITagService
 
 let getTextEmbeddingService () =
     let httpClient = new HttpClient()
@@ -314,6 +283,72 @@ let getDataExportService () : IDataExportService =
         getVectorDbService()
     ) :> IDataExportService
 
+let getTenantService () : ITenantService =
+    TenantService(
+        getSecretReader(),
+        config,
+        getDummyLogger<ITenantService>()
+    ) :> ITenantService
+
+let getTagService () : ITagService =
+    TagService(getSecretReader()) :> ITagService
+
+let truncateVectorDb () =
+    let connStr = config.GetConnectionString "VectorDbConnection"
+    use conn = new NpgsqlConnection(connStr)
+    conn.Open()
+    use cmd = new NpgsqlCommand("TRUNCATE TABLE item_embeddings_projections", conn)
+    cmd.ExecuteNonQuery() |> ignore
+
+let setUp () =
+    pgEventStore.Reset Book.Version Book.StorageName
+    pgEventStore.ResetAggregateStream Book.Version Book.StorageName
+    pgEventStore.Reset Author.Version Author.StorageName
+    pgEventStore.ResetAggregateStream Author.Version Author.StorageName
+    pgEventStore.Reset Editor.Version Editor.StorageName
+    pgEventStore.ResetAggregateStream Editor.Version Editor.StorageName
+    pgEventStore.Reset Reservation.Version Reservation.StorageName
+    pgEventStore.ResetAggregateStream Reservation.Version Reservation.StorageName
+    pgEventStore.Reset Loan.Version Loan.StorageName
+    pgEventStore.ResetAggregateStream Loan.Version Loan.StorageName
+    pgEventStore.Reset User.Version User.StorageName
+    pgEventStore.ResetAggregateStream User.Version User.StorageName
+    pgEventStore.Reset Tenant.Version Tenant.StorageName
+    pgEventStore.ResetAggregateStream Tenant.Version Tenant.StorageName
+    pgEventStore.Reset Tags.Version Tags.StorageName
+    pgEventStore.ResetAggregateStream Tags.Version Tags.StorageName
+
+    AggregateCache3.Instance.Clear()            
+    try
+        let context = getDbContext()
+        context.Database.EnsureDeleted() |> ignore
+        context.Database.EnsureCreated() |> ignore
+        let scopeFactory = getServiceScopeFactory()
+        use scope = scopeFactory.CreateScope()
+        let roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>()
+        if not (roleManager.RoleExistsAsync("Admin").Result) then
+            roleManager.CreateAsync(IdentityRole("Admin")).Result |> ignore
+        
+        let userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>()
+        let adminEmail = "admin@blazorbooklibrary.com"
+        let aspAdmin = ApplicationUser(UserName = adminEmail, Email = adminEmail, Id = adminId.Value.ToString())
+        userManager.CreateAsync(aspAdmin, "Password123!").Result |> ignore
+        userManager.AddToRoleAsync(aspAdmin, "Admin").Result |> ignore
+
+        let userService = getUserService()
+        let adminUser = { User.New adminId with TenantRoles = [(TenantId.Default, [Role.Admin])] |> Map }
+        userService.CreateUserAsync(UserContext.Anonymous, adminUser).Result |> ignore
+
+        let tenantService = getTenantService()
+        tenantService.EnsureDefaultTenantExistsAsync(adminId).Result |> ignore
+
+        let tagService = getTagService()
+        tagService.EnsureTagsRepoCreatedAsync().Result |> ignore
+    with
+    | ex -> printfn "Warning: %s" ex.Message
+    truncateVectorDb ()
+
+
 let getMailResenderService () =
     MailResenderService(
         config,
@@ -322,8 +357,6 @@ let getMailResenderService () =
         dummyMailJetClient,
         dummyLogger
     )
-
-
 
 let registerUser (email: string) (password: string) =
     // ensure unique email to avoid parallel test conflicts
@@ -381,6 +414,38 @@ let registerUserTask (email: string) (password: string) =
         
         if not (addUser |> Result.isOk) then
             failwithf "Domain user creation failed: %A" addUser
+        return userId
+    }
 
+let registerUserWithAdminRoleTask (email: string) (password: string) =
+    task {
+        let guid = Guid.NewGuid()
+        let guidStr = guid.ToString("N")
+        let parts = email.Split('@')
+        let uniqueEmail = 
+            if parts.Length = 2 then
+                sprintf "%s+%s@%s" parts.[0] guidStr parts.[1]
+            else
+                sprintf "%s_%s" guidStr email
+
+        let userManager = getUserManager()
+        let aspUser = ApplicationUser(UserName = uniqueEmail, Email = uniqueEmail)
+        aspUser.Id <- guid.ToString()
+        let! result = userManager.CreateAsync(aspUser, password)
+        if not result.Succeeded then
+            failwithf "Identity user creation failed: %A" result.Errors
+
+        let! roleResult = userManager.AddToRoleAsync(aspUser, "Admin")
+        if not roleResult.Succeeded then
+            failwithf "Adding Admin role failed: %A" roleResult.Errors
+
+        let userId = UserId guid
+        let userService = getUserService()
+        let user = { User.New userId with TenantRoles = [(TenantId.Default, [Role.Admin])] |> Map }
+        let! addUser = userService.CreateUserAsync(adminContext, user)
+        
+        if not (addUser |> Result.isOk) then
+            failwithf "Domain user creation failed: %A" addUser
+        
         return userId
     }

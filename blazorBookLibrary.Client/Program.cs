@@ -37,6 +37,7 @@ public class Program
         builder.Services.AddScoped<IDetailsService, DetailsClientService>();
         builder.Services.AddScoped<IBotScoreService, BotScoreClientService>();
         builder.Services.AddScoped<IVectorDbService, VectorDbClientService>();
+        builder.Services.AddScoped<ITenantService, TenantClientService>();
 
         var host = builder.Build();
 

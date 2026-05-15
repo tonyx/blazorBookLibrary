@@ -101,6 +101,7 @@
     <Compile Include="Controllers/VectorDbController.fs" />
     <Compile Include="Controllers/AIAssistantController.fs" />
     <Compile Include="Controllers/TextEmbeddingController.fs" />
+    <Compile Include="Controllers/TenantController.fs" />
 
   </ItemGroup>
 

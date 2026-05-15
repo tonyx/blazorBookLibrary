@@ -13,6 +13,8 @@
     <Compile Include="TestSetup.fs" />
     <Compile Include="RandomGenerationsTests.fs" />
     <Compile Include="UtilitiesTests.fs" />
+    <Compile Include="UsersTests.fs" />
+    <Compile Include="TenantTests.fs" />
     <Compile Include="ImportExportDataTest.fs" />
     <Compile Include="AuthorsServiceTests.fs" />
     <Compile Include="BookServiceTests.fs" />

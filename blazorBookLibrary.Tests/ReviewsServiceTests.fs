@@ -51,7 +51,7 @@ let tests =
             Expect.isOk addBook "should be ok"
 
             let! userId = registerUserTask "test@example.com" "Password123!"
-            let! userContext = getUserContext userId
+            let userContext = UserContext.Authenticated(userId, [], TenantId.Default) 
 
             let! user = userService.GetUserAsync(userContext, userId)
             Expect.isOk user "should be ok"
@@ -390,7 +390,7 @@ let tests =
             Expect.equal reviewContent "this is a very good book" "should have the same content as the review"
 
             let newContent = "this was a very good book"
-            let! updateReview = reviewService.EditReviewAsync (adminContext, review.ReviewId, newContent)
+            let! updateReview = reviewService.EditReviewAsync (userContext, review.ReviewId, newContent)
             Async.Sleep 100 |> Async.RunSynchronously
 
             Expect.isOk updateReview "should be ok"

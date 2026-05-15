@@ -9,4 +9,5 @@ open BookLibrary.Shared.Commons
 
 type ITenantService = 
     abstract member EnsureDefaultTenantExistsAsync: userId:UserId * [<Optional; DefaultParameterValue(null)>] ?ct:CancellationToken -> Task<Result<unit, string>>
-    // abstract member CreateTenantAsync: UserContext * Tenant * [<Optional; DefaultParameterValue(null)>] ?ct:CancellationToken -> Task<Result<TenantId, string>>
+    abstract member CreateTenantAsync: UserContext * Tenant * [<Optional; DefaultParameterValue(null)>] ?ct:CancellationToken -> Task<Result<unit, string>>
+    abstract member GetTenantAsync: UserContext * TenantId * [<Optional; DefaultParameterValue(null)>] ?ct:CancellationToken -> Task<Result<Tenant, string>>
