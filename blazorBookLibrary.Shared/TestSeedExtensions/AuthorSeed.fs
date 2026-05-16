@@ -30,4 +30,4 @@ module AuthorSeeds =
         let firstName = firstNames.[rnd.Next(firstNames.Length)]
         let lastName = lastNames.[rnd.Next(lastNames.Length)]
         let fullName = sprintf "%s %s" firstName lastName
-        Author.NewWithOptionalIsniAndImageUrl(Name.New fullName, imageUrl = personPictureUri)
+        Author.NewWithOptionalIsniAndImageUrl(TenantId.Default, Name.New fullName, imageUrl = personPictureUri)

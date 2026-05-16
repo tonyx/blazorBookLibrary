@@ -5,7 +5,6 @@ open FsToolkit.ErrorHandling
 open BookLibrary.Shared.Commons
 open System
 
-
 type Author = {
     TenantId: TenantId
     AuthorId: AuthorId
@@ -17,9 +16,9 @@ type Author = {
     Sealed: Sealed
     Books: List<BookId>
 } with 
-    static member New (name: Name) (isni: Isni) = 
+    static member New (tenantId: TenantId) (name: Name) (isni: Isni)= 
         {
-            TenantId = TenantId.Default
+            TenantId = tenantId
             AuthorId = AuthorId.New(); 
             Name = name;
             Isni = isni;
@@ -29,9 +28,9 @@ type Author = {
             Sealed = Sealed.New(DateTime.UtcNow)
             Books = []
         }
-    static member NewWithoutIsni (name: Name) = 
+    static member NewWithoutIsni (tenantId: TenantId) (name: Name) = 
         {   
-            TenantId = TenantId.Default
+            TenantId = tenantId
             AuthorId = AuthorId.New(); 
             Name = name;
             Isni = Isni.EmptyIsni
@@ -41,9 +40,9 @@ type Author = {
             Sealed = Sealed.New(DateTime.UtcNow)
             Books = []
         }
-    static member NewWithOptionalIsniAndImageUrl(name: Name, ?isni: Isni, ?imageUrl: Uri) =
+    static member NewWithOptionalIsniAndImageUrl(tenantId: TenantId, name: Name, ?isni: Isni, ?imageUrl: Uri) =
         {   
-            TenantId = TenantId.Default
+            TenantId = tenantId
             AuthorId = AuthorId.New(); 
             Name = name;
             Isni = isni |> Option.defaultValue Isni.EmptyIsni
@@ -53,9 +52,9 @@ type Author = {
             Sealed = Sealed.New(DateTime.UtcNow)
             Books = []
         }
-    static member NewWithOptionalIsniAndImageUrlAndBio(name: Name, ?isni: Isni, ?imageUrl: Uri, ?bio: string, ?wikipediaUri: Uri) = 
+    static member NewWithOptionalIsniAndImageUrlAndBio(tenatId: TenantId, name: Name, ?isni: Isni, ?imageUrl: Uri, ?bio: string, ?wikipediaUri: Uri) = 
         {   
-            TenantId = TenantId.Default
+            TenantId = tenatId
             AuthorId = AuthorId.New(); 
             Name = name;
             Isni = isni |> Option.defaultValue Isni.EmptyIsni

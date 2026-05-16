@@ -15,18 +15,18 @@ type DistributionPoint = {
     ReferenceUsers: List<UserId>
 }
 with 
-    static member New (name: NonEmptyName, info: Info) = 
+    static member New (tenantId: TenantId, name: NonEmptyName, info: Info) = 
         { 
-            TenantId = TenantId.Default
+            TenantId = tenantId
             DistributionPointId = DistributionPointId.New (); 
             Name = name; 
             Info = info; 
             ReferenceUsers = [] 
         }
 
-    static member New (name: NonEmptyName, info: Info, referenceUser: UserId) = 
+    static member New (tenantId: TenantId, name: NonEmptyName, info: Info, referenceUser: UserId) = 
         { 
-            TenantId = TenantId.Default
+            TenantId = tenantId
             DistributionPointId = DistributionPointId.New (); 
             Name = name; 
             Info = info; 

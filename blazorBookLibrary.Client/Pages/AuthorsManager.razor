@@ -15,6 +15,7 @@
 @inject IJSRuntime JSRuntime
 @inject IStringLocalizer<SharedResources> L
 @inject AuthenticationStateProvider AuthenticationStateProvider
+@inject blazorBookLibrary.Client.Services.TenantStateService TenantState
 @rendermode InteractiveAuto
 
 <PageTitle>@L["AuthorsManager"] — @L["TheModernArchivist"]</PageTitle>
@@ -246,7 +247,7 @@
     private async Task<UserContext> GetContext()
     {
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-        return blazorBookLibrary.Shared.ConverterUtils.fromClaimsPrincipal(authState.User);
+        return TenantState.GetUserContext(authState.User);
     }
 
     private bool showAddSection = false;
@@ -371,9 +372,14 @@
             }
         }
 
-        var author = Author.NewWithOptionalIsniAndImageUrlAndBio(name, isniOpt, imageUrlOpt, FSharpOption<string>.Some(newAuthorBio), wikipediaUriOpt);
-
         var context = await GetContext();
+        if (!context.IsAuthenticated)
+        {
+            await ShowStatus(L["AccessDenied"], "error");
+            return;
+        }
+
+        var author = Author.NewWithOptionalIsniAndImageUrlAndBio(context.TenantId, name, isniOpt, imageUrlOpt, FSharpOption<string>.Some(newAuthorBio), wikipediaUriOpt);
         var result = await AuthorService.AddAuthorAsync(context, author);
 
         if (result.IsOk)

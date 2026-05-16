@@ -33,6 +33,7 @@ type Book =
 
 with 
     static member New
+        (tenantId: TenantId)
         (title: Title) 
         (authors: list<AuthorId>) 
         (translators: list<AuthorId>) 
@@ -45,7 +46,7 @@ with
         (imageUrl: Option<Uri>)
         = 
         {
-            TenantId = TenantId.Default
+            TenantId = tenantId;
             BookId = BookId.New(); 
             Title = title; 
             Description = None;
@@ -68,6 +69,7 @@ with
         } 
 
     static member NewWithAvailability
+        (tenantId: TenantId)
         (title: Title) 
         (authors: list<AuthorId>) 
         (translators: list<AuthorId>) 
@@ -81,9 +83,10 @@ with
         (imageUrl: Option<Uri>)
         (availability: Availability)
         = 
-        { Book.New title authors translators languages editor mainCategory additionalCategories year isbn imageUrl 
+        { Book.New tenantId title authors translators languages editor mainCategory additionalCategories year isbn imageUrl 
             with Availability = availability; Tags = tags }
     static member NewWithAvailabilityAndDistributionPoint
+        (tenantId: TenantId)
         (title: Title) 
         (authors: list<AuthorId>) 
         (translators: list<AuthorId>) 
@@ -98,7 +101,7 @@ with
         (availability: Availability)
         (distributionPoint: DistributionPointId)
         = 
-        { Book.New title authors translators languages editor mainCategory additionalCategories year isbn imageUrl 
+        { Book.New tenantId title authors translators languages editor mainCategory additionalCategories year isbn imageUrl 
             with Availability = availability; Tags = tags; DistributionPoint = Some distributionPoint }
 
     member this.UpdateTitle 

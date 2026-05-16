@@ -226,7 +226,7 @@ type DataExportService
                                                         |> Option.bind (fun s -> match Isni.New s with | Ok i -> Some i | _ -> None) 
                                                         |> Option.defaultValue Isni.EmptyIsni
                                                     
-                                                    let author = Author.NewWithOptionalIsniAndImageUrl(name, isni, ?imageUrl = authorPic)
+                                                    let author = Author.NewWithOptionalIsniAndImageUrl(context.TenantId, name, isni, ?imageUrl = authorPic)
                                                     let! _ = authorService.AddAuthorAsync(context, author, ct = ct)
                                                     return Some author.AuthorId
                                                 else

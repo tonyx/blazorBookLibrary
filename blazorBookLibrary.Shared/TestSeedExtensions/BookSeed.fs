@@ -61,6 +61,6 @@ module BookSeeds =
                 let description = "This is a random book description."
                 let mainCategory = randomCategory()
                 let additionalCategories = [randomCategory(); randomCategory()]
-                let book = Book.New title authors [] [] None mainCategory additionalCategories year isbn (bookPictureUri |> Some)
+                let book = Book.New TenantId.Default title authors [] [] None mainCategory additionalCategories year isbn (bookPictureUri |> Some)
                 return {book with Description = description |> Some }
             }

@@ -346,7 +346,7 @@
             {
                 var authState = await AuthStateProvider.GetAuthenticationStateAsync();
                 var userContext = blazorBookLibrary.Shared.ConverterUtils.fromClaimsPrincipal(authState.User);
-                var newDp = DistributionPoint.New(nameResult.ResultValue, Info.New(editingInfo));
+                var newDp = DistributionPoint.New(userContext.TenantId, nameResult.ResultValue, Info.New(editingInfo));
                 result = await DistributionPointService.CreateDistributionPointAsync(userContext, newDp);
                 if (result.IsError) { errorMessage = result.ErrorValue; return; }
                 

@@ -27,6 +27,7 @@
 @inject IConfiguration Configuration
 @inject ITextEmbeddingService TextEmbeddingService
 @inject IVectorDbService VectorDbService
+@inject blazorBookLibrary.Client.Services.TenantStateService TenantState
 @rendermode InteractiveAuto
 
 <PageTitle>@L["BooksManager"] — @L["TheModernArchivist"]</PageTitle>
@@ -122,7 +123,16 @@
             </div>
         </div>
     </div>
-    
+ 
+    @if (!string.IsNullOrEmpty(statusMessage))
+    {
+        <div class="alert @statusClass alert-dismissible fade show mb-4 shadow-sm" role="alert">
+            <i class="bi @(statusClass.Contains("danger") ? "bi-exclamation-triangle-fill" : "bi-info-circle-fill") me-2"></i>
+            @statusMessage
+            <button type="button" class="btn-close" @onclick='() => statusMessage = ""' aria-label="Close"></button>
+        </div>
+    }
+ 
     @if (isImporting && currentProgress != null)
     {
         <div class="card card-sanctuary mb-5 p-4 border-0 shadow-sm bg-surface-low animate-fade-in">
@@ -792,7 +802,7 @@
         if (_cachedUserContext == null)
         {
             var authState = await authenticationStateTask;
-            _cachedUserContext = blazorBookLibrary.Shared.ConverterUtils.fromClaimsPrincipal(authState.User);
+            _cachedUserContext = TenantState.GetUserContext(authState.User);
         }
         return _cachedUserContext;
     }
@@ -1061,6 +1071,7 @@
     private GridSort<BookSearchResult> sortScore = GridSort<BookSearchResult>.ByDescending(b => FSharpOption<double>.get_IsSome(b.Score) ? b.Score.Value : 0f);
 
     private string statusMessage = "";
+    private string statusClass = "alert-info";
     private bool generateEmbeddingAfterAdd = false;
     private Category mainCategory = Category.Other;
     private List<Category> additionalCategories = new();
@@ -1182,6 +1193,13 @@
 
     private async Task HandleAddBook()
     {
+        var context = await GetUserContextAsync();
+        if (!context.IsAuthenticated)
+        {
+            await ShowStatus(L["AccessDenied"], "error");
+            return;
+        }
+
         if (string.IsNullOrWhiteSpace(newBookTitle))
         {
             await ShowStatus(L["TitleIsRequired"], "warning");
@@ -1233,6 +1251,7 @@
         if (selectedDistributionPointId != Guid.Empty)
         {
             book = Book.NewWithAvailabilityAndDistributionPoint(
+                context.TenantId,
                 title, 
                 ListModule.OfSeq(authorIds),
                 ListModule.OfSeq(Enumerable.Empty<AuthorId>()),
@@ -1251,6 +1270,7 @@
         else
         {
             book = Book.NewWithAvailability(
+                context.TenantId,
                 title, 
                 ListModule.OfSeq(authorIds),
                 ListModule.OfSeq(Enumerable.Empty<AuthorId>()),
@@ -1275,7 +1295,6 @@
             }
         }
 
-        var context = await GetUserContextAsync();
         var result = await BookService.AddBookAsync(context, book);
         if (result.IsOk)
         {
@@ -1360,10 +1379,25 @@
         bookTags.Clear();
     }
 
-    private async Task ShowStatus(string message, string type)
+    private async Task ShowStatus(string message, string cssClass)
     {
         statusMessage = message;
-        await JSRuntime.InvokeVoidAsync("showToast", message, type);
+        statusClass = cssClass.Contains("alert-") ? cssClass : (cssClass == "error" ? "alert-danger" : $"alert-{cssClass}");
+        StateHasChanged();
+
+        try
+        {
+            string type = "info";
+            if (cssClass.Contains("success")) type = "success";
+            else if (cssClass.Contains("danger") || cssClass.Contains("error")) type = "error";
+            else if (cssClass.Contains("warning")) type = "warning";
+
+            await JSRuntime.InvokeVoidAsync("showToast", message, type);
+        }
+        catch
+        {
+            // JS interop might not be available during prerendering
+        }
     }
 
     private async Task HandleAuthorSearch()
@@ -1527,8 +1561,14 @@
 
     private async Task AddMetadataAuthor(string name)
     {
-        var author = Author.NewWithoutIsni(Name.New(name));
         var context = await GetUserContextAsync();
+        if (!context.IsAuthenticated)
+        {
+            await ShowStatus(L["AccessDenied"], "error");
+            return;
+        }
+
+        var author = Author.NewWithoutIsni(context.TenantId, Name.New(name));
         var result = await AuthorService.AddAuthorAsync(context, author);
         if (result.IsOk)
         {

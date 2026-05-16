@@ -315,6 +315,12 @@ type UserService
         taskResult {
             let ct = defaultArg ct CancellationToken.None
             let! tenant = tenantViewerAsync (Some ct) tenantId.Value |> TaskResult.map snd
+
+            // todo: fix cache issue
+            let _ = AggregateCache3.Instance.Clean userId.Value 
+            let! (eventId, user) = userViewerAsync (Some ct) userId.Value 
+            printf "XXXX. current eventId %d\n" eventId
+
             let allowed =
                 match context with
                 | UserContext.Authenticated(u, roles, _) when roles |> List.contains(Role.Admin) -> true

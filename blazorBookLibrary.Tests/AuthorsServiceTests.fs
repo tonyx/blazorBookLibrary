@@ -13,7 +13,7 @@ let tests =
         testCaseTask "create and retrieve an author" <| fun _ -> task {
             setUp()
             let authorService = getAuthorService()
-            let author = Author.NewWithoutIsni (Name.New "John Doe")
+            let author = Author.NewWithoutIsni TenantId.Default (Name.New "John Doe")
 
             let! addAuthor = authorService.AddAuthorAsync(adminContext, author)
             Expect.isOk addAuthor "should be ok"
@@ -24,7 +24,7 @@ let tests =
         testCaseTask "create and author and let the anonymous user retrieve it, they can as the used tenant is the default one - Ok" <| fun _ -> task {
             setUp()
             let authorService = getAuthorService()
-            let author = Author.NewWithoutIsni (Name.New "John Doe")
+            let author = Author.NewWithoutIsni TenantId.Default (Name.New "John Doe")
 
             let! addAuthor = authorService.AddAuthorAsync(adminContext, author)
             Expect.isOk addAuthor "should be ok"
@@ -36,11 +36,11 @@ let tests =
             setUp()
             let authorService = getAuthorService()
             let bookService = getBookService()
-            let author = Author.NewWithoutIsni (Name.New "John Doe")
+            let author = Author.NewWithoutIsni TenantId.Default (Name.New "John Doe")
             let! addAuthor = authorService.AddAuthorAsync(adminContext, author)
             Expect.isOk addAuthor "should be ok"
 
-            let book = Book.New (Title.New "The Great Gatsby") [author.AuthorId] [] [] None  Category.Other [] (Year.New 1924) (Isbn.NewEmpty()) None
+            let book = Book.New TenantId.Default (Title.New "The Great Gatsby") [author.AuthorId] [] [] None  Category.Other [] (Year.New 1924) (Isbn.NewEmpty()) None
             let! addBook = bookService.AddBookAsync(adminContext, book)
             Expect.isOk addBook "should be ok"
 
@@ -53,15 +53,15 @@ let tests =
             setUp ()
             let authorService = getAuthorService()
             let bookService = getBookService()
-            let author = Author.NewWithoutIsni (Name.New "John Doe")
+            let author = Author.NewWithoutIsni TenantId.Default (Name.New "John Doe")
             let! addAuthor = authorService.AddAuthorAsync(adminContext, author)
             Expect.isOk addAuthor "should be ok"
 
-            let author2 = Author.NewWithoutIsni (Name.New "Murakami")
+            let author2 = Author.NewWithoutIsni TenantId.Default (Name.New "Murakami")
             let! addAuthor2 = authorService.AddAuthorAsync(adminContext, author2)
             Expect.isOk addAuthor2 "should be ok"
 
-            let book = Book.New (Title.New "The Great Gatsby") [author.AuthorId; author2.AuthorId] [] [] None  Category.Other [] (Year.New 1924) (Isbn.NewEmpty()) None
+            let book = Book.New TenantId.Default (Title.New "The Great Gatsby") [author.AuthorId; author2.AuthorId] [] [] None  Category.Other [] (Year.New 1924) (Isbn.NewEmpty()) None
             let! addBook = bookService.AddBookAsync(adminContext, book)
             Expect.isOk addBook "should be ok"
             let! retrieveAuthorResult = authorService.GetAuthorAsync(UserContext.Anonymous, author.AuthorId)
@@ -81,11 +81,11 @@ let tests =
             setUp ()
             let authorService = getAuthorService()
             let bookService = getBookService()
-            let author = Author.NewWithoutIsni (Name.New "John Doe")
+            let author = Author.NewWithoutIsni TenantId.Default (Name.New "John Doe")
             let! addAuthor = authorService.AddAuthorAsync(adminContext, author)
             Expect.isOk addAuthor "should be ok"
 
-            let book = Book.New (Title.New "The Great Gatsby") [] [] [] None  Category.Other [] (Year.New 1924) (Isbn.NewEmpty()) None
+            let book = Book.New TenantId.Default (Title.New "The Great Gatsby") [] [] [] None  Category.Other [] (Year.New 1924) (Isbn.NewEmpty()) None
             let! addBook = bookService.AddBookAsync(adminContext, book)
             Expect.isOk addBook "should be ok"
             
@@ -108,11 +108,11 @@ let tests =
             setUp ()
             let authorService = getAuthorService()
             let bookService = getBookService()
-            let author = Author.NewWithoutIsni (Name.New "John Doe")
+            let author = Author.NewWithoutIsni TenantId.Default (Name.New "John Doe")
             let! addAuthor = authorService.AddAuthorAsync(adminContext, author)
             Expect.isOk addAuthor "should be ok"
 
-            let book = Book.New (Title.New "The Great Gatsby") [] [] [] None  Category.Other [] (Year.New 1924) (Isbn.NewEmpty()) None
+            let book = Book.New TenantId.Default (Title.New "The Great Gatsby") [] [] [] None  Category.Other [] (Year.New 1924) (Isbn.NewEmpty()) None
             let! addBook = bookService.AddBookAsync(adminContext, book)
             Expect.isOk addBook "should be ok"
             
@@ -134,8 +134,8 @@ let tests =
         testCaseTask "add two authors and retrieve them all - Ok" <| fun _ -> task {
             setUp ()
             let authorService = getAuthorService()
-            let author1 = Author.NewWithoutIsni (Name.New "Author One")
-            let author2 = Author.NewWithoutIsni (Name.New "Author Two")
+            let author1 = Author.NewWithoutIsni TenantId.Default (Name.New "Author One")
+            let author2 = Author.NewWithoutIsni TenantId.Default (Name.New "Author Two")
             
             let! addAuthor1 = authorService.AddAuthorAsync(adminContext, author1)
             Expect.isOk addAuthor1 "should be ok"
@@ -157,9 +157,9 @@ let tests =
             let authorService = getAuthorService()
             let authors = 
                 [
-                    Author.NewWithoutIsni (Name.New "Author A")
-                    Author.NewWithoutIsni (Name.New "Author B")
-                    Author.NewWithoutIsni (Name.New "Author C")
+                    Author.NewWithoutIsni TenantId.Default (Name.New "Author A")
+                    Author.NewWithoutIsni TenantId.Default (Name.New "Author B")
+                    Author.NewWithoutIsni TenantId.Default (Name.New "Author C")
                 ]
             
             let! addAuthorsResult = (authorService :> IAuthorService).AddAuthorsAsync(adminContext, authors)
@@ -177,8 +177,8 @@ let tests =
             let authorService = getAuthorService()
             let name1 = Name.New "John Smith"
             let name2 = Name.New "Jane Doe"
-            let author1 = Author.NewWithoutIsni name1
-            let author2 = Author.NewWithoutIsni name2
+            let author1 = Author.NewWithoutIsni TenantId.Default name1
+            let author2 = Author.NewWithoutIsni TenantId.Default name2
             
             let! _ = (authorService :> IAuthorService).AddAuthorsAsync(adminContext, [author1; author2])
             
@@ -194,8 +194,8 @@ let tests =
             let authorService = getAuthorService()
             let isni1 = Isni.New "0000 0001 2103 2683" |> Result.get
             let isni2 = Isni.New "0000 0001 2103 2691" |> Result.get
-            let author1 = Author.New (Name.New "Austen") isni1
-            let author2 = Author.New (Name.New "Shakespeare") isni2
+            let author1 = Author.New TenantId.Default (Name.New "Austen") isni1
+            let author2 = Author.New TenantId.Default (Name.New "Shakespeare") isni2
             
             let! _ = (authorService :> IAuthorService).AddAuthorsAsync(adminContext, [author1; author2])
             
@@ -211,8 +211,8 @@ let tests =
             let name = Name.New "John Smith"
             let name2 = Name.New "John Doe"
             let isni = Isni.New "0000 0001 2103 2683" |> Result.get
-            let author1 = Author.New name isni
-            let author2 = Author.New name2 (Isni.New "0000 0001 2103 2691" |> Result.get)
+            let author1 = Author.New TenantId.Default name isni
+            let author2 = Author.New TenantId.Default name2 (Isni.New "0000 0001 2103 2691" |> Result.get)
             
             let! _ = (authorService :> IAuthorService).AddAuthorsAsync(adminContext, [author1; author2])
             
@@ -225,7 +225,7 @@ let tests =
         testCaseTask "add an author and then remove it - Ok" <| fun _ -> task {
             setUp ()
             let authorService = getAuthorService()
-            let author = Author.NewWithoutIsni (Name.New "John Doe")
+            let author = Author.NewWithoutIsni TenantId.Default (Name.New "John Doe")
             
             let! _ = authorService.AddAuthorAsync(adminContext, author)
             
@@ -240,11 +240,11 @@ let tests =
             setUp ()
             let authorService = getAuthorService()
             let bookService = getBookService()
-            let author = Author.NewWithoutIsni (Name.New "John Doe")
+            let author = Author.NewWithoutIsni TenantId.Default (Name.New "John Doe")
             
             let! _ = authorService.AddAuthorAsync(adminContext, author)
             
-            let book = Book.New (Title.New "The Great Gatsby") [author.AuthorId] [] [] None  Category.Other [] (Year.New 1924) (Isbn.NewEmpty()) None
+            let book = Book.New TenantId.Default (Title.New "The Great Gatsby") [author.AuthorId] [] [] None  Category.Other [] (Year.New 1924) (Isbn.NewEmpty()) None
             let! _ = bookService.AddBookAsync(adminContext, book)
             
             let! removeResult = (authorService :> IAuthorService).RemoveAsync(adminContext, author.AuthorId)

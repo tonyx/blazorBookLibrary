@@ -21,7 +21,7 @@ let tests =
             let userService = getUserService()
             let! userId = registerUserTask "test@example.com" "Password123!"
 
-            let book = Book.New (Title.New "the constitution") [] [] [] None  Category.Other [] (Year.New 1924) (Isbn.NewEmpty()) None
+            let book = Book.New TenantId.Default (Title.New "the constitution") [] [] [] None  Category.Other [] (Year.New 1924) (Isbn.NewEmpty()) None
             let! addBook = bookService.AddBookAsync(adminContext, book)
             Expect.isOk addBook "should be ok"
 
@@ -67,7 +67,7 @@ let tests =
             let loanService = getLoanService()
             let userService = getUserService()
             let bookService = getBookService()
-            let book = Book.New (Title.New "the constitution") [] [] [] None  Category.Other [] (Year.New 1924) (Isbn.NewEmpty()) None
+            let book = Book.New TenantId.Default (Title.New "the constitution") [] [] [] None  Category.Other [] (Year.New 1924) (Isbn.NewEmpty()) None
             let! addBook = bookService.AddBookAsync(adminContext, book)
             Expect.isOk addBook "should be ok"
             let! userId = registerUserTask "test@example.com" "Password123!"
@@ -90,7 +90,7 @@ let tests =
             let loanService = getLoanService()
             let userService = getUserService()
             let bookService = getBookService()
-            let book = Book.New (Title.New "the constitution") [] [] [] None  Category.Other [] (Year.New 1924) (Isbn.NewEmpty()) None
+            let book = Book.New TenantId.Default (Title.New "the constitution") [] [] [] None  Category.Other [] (Year.New 1924) (Isbn.NewEmpty()) None
             let! addBook = bookService.AddBookAsync(adminContext, book)
             Expect.isOk addBook "should be ok"
             let! userId = registerUserTask "test@example.com" "Password123!"
@@ -122,7 +122,7 @@ let tests =
             let loanService = getLoanService()
             let userService = getUserService()
             let bookService = getBookService()
-            let book = Book.New (Title.New "the constitution") [] [] [] None  Category.Other [] (Year.New 1924) (Isbn.NewEmpty()) None
+            let book = Book.New TenantId.Default (Title.New "the constitution") [] [] [] None  Category.Other [] (Year.New 1924) (Isbn.NewEmpty()) None
             let! addBook = bookService.AddBookAsync(adminContext, book)
             Expect.isOk addBook "should be ok"
             let! userId = registerUserTask "test@example.com" "Password123!"

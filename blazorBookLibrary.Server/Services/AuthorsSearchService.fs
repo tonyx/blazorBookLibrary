@@ -15,6 +15,8 @@ open Sharpino.Storage
 open BookLibrary.Domain
 open BookLibrary.Utils
 open Sharpino.CommandHandler
+open Microsoft.Extensions.DependencyInjection
+
 
 type OpenLibraryAuthorSearchDoc = {
     [<JsonPropertyName("key")>] Key: string
@@ -37,6 +39,8 @@ type OpenLibraryAuthorDetails = {
 
 type AuthorsSearchService
     (
+
+
         httpClient: HttpClient,
         tenantViewerAsync: AggregateViewerAsync2<Tenant>
     ) =
@@ -49,7 +53,9 @@ type AuthorsSearchService
 
 
 
+    [<ActivatorUtilitiesConstructor>]
     new(httpClient: HttpClient, secretsReader: SecretsReader) =
+
         AuthorsSearchService(
             httpClient, 
             getAggregateStorageFreshStateViewerAsync<Tenant, TenantEvent, string> (PgStorage.PgEventStore (secretsReader.GetBookLibraryConnectionString()))

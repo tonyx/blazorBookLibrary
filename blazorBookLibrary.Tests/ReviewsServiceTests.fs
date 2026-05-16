@@ -37,6 +37,7 @@ let tests =
             let detailsService = getDetailsService()
             let book = 
                 Book.New 
+                    TenantId.Default
                     (Title.New "The Great Gatsby") 
                     [] 
                     [] 
@@ -73,6 +74,7 @@ let tests =
             let loanService = getLoanService()
             let book = 
                 Book.New 
+                    TenantId.Default
                     (Title.New "The Great Gatsby") 
                     [] 
                     [] 
@@ -129,6 +131,7 @@ let tests =
                 let loanService = getLoanService()
                 let book = 
                     Book.New 
+                        TenantId.Default
                         (Title.New "The Great Gatsby") 
                         [] 
                         [] 
@@ -190,6 +193,7 @@ let tests =
             let loanService = getLoanService()
             let book = 
                 Book.New 
+                    TenantId.Default
                     (Title.New "The Great Gatsby") 
                     [] 
                     [] 
@@ -257,6 +261,7 @@ let tests =
             let loanService = getLoanService()
             let book = 
                 Book.New 
+                    TenantId.Default
                     (Title.New "The Great Gatsby") 
                     [] 
                     [] 
@@ -328,6 +333,7 @@ let tests =
             let loanService = getLoanService()
             let book = 
                 Book.New 
+                    TenantId.Default
                     (Title.New "The Great Gatsby") 
                     [] 
                     [] 

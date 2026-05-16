@@ -96,15 +96,6 @@
             </div>
         </div>
     }
-
-    @if (isLoading)
-    {
-        <div class="d-flex justify-content-center py-5 animate-fade-in">
-            <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
-                <span class="visually-hidden">@L["Loading"]...</span>
-            </div>
-        </div>
-    }
     else if (!string.IsNullOrEmpty(errorMessage))
     {
         <div class="alert alert-danger shadow-sm border-0 animate-shake" role="alert">
@@ -114,6 +105,15 @@
                     <h4 class="alert-heading h5 mb-1">@L["ArchivalRetrievalError"]</h4>
                     <p class="mb-0">@errorMessage</p>
                 </div>
+            </div>
+        </div>
+    }
+
+    @if (isLoading)
+    {
+        <div class="d-flex justify-content-center py-5 animate-fade-in">
+            <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+                <span class="visually-hidden">@L["Loading"]...</span>
             </div>
         </div>
     }
@@ -348,6 +348,7 @@
                     TenantView.Owned => await TenantService.GetMyOwnedTenantsAsync(userContext, default),
                     _ => await TenantService.GetAllowedTenantsAsync(userContext, default)
                 };
+                isLoading = false;
                 
                 if (result.IsOk)
                 {
@@ -366,10 +367,6 @@
         catch (Exception ex)
         {
             errorMessage = L["ErrorLoadingData", ex.Message];
-        }
-        finally
-        {
-            isLoading = false;
         }
     }
 }

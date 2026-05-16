@@ -22,6 +22,7 @@
 @using blazorBookLibrary.Shared.Resources
 @inject IStringLocalizer<SharedResources> L
 @inject IBotScoreService BotScoreService
+@inject blazorBookLibrary.Client.Services.TenantStateService TenantState
 @rendermode InteractiveAuto
 
 <PageTitle>@L["BookDetails"]</PageTitle>
@@ -367,7 +368,7 @@
             var now = DateTime.UtcNow;
             var nextSlot = bookDetails.GetNextAvailableTimeSlot(loanDuration, now);
             
-            var context = blazorBookLibrary.Shared.ConverterUtils.fromClaimsPrincipal(authState.User);
+            var context = TenantState.GetUserContext(authState.User);
             var reservation = Reservation.NewWithTenantId(context.TenantId, bookDetails.Book.BookId, sharpinoUserId, nextSlot, now);
             
             var result = await ReservationService.AddReservationAsync(context, reservation, ShortLang.New(CultureInfo.CurrentCulture.Name.Substring(0,2)), FSharpOption<System.Threading.CancellationToken>.None);
@@ -412,7 +413,8 @@
             {
                 var bookId = BookId.NewBookId(guid);
                 var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-                var context = blazorBookLibrary.Shared.ConverterUtils.fromClaimsPrincipal(authState.User);
+                var context = TenantState.GetUserContext(authState.User);
+                Console.WriteLine("XXXXXXXX: Context TenantId: " + context.TenantId);
                 var result = await DetailsService.GetBookDetailsAsync(context, bookId, FSharpOption<CancellationToken>.None);
 
                 if (result.IsOk)
@@ -446,7 +448,7 @@
         {
             var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
             var user = authState.User;
-            var context = blazorBookLibrary.Shared.ConverterUtils.fromClaimsPrincipal(user);
+            var context = TenantState.GetUserContext(user);
             
             if (user.Identity?.IsAuthenticated == true)
             {
@@ -548,13 +550,21 @@
     {
         statusMessage = message;
         statusClass = cssClass;
+        StateHasChanged();
 
-        string type = "info";
-        if (cssClass.Contains("success")) type = "success";
-        else if (cssClass.Contains("danger")) type = "error";
-        else if (cssClass.Contains("warning")) type = "warning";
+        try
+        {
+            string type = "info";
+            if (cssClass.Contains("success")) type = "success";
+            else if (cssClass.Contains("danger")) type = "error";
+            else if (cssClass.Contains("warning")) type = "warning";
 
-        await JSRuntime.InvokeVoidAsync("showToast", message, type);
+            await JSRuntime.InvokeVoidAsync("showToast", message, type);
+        }
+        catch
+        {
+            // JS interop might not be available during prerendering
+        }
     }
 
 
