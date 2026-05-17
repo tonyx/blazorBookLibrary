@@ -1,0 +1,541 @@
+@page "/tenants/{Id:guid}"
+@using Microsoft.AspNetCore.Authorization
+@using BookLibrary.Shared.Services
+@using blazorBookLibrary.Shared.Resources
+@using Microsoft.Extensions.Localization
+@using BookLibrary.Domain
+@using static BookLibrary.Shared.Commons
+@using BookLibrary.Shared
+@using blazorBookLibrary.Shared
+@using static BookLibrary.Shared.Details
+
+@attribute [Authorize]
+@inject IDetailsService DetailsService
+@inject IUserService UserService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject blazorBookLibrary.Client.Services.TenantStateService TenantState
+@inject IStringLocalizer<SharedResources> L
+@inject IJSRuntime JSRuntime
+@inject NavigationManager NavigationManager
+@rendermode InteractiveAuto
+
+<PageTitle>@(libraryDetails != null ? $"{libraryDetails.Tenant.TentantName.Value} — {L["TenantDetails"]}" : L["TenantDetails"]) — @L["TheModernArchivist"]</PageTitle>
+
+<div class="sanctuary-container py-5">
+    @* Page Header / Navigation *@
+    <div class="mb-5">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/" class="text-decoration-none text-muted">@L["Home"]</a></li>
+                <li class="breadcrumb-item"><a href="/tenants" class="text-decoration-none text-muted">@L["Tenants"]</a></li>
+                <li class="breadcrumb-item active text-serif" aria-current="page">@L["TenantDetails"]</li>
+            </ol>
+        </nav>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="d-flex flex-column justify-content-center align-items-center py-5">
+            <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
+                <span class="visually-hidden">@L["Loading"]...</span>
+            </div>
+            <p class="text-muted italic serif">@L["FetchingTenantDetails"]...</p>
+        </div>
+    }
+    else if (!isAuthorized || !string.IsNullOrEmpty(errorMessage))
+    {
+        <div class="card card-sanctuary border-0 shadow-sm bg-surface-low p-5 text-center animate-fade-in">
+            <div class="py-4">
+                <i class="bi bi-shield-slash display-1 text-danger mb-4"></i>
+                <h2 class="text-serif text-danger mb-3">@L["AccessDenied"]</h2>
+                <p class="text-muted lead max-width-md mx-auto mb-4">
+                    @(string.IsNullOrEmpty(errorMessage) ? L["AccessDeniedTenantDetails"] : errorMessage)
+                </p>
+                <div class="d-flex justify-content-center gap-3">
+                    <a href="/tenants" class="btn btn-primary rounded-pill px-4">
+                        <i class="bi bi-arrow-left me-2"></i>@L["BackToTenants"]
+                    </a>
+                </div>
+            </div>
+        </div>
+    }
+    else if (libraryDetails != null)
+    {
+        @* Hero Block *@
+        <div class="mb-5 animate-fade-in">
+            <div class="d-flex justify-content-between align-items-start flex-wrap gap-4">
+                <div>
+                    <span class="badge-sanctuary badge-neutral mb-3 text-uppercase letter-spacing-1 fw-bold">
+                        <i class="bi bi-bank me-2"></i>@L["LibraryAggregateDetails"]
+                    </span>
+                    <h1 class="display-4 text-serif mb-2">@libraryDetails.Tenant.TentantName.Value</h1>
+                    <p class="text-muted lead mb-0">
+                        <i class="bi bi-geo-alt-fill me-2 text-primary"></i>@libraryDetails.Tenant.Address
+                    </p>
+                </div>
+                
+                <div class="d-flex flex-wrap gap-2 align-items-center">
+                    @if (libraryDetails.Tenant.TenantState.IsActive)
+                    {
+                        <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 py-2 fw-bold text-uppercase small">
+                            <i class="bi bi-check-circle-fill me-2"></i>@L["Active"]
+                        </span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill px-3 py-2 fw-bold text-uppercase small">
+                            <i class="bi bi-x-circle-fill me-2"></i>@L["Deactivated"]
+                        </span>
+                    }
+
+                    @if (libraryDetails.Tenant.Public)
+                    {
+                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-3 py-2 fw-bold text-uppercase small">
+                            <i class="bi bi-globe me-2"></i>@L["PublicAccess"]
+                        </span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-warning-subtle text-warning border border-warning-subtle rounded-pill px-3 py-2 fw-bold text-uppercase small">
+                            <i class="bi bi-lock-fill me-2"></i>@L["PrivateAccess"]
+                        </span>
+                    }
+                </div>
+            </div>
+        </div>
+
+        @* Stat Counters Grid *@
+        <div class="row g-4 mb-5 animate-fade-in">
+            <div class="col-6 col-lg-3">
+                <div class="card card-sanctuary border-0 shadow-sm p-4 bg-surface-low text-center hover-lift h-100">
+                    <i class="bi bi-person-fill display-5 text-primary mb-2"></i>
+                    <h5 class="text-muted small text-uppercase fw-bold mb-1">@L["Owner"]</h5>
+                    <p class="h5 text-serif mb-0 text-truncate px-2" title="@libraryDetails.Owner.AppUserInfo.Email">
+                        @libraryDetails.Owner.AppUserInfo.Nome @libraryDetails.Owner.AppUserInfo.Cognome
+                    </p>
+                </div>
+            </div>
+            <div class="col-6 col-lg-3">
+                <div class="card card-sanctuary border-0 shadow-sm p-4 bg-surface-low text-center hover-lift h-100">
+                    <i class="bi bi-people-fill display-5 text-primary mb-2"></i>
+                    <h5 class="text-muted small text-uppercase fw-bold mb-1">@L["Patrons"]</h5>
+                    <p class="display-6 text-serif mb-0 fw-bold">@libraryDetails.Patrons.Count()</p>
+                </div>
+            </div>
+            <div class="col-6 col-lg-3">
+                <div class="card card-sanctuary border-0 shadow-sm p-4 bg-surface-low text-center hover-lift h-100">
+                    <i class="bi bi-journal-check display-5 text-primary mb-2"></i>
+                    <h5 class="text-muted small text-uppercase fw-bold mb-1">@L["ActiveLoans"]</h5>
+                    <p class="display-6 text-serif mb-0 fw-bold">@libraryDetails.Loans.Where(l => l.InProgress).Count()</p>
+                </div>
+            </div>
+            <div class="col-6 col-lg-3">
+                <div class="card card-sanctuary border-0 shadow-sm p-4 bg-surface-low text-center hover-lift h-100">
+                    <i class="bi bi-calendar-event-fill display-5 text-primary mb-2"></i>
+                    <h5 class="text-muted small text-uppercase fw-bold mb-1">@L["Reservations"]</h5>
+                    <p class="display-6 text-serif mb-0 fw-bold">@libraryDetails.Reservations.Count()</p>
+                </div>
+            </div>
+        </div>
+
+        @* Dashboard Main Layout *@
+        <div class="row g-5">
+            @* Left Sidebar: Properties and Owner Details *@
+            <div class="col-lg-5 animate-slide-up">
+                <div class="card card-sanctuary border-0 shadow-sm p-4 bg-surface-low mb-4">
+                    <h3 class="h5 text-serif border-bottom pb-3 mb-3"><i class="bi bi-info-circle me-2 text-primary"></i>@L["LibraryProperties"]</h3>
+                    <div class="d-flex flex-column gap-3">
+                        <div>
+                            <label class="small text-muted text-uppercase fw-bold d-block">@L["TenantId"]</label>
+                            <span class="font-monospace text-muted small">@libraryDetails.Tenant.TenantId.Value</span>
+                        </div>
+                        <div>
+                            <label class="small text-muted text-uppercase fw-bold d-block">@L["LibraryName"]</label>
+                            <span class="fw-bold">@libraryDetails.Tenant.TentantName.Value</span>
+                        </div>
+                        <div>
+                            <label class="small text-muted text-uppercase fw-bold d-block">@L["Address"]</label>
+                            <span>@libraryDetails.Tenant.Address</span>
+                        </div>
+                        <div>
+                            <label class="small text-muted text-uppercase fw-bold d-block">@L["Status"]</label>
+                            <span>@libraryDetails.Tenant.TenantState.ToString()</span>
+                        </div>
+                        <div>
+                            <label class="small text-muted text-uppercase fw-bold d-block mb-1">@L["Tags"]</label>
+                            @if (libraryDetails.Tenant.Tags.Length == 0)
+                            {
+                                <span class="text-muted small italic">@L["NoTags"]</span>
+                            }
+                            else
+                            {
+                                <div class="d-flex flex-wrap gap-1">
+                                    @foreach (var tag in libraryDetails.Tenant.Tags)
+                                    {
+                                        <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle rounded-pill px-2 py-1 small">
+                                            @tag.TagName
+                                        </span>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card card-sanctuary border-0 shadow-sm p-4 bg-surface-low">
+                    <h3 class="h5 text-serif border-bottom pb-3 mb-3"><i class="bi bi-person-badge me-2 text-primary"></i>@L["OwnerProfile"]</h3>
+                    <div class="d-flex flex-column gap-3">
+                        <div>
+                            <label class="small text-muted text-uppercase fw-bold d-block">@L["UserId"]</label>
+                            <span class="font-monospace text-muted small">@libraryDetails.Owner.UserId.Value</span>
+                        </div>
+                        <div class="row g-2">
+                            <div class="col-6">
+                                <label class="small text-muted text-uppercase fw-bold d-block">@L["FirstName"]</label>
+                                <span class="fw-bold">@libraryDetails.Owner.AppUserInfo.Nome</span>
+                            </div>
+                            <div class="col-6">
+                                <label class="small text-muted text-uppercase fw-bold d-block">@L["LastName"]</label>
+                                <span class="fw-bold">@libraryDetails.Owner.AppUserInfo.Cognome</span>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="small text-muted text-uppercase fw-bold d-block">@L["Username"]</label>
+                            <span>@libraryDetails.Owner.AppUserInfo.UserName</span>
+                        </div>
+                        <div>
+                            <label class="small text-muted text-uppercase fw-bold d-block">@L["Email"]</label>
+                            <span class="text-primary">@libraryDetails.Owner.AppUserInfo.Email</span>
+                        </div>
+                        <div>
+                            <label class="small text-muted text-uppercase fw-bold d-block">@L["PhoneNumber"]</label>
+                            <span>@(string.IsNullOrEmpty(libraryDetails.Owner.AppUserInfo.PhoneNumber) ? L["NotProvided"] : libraryDetails.Owner.AppUserInfo.PhoneNumber)</span>
+                        </div>
+                        <div>
+                            <label class="small text-muted text-uppercase fw-bold d-block">@L["FiscalCode"]</label>
+                            <span class="font-monospace">@(string.IsNullOrEmpty(libraryDetails.Owner.AppUserInfo.CodiceFiscale) ? L["NotProvided"] : libraryDetails.Owner.AppUserInfo.CodiceFiscale)</span>
+                        </div>
+                        <div>
+                            <label class="small text-muted text-uppercase fw-bold d-block">@L["VerificationStatus"]</label>
+                            @if (libraryDetails.Owner.AppUserInfo.IsIdentifiedPhysically)
+                            {
+                                <span class="text-success small fw-bold"><i class="bi bi-shield-check me-1"></i>@L["PhysicallyIdentified"]</span>
+                            }
+                            else
+                            {
+                                <span class="text-muted small italic"><i class="bi bi-shield-slash me-1"></i>@L["NotPhysicallyIdentified"]</span>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            @* Right Content Panel: Dynamic Tabs *@
+            <div class="col-lg-7 animate-slide-up">
+                <ul class="nav nav-tabs border-bottom mb-4" id="detailsTab" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link py-3 px-4 border-0 @(activeTab == "patrons" ? "active border-bottom border-primary fw-bold text-primary" : "text-muted")"
+                                id="patrons-tab" type="button" role="tab" @onclick='() => activeTab = "patrons"'>
+                            <i class="bi bi-people me-2"></i>@L["PatronsList"] (@libraryDetails.Patrons.Count())
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link py-3 px-4 border-0 @(activeTab == "loans" ? "active border-bottom border-primary fw-bold text-primary" : "text-muted")"
+                                id="loans-tab" type="button" role="tab" @onclick='() => activeTab = "loans"'>
+                            <i class="bi bi-journal-bookmark me-2"></i>@L["LoansHistory"] (@libraryDetails.Loans.Count())
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link py-3 px-4 border-0 @(activeTab == "reservations" ? "active border-bottom border-primary fw-bold text-primary" : "text-muted")"
+                                id="reservations-tab" type="button" role="tab" @onclick='() => activeTab = "reservations"'>
+                            <i class="bi bi-calendar-event me-2"></i>@L["ReservationsList"] (@libraryDetails.Reservations.Count())
+                        </button>
+                    </li>
+                </ul>
+
+                <div class="tab-content" id="detailsTabContent">
+                    @* Patrons Tab Panel *@
+                    @if (activeTab == "patrons")
+                    {
+                        <div class="card card-sanctuary border-0 shadow-sm p-4 bg-surface-low animate-fade-in">
+                            <h3 class="h5 text-serif border-bottom pb-3 mb-3"><i class="bi bi-people-fill me-2 text-primary"></i>@L["RegisteredPatrons"]</h3>
+                            @if (libraryDetails.Patrons.Length == 0)
+                            {
+                                <div class="text-center py-5 text-muted italic">
+                                    <i class="bi bi-people display-4 opacity-25 d-block mb-3"></i>
+                                    @L["NoPatronsFound"]
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="table-responsive">
+                                    <table class="table align-middle">
+                                        <thead>
+                                            <tr class="text-uppercase small text-muted">
+                                                <th>@L["PatronName"]</th>
+                                                <th>@L["Email"]</th>
+                                                <th>@L["Role"]</th>
+                                                <th class="text-end">@L["Verification"]</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach (var patronTuple in libraryDetails.Patrons)
+                                            {
+                                                var patron = patronTuple.Item1;
+                                                var role = patronTuple.Item2;
+                                                <tr>
+                                                    <td>
+                                                        <div class="fw-bold">@patron.AppUserInfo.Nome @patron.AppUserInfo.Cognome</div>
+                                                        <div class="small text-muted font-monospace" style="font-size: 0.75rem;">@patron.UserId.Value</div>
+                                                    </td>
+                                                    <td>@patron.AppUserInfo.Email</td>
+                                                    <td>
+                                                        @if (role.IsManager)
+                                                        {
+                                                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-2 py-1 small">
+                                                                @L["Manager"]
+                                                            </span>
+                                                        }
+                                                        else
+                                                        {
+                                                            <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle rounded-pill px-2 py-1 small">
+                                                                @L["User"]
+                                                            </span>
+                                                        }
+                                                    </td>
+                                                    <td class="text-end">
+                                                        @if (patron.AppUserInfo.IsIdentifiedPhysically)
+                                                        {
+                                                            <span class="text-success small fw-bold" title="@L["PhysicallyIdentified"]">
+                                                                <i class="bi bi-shield-check"></i> @L["Verified"]
+                                                            </span>
+                                                        }
+                                                        else
+                                                        {
+                                                            <span class="text-muted small italic" title="@L["NotPhysicallyIdentified"]">
+                                                                <i class="bi bi-shield-slash"></i> @L["Unverified"]
+                                                            </span>
+                                                        }
+                                                    </td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
+                                </div>
+                            }
+                        </div>
+                    }
+
+                    @* Loans Tab Panel *@
+                    @if (activeTab == "loans")
+                    {
+                        <div class="card card-sanctuary border-0 shadow-sm p-4 bg-surface-low animate-fade-in">
+                            <h3 class="h5 text-serif border-bottom pb-3 mb-3"><i class="bi bi-journal-bookmark-fill me-2 text-primary"></i>@L["LibraryLoansLedger"]</h3>
+                            @if (libraryDetails.Loans.Length == 0)
+                            {
+                                <div class="text-center py-5 text-muted italic">
+                                    <i class="bi bi-journal-x display-4 opacity-25 d-block mb-3"></i>
+                                    @L["NoLoansFound"]
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="table-responsive">
+                                    <table class="table align-middle">
+                                        <thead>
+                                            <tr class="text-uppercase small text-muted">
+                                                <th>@L["BookId"]</th>
+                                                <th>@L["PatronId"]</th>
+                                                <th>@L["Duration"]</th>
+                                                <th class="text-end">@L["Status"]</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach (var loan in libraryDetails.Loans)
+                                            {
+                                                <tr>
+                                                    <td>
+                                                        <div class="font-monospace small text-truncate" style="max-width: 100px;" title="@loan.BookId.Value">@loan.BookId.Value</div>
+                                                    </td>
+                                                    <td>
+                                                        <div class="font-monospace small text-truncate" style="max-width: 100px;" title="@loan.UserId.Value">@loan.UserId.Value</div>
+                                                    </td>
+                                                    <td>
+                                                        <div class="small">
+                                                            <span class="fw-bold">@L["Start"]:</span> @loan.TimeSlot.Start.ToLocalTime().ToString("yyyy-MM-dd HH:mm")
+                                                        </div>
+                                                        <div class="small">
+                                                            <span class="fw-bold">@L["End"]:</span> @loan.TimeSlot.End.ToLocalTime().ToString("yyyy-MM-dd HH:mm")
+                                                        </div>
+                                                    </td>
+                                                    <td class="text-end">
+                                                        @if (loan.InProgress)
+                                                        {
+                                                            @if (loan.IsOverdue(DateTime.UtcNow))
+                                                            {
+                                                                <span class="badge bg-danger text-white rounded-pill px-2 py-1 small fw-bold">
+                                                                    @L["Overdue"]
+                                                                </span>
+                                                            }
+                                                            else
+                                                            {
+                                                                <span class="badge bg-success text-white rounded-pill px-2 py-1 small fw-bold">
+                                                                    @L["Active"]
+                                                                </span>
+                                                            }
+                                                        }
+                                                        else
+                                                        {
+                                                            <span class="badge bg-secondary text-white rounded-pill px-2 py-1 small">
+                                                                @L["Returned"]
+                                                            </span>
+                                                        }
+                                                    </td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
+                                </div>
+                            }
+                        </div>
+                    }
+
+                    @* Reservations Tab Panel *@
+                    @if (activeTab == "reservations")
+                    {
+                        <div class="card card-sanctuary border-0 shadow-sm p-4 bg-surface-low animate-fade-in">
+                            <h3 class="h5 text-serif border-bottom pb-3 mb-3"><i class="bi bi-calendar-event-fill me-2 text-primary"></i>@L["ActiveReservations"]</h3>
+                            @if (libraryDetails.Reservations.Length == 0)
+                            {
+                                <div class="text-center py-5 text-muted italic">
+                                    <i class="bi bi-calendar-x display-4 opacity-25 d-block mb-3"></i>
+                                    @L["NoReservationsFound"]
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="table-responsive">
+                                    <table class="table align-middle">
+                                        <thead>
+                                            <tr class="text-uppercase small text-muted">
+                                                <th>@L["BookId"]</th>
+                                                <th>@L["PatronId"]</th>
+                                                <th>@L["ReservationTime"]</th>
+                                                <th class="text-end">@L["Status"]</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach (var res in libraryDetails.Reservations)
+                                            {
+                                                <tr>
+                                                    <td>
+                                                        <div class="font-monospace small text-truncate" style="max-width: 100px;" title="@res.BookId.Value">@res.BookId.Value</div>
+                                                    </td>
+                                                    <td>
+                                                        <div class="font-monospace small text-truncate" style="max-width: 100px;" title="@res.UserId.Value">@res.UserId.Value</div>
+                                                    </td>
+                                                    <td>
+                                                        <div class="small">
+                                                            <span class="fw-bold">@L["Start"]:</span> @res.TimeSlot.Start.ToLocalTime().ToString("yyyy-MM-dd HH:mm")
+                                                        </div>
+                                                        <div class="small">
+                                                            <span class="fw-bold">@L["End"]:</span> @res.TimeSlot.End.ToLocalTime().ToString("yyyy-MM-dd HH:mm")
+                                                        </div>
+                                                    </td>
+                                                    <td class="text-end">
+                                                        @if (res.IsPending)
+                                                        {
+                                                            <span class="badge bg-warning text-dark rounded-pill px-2 py-1 small fw-bold">
+                                                                @L["Pending"]
+                                                            </span>
+                                                        }
+                                                        else
+                                                        {
+                                                            <span class="badge bg-secondary text-white rounded-pill px-2 py-1 small">
+                                                                @L["Completed"]
+                                                            </span>
+                                                        }
+                                                    </td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public Guid Id { get; set; }
+
+    private BookLibrary.Shared.Details.TenantDetails? libraryDetails;
+    private bool isLoading = true;
+    private bool isAuthorized = false;
+    private string errorMessage = "";
+    private string activeTab = "patrons";
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var tenantId = TenantId.NewTenantId(Id);
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var claimsPrincipal = authState.User;
+
+            if (claimsPrincipal == null || claimsPrincipal.Identity == null || !claimsPrincipal.Identity.IsAuthenticated)
+            {
+                isAuthorized = false;
+                errorMessage = L["NotAuthenticated"] ?? "You must be authenticated to view this page.";
+                isLoading = false;
+                return;
+            }
+
+            var userContext = TenantState.GetUserContext(claimsPrincipal);
+
+            var result = await DetailsService.GetTenantDetailsAsync(userContext, tenantId, Microsoft.FSharp.Core.FSharpOption<System.Threading.CancellationToken>.None);
+
+            if (result.IsOk)
+            {
+                var details = result.ResultValue;
+                
+                var currentUserIdClaim = claimsPrincipal.FindFirst(c => c.Type == System.Security.Claims.ClaimTypes.NameIdentifier) ?? claimsPrincipal.FindFirst("sub");
+                var isAdmin = claimsPrincipal.IsInRole("Admin");
+                var isOwner = false;
+
+                if (currentUserIdClaim != null && Guid.TryParse(currentUserIdClaim.Value, out var guid))
+                {
+                    isOwner = guid.Equals(details.Tenant.OwnerId.Value);
+                }
+
+                if (isAdmin || isOwner)
+                {
+                    libraryDetails = details;
+                    isAuthorized = true;
+                }
+                else
+                {
+                    isAuthorized = false;
+                    errorMessage = L["AccessDeniedTenantDetails"] ?? "Access denied. You must be an Admin or the Tenant Owner to view these library details.";
+                }
+            }
+            else
+            {
+                errorMessage = result.ErrorValue;
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.Message;
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+}

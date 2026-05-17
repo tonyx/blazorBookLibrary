@@ -401,6 +401,68 @@ type DetailsService (
         let key = DetailsCacheKey.OfType typeof<RefreshableReviewDetails> reviewId.Value
         StateView.getRefreshableDetailsTaskResultAsync<RefreshableReviewDetails> (fun ct -> detailsBuilder ct) key ct 
 
+    member this.GetRefreshableTenantDetailsAsync(context: UserContext, id: TenantId, ?ct: CancellationToken): TaskResult<RefreshableTenantDetails, string> = 
+        let ct = defaultArg ct CancellationToken.None
+        let detailsBuilder =
+            fun (ct: Option<CancellationToken>) ->
+                let ct = ct |> Option.defaultValue CancellationToken.None
+                let refresher =
+                    fun (ct: Option<CancellationToken>) ->
+                        taskResult {
+                            let ct = ct |> Option.defaultValue CancellationToken.None
+                            let! tenant = tenantViewerAsync (Some ct) id.Value |> TaskResult.map snd
+                            let! owner = userViewerAsync (Some ct) tenant.OwnerId.Value |> TaskResult.map snd
+                            let! patrons = 
+                                tenant.Patrons
+                                |> List.traverseTaskResultM 
+                                    (fun (patron, role) -> userViewerAsync (ct |> Some) patron.Value |> TaskResult.map (fun x -> (x |> snd, role)))
+                            let! loans = 
+                                StateView.getAllFilteredAggregateStatesAsync<Loan, LoanEvent, string> (fun loan -> loan.TenantId = context.TenantId) eventStore (Some ct)
+                                |> TaskResult.map (fun loans -> loans |> List.map snd)
+                            let! reservations = 
+                                StateView.getAllFilteredAggregateStatesAsync<Reservation, ReservationEvent, string> (fun reservation -> reservation.TenantId = context.TenantId) eventStore (Some ct)
+                                |> TaskResult.map (fun reservations -> reservations |> List.map snd)
+                            
+                            let tenantDetails =   
+                                {
+                                    Tenant = tenant
+                                    Owner = owner
+                                    Patrons = patrons
+                                    Loans = loans
+                                    Reservations = reservations
+                                }
+                            return tenantDetails
+                        }
+                taskResult  
+                    {
+                        let! tenantDetails = refresher (Some ct)
+                        return
+                            {
+                                TenantDetails = tenantDetails
+                                Refresher = refresher
+                            } :> RefreshableAsync<RefreshableTenantDetails>,
+                             
+                                [
+                                    id.Value;
+                                    tenantDetails.Tenant.OwnerId.Value;
+                                ] 
+                                @ 
+                                (tenantDetails.Patrons |> List.map (fun (patron, _) -> patron.Id))
+                                @
+                                (tenantDetails.Loans |> List.map (fun loan -> loan.Id))
+                                @
+                                (tenantDetails.Reservations |> List.map (fun reservation -> reservation.Id))
+                    }
+        let key = DetailsCacheKey.OfType typeof<RefreshableTenantDetails> id.Value
+        StateView.getRefreshableDetailsTaskResultAsync<RefreshableTenantDetails> (fun ct -> detailsBuilder ct) key (ct |> Some)
+    
+    member this.GetTenantDetailsAsync (context, tenantId, ?ct) = 
+        let ct = defaultArg ct CancellationToken.None
+        taskResult {
+            let! refreshableTenantDetails = this.GetRefreshableTenantDetailsAsync(context, tenantId, ct) 
+            return refreshableTenantDetails.TenantDetails
+        }
+
     member this.GetReviewDetailsAsync (context: UserContext, reviewId: ReviewId, ?ct: CancellationToken): TaskResult<ReviewDetails, string> = 
         let ct = defaultArg ct CancellationToken.None
         taskResult {
@@ -426,9 +488,6 @@ type DetailsService (
             let! reviews = reviewService.GetApprovedVisibleReviewsOfBookAsync (context, bookId, ct) |> TaskResult.map (fun reviews -> reviews |> List.map snd)
             return! reviews |> List.traverseTaskResultM (fun review -> this.GetReviewDetailsAsync (context, review.ReviewId, ct))
         }
-
-
-
     new(eventStore: IEventStore<string>, loanService: ILoanService, reservationService: IReservationService, reviewService: IReviewService, scopeFactory: IServiceScopeFactory) =
         DetailsService(
             eventStore,
@@ -472,3 +531,7 @@ type DetailsService (
             this.GetAllReviewsDetailsAsync(context, defaultArg ct CancellationToken.None)
         member this.GetApprovedVisibleReviewsOfBookAsync (context, bookId, ?ct) = 
             this.GetApprovedVisibleReviewsOfBookAsync (context, bookId, defaultArg ct CancellationToken.None)
+        member this.GetTenantDetailsAsync (context, tenantId, ?ct) = 
+            this.GetTenantDetailsAsync(context, tenantId, defaultArg ct CancellationToken.None)
+
+

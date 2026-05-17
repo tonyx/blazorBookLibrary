@@ -171,9 +171,12 @@
                                                 @L["Select"]
                                             </button>
                                         }
-                                        <a href="/tenants/@tenant.TenantId.Value" class="btn btn-outline-primary btn-sm rounded-pill px-4">
-                                            @L["ViewDetails"] <i class="bi bi-arrow-right ms-1"></i>
-                                        </a>
+                                        @if (currentView == TenantView.Owned)
+                                        {
+                                            <a href="/tenants/@tenant.TenantId.Value" class="btn btn-outline-primary btn-sm rounded-pill px-4">
+                                                @L["ViewDetails"] <i class="bi bi-arrow-right ms-1"></i>
+                                            </a>
+                                        }
                                     </div>
                                 </div>
                             </div>

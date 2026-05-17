@@ -120,3 +120,20 @@ module Details =
         interface RefreshableAsync<RefreshableReviewDetails> with
             member this.RefreshAsync ct =
                 this.RefreshAsync ct
+    type RefreshableTenantDetails =
+        {
+            TenantDetails: TenantDetails
+            Refresher: Option<CancellationToken> -> TaskResult<TenantDetails, string>
+        }
+        member this.RefreshAsync ct =
+            taskResult {
+                let! tenantDetails = this.Refresher ct
+                return 
+                    { 
+                        this with
+                            TenantDetails = tenantDetails 
+                    }
+            }
+
+        interface RefreshableAsync<RefreshableTenantDetails> with
+            member this.RefreshAsync ct = this.RefreshAsync ct

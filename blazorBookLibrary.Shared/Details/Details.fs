@@ -6,7 +6,6 @@ module Details =
     open BookLibrary.Domain
     open Commons
     open System.Threading.Tasks
-
     let random = System.Random()
 
     type UserDetails =
@@ -100,5 +99,14 @@ module Details =
                     this.Books |> List.forall (fun book -> book.NoLoan && book.NoReservations)
             member this.UnSealable = 
                 this.Books |> List.forall (fun book -> book.NoLoan && book.NoReservations)
+
+    type TenantDetails =
+        {
+            Tenant: Tenant
+            Owner: User
+            Patrons: List<User*PatronRole>
+            Reservations: List<Reservation>
+            Loans: List<Loan>
+        }
 
     type AdditionalBookSearchFilter = Book -> bool

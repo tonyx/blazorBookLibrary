@@ -127,3 +127,13 @@ type DetailsController(detailsService: IDetailsService, userService: IUserServic
             | Error msg -> return this.BadRequest(msg) :> IActionResult
         }
 
+    [<HttpGet("tenant/{id}")>]
+    member this.GetTenantDetails([<FromRoute>] id: Guid) =
+        task {
+            let context = UserContextMapper.mapFromClaimsPrincipal this.User
+            let! context = UserContextMapper.enrichContextAsync userService context
+            let! result = detailsService.GetTenantDetailsAsync(context, TenantId id)
+            match result with
+            | Ok details -> return this.Ok(details) :> IActionResult
+            | Error msg -> return this.NotFound(msg) :> IActionResult
+        }

@@ -35,9 +35,16 @@ type DistributionPointService
     member this.GetAllDistributionPointsAsync(context: UserContext, ?ct: CancellationToken) = 
         taskResult
             {
+                let! userId =
+                    match context with
+                    | UserContext.Anonymous -> Error "no user id for anonymous"
+                    | UserContext.Authenticated(uId, _, _) -> Ok uId
+
+                let! user = userViewerAsync ct userId.Value |> TaskResult.map snd
+                
                 let! result =
                     StateView.getAllFilteredAggregateStatesAsync<DistributionPoint, DistributionPointEvent, string>
-                        (fun (x: DistributionPoint) -> x.TenantId = context.TenantId)
+                        (fun (x: DistributionPoint) -> x.TenantId = user.CurrentTenant)
                         eventStore
                         ct
                 return result |>> snd

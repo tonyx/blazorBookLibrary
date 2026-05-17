@@ -83,4 +83,10 @@ public class DetailsClientService : IDetailsService
         var result = await ServiceClientHelper.HandleResponse<List<ReviewDetails>>(response);
         return result.IsOk ? FSharpResult<FSharpList<ReviewDetails>, string>.NewOk(ListModule.OfSeq(result.ResultValue)) : FSharpResult<FSharpList<ReviewDetails>, string>.NewError(result.ErrorValue);
     }
+
+    public async Task<FSharpResult<TenantDetails, string>> GetTenantDetailsAsync(Commons.UserContext context, TenantId id, FSharpOption<CancellationToken> ct)
+    {
+        var response = await _httpClient.GetAsync($"api/Details/tenant/{id.Value}", ServiceClientHelper.GetValue(ct, CancellationToken.None));
+        return await ServiceClientHelper.HandleResponse<TenantDetails>(response);
+    }
 }

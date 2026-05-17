@@ -68,6 +68,9 @@ module UserContextMapper =
 
     open BookLibrary.Shared.Services
     open System.Threading.Tasks
+    open BookLibrary.Domain
+    open FsToolkit.ErrorHandling
+    open System.Threading
 
     let enrichContextAsync (userService: IUserService) (context: UserContext) =
         task {
@@ -79,3 +82,11 @@ module UserContextMapper =
                 | Error _ -> return context
             | Anonymous -> return context
         }
+    let enrichContextAsync2 (userViewer: AggregateViewerAsync2<User>) (context: UserContext) (ct: Option<CancellationToken>) = 
+        taskResult {
+            match context with
+            | Authenticated(userId, roles, _) ->
+                let! user = userViewer ct userId.Value |> TaskResult.map snd
+                return Authenticated(userId, roles, user.CurrentTenant)
+            | Anonymous -> return context
+        }        
