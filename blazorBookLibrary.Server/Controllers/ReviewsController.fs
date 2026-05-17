@@ -12,13 +12,14 @@ open System.Collections.Generic
 
 [<ApiController>]
 [<Route("api/[controller]")>]
-type ReviewsController(reviewService: IReviewService) =
+type ReviewsController(reviewService: IReviewService, userService: IUserService) =
     inherit ControllerBase()
 
     [<HttpGet("{id}")>]
     member this.GetReview(id: Guid) =
         task {
             let context = UserContextMapper.mapFromClaimsPrincipal this.User
+            let! context = UserContextMapper.enrichContextAsync userService context
             let! result = reviewService.GetReviewAsync(context, ReviewId id)
             match result with
             | Ok review -> return this.Ok(review) :> IActionResult
@@ -29,6 +30,7 @@ type ReviewsController(reviewService: IReviewService) =
     member this.GetAllReviews() =
         task {
             let context = UserContextMapper.mapFromClaimsPrincipal this.User
+            let! context = UserContextMapper.enrichContextAsync userService context
             let! result = reviewService.GetAllReviewsAsync(context)
             match result with
             | Ok reviews -> return this.Ok(reviews) :> IActionResult
@@ -39,6 +41,7 @@ type ReviewsController(reviewService: IReviewService) =
     member this.GetPendingReviews() =
         task {
             let context = UserContextMapper.mapFromClaimsPrincipal this.User
+            let! context = UserContextMapper.enrichContextAsync userService context
             let! result = reviewService.GetPendingReviewsAsync(context)
             match result with
             | Ok reviews -> return this.Ok(reviews) :> IActionResult
@@ -49,6 +52,7 @@ type ReviewsController(reviewService: IReviewService) =
     member this.AddReview(review: Review) =
         task {
             let context = UserContextMapper.mapFromClaimsPrincipal this.User
+            let! context = UserContextMapper.enrichContextAsync userService context
             let! result = reviewService.AddReviewAsync(context, review)
             match result with
             | Ok _ -> return this.Ok() :> IActionResult
@@ -59,6 +63,7 @@ type ReviewsController(reviewService: IReviewService) =
     member this.ApproveReview(id: Guid) =
         task {
             let context = UserContextMapper.mapFromClaimsPrincipal this.User
+            let! context = UserContextMapper.enrichContextAsync userService context
             let! result = reviewService.ApproveAsync(context, ReviewId id)
             match result with
             | Ok _ -> return this.Ok() :> IActionResult
@@ -69,6 +74,7 @@ type ReviewsController(reviewService: IReviewService) =
     member this.RejectReview(id: Guid) =
         task {
             let context = UserContextMapper.mapFromClaimsPrincipal this.User
+            let! context = UserContextMapper.enrichContextAsync userService context
             let! result = reviewService.RejectAsync(context, ReviewId id)
             match result with
             | Ok _ -> return this.Ok() :> IActionResult
@@ -79,6 +85,7 @@ type ReviewsController(reviewService: IReviewService) =
     member this.EditReview(id: Guid, [<FromBody>] editedComment: string) =
         task {
             let context = UserContextMapper.mapFromClaimsPrincipal this.User
+            let! context = UserContextMapper.enrichContextAsync userService context
             let! result = reviewService.EditReviewAsync(context, ReviewId id, editedComment)
             match result with
             | Ok _ -> return this.Ok() :> IActionResult
@@ -89,6 +96,7 @@ type ReviewsController(reviewService: IReviewService) =
     member this.ShowReview(id: Guid) =
         task {
             let context = UserContextMapper.mapFromClaimsPrincipal this.User
+            let! context = UserContextMapper.enrichContextAsync userService context
             let! result = reviewService.ShowAsync(context, ReviewId id)
             match result with
             | Ok _ -> return this.Ok() :> IActionResult
@@ -99,6 +107,7 @@ type ReviewsController(reviewService: IReviewService) =
     member this.HideReview(id: Guid) =
         task {
             let context = UserContextMapper.mapFromClaimsPrincipal this.User
+            let! context = UserContextMapper.enrichContextAsync userService context
             let! result = reviewService.HideAsync(context, ReviewId id)
             match result with
             | Ok _ -> return this.Ok() :> IActionResult
@@ -109,6 +118,7 @@ type ReviewsController(reviewService: IReviewService) =
     member this.GetReviewsOfBook(bookId: Guid) =
         task {
             let context = UserContextMapper.mapFromClaimsPrincipal this.User
+            let! context = UserContextMapper.enrichContextAsync userService context
             let! result = reviewService.GetReviewsOfBookAsync(context, BookId bookId)
             match result with
             | Ok reviews -> return this.Ok(reviews) :> IActionResult
@@ -119,6 +129,7 @@ type ReviewsController(reviewService: IReviewService) =
     member this.GetVisibleReviewsOfBook(bookId: Guid) =
         task {
             let context = UserContextMapper.mapFromClaimsPrincipal this.User
+            let! context = UserContextMapper.enrichContextAsync userService context
             let! result = reviewService.GetApprovedVisibleReviewsOfBookAsync(context, BookId bookId)
             match result with
             | Ok reviews -> return this.Ok(reviews) :> IActionResult
@@ -129,6 +140,7 @@ type ReviewsController(reviewService: IReviewService) =
     member this.GetReviewsOfUser(userId: Guid) =
         task {
             let context = UserContextMapper.mapFromClaimsPrincipal this.User
+            let! context = UserContextMapper.enrichContextAsync userService context
             let! result = reviewService.GetReviewsOfUserAsync(context, UserId userId)
             match result with
             | Ok reviews -> return this.Ok(reviews) :> IActionResult

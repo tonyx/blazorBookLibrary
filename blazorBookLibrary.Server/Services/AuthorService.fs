@@ -336,7 +336,9 @@ type AuthorService
     member this.GetAllAuthorsFilteredByIsni(context: UserContext, isni: Isni, ?ct: CancellationToken) = 
         taskResult
             {
-                let filter (author: Author) = author.Isni.Value.Contains(isni.Value, StringComparison.OrdinalIgnoreCase)
+                let filter (author: Author) = 
+                    context.TenantId = author.TenantId &&
+                    author.Isni.Value.Contains(isni.Value, StringComparison.OrdinalIgnoreCase)
                 let! authorsWithId = getAllFilteredAggregateStatesAsync<Author, AuthorEvent, string> filter eventStore ct 
                 return 
                     authorsWithId 
@@ -349,8 +351,9 @@ type AuthorService
         taskResult
             {
                 let filter (author: Author) = 
-                    author.Isni.Value.Contains(isni.Value, StringComparison.OrdinalIgnoreCase) || 
-                    author.Name.Value.Contains(name.Value, StringComparison.OrdinalIgnoreCase)
+                    context.TenantId = author.TenantId &&
+                    (author.Isni.Value.Contains(isni.Value, StringComparison.OrdinalIgnoreCase) || 
+                    author.Name.Value.Contains(name.Value, StringComparison.OrdinalIgnoreCase))
                 let! authorsWithId = getAllFilteredAggregateStatesAsync<Author, AuthorEvent, string> filter eventStore ct 
                 return 
                     authorsWithId 

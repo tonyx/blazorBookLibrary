@@ -14,6 +14,7 @@ type Tag =
     | GenericTag of string
     member this.TagName = match this with | BookTag s | AuthorTag s | GeneralTag s | PersonTag s -> s | GenericTag s -> s
 
+// tags has beeen moved to the tenant structure
 type Tags =
     {
         TenantId: TenantId

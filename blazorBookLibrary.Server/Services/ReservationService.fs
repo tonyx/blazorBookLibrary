@@ -204,7 +204,9 @@ type ReservationService
                     let! reservations =
                         StateView.getAllAggregateStatesAsync<Reservation, ReservationEvent, string> eventStore (Some ct)
                         |> TaskResult.map (fun reservations -> reservations |> List.map snd)
-                    return reservations
+                    return 
+                        reservations
+                        |> List.filter (fun r -> r.TenantId = context.TenantId)
                 }
 
     member this.GetReservationAsync (context: UserContext, id: ReservationId, ?ct: CancellationToken) = 
@@ -281,7 +283,8 @@ type ReservationService
                 let ct = defaultArg ct CancellationToken.None
                 let now = DateTime.UtcNow
                 let! expiredReservations = 
-                    StateView.getAllFilteredAggregateStatesAsync<Reservation, ReservationEvent, string> (fun reservation -> reservation.IsExpired now) eventStore (Some ct)
+                    StateView.getAllFilteredAggregateStatesAsync<Reservation, ReservationEvent, string> 
+                        (fun reservation -> reservation.IsExpired now && reservation.TenantId = context.TenantId) eventStore (Some ct)
                     |> TaskResult.map (fun reservations -> reservations |> List.map snd)
                 let! result = 
                     expiredReservations
@@ -317,7 +320,8 @@ type ReservationService
                 {
                     let ct = defaultArg ct CancellationToken.None
                     let! reservations = 
-                        StateView.getAllFilteredAggregateStatesAsync<Reservation, ReservationEvent, string> (fun reservation -> reservation.IsPending) eventStore (Some ct)
+                        StateView.getAllFilteredAggregateStatesAsync<Reservation, ReservationEvent, string> 
+                            (fun reservation -> reservation.IsPending && reservation.TenantId = context.TenantId) eventStore (Some ct)
                         |> TaskResult.map (fun reservations -> reservations |> List.map snd)
                     let! reservationDetails = 
                         reservations

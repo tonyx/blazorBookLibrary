@@ -304,8 +304,8 @@
 
             var bookId = BookId.NewBookId(bookIdGuid);
             var review = isHidden 
-                ? Review.NewHidden(bookId, currentUserId, comment, DateTime.UtcNow)
-                : Review.New(bookId, currentUserId, comment, DateTime.UtcNow);
+                ? Review.NewHidden(context.TenantId, bookId, currentUserId, comment, DateTime.UtcNow)
+                : Review.New(context.TenantId, bookId, currentUserId, comment, DateTime.UtcNow);
 
             var result = await ReviewService.AddReviewAsync(context, review, CancellationToken.None);
             if (result.IsOk)

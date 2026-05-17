@@ -65,3 +65,17 @@ module UserContextMapper =
                 | _ -> context
             | None -> context
         | _ -> context
+
+    open BookLibrary.Shared.Services
+    open System.Threading.Tasks
+
+    let enrichContextAsync (userService: IUserService) (context: UserContext) =
+        task {
+            match context with
+            | Authenticated(userId, roles, _) ->
+                let! userResult = userService.GetUserAsync(context, userId)
+                match userResult with
+                | Ok user -> return Authenticated(userId, roles, user.CurrentTenant)
+                | Error _ -> return context
+            | Anonymous -> return context
+        }

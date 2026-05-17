@@ -1211,7 +1211,7 @@ type BookService
                     checkIsGlobalAdminOrTenantManagerOrPublicTenant context ct
                 
                 let filter (book: Book) = 
-                    book.Authors |> List.exists (fun a -> authorsIds |> List.contains a) && criteria.Invoke book
+                    book.Authors |> List.exists (fun a -> authorsIds |> List.contains a) && criteria.Invoke book && book.TenantId = context.TenantId
                         
                 let! booksWithId = StateView.getAllFilteredAggregateStatesAsync<Book, BookEvent, string> filter eventStore (ct |> Some)
                 return booksWithId |> List.ofSeq |> List.map snd

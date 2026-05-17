@@ -12,9 +12,9 @@ type Editor = {
     Name: Name
     Sealed: Sealed
 } with 
-    static member New (name: Name) (dateTime: DateTime)= 
+    static member New (tenantId: TenantId) (name: Name) (dateTime: DateTime)= 
         {   
-            TenantId = TenantId.Default
+            TenantId = tenantId
             EditorId = EditorId.New(); 
             Name = name;
             Sealed = Sealed.New(dateTime)
@@ -28,7 +28,7 @@ type Editor = {
                     |> Result.ofBool "Editor is sealed"
                 return { this with Name = name }
             }
-    member this.Seal(dateTime: DateTime) =
+    member this.Seal (dateTime: DateTime) =
         result
             {
                 do! 
@@ -37,7 +37,7 @@ type Editor = {
                     |> Result.ofBool "Editor is sealed"
                 return { this with Sealed = this.Sealed.Seal(dateTime) } 
             }
-    member this.Unseal(dateTime: DateTime) =
+    member this.Unseal (dateTime: DateTime) =
         { 
             this 
                 with 

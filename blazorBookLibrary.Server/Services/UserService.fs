@@ -60,7 +60,6 @@ type UserService
             return! Security.checkIsGlobalAdminOrTenantManagerOrPublicTenant tenant context
         }
 
-
     member this.MakeUserDetailsRefresherAsync(context: UserContext, id: UserId, ?ct: CancellationToken) = 
         fun (ct: Option<CancellationToken>) -> 
             taskResult 
@@ -104,7 +103,8 @@ type UserService
                         }
                 }
 
-    member this.CreateUserAsync (context: UserContext, user: User, ?ct: CancellationToken) : Task<Result<unit, string>> =
+    // user creation comes always from a safe caller
+    member this.CreateUserAsync (_: UserContext, user: User, ?ct: CancellationToken) : Task<Result<unit, string>> =
         taskResult 
             {
                 let result =
@@ -255,7 +255,8 @@ type UserService
                     ), GdprGhost, ?ct = ct)
         }
 
-    member private this.GetUser (context: UserContext, userId: UserId, ?ct: CancellationToken) : Task<Result<User, string>> =
+    // call this only from trusted client code
+    member private this.GetUserUnsafeAsync (userId: UserId, ?ct: CancellationToken) : Task<Result<User, string>> =
         let ct = defaultArg ct CancellationToken.None
         taskResult
             {
@@ -286,7 +287,8 @@ type UserService
                 let! distributionPoints = 
                     StateView.getAllFilteredAggregateStatesAsync<DistributionPoint, DistributionPointEvent, string> 
                         (fun (dp: DistributionPoint) -> 
-                            dp.ReferenceUsers |> List.exists (fun (id: UserId) -> id = userId)
+                            dp.ReferenceUsers |> List.exists (fun (id: UserId) -> id = userId) &&
+                            dp.TenantId = context.TenantId
                         )
                         eventStore
                         (ct |> Some)
@@ -316,15 +318,15 @@ type UserService
             let ct = defaultArg ct CancellationToken.None
             let! tenant = tenantViewerAsync (Some ct) tenantId.Value |> TaskResult.map snd
 
-            // todo: fix cache issue
-            let _ = AggregateCache3.Instance.Clean userId.Value 
-            let! (eventId, user) = userViewerAsync (Some ct) userId.Value 
-            printf "XXXX. current eventId %d\n" eventId
+            let! (eventId, user) = getAggregateStorageFreshStateViewerAsync<User, UserEvent, string> eventStore (Some ct) userId.Value
+            printf "XXXXXX tenant owner id %A, user id %A, context %A\n" tenant.OwnerId userId context
 
             let allowed =
                 match context with
                 | UserContext.Authenticated(u, roles, _) when roles |> List.contains(Role.Admin) -> true
-                | _ -> tenant.Patrons |> List.exists (fun (u, _) -> u = userId)
+                | _  when (tenant.OwnerId = userId) -> true
+                | _  when (tenant.Patrons |> List.exists (fun (u, _) -> u = userId)) -> true
+                | _ -> false
             do! 
                 if not allowed then Error "Not allowed to set current tenant" else Ok ()
             let setTenantCommand = SetCurrentTenant tenantId
@@ -373,9 +375,9 @@ type UserService
         member this.GhostUserAsync (context, userId: UserId, ?ct: CancellationToken) : Task<Result<unit, string>> =
             let ct = defaultArg ct CancellationToken.None
             this.GhostUserAsync(context, userId, ct)
-        member this.GetUser (context, userId: UserId, ?ct: CancellationToken) : Task<Result<User, string>> =
+        member this.GetUserUnsafeAsync (userId: UserId, ?ct: CancellationToken) : Task<Result<User, string>> =
             let ct = defaultArg ct CancellationToken.None
-            this.GetUser(context, userId, ct)
+            this.GetUserUnsafeAsync(userId, ct)
         member this.SetAppUserInfoAsync (context, userId: UserId, appUserInfo: AppUserInfo, ?ct: CancellationToken) : Task<Result<unit, string>> =
             let ct = defaultArg ct CancellationToken.None
             this.SetAppUserInfoAsync(context, userId, appUserInfo, ct)

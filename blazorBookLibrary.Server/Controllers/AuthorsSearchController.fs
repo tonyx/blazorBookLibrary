@@ -9,13 +9,14 @@ open System.Threading.Tasks
 
 [<ApiController>]
 [<Route("api/[controller]")>]
-type AuthorsSearchController(authorsSearchService: IAuthorsSearchService) =
+type AuthorsSearchController(authorsSearchService: IAuthorsSearchService, userService: IUserService) =
     inherit ControllerBase()
 
     [<HttpGet("lookup")>]
     member this.LookupByName(name: string) =
         task {
             let context = UserContextMapper.mapFromClaimsPrincipal this.User
+            let! context = UserContextMapper.enrichContextAsync userService context
             let! result = authorsSearchService.LookupByNameAsync(context, name)
             match result with
             | Ok author -> return this.Ok(author) :> IActionResult
@@ -26,6 +27,7 @@ type AuthorsSearchController(authorsSearchService: IAuthorsSearchService) =
     member this.LookupImageUrl(name: string, [<FromQuery>] thumbSize: System.Nullable<int>) =
         task {
             let context = UserContextMapper.mapFromClaimsPrincipal this.User
+            let! context = UserContextMapper.enrichContextAsync userService context
             let thumbSizeOpt = if thumbSize.HasValue then Some thumbSize.Value else None
             let! result = authorsSearchService.LookupImageUrlByNameAndThumbSizeAsync(context, name, ?pitThumbSize = thumbSizeOpt)
             match result with
@@ -37,6 +39,7 @@ type AuthorsSearchController(authorsSearchService: IAuthorsSearchService) =
     member this.LookupBio(name: string, [<FromQuery>] lang: string) =
         task {
             let context = UserContextMapper.mapFromClaimsPrincipal this.User
+            let! context = UserContextMapper.enrichContextAsync userService context
             let shortLang = if System.String.IsNullOrWhiteSpace(lang) then (ShortLang.New "it") else (ShortLang.New lang)
             let! result = authorsSearchService.LookupBioByNameAsync(context, name, lang = shortLang)
             match result with
@@ -48,6 +51,7 @@ type AuthorsSearchController(authorsSearchService: IAuthorsSearchService) =
     member this.LookupWikipediaUri(name: string, [<FromQuery>] lang: string) =
         task {
             let context = UserContextMapper.mapFromClaimsPrincipal this.User
+            let! context = UserContextMapper.enrichContextAsync userService context
             let shortLang = if System.String.IsNullOrWhiteSpace(lang) then (ShortLang.New "it") else (ShortLang.New lang)
             let! result = authorsSearchService.LookupWikipediaUriByNameAsync(context, name, lang = shortLang)
             match result with

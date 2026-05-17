@@ -26,7 +26,7 @@ let tests =
             Expect.isOk addBook "should be ok"
 
             let timeSlot = TimeSlot.New (System.DateTime.Now) (System.DateTime.Now.AddDays(timeSlotDurationInDays))
-            let loan = Loan.New book.BookId userId (System.DateTime.Now) timeSlot
+            let loan = Loan.New TenantId.Default book.BookId userId (System.DateTime.Now) timeSlot
 
             let! addLoan = loanService.AddLoanAsync (adminContext, loan, ShortLang.New "en")
             Expect.isOk addLoan "should be ok"
@@ -73,7 +73,7 @@ let tests =
             let! userId = registerUserTask "test@example.com" "Password123!"
 
             let timeSlot = TimeSlot.New (System.DateTime.Now) (System.DateTime.Now.AddDays(timeSlotDurationInDays))
-            let loan = Loan.New book.BookId userId (System.DateTime.Now) timeSlot
+            let loan = Loan.New TenantId.Default book.BookId userId (System.DateTime.Now) timeSlot
 
             let! addLoan = loanService.AddLoanAsync (adminContext, loan, ShortLang.New "en")
             Expect.isOk addLoan "should be ok"
@@ -96,7 +96,7 @@ let tests =
             let! userId = registerUserTask "test@example.com" "Password123!"
 
             let timeSlot = TimeSlot.New (System.DateTime.Now) (System.DateTime.Now.AddDays(timeSlotDurationInDays))
-            let loan = Loan.New book.BookId userId (System.DateTime.Now) timeSlot
+            let loan = Loan.New TenantId.Default book.BookId userId (System.DateTime.Now) timeSlot
 
             let! addLoan = loanService.AddLoanAsync (adminContext, loan, ShortLang.New "en")
             Expect.isOk addLoan "should be ok"
@@ -128,7 +128,7 @@ let tests =
             let! userId = registerUserTask "test@example.com" "Password123!"
 
             let timeSlot = TimeSlot.New (System.DateTime.Now) (System.DateTime.Now.AddDays(timeSlotDurationInDays))
-            let loan = Loan.New book.BookId userId (System.DateTime.Now) timeSlot
+            let loan = Loan.New TenantId.Default book.BookId userId (System.DateTime.Now) timeSlot
 
             let! addLoan = loanService.AddLoanAsync (adminContext, loan, ShortLang.New "en")
             Expect.isOk addLoan "should be ok"

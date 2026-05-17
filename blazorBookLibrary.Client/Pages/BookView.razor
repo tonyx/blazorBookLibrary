@@ -369,7 +369,7 @@
             var nextSlot = bookDetails.GetNextAvailableTimeSlot(loanDuration, now);
             
             var context = TenantState.GetUserContext(authState.User);
-            var reservation = Reservation.NewWithTenantId(context.TenantId, bookDetails.Book.BookId, sharpinoUserId, nextSlot, now);
+            var reservation = Reservation.New(context.TenantId, bookDetails.Book.BookId, sharpinoUserId, nextSlot, now);
             
             var result = await ReservationService.AddReservationAsync(context, reservation, ShortLang.New(CultureInfo.CurrentCulture.Name.Substring(0,2)), FSharpOption<System.Threading.CancellationToken>.None);
             

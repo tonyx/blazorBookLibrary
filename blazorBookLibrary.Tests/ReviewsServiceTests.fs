@@ -58,7 +58,7 @@ let tests =
             Expect.isOk user "should be ok"
             let now = DateTime.Now
             let review = 
-                Review.New book.BookId userId "this is a very good book" now
+                Review.New TenantId.Default book.BookId userId "this is a very good book" now
 
             let! addReview = reviewService.AddReviewAsync (userContext, review)
             Expect.isError addReview "should be ok"
@@ -100,6 +100,7 @@ let tests =
                     (DateTime.Now.AddDays(7.0))
             let loan = 
                 Loan.New 
+                    TenantId.Default
                     book.BookId
                     userId
                     DateTime.Now 
@@ -116,7 +117,7 @@ let tests =
 
             let now = DateTime.Now
             let review = 
-                Review.New book.BookId userId "this is a very good book" now
+                Review.New TenantId.Default book.BookId userId "this is a very good book" now
             let! addReview = reviewService.AddReviewAsync (userContext, review)
             Expect.isOk addReview "should be ok"
         }
@@ -158,6 +159,7 @@ let tests =
                         (DateTime.Now.AddDays(7.0))
                 let loan = 
                     Loan.New 
+                        TenantId.Default
                         book.BookId
                         userId
                         DateTime.Now 
@@ -174,7 +176,7 @@ let tests =
 
                 let now = DateTime.Now
                 let review = 
-                    Review.New book.BookId userId "this is a very good book" now
+                    Review.New TenantId.Default book.BookId userId "this is a very good book" now
                 let! addReview = reviewService.AddReviewAsync (userContext, review)
                 Expect.isOk addReview "should be ok"
 
@@ -219,6 +221,7 @@ let tests =
                     (DateTime.Now.AddDays(7.0))
             let loan = 
                 Loan.New 
+                    TenantId.Default
                     book.BookId
                     userId
                     DateTime.Now 
@@ -234,7 +237,7 @@ let tests =
 
             let now = DateTime.Now
             let review = 
-                Review.New book.BookId userId "this is a very good book" now
+                Review.New TenantId.Default book.BookId userId "this is a very good book" now
             let! addReview = reviewService.AddReviewAsync (adminContext, review)
             Expect.isOk addReview "should be ok"
 
@@ -287,6 +290,7 @@ let tests =
                     (DateTime.Now.AddDays(7.0))
             let loan = 
                 Loan.New 
+                    TenantId.Default
                     book.BookId
                     userId
                     DateTime.Now 
@@ -302,7 +306,7 @@ let tests =
 
             let now = DateTime.Now
             let review = 
-                Review.New book.BookId userId "this is a very good book" now
+                Review.New TenantId.Default book.BookId userId "this is a very good book" now
             let! addReview = reviewService.AddReviewAsync (adminContext, review)
             Expect.isOk addReview "should be ok"
 
@@ -359,6 +363,7 @@ let tests =
                     (DateTime.Now.AddDays(7.0))
             let loan = 
                 Loan.New 
+                    TenantId.Default
                     book.BookId
                     userId
                     DateTime.Now 
@@ -374,7 +379,7 @@ let tests =
 
             let now = DateTime.Now
             let review = 
-                Review.New book.BookId userId "this is a very good book" now
+                Review.New TenantId.Default book.BookId userId "this is a very good book" now
             let! addReview = reviewService.AddReviewAsync (adminContext, review)
             Expect.isOk addReview "should be ok"
 

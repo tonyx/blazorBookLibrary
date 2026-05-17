@@ -19,20 +19,7 @@ type Reservation =
         Status: ReservationStatus
         Sealed: Sealed
     } with 
-        static member New (bookId: BookId) (userId: UserId) (timeSlot: TimeSlot) (dateTime: DateTime): Reservation = 
-            {
-                TenantId = TenantId.Default;
-                ReservationId = ReservationId.New(); 
-                BookId = bookId;
-                UserId = userId;
-                TimeSlot = timeSlot;
-                ReservedAt = dateTime;
-                CanceledAt = None;
-                ReservationCode = ReservationCode.New();
-                Status = ReservationStatus.Pending;
-                Sealed = Sealed.New(dateTime)
-            }
-        static member NewWithTenantId (tenantId: TenantId) (bookId: BookId) (userId: UserId) (timeSlot: TimeSlot) (dateTime: DateTime): Reservation = 
+        static member New (tenantId: TenantId) (bookId: BookId) (userId: UserId) (timeSlot: TimeSlot) (dateTime: DateTime): Reservation = 
             {
                 TenantId = tenantId
                 ReservationId = ReservationId.New() 

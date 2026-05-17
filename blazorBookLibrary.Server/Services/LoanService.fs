@@ -172,7 +172,9 @@ type LoanService
                 let! result =
                     StateView.getAllAggregateStatesAsync<Loan, LoanEvent, string> eventStore (ct |> Some)
                     |> TaskResult.map (fun x -> x |> List.map snd)
-                return result
+                return 
+                    result
+                    |> List.filter (fun l -> l.TenantId = context.TenantId)
             }
 
     member this.ReleaseLoanAsync (context: UserContext, loanId: LoanId, shortLang: ShortLang,  dateTime: System.DateTime, ?ct: CancellationToken)= 
@@ -235,7 +237,7 @@ type LoanService
             {
                 let! loans = 
                     StateView.getAllFilteredAggregateStatesAsync<Loan, LoanEvent, string> 
-                        (fun loan -> loan.UserId = userId)
+                        (fun loan -> loan.UserId = userId && loan.TenantId = context.TenantId)
                         eventStore
                         (ct |> Some)
                     |> TaskResult.map (fun x -> x |> List.map snd)

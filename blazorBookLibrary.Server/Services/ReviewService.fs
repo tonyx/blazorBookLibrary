@@ -98,11 +98,9 @@ type ReviewService
                 let! result =
                     StateView.getAllAggregateStatesAsync<Review, ReviewEvent, string> eventStore (Some ct)
                     |> TaskResult.map (fun x -> x |> List.map snd)
-                do!
+                return 
                     result
-                    |> List.forall (fun review -> review.TenantId = context.TenantId)
-                    |> Result.ofBool "Review tenant id not matching"
-                return result
+                    |> List.filter (fun review -> review.TenantId = context.TenantId)
             }
     member this.GetPendingReviewsAsync (context: UserContext, ?ct: CancellationToken) = 
         let ct = ct |> Option.defaultValue CancellationToken.None
@@ -110,12 +108,9 @@ type ReviewService
             {
                 do! checkIsGlobalAdminOrTenantManagerOrPublicTenant context ct
                 let! result =
-                    StateView.getAllFilteredAggregateStatesAsync<Review, ReviewEvent, string> (fun review -> review.ApprovalStatus = ApprovalStatus.Pending) eventStore (Some ct)
+                    StateView.getAllFilteredAggregateStatesAsync<Review, ReviewEvent, string> 
+                        (fun review -> review.ApprovalStatus = ApprovalStatus.Pending && review.TenantId = context.TenantId) eventStore (Some ct)
                     |> TaskResult.map (fun x -> x |> List.map snd)
-                do!
-                    result
-                    |> List.forall (fun review -> review.TenantId = context.TenantId)
-                    |> Result.ofBool $"Pending reviews tenant id {context.TenantId} not matching" 
                 return result
             }
 
@@ -145,6 +140,7 @@ type ReviewService
                                 (fun loan -> 
                                     loan.UserId = comment.UserId &&
                                     loan.BookId = comment.BookId &&
+                                    loan.TenantId = context.TenantId &&
                                     loan.LoanStatus.IsReturned)
                                 eventStore 
                                 (Some ct)
@@ -313,7 +309,8 @@ type ReviewService
                 do! checkIsGlobalAdminOrTenantManagerOrPublicTenant context ct 
 
                 let! reviews = 
-                    StateView.getAllFilteredAggregateStatesAsync<Review, ReviewEvent, string> (fun review -> review.BookId = bookId) eventStore (Some ct)
+                    StateView.getAllFilteredAggregateStatesAsync<Review, ReviewEvent, string> 
+                        (fun review -> review.BookId = bookId && review.TenantId = context.TenantId) eventStore (Some ct)
                     |> TaskResult.map (fun x -> x |> List.map snd)
 
                 let! users =
@@ -339,7 +336,11 @@ type ReviewService
 
                 let! reviews = 
                     StateView.getAllFilteredAggregateStatesAsync<Review, ReviewEvent, string> 
-                        (fun review -> review.BookId = bookId && review.ApprovalStatus.IsApproved && not review.Hidden) eventStore (Some ct)
+                        (fun review -> 
+                            review.BookId = bookId && 
+                            review.ApprovalStatus.IsApproved && 
+                            not review.Hidden &&
+                            review.TenantId = context.TenantId) eventStore (Some ct)
                     |> TaskResult.map (fun x -> x |> List.map snd)
 
                 let! users =
@@ -366,7 +367,8 @@ type ReviewService
                 do! checkIsGlobalAdminOrTenantManagerOrPublicTenant context ct 
 
                 let! reviewsWithId = 
-                    StateView.getAllFilteredAggregateStatesAsync<Review, ReviewEvent, string> (fun review -> review.UserId = userId) eventStore (Some ct)
+                    StateView.getAllFilteredAggregateStatesAsync<Review, ReviewEvent, string> 
+                        (fun review -> review.UserId = userId && review.TenantId = context.TenantId) eventStore (Some ct)
                 let reviews = 
                     reviewsWithId
                     |> List.ofSeq

@@ -228,13 +228,11 @@ type TenantService
                         tenant.Public || 
                         tenant.OwnerId = userId || 
                         tenant.Patrons |> List.exists (fun (u, _) -> u = userId)
-                printf "XXXX getting tenants\n"
                 let! tenants =
                     StateView.getAllFilteredAggregateStatesAsync<Tenant, TenantEvent, string>
                         filter
                         eventStore
                         (ct |> Some)
-                printf "XXXX got %d tenants\n" tenants.Length
                 return tenants |>> snd
             }
 

@@ -40,4 +40,30 @@ let tests =
             let! result = userService.GetUserAsync(userContext2, userId1) 
             Expect.isError result "should be error"
         }
+
+        ftestCaseTask "create a user and retrieve it then change the current tenant of that user, then retrieve again" <| fun _ -> task {
+            setUp()
+            let userService = getUserService()
+            let! userId = registerUserTask "user@example.com" "Password123!"
+            
+            let! result1 = userViewerAsync None userId.Value
+            Expect.isOk result1 "should be ok"
+            let (eventId1, _) = result1 |> Result.get
+            printfn "XXXXX. event Id1: %i\n" eventId1
+            let tenantService = getTenantService()
+            let userContext = UserContext.Authenticated(userId, [], TenantId.Default) 
+            let tenant = Tenant.New(userId, TenantName.New "Random Tenant" |> Result.get, "Addr")
+            let! createResult = tenantService.CreateTenantAsync(userContext, tenant)
+            Expect.isOk createResult (sprintf "tenant creation failed: %A" createResult)
+
+            let! setTenantResult = userService.SetCurrentTenantAsync(adminContext, userId, tenant.TenantId)
+            Expect.isOk setTenantResult "should be ok"
+
+            let! result2 = userViewerAsync None userId.Value
+            Expect.isOk result2 "should be ok"
+            let (eventId2, _) = result2 |> Result.get
+            
+            Expect.isTrue (eventId2 > 0) "eventId should be greater than zero"
+            Expect.isTrue (eventId2 > eventId1) "eventId should have increased"
+        }
     ]

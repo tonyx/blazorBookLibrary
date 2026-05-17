@@ -208,10 +208,11 @@ using (var scope = app.Services.CreateScope())
             if (Guid.TryParse(identityUser.Id, out var userGuid))
             {
                 var sharpinoUserId = BookLibrary.Shared.Commons.UserId.NewUserId(userGuid);
-                var sharpinoUserResult = await userService.GetUserAsync(UserContext.Anonymous, sharpinoUserId, Microsoft.FSharp.Core.FSharpOption<System.Threading.CancellationToken>.None);
+                var sharpinoUserResult = await userService.GetUserUnsafeAsync(sharpinoUserId, Microsoft.FSharp.Core.FSharpOption<System.Threading.CancellationToken>.None);
 
                 if (sharpinoUserResult.IsError) // User not found in event store
                 {
+                    Console.WriteLine($"XXXXXXXUUUUUYYY [Sync] User {identityUser.UserName} not found in event store");
                     var newSharpinoUser = BookLibrary.Domain.User.New(sharpinoUserId);
                     var createResult = await userService.CreateUserAsync(UserContext.Anonymous, newSharpinoUser, Microsoft.FSharp.Core.FSharpOption<System.Threading.CancellationToken>.None);
                     
@@ -312,6 +313,8 @@ using (var scope = app.Services.CreateScope())
         Console.WriteLine($"[Startup] No admin user found");
     }
 }
+
+// Sharpino.Cache.AggregateCache3.Instance.Clear();
 
 app.Run();
 

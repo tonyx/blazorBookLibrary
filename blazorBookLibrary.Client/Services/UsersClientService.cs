@@ -20,8 +20,7 @@ public class UsersClientService : IUserService
 
     public async Task<FSharpResult<Unit, string>> CreateUserAsync(Commons.UserContext context, User user, FSharpOption<CancellationToken> ct)
     {
-        var response = await _httpClient.PostAsJsonAsync("api/Users", user, ServiceClientHelper.JsonOptions, ServiceClientHelper.GetValue(ct, CancellationToken.None));
-        return await ServiceClientHelper.HandleUnitResponse(response);
+        throw new Exception("CreateUserAsync is not implemented on the client side");
     }
 
     public async Task<FSharpResult<User, string>> GetUserAsync(Commons.UserContext context, Commons.UserId userId, FSharpOption<CancellationToken> ct)
@@ -78,8 +77,10 @@ public class UsersClientService : IUserService
         var response = await _httpClient.PostAsync($"api/Users/{userId.Value}/ghost", null, ServiceClientHelper.GetValue(ct, CancellationToken.None));
         return await ServiceClientHelper.HandleUnitResponse(response);
     }
-
-    public Task<FSharpResult<User, string>> GetUser(Commons.UserContext context, Commons.UserId userId, FSharpOption<CancellationToken> ct) => GetUserAsync(context, userId, ct);
+    public async Task<FSharpResult<User, string>> GetUserUnsafeAsync(Commons.UserId userId, FSharpOption<CancellationToken> ct) 
+    {
+        throw new Exception("GetUserUnsafeAsync is not implemented on the client side");
+    }
 
     public async Task<FSharpResult<Unit, string>> SetAppUserInfoAsync(Commons.UserContext context, Commons.UserId userId, Commons.AppUserInfo appUserInfo, FSharpOption<CancellationToken> ct)
     {

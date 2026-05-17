@@ -15,9 +15,9 @@ type Loan = {
     TimeSlot: TimeSlot
     LoanStatus: LoanStatus
 } with
-    static member New (bookId: BookId) (userId: UserId) (loanedAt: DateTime) (timeSlot: TimeSlot) = 
+    static member New (tenantId: TenantId) (bookId: BookId) (userId: UserId) (loanedAt: DateTime) (timeSlot: TimeSlot) = 
         {
-            TenantId = TenantId.Default
+            TenantId = tenantId
             LoanId = LoanId.New(); 
             BookId = bookId;
             UserId = userId;
@@ -28,7 +28,7 @@ type Loan = {
         }
     static member NewFromReservation (reservation: Reservation) (loanedAt: DateTime) = 
         {
-            TenantId = TenantId.Default
+            TenantId = reservation.TenantId
             LoanId = LoanId.New(); 
             BookId = reservation.BookId;
             UserId = reservation.UserId;

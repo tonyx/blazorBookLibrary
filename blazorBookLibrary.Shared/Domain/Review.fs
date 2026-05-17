@@ -17,9 +17,9 @@ type Review =
         Edited: bool
         ApprovalStatus: ApprovalStatus
     } with 
-        static member New (bookId: BookId) (userId: UserId) (comment: string) (dateTime: DateTime) = 
+        static member New (tenantId: TenantId) (bookId: BookId) (userId: UserId) (comment: string) (dateTime: DateTime) = 
             {   
-                TenantId = TenantId.Default
+                TenantId = tenantId
                 ReviewId = ReviewId.New();
                 BookId = bookId;
                 UserId = userId;
@@ -29,9 +29,9 @@ type Review =
                 Edited = false;
                 ApprovalStatus = ApprovalStatus.Pending
             }
-        static member NewHidden (bookId: BookId) (userId: UserId) (comment: string) (dateTime: DateTime) = 
+        static member NewHidden (tenantId: TenantId) (bookId: BookId) (userId: UserId) (comment: string) (dateTime: DateTime) = 
             {   
-                TenantId = TenantId.Default
+                TenantId = tenantId
                 ReviewId = ReviewId.New();
                 BookId = bookId;
                 UserId = userId;

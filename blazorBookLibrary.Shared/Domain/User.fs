@@ -35,6 +35,7 @@ and User =
         CurrentLoans: List<LoanId>
     }
     with
+        // yes, its correct that any newly created user is set to the default tenant
         static member New (userId: UserId) = 
             { 
                 CurrentTenant = TenantId.Default
@@ -88,6 +89,7 @@ and User =
             this.AppUserInfo
 
         member this.SetCurrentTenant (tenantId: TenantId) =
+            printfn "XXXXX User %A setCurrentTenant %A" this.UserId.Value tenantId.Value
             { this with CurrentTenant = tenantId } |> Ok
 
         member this.SetAppUserInfo (appUserInfo: AppUserInfo) =

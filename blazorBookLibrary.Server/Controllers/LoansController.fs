@@ -12,13 +12,14 @@ open System.Collections.Generic
 
 [<ApiController>]
 [<Route("api/[controller]")>]
-type LoansController(loanService: ILoanService) =
+type LoansController(loanService: ILoanService, userService: IUserService) =
     inherit ControllerBase()
 
     [<HttpGet>]
     member this.GetLoans() =
         task {
             let context = UserContextMapper.mapFromClaimsPrincipal this.User
+            let! context = UserContextMapper.enrichContextAsync userService context
             let! result = loanService.GetLoansAsync(context)
             match result with
             | Ok loans -> return this.Ok(loans) :> IActionResult
@@ -29,6 +30,7 @@ type LoansController(loanService: ILoanService) =
     member this.GetHistory(userId: Guid) =
         task {
             let context = UserContextMapper.mapFromClaimsPrincipal this.User
+            let! context = UserContextMapper.enrichContextAsync userService context
             let! result = loanService.GetHistoryLoansOfUserAsync(context, UserId userId)
             match result with
             | Ok loans -> return this.Ok(loans) :> IActionResult
@@ -39,6 +41,7 @@ type LoansController(loanService: ILoanService) =
     member this.AddLoan(loan: Loan, [<FromQuery>] lang: string) =
         task {
             let context = UserContextMapper.mapFromClaimsPrincipal this.User
+            let! context = UserContextMapper.enrichContextAsync userService context
             let shortLang = if System.String.IsNullOrWhiteSpace(lang) then (ShortLang.New "it") else (ShortLang.New lang)
             let! result = loanService.AddLoanAsync(context, loan, shortLang)
             match result with
@@ -50,6 +53,7 @@ type LoansController(loanService: ILoanService) =
     member this.GetLoan(id: Guid) =
         task {
             let context = UserContextMapper.mapFromClaimsPrincipal this.User
+            let! context = UserContextMapper.enrichContextAsync userService context
             let! result = loanService.GetLoanAsync(context, LoanId id)
             match result with
             | Ok loan -> return this.Ok(loan) :> IActionResult
@@ -60,6 +64,7 @@ type LoansController(loanService: ILoanService) =
     member this.ReleaseLoan(id: Guid, [<FromQuery>] lang: string) =
         task {
             let context = UserContextMapper.mapFromClaimsPrincipal this.User
+            let! context = UserContextMapper.enrichContextAsync userService context
             let shortLang = if System.String.IsNullOrWhiteSpace(lang) then (ShortLang.New "it") else (ShortLang.New lang)
             let! result = loanService.ReleaseLoanAsync(context, LoanId id, shortLang, DateTime.UtcNow)
             match result with
@@ -71,6 +76,7 @@ type LoansController(loanService: ILoanService) =
     member this.TransformReservation(reservationId: Guid, [<FromBody>] reservationCode: string, [<FromQuery>] lang: string) =
         task {
             let context = UserContextMapper.mapFromClaimsPrincipal this.User
+            let! context = UserContextMapper.enrichContextAsync userService context
             let shortLang = if System.String.IsNullOrWhiteSpace(lang) then (ShortLang.New "it") else (ShortLang.New lang)
             let! result = loanService.TransformReservationIntoLoanAsync(context, ReservationId reservationId, ReservationCode reservationCode, shortLang, DateTime.UtcNow)
             match result with

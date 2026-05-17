@@ -41,7 +41,7 @@ let tests =
 
             let timeSlot = TimeSlot.New (System.DateTime.Now.AddHours(1)) (System.DateTime.Now.AddDays(timeSlotDurationInDays))
 
-            let reservation = Reservation.New book.BookId userId timeSlot System.DateTime.Now
+            let reservation = Reservation.New TenantId.Default book.BookId userId timeSlot System.DateTime.Now
             let! addReservation = reservationService.AddReservationAsync(adminContext, reservation, ShortLang.New "en")
             Expect.isOk addReservation "should be ok"
 
@@ -68,7 +68,7 @@ let tests =
             let! userId = registerUserTask "test@example.com" "Password123!"
 
             let timeSlot = TimeSlot.New (System.DateTime.Now) (System.DateTime.Now.AddDays(timeSlotDurationInDays))
-            let loan = Loan.New book.BookId userId (System.DateTime.Now) timeSlot
+            let loan = Loan.New TenantId.Default book.BookId userId (System.DateTime.Now) timeSlot
 
             let! addLoan = loanService.AddLoanAsync (adminContext, loan, ShortLang.New "en")
             Expect.isOk addLoan "should be ok"
@@ -99,7 +99,7 @@ let tests =
             let! userId2 = registerUserTask "test2@example.com" "Password123!"
 
             let timeSlot = TimeSlot.New (System.DateTime.Now) (System.DateTime.Now.AddDays(timeSlotDurationInDays))
-            let loan = Loan.New book.BookId userId1 (System.DateTime.Now) timeSlot
+            let loan = Loan.New TenantId.Default book.BookId userId1 (System.DateTime.Now) timeSlot
 
             let! addLoan = loanService.AddLoanAsync (adminContext, loan, ShortLang.New "en")
             Expect.isOk addLoan "should be ok"
@@ -117,7 +117,7 @@ let tests =
             Expect.isTrue (loanRetrieved.BookId = book.BookId) "should contain the book"
 
             let timeSlot2 = TimeSlot.New (System.DateTime.Now) (System.DateTime.Now.AddDays(timeSlotDurationInDays))
-            let loan2 = Loan.New book.BookId userId2 (System.DateTime.Now) timeSlot2
+            let loan2 = Loan.New TenantId.Default book.BookId userId2 (System.DateTime.Now) timeSlot2
 
             let! addLoan2 = loanService.AddLoanAsync (adminContext, loan2, ShortLang.New "en")
             Expect.isError addLoan2 "should be error"
@@ -135,7 +135,7 @@ let tests =
             let! userId = registerUserTask "test@example.com" "Password123!"
 
             let timeSlot = TimeSlot.New (System.DateTime.Now) (System.DateTime.Now.AddDays(timeSlotDurationInDays))
-            let loan = Loan.New book.BookId userId (System.DateTime.Now) timeSlot
+            let loan = Loan.New TenantId.Default book.BookId userId (System.DateTime.Now) timeSlot
 
             let! addLoan = loanService.AddLoanAsync (adminContext, loan, ShortLang.New "en")
             Expect.isOk addLoan "should be ok"
@@ -184,7 +184,7 @@ let tests =
             Expect.isOk retrieveBook "should be ok"
 
             let timeSlot = TimeSlot.New (System.DateTime.Now) (System.DateTime.Now.AddDays(timeSlotDurationInDays))
-            let loan = Loan.New book.BookId userId (System.DateTime.Now) timeSlot
+            let loan = Loan.New TenantId.Default book.BookId userId (System.DateTime.Now) timeSlot
 
             let! addLoan = loanService.AddLoanAsync (adminContext, loan, ShortLang.New "en")
             Expect.isOk addLoan "should be ok"
@@ -219,7 +219,7 @@ let tests =
             Expect.isOk retrieveBook "should be ok"
 
             let timeSlot = TimeSlot.New (System.DateTime.Now) (System.DateTime.Now.AddDays(timeSlotDurationInDays))
-            let loan = Loan.New book.BookId userId System.DateTime.Now timeSlot
+            let loan = Loan.New TenantId.Default book.BookId userId System.DateTime.Now timeSlot
 
             let! addLoan = loanService.AddLoanAsync (adminContext, loan, ShortLang.New "en")
             Expect.isOk addLoan "should be ok"
@@ -263,7 +263,7 @@ let tests =
             Expect.isOk retrieveBook "should be ok"
 
             let timeSlot = TimeSlot.New (System.DateTime.Now) (System.DateTime.Now.AddDays(timeSlotDurationInDays))
-            let loan = Loan.New book.BookId userId System.DateTime.Now timeSlot
+            let loan = Loan.New TenantId.Default book.BookId userId System.DateTime.Now timeSlot
 
             let! addLoan = loanService.AddLoanAsync (adminContext, loan, ShortLang.New "en")
             Expect.isOk addLoan "should be ok"
@@ -669,7 +669,7 @@ let tests =
             setUp ()
             let bookService = getBookService()
             let title = Title.New "Star Wars"
-            let book1 = Book.New 
+            let book1 = Book.New TenantId.Default
                             title [] [] [] None Category.ScienceFiction [] (Year.New 1977) (Isbn.NewEmpty()) None
             
             let! _ = (bookService :> IBookService).AddBookAsync(adminContext, book1)
