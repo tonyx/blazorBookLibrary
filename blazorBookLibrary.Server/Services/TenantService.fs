@@ -121,6 +121,10 @@ type TenantService
             | UserContext.Authenticated _ when context.IsInRole Role.Admin -> true
             | UserContext.Authenticated(userId, _, _) when tenant.Patrons |> List.exists (fun (u, _) -> u = userId) -> true
             | _ -> false
+        member private this.IsAdmin (context: UserContext) =
+            match context with
+            | UserContext.Authenticated _ when context.IsInRole Role.Admin -> true
+            | _ -> false
 
         member this.GetUserRole (context: UserContext, tenantId: TenantId, userId: UserId, ?ct: CancellationToken) =
             taskResult {
@@ -277,6 +281,40 @@ type TenantService
                 return tenants |>> snd
             }
 
+        member this.SetPublic (context: UserContext, tenantId: TenantId, ?ct: CancellationToken) =
+            taskResult {
+                let! (_, tenant) = tenantViewerAsync ct tenantId.Value
+                if this.IsAdmin(context) then
+                    let command = TenantCommand.SetPublic
+                    return! 
+                        runAggregateCommandMdAsync<Tenant, TenantEvent, string>
+                            tenantId.Value
+                            eventStore
+                            messageSenders
+                            ""
+                            command
+                            ct
+                else
+                    return! Error "Access denied: only admin can set public"
+            }
+
+        member this.SetPrivate (context: UserContext, tenantId: TenantId, ?ct: CancellationToken) =
+            taskResult {
+                let! (_, tenant) = tenantViewerAsync ct tenantId.Value
+                if this.IsAuthorized(context, tenant) then
+                    let command = TenantCommand.SetPrivate
+                    return! 
+                        runAggregateCommandMdAsync<Tenant, TenantEvent, string>
+                            tenantId.Value
+                            eventStore
+                            messageSenders
+                            ""
+                            command
+                            ct
+                else
+                    return! Error "Access denied: only owner or admin can set private"
+            }
+
         interface ITenantService with
             member this.EnsureDefaultTenantExistsAsync (userId: UserId,?ct: CancellationToken) =
                 this.EnsureDefaultTenantExists(userId, ?ct = ct)
@@ -302,5 +340,9 @@ type TenantService
                 this.GetMyTenants(context, ?ct = ct)
             member this.GetMyOwnedTenantsAsync (context, ?ct) =
                 this.GetMyOwnedTenants(context, ?ct = ct)
+            member this.SetPublicAsync (context, tenantId, ?ct) =
+                this.SetPublic(context, tenantId, ?ct = ct)
+            member this.SetPrivateAsync (context, tenantId, ?ct) =
+                this.SetPrivate(context, tenantId, ?ct = ct)
 
 

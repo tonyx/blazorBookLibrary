@@ -16,6 +16,8 @@ type TenantEvent =
     | PatronDemoted of UserId
     | PatronPromoted of UserId
     | PatronRemoved of UserId
+    | PublicSet
+    | PrivateSet
     interface Event<Tenant> with
         member this.Process (tenant: Tenant) : Result<Tenant, string> =
             match this with
@@ -39,6 +41,11 @@ type TenantEvent =
                 tenant.PromotePatron userId
             | PatronRemoved userId ->
                 tenant.RemovePatron userId
+            | PublicSet ->
+                tenant.SetPublic ()
+            | PrivateSet ->
+                tenant.SetPrivate ()
+                
 
     static member Deserialize (x: string): Result<TenantEvent, string> =
         try

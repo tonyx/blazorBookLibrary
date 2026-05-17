@@ -15,7 +15,8 @@ type TenantCommand =
     | DemotePatron of UserId
     | PromotePatron of UserId
     | RemovePatron of UserId
-    
+    | SetPublic
+    | SetPrivate
     interface AggregateCommand<Tenant, TenantEvent> with
         member this.Execute (tenant: Tenant) =
             match this with
@@ -49,5 +50,10 @@ type TenantCommand =
             | RemovePatron userId ->
                 tenant.RemovePatron userId
                 |> Result.map (fun t -> (t, [TenantEvent.PatronRemoved userId]))
-
+            | SetPublic ->
+                tenant.SetPublic()
+                |> Result.map (fun t -> (t, [TenantEvent.PublicSet]))
+            | SetPrivate ->
+                tenant.SetPrivate()
+                |> Result.map (fun t -> (t, [TenantEvent.PrivateSet]))
         member this.Undoer = None

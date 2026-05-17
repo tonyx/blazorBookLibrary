@@ -28,7 +28,7 @@ with
         TentantName = tenantName
         Address = address
         TenantState = TenantState.Active
-        Public = pub |> Option.defaultValue true
+        Public = pub |> Option.defaultValue false
         Tags = []
     }
     static member NewDefault (userId: UserId, tenantName: TenantName, address: string) =
@@ -99,6 +99,10 @@ with
                     |> Result.ofBool "Tag does not exist"
                 return { this with Tags = this.Tags |> List.map (fun t -> if t = oldTag then newTag else t) }
             }
+    member this.SetPublic () =
+        { this with Public = true } |> Ok
+    member this.SetPrivate () =
+        { this with Public = false } |> Ok
     member this.GetUserRole userId =
         this.Patrons |> List.tryFind (fun (u, _) -> u = userId) |> Option.map snd
 

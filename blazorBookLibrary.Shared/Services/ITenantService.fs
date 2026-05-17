@@ -20,3 +20,5 @@ type ITenantService =
     abstract member GetAllowedTenantsAsync: UserContext * [<Optional; DefaultParameterValue(null)>] ?ct:CancellationToken -> Task<Result<List<Tenant>, string>>
     abstract member GetMyTenantsAsync: UserContext * [<Optional; DefaultParameterValue(null)>] ?ct:CancellationToken -> Task<Result<List<Tenant>, string>>
     abstract member GetMyOwnedTenantsAsync: UserContext * [<Optional; DefaultParameterValue(null)>] ?ct:CancellationToken -> Task<Result<List<Tenant>, string>>
+    abstract member SetPublicAsync: UserContext * TenantId * [<Optional; DefaultParameterValue(null)>] ?ct:CancellationToken -> Task<Result<unit, string>>
+    abstract member SetPrivateAsync: UserContext * TenantId * [<Optional; DefaultParameterValue(null)>] ?ct:CancellationToken -> Task<Result<unit, string>>

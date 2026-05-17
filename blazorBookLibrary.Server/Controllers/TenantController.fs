@@ -126,3 +126,23 @@ type TenantController(tenantService: ITenantService) =
             | Ok tenants -> return this.Ok(tenants) :> IActionResult
             | Error msg -> return this.BadRequest(msg) :> IActionResult
         }
+
+    [<HttpPut("{id}/public")>]
+    member this.SetPublic(id: Guid) =
+        task {
+            let context = UserContextMapper.mapFromRequest this.Request
+            let! result = tenantService.SetPublicAsync(context, TenantId id)
+            match result with
+            | Ok _ -> return this.Ok() :> IActionResult
+            | Error msg -> return this.BadRequest(msg) :> IActionResult
+        }
+
+    [<HttpPut("{id}/private")>]
+    member this.SetPrivate(id: Guid) =
+        task {
+            let context = UserContextMapper.mapFromRequest this.Request
+            let! result = tenantService.SetPrivateAsync(context, TenantId id)
+            match result with
+            | Ok _ -> return this.Ok() :> IActionResult
+            | Error msg -> return this.BadRequest(msg) :> IActionResult
+        }
