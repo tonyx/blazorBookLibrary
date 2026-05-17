@@ -7,26 +7,7 @@ open BookLibrary.Shared.Commons
 open System
 open System.Globalization
 
-
-type User001 = 
-    { 
-        UserId: UserId
-        CurrentTenant: TenantId
-        AppUserInfo: AppUserInfo
-        Reservations: List<ReservationId>
-        CurrentLoans: List<LoanId>
-    }
-    with
-        member 
-            this.Upcast() : User =
-            {
-                UserId = this.UserId
-                CurrentTenant = this.CurrentTenant
-                AppUserInfo = this.AppUserInfo
-                Reservations = this.Reservations
-                CurrentLoans = this.CurrentLoans
-            }
-and User =
+type User =
     {
         UserId: UserId
         CurrentTenant: TenantId
@@ -35,6 +16,7 @@ and User =
         CurrentLoans: List<LoanId>
     }
     with
+
         // yes, its correct that any newly created user is set to the default tenant
         static member New (userId: UserId) = 
             { 
@@ -146,10 +128,6 @@ and User =
                 (data, jsonOptions) |> JsonSerializer.Deserialize<User> |> Ok
             with
                 | ex -> 
-                try
-                    let user001 = (data, jsonOptions) |> JsonSerializer.Deserialize<User001>
-                    user001.Upcast() |> Ok
-                with
-                    | ex1 -> Error (ex.Message + "; " + ex1.Message)
+                    Error ex.Message
 
     
