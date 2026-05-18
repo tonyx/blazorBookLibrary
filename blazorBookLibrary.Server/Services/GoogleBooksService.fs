@@ -59,13 +59,15 @@ type GoogleBooksService
     (
         httpClient: HttpClient, 
         configuration: IConfiguration,
-        tenantViewerAsync: AggregateViewerAsync2<Tenant>
+        tenantViewerAsync: AggregateViewerAsync2<Tenant>,
+        userTenantResolverService: IUserTenantResolverService
     ) =
     let apiKey = configuration.["GoogleBookApiKey"]
 
     let checkIsGlobalAdminOrTenantManager (context: UserContext) (ct: CancellationToken)= 
         taskResult {
-            let! tenant = tenantViewerAsync (ct |> Some) context.TenantId.Value |> TaskResult.map snd
+            let! tenantId = userTenantResolverService.GetTenantForUserAsync(context, ct)
+            let! tenant = tenantViewerAsync (ct |> Some) tenantId.Value |> TaskResult.map snd
             return! Security.checkIsGlobalAdminOrTenantManager tenant context
         }
 
@@ -113,11 +115,12 @@ type GoogleBooksService
             Description = if String.IsNullOrWhiteSpace(item.Description) then None else Some item.Description
         }
 
-    new(httpClient: HttpClient, configuration: IConfiguration, secretsReader: SecretsReader) =
+    new(httpClient: HttpClient, configuration: IConfiguration, secretsReader: SecretsReader, userTenantResolverService: IUserTenantResolverService) =
         GoogleBooksService(
             httpClient, 
             configuration, 
-            getAggregateStorageFreshStateViewerAsync<Tenant, TenantEvent, string> (PgStorage.PgEventStore (secretsReader.GetBookLibraryConnectionString()))
+            getAggregateStorageFreshStateViewerAsync<Tenant, TenantEvent, string> (PgStorage.PgEventStore (secretsReader.GetBookLibraryConnectionString())),
+            userTenantResolverService
         )
 
     interface IGoogleBooksService with

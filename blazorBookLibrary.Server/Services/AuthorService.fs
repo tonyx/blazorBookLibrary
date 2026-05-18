@@ -30,20 +30,24 @@ type AuthorService
         reservationViewerAsync: AggregateViewerAsync2<Reservation>,
         loanViewerAsync: AggregateViewerAsync2<Loan>,
         tenantViewerAsync: AggregateViewerAsync2<Tenant>,
+        userTenantResolverService: IUserTenantResolverService,
         secretsReader: SecretsReader
     ) =
     let checkIsGlobalAdminOrTenantManager (context: UserContext) (ct: CancellationToken)= 
         taskResult {
-            let! tenant = tenantViewerAsync (ct |> Some) context.TenantId.Value |> TaskResult.map snd
+            let! tenantId = userTenantResolverService.GetTenantForUserAsync(context, ct)
+            let! tenant = tenantViewerAsync (ct |> Some) tenantId.Value |> TaskResult.map snd
             return! Security.checkIsGlobalAdminOrTenantManager tenant context
         }
 
 
     member this.AddAuthorAsync(context: UserContext, author: Author, ?ct: CancellationToken) = 
+        let ct = defaultArg ct CancellationToken.None
         taskResult
             {
+                let! tenantId = userTenantResolverService.GetTenantForUserAsync(context, ct)
                 do! 
-                    context.TenantId = author.TenantId
+                    tenantId = author.TenantId
                     |> Result.ofBool "Tenant ids not matching"
 
                 return!
@@ -51,15 +55,17 @@ type AuthorService
                     eventStore
                     messageSenders
                     author
-                    ct
+                    (Some ct)
             }
 
     member this.AddAuthorsAsync(context: UserContext, authors: list<Author>, ?ct: CancellationToken) = 
+        let ct = defaultArg ct CancellationToken.None
         taskResult
             {
+                let! tenantId = userTenantResolverService.GetTenantForUserAsync(context, ct)
                 do!
                     authors     
-                    |> Seq.forall (fun a -> context.TenantId = a.TenantId)    
+                    |> Seq.forall (fun a -> tenantId = a.TenantId)    
                     |> Result.ofBool "Tenant ids not matching"
 
                 return!
@@ -67,7 +73,7 @@ type AuthorService
                     eventStore
                     messageSenders
                     (authors |> Array.ofList)
-                    ct
+                    (Some ct)
             }
 
     member this.GetAuthorAsync (context: UserContext, authorId: AuthorId, ?ct: CancellationToken) = 
@@ -83,13 +89,15 @@ type AuthorService
                     let refresher =
                         fun (ct: Option<CancellationToken>) ->
                             taskResult {
+                                let ct = defaultArg ct CancellationToken.None
+                                let! tenantId = userTenantResolverService.GetTenantForUserAsync(context, ct)
                                 let! author = 
-                                    authorViewerAsync ct id.Value |> TaskResult.map snd
+                                    authorViewerAsync (Some ct) id.Value |> TaskResult.map snd
                                 let! books = 
                                     author.Books
-                                    |> List.traverseTaskResultM (fun bookId -> bookViewerAsync ct bookId.Value |> TaskResult.map snd)
+                                    |> List.traverseTaskResultM (fun bookId -> bookViewerAsync (Some ct) bookId.Value |> TaskResult.map snd)
                                 do!
-                                    author.TenantId = context.TenantId
+                                    author.TenantId = tenantId
                                     |> Result.ofBool "Tenant ids not matching"
                                 return
                                     {
@@ -119,25 +127,28 @@ type AuthorService
             }
 
     member this.GetAuthorsAsync(context: UserContext, ids: List<AuthorId>, ?ct: CancellationToken) =
+        let ct = defaultArg ct CancellationToken.None
         taskResult
             {
-                let ct = defaultArg ct CancellationToken.None
+                let! tenantId = userTenantResolverService.GetTenantForUserAsync(context, ct)
                 let! authors =
                     ids
                     |> List.traverseTaskResultM (fun id -> this.GetAuthorAsync(context, id, ct))
                 do!
                     authors     
-                    |> Seq.forall (fun a -> context.TenantId = a.TenantId)    
+                    |> Seq.forall (fun a -> tenantId = a.TenantId)    
                     |> Result.ofBool "Tenant ids not matching"
                 return authors
             }
 
     member this.RenameAsync (context: UserContext, authorId: AuthorId, newName: Name, ?ct: CancellationToken) = 
+        let ct = defaultArg ct CancellationToken.None
         taskResult
             {
-                let! author = this.GetAuthorAsync(context, authorId, ?ct = ct)
+                let! tenantId = userTenantResolverService.GetTenantForUserAsync(context, ct)
+                let! author = this.GetAuthorAsync(context, authorId, ct)
                 do! 
-                    context.TenantId = author.TenantId
+                    tenantId = author.TenantId
                     |> Result.ofBool "Tenant ids not matching"
                 
                 let reamecommand = AuthorCommand.Rename (newName, DateTime.UtcNow)
@@ -148,18 +159,20 @@ type AuthorService
                         messageSenders
                         (context.ToString())
                         reamecommand
-                        ct
+                        (Some ct)
                 return! result
             }
 
     member this.UpdateIsniAsync (context: UserContext, authorId: AuthorId, isni: Isni, ?ct: CancellationToken) = 
+        let ct = defaultArg ct CancellationToken.None
         taskResult
             {
-                let! author = this.GetAuthorAsync(context, authorId, ?ct = ct)
+                let! tenantId = userTenantResolverService.GetTenantForUserAsync(context, ct)
+                let! author = this.GetAuthorAsync(context, authorId, ct)
                 do! 
-                    context.TenantId = author.TenantId
+                    tenantId = author.TenantId
                     |> Result.ofBool "Tenant ids not matching"
-                do! checkIsGlobalAdminOrTenantManager context (ct |> Option.defaultValue CancellationToken.None)
+                do! checkIsGlobalAdminOrTenantManager context ct
                 let updateIsniCommand = AuthorCommand.UpdateIsni (isni, DateTime.UtcNow)
                 let result = 
                     runAggregateCommandMdAsync<Author, AuthorEvent, string>
@@ -168,18 +181,20 @@ type AuthorService
                         messageSenders
                         (context.ToString())
                         updateIsniCommand
-                        ct
+                        (Some ct)
                 return! result
             }
 
     member this.UpdateBioAsync (context: UserContext, authorId: AuthorId, bio: string, ?ct: CancellationToken) = 
+        let ct = defaultArg ct CancellationToken.None
         taskResult
             {
-                let! author = this.GetAuthorAsync(context, authorId, ?ct = ct)
+                let! tenantId = userTenantResolverService.GetTenantForUserAsync(context, ct)
+                let! author = this.GetAuthorAsync(context, authorId, ct)
                 do! 
-                    context.TenantId = author.TenantId
+                    tenantId = author.TenantId
                     |> Result.ofBool "Tenant ids not matching"
-                do! checkIsGlobalAdminOrTenantManager context (ct |> Option.defaultValue CancellationToken.None)
+                do! checkIsGlobalAdminOrTenantManager context ct
                 let updateBioCommand = AuthorCommand.UpdateBio (bio, DateTime.UtcNow)
                 let result = 
                     runAggregateCommandMdAsync<Author, AuthorEvent, string>
@@ -188,18 +203,20 @@ type AuthorService
                         messageSenders
                         (context.ToString())
                         updateBioCommand
-                        ct
+                        (Some ct)
                 return! result
             }
 
     member this.UpdateWikipediaUriAsync (context: UserContext, authorId: AuthorId, wikipediaUri: Uri, ?ct: CancellationToken) = 
+        let ct = defaultArg ct CancellationToken.None
         taskResult
             {
-                let! author = this.GetAuthorAsync(context, authorId, ?ct = ct)
+                let! tenantId = userTenantResolverService.GetTenantForUserAsync(context, ct)
+                let! author = this.GetAuthorAsync(context, authorId, ct)
                 do! 
-                    context.TenantId = author.TenantId
+                    tenantId = author.TenantId
                     |> Result.ofBool "Tenant ids not matching"
-                do! checkIsGlobalAdminOrTenantManager context (ct |> Option.defaultValue CancellationToken.None)
+                do! checkIsGlobalAdminOrTenantManager context ct
                 let updateWikipediaUriCommand = AuthorCommand.UpdateWikipediaUri (wikipediaUri, DateTime.UtcNow)
                 let result = 
                     runAggregateCommandMdAsync<Author, AuthorEvent, string>
@@ -208,18 +225,20 @@ type AuthorService
                         messageSenders
                         (context.ToString())
                         updateWikipediaUriCommand
-                        ct
+                        (Some ct)
                 return! result
             }
 
     member this.UpdateImageUrlAsync (context: UserContext, authorId: AuthorId, imageUrl: Uri, ?ct: CancellationToken) = 
+        let ct = defaultArg ct CancellationToken.None
         taskResult
             {
-                let! author = this.GetAuthorAsync(context, authorId, ?ct = ct)
+                let! tenantId = userTenantResolverService.GetTenantForUserAsync(context, ct)
+                let! author = this.GetAuthorAsync(context, authorId, ct)
                 do! 
-                    context.TenantId = author.TenantId
+                    tenantId = author.TenantId
                     |> Result.ofBool "Tenant ids not matching"
-                do! checkIsGlobalAdminOrTenantManager context (ct |> Option.defaultValue CancellationToken.None)
+                do! checkIsGlobalAdminOrTenantManager context ct
                 let updateImageUrlCommand = AuthorCommand.UpdateImageUrl (imageUrl, DateTime.UtcNow)
                 let result = 
                     runAggregateCommandMdAsync<Author, AuthorEvent, string>
@@ -228,18 +247,20 @@ type AuthorService
                         messageSenders
                         (context.ToString())
                         updateImageUrlCommand
-                        ct
+                        (Some ct)
                 return! result
             }
 
     member this.RemoveImageUrlAsync (context: UserContext, authorId: AuthorId, ?ct: CancellationToken) = 
+        let ct = defaultArg ct CancellationToken.None
         taskResult
             {
-                let! author = this.GetAuthorAsync(context, authorId, ?ct = ct)
+                let! tenantId = userTenantResolverService.GetTenantForUserAsync(context, ct)
+                let! author = this.GetAuthorAsync(context, authorId, ct)
                 do! 
-                    context.TenantId = author.TenantId
+                    tenantId = author.TenantId
                     |> Result.ofBool "Tenant ids not matching"
-                do! checkIsGlobalAdminOrTenantManager context (ct |> Option.defaultValue CancellationToken.None)
+                do! checkIsGlobalAdminOrTenantManager context ct
                 let removeImageUrlCommand = AuthorCommand.RemoveImageUrl (DateTime.UtcNow)
                 let result = 
                     runAggregateCommandMdAsync<Author, AuthorEvent, string>
@@ -248,18 +269,20 @@ type AuthorService
                         messageSenders
                         (context.ToString())
                         removeImageUrlCommand
-                        ct
+                        (Some ct)
                 return! result
             }
 
     member this.SealAsync (context: UserContext, authorId: AuthorId, ?ct: CancellationToken) = 
+        let ct = defaultArg ct CancellationToken.None
         taskResult
             {
-                let! author = this.GetAuthorAsync(context, authorId, ?ct = ct)
+                let! tenantId = userTenantResolverService.GetTenantForUserAsync(context, ct)
+                let! author = this.GetAuthorAsync(context, authorId, ct)
                 do! 
-                    context.TenantId = author.TenantId
+                    tenantId = author.TenantId
                     |> Result.ofBool "Tenant ids not matching"
-                do! checkIsGlobalAdminOrTenantManager context (ct |> Option.defaultValue CancellationToken.None)
+                do! checkIsGlobalAdminOrTenantManager context ct
                 let sealCommand = AuthorCommand.Seal (DateTime.UtcNow)
                 let result = 
                     runAggregateCommandMdAsync<Author, AuthorEvent, string>
@@ -268,18 +291,20 @@ type AuthorService
                         messageSenders
                         (context.ToString())
                         sealCommand
-                        ct
+                        (Some ct)
                 return! result
             }
 
     member this.UnsealAsync (context: UserContext, authorId: AuthorId, ?ct: CancellationToken) = 
+        let ct = defaultArg ct CancellationToken.None
         taskResult
             {
-                let! author = this.GetAuthorAsync(context, authorId, ?ct = ct)
+                let! tenantId = userTenantResolverService.GetTenantForUserAsync(context, ct)
+                let! author = this.GetAuthorAsync(context, authorId, ct)
                 do! 
-                    context.TenantId = author.TenantId
+                    tenantId = author.TenantId
                     |> Result.ofBool "Tenant ids not matching"
-                do! checkIsGlobalAdminOrTenantManager context (ct |> Option.defaultValue CancellationToken.None)
+                do! checkIsGlobalAdminOrTenantManager context ct
                 let unsealCommand = AuthorCommand.Unseal (DateTime.UtcNow)
                 let result = 
                     runAggregateCommandMdAsync<Author, AuthorEvent, string>
@@ -288,81 +313,91 @@ type AuthorService
                         messageSenders
                         (context.ToString())
                         unsealCommand
-                        ct
+                        (Some ct)
                 return! result
             }
 
     member this.RemoveAuthorAsync(context: UserContext, authorId: AuthorId, ?ct: CancellationToken) = 
+        let ct = defaultArg ct CancellationToken.None
         taskResult
             {
-                let! author = this.GetAuthorAsync(context, authorId, ?ct = ct)
+                let! tenantId = userTenantResolverService.GetTenantForUserAsync(context, ct)
+                let! author = this.GetAuthorAsync(context, authorId, ct)
                 do! 
-                    context.TenantId = author.TenantId
+                    tenantId = author.TenantId
                     |> Result.ofBool "Tenant ids not matching"
-                do! checkIsGlobalAdminOrTenantManager context (ct |> Option.defaultValue CancellationToken.None)
+                do! checkIsGlobalAdminOrTenantManager context ct
                 return!
                     runDeleteAsync<Author, AuthorEvent, string>
                     eventStore
                     messageSenders
                     authorId.Value
                     (fun _ -> author.Books.Length = 0)
-                    ct
+                    (Some ct)
             }
 
     member this.GetAllAuthorsAsync(context: UserContext, ?ct: CancellationToken) = 
+        let ct = defaultArg ct CancellationToken.None
         taskResult
             {
-                let! authorsWithId = getAllAggregateStatesAsync<Author, AuthorEvent, string> eventStore ct 
+                let! tenantId = userTenantResolverService.GetTenantForUserAsync(context, ct)
+                let! authorsWithId = getAllAggregateStatesAsync<Author, AuthorEvent, string> eventStore (Some ct) 
                 return 
                     authorsWithId |> List.ofSeq |> List.map snd
-                    |> List.filter (fun a -> context.TenantId = a.TenantId)
+                    |> List.filter (fun a -> tenantId = a.TenantId)
             }
 
     member this.GetAllAuthorsFilteredByName(context: UserContext, name: Name, ?ct: CancellationToken) = 
+        let ct = defaultArg ct CancellationToken.None
         taskResult
             {
+                let! tenantId = userTenantResolverService.GetTenantForUserAsync(context, ct)
                 let filter (author: Author) = 
-                    context.TenantId = author.TenantId &&
+                    tenantId = author.TenantId &&
                     author.Name.Value.Contains(name.Value, StringComparison.OrdinalIgnoreCase)
-                let! authorsWithId = getAllFilteredAggregateStatesAsync<Author, AuthorEvent, string> filter eventStore ct 
+                let! authorsWithId = getAllFilteredAggregateStatesAsync<Author, AuthorEvent, string> filter eventStore (Some ct) 
                 return 
                     authorsWithId 
                     |> List.ofSeq 
                     |> List.map snd
-                    |> List.filter (fun a -> context.TenantId = a.TenantId)
+                    |> List.filter (fun a -> tenantId = a.TenantId)
             }
 
 
     member this.GetAllAuthorsFilteredByIsni(context: UserContext, isni: Isni, ?ct: CancellationToken) = 
+        let ct = defaultArg ct CancellationToken.None
         taskResult
             {
+                let! tenantId = userTenantResolverService.GetTenantForUserAsync(context, ct)
                 let filter (author: Author) = 
-                    context.TenantId = author.TenantId &&
+                    tenantId = author.TenantId &&
                     author.Isni.Value.Contains(isni.Value, StringComparison.OrdinalIgnoreCase)
-                let! authorsWithId = getAllFilteredAggregateStatesAsync<Author, AuthorEvent, string> filter eventStore ct 
+                let! authorsWithId = getAllFilteredAggregateStatesAsync<Author, AuthorEvent, string> filter eventStore (Some ct) 
                 return 
                     authorsWithId 
                     |> List.ofSeq 
                     |> List.map snd
-                    |> List.filter (fun a -> context.TenantId = a.TenantId)
+                    |> List.filter (fun a -> tenantId = a.TenantId)
             }
 
     member this.GetAllAuthorsFilteredByIsniAndName(context: UserContext, isni: Isni, name: Name, ?ct: CancellationToken) = 
+        let ct = defaultArg ct CancellationToken.None
         taskResult
             {
+                let! tenantId = userTenantResolverService.GetTenantForUserAsync(context, ct)
                 let filter (author: Author) = 
-                    context.TenantId = author.TenantId &&
+                    tenantId = author.TenantId &&
                     (author.Isni.Value.Contains(isni.Value, StringComparison.OrdinalIgnoreCase) || 
                     author.Name.Value.Contains(name.Value, StringComparison.OrdinalIgnoreCase))
-                let! authorsWithId = getAllFilteredAggregateStatesAsync<Author, AuthorEvent, string> filter eventStore ct 
+                let! authorsWithId = getAllFilteredAggregateStatesAsync<Author, AuthorEvent, string> filter eventStore (Some ct) 
                 return 
                     authorsWithId 
                     |> List.ofSeq 
                     |> List.map snd
-                    |> List.filter (fun a -> context.TenantId = a.TenantId)
+                    |> List.filter (fun a -> tenantId = a.TenantId)
             }
                     
-    new (eventStore: IEventStore<string>, secretsReader: SecretsReader) =
+    new (eventStore: IEventStore<string>, secretsReader: SecretsReader, userTenantResolverService: IUserTenantResolverService) =
         AuthorService (
             eventStore,
             MessageSenders.NoSender,
@@ -372,11 +407,12 @@ type AuthorService
             getAggregateStorageFreshStateViewerAsync<Reservation, ReservationEvent, string> eventStore,
             getAggregateStorageFreshStateViewerAsync<Loan, LoanEvent, string> eventStore,
             getAggregateStorageFreshStateViewerAsync<Tenant, TenantEvent, string> eventStore,
+            userTenantResolverService,
             secretsReader
         )
 
-    new(secretsReader: SecretsReader) =
-        AuthorService(PgStorage.PgEventStore (secretsReader.GetBookLibraryConnectionString ()), secretsReader)
+    new(secretsReader: SecretsReader, userTenantResolverService: IUserTenantResolverService) =
+        AuthorService(PgStorage.PgEventStore (secretsReader.GetBookLibraryConnectionString ()), secretsReader, userTenantResolverService)
 
     interface IAuthorService with
         member this.AddAuthorAsync(context, author: Author, ?ct: CancellationToken) = 

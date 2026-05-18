@@ -10,6 +10,7 @@
 @inject IAdminServices AdminServices
 @inject IDistributionPointService DistributionPointService
 @inject AuthenticationStateProvider AuthStateProvider
+@inject blazorBookLibrary.Client.Services.TenantStateService TenantState
 @inject UserManager<ApplicationUser> UserManager
 @inject IStringLocalizer<SharedResources> L
 @inject IJSRuntime JSRuntime
@@ -234,7 +235,7 @@
         try
         {
             var authState = await AuthStateProvider.GetAuthenticationStateAsync();
-            var userContext = blazorBookLibrary.Shared.ConverterUtils.fromClaimsPrincipal(authState.User);
+            var userContext = TenantState.GetUserContext(authState.User);
             var result = string.IsNullOrWhiteSpace(searchQuery) 
                 ? await DistributionPointService.GetAllDistributionPointsAsync(userContext) 
                 : await DistributionPointService.FindDistributionPointsAsync(userContext,Name.New(searchQuery));
@@ -325,7 +326,7 @@
             if (isEditMode && currentEditPoint != null)
             {
                 var authState = await AuthStateProvider.GetAuthenticationStateAsync();
-                var userContext = blazorBookLibrary.Shared.ConverterUtils.fromClaimsPrincipal(authState.User);
+                var userContext = TenantState.GetUserContext(authState.User);
                 // Update Name if changed
                 if (currentEditPoint.Name.Value != editingName)
                 {
@@ -345,8 +346,9 @@
             else
             {
                 var authState = await AuthStateProvider.GetAuthenticationStateAsync();
-                var userContext = blazorBookLibrary.Shared.ConverterUtils.fromClaimsPrincipal(authState.User);
-                var newDp = DistributionPoint.New(userContext.TenantId, nameResult.ResultValue, Info.New(editingInfo));
+                var userContext = TenantState.GetUserContext(authState.User);
+                var tenantId = TenantState.CurrentTenant?.TenantId ?? TenantId.Default;
+                var newDp = DistributionPoint.New(tenantId, nameResult.ResultValue, Info.New(editingInfo));
                 result = await DistributionPointService.CreateDistributionPointAsync(userContext, newDp);
                 if (result.IsError) { errorMessage = result.ErrorValue; return; }
                 
@@ -371,7 +373,7 @@
         try
         {
             var authState = await AuthStateProvider.GetAuthenticationStateAsync();
-            var userContext = blazorBookLibrary.Shared.ConverterUtils.fromClaimsPrincipal(authState.User);
+            var userContext = TenantState.GetUserContext(authState.User);
             var userId = UserId.NewUserId(Guid.Parse(user.Id));
             var result = await AdminServices.AssignUserToDistributionPointAsync(userContext, dp.DistributionPointId, userId);
             
@@ -396,7 +398,7 @@
         try
         {
             var authState = await AuthStateProvider.GetAuthenticationStateAsync();
-            var userContext = blazorBookLibrary.Shared.ConverterUtils.fromClaimsPrincipal(authState.User);
+            var userContext = TenantState.GetUserContext(authState.User);
             var result = await AdminServices.UnassignUserFromDistributionPointAsync(userContext, dp.DistributionPointId, userId);
             
             if (result.IsOk)

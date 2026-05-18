@@ -510,15 +510,11 @@ type Role =
 
 let private tenantTable = System.Runtime.CompilerServices.ConditionalWeakTable<obj, TenantId>()
 
-let mutable private userTenantProvider : Option<Guid -> TenantId> = None
 
 type UserContext = 
     | Authenticated of UserId: UserId * Roles: List<Role>
     | Anonymous
     with 
-        static member UserTenantProvider
-            with get() = userTenantProvider
-            and set(value) = userTenantProvider <- value
 
         member this.IsInRole (role: Role) = 
             match this with
@@ -529,21 +525,6 @@ type UserContext =
             match this with
             | Authenticated(userId, _) -> Some userId
             | Anonymous -> None
-
-        // member this.TenantId =
-        //     match this with
-        //     | Anonymous -> TenantId.Default
-        //     | Authenticated(userId, _) ->
-        //         match UserContext.UserTenantProvider with
-        //         | None -> 
-        //             match tenantTable.TryGetValue(this) with
-        //             | true, tenantId -> tenantId
-        //             | _ -> TenantId.Default
-        //         | Some provider ->
-        //             try
-        //                 provider userId.Value
-        //             with _ ->
-        //                 TenantId.Default
 
         member this.Roles =
             match this with

@@ -35,6 +35,7 @@ type LoanService
         loanViewerAsync: AggregateViewerAsync2<Loan>,
         userViewerAsync: AggregateViewerAsync2<User>,
         tenantViewerAsync: AggregateViewerAsync2<Tenant>,
+        userTenantResolverService: IUserTenantResolverService,
         reservationService: IReservationService,
         usersService: IUserService,
         mailNotificator: IMailNotificator,
@@ -48,7 +49,8 @@ type LoanService
 
     let checkIsGlobalAdminOrTenantManager (context: UserContext) (ct: CancellationToken)= 
         taskResult {
-            let! tenant = tenantViewerAsync (ct |> Some) context.TenantId.Value |> TaskResult.map snd
+            let! tenantId = userTenantResolverService.GetTenantForUserAsync(context, ct)
+            let! tenant = tenantViewerAsync (ct |> Some) tenantId.Value |> TaskResult.map snd
             return! Security.checkIsGlobalAdminOrTenantManager tenant context
         }
 
@@ -56,12 +58,13 @@ type LoanService
         taskResult
             {
                 let ct = defaultArg ct CancellationToken.None
+                let! tenantId = userTenantResolverService.GetTenantForUserAsync(context, ct)
                 let! book = 
                     bookViewerAsync (Some ct) loan.BookId.Value 
                     |> TaskResult.map snd
                 do!
-                    book.TenantId = context.TenantId
-                    |> Result.ofBool $"Book tenant id {book.TenantId} does not match user tenant id {context.TenantId}"
+                    book.TenantId = tenantId
+                    |> Result.ofBool $"Book tenant id {book.TenantId} does not match user tenant id {tenantId}"
                     
                 let! user =
                     userViewerAsync (Some ct) loan.UserId.Value
@@ -132,6 +135,7 @@ type LoanService
                     fun (ct: Option<CancellationToken>) ->
                         taskResult {
                             let ct = ct |> Option.defaultValue CancellationToken.None
+                            let! tenantId = userTenantResolverService.GetTenantForUserAsync(context, ct)
                             let! loan = 
                                 loanViewerAsync (ct |> Some) loanId.Value |> TaskResult.map snd
                             let! book = 
@@ -139,8 +143,8 @@ type LoanService
                             let! userDetail = 
                                 usersService.GetUserDetailsAsync (context, loan.UserId, ct)
                             do!
-                                book.TenantId = context.TenantId
-                                |> Result.ofBool $"Book tenant id {book.TenantId} does not match user tenant id {context.TenantId}"
+                                book.TenantId = tenantId
+                                |> Result.ofBool $"Book tenant id {book.TenantId} does not match user tenant id {tenantId}"
 
                             return
                                 { 
@@ -169,12 +173,13 @@ type LoanService
         taskResult
             {
                 let ct = defaultArg ct CancellationToken.None
+                let! tenantId = userTenantResolverService.GetTenantForUserAsync(context, ct)
                 let! result =
                     StateView.getAllAggregateStatesAsync<Loan, LoanEvent, string> eventStore (ct |> Some)
                     |> TaskResult.map (fun x -> x |> List.map snd)
                 return 
                     result
-                    |> List.filter (fun l -> l.TenantId = context.TenantId)
+                    |> List.filter (fun l -> l.TenantId = tenantId)
             }
 
     member this.ReleaseLoanAsync (context: UserContext, loanId: LoanId, shortLang: ShortLang,  dateTime: System.DateTime, ?ct: CancellationToken)= 
@@ -235,9 +240,10 @@ type LoanService
         let ct = defaultArg ct CancellationToken.None
         taskResult
             {
+                let! tenantId = userTenantResolverService.GetTenantForUserAsync(context, ct)
                 let! loans = 
                     StateView.getAllFilteredAggregateStatesAsync<Loan, LoanEvent, string> 
-                        (fun loan -> loan.UserId = userId && loan.TenantId = context.TenantId)
+                        (fun loan -> loan.UserId = userId && loan.TenantId = tenantId)
                         eventStore
                         (ct |> Some)
                     |> TaskResult.map (fun x -> x |> List.map snd)
@@ -308,7 +314,7 @@ type LoanService
                 return result
             }
 
-    new(eventStore: IEventStore<string>, reservationService: IReservationService, usersService: IUserService, mailNotificator: IMailNotificator, localizer: IStringLocalizer<SharedResources>, configuration: IConfiguration, mailBodyRetriever: IMailBodyRetriever) =
+    new(eventStore: IEventStore<string>, reservationService: IReservationService, usersService: IUserService, mailNotificator: IMailNotificator, localizer: IStringLocalizer<SharedResources>, configuration: IConfiguration, mailBodyRetriever: IMailBodyRetriever, userTenantResolverService: IUserTenantResolverService) =
         LoanService(
             eventStore, 
             MessageSenders.NoSender, 
@@ -319,6 +325,7 @@ type LoanService
             getAggregateStorageFreshStateViewerAsync<Loan, LoanEvent, string> eventStore,
             getAggregateStorageFreshStateViewerAsync<User, UserEvent, string> eventStore,
             getAggregateStorageFreshStateViewerAsync<Tenant, TenantEvent, string> eventStore,
+            userTenantResolverService,
             reservationService, 
             usersService, 
             mailNotificator, 
@@ -329,11 +336,11 @@ type LoanService
             mailBodyRetriever
         )
 
-    new(configuration: IConfiguration, reservationService: IReservationService, usersService: IUserService, mailNotificator: IMailNotificator, localizer: IStringLocalizer<SharedResources>, mailBodyRetriever: IMailBodyRetriever, secretsReader: SecretsReader) =
-        LoanService(PgStorage.PgEventStore (secretsReader.GetBookLibraryConnectionString ()), reservationService, usersService, mailNotificator, localizer, configuration, mailBodyRetriever)
+    new(configuration: IConfiguration, reservationService: IReservationService, usersService: IUserService, mailNotificator: IMailNotificator, localizer: IStringLocalizer<SharedResources>, mailBodyRetriever: IMailBodyRetriever, secretsReader: SecretsReader, userTenantResolverService: IUserTenantResolverService) =
+        LoanService(PgStorage.PgEventStore (secretsReader.GetBookLibraryConnectionString ()), reservationService, usersService, mailNotificator, localizer, configuration, mailBodyRetriever, userTenantResolverService)
 
-    new(connectionString: string, reservationService: IReservationService, usersService: IUserService, mailNotificator: IMailNotificator, localizer: IStringLocalizer<SharedResources>, configuration: IConfiguration, mailBodyRetriever: IMailBodyRetriever) =
-        LoanService(PgStorage.PgEventStore connectionString, reservationService, usersService, mailNotificator, localizer, configuration, mailBodyRetriever)
+    new(connectionString: string, reservationService: IReservationService, usersService: IUserService, mailNotificator: IMailNotificator, localizer: IStringLocalizer<SharedResources>, configuration: IConfiguration, mailBodyRetriever: IMailBodyRetriever, userTenantResolverService: IUserTenantResolverService) =
+        LoanService(PgStorage.PgEventStore connectionString, reservationService, usersService, mailNotificator, localizer, configuration, mailBodyRetriever, userTenantResolverService)
 
     interface ILoanService with
         member this.AddLoanAsync (context: UserContext, loan: Loan, shortLang:ShortLang, ?ct: CancellationToken) =

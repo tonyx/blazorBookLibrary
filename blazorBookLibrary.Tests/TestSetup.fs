@@ -134,6 +134,9 @@ let getDummyLogger<'T> () =
     LoggerFactory.Create(fun builder -> builder.AddConsole() |> ignore).CreateLogger<'T>()
 let dummyMailJetClient = new Mailjet.Client.MailjetClient("", "")
 
+let getUserTenantResolverService () : IUserTenantResolverService =
+    UserTenantResolverService(pgEventStore, MessageSenders.NoSender, userViewerAsync) :> IUserTenantResolverService
+
 let getAuthorService () : IAuthorService = 
     AuthorService(
         pgEventStore, 
@@ -144,6 +147,7 @@ let getAuthorService () : IAuthorService =
         reservationViewerAsync, 
         loanViewerAsync,
         tenantViewerAsync,
+        getUserTenantResolverService(),
         getSecretReader()) :> IAuthorService
 
 let getReviewService () : IReviewService =
@@ -158,6 +162,7 @@ let getReviewService () : IReviewService =
         loanViewerAsync,
         userViewerAsync,
         tenantViewerAsync,
+        getUserTenantResolverService(),
         getServiceScopeFactory()) :> IReviewService
 
 let getUserService () : IUserService =
@@ -172,6 +177,7 @@ let getUserService () : IUserService =
         userViewerAsync,
         reviewViewerAsync,
         tenantViewerAsync,
+        getUserTenantResolverService(),
         distributionPointViewerAsync,
         getReviewService(),
         getServiceScopeFactory(),
@@ -189,6 +195,7 @@ let getReservationService () : IReservationService =
         userViewerAsync,
         tenantViewerAsync,
         distributionPointViewerAsync,
+        getUserTenantResolverService(),
         getUserService(),
         fakeEmailNotificator,
         3,
@@ -207,6 +214,7 @@ let getLoanService () : ILoanService =
         loanViewerAsync,
         userViewerAsync,
         tenantViewerAsync,
+        getUserTenantResolverService(),
         getReservationService(),
         getUserService(),
         fakeEmailNotificator,
@@ -228,6 +236,7 @@ let getDetailsService () : IDetailsService =
         reviewViewerAsync,
         tenantViewerAsync,
         distributionPointViewerAsync,
+        getUserTenantResolverService(),
         getLoanService(),
         getReservationService(),
         getReviewService(),
@@ -236,7 +245,7 @@ let getDetailsService () : IDetailsService =
 
 let getTextEmbeddingService () =
     let httpClient = new HttpClient()
-    TextEmbeddingService(config, httpClient, getDetailsService(), getSecretReader()) :> ITextEmbeddingService
+    TextEmbeddingService(config, httpClient, getDetailsService(), getSecretReader(), getUserTenantResolverService()) :> ITextEmbeddingService
 
 let getVectorDbService () =
     VectorDbService(config, getSecretReader()) :> IVectorDbService
@@ -254,6 +263,7 @@ let getBookService () : IBookService =
         userViewerAsync,
         tenantViewerAsync,
         distributionPointViewerAsync,
+        getUserTenantResolverService(),
         getVectorDbService()) :> IBookService
 
 
@@ -261,12 +271,12 @@ let getBookService () : IBookService =
 let getGoogleBooksService () =
     let httpClient = new HttpClient()
     httpClient.DefaultRequestHeaders.Add("User-Agent", "BlazorBookLibraryTest/1.0")
-    GoogleBooksService(httpClient, config, tenantViewerAsync) :> IGoogleBooksService
+    GoogleBooksService(httpClient, config, tenantViewerAsync, getUserTenantResolverService()) :> IGoogleBooksService
 
 let getAuthorsSearchService () =
     let httpClient = new HttpClient()
     httpClient.DefaultRequestHeaders.Add("User-Agent", "BlazorBookLibraryTest/1.0")
-    AuthorsSearchService(httpClient, tenantViewerAsync) :> IAuthorsSearchService
+    AuthorsSearchService(httpClient, tenantViewerAsync, getUserTenantResolverService()) :> IAuthorsSearchService
 
 let getDataExportService () : IDataExportService =
     DataExportService(
@@ -279,6 +289,7 @@ let getDataExportService () : IDataExportService =
         loanViewerAsync,
         userViewerAsync,
         tenantViewerAsync,
+        getUserTenantResolverService(),
         getBookService(),
         getAuthorService(),
         getDetailsService(),
@@ -296,7 +307,7 @@ let getTenantService () : ITenantService =
     ) :> ITenantService
 
 let getTagService () : ITagService =
-    TagService(getSecretReader()) :> ITagService
+    TagService(getSecretReader(), getUserTenantResolverService()) :> ITagService
 
 let truncateVectorDb () =
     let connStr = config.GetConnectionString "VectorDbConnection"

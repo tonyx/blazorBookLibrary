@@ -40,6 +40,7 @@ type DetailsService (
     reviewsViewerAsync: AggregateViewerAsync2<Review>,
     tenantViewerAsync: AggregateViewerAsync2<Tenant>,
     distributionPointViewerAsync: AggregateViewerAsync2<DistributionPoint>,
+    userTenantResolverService: IUserTenantResolverService,
     loanService: ILoanService,
     reservationService: IReservationService,
     reviewService: IReviewService,
@@ -48,7 +49,8 @@ type DetailsService (
 
     let checkIsGlobalAdminOrTenantManager (context: UserContext) (ct: CancellationToken)= 
         taskResult {
-            let! tenant = tenantViewerAsync (ct |> Some) context.TenantId.Value |> TaskResult.map snd
+            let! tenantId = userTenantResolverService.GetTenantForUserAsync(context, ct)
+            let! tenant = tenantViewerAsync (ct |> Some) tenantId.Value |> TaskResult.map snd
             return! Security.checkIsGlobalAdminOrTenantManager tenant context
         }
 
@@ -154,10 +156,12 @@ type DetailsService (
                 let refresher =
                     fun (ct: Option<CancellationToken>) ->
                         taskResult {
-                            let! loan = loanViewerAsync ct loanId.Value |> TaskResult.map snd
-                            do! loan.TenantId = context.TenantId |> Result.ofBool $"Loan '{loanId}' doesn't belong to this tenant '{context.TenantId}'"
-                            let! book = bookViewerAsync ct loan.BookId.Value |> TaskResult.map snd
-                            let! userDetail = this.GetUserDetailsAsync (context, loan.UserId, ct |> Option.defaultValue CancellationToken.None)
+                            let ct = ct |> Option.defaultValue CancellationToken.None
+                            let! tenantId = userTenantResolverService.GetTenantForUserAsync(context, ct)
+                            let! loan = loanViewerAsync (Some ct) loanId.Value |> TaskResult.map snd
+                            do! loan.TenantId = tenantId |> Result.ofBool $"Loan '{loanId}' doesn't belong to this tenant '{tenantId}'"
+                            let! book = bookViewerAsync (Some ct) loan.BookId.Value |> TaskResult.map snd
+                            let! userDetail = this.GetUserDetailsAsync (context, loan.UserId, ct)
                             return
                                 { 
                                     Loan = loan
@@ -200,8 +204,9 @@ type DetailsService (
         fun (ct: Option<CancellationToken>) ->
             taskResult {
                 let ct = ct |> Option.defaultValue CancellationToken.None
+                let! tenantId = userTenantResolverService.GetTenantForUserAsync(context, ct)
                 let! reservation = reservationViewerAsync (ct |> Some) id.Value |> TaskResult.map snd
-                do! reservation.TenantId = context.TenantId |> Result.ofBool $"Reservation '{id}' doesn't belong to this tenant '{context.TenantId}'"
+                do! reservation.TenantId = tenantId |> Result.ofBool $"Reservation '{id}' doesn't belong to this tenant '{tenantId}'"
                 let! book = bookViewerAsync (ct |> Some) reservation.BookId.Value |> TaskResult.map snd
                 let! userDetails = this.GetUserDetailsAsync (context, reservation.UserId, ct)
                 return 
@@ -251,8 +256,9 @@ type DetailsService (
                     fun (ct: Option<CancellationToken>) ->
                         taskResult {
                             let ct = ct |> Option.defaultValue CancellationToken.None
+                            let! tenantId = userTenantResolverService.GetTenantForUserAsync(context, ct)
                             let! author = authorViewerAsync (Some ct) id.Value |> TaskResult.map snd
-                            do! author.TenantId = context.TenantId |> Result.ofBool $"Author '{id}' doesn't belong to this tenant '{context.TenantId}'"
+                            do! author.TenantId = tenantId |> Result.ofBool $"Author '{id}' doesn't belong to this tenant '{tenantId}'"
                             let! books = 
                                 author.Books
                                 |> List.traverseTaskResultM (fun bookId -> bookViewerAsync (Some ct) bookId.Value |> TaskResult.map snd)
@@ -290,8 +296,9 @@ type DetailsService (
                     fun (ct: Option<CancellationToken>) ->
                         taskResult {
                             let ct = ct |> Option.defaultValue CancellationToken.None
+                            let! tenantId = userTenantResolverService.GetTenantForUserAsync(context, ct)
                             let! book = bookViewerAsync (ct |> Some) bookId.Value |> TaskResult.map snd
-                            do! book.TenantId = context.TenantId |> Result.ofBool $"Book '{bookId}' doesn't belong to this tenant '{context.TenantId}'"
+                            do! book.TenantId = tenantId |> Result.ofBool $"Book '{bookId}' doesn't belong to this tenant '{tenantId}'"
                             let! currentLoan = 
                                 match book.CurrentLoan with
                                 | Some loanId -> 
@@ -355,8 +362,9 @@ type DetailsService (
     member this.GetAllPendingReservationDetailsAsync (context: UserContext, ?ct: CancellationToken): TaskResult<List<ReservationDetails>, string> = 
         let ct = defaultArg ct CancellationToken.None
         taskResult {
+            let! tenantId = userTenantResolverService.GetTenantForUserAsync(context, ct)
             let! reservations = 
-                StateView.getAllFilteredAggregateStatesAsync<Reservation, ReservationEvent, string> (fun reservation -> reservation.IsPending && reservation.TenantId = context.TenantId) eventStore (Some ct)
+                StateView.getAllFilteredAggregateStatesAsync<Reservation, ReservationEvent, string> (fun reservation -> reservation.IsPending && reservation.TenantId = tenantId) eventStore (Some ct)
                 |> TaskResult.map (fun reservations -> reservations |> List.map snd)
             return! reservations |> List.traverseTaskResultM (fun reservation -> this.GetReservationDetailsAsync (context, reservation.ReservationId, ct))
         }
@@ -369,8 +377,9 @@ type DetailsService (
                     fun (ct: Option<CancellationToken>) ->
                         taskResult {
                             let ct = ct |> Option.defaultValue CancellationToken.None
+                            let! tenantId = userTenantResolverService.GetTenantForUserAsync(context, ct)
                             let! review = reviewsViewerAsync (Some ct) reviewId.Value |> TaskResult.map snd
-                            do! review.TenantId = context.TenantId |> Result.ofBool $"Review '{reviewId}' doesn't belong to this tenant '{context.TenantId}'"
+                            do! review.TenantId = tenantId |> Result.ofBool $"Review '{reviewId}' doesn't belong to this tenant '{tenantId}'"
                             let! user = userViewerAsync (Some ct) review.UserId.Value |> TaskResult.map snd
                             let! book = bookViewerAsync (Some ct) review.BookId.Value |> TaskResult.map snd
                             let! authors = 
@@ -410,6 +419,7 @@ type DetailsService (
                     fun (ct: Option<CancellationToken>) ->
                         taskResult {
                             let ct = ct |> Option.defaultValue CancellationToken.None
+                            let! tenantId = userTenantResolverService.GetTenantForUserAsync(context, ct)
                             let! tenant = tenantViewerAsync (Some ct) id.Value |> TaskResult.map snd
                             let! owner = userViewerAsync (Some ct) tenant.OwnerId.Value |> TaskResult.map snd
                             let! patrons = 
@@ -417,10 +427,10 @@ type DetailsService (
                                 |> List.traverseTaskResultM 
                                     (fun (patron, role) -> userViewerAsync (ct |> Some) patron.Value |> TaskResult.map (fun x -> (x |> snd, role)))
                             let! loans = 
-                                StateView.getAllFilteredAggregateStatesAsync<Loan, LoanEvent, string> (fun loan -> loan.TenantId = context.TenantId) eventStore (Some ct)
+                                StateView.getAllFilteredAggregateStatesAsync<Loan, LoanEvent, string> (fun loan -> loan.TenantId = tenantId) eventStore (Some ct)
                                 |> TaskResult.map (fun loans -> loans |> List.map snd)
                             let! reservations = 
-                                StateView.getAllFilteredAggregateStatesAsync<Reservation, ReservationEvent, string> (fun reservation -> reservation.TenantId = context.TenantId) eventStore (Some ct)
+                                StateView.getAllFilteredAggregateStatesAsync<Reservation, ReservationEvent, string> (fun reservation -> reservation.TenantId = tenantId) eventStore (Some ct)
                                 |> TaskResult.map (fun reservations -> reservations |> List.map snd)
                             
                             let tenantDetails =   
@@ -473,8 +483,9 @@ type DetailsService (
     member this.GetAllReviewsDetailsAsync (context: UserContext, ?ct: CancellationToken): TaskResult<List<ReviewDetails>, string> = 
         let ct = defaultArg ct CancellationToken.None
         taskResult {
+            let! tenantId = userTenantResolverService.GetTenantForUserAsync(context, ct)
             let! reviews = 
-                StateView.getAllFilteredAggregateStatesAsync<Review, ReviewEvent, string> (fun review -> review.TenantId = context.TenantId) eventStore (Some ct)
+                StateView.getAllFilteredAggregateStatesAsync<Review, ReviewEvent, string> (fun review -> review.TenantId = tenantId) eventStore (Some ct)
                 |> TaskResult.map (fun reviews -> reviews |> List.map snd)
             return! reviews |> List.traverseTaskResultM (fun review -> this.GetReviewDetailsAsync (context, review.ReviewId, ct))
         }
@@ -482,13 +493,14 @@ type DetailsService (
     member this.GetApprovedVisibleReviewsOfBookAsync (context: UserContext, bookId:BookId, ?ct: CancellationToken): TaskResult<List<ReviewDetails>, string> = 
         let ct = defaultArg ct CancellationToken.None
         taskResult {
+            let! tenantId = userTenantResolverService.GetTenantForUserAsync(context, ct)
             let! book = bookViewerAsync (Some ct) bookId.Value |> TaskResult.map snd
-            do! book.TenantId = context.TenantId |> Result.ofBool $"Book '{bookId}' doesn't belong to this tenant '{context.TenantId}'"
+            do! book.TenantId = tenantId |> Result.ofBool $"Book '{bookId}' doesn't belong to this tenant '{tenantId}'"
 
             let! reviews = reviewService.GetApprovedVisibleReviewsOfBookAsync (context, bookId, ct) |> TaskResult.map (fun reviews -> reviews |> List.map snd)
             return! reviews |> List.traverseTaskResultM (fun review -> this.GetReviewDetailsAsync (context, review.ReviewId, ct))
         }
-    new(eventStore: IEventStore<string>, loanService: ILoanService, reservationService: IReservationService, reviewService: IReviewService, scopeFactory: IServiceScopeFactory) =
+    new(eventStore: IEventStore<string>, userTenantResolverService: IUserTenantResolverService, loanService: ILoanService, reservationService: IReservationService, reviewService: IReviewService, scopeFactory: IServiceScopeFactory) =
         DetailsService(
             eventStore,
             MessageSenders.NoSender,
@@ -501,14 +513,15 @@ type DetailsService (
             getAggregateStorageFreshStateViewerAsync<Review, ReviewEvent, string> eventStore,
             getAggregateStorageFreshStateViewerAsync<Tenant, TenantEvent, string> eventStore,
             getAggregateStorageFreshStateViewerAsync<DistributionPoint, DistributionPointEvent, string> eventStore,
+            userTenantResolverService,
             loanService,
             reservationService,
             reviewService,
             scopeFactory
         )
 
-    new(configuration: IConfiguration, loanService: ILoanService, reservationService: IReservationService, reviewService: IReviewService, scopeFactory: IServiceScopeFactory, secretsReader: SecretsReader) =
-        DetailsService(PgStorage.PgEventStore (secretsReader.GetBookLibraryConnectionString ()), loanService, reservationService, reviewService, scopeFactory)
+    new(configuration: IConfiguration, userTenantResolverService: IUserTenantResolverService, loanService: ILoanService, reservationService: IReservationService, reviewService: IReviewService, scopeFactory: IServiceScopeFactory, secretsReader: SecretsReader) =
+        DetailsService(PgStorage.PgEventStore (secretsReader.GetBookLibraryConnectionString ()), userTenantResolverService, loanService, reservationService, reviewService, scopeFactory)
 
     interface IDetailsService with
         member this.GetUserDetailsAsync (context, userId, ?ct) = 

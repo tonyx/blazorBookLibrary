@@ -38,6 +38,7 @@ type DataExportService
             loanViewerAsync: AggregateViewerAsync2<Loan>,
             userViewerAsync: AggregateViewerAsync2<User>,
             tenantViewerAsync: AggregateViewerAsync2<Tenant>,
+            userTenantResolverService: IUserTenantResolverService,
             bookService: IBookService,
             authorService: IAuthorService,
             detailsService: IDetailsService,
@@ -49,6 +50,7 @@ type DataExportService
 
     new (
         secretsReader: SecretsReader, 
+        userTenantResolverService: IUserTenantResolverService,
         bookService: IBookService, 
         authorService: IAuthorService,
         detailsService: IDetailsService, 
@@ -79,6 +81,7 @@ type DataExportService
             loanViewerAsync,
             userViewerAsync,
             tenantViewerAsync,
+            userTenantResolverService,
             bookService,
             authorService,
             detailsService,
@@ -126,232 +129,237 @@ type DataExportService
                 let total = List.length isbns
                 let startTime = DateTime.UtcNow
                 
-                try
-                    for i in 0 .. total - 1 do
-                        let isbn = isbns.[i]
-                        
-                        let reportProgress label = 
-                            match progressReporter with
-                            | Some p ->
-                                let processed = i
-                                let elapsed = DateTime.UtcNow - startTime
-                                let remainingTime = 
-                                    if processed > 0 then
-                                        let avgTicksPerItem = elapsed.Ticks / int64 processed
-                                        let remainingItems = total - processed
-                                        Some (TimeSpan.FromTicks(avgTicksPerItem * int64 remainingItems))
-                                    else None
-                                p.Report({ Current = processed; Total = total; EstimatedRemainingTime = remainingTime; CurrentItemLabel = label })
-                            | None -> ()
-
-                        reportProgress (Some (sprintf "Processing %s..." isbn.Value))
-                        do! Task.Delay(1000, ct)
-                        
-                        let mutable itemTitle = None
-                        let! bookImportResult = taskResult {
-                            let! skip = 
-                                if preventDuplicates then
-                                    task {
-                                        let! existingResult = bookService.SearchByIsbnAsync(context, isbn, ct = ct)
-                                        match existingResult with
-                                        | Ok l -> return Ok (not (List.isEmpty l))
-                                        | Error e -> return Error e
-                                    }
-                                else Task.FromResult (Ok false)
+                let! tenantIdResult = userTenantResolverService.GetTenantForUserAsync(context, ct)
+                match tenantIdResult with
+                | Error e ->
+                    return Error e
+                | Ok tenantId ->
+                    try
+                        for i in 0 .. total - 1 do
+                            let isbn = isbns.[i]
                             
-                            if skip then
-                                return! Error "Duplicate"
-                            else
-                                let rec lookupWithRetry (isbn: string) (retries: int) =
-                                    task {
-                                        let! res = googleBooksService.LookupByIsbnAsync(context, isbn, ct = ct)
-                                        match res with
-                                        | Error e when e.Contains("503") && retries > 0 ->
-                                            do! Task.Delay(5000, ct)
-                                            return! lookupWithRetry isbn (retries - 1)
-                                        | _ -> return res
-                                    }
+                            let reportProgress label = 
+                                match progressReporter with
+                                | Some p ->
+                                    let processed = i
+                                    let elapsed = DateTime.UtcNow - startTime
+                                    let remainingTime = 
+                                        if processed > 0 then
+                                            let avgTicksPerItem = elapsed.Ticks / int64 processed
+                                            let remainingItems = total - processed
+                                            Some (TimeSpan.FromTicks(avgTicksPerItem * int64 remainingItems))
+                                        else None
+                                    p.Report({ Current = processed; Total = total; EstimatedRemainingTime = remainingTime; CurrentItemLabel = label })
+                                | None -> ()
 
-                                let! (metadataOpt: GoogleBookMetadata option) = lookupWithRetry isbn.Value 3
+                            reportProgress (Some (sprintf "Processing %s..." isbn.Value))
+                            do! Task.Delay(1000, ct)
+                            
+                            let mutable itemTitle = None
+                            let! bookImportResult = taskResult {
+                                let! skip = 
+                                    if preventDuplicates then
+                                        task {
+                                            let! existingResult = bookService.SearchByIsbnAsync(context, isbn, ct = ct)
+                                            match existingResult with
+                                            | Ok l -> return Ok (not (List.isEmpty l))
+                                            | Error e -> return Error e
+                                        }
+                                    else Task.FromResult (Ok false)
                                 
-                                match metadataOpt with
-                                | Some metadata ->
-                                    itemTitle <- Some metadata.Title
-                                    reportProgress (Some (sprintf "Processing '%s'..." metadata.Title))
-                                    let! (coverImageOpt: string option) = 
-                                        googleBooksService.LookupCoverImageByIsbnWithOpenApiAndThenGoogleAsync(context, isbn, ct = ct)
-                                        |> Task.map (fun r -> match r with | Ok s -> Ok s | _ -> Ok None)
+                                if skip then
+                                    return! Error "Duplicate"
+                                else
+                                    let rec lookupWithRetry (isbn: string) (retries: int) =
+                                        task {
+                                            let! res = googleBooksService.LookupByIsbnAsync(context, isbn, ct = ct)
+                                            match res with
+                                            | Error e when e.Contains("503") && retries > 0 ->
+                                                do! Task.Delay(5000, ct)
+                                                return! lookupWithRetry isbn (retries - 1)
+                                            | _ -> return res
+                                        }
+
+                                    let! (metadataOpt: GoogleBookMetadata option) = lookupWithRetry isbn.Value 3
                                     
-                                    let imageUrl = 
-                                        coverImageOpt
-                                        |> Option.bind (fun s -> 
-                                            match Uri.TryCreate(s, UriKind.Absolute) with
-                                            | true, uri -> Some uri
-                                            | _ -> None)
-                                    
-                                    let authorsToProcess = 
-                                        Option.ofObj metadata.Authors 
-                                        |> Option.map List.ofSeq 
-                                        |> Option.defaultValue []
-                                    
-                                    let! authorIds = 
-                                        authorsToProcess
-                                        |> List.traverseTaskResultM (fun authorName ->
+                                    match metadataOpt with
+                                    | Some metadata ->
+                                        itemTitle <- Some metadata.Title
+                                        reportProgress (Some (sprintf "Processing '%s'..." metadata.Title))
+                                        let! (coverImageOpt: string option) = 
+                                            googleBooksService.LookupCoverImageByIsbnWithOpenApiAndThenGoogleAsync(context, isbn, ct = ct)
+                                            |> Task.map (fun r -> match r with | Ok s -> Ok s | _ -> Ok None)
+                                        
+                                        let imageUrl = 
+                                            coverImageOpt
+                                            |> Option.bind (fun s -> 
+                                                match Uri.TryCreate(s, UriKind.Absolute) with
+                                                | true, uri -> Some uri
+                                                | _ -> None)
+                                        
+                                        let authorsToProcess = 
+                                            Option.ofObj metadata.Authors 
+                                            |> Option.map List.ofSeq 
+                                            |> Option.defaultValue []
+                                        
+                                        let! authorIds = 
+                                            authorsToProcess
+                                            |> List.traverseTaskResultM (fun authorName ->
+                                                taskResult {
+                                                    let name = Name.New authorName
+                                                    let! localAuthors = authorService.SearchByNameAsync(context, name, ct = ct)
+                                                    if not (List.isEmpty localAuthors) then
+                                                        return Some localAuthors.[0].AuthorId
+                                                    elif generateUnknownAuthors then
+                                                        let! authorMeta = 
+                                                            authorsSearchService.LookupByNameAsync(context, authorName, ct = ct)
+                                                            |> Task.map (fun r -> 
+                                                                match r with
+                                                                | Ok m -> Ok (Some m)
+                                                                | Error _ -> Ok None)
+                                                        
+                                                        let! authorPic = 
+                                                            authorsSearchService.LookupImageUrlByNameAndThumbSizeAsync(context, authorName, ct = ct)
+                                                            |> Task.map (fun r -> 
+                                                                match r with
+                                                                | Ok s when not (String.IsNullOrEmpty s) -> 
+                                                                    match Uri.TryCreate(s, UriKind.Absolute) with
+                                                                    | true, uri -> Ok (Some uri)
+                                                                    | _ -> Ok None
+                                                                | _ -> Ok None)
+                                                        
+                                                        let isni = 
+                                                            authorMeta 
+                                                            |> Option.bind (fun m -> m.Isni)
+                                                            |> Option.bind (fun s -> match Isni.New s with | Ok i -> Some i | _ -> None) 
+                                                            |> Option.defaultValue Isni.EmptyIsni
+                                                        
+                                                        let author = Author.NewWithOptionalIsniAndImageUrl(tenantId, name, isni, ?imageUrl = authorPic)
+                                                        let! _ = authorService.AddAuthorAsync(context, author, ct = ct)
+                                                        return Some author.AuthorId
+                                                    else
+                                                        return None
+                                                }
+                                            )
+                                        
+                                        let finalAuthorIds = authorIds |> List.choose id
+                                        
+                                        let matchedCategories = 
+                                            Option.ofObj metadata.Categories
+                                            |> Option.map List.ofSeq
+                                            |> Option.defaultValue []
+                                            |> List.map Category.New
+                                            |> List.filter (fun c -> c <> Category.Other)
+                                        
+                                        let mainCategory = 
+                                            matchedCategories 
+                                            |> List.tryHead 
+                                            |> Option.defaultValue Category.Other
+                                        
+                                        let additionalCategories = 
+                                            if List.isEmpty matchedCategories then []
+                                            else matchedCategories |> List.skip 1
+                                        
+                                        let year = metadata.Year |> Option.defaultValue 1 |> Year.New
+                                        
+                                        let! (description: string option) = 
+                                            match metadata.Description with
+                                            | Some d when not (String.IsNullOrWhiteSpace d) -> Task.FromResult(Some d)
+                                            | _ when generateMissingDescriptions ->
+                                                task {
+                                                    reportProgress (Some (sprintf "Generating AI description for '%s'..." metadata.Title))
+                                                    let bookMatch = All (isbn.Value, metadata.Title, authorsToProcess)
+                                                    let! genResult = textEmbeddingService.GetBookDescriptionAsync(context, bookMatch, ct)
+                                                    match genResult with
+                                                    | Ok desc -> return Some desc
+                                                    | Error _ -> return None
+                                                }
+                                            | _ -> Task.FromResult(None)
+
+                                        let book = 
+                                            {
+                                                TenantId = tenantId
+                                                BookId = BookId.New()
+                                                Title = Title.New metadata.Title
+                                                ImageUrl = imageUrl
+                                                Description = description
+                                                OptionalEmbedding = None
+                                                DistributionPoint = None
+                                                Availability = Availability.Circulating
+                                                Authors = finalAuthorIds
+                                                Translators = []
+                                                Languages = []
+                                                CurrentReservations = []
+                                                CurrentLoan = None
+                                                Editor = None
+                                                MainCategory = mainCategory
+                                                AdditionalCategories = additionalCategories
+                                                Tags = []
+                                                Year = year
+                                                Isbn = isbn
+                                                Sealed = Sealed.New(DateTime.UtcNow)
+                                            }
+
+                                        let! finalBook = 
                                             taskResult {
-                                                let name = Name.New authorName
-                                                let! localAuthors = authorService.SearchByNameAsync(context, name, ct = ct)
-                                                if not (List.isEmpty localAuthors) then
-                                                    return Some localAuthors.[0].AuthorId
-                                                elif generateUnknownAuthors then
-                                                    let! authorMeta = 
-                                                        authorsSearchService.LookupByNameAsync(context, authorName, ct = ct)
-                                                        |> Task.map (fun r -> 
-                                                            match r with
-                                                            | Ok m -> Ok (Some m)
-                                                            | Error _ -> Ok None)
+                                                if generateEmbeddings then
+                                                    let textToEmbed = 
+                                                        match book.Description with
+                                                        | Some d when not (String.IsNullOrWhiteSpace d) -> 
+                                                            sprintf "%s %s" metadata.Title d
+                                                        | _ -> metadata.Title
                                                     
-                                                    let! authorPic = 
-                                                        authorsSearchService.LookupImageUrlByNameAndThumbSizeAsync(context, authorName, ct = ct)
-                                                        |> Task.map (fun r -> 
-                                                            match r with
-                                                            | Ok s when not (String.IsNullOrEmpty s) -> 
-                                                                match Uri.TryCreate(s, UriKind.Absolute) with
-                                                                | true, uri -> Ok (Some uri)
-                                                                | _ -> Ok None
-                                                            | _ -> Ok None)
+                                                    let rec getEmbeddingWithRetry (text: string) (retries: int) =
+                                                        task {
+                                                            let! res = textEmbeddingService.GetEmbeddingAsync(context, text, ct = ct)
+                                                            match res with
+                                                            | Error e when (e.Contains("429") || e.Contains("quota") || e.Contains("limit") || e.Contains("503")) && retries > 0 ->
+                                                                do! Task.Delay(2000, ct)
+                                                                return! getEmbeddingWithRetry text (retries - 1)
+                                                            | _ -> return res
+                                                        }
                                                     
-                                                    let isni = 
-                                                        authorMeta 
-                                                        |> Option.bind (fun m -> m.Isni)
-                                                        |> Option.bind (fun s -> match Isni.New s with | Ok i -> Some i | _ -> None) 
-                                                        |> Option.defaultValue Isni.EmptyIsni
-                                                    
-                                                    let author = Author.NewWithOptionalIsniAndImageUrl(context.TenantId, name, isni, ?imageUrl = authorPic)
-                                                    let! _ = authorService.AddAuthorAsync(context, author, ct = ct)
-                                                    return Some author.AuthorId
+                                                    let! (embeddingResult: EmbeddingData) = getEmbeddingWithRetry textToEmbed 3
+                                                    let embeddingId = EmbeddingDataId.New()
+                                                    let! _ = vectorDbService.StoreEmbeddingAsync(embeddingId, tenantId, book.BookId, embeddingResult, ct)
+                                                    return { book with OptionalEmbedding = Some embeddingId }
                                                 else
-                                                    return None
+                                                    return book
                                             }
-                                        )
-                                    
-                                    let finalAuthorIds = authorIds |> List.choose id
-                                    
-                                    let matchedCategories = 
-                                        Option.ofObj metadata.Categories
-                                        |> Option.map List.ofSeq
-                                        |> Option.defaultValue []
-                                        |> List.map Category.New
-                                        |> List.filter (fun c -> c <> Category.Other)
-                                    
-                                    let mainCategory = 
-                                        matchedCategories 
-                                        |> List.tryHead 
-                                        |> Option.defaultValue Category.Other
-                                    
-                                    let additionalCategories = 
-                                        if List.isEmpty matchedCategories then []
-                                        else matchedCategories |> List.skip 1
-                                    
-                                    let year = metadata.Year |> Option.defaultValue 1 |> Year.New
-                                    
-                                    let! (description: string option) = 
-                                        match metadata.Description with
-                                        | Some d when not (String.IsNullOrWhiteSpace d) -> Task.FromResult(Some d)
-                                        | _ when generateMissingDescriptions ->
-                                            task {
-                                                reportProgress (Some (sprintf "Generating AI description for '%s'..." metadata.Title))
-                                                let bookMatch = All (isbn.Value, metadata.Title, authorsToProcess)
-                                                let! genResult = textEmbeddingService.GetBookDescriptionAsync(context, bookMatch, ct)
-                                                match genResult with
-                                                | Ok desc -> return Some desc
-                                                | Error _ -> return None
-                                            }
-                                        | _ -> Task.FromResult(None)
+                                            |> Task.map (fun r -> match r with | Ok b -> b | _ -> book)
 
-                                    let book = 
-                                        {
-                                            TenantId = context.TenantId
-                                            BookId = BookId.New()
-                                            Title = Title.New metadata.Title
-                                            ImageUrl = imageUrl
-                                            Description = description
-                                            OptionalEmbedding = None
-                                            DistributionPoint = None
-                                            Availability = Availability.Circulating
-                                            Authors = finalAuthorIds
-                                            Translators = []
-                                            Languages = []
-                                            CurrentReservations = []
-                                            CurrentLoan = None
-                                            Editor = None
-                                            MainCategory = mainCategory
-                                            AdditionalCategories = additionalCategories
-                                            Tags = []
-                                            Year = year
-                                            Isbn = isbn
-                                            Sealed = Sealed.New(DateTime.UtcNow)
-                                        }
+                                        let! _ = bookService.AddBookAsync(context, finalBook, ct = ct)
+                                        return ()
+                                    | None -> 
+                                        return! Error "Metadata not found"
+                            }
+                            
+                            let detail = 
+                                match bookImportResult with
+                                | Ok _ -> { Isbn = isbn; Status = Success; Title = itemTitle }
+                                | Error "Duplicate" -> { Isbn = isbn; Status = Duplicate; Title = itemTitle }
+                                | Error e -> { Isbn = isbn; Status = Failure e; Title = itemTitle }
+                            
+                            details.Add(detail)
+                    with
+                    | :? OperationCanceledException ->
+                        for j in details.Count .. total - 1 do
+                            details.Add({ Isbn = isbns.[j]; Status = Interrupted; Title = None })
+                    
+                    let detailsList = details |> Seq.toList
+                    let successCount = detailsList |> List.filter (fun d -> match d.Status with | Success -> true | _ -> false) |> List.length
+                    let failureCount = detailsList |> List.filter (fun d -> match d.Status with | Failure _ -> true | _ -> false) |> List.length
+                    let duplicateCount = detailsList |> List.filter (fun d -> match d.Status with | Duplicate -> true | _ -> false) |> List.length
+                    let interruptedCount = detailsList |> List.filter (fun d -> match d.Status with | Interrupted -> true | _ -> false) |> List.length
+                    
+                    let summary = {
+                        Details = detailsList
+                        TotalProcessed = total
+                        SuccessCount = successCount
+                        FailureCount = failureCount
+                        DuplicateCount = duplicateCount
+                        InterruptedCount = interruptedCount
+                    }
 
-                                    let! finalBook = 
-                                        taskResult {
-                                            if generateEmbeddings then
-                                                let textToEmbed = 
-                                                    match book.Description with
-                                                    | Some d when not (String.IsNullOrWhiteSpace d) -> 
-                                                        sprintf "%s %s" metadata.Title d
-                                                    | _ -> metadata.Title
-                                                
-                                                let rec getEmbeddingWithRetry (text: string) (retries: int) =
-                                                    task {
-                                                        let! res = textEmbeddingService.GetEmbeddingAsync(context, text, ct = ct)
-                                                        match res with
-                                                        | Error e when (e.Contains("429") || e.Contains("quota") || e.Contains("limit") || e.Contains("503")) && retries > 0 ->
-                                                            do! Task.Delay(2000, ct)
-                                                            return! getEmbeddingWithRetry text (retries - 1)
-                                                        | _ -> return res
-                                                    }
-                                                
-                                                let! (embeddingResult: EmbeddingData) = getEmbeddingWithRetry textToEmbed 3
-                                                let embeddingId = EmbeddingDataId.New()
-                                                let! _ = vectorDbService.StoreEmbeddingAsync(embeddingId, context.TenantId, book.BookId, embeddingResult, ct)
-                                                return { book with OptionalEmbedding = Some embeddingId }
-                                            else
-                                                return book
-                                        }
-                                        |> Task.map (fun r -> match r with | Ok b -> b | _ -> book)
-
-                                    let! _ = bookService.AddBookAsync(context, finalBook, ct = ct)
-                                    return ()
-                                | None -> 
-                                    return! Error "Metadata not found"
-                        }
-                        
-                        let detail = 
-                            match bookImportResult with
-                            | Ok _ -> { Isbn = isbn; Status = Success; Title = itemTitle }
-                            | Error "Duplicate" -> { Isbn = isbn; Status = Duplicate; Title = itemTitle }
-                            | Error e -> { Isbn = isbn; Status = Failure e; Title = itemTitle }
-                        
-                        details.Add(detail)
-                with
-                | :? OperationCanceledException ->
-                    for j in details.Count .. total - 1 do
-                        details.Add({ Isbn = isbns.[j]; Status = Interrupted; Title = None })
-                
-                let detailsList = details |> Seq.toList
-                let successCount = detailsList |> List.filter (fun d -> match d.Status with | Success -> true | _ -> false) |> List.length
-                let failureCount = detailsList |> List.filter (fun d -> match d.Status with | Failure _ -> true | _ -> false) |> List.length
-                let duplicateCount = detailsList |> List.filter (fun d -> match d.Status with | Duplicate -> true | _ -> false) |> List.length
-                let interruptedCount = detailsList |> List.filter (fun d -> match d.Status with | Interrupted -> true | _ -> false) |> List.length
-                
-                let summary = {
-                    Details = detailsList
-                    TotalProcessed = total
-                    SuccessCount = successCount
-                    FailureCount = failureCount
-                    DuplicateCount = duplicateCount
-                    InterruptedCount = interruptedCount
-                }
-
-                return Ok summary
+                    return Ok summary
             }

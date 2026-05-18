@@ -18,20 +18,22 @@ type DistributionPointService
         eventStore: IEventStore<string>,
         messageSenders: MessageSenders,
         userViewerAsync: AggregateViewerAsync2<User>,
-        tenantViewerAsync: AggregateViewerAsync2<Tenant>
+        tenantViewerAsync: AggregateViewerAsync2<Tenant>,
+        userTenantResolverService: IUserTenantResolverService
     ) =
     let checkIsGlobalAdminOrTenantManager (context: UserContext) (ct: CancellationToken)= 
         taskResult {
-            let! tenant = tenantViewerAsync (ct |> Some) context.TenantId.Value |> TaskResult.map snd
+            let! tenantId = userTenantResolverService.GetTenantForUserAsync(context, ct)
+            let! tenant = tenantViewerAsync (ct |> Some) tenantId.Value |> TaskResult.map snd
             return! Security.checkIsGlobalAdminOrTenantManager tenant context
         }
-    new(secretsReader: SecretsReader, configuration: IConfiguration) =
+    new(secretsReader: SecretsReader, configuration: IConfiguration, userTenantResolverService: IUserTenantResolverService) =
         let connectionString = secretsReader.GetBookLibraryConnectionString ()
         let eventStore = PgStorage.PgEventStore connectionString
         let messageSenders = MessageSenders.NoSender
         let userViewerAsync = getAggregateStorageFreshStateViewerAsync<User, UserEvent, string> eventStore
         let tenantViewerAsync = getAggregateStorageFreshStateViewerAsync<Tenant, TenantEvent, string> eventStore
-        DistributionPointService(eventStore, messageSenders, userViewerAsync, tenantViewerAsync)
+        DistributionPointService(eventStore, messageSenders, userViewerAsync, tenantViewerAsync, userTenantResolverService)
     member this.GetAllDistributionPointsAsync(context: UserContext, ?ct: CancellationToken) = 
         taskResult
             {
@@ -53,6 +55,8 @@ type DistributionPointService
     member this.GetDistributionPointAsync(context: UserContext, id: DistributionPointId, ?ct: CancellationToken) = 
         taskResult
             {
+                let ctValue = defaultArg ct CancellationToken.None
+                let! tenantId = userTenantResolverService.GetTenantForUserAsync(context, ctValue)
                 let! result = 
                     StateView.getAggregateFreshStateAsync<DistributionPoint, DistributionPointEvent, string>
                         id.Value
@@ -60,8 +64,8 @@ type DistributionPointService
                         ct
                     |> TaskResult.map snd 
                 do!
-                    result.TenantId = context.TenantId
-                    |> Result.ofBool $"Distribution point {id.Value} not found for tenant {context.TenantId}"
+                    result.TenantId = tenantId
+                    |> Result.ofBool $"Distribution point {id.Value} not found for tenant {tenantId}"
                 
                 return result 
             }
@@ -69,9 +73,11 @@ type DistributionPointService
     member this.FindDistributionPointsAsync(context: UserContext, name: Name, ?ct: CancellationToken) = 
         taskResult
             {
+                let ctValue = defaultArg ct CancellationToken.None
+                let! tenantId = userTenantResolverService.GetTenantForUserAsync(context, ctValue)
                 let! result = 
                     StateView.getAllFilteredAggregateStatesAsync<DistributionPoint, DistributionPointEvent, string>
-                        (fun (x: DistributionPoint) -> x.Name.Value.ToLower().Contains(name.Value.ToLower()) && context.TenantId = x.TenantId )
+                        (fun (x: DistributionPoint) -> x.Name.Value.ToLower().Contains(name.Value.ToLower()) && tenantId = x.TenantId )
                         eventStore
                         ct
                 return result |>> snd
@@ -80,10 +86,12 @@ type DistributionPointService
     member this.CreateDistributionPointAsync(context: UserContext, distributionPoint: DistributionPoint, ?ct: CancellationToken) = 
         taskResult
             {
-                do! checkIsGlobalAdminOrTenantManager context (defaultArg ct CancellationToken.None)
+                let ctValue = defaultArg ct CancellationToken.None
+                do! checkIsGlobalAdminOrTenantManager context ctValue
+                let! tenantId = userTenantResolverService.GetTenantForUserAsync(context, ctValue)
                 do! 
-                    distributionPoint.TenantId = context.TenantId
-                    |> Result.ofBool $"Distribution point tenant id {distributionPoint.TenantId} does not match user tenant id {context.TenantId}"
+                    distributionPoint.TenantId = tenantId
+                    |> Result.ofBool $"Distribution point tenant id {distributionPoint.TenantId} does not match user tenant id {tenantId}"
 
                 return!
                     runInitAsync<DistributionPoint, DistributionPointEvent, string>

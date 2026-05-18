@@ -51,27 +51,29 @@ type TextEmbeddingService
         bookViewerAsync: AggregateViewerAsync2<Book>,
         detailsService: IDetailsService,
         tenantViewerAsync: AggregateViewerAsync2<Tenant>,
-        apiKey: string
+        apiKey: string,
+        userTenantResolverService: IUserTenantResolverService
     ) =
     let checkIsGlobalAdminOrTenantManager (context: UserContext) (ct: CancellationToken)= 
         taskResult {
-            let! tenant = tenantViewerAsync (ct |> Some) context.TenantId.Value |> TaskResult.map snd
+            let! tenantId = userTenantResolverService.GetTenantForUserAsync(context, ct)
+            let! tenant = tenantViewerAsync (ct |> Some) tenantId.Value |> TaskResult.map snd
             return! Security.checkIsGlobalAdminOrTenantManager tenant context
         }
 
-    new (eventStore: IEventStore<string>, httpClient: HttpClient, detailsService: IDetailsService, apiKey: string) =
+    new (eventStore: IEventStore<string>, httpClient: HttpClient, detailsService: IDetailsService, apiKey: string, userTenantResolverService: IUserTenantResolverService) =
         let messageSenders = MessageSenders.NoSender
         let reviewViewerAsync = getAggregateStorageFreshStateViewerAsync<Review, ReviewEvent, string> eventStore
         let bookViewerAsync = getAggregateStorageFreshStateViewerAsync<Book, BookEvent, string> eventStore
         let tenantViewerAsync = getAggregateStorageFreshStateViewerAsync<Tenant, TenantEvent, string> eventStore
-        TextEmbeddingService(eventStore, messageSenders, httpClient, reviewViewerAsync, bookViewerAsync, detailsService, tenantViewerAsync, apiKey)
+        TextEmbeddingService(eventStore, messageSenders, httpClient, reviewViewerAsync, bookViewerAsync, detailsService, tenantViewerAsync, apiKey, userTenantResolverService)
 
-    new (configuration: IConfiguration, httpClient: HttpClient, detailsService: IDetailsService, secretsReader: SecretsReader) = 
+    new (configuration: IConfiguration, httpClient: HttpClient, detailsService: IDetailsService, secretsReader: SecretsReader, userTenantResolverService: IUserTenantResolverService) = 
         let apiKey = configuration.GetValue<string>("GoogleVectorApiKey")
         if String.IsNullOrWhiteSpace apiKey then
             failwith "GoogleVectorApiKey is missing in configuration"
         let eventStore = PgStorage.PgEventStore (secretsReader.GetBookLibraryConnectionString ())
-        TextEmbeddingService(eventStore, httpClient, detailsService, apiKey)
+        TextEmbeddingService(eventStore, httpClient, detailsService, apiKey, userTenantResolverService)
 
     interface ITextEmbeddingService with
         member this.GetEmbeddingAsync(context: UserContext, text: string, [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken) =

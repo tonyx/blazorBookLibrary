@@ -31,28 +31,32 @@ type AdminService
         messageSender: MessageSenders,
         vectorDbService: IVectorDbService,
         bookService: IBookService,
-        tenantViewerAsync: AggregateViewerAsync2<Tenant>
+        tenantViewerAsync: AggregateViewerAsync2<Tenant>,
+        userTenantResolverService: IUserTenantResolverService
     ) =
     let checkIsGlobalAdminOrTenantManager (context: UserContext) (ct: CancellationToken)= 
         taskResult {
-            let! tenant = tenantViewerAsync (Some ct) context.TenantId.Value |> TaskResult.map snd
+            let! tenantId = userTenantResolverService.GetTenantForUserAsync(context, ct)
+            let! tenant = tenantViewerAsync (Some ct) tenantId.Value |> TaskResult.map snd
             return! Security.checkIsGlobalAdminOrTenantManager tenant context
         }
 
-    new(secretsReader: SecretsReader, configuration: IConfiguration, vectorDbService: IVectorDbService, bookService: IBookService) =
+    new(secretsReader: SecretsReader, configuration: IConfiguration, vectorDbService: IVectorDbService, bookService: IBookService, userTenantResolverService: IUserTenantResolverService) =
         AdminService (
             PgStorage.PgEventStore (secretsReader.GetBookLibraryConnectionString()), 
             MessageSenders.NoSender, 
             vectorDbService, 
             bookService, 
-            getAggregateStorageFreshStateViewerAsync<Tenant, TenantEvent, string> (PgStorage.PgEventStore (secretsReader.GetBookLibraryConnectionString()))
+            getAggregateStorageFreshStateViewerAsync<Tenant, TenantEvent, string> (PgStorage.PgEventStore (secretsReader.GetBookLibraryConnectionString())),
+            userTenantResolverService
         )
 
     member this.PurgeVectorsReferringDroppedBooksAsync (context: UserContext, ?ct) = 
         let ct = defaultArg ct CancellationToken.None
         taskResult {
                 do! checkIsGlobalAdminOrTenantManager context ct
-                let! vectorDbItemsWithBookIds = vectorDbService.ReadAllEmbeddingIdsWithBookIdsAsync (context.TenantId, ?ct = Some ct)
+                let! tenantId = userTenantResolverService.GetTenantForUserAsync(context, ct)
+                let! vectorDbItemsWithBookIds = vectorDbService.ReadAllEmbeddingIdsWithBookIdsAsync (tenantId, ?ct = Some ct)
                 let! results = 
                     vectorDbItemsWithBookIds
                     |> Seq.map (fun (embeddingDataId, bookId) -> 
@@ -186,8 +190,9 @@ type AdminService
         let ct = defaultArg ct CancellationToken.None
         taskResult {
             do! checkIsGlobalAdminOrTenantManager context ct
+            let! tenantId = userTenantResolverService.GetTenantForUserAsync(context, ct)
             
-            let! allPairs = vectorDbService.ReadAllEmbeddingIdsWithBookIdsAsync(context.TenantId, ?ct = Some ct)
+            let! allPairs = vectorDbService.ReadAllEmbeddingIdsWithBookIdsAsync(tenantId, ?ct = Some ct)
             
             let duplicates = 
                 allPairs

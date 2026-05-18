@@ -19,7 +19,7 @@ module GoogleBooksTests =
                 .Build()
 
         let httpClient = new HttpClient()
-        GoogleBooksService(httpClient, config, tenantViewerAsync) :> IGoogleBooksService
+        GoogleBooksService(httpClient, config, tenantViewerAsync, getUserTenantResolverService()) :> IGoogleBooksService
 
     let googleService = getService()
 

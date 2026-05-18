@@ -42,23 +42,26 @@ type AuthorsSearchService
 
 
         httpClient: HttpClient,
-        tenantViewerAsync: AggregateViewerAsync2<Tenant>
+        tenantViewerAsync: AggregateViewerAsync2<Tenant>,
+        userTenantResolverService: IUserTenantResolverService
     ) =
 
     let checkIsGlobalAdminOrTenantManager (context: UserContext) (ct: CancellationToken)= 
         taskResult {
-            let! tenant = tenantViewerAsync (ct |> Some) context.TenantId.Value |> TaskResult.map snd
+            let! tenantId = userTenantResolverService.GetTenantForUserAsync(context, ct)
+            let! tenant = tenantViewerAsync (ct |> Some) tenantId.Value |> TaskResult.map snd
             return! Security.checkIsGlobalAdminOrTenantManager tenant context
         }
 
 
 
     [<ActivatorUtilitiesConstructor>]
-    new(httpClient: HttpClient, secretsReader: SecretsReader) =
+    new(httpClient: HttpClient, secretsReader: SecretsReader, userTenantResolverService: IUserTenantResolverService) =
 
         AuthorsSearchService(
             httpClient, 
-            getAggregateStorageFreshStateViewerAsync<Tenant, TenantEvent, string> (PgStorage.PgEventStore (secretsReader.GetBookLibraryConnectionString()))
+            getAggregateStorageFreshStateViewerAsync<Tenant, TenantEvent, string> (PgStorage.PgEventStore (secretsReader.GetBookLibraryConnectionString())),
+            userTenantResolverService
         )
 
     interface IAuthorsSearchService with

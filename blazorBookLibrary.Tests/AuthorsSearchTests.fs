@@ -11,7 +11,7 @@ module AuthorsSearchTests =
     let getService () =
         let httpClient = new HttpClient()
         httpClient.DefaultRequestHeaders.Add("User-Agent", "BlazorBookLibrary/1.0")
-        AuthorsSearchService(httpClient, tenantViewerAsync) :> IAuthorsSearchService
+        AuthorsSearchService(httpClient, tenantViewerAsync, getUserTenantResolverService()) :> IAuthorsSearchService
 
     let authorsSearchService = getService()
 
