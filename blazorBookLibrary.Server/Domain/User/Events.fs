@@ -51,7 +51,6 @@ type UserEvent =
             | AppUserInfoSet appUserInfo ->
                 user.SetAppUserInfo appUserInfo
             | CurrentTenantSet tenantId ->
-                printfn "XXXXXX. processing CurrentTenantSet event" 
                 user.SetCurrentTenant tenantId
 
     static member Deserialize (x: string): Result<UserEvent, string> =

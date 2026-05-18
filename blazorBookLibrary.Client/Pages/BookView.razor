@@ -414,7 +414,6 @@
                 var bookId = BookId.NewBookId(guid);
                 var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
                 var context = TenantState.GetUserContext(authState.User);
-                Console.WriteLine("XXXXXXXX: Context TenantId: " + context.TenantId);
                 var result = await DetailsService.GetBookDetailsAsync(context, bookId, FSharpOption<CancellationToken>.None);
 
                 if (result.IsOk)
