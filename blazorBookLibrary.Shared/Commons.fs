@@ -530,20 +530,20 @@ type UserContext =
             | Authenticated(userId, _) -> Some userId
             | Anonymous -> None
 
-        member this.TenantId =
-            match this with
-            | Anonymous -> TenantId.Default
-            | Authenticated(userId, _) ->
-                match UserContext.UserTenantProvider with
-                | None -> 
-                    match tenantTable.TryGetValue(this) with
-                    | true, tenantId -> tenantId
-                    | _ -> TenantId.Default
-                | Some provider ->
-                    try
-                        provider userId.Value
-                    with _ ->
-                        TenantId.Default
+        // member this.TenantId =
+        //     match this with
+        //     | Anonymous -> TenantId.Default
+        //     | Authenticated(userId, _) ->
+        //         match UserContext.UserTenantProvider with
+        //         | None -> 
+        //             match tenantTable.TryGetValue(this) with
+        //             | true, tenantId -> tenantId
+        //             | _ -> TenantId.Default
+        //         | Some provider ->
+        //             try
+        //                 provider userId.Value
+        //             with _ ->
+        //                 TenantId.Default
 
         member this.Roles =
             match this with

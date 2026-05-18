@@ -11,8 +11,10 @@
 
 @attribute [Authorize(Roles = "Admin, Manager")]
 @inject IAuthorService AuthorService
+@inject IUserTenantResolverService UserTenantResolverService
 @inject IAuthorsSearchService AuthorsSearchService
 @inject IJSRuntime JSRuntime
+@inject ILogger<AuthorsManager> Logger
 @inject IStringLocalizer<SharedResources> L
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject blazorBookLibrary.Client.Services.TenantStateService TenantState
@@ -379,10 +381,19 @@
             return;
         }
 
-        var author = Author.NewWithOptionalIsniAndImageUrlAndBio(context.TenantId, name, isniOpt, imageUrlOpt, FSharpOption<string>.Some(newAuthorBio), wikipediaUriOpt);
+        var tryTenant = await UserTenantResolverService.GetTenantForUserAsync(context);
+        if (tryTenant.IsError) 
+        {
+            await ShowStatus("an error occurred", "error");
+            Logger.LogError(tryTenant.ErrorValue);
+            return;
+        }
+        var tenantId = tryTenant.ResultValue;
+
+        var author = Author.NewWithOptionalIsniAndImageUrlAndBio(tenantId, name, isniOpt, imageUrlOpt, FSharpOption<string>.Some(newAuthorBio), wikipediaUriOpt);
         var result = await AuthorService.AddAuthorAsync(context, author);
 
-        if (result.IsOk)
+        if (tryTenant.IsOk)
         {
             await ShowStatus(string.Format(L["AuthorAddedSuccessfully"], newAuthorName), "success");
             newAuthorName = "";
@@ -395,7 +406,7 @@
         }
         else
         {
-            await ShowStatus(string.Format(L["ErrorCreatingAuthor"], result.ErrorValue), "error");
+            await ShowStatus(string.Format(L["ErrorCreatingAuthor"], tryTenant.ErrorValue), "error");
         }
     }
 

@@ -13,6 +13,7 @@
 
 @attribute [Authorize]
 @inject IReviewService ReviewService
+@inject IUserService UserService
 @inject IBookService BookService
 @inject IDetailsService DetailsService
 @inject NavigationManager NavigationManager
@@ -183,6 +184,7 @@
     private bool isSubmitting = false;
     private string errorMessage = "";
     private UserId? currentUserId;
+    private User? currentUser;
 
     protected override async Task OnInitializedAsync()
     {
@@ -196,6 +198,7 @@
             isLoading = true;
             var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
             var user = authState.User;
+            var context = blazorBookLibrary.Shared.ConverterUtils.fromClaimsPrincipal(user);
 
             if (user.Identity?.IsAuthenticated != true)
             {
@@ -211,6 +214,14 @@
             }
 
             currentUserId = UserId.NewUserId(userGuid);
+            var currentUserResult = await UserService.GetUserAsync(context, currentUserId, CancellationToken.None);
+            if (currentUserResult.IsError)
+            {
+                NavigationManager.NavigateTo("/");
+                return;
+            }
+            currentUser = currentUserResult.ResultValue;
+            
             var reviewSystemEnabled = Configuration.GetValue<bool>("BooksLibrary:ReviewSytemEnabled");
             if (!reviewSystemEnabled)
             {
@@ -223,7 +234,6 @@
             var bookId = BookId.NewBookId(bookIdGuid);
 
             // Check if user has loaned the book at least once
-            var context = blazorBookLibrary.Shared.ConverterUtils.fromClaimsPrincipal(user);
             var loanCheckResult = await BookService.LoanedByUserAtLeastOnceAsync(context, bookId, currentUserId, CancellationToken.None);
             if (loanCheckResult.IsError || !loanCheckResult.ResultValue)
             {
@@ -292,7 +302,7 @@
 
     private async Task SaveReview(bool isHidden)
     {
-        if (currentUserId == null || book == null) return;
+        if (currentUserId == null || book == null || currentUser == null) return;
 
         isSubmitting = true;
         errorMessage = "";
@@ -304,8 +314,8 @@
 
             var bookId = BookId.NewBookId(bookIdGuid);
             var review = isHidden 
-                ? Review.NewHidden(context.TenantId, bookId, currentUserId, comment, DateTime.UtcNow)
-                : Review.New(context.TenantId, bookId, currentUserId, comment, DateTime.UtcNow);
+                ? Review.NewHidden(currentUser.CurrentTenant, bookId, currentUserId, comment, DateTime.UtcNow)
+                : Review.New(currentUser.CurrentTenant, bookId, currentUserId, comment, DateTime.UtcNow);
 
             var result = await ReviewService.AddReviewAsync(context, review, CancellationToken.None);
             if (result.IsOk)

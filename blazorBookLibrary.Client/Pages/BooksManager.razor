@@ -17,6 +17,8 @@
 @inject IBookService BookService
 @inject IUserService UserService
 @inject AuthenticationStateProvider AuthenticationStateProvider
+@inject ILogger<AuthorsManager> Logger
+@inject IUserTenantResolverService UserTenantResolverService
 @inject ITagService TagService
 @inject IDataExportService DataExportService
 @inject IAuthorService AuthorService
@@ -1247,11 +1249,20 @@
 
         var availability = Availability.FromString(newBookAvailability);
 
+        var tryTenant = await UserTenantResolverService.GetTenantForUserAsync(context);
+        if (tryTenant.IsError) 
+        {
+            await ShowStatus("an error occurred", "error");
+            Logger.LogError(tryTenant.ErrorValue);
+            return;
+        }
+        var tenantId = tryTenant.ResultValue;
+
         Book book;
         if (selectedDistributionPointId != Guid.Empty)
         {
             book = Book.NewWithAvailabilityAndDistributionPoint(
-                context.TenantId,
+                tenantId,
                 title, 
                 ListModule.OfSeq(authorIds),
                 ListModule.OfSeq(Enumerable.Empty<AuthorId>()),
@@ -1270,7 +1281,7 @@
         else
         {
             book = Book.NewWithAvailability(
-                context.TenantId,
+                tenantId,
                 title, 
                 ListModule.OfSeq(authorIds),
                 ListModule.OfSeq(Enumerable.Empty<AuthorId>()),
@@ -1568,7 +1579,16 @@
             return;
         }
 
-        var author = Author.NewWithoutIsni(context.TenantId, Name.New(name));
+        var tryTenant = await UserTenantResolverService.GetTenantForUserAsync(context);
+        if (tryTenant.IsError) 
+        {
+            await ShowStatus("an error occurred", "error");
+            Logger.LogError(tryTenant.ErrorValue);
+            return;
+        }
+        var tenantId = tryTenant.ResultValue;
+
+        var author = Author.NewWithoutIsni(tenantId, Name.New(name));
         var result = await AuthorService.AddAuthorAsync(context, author);
         if (result.IsOk)
         {

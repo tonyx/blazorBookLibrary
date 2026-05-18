@@ -6,6 +6,7 @@
 @using BookLibrary.Shared
 @using static BookLibrary.Shared.Commons
 @using blazorBookLibrary.Shared.Security
+@using blazorBookLibrary.Shared
 @using Microsoft.FSharp.Core
 
 @inject IBookService BookService
@@ -16,6 +17,8 @@
 @inject IConfiguration Configuration
 @inject IDetailsService DetailsService
 @inject IReviewService ReviewService
+@inject IUserTenantResolverService UserTenantResolverService
+@inject ILogger<AuthorsManager> Logger
 @inject NavigationManager NavManager
 @inject IJSRuntime JSRuntime
 @using Microsoft.Extensions.Localization
@@ -367,13 +370,22 @@
             int loanDuration = Configuration.GetValue<int>("BooksLibrary:TimeSlotLoanDurationInDays", 25);
             var now = DateTime.UtcNow;
             var nextSlot = bookDetails.GetNextAvailableTimeSlot(loanDuration, now);
+            var context = ConverterUtils.fromClaimsPrincipal(authState.User);
+
+            var tryTenant = await UserTenantResolverService.GetTenantForUserAsync(context);
+            if (tryTenant.IsError) 
+            {
+                Logger.LogError(tryTenant.ErrorValue);
+                await ShowStatus("an error occurred", "error");
+                return;
+            }
+            var tenantId = tryTenant.ResultValue;
             
-            var context = TenantState.GetUserContext(authState.User);
-            var reservation = Reservation.New(context.TenantId, bookDetails.Book.BookId, sharpinoUserId, nextSlot, now);
+            var reservation = Reservation.New(tenantId, bookDetails.Book.BookId, sharpinoUserId, nextSlot, now);
             
             var result = await ReservationService.AddReservationAsync(context, reservation, ShortLang.New(CultureInfo.CurrentCulture.Name.Substring(0,2)), FSharpOption<System.Threading.CancellationToken>.None);
             
-            if (result.IsOk)
+            if (tryTenant.IsOk)
             {
                 await ShowStatus(L["ReservationSuccessMessage"], "alert-success");
                 await LoadBookDetails();
@@ -381,7 +393,7 @@
             }
             else
             {
-                await ShowStatus(L["ReservationFailedMessage", result.ErrorValue], "alert-danger");
+                await ShowStatus(L["ReservationFailedMessage", tryTenant.ErrorValue], "alert-danger");
             }
         }
         catch (Exception ex)

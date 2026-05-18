@@ -39,6 +39,7 @@ type UserService
         userViewerAsync: AggregateViewerAsync2<User>,
         reviewsViewerAsync: AggregateViewerAsync2<Review>,
         tenantViewerAsync: AggregateViewerAsync2<Tenant>,
+        userTenantResolverService: IUserTenantResolverService,
         distributionPointViewerAsync: AggregateViewerAsync2<DistributionPoint>,
         reviewService: IReviewService,
         scopeFactory: IServiceScopeFactory,
@@ -46,17 +47,24 @@ type UserService
     =
     let checkIsGlobalAdminOrTenantManager (context: UserContext) (ct: CancellationToken)= 
         taskResult {
-            let! tenant = tenantViewerAsync (ct |> Some) context.TenantId.Value |> TaskResult.map snd
+
+            let! tenantId = 
+                userTenantResolverService.GetTenantForUserAsync(context, ct)
+            let! tenant = tenantViewerAsync (ct |> Some) tenantId.Value |> TaskResult.map snd
             return! Security.checkIsGlobalAdminOrTenantManager tenant context
         }
     let checkIsGlobalAdminOrTenantManagerOrSelf (context: UserContext) (ct: CancellationToken) (userId: UserId)= 
         taskResult {
-            let! tenant = tenantViewerAsync (ct |> Some) context.TenantId.Value |> TaskResult.map snd
+            let! tenantId = 
+                userTenantResolverService.GetTenantForUserAsync(context, ct)
+            let! tenant = tenantViewerAsync (ct |> Some) tenantId.Value |> TaskResult.map snd
             return! Security.checkIsGlobalAdminOrTenantManagerOrSelf tenant context userId
         }
     let checkIsGlobalAdminOrTenantManagerOrPublicTenant (context: UserContext) (ct: CancellationToken)= 
         taskResult {
-            let! tenant = tenantViewerAsync (ct |> Some) context.TenantId.Value |> TaskResult.map snd
+            let! tenantId = 
+                userTenantResolverService.GetTenantForUserAsync(context, ct)
+            let! tenant = tenantViewerAsync (ct |> Some) tenantId.Value |> TaskResult.map snd
             return! Security.checkIsGlobalAdminOrTenantManagerOrPublicTenant tenant context
         }
 
@@ -72,6 +80,10 @@ type UserService
                     let! currentLoans =
                         user.CurrentLoans
                         |> List.traverseTaskResultM (fun loanId -> loanViewerAsync (Some ct) loanId.Value |> TaskResult.map snd)
+
+                    let! tenantId = 
+                        userTenantResolverService.GetTenantForUserAsync(context, ct)
+                    let! tenant = tenantViewerAsync (ct |> Some) tenantId.Value |> TaskResult.map snd
 
                     let! reservedBooks =
                         futurereservations
@@ -90,7 +102,7 @@ type UserService
                     let! booksAndReviews =
                         reviewService.GetReviewsOfUserAsync(context, id, ct)
                         
-                    let! currentTenant = tenantViewerAsync (Some ct) context.TenantId.Value |> TaskResult.map snd
+                    let! currentTenant = tenantViewerAsync (Some ct) tenantId.Value |> TaskResult.map snd
                         
                     return 
                         {
@@ -284,18 +296,21 @@ type UserService
         let ct = defaultArg ct CancellationToken.None
         taskResult
             {
+                let! tenantId = 
+                    userTenantResolverService.GetTenantForUserAsync(context, ct)
+
                 let! distributionPoints = 
                     StateView.getAllFilteredAggregateStatesAsync<DistributionPoint, DistributionPointEvent, string> 
                         (fun (dp: DistributionPoint) -> 
                             dp.ReferenceUsers |> List.exists (fun (id: UserId) -> id = userId) &&
-                            dp.TenantId = context.TenantId
+                            dp.TenantId = tenantId
                         )
                         eventStore
                         (ct |> Some)
                 return distributionPoints |> List.map snd
             }
 
-    new(eventStore: IEventStore<string>, scopeFactory: IServiceScopeFactory, reviewService: IReviewService, logger: ILogger<UserService>) =
+    new(eventStore: IEventStore<string>, scopeFactory: IServiceScopeFactory, reviewService: IReviewService, userTenantResolverService: IUserTenantResolverService, logger: ILogger<UserService>) =
         UserService(
             eventStore,
             MessageSenders.NoSender,
@@ -307,6 +322,7 @@ type UserService
             getAggregateStorageFreshStateViewerAsync<User, UserEvent, string> eventStore,
             getAggregateStorageFreshStateViewerAsync<Review, ReviewEvent, string> eventStore,
             getAggregateStorageFreshStateViewerAsync<Tenant, TenantEvent, string> eventStore,
+            userTenantResolverService,
             getAggregateStorageFreshStateViewerAsync<DistributionPoint, DistributionPointEvent, string> eventStore,
             reviewService,
             scopeFactory,
@@ -357,8 +373,8 @@ type UserService
                 return! result
             }
 
-    new(configuration: IConfiguration, scopeFactory: IServiceScopeFactory, secretsReader: BookLibrary.Utils.SecretsReader, reviewService: IReviewService, logger: ILogger<UserService>) =
-        UserService(PgStorage.PgEventStore (secretsReader.GetBookLibraryConnectionString ()), scopeFactory, reviewService, logger)
+    new(configuration: IConfiguration, scopeFactory: IServiceScopeFactory, secretsReader: BookLibrary.Utils.SecretsReader, reviewService: IReviewService, userTenantResolverService: IUserTenantResolverService, logger: ILogger<UserService>) =
+        UserService(PgStorage.PgEventStore (secretsReader.GetBookLibraryConnectionString ()), scopeFactory, reviewService, userTenantResolverService, logger)
 
     interface IUserService with
         member this.CreateUserAsync (context, user: User, ?ct: CancellationToken) : Task<Result<unit, string>> =

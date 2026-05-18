@@ -99,6 +99,7 @@ builder.Services.AddSingleton<IMailResenderService, MailResenderService>();
 
 builder.Services.AddSingleton<IMailNotificator, MailNotificator>();
 
+builder.Services.AddSingleton<IUserTenantResolverService, UserTenantResolverService>();
 builder.Services.AddSingleton<ITagService, TagService>();
 
 builder.Services.AddSingleton<IAuthorService, AuthorService>();

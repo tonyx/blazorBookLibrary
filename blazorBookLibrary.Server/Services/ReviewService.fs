@@ -30,23 +30,27 @@ type ReviewService
         loanViewerAsync: AggregateViewerAsync2<Loan>,
         userViewerAsync: AggregateViewerAsync2<User>,
         tenantViewerAsync: AggregateViewerAsync2<Tenant>,
+        userTenantResolverService: IUserTenantResolverService,
         scopeFactory: IServiceScopeFactory
     ) =
 
     let checkIsGlobalAdminOrTenantManager (context: UserContext) (ct: CancellationToken)= 
         taskResult {
-            let! tenant = tenantViewerAsync (ct |> Some) context.TenantId.Value |> TaskResult.map snd
+            let! tenantId = 
+                userTenantResolverService.GetTenantForUserAsync(context, ct)
+            let! tenant = tenantViewerAsync (ct |> Some) tenantId.Value |> TaskResult.map snd
             return! Security.checkIsGlobalAdminOrTenantManager tenant context
         }
     let checkIsGlobalAdminOrTenantManagerOrPublicTenant (context: UserContext) (ct: CancellationToken)= 
         taskResult {
-            let! tenant = tenantViewerAsync (ct |> Some) context.TenantId.Value |> TaskResult.map snd
+            let! tenantId = 
+                userTenantResolverService.GetTenantForUserAsync(context, ct)
+            let! tenant = tenantViewerAsync (ct |> Some) tenantId.Value |> TaskResult.map snd
             return! Security.checkIsGlobalAdminOrTenantManagerOrPublicTenant tenant context
         }
 
-
     new 
-        (eventStore: IEventStore<string>, scopeFactory: IServiceScopeFactory) =
+        (eventStore: IEventStore<string>, userTenantResolverService: IUserTenantResolverService, scopeFactory: IServiceScopeFactory) =
             let messageSenders = MessageSenders.NoSender
             let commentViewerAsync = getAggregateStorageFreshStateViewerAsync<Review, ReviewEvent, string> eventStore
             let authorViewerAsync = getAggregateStorageFreshStateViewerAsync<Author, AuthorEvent, string> eventStore
@@ -68,13 +72,14 @@ type ReviewService
                 loanViewerAsync,
                 userViewerAsync,
                 tenantViewerAsync,
+                userTenantResolverService,
                 scopeFactory
             )
 
-    new (secretsReader: SecretsReader, scopeFactory: IServiceScopeFactory) =
+    new (secretsReader: SecretsReader, userTenantResolverService: IUserTenantResolverService, scopeFactory: IServiceScopeFactory) =
         let connectionString = secretsReader.GetBookLibraryConnectionString ()
         let eventStore = PgStorage.PgEventStore connectionString
-        ReviewService(eventStore, scopeFactory)
+        ReviewService(eventStore, userTenantResolverService, scopeFactory)
 
     member this.GetReviewAsync (context: UserContext, commentId: ReviewId, ?ct: CancellationToken): TaskResult<Review, string> = 
         let ct = ct |> Option.defaultValue CancellationToken.None
@@ -84,8 +89,10 @@ type ReviewService
                 let! comment =
                     reviewViewerAsync (Some ct) commentId.Value 
                     |> TaskResult.map snd
+                let! tenantId = 
+                    userTenantResolverService.GetTenantForUserAsync(context, ct)
                 do!
-                    comment.TenantId = context.TenantId
+                    comment.TenantId = tenantId
                     |> Result.ofBool "Review tenant id not matching"
                 return comment 
             }
@@ -95,21 +102,25 @@ type ReviewService
         taskResult
             {
                 do! checkIsGlobalAdminOrTenantManagerOrPublicTenant context ct
+                let! tenantId = 
+                    userTenantResolverService.GetTenantForUserAsync(context, ct)
                 let! result =
                     StateView.getAllAggregateStatesAsync<Review, ReviewEvent, string> eventStore (Some ct)
                     |> TaskResult.map (fun x -> x |> List.map snd)
                 return 
                     result
-                    |> List.filter (fun review -> review.TenantId = context.TenantId)
+                    |> List.filter (fun review -> review.TenantId = tenantId)
             }
     member this.GetPendingReviewsAsync (context: UserContext, ?ct: CancellationToken) = 
         let ct = ct |> Option.defaultValue CancellationToken.None
         taskResult
             {
                 do! checkIsGlobalAdminOrTenantManagerOrPublicTenant context ct
+                let! tenantId = 
+                    userTenantResolverService.GetTenantForUserAsync(context, ct)
                 let! result =
                     StateView.getAllFilteredAggregateStatesAsync<Review, ReviewEvent, string> 
-                        (fun review -> review.ApprovalStatus = ApprovalStatus.Pending && review.TenantId = context.TenantId) eventStore (Some ct)
+                        (fun review -> review.ApprovalStatus = ApprovalStatus.Pending && review.TenantId = tenantId) eventStore (Some ct)
                     |> TaskResult.map (fun x -> x |> List.map snd)
                 return result
             }
@@ -122,12 +133,13 @@ type ReviewService
                     userViewerAsync (Some ct) comment.UserId.Value |> TaskResult.map snd
                 let! book = 
                     bookViewerAsync (Some ct) comment.BookId.Value |> TaskResult.map snd
-
+                let! tenantId = 
+                    userTenantResolverService.GetTenantForUserAsync(context, ct)
                 do! 
-                    book.TenantId = context.TenantId
+                    book.TenantId = tenantId
                     |> Result.ofBool $"Book {book.BookId} tenant id {book.TenantId} not matching"
                 do!
-                    comment.TenantId = context.TenantId
+                    comment.TenantId = tenantId
                     |> Result.ofBool $"Comment tenant id {comment.TenantId} not matching"
 
                 let! loans = 
@@ -140,7 +152,7 @@ type ReviewService
                                 (fun loan -> 
                                     loan.UserId = comment.UserId &&
                                     loan.BookId = comment.BookId &&
-                                    loan.TenantId = context.TenantId &&
+                                    loan.TenantId = tenantId &&
                                     loan.LoanStatus.IsReturned)
                                 eventStore 
                                 (Some ct)
@@ -173,8 +185,10 @@ type ReviewService
         taskResult {
             let! review =
                 reviewViewerAsync (Some ct) commentId.Value |> TaskResult.map snd
+            let! tenantId = 
+                userTenantResolverService.GetTenantForUserAsync(context, ct)
             do! 
-                review.TenantId = context.TenantId
+                review.TenantId = tenantId
                 |> Result.ofBool $"Review tenant id {review.TenantId} not matching"
             do! 
                 match context with
@@ -198,8 +212,10 @@ type ReviewService
         let now = DateTime.UtcNow // todo: review and clarify the policies of dates "now"/"utc now"
         taskResult {
             let! review = reviewViewerAsync (Some ct) commentId.Value |> TaskResult.map snd
+            let! tenantId = 
+                userTenantResolverService.GetTenantForUserAsync(context, ct)
             do!
-                review.TenantId = context.TenantId
+                review.TenantId = tenantId
                 |> Result.ofBool $"Review tenant id {review.TenantId} not matching"
             do! checkIsGlobalAdminOrTenantManager context ct
 
@@ -219,10 +235,11 @@ type ReviewService
         let now = DateTime.UtcNow // todo: review and clarify the policies of dates "now"/"utc now"
         taskResult {
             let! review = reviewViewerAsync (Some ct) commentId.Value |> TaskResult.map snd
+            let! tenantId = 
+                userTenantResolverService.GetTenantForUserAsync(context, ct)
             do! 
-                review.TenantId = context.TenantId
+                review.TenantId = tenantId
                 |> Result.ofBool $"Review tenant id {review.TenantId} not matching"
-
             do! checkIsGlobalAdminOrTenantManager context ct
 
             let! result =
@@ -242,9 +259,11 @@ type ReviewService
         taskResult {
             let! review =
                 reviewViewerAsync (Some ct) commentId.Value |> TaskResult.map snd
+            let! tenantId = 
+                userTenantResolverService.GetTenantForUserAsync(context, ct)
             do!
-                review.TenantId = context.TenantId
-                |> Result.ofBool $"Review tenant id {review.TenantId} not matching context id {context.TenantId}"
+                review.TenantId = tenantId
+                |> Result.ofBool $"Review tenant id {review.TenantId} not matching context id {tenantId}"
             do! 
                 match context with
                 | UserContext.Anonymous -> Error "User is not authenticated"
@@ -263,12 +282,14 @@ type ReviewService
     member this.HideAsync (context: UserContext, commentId: ReviewId, ?ct: CancellationToken) = 
         let ct = ct |> Option.defaultValue CancellationToken.None
         let now = DateTime.UtcNow // todo: review and clarify the policies of dates "now"/"utc now"
-        taskResult {    
+        taskResult {   
             let! review =
                 reviewViewerAsync (Some ct) commentId.Value |> TaskResult.map snd
+            let! tenantId = 
+                userTenantResolverService.GetTenantForUserAsync(context, ct)
             do!
-                review.TenantId = context.TenantId
-                |> Result.ofBool $"Review tenant id {review.TenantId} not matching context id {context.TenantId}"
+                review.TenantId = tenantId
+                |> Result.ofBool $"Review tenant id {review.TenantId} not matching context id {tenantId}"
             do! 
                 match context with
                 | UserContext.Anonymous -> Error "User is not authenticated"
@@ -299,15 +320,16 @@ type ReviewService
         taskResult
             {
                 let! book = bookViewerAsync (Some ct) bookId.Value |> TaskResult.map snd
+                let! tenantId = 
+                    userTenantResolverService.GetTenantForUserAsync(context, ct)
                 do!
-                    book.TenantId = context.TenantId
-                    |> Result.ofBool $"Book tenant id {book.TenantId} not matching context id {context.TenantId}"
-
+                    book.TenantId = tenantId
+                    |> Result.ofBool $"Book tenant id {book.TenantId} not matching context id {tenantId}"
                 do! checkIsGlobalAdminOrTenantManagerOrPublicTenant context ct 
 
                 let! reviews = 
                     StateView.getAllFilteredAggregateStatesAsync<Review, ReviewEvent, string> 
-                        (fun review -> review.BookId = bookId && review.TenantId = context.TenantId) eventStore (Some ct)
+                        (fun review -> review.BookId = bookId && review.TenantId = tenantId) eventStore (Some ct)
                     |> TaskResult.map (fun x -> x |> List.map snd)
 
                 let! users =
@@ -325,9 +347,11 @@ type ReviewService
         taskResult
             {
                 let! book = bookViewerAsync (Some ct) bookId.Value |> TaskResult.map snd
+                let! tenantId = 
+                    userTenantResolverService.GetTenantForUserAsync(context, ct)
                 do!
-                    book.TenantId = context.TenantId
-                    |> Result.ofBool $"Book tenant id {book.TenantId} not matching context id {context.TenantId}"
+                    book.TenantId = tenantId
+                    |> Result.ofBool $"Book tenant id {book.TenantId} not matching context id {tenantId}"
 
                 do! checkIsGlobalAdminOrTenantManagerOrPublicTenant context ct 
 
@@ -337,7 +361,7 @@ type ReviewService
                             review.BookId = bookId && 
                             review.ApprovalStatus.IsApproved && 
                             not review.Hidden &&
-                            review.TenantId = context.TenantId) eventStore (Some ct)
+                            review.TenantId = tenantId) eventStore (Some ct)
                     |> TaskResult.map (fun x -> x |> List.map snd)
 
                 let! users =
@@ -357,15 +381,14 @@ type ReviewService
         taskResult
             {
                 let! user = userViewerAsync (Some ct) userId.Value |> TaskResult.map snd
-
-
-                // todo: add that it can be also the user themselves
+                let! tenantId = 
+                    userTenantResolverService.GetTenantForUserAsync(context, ct)
 
                 do! checkIsGlobalAdminOrTenantManagerOrPublicTenant context ct 
 
                 let! reviewsWithId = 
                     StateView.getAllFilteredAggregateStatesAsync<Review, ReviewEvent, string> 
-                        (fun review -> review.UserId = userId && review.TenantId = context.TenantId) eventStore (Some ct)
+                        (fun review -> review.UserId = userId && review.TenantId = tenantId) eventStore (Some ct)
                 let reviews = 
                     reviewsWithId
                     |> List.ofSeq

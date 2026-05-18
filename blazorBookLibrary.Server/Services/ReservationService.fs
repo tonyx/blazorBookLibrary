@@ -35,6 +35,7 @@ type ReservationService
         userViewerAsync: AggregateViewerAsync2<User>,
         tenantViewerAsync: AggregateViewerAsync2<Tenant>,
         distributionPointViewerAsync: AggregateViewerAsync2<DistributionPoint>,
+        userTenantResolverService: IUserTenantResolverService,
         usersService: IUserService,
         mailNotificator: IMailNotificator,
         maxReservations: int,
@@ -44,16 +45,20 @@ type ReservationService
     ) =
     let checkIsGlobalAdminOrTenantManager (context: UserContext) (ct: CancellationToken)= 
         taskResult {
-            let! tenant = tenantViewerAsync (ct |> Some) context.TenantId.Value |> TaskResult.map snd
+            let! tenantId = 
+                userTenantResolverService.GetTenantForUserAsync(context, ct)
+            let! tenant = tenantViewerAsync (ct |> Some) tenantId.Value |> TaskResult.map snd
             return! Security.checkIsGlobalAdminOrTenantManager tenant context
         }
     let checkIsGlobalAdminOrTenantManagerOrPublicTenant (context: UserContext) (ct: CancellationToken)= 
         taskResult {
-            let! tenant = tenantViewerAsync (ct |> Some) context.TenantId.Value |> TaskResult.map snd
+            let! tenantId = 
+                userTenantResolverService.GetTenantForUserAsync(context, ct)
+            let! tenant = tenantViewerAsync (ct |> Some) tenantId.Value |> TaskResult.map snd
             return! Security.checkIsGlobalAdminOrTenantManagerOrPublicTenant tenant context
         }
 
-    new (eventStore: IEventStore<string>, userService: IUserService, mailNotificator: IMailNotificator, configuration: IConfiguration, mailBodyRetriever: IMailBodyRetriever)
+    new (eventStore: IEventStore<string>, userService: IUserService, mailNotificator: IMailNotificator, configuration: IConfiguration, mailBodyRetriever: IMailBodyRetriever, userTenantResolverService: IUserTenantResolverService)
         =
         let messageSenders = MessageSenders.NoSender
         let bookViewerAsync = getAggregateStorageFreshStateViewerAsync<Book, BookEvent, string> eventStore
@@ -78,6 +83,7 @@ type ReservationService
             userViewerAsync,
             tenantViewerAsync,
             distributionPointViewerAsync,
+            userTenantResolverService,
             userService,
             mailNotificator,
             maxReservations,
@@ -85,11 +91,11 @@ type ReservationService
             fromName,
             mailBodyRetriever
         )
-    new (configuration: IConfiguration, userService: IUserService, mailNotificator: IMailNotificator, mailBodyRetriever: IMailBodyRetriever, secretsReader: SecretsReader) 
+    new (configuration: IConfiguration, userService: IUserService, mailNotificator: IMailNotificator, mailBodyRetriever: IMailBodyRetriever, secretsReader: SecretsReader, userTenantResolverService: IUserTenantResolverService) 
         =
         let connectionString = secretsReader.GetBookLibraryConnectionString ()
         let eventStore = PgStorage.PgEventStore connectionString
-        ReservationService(eventStore, userService, mailNotificator, configuration, mailBodyRetriever) 
+        ReservationService(eventStore, userService, mailNotificator, configuration, mailBodyRetriever, userTenantResolverService) 
 
         member private this.MakeReservationRefresher(context: UserContext, id: ReservationId, ?ct:CancellationToken) = 
             fun (ct: Option<CancellationToken>) ->
@@ -98,13 +104,15 @@ type ReservationService
                         let ct = ct |> Option.defaultValue CancellationToken.None
                         let! reservation = 
                             reservationViewerAsync (ct |> Some) id.Value |> TaskResult.map snd
+                        let! tenantId = 
+                            userTenantResolverService.GetTenantForUserAsync(context, ct)
                         let! book = 
                             bookViewerAsync (ct |> Some) reservation.BookId.Value |> TaskResult.map snd
                         let! userDetails = 
                             usersService.GetUserDetailsAsync (context, reservation.UserId, ct)
                         do!
-                            book.TenantId = context.TenantId
-                            |> Result.ofBool $"Book tenant id {book.TenantId} does not match user tenant id {context.TenantId}"
+                            book.TenantId = tenantId
+                            |> Result.ofBool $"Book tenant id {book.TenantId} does not match user tenant id {tenantId}"
                         return 
                             {
                                 Reservation = reservation
@@ -148,13 +156,15 @@ type ReservationService
 
                     let! alreadyExistingReservations =
                         this.GetReservationsAsync (context, book.CurrentReservations)
+                    let! tenantId = 
+                        userTenantResolverService.GetTenantForUserAsync(context, ct)
 
                     do! 
-                        context.TenantId = book.TenantId
-                        |> Result.ofBool $"Book tenant id {book.TenantId} does not match user tenant id {context.TenantId}"
+                        tenantId = book.TenantId
+                        |> Result.ofBool $"Book tenant id {book.TenantId} does not match user tenant id {tenantId}"
 
                     let! (_, tenant) =
-                        tenantViewerAsync (ct |> Some) context.TenantId.Value
+                        tenantViewerAsync (ct |> Some) tenantId.Value
 
                     let! noOverlaps =
                         alreadyExistingReservations
@@ -227,24 +237,28 @@ type ReservationService
             taskResult
                 {
                     let ct = defaultArg ct CancellationToken.None
+                    let! tenantId = 
+                        userTenantResolverService.GetTenantForUserAsync(context, ct)
                     let! reservations =
                         StateView.getAllAggregateStatesAsync<Reservation, ReservationEvent, string> eventStore (Some ct)
                         |> TaskResult.map (fun reservations -> reservations |> List.map snd)
                     return 
                         reservations
-                        |> List.filter (fun r -> r.TenantId = context.TenantId)
+                        |> List.filter (fun r -> r.TenantId = tenantId)
                 }
 
     member this.GetReservationAsync (context: UserContext, id: ReservationId, ?ct: CancellationToken) = 
         let ct = defaultArg ct CancellationToken.None
         taskResult
             {
+                let! tenantId = 
+                    userTenantResolverService.GetTenantForUserAsync(context, ct)
                 let! result = 
                     reservationViewerAsync (Some ct) id.Value
                     |> TaskResult.map snd
                 do!
-                    result.TenantId = context.TenantId
-                    |> Result.ofBool $"Reservation tenant id {result.TenantId} does not match user tenant id {context.TenantId}"
+                    result.TenantId = tenantId
+                    |> Result.ofBool $"Reservation tenant id {result.TenantId} does not match user tenant id {tenantId}"
                 return result
             }
     member this.GetRefreshableReservationDetailsAsync (context: UserContext, id: ReservationId, ?ct: CancellationToken) = 
@@ -263,9 +277,8 @@ type ReservationService
                 let! reservation = 
                     this.GetReservationAsync(context, reservationId, ct)
 
-                do!
-                    reservation.TenantId = context.TenantId
-                    |> Result.ofBool $"Reservation tenant id {reservation.TenantId} does not match user tenant id {context.TenantId}"
+                let! tenantId = 
+                    userTenantResolverService.GetTenantForUserAsync(context, ct)
                 
                 let! book =
                     bookViewerAsync (Some ct) reservation.BookId.Value
@@ -307,10 +320,12 @@ type ReservationService
         taskResult
             {
                 let ct = defaultArg ct CancellationToken.None
+                let! tenantId = 
+                    userTenantResolverService.GetTenantForUserAsync(context, ct)
                 let now = DateTime.UtcNow
                 let! expiredReservations = 
                     StateView.getAllFilteredAggregateStatesAsync<Reservation, ReservationEvent, string> 
-                        (fun reservation -> reservation.IsExpired now && reservation.TenantId = context.TenantId) eventStore (Some ct)
+                        (fun reservation -> reservation.IsExpired now && reservation.TenantId = tenantId) eventStore (Some ct)
                     |> TaskResult.map (fun reservations -> reservations |> List.map snd)
                 let! result = 
                     expiredReservations
@@ -345,9 +360,11 @@ type ReservationService
             taskResult
                 {
                     let ct = defaultArg ct CancellationToken.None
+                    let! tenantId = 
+                        userTenantResolverService.GetTenantForUserAsync(context, ct)
                     let! reservations = 
                         StateView.getAllFilteredAggregateStatesAsync<Reservation, ReservationEvent, string> 
-                            (fun reservation -> reservation.IsPending && reservation.TenantId = context.TenantId) eventStore (Some ct)
+                            (fun reservation -> reservation.IsPending && reservation.TenantId = tenantId) eventStore (Some ct)
                         |> TaskResult.map (fun reservations -> reservations |> List.map snd)
                     let! reservationDetails = 
                         reservations
