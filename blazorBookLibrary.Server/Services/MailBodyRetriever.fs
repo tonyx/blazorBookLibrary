@@ -35,6 +35,7 @@ type MailBodyRetriever() =
         member this.GetReleaseLoanNotificationSubject (shortLang: ShortLang) = 
             let culture = CultureInfo(shortLang.Value)
             SharedResources.ResourceManager.GetString("LoanReturnNotification", culture)
+
         member this.GetReservationNotificationTextMailAsync (shortLang: ShortLang, ?ct:CancellationToken) = 
             let templatePath = System.IO.Path.Combine (AppDomain.CurrentDomain.BaseDirectory, "Templates", shortLang.Value, "ReservationNotification.txt")
             let ct = defaultArg ct CancellationToken.None
@@ -43,8 +44,12 @@ type MailBodyRetriever() =
                 return content
             }
 
-        member this.GetReservationNotificationSubject (shortLang: ShortLang) = 
-            let culture = CultureInfo(shortLang.Value)
-            SharedResources.ResourceManager.GetString("BookReservationConfirmation", culture)
+        member this.GetReservationNotificationSubject (shortLang: ShortLang, ?ct:CancellationToken) = 
+            let templatePath = System.IO.Path.Combine (AppDomain.CurrentDomain.BaseDirectory, "Templates", shortLang.Value, "ReservationNotificationSubject.txt")
+            let ct = defaultArg ct CancellationToken.None
+            taskResult {
+                let! content = System.IO.File.ReadAllTextAsync (templatePath, ct)
+                return content
+            }
 
 

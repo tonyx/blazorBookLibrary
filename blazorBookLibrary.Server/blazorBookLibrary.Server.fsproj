@@ -22,6 +22,8 @@
   <ItemGroup> 
     <None Include="Templates/en/ReservationNotification.txt" CopyToOutputDirectory="PreserveNewest" />
     <None Include="Templates/it/ReservationNotification.txt" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="Templates/en/ReservationNotificationSubject.txt" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="Templates/it/ReservationNotificationSubject.txt" CopyToOutputDirectory="PreserveNewest" />
     <None Include="Templates/en/LoanNotification.txt" CopyToOutputDirectory="PreserveNewest" />
     <None Include="Templates/it/LoanNotification.txt" CopyToOutputDirectory="PreserveNewest" />
     <None Include="Templates/en/LoanReturnNotification.txt" CopyToOutputDirectory="PreserveNewest" />

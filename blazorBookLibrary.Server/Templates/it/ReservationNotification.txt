@@ -1,8 +1,24 @@
-La informiamo che la richiesta di prestito del libro "{bookTitle}" è stata approvata. 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Prenotazione libro</title>
+</head>
 
-Riceverà una mail quando il libro sarà disponibile per il ritiro.
+<body>
+  <p>Ti informiamo che la tua richiesta di prestito per il libro “{bookTitle}” è stata approvata. </p>
 
-Prenda questo codice {code} per ritirare il libro.
+  <p>Ecco i dettagli della tua richiesta:</p>
+  <ul>
+    <li><strong>Rete bibliotecaria (Affiliato):</strong> {tenantName}</li>
+    <li><strong>Luogo di ritiro:</strong> {pickupLocation}</li>
+  </ul>
 
-Cordiali saluti,
-Lo staff della Biblioteca
+  <p>Riceverai un'e-mail non appena il libro sarà disponibile per il ritiro. </p>
+  <p>Ti preghiamo di fornire il codice {code} al momento del ritiro.</p>
+
+  <p>Cordiali saluti,</p>
+  <p>Lo staff della biblioteca</p>
+</body>
+

@@ -34,6 +34,7 @@ type ReservationService
         loanViewerAsync: AggregateViewerAsync2<Loan>,
         userViewerAsync: AggregateViewerAsync2<User>,
         tenantViewerAsync: AggregateViewerAsync2<Tenant>,
+        distributionPointViewerAsync: AggregateViewerAsync2<DistributionPoint>,
         usersService: IUserService,
         mailNotificator: IMailNotificator,
         maxReservations: int,
@@ -62,6 +63,7 @@ type ReservationService
         let loanViewerAsync = getAggregateStorageFreshStateViewerAsync<Loan, LoanEvent, string> eventStore
         let userViewerAsync = getAggregateStorageFreshStateViewerAsync<User, UserEvent, string> eventStore
         let tenantViewerAsync = getAggregateStorageFreshStateViewerAsync<Tenant, TenantEvent, string> eventStore
+        let distributionPointViewerAsync = getAggregateStorageFreshStateViewerAsync<DistributionPoint, DistributionPointEvent, string> eventStore
         let maxReservations = configuration.GetValue<int>("BooksLibrary:MaxReservationsPerUser", 3)
         let fromEmail = configuration.GetValue<string>("BooksLibrary:FromEmail", "noreply@blazorbooklibrary.com")
         let fromName = configuration.GetValue<string>("BooksLibrary:FromName", "Blazor Book Library")
@@ -75,6 +77,7 @@ type ReservationService
             loanViewerAsync,
             userViewerAsync,
             tenantViewerAsync,
+            distributionPointViewerAsync,
             userService,
             mailNotificator,
             maxReservations,
@@ -150,6 +153,9 @@ type ReservationService
                         context.TenantId = book.TenantId
                         |> Result.ofBool $"Book tenant id {book.TenantId} does not match user tenant id {context.TenantId}"
 
+                    let! (_, tenant) =
+                        tenantViewerAsync (ct |> Some) context.TenantId.Value
+
                     let! noOverlaps =
                         alreadyExistingReservations
                         |> List.forall (fun r -> not (r.TimeSlot.Overlaps(reservation.TimeSlot)))
@@ -165,6 +171,24 @@ type ReservationService
                         usersService.GetUserDetailsAsync (context, user.UserId, ct)
                     let! emailTextRetrieved = 
                         mailBodyRetriever.GetReservationNotificationTextMailAsync(shortLang, ct)
+                    let! emailSubjectRetrieved = 
+                        mailBodyRetriever.GetReservationNotificationSubject(shortLang, ct)
+
+                    let! optDpName = 
+                        match book.DistributionPoint with
+                        | None -> 
+                            task
+                                { return "unspecified distribution point" |> Ok}
+                           
+                        | Some dpId -> 
+                            taskResult
+                                { 
+                                    let! (_, dp) =
+                                        distributionPointViewerAsync (ct |> Some) dpId.Value
+                                    return dp.Name.Value 
+                                }
+                
+
                     let! result =
                         runInitAndTwoAggregateCommandsMdAsync<Book, BookEvent, User, UserEvent, string, Reservation>
                             book.Id
@@ -177,7 +201,9 @@ type ReservationService
                             addReservationToUserCommand
                             (Some ct)
 
-                    let emailBody = emailTextRetrieved.Replace("{bookTitle}", book.Title.Value).Replace("{code}", reservation.ReservationCode.Value)
+                    let emailBody = 
+                        emailTextRetrieved.Replace("{bookTitle}", book.Title.Value).Replace("{code}".Replace("{tenantName}", tenant.TentantName.Value).Replace("{distributionPoint}", optDpName),  reservation.ReservationCode.Value)
+                    let emailSubject = emailSubjectRetrieved.Replace("{bookTitle}", book.Title.Value)
                     
                     do! 
                         task {
@@ -185,7 +211,7 @@ type ReservationService
                                     fromEmail,
                                     fromName,
                                     userDetails.AppUser.Email,
-                                    mailBodyRetriever.GetReservationNotificationSubject shortLang,
+                                    emailSubject,
                                     emailBody
                                 )
 

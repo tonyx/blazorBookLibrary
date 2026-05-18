@@ -55,9 +55,6 @@ builder.Services.AddControllers()
             factory.Create(typeof(blazorBookLibrary.Shared.Resources.SharedResources));
     });
 
-
-
-
 builder.Services.AddSingleton<BookLibrary.Utils.SecretsReader>();
 
 builder.Services.AddCascadingAuthenticationState();
@@ -193,7 +190,9 @@ using (var scope = app.Services.CreateScope())
                     BookLibrary.Shared.Commons.UserId.NewUserId(userId),
                     Microsoft.FSharp.Core.FSharpOption<System.Threading.CancellationToken>.None
                 );
+                Console.WriteLine ("XXXXXXX 100 glitch probably here? UserID = " + userId);
                 var result = task.GetAwaiter().GetResult();
+                Console.WriteLine ("XXXXXXX 200 glitch not confirmed now UserID = " + userId);
                 if (result.IsOk)
                 {
                     return result.ResultValue.CurrentTenant;

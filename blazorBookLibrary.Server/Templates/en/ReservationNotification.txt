@@ -1,7 +1,23 @@
-We inform you that the loan request for the book "{bookTitle}" has been approved. 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Loan Information</title>
+</head>
 
-You will receive an email when the book is available for pickup.
-Please pick this code {code} to get the book.
+<body>
+  <p>We inform you that your loan request for the book "{bookTitle}" has been approved. </p>
 
-Best regards,
-The Library Staff
+  <p>Here are the details of your request:</p>
+  <ul>
+    <li><strong>Library Network (Tenant):</strong> {tenantName}</li>
+    <li><strong>Pickup Location:</strong> {pickupLocation}</li>
+  </ul>
+
+  <p>You will receive an email as soon as the book is available for pickup. </p>
+  <p>Please provide the code {code} when you collect it.</p>
+
+  <p>Best regards,</p>
+  <p>The Library Staff</p>
+</body>

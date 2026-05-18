@@ -188,6 +188,7 @@ let getReservationService () : IReservationService =
         loanViewerAsync,
         userViewerAsync,
         tenantViewerAsync,
+        distributionPointViewerAsync,
         getUserService(),
         fakeEmailNotificator,
         3,
