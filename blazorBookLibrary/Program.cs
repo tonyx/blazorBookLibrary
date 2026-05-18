@@ -261,12 +261,13 @@ using (var scope = app.Services.CreateScope())
             if (Guid.TryParse(identityUser.Id, out var userGuid))
             {
                 var sharpinoUserId = UserId.NewUserId(userGuid);
-                var sharpinoUserResult = await userService.GetUserAsync(UserContext.Anonymous, sharpinoUserId, FSharpOption<CancellationToken>.None);
+                // var sharpinoUserResult = await userService.GetUserAsync(UserContext.Anonymous, sharpinoUserId, FSharpOption<CancellationToken>.None);
+                var sharpinoUserResult = await userService.GetUserUnsafeAsync(sharpinoUserId);
                 
                 if (sharpinoUserResult.IsOk)
                 {
                     var sharpinoId = UserId.NewUserId(new Guid(identityUser.Id));
-                    await userService.SetAppUserInfoAsync(UserContext.Anonymous, sharpinoId, UserMapping.toAppUserInfo(identityUser), FSharpOption<CancellationToken>.None);
+                    await userService.SetAppUserInfoUnsafeAsync(sharpinoId, UserMapping.toAppUserInfo(identityUser), FSharpOption<CancellationToken>.None);
                 } 
                 else
                 {

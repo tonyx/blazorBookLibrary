@@ -340,6 +340,23 @@ type UserService
             return! result
         }
 
+    member this.SetAppUserInfoUnsafeAsync (userId: UserId, appUserInfo: AppUserInfo, ?ct: CancellationToken) : Task<Result<unit, string>> =
+        let ct = defaultArg ct CancellationToken.None
+        taskResult
+            {
+                let setAppUserInfoCommand = UserCommand.SetAppUserInfo appUserInfo
+                let result =
+                    runAggregateCommandMdAsync 
+                        userId.Value
+                        eventStore
+                        messageSenders
+                        "System"
+                        setAppUserInfoCommand
+                        (ct |> Some)
+
+                return! result
+            }
+
     new(configuration: IConfiguration, scopeFactory: IServiceScopeFactory, secretsReader: BookLibrary.Utils.SecretsReader, reviewService: IReviewService, logger: ILogger<UserService>) =
         UserService(PgStorage.PgEventStore (secretsReader.GetBookLibraryConnectionString ()), scopeFactory, reviewService, logger)
 
@@ -380,6 +397,10 @@ type UserService
         member this.SetAppUserInfoAsync (context, userId: UserId, appUserInfo: AppUserInfo, ?ct: CancellationToken) : Task<Result<unit, string>> =
             let ct = defaultArg ct CancellationToken.None
             this.SetAppUserInfoAsync(context, userId, appUserInfo, ct)
+
+        member this.SetAppUserInfoUnsafeAsync (userId: UserId, appUserInfo: AppUserInfo, ?ct: CancellationToken) : Task<Result<unit, string>> =
+            let ct = defaultArg ct CancellationToken.None
+            this.SetAppUserInfoUnsafeAsync(userId, appUserInfo, ct)
         member this.GetDistributionPointsManagedByUserAsync (context, userId: UserId, ?ct: CancellationToken) : Task<Result<List<DistributionPoint>, string>> =
             let ct = defaultArg ct CancellationToken.None
             this.GetDistributionPointsManagedByUserAsync(context, userId, ct)

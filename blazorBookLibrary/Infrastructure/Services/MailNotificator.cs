@@ -51,6 +51,10 @@ public sealed partial class MailNotificator : IMailNotificator
             _logger.LogWarning("Email sending is disabled. Some features may not work. Particularly the user will be unable to log at all in case Program.cs uses options.SignIn.RequireConfirmedAccount = true");
             return;
         }
+        Console.WriteLine($"XXXXXXXXXXX Sending email to {emailRecipient}");
+        Console.WriteLine($"XXXXXXXXXXX Sending email from {emailFrom}");
+        Console.WriteLine($"XXXXXXXXXXX Sending email subject {subject}");
+        Console.WriteLine($"XXXXXXXXXXX Sending email body {body}");
         
         var email = new TransactionalEmailBuilder()
             .WithFrom(from: new SendContact(emailFrom, nameFrom))

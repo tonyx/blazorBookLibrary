@@ -99,4 +99,9 @@ public class UsersClientService : IUserService
         var response = await _httpClient.PostAsJsonAsync($"api/Users/{userId.Value}/current-tenant", tenantId.Value, ServiceClientHelper.JsonOptions, ServiceClientHelper.GetValue(ct, CancellationToken.None));
         return await ServiceClientHelper.HandleUnitResponse(response);
     }
+
+    public async Task<FSharpResult<Unit, string>> SetAppUserInfoUnsafeAsync(Commons.UserId userId, Commons.AppUserInfo appUserInfo, FSharpOption<CancellationToken> ct)
+    {
+        throw new NotImplementedException("SetAppUserInfoUnsafeAsync is not implemented on the client side");
+    }
 }

@@ -70,7 +70,6 @@ type User =
             this.AppUserInfo
 
         member this.SetCurrentTenant (tenantId: TenantId) =
-            printfn "XXXXX User %A setCurrentTenant %A" this.UserId.Value tenantId.Value
             { this with CurrentTenant = tenantId } |> Ok
 
         member this.SetAppUserInfo (appUserInfo: AppUserInfo) =
