@@ -14,14 +14,13 @@ open System.Collections.Generic
 [<ApiController>]
 [<Route("api/[controller]")>]
 [<Produces("application/json")>]
-type DetailsController(detailsService: IDetailsService, userService: IUserService) =
+type DetailsController(detailsService: IDetailsService) =
     inherit ControllerBase()
 
     [<HttpGet("book/{id}")>]
     member this.GetBookDetails([<FromRoute>] id: Guid) =
         task {
             let context = UserContextMapper.mapFromClaimsPrincipal this.User
-            let! context = UserContextMapper.enrichContextAsync userService context
             let! result = detailsService.GetBookDetailsAsync(context, BookId id)
             match result with
             | Ok details -> return this.Ok(details) :> IActionResult
@@ -32,7 +31,6 @@ type DetailsController(detailsService: IDetailsService, userService: IUserServic
     member this.GetLoanDetails([<FromRoute>] id: Guid) =
         task {
             let context = UserContextMapper.mapFromClaimsPrincipal this.User
-            let! context = UserContextMapper.enrichContextAsync userService context
             let! result = detailsService.GetLoanDetailsAsync(context, LoanId id)
             match result with
             | Ok details -> return this.Ok(details) :> IActionResult
@@ -43,7 +41,6 @@ type DetailsController(detailsService: IDetailsService, userService: IUserServic
     member this.GetAllLoansDetails() =
         task {
             let context = UserContextMapper.mapFromClaimsPrincipal this.User
-            let! context = UserContextMapper.enrichContextAsync userService context
             let! result = detailsService.GetAllLoansDetailsAsync(context)
             match result with
             | Ok details -> return this.Ok(details) :> IActionResult
@@ -54,7 +51,6 @@ type DetailsController(detailsService: IDetailsService, userService: IUserServic
     member this.GetReservationDetails([<FromRoute>] id: Guid) =
         task {
             let context = UserContextMapper.mapFromClaimsPrincipal this.User
-            let! context = UserContextMapper.enrichContextAsync userService context
             let! result = detailsService.GetReservationDetailsAsync(context, ReservationId id)
             match result with
             | Ok details -> return this.Ok(details) :> IActionResult
@@ -65,7 +61,6 @@ type DetailsController(detailsService: IDetailsService, userService: IUserServic
     member this.GetAllPendingReservationsDetails() =
         task {
             let context = UserContextMapper.mapFromClaimsPrincipal this.User
-            let! context = UserContextMapper.enrichContextAsync userService context
             let! result = detailsService.GetAllPendingReservationsDetailsAsync(context)
             match result with
             | Ok details -> return this.Ok(details) :> IActionResult
@@ -76,7 +71,6 @@ type DetailsController(detailsService: IDetailsService, userService: IUserServic
     member this.GetUserDetails([<FromRoute>] id: Guid) =
         task {
             let context = UserContextMapper.mapFromClaimsPrincipal this.User
-            let! context = UserContextMapper.enrichContextAsync userService context
             let! result = detailsService.GetUserDetailsAsync(context, UserId id)
             match result with
             | Ok details -> return this.Ok(details) :> IActionResult
@@ -87,7 +81,6 @@ type DetailsController(detailsService: IDetailsService, userService: IUserServic
     member this.GetAuthorDetails([<FromRoute>] id: Guid) =
         task {
             let context = UserContextMapper.mapFromClaimsPrincipal this.User
-            let! context = UserContextMapper.enrichContextAsync userService context
             let! result = detailsService.GetAuthorDetailsAsync(context, AuthorId id)
             match result with
             | Ok details -> return this.Ok(details) :> IActionResult
@@ -98,7 +91,6 @@ type DetailsController(detailsService: IDetailsService, userService: IUserServic
     member this.GetReviewDetails([<FromRoute>] id: Guid) =
         task {
             let context = UserContextMapper.mapFromClaimsPrincipal this.User
-            let! context = UserContextMapper.enrichContextAsync userService context
             let! result = detailsService.GetReviewDetailsAsync(context, ReviewId id)
             match result with
             | Ok details -> return this.Ok(details) :> IActionResult
@@ -109,7 +101,6 @@ type DetailsController(detailsService: IDetailsService, userService: IUserServic
     member this.GetAllReviewsDetails() =
         task {
             let context = UserContextMapper.mapFromClaimsPrincipal this.User
-            let! context = UserContextMapper.enrichContextAsync userService context
             let! result = detailsService.GetAllReviewsDetailsAsync(context)
             match result with
             | Ok details -> return this.Ok(details) :> IActionResult
@@ -120,7 +111,6 @@ type DetailsController(detailsService: IDetailsService, userService: IUserServic
     member this.GetApprovedVisibleReviewsOfBook([<FromRoute>] bookId: Guid) =
         task {
             let context = UserContextMapper.mapFromClaimsPrincipal this.User
-            let! context = UserContextMapper.enrichContextAsync userService context
             let! result = detailsService.GetApprovedVisibleReviewsOfBookAsync(context, BookId bookId)
             match result with
             | Ok details -> return this.Ok(details) :> IActionResult
@@ -131,7 +121,6 @@ type DetailsController(detailsService: IDetailsService, userService: IUserServic
     member this.GetTenantDetails([<FromRoute>] id: Guid) =
         task {
             let context = UserContextMapper.mapFromClaimsPrincipal this.User
-            let! context = UserContextMapper.enrichContextAsync userService context
             let! result = detailsService.GetTenantDetailsAsync(context, TenantId id)
             match result with
             | Ok details -> return this.Ok(details) :> IActionResult

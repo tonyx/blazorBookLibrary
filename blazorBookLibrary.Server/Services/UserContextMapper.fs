@@ -31,18 +31,3 @@ module UserContextMapper =
     let mapFromRequest (request: Microsoft.AspNetCore.Http.HttpRequest) =
         mapFromClaimsPrincipal request.HttpContext.User
 
-    open BookLibrary.Shared.Services
-    open System.Threading.Tasks
-    open BookLibrary.Domain
-    open FsToolkit.ErrorHandling
-    open System.Threading
-
-    let enrichContextAsync (userService: IUserService) (context: UserContext) =
-        task {
-            return context
-        }
-
-    let enrichContextAsync2 (userViewer: AggregateViewerAsync2<User>) (context: UserContext) (ct: Option<CancellationToken>) = 
-        taskResult {
-            return context
-        }        

@@ -12,14 +12,13 @@ open System.Collections.Generic
 
 [<ApiController>]
 [<Route("api/[controller]")>]
-type AdminController(adminService: IAdminServices, userService: IUserService) =
+type AdminController(adminService: IAdminServices) =
     inherit ControllerBase()
 
     [<HttpPost("vectors/purge")>]
     member this.PurgeVectors() =
         task {
             let context = UserContextMapper.mapFromClaimsPrincipal this.User
-            let! context = UserContextMapper.enrichContextAsync userService context
             let! result = adminService.PurgeVectorsReferringDroppedBooksAsync(context)
             match result with
             | Ok _ -> return this.Ok() :> IActionResult
@@ -30,7 +29,6 @@ type AdminController(adminService: IAdminServices, userService: IUserService) =
     member this.PurgeDuplicatedVectors() =
         task {
             let context = UserContextMapper.mapFromClaimsPrincipal this.User
-            let! context = UserContextMapper.enrichContextAsync userService context
             let! result = adminService.PurgeDuplicatedVectorsAsync(context)
             match result with
             | Ok _ -> return this.Ok() :> IActionResult
@@ -41,7 +39,6 @@ type AdminController(adminService: IAdminServices, userService: IUserService) =
     member this.AdjustBookStates() =
         task {
             let context = UserContextMapper.mapFromClaimsPrincipal this.User
-            let! context = UserContextMapper.enrichContextAsync userService context
             let! result = adminService.AdjustBookStatesReferringMissingEmbeddingsAsync(context)
             match result with
             | Ok _ -> return this.Ok() :> IActionResult
@@ -52,7 +49,6 @@ type AdminController(adminService: IAdminServices, userService: IUserService) =
     member this.AssignUserToDistributionPoint(id: Guid, userId: Guid) =
         task {
             let context = UserContextMapper.mapFromClaimsPrincipal this.User
-            let! context = UserContextMapper.enrichContextAsync userService context
             let! result = adminService.AssignUserToDistributionPointAsync(context, DistributionPointId id, UserId userId)
             match result with
             | Ok _ -> return this.Ok() :> IActionResult
@@ -63,7 +59,6 @@ type AdminController(adminService: IAdminServices, userService: IUserService) =
     member this.UnassignUserFromDistributionPoint(id: Guid, userId: Guid) =
         task {
             let context = UserContextMapper.mapFromClaimsPrincipal this.User
-            let! context = UserContextMapper.enrichContextAsync userService context
             let! result = adminService.UnassignUserFromDistributionPointAsync(context, DistributionPointId id, UserId userId)
             match result with
             | Ok _ -> return this.Ok() :> IActionResult
@@ -74,7 +69,6 @@ type AdminController(adminService: IAdminServices, userService: IUserService) =
     member this.RenameDistributionPoint(id: Guid, [<FromBody>] newName: string) =
         task {
             let context = UserContextMapper.mapFromClaimsPrincipal this.User
-            let! context = UserContextMapper.enrichContextAsync userService context
             match NonEmptyName.New newName with
             | Ok name -> 
                 let! result = adminService.RenameDistributionPointAsync(context, DistributionPointId id, name)

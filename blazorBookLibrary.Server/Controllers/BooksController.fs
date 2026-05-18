@@ -28,7 +28,7 @@ type BulkEditRequest = { BookIds: List<Guid>; EditCriteria: BulkBookEdit }
 
 [<ApiController>]
 [<Route("api/[controller]")>]
-type BooksController(bookService: IBookService, userService: IUserService) =
+type BooksController(bookService: IBookService) =
     inherit ControllerBase()
 
 
@@ -36,7 +36,6 @@ type BooksController(bookService: IBookService, userService: IUserService) =
     member this.GetBook(id: Guid) =
         task {
             let context = UserContextMapper.mapFromRequest this.Request
-            let! context = UserContextMapper.enrichContextAsync userService context
             let! result = bookService.GetBookAsync(context, BookId id)
             match result with
             | Ok book -> return this.Ok(book) :> IActionResult
@@ -47,7 +46,6 @@ type BooksController(bookService: IBookService, userService: IUserService) =
     member this.AddBook(book: Book) =
         task {
             let context = UserContextMapper.mapFromRequest this.Request
-            let! context = UserContextMapper.enrichContextAsync userService context
             let! result = bookService.AddBookAsync(context, book)
             match result with
             | Ok _ -> return this.Ok() :> IActionResult
@@ -58,7 +56,6 @@ type BooksController(bookService: IBookService, userService: IUserService) =
     member this.AddBooks(books: List<Book>) =
         task {
             let context = UserContextMapper.mapFromRequest this.Request
-            let! context = UserContextMapper.enrichContextAsync userService context
             let fsBooks = List.ofSeq books
             let! result = bookService.AddBooksAsync(context, fsBooks)
             match result with
@@ -70,7 +67,6 @@ type BooksController(bookService: IBookService, userService: IUserService) =
     member this.GetAllBooks() =
         task {
             let context = UserContextMapper.mapFromRequest this.Request
-            let! context = UserContextMapper.enrichContextAsync userService context
             let! result = bookService.GetAllAsync(context)
             match result with
             | Ok books -> return this.Ok(books) :> IActionResult
@@ -81,7 +77,6 @@ type BooksController(bookService: IBookService, userService: IUserService) =
     member this.GetBooks([<FromBody>] ids: List<Guid>) =
         task {
             let context = UserContextMapper.mapFromRequest this.Request
-            let! context = UserContextMapper.enrichContextAsync userService context
             let fsBookIds = List.ofSeq (ids |> Seq.map BookId)
             let! result = bookService.GetBooksAsync(context, fsBookIds)
             match result with
@@ -93,7 +88,6 @@ type BooksController(bookService: IBookService, userService: IUserService) =
     member this.SearchByTitle(title: string) =
         task {
             let context = UserContextMapper.mapFromRequest this.Request
-            let! context = UserContextMapper.enrichContextAsync userService context
             let! result = bookService.SearchByTitleAsync(context, Title.New title)
             match result with
             | Ok books -> return this.Ok(books) :> IActionResult
@@ -104,7 +98,6 @@ type BooksController(bookService: IBookService, userService: IUserService) =
     member this.SearchByIsbn(isbn: string) =
         task {
             let context = UserContextMapper.mapFromRequest this.Request
-            let! context = UserContextMapper.enrichContextAsync userService context
             let! result = bookService.SearchByIsbnAsync(context, Isbn isbn)
             match result with
             | Ok books -> return this.Ok(books) :> IActionResult
@@ -115,7 +108,6 @@ type BooksController(bookService: IBookService, userService: IUserService) =
     member this.RemoveBook(id: Guid) =
         task {
             let context = UserContextMapper.mapFromRequest this.Request
-            let! context = UserContextMapper.enrichContextAsync userService context
             let! result = bookService.RemoveBookAsync(context, BookId id)
             match result with
             | Ok _ -> return this.Ok() :> IActionResult
@@ -126,7 +118,6 @@ type BooksController(bookService: IBookService, userService: IUserService) =
     member this.AddAuthorToBook(id: Guid, authorId: Guid) =
         task {
             let context = UserContextMapper.mapFromRequest this.Request
-            let! context = UserContextMapper.enrichContextAsync userService context
             let! result = bookService.AddAuthorToBookAsync(context, AuthorId authorId, BookId id)
             match result with
             | Ok _ -> return this.Ok() :> IActionResult
@@ -137,7 +128,6 @@ type BooksController(bookService: IBookService, userService: IUserService) =
     member this.RemoveAuthorFromBook(id: Guid, authorId: Guid) =
         task {
             let context = UserContextMapper.mapFromRequest this.Request
-            let! context = UserContextMapper.enrichContextAsync userService context
             let! result = bookService.RemoveAuthorFromBookAsync(context, AuthorId authorId, BookId id)
             match result with
             | Ok _ -> return this.Ok() :> IActionResult
@@ -148,7 +138,6 @@ type BooksController(bookService: IBookService, userService: IUserService) =
     member this.RemoveImageUrl(id: Guid) =
         task {
             let context = UserContextMapper.mapFromRequest this.Request
-            let! context = UserContextMapper.enrichContextAsync userService context
             let! result = bookService.RemoveImageUrlAsync(context, BookId id)
             match result with
             | Ok _ -> return this.Ok() :> IActionResult
@@ -159,7 +148,6 @@ type BooksController(bookService: IBookService, userService: IUserService) =
     member this.SetImageUrl(id: Guid, [<FromBody>] imageUrl: string) =
         task {
             let context = UserContextMapper.mapFromRequest this.Request
-            let! context = UserContextMapper.enrichContextAsync userService context
             let! result = bookService.SetImageUrlAsync(context, BookId id, Uri imageUrl)
             match result with
             | Ok _ -> return this.Ok() :> IActionResult
@@ -170,7 +158,6 @@ type BooksController(bookService: IBookService, userService: IUserService) =
     member this.SetAvailability(id: Guid, [<FromBody>] availability: Availability) =
         task {
             let context = UserContextMapper.mapFromRequest this.Request
-            let! context = UserContextMapper.enrichContextAsync userService context
             let! result = bookService.SetAvailabilityAsync(context, availability, BookId id)
             match result with
             | Ok _ -> return this.Ok() :> IActionResult
@@ -181,7 +168,6 @@ type BooksController(bookService: IBookService, userService: IUserService) =
     member this.AddTagToBook(id: Guid, [<FromBody>] tag: Tag) =
         task {
             let context = UserContextMapper.mapFromRequest this.Request
-            let! context = UserContextMapper.enrichContextAsync userService context
             let! result = bookService.AddTagToBookAsync(context, tag, BookId id)
             match result with
             | Ok _ -> return this.Ok() :> IActionResult
@@ -192,7 +178,6 @@ type BooksController(bookService: IBookService, userService: IUserService) =
     member this.RemoveTagFromBook(id: Guid, [<FromBody>] tag: Tag) =
         task {
             let context = UserContextMapper.mapFromRequest this.Request
-            let! context = UserContextMapper.enrichContextAsync userService context
             let! result = bookService.RemoveTagFromBookAsync(context, tag, BookId id)
             match result with
             | Ok _ -> return this.Ok() :> IActionResult
@@ -203,7 +188,6 @@ type BooksController(bookService: IBookService, userService: IUserService) =
     member this.BulkEdit([<FromBody>] request: BulkEditRequest) =
         task {
             let context = UserContextMapper.mapFromRequest this.Request
-            let! context = UserContextMapper.enrichContextAsync userService context
             let bookIds = request.BookIds |> List.ofSeq |> List.map BookId
             let! result = bookService.BulkEditAsync(context, bookIds, request.EditCriteria)
             match result with
@@ -215,7 +199,6 @@ type BooksController(bookService: IBookService, userService: IUserService) =
     member this.ChangeMainCategory(id: Guid, [<FromBody>] category: Category) =
         task {
             let context = UserContextMapper.mapFromRequest this.Request
-            let! context = UserContextMapper.enrichContextAsync userService context
             let! result = bookService.ChangeMainCategoryAsync(context, category, BookId id)
             match result with
             | Ok _ -> return this.Ok() :> IActionResult
@@ -226,7 +209,6 @@ type BooksController(bookService: IBookService, userService: IUserService) =
     member this.AddAdditionalCategory(id: Guid, [<FromBody>] category: Category) =
         task {
             let context = UserContextMapper.mapFromRequest this.Request
-            let! context = UserContextMapper.enrichContextAsync userService context
             let! result = bookService.AddAdditionalCategoryAsync(context, category, BookId id)
             match result with
             | Ok _ -> return this.Ok() :> IActionResult
@@ -237,7 +219,6 @@ type BooksController(bookService: IBookService, userService: IUserService) =
     member this.RemoveAdditionalCategory(id: Guid, [<FromBody>] category: Category) =
         task {
             let context = UserContextMapper.mapFromRequest this.Request
-            let! context = UserContextMapper.enrichContextAsync userService context
             let! result = bookService.RemoveAdditionalCategoryAsync(context, category, BookId id)
             match result with
             | Ok _ -> return this.Ok() :> IActionResult
@@ -248,7 +229,6 @@ type BooksController(bookService: IBookService, userService: IUserService) =
     member this.UpdateTitle(id: Guid, [<FromBody>] title: string) =
         task {
             let context = UserContextMapper.mapFromRequest this.Request
-            let! context = UserContextMapper.enrichContextAsync userService context
             let! result = bookService.UpdateTitleAsync(context, Title.New title, BookId id)
             match result with
             | Ok _ -> return this.Ok() :> IActionResult
@@ -259,7 +239,6 @@ type BooksController(bookService: IBookService, userService: IUserService) =
     member this.UpdateDescription(id: Guid, [<FromBody>] description: string) =
         task {
             let context = UserContextMapper.mapFromRequest this.Request
-            let! context = UserContextMapper.enrichContextAsync userService context
             let! result = bookService.UpdateDescriptionAsync(context, description, BookId id)
             match result with
             | Ok _ -> return this.Ok() :> IActionResult
@@ -270,7 +249,6 @@ type BooksController(bookService: IBookService, userService: IUserService) =
     member this.RemoveDescription(id: Guid) =
         task {
             let context = UserContextMapper.mapFromRequest this.Request
-            let! context = UserContextMapper.enrichContextAsync userService context
             let! result = bookService.RemoveDescriptionAsync(context, BookId id)
             match result with
             | Ok _ -> return this.Ok() :> IActionResult
@@ -281,7 +259,6 @@ type BooksController(bookService: IBookService, userService: IUserService) =
     member this.EmbedDescription(id: Guid, [<FromBody>] embeddingId: Guid) =
         task {
             let context = UserContextMapper.mapFromRequest this.Request
-            let! context = UserContextMapper.enrichContextAsync userService context
             let! result = bookService.EmbedDescriptionAsync(context, BookId id, EmbeddingDataId embeddingId)
             match result with
             | Ok _ -> return this.Ok() :> IActionResult
@@ -292,7 +269,6 @@ type BooksController(bookService: IBookService, userService: IUserService) =
     member this.RemoveEmbedding(id: Guid) =
         task {
             let context = UserContextMapper.mapFromRequest this.Request
-            let! context = UserContextMapper.enrichContextAsync userService context
             let! result = bookService.RemoveEmbeddingAsync(context, BookId id)
             match result with
             | Ok _ -> return this.Ok() :> IActionResult
@@ -303,7 +279,6 @@ type BooksController(bookService: IBookService, userService: IUserService) =
     member this.ForceBulkRemoveEmbeddings([<FromBody>] ids: List<Guid>) =
         task {
             let context = UserContextMapper.mapFromRequest this.Request
-            let! context = UserContextMapper.enrichContextAsync userService context
             let bookIds = ids |> List.ofSeq |> List.map BookId
             let! result = bookService.ForceBulkRemoveEmbeddingsAsync(context, bookIds)
             match result with
@@ -315,7 +290,6 @@ type BooksController(bookService: IBookService, userService: IUserService) =
     member this.UpdateIsbn(id: Guid, [<FromBody>] isbn: string) =
         task {
             let context = UserContextMapper.mapFromRequest this.Request
-            let! context = UserContextMapper.enrichContextAsync userService context
             let! result = bookService.UpdateIsbnAsync(context, Isbn isbn, BookId id)
             match result with
             | Ok _ -> return this.Ok() :> IActionResult
@@ -326,7 +300,6 @@ type BooksController(bookService: IBookService, userService: IUserService) =
     member this.Unseal(id: Guid) =
         task {
             let context = UserContextMapper.mapFromRequest this.Request
-            let! context = UserContextMapper.enrichContextAsync userService context
             let! result = bookService.UnsealAsync(context, BookId id)
             match result with
             | Ok _ -> return this.Ok() :> IActionResult
@@ -337,7 +310,6 @@ type BooksController(bookService: IBookService, userService: IUserService) =
     member this.Seal(id: Guid) =
         task {
             let context = UserContextMapper.mapFromRequest this.Request
-            let! context = UserContextMapper.enrichContextAsync userService context
             let! result = bookService.SealAsync(context, BookId id)
             match result with
             | Ok _ -> return this.Ok() :> IActionResult
@@ -348,7 +320,6 @@ type BooksController(bookService: IBookService, userService: IUserService) =
     member this.LoanedByUserAtLeastOnce(id: Guid, userId: Guid) =
         task {
             let context = UserContextMapper.mapFromRequest this.Request
-            let! context = UserContextMapper.enrichContextAsync userService context
             let! result = bookService.LoanedByUserAtLeastOnceAsync(context, BookId id, UserId userId)
             match result with
             | Ok res -> return this.Ok(res) :> IActionResult
@@ -359,7 +330,6 @@ type BooksController(bookService: IBookService, userService: IUserService) =
     member this.SetDistributionPoint(id: Guid, dpId: Guid, userId: Guid) =
         task {
             let context = UserContextMapper.mapFromRequest this.Request
-            let! context = UserContextMapper.enrichContextAsync userService context
             let! result = bookService.SetDistributionPointAsync(context, DistributionPointId dpId, BookId id, UserId userId)
             match result with
             | Ok _ -> return this.Ok() :> IActionResult
@@ -370,7 +340,6 @@ type BooksController(bookService: IBookService, userService: IUserService) =
     member this.UnSetDistributionPoint(id: Guid, dpId: Guid, userId: Guid) =
         task {
             let context = UserContextMapper.mapFromRequest this.Request
-            let! context = UserContextMapper.enrichContextAsync userService context
             let! result = bookService.UnSetDistributionPointAsync(context, DistributionPointId dpId, BookId id, UserId userId)
             match result with
             | Ok _ -> return this.Ok() :> IActionResult
@@ -381,7 +350,6 @@ type BooksController(bookService: IBookService, userService: IUserService) =
     member this.UnsetAllBookRelatedToDP(dpId: Guid, userId: Guid) =
         task {
             let context = UserContextMapper.mapFromRequest this.Request
-            let! context = UserContextMapper.enrichContextAsync userService context
             let! result = bookService.UnsetAllBookRelatedToDPAsync(context, DistributionPointId dpId, UserId userId)
             match result with
             | Ok _ -> return this.Ok() :> IActionResult
@@ -392,7 +360,6 @@ type BooksController(bookService: IBookService, userService: IUserService) =
     member this.MoveFromDpToAnotherDP(fromDpId: Guid, toDpId: Guid, userId: Guid) =
         task {
             let context = UserContextMapper.mapFromRequest this.Request
-            let! context = UserContextMapper.enrichContextAsync userService context
             let! result = bookService.MoveFromDpToAnotherDPAsync(context, DistributionPointId fromDpId, DistributionPointId toDpId, UserId userId)
             match result with
             | Ok _ -> return this.Ok() :> IActionResult
@@ -403,7 +370,6 @@ type BooksController(bookService: IBookService, userService: IUserService) =
     member this.SearchByTitleAndIsbn(title: string, isbn: string) =
         task {
             let context = UserContextMapper.mapFromRequest this.Request
-            let! context = UserContextMapper.enrichContextAsync userService context
             let! result = bookService.SearchByTitleAndIsbnAsync(context, Title.New title, Isbn isbn)
             match result with
             | Ok books -> return this.Ok(books) :> IActionResult
@@ -414,7 +380,6 @@ type BooksController(bookService: IBookService, userService: IUserService) =
     member this.SearchByYear([<FromBody>] year: YearSearch) =
         task {
             let context = UserContextMapper.mapFromRequest this.Request
-            let! context = UserContextMapper.enrichContextAsync userService context
             let! result = bookService.SearchByYearAsync(context, year)
             match result with
             | Ok books -> return this.Ok(books) :> IActionResult
@@ -425,7 +390,6 @@ type BooksController(bookService: IBookService, userService: IUserService) =
     member this.SearchByTitleAndYear([<FromBody>] request: SearchTitleYearRequest) =
         task {
             let context = UserContextMapper.mapFromRequest this.Request
-            let! context = UserContextMapper.enrichContextAsync userService context
             let! result = bookService.SearchByTitleAndYearAsync(context, Title.New request.Title, request.Year)
             match result with
             | Ok books -> return this.Ok(books) :> IActionResult
@@ -436,7 +400,6 @@ type BooksController(bookService: IBookService, userService: IUserService) =
     member this.SearchByIsbnAndYear([<FromBody>] request: SearchIsbnYearRequest) =
         task {
             let context = UserContextMapper.mapFromRequest this.Request
-            let! context = UserContextMapper.enrichContextAsync userService context
             let! result = bookService.SearchByIsbnAndYearAsync(context, Isbn request.Isbn, request.Year)
             match result with
             | Ok books -> return this.Ok(books) :> IActionResult
@@ -447,7 +410,6 @@ type BooksController(bookService: IBookService, userService: IUserService) =
     member this.SearchByTitleAndIsbnAndYear([<FromBody>] request: SearchTitleIsbnYearRequest) =
         task {
             let context = UserContextMapper.mapFromRequest this.Request
-            let! context = UserContextMapper.enrichContextAsync userService context
             let! result = bookService.SearchByTitleAndIsbnAndYearAsync(context, Title.New request.Title, Isbn request.Isbn, request.Year)
             match result with
             | Ok books -> return this.Ok(books) :> IActionResult
@@ -458,7 +420,6 @@ type BooksController(bookService: IBookService, userService: IUserService) =
     member this.SearchByCategories([<FromBody>] categories: List<string>) =
         task {
             let context = UserContextMapper.mapFromRequest this.Request
-            let! context = UserContextMapper.enrichContextAsync userService context
             let fsCategories = categories |> List.ofSeq |> List.map Category.New
             let! result = bookService.SearchByCategoriesAsync(context, fsCategories)
             match result with
@@ -470,7 +431,6 @@ type BooksController(bookService: IBookService, userService: IUserService) =
     member this.SearchByIsbnOrTitle(isbn: string, title: string) =
         task {
             let context = UserContextMapper.mapFromRequest this.Request
-            let! context = UserContextMapper.enrichContextAsync userService context
             let! result = bookService.SearchByIsbnOrTitleAsync(context, Isbn isbn, Title.New title)
             match result with
             | Ok books -> return this.Ok(books) :> IActionResult
@@ -481,7 +441,6 @@ type BooksController(bookService: IBookService, userService: IUserService) =
     member this.SearchByTitleAndCategories([<FromBody>] request: SearchTitleCategoriesRequest) =
         task {
             let context = UserContextMapper.mapFromRequest this.Request
-            let! context = UserContextMapper.enrichContextAsync userService context
             let fsCategories = request.Categories |> List.ofSeq |> List.map Category.New
             let! result = bookService.SearchByTitleAndCategoriesAsync(context, Title.New request.Title, fsCategories)
             match result with
@@ -493,7 +452,6 @@ type BooksController(bookService: IBookService, userService: IUserService) =
     member this.SearchByYearAndCategories([<FromBody>] request: SearchYearCategoriesRequest) =
         task {
             let context = UserContextMapper.mapFromRequest this.Request
-            let! context = UserContextMapper.enrichContextAsync userService context
             let fsCategories = request.Categories |> List.ofSeq |> List.map Category.New
             let! result = bookService.SearchByYearAndCategoriesAsync(context, request.Year, fsCategories)
             match result with
@@ -505,7 +463,6 @@ type BooksController(bookService: IBookService, userService: IUserService) =
     member this.SearchByTitleAndYearAndCategories([<FromBody>] request: SearchTitleYearCategoriesRequest) =
         task {
             let context = UserContextMapper.mapFromRequest this.Request
-            let! context = UserContextMapper.enrichContextAsync userService context
             let fsCategories = request.Categories |> List.ofSeq |> List.map Category.New
             let! result = bookService.SearchByTitleAndYearAndCategoriesAsync(context, Title.New request.Title, request.Year, fsCategories)
             match result with
@@ -517,7 +474,6 @@ type BooksController(bookService: IBookService, userService: IUserService) =
     member this.SearchByAuthor(authorId: Guid) =
         task {
             let context = UserContextMapper.mapFromRequest this.Request
-            let! context = UserContextMapper.enrichContextAsync userService context
             let! result = bookService.SearchByAuthorAsync(context, AuthorId authorId)
             match result with
             | Ok books -> return this.Ok(books) :> IActionResult
@@ -528,7 +484,6 @@ type BooksController(bookService: IBookService, userService: IUserService) =
     member this.SearchByAuthors([<FromBody>] authors: List<Guid>) =
         task {
             let context = UserContextMapper.mapFromRequest this.Request
-            let! context = UserContextMapper.enrichContextAsync userService context
             let fsAuthors = authors |> List.ofSeq |> List.map AuthorId
             let! result = bookService.SearchByAuthorsAsync(context, fsAuthors)
             match result with
@@ -540,7 +495,6 @@ type BooksController(bookService: IBookService, userService: IUserService) =
     member this.SearchByTitleAndAuthors([<FromBody>] request: SearchTitleAuthorsRequest) =
         task {
             let context = UserContextMapper.mapFromRequest this.Request
-            let! context = UserContextMapper.enrichContextAsync userService context
             let fsAuthors = request.Authors |> List.ofSeq |> List.map AuthorId
             let! result = bookService.SearchByTitleAndAuthorsAsync(context, Title.New request.Title, fsAuthors)
             match result with
@@ -552,7 +506,6 @@ type BooksController(bookService: IBookService, userService: IUserService) =
     member this.SearchByAuthorsAndYear([<FromBody>] request: SearchAuthorsYearRequest) =
         task {
             let context = UserContextMapper.mapFromRequest this.Request
-            let! context = UserContextMapper.enrichContextAsync userService context
             let fsAuthors = request.Authors |> List.ofSeq |> List.map AuthorId
             let! result = bookService.SearchByAuthorsAndYearAsync(context, fsAuthors, request.Year)
             match result with
@@ -564,7 +517,6 @@ type BooksController(bookService: IBookService, userService: IUserService) =
     member this.SearchByTitleAndAuthorsAndYear([<FromBody>] request: SearchTitleAuthorsYearRequest) =
         task {
             let context = UserContextMapper.mapFromRequest this.Request
-            let! context = UserContextMapper.enrichContextAsync userService context
             let fsAuthors = request.Authors |> List.ofSeq |> List.map AuthorId
             let! result = bookService.SearchByTitleAndAuthorsAndYearAsync(context, Title.New request.Title, fsAuthors, request.Year)
             match result with
@@ -576,7 +528,6 @@ type BooksController(bookService: IBookService, userService: IUserService) =
     member this.SearchByAuthorsAndCategories([<FromBody>] request: SearchAuthorsCategoriesRequest) =
         task {
             let context = UserContextMapper.mapFromRequest this.Request
-            let! context = UserContextMapper.enrichContextAsync userService context
             let fsAuthors = request.Authors |> List.ofSeq |> List.map AuthorId
             let fsCategories = request.Categories |> List.ofSeq |> List.map Category.New
             let! result = bookService.SearchByAuthorsAndCategoriesAsync(context, fsAuthors, fsCategories)
@@ -589,7 +540,6 @@ type BooksController(bookService: IBookService, userService: IUserService) =
     member this.SearchByTitleAndAuthorsAndCategories([<FromBody>] request: SearchTitleAuthorsCategoriesRequest) =
         task {
             let context = UserContextMapper.mapFromRequest this.Request
-            let! context = UserContextMapper.enrichContextAsync userService context
             let fsAuthors = request.Authors |> List.ofSeq |> List.map AuthorId
             let fsCategories = request.Categories |> List.ofSeq |> List.map Category.New
             let! result = bookService.SearchByTitleAndAuthorsAndCategoriesAsync(context, Title.New request.Title, fsAuthors, fsCategories)
@@ -602,7 +552,6 @@ type BooksController(bookService: IBookService, userService: IUserService) =
     member this.SearchByAuthorsAndYearAndCategories([<FromBody>] request: SearchAuthorsYearCategoriesRequest) =
         task {
             let context = UserContextMapper.mapFromRequest this.Request
-            let! context = UserContextMapper.enrichContextAsync userService context
             let fsAuthors = request.Authors |> List.ofSeq |> List.map AuthorId
             let fsCategories = request.Categories |> List.ofSeq |> List.map Category.New
             let! result = bookService.SearchByAuthorsAndYearAndCategoriesAsync(context, fsAuthors, request.Year, fsCategories)
@@ -615,7 +564,6 @@ type BooksController(bookService: IBookService, userService: IUserService) =
     member this.SearchByTitleAndAuthorsAndYearAndCategories([<FromBody>] request: SearchTitleAuthorsYearCategoriesRequest) =
         task {
             let context = UserContextMapper.mapFromClaimsPrincipal this.User
-            let! context = UserContextMapper.enrichContextAsync userService context
             let fsAuthors = request.Authors |> List.ofSeq |> List.map AuthorId
             let fsCategories = request.Categories |> List.ofSeq |> List.map Category.New
             let! result = bookService.SearchByTitleAndAuthorsAndYearAndCategoriesAsync(context, Title.New request.Title, fsAuthors, request.Year, fsCategories)

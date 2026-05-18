@@ -12,14 +12,13 @@ open System.Collections.Generic
 
 [<ApiController>]
 [<Route("api/[controller]")>]
-type ReservationsController(reservationService: IReservationService, userService: IUserService) =
+type ReservationsController(reservationService: IReservationService) =
     inherit ControllerBase()
 
     [<HttpGet("{id}")>]
     member this.GetReservation(id: Guid) =
         task {
             let context = UserContextMapper.mapFromClaimsPrincipal this.User
-            let! context = UserContextMapper.enrichContextAsync userService context
             let! result = reservationService.GetReservationAsync(context, ReservationId id)
             match result with
             | Ok reservation -> return this.Ok(reservation) :> IActionResult
@@ -30,7 +29,6 @@ type ReservationsController(reservationService: IReservationService, userService
     member this.GetReservationDetails(id: Guid) =
         task {
             let context = UserContextMapper.mapFromClaimsPrincipal this.User
-            let! context = UserContextMapper.enrichContextAsync userService context
             let! result = reservationService.GetReservationDetailsAsync(context, ReservationId id)
             match result with
             | Ok details -> return this.Ok(details) :> IActionResult
@@ -41,7 +39,6 @@ type ReservationsController(reservationService: IReservationService, userService
     member this.AddReservation(reservation: Reservation, [<FromQuery>] lang: string) =
         task {
             let context = UserContextMapper.mapFromClaimsPrincipal this.User
-            let! context = UserContextMapper.enrichContextAsync userService context
             let shortLang = if String.IsNullOrWhiteSpace(lang) then ShortLang.New "en" else ShortLang.New lang
             let! result = reservationService.AddReservationAsync(context, reservation, shortLang)
             match result with
@@ -53,7 +50,6 @@ type ReservationsController(reservationService: IReservationService, userService
     member this.RemoveReservation(id: Guid) =
         task {
             let context = UserContextMapper.mapFromClaimsPrincipal this.User
-            let! context = UserContextMapper.enrichContextAsync userService context
             let! result = reservationService.RemoveReservationAsync(context, ReservationId id)
             match result with
             | Ok _ -> return this.Ok() :> IActionResult
@@ -64,7 +60,6 @@ type ReservationsController(reservationService: IReservationService, userService
     member this.GetAllPendingReservationsDetails() =
         task {
             let context = UserContextMapper.mapFromClaimsPrincipal this.User
-            let! context = UserContextMapper.enrichContextAsync userService context
             let! result = reservationService.GetAllPendingReservationsDetailsAsync(context)
             match result with
             | Ok details -> return this.Ok(details) :> IActionResult

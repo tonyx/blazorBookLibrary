@@ -12,14 +12,13 @@ open System.Collections.Generic
 
 [<ApiController>]
 [<Route("api/[controller]")>]
-type AuthorsController(authorService: IAuthorService, userService: IUserService) =
+type AuthorsController(authorService: IAuthorService) =
     inherit ControllerBase()
 
     [<HttpPost>]
     member this.AddAuthor(author: Author) =
         task {
             let context = UserContextMapper.mapFromClaimsPrincipal this.User
-            let! context = UserContextMapper.enrichContextAsync userService context
             let! result = authorService.AddAuthorAsync(context, author)
             match result with
             | Ok _ -> return this.Ok() :> IActionResult
@@ -30,7 +29,6 @@ type AuthorsController(authorService: IAuthorService, userService: IUserService)
     member this.GetAuthor(id: Guid) =
         task {
             let context = UserContextMapper.mapFromClaimsPrincipal this.User
-            let! context = UserContextMapper.enrichContextAsync userService context
             let! result = authorService.GetAuthorAsync(context, AuthorId id)
             match result with
             | Ok author -> return this.Ok(author) :> IActionResult
@@ -41,7 +39,6 @@ type AuthorsController(authorService: IAuthorService, userService: IUserService)
     member this.GetAuthorDetails(id: Guid) =
         task {
             let context = UserContextMapper.mapFromClaimsPrincipal this.User
-            let! context = UserContextMapper.enrichContextAsync userService context
             let! result = authorService.GetAuthorDetailsAsync(context, AuthorId id)
             match result with
             | Ok details -> return this.Ok(details) :> IActionResult
@@ -52,7 +49,6 @@ type AuthorsController(authorService: IAuthorService, userService: IUserService)
     member this.GetAllAuthors() =
         task {
             let context = UserContextMapper.mapFromClaimsPrincipal this.User
-            let! context = UserContextMapper.enrichContextAsync userService context
             let! result = authorService.GetAllAsync(context)
             match result with
             | Ok authors -> return this.Ok(authors) :> IActionResult
@@ -63,7 +59,6 @@ type AuthorsController(authorService: IAuthorService, userService: IUserService)
     member this.RenameAuthor(id: Guid, [<FromBody>] newName: string) =
         task {
             let context = UserContextMapper.mapFromClaimsPrincipal this.User
-            let! context = UserContextMapper.enrichContextAsync userService context
             let! result = authorService.RenameAsync(context, AuthorId id, Name.New newName)
             match result with
             | Ok _ -> return this.Ok() :> IActionResult
@@ -74,7 +69,6 @@ type AuthorsController(authorService: IAuthorService, userService: IUserService)
     member this.DeleteAuthor(id: Guid) =
         task {
             let context = UserContextMapper.mapFromClaimsPrincipal this.User
-            let! context = UserContextMapper.enrichContextAsync userService context
             let! result = authorService.RemoveAsync(context, AuthorId id)
             match result with
             | Ok _ -> return this.Ok() :> IActionResult
@@ -85,7 +79,6 @@ type AuthorsController(authorService: IAuthorService, userService: IUserService)
     member this.AddAuthors(authors: List<Author>) =
         task {
             let context = UserContextMapper.mapFromClaimsPrincipal this.User
-            let! context = UserContextMapper.enrichContextAsync userService context
             let! result = authorService.AddAuthorsAsync(context, authors |> List.ofSeq)
             match result with
             | Ok _ -> return this.Ok() :> IActionResult
@@ -96,7 +89,6 @@ type AuthorsController(authorService: IAuthorService, userService: IUserService)
     member this.GetAuthors([<FromBody>] ids: List<Guid>) =
         task {
             let context = UserContextMapper.mapFromClaimsPrincipal this.User
-            let! context = UserContextMapper.enrichContextAsync userService context
             let authorIds = ids |> Seq.map AuthorId |> List.ofSeq
             let! result = authorService.GetAuthorsAsync(context, authorIds)
             match result with
@@ -108,7 +100,6 @@ type AuthorsController(authorService: IAuthorService, userService: IUserService)
     member this.UpdateImageUrl(id: Guid, [<FromBody>] imageUrl: string) =
         task {
             let context = UserContextMapper.mapFromClaimsPrincipal this.User
-            let! context = UserContextMapper.enrichContextAsync userService context
             match Uri.TryCreate(imageUrl, UriKind.Absolute) with
             | (true, uri) ->
                 let! result = authorService.UpdateImageUrlAsync(context, AuthorId id, uri)
@@ -122,7 +113,6 @@ type AuthorsController(authorService: IAuthorService, userService: IUserService)
     member this.RemoveImageUrl(id: Guid) =
         task {
             let context = UserContextMapper.mapFromClaimsPrincipal this.User
-            let! context = UserContextMapper.enrichContextAsync userService context
             let! result = authorService.RemoveImageUrlAsync(context, AuthorId id)
             match result with
             | Ok _ -> return this.Ok() :> IActionResult
@@ -133,7 +123,6 @@ type AuthorsController(authorService: IAuthorService, userService: IUserService)
     member this.UpdateIsni(id: Guid, [<FromBody>] isni: string) =
         task {
             let context = UserContextMapper.mapFromClaimsPrincipal this.User
-            let! context = UserContextMapper.enrichContextAsync userService context
             let! result = authorService.UpdateIsniAsync(context, AuthorId id, Isni.NewInvalid isni)
             match result with
             | Ok _ -> return this.Ok() :> IActionResult
@@ -144,7 +133,6 @@ type AuthorsController(authorService: IAuthorService, userService: IUserService)
     member this.UpdateBio(id: Guid, [<FromBody>] bio: string) =
         task {
             let context = UserContextMapper.mapFromClaimsPrincipal this.User
-            let! context = UserContextMapper.enrichContextAsync userService context
             let! result = authorService.UpdateBioAsync(context, AuthorId id, bio)
             match result with
             | Ok _ -> return this.Ok() :> IActionResult
@@ -155,7 +143,6 @@ type AuthorsController(authorService: IAuthorService, userService: IUserService)
     member this.UpdateWikipediaUri(id: Guid, [<FromBody>] wikipediaUri: string) =
         task {
             let context = UserContextMapper.mapFromClaimsPrincipal this.User
-            let! context = UserContextMapper.enrichContextAsync userService context
             match Uri.TryCreate(wikipediaUri, UriKind.Absolute) with
             | (true, uri) ->
                 let! result = authorService.UpdateWikipediaUriAsync(context, AuthorId id, uri)
@@ -169,7 +156,6 @@ type AuthorsController(authorService: IAuthorService, userService: IUserService)
     member this.Seal(id: Guid) =
         task {
             let context = UserContextMapper.mapFromClaimsPrincipal this.User
-            let! context = UserContextMapper.enrichContextAsync userService context
             let! result = authorService.SealAsync(context, AuthorId id)
             match result with
             | Ok _ -> return this.Ok() :> IActionResult
@@ -180,7 +166,6 @@ type AuthorsController(authorService: IAuthorService, userService: IUserService)
     member this.Unseal(id: Guid) =
         task {
             let context = UserContextMapper.mapFromClaimsPrincipal this.User
-            let! context = UserContextMapper.enrichContextAsync userService context
             let! result = authorService.UnsealAsync(context, AuthorId id)
             match result with
             | Ok _ -> return this.Ok() :> IActionResult
@@ -191,7 +176,6 @@ type AuthorsController(authorService: IAuthorService, userService: IUserService)
     member this.SearchByName(name: string) =
         task {
             let context = UserContextMapper.mapFromClaimsPrincipal this.User
-            let! context = UserContextMapper.enrichContextAsync userService context
             let! result = authorService.SearchByNameAsync(context, Name.New name)
             match result with
             | Ok authors -> return this.Ok(authors) :> IActionResult
@@ -202,7 +186,6 @@ type AuthorsController(authorService: IAuthorService, userService: IUserService)
     member this.SearchByIsni(isni: string) =
         task {
             let context = UserContextMapper.mapFromClaimsPrincipal this.User
-            let! context = UserContextMapper.enrichContextAsync userService context
             let! result = authorService.SearchByIsniAsync(context, Isni.NewInvalid isni)
             match result with
             | Ok authors -> return this.Ok(authors) :> IActionResult
@@ -213,7 +196,6 @@ type AuthorsController(authorService: IAuthorService, userService: IUserService)
     member this.SearchByIsniAndName(isni: string, name: string) =
         task {
             let context = UserContextMapper.mapFromClaimsPrincipal this.User
-            let! context = UserContextMapper.enrichContextAsync userService context
             let! result = authorService.SearchByIsniAndNameAsync(context, Isni.NewInvalid isni, Name.New name)
             match result with
             | Ok authors -> return this.Ok(authors) :> IActionResult
