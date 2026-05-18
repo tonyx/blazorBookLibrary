@@ -246,7 +246,7 @@
     {
         selectedReservation = res;
         
-        var preFill = Configuration.GetValue<bool>("BooksLibrary:PreFillReservationCode");
+        var preFill = Configuration.GetValue<bool>("BooksLibrary:PreFillReservationCode", false);
         if (preFill)
         {
             reservationCodeInput = res.Reservation.ReservationCode.Value;

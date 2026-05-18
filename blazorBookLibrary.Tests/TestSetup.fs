@@ -317,16 +317,6 @@ let truncateVectorDb () =
     cmd.ExecuteNonQuery() |> ignore
 
 let setUp () =
-    UserContext.UserTenantProvider <- Some (fun userId ->
-        try
-            let task = userViewerAsync None userId
-            let res = task.GetAwaiter().GetResult()
-            match res with
-            | Ok (_, user) -> user.CurrentTenant
-            | Error _ -> TenantId.Default
-        with _ ->
-            TenantId.Default
-    )
     pgEventStore.Reset Book.Version Book.StorageName
     pgEventStore.ResetAggregateStream Book.Version Book.StorageName
     pgEventStore.Reset Author.Version Author.StorageName

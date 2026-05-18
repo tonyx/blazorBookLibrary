@@ -12,7 +12,7 @@
   <p>Here are the details of your request:</p>
   <ul>
     <li><strong>Library Network (Tenant):</strong> {tenantName}</li>
-    <li><strong>Pickup Location:</strong> {pickupLocation}</li>
+    <li><strong>Pickup Location:</strong> {distributionPoint}</li>
   </ul>
 
   <p>You will receive an email as soon as the book is available for pickup. </p>

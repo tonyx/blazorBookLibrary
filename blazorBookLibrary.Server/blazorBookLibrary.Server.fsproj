@@ -107,7 +107,7 @@
     <Compile Include="Controllers/AIAssistantController.fs" />
     <Compile Include="Controllers/TextEmbeddingController.fs" />
     <Compile Include="Controllers/TenantController.fs" />
-
+    <Compile Include="Controllers/UserTenantResolverController.fs" />
   </ItemGroup>
 
   <ItemGroup>

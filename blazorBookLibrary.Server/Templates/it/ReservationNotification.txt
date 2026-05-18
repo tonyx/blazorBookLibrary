@@ -12,7 +12,7 @@
   <p>Ecco i dettagli della tua richiesta:</p>
   <ul>
     <li><strong>Rete bibliotecaria (Affiliato):</strong> {tenantName}</li>
-    <li><strong>Luogo di ritiro:</strong> {pickupLocation}</li>
+    <li><strong>Luogo di ritiro:</strong> {distributionPoint}</li>
   </ul>
 
   <p>Riceverai un'e-mail non appena il libro sarà disponibile per il ritiro. </p>

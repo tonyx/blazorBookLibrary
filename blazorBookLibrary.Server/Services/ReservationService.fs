@@ -212,7 +212,11 @@ type ReservationService
                             (Some ct)
 
                     let emailBody = 
-                        emailTextRetrieved.Replace("{bookTitle}", book.Title.Value).Replace("{code}".Replace("{tenantName}", tenant.TentantName.Value).Replace("{distributionPoint}", optDpName),  reservation.ReservationCode.Value)
+                        emailTextRetrieved.Replace("{bookTitle}", book.Title.Value)
+                            .Replace("{code}", reservation.ReservationCode.Value)
+                            .Replace("{tenantName}", tenant.TentantName.Value)
+                            .Replace("{distributionPoint}", optDpName)
+
                     let emailSubject = emailSubjectRetrieved.Replace("{bookTitle}", book.Title.Value)
                     
                     do! 
