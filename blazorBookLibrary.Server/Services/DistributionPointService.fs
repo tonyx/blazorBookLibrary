@@ -38,7 +38,7 @@ type DistributionPointService
                 let! userId =
                     match context with
                     | UserContext.Anonymous -> Error "no user id for anonymous"
-                    | UserContext.Authenticated(uId, _, _) -> Ok uId
+                    | UserContext.Authenticated(uId, _) -> Ok uId
 
                 let! user = userViewerAsync ct userId.Value |> TaskResult.map snd
                 

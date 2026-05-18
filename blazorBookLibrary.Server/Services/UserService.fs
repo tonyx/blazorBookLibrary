@@ -319,11 +319,10 @@ type UserService
             let! tenant = tenantViewerAsync (Some ct) tenantId.Value |> TaskResult.map snd
 
             let! (eventId, user) = getAggregateStorageFreshStateViewerAsync<User, UserEvent, string> eventStore (Some ct) userId.Value
-            printf "XXXXXX tenant owner id %A, user id %A, context %A\n" tenant.OwnerId userId context
 
             let allowed =
                 match context with
-                | UserContext.Authenticated(u, roles, _) when roles |> List.contains(Role.Admin) -> true
+                | UserContext.Authenticated(u, roles) when roles |> List.contains(Role.Admin) -> true
                 | _  when (tenant.OwnerId = userId) -> true
                 | _  when (tenant.Patrons |> List.exists (fun (u, _) -> u = userId)) -> true
                 | _ -> false

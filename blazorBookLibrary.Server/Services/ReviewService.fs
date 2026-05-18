@@ -179,8 +179,7 @@ type ReviewService
             do! 
                 match context with
                 | UserContext.Anonymous -> Error "User is not authenticated"
-                | UserContext.Authenticated (userId, _, _) -> userId = review.UserId |> Result.ofBool "You can only edit your own reviews"
-                | _ -> Error "You can only edit your own reviews"
+                | UserContext.Authenticated (userId, _) -> userId = review.UserId |> Result.ofBool "You can only edit your own reviews"
                 
             let! result =
                 CommandHandler.runAggregateCommandMdAsync<Review, ReviewEvent, string> 
@@ -249,8 +248,7 @@ type ReviewService
             do! 
                 match context with
                 | UserContext.Anonymous -> Error "User is not authenticated"
-                | UserContext.Authenticated (userId, _, _) -> userId = review.UserId |> Result.ofBool "You can only edit your own reviews"
-                | _ -> Error "You can only edit your own reviews"
+                | UserContext.Authenticated (userId, _) -> userId = review.UserId |> Result.ofBool "You can only edit your own reviews"
             let! result =
                 CommandHandler.runAggregateCommandMdAsync<Review, ReviewEvent, string> 
                     commentId.Value
@@ -274,8 +272,7 @@ type ReviewService
             do! 
                 match context with
                 | UserContext.Anonymous -> Error "User is not authenticated"
-                | UserContext.Authenticated (userId, _, _) -> userId = review.UserId |> Result.ofBool "You can only edit your own reviews"
-                | _ -> Error "You can only edit your own reviews"
+                | UserContext.Authenticated (userId, _) -> userId = review.UserId |> Result.ofBool "You can only edit your own reviews"
             let! result =
                 CommandHandler.runAggregateCommandMdAsync<Review, ReviewEvent, string> 
                     commentId.Value

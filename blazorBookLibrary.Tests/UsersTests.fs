@@ -18,7 +18,7 @@ let tests =
             setUp()
             let userService = getUserService()
             let! adminId = registerUserWithAdminRoleTask "admin@example.com" "Password123!"
-            let adminContext = UserContext.Authenticated(adminId, [Role.Admin], TenantId.Default)
+            let adminContext = UserContext.Authenticated(adminId, [Role.Admin])
             let! userId = registerUserTask "user@example.com" "Password123!"
             let! user = userService.GetUserAsync(adminContext, userId) 
             Expect.isOk user "should be ok"
@@ -27,7 +27,7 @@ let tests =
             setUp()
             let userService = getUserService()
             let! userId = registerUserTask "user@example.com" "Password123!"
-            let userContext = UserContext.Authenticated(userId, [], TenantId.Default) 
+            let userContext = UserContext.Authenticated(userId, []) 
             let! user = userService.GetUserAsync(userContext, userId) 
             Expect.isOk user "should be ok"
         }
@@ -36,12 +36,12 @@ let tests =
             let userService = getUserService()
             let! userId1 = registerUserTask "user1@example.com" "Password123!"
             let! userId2 = registerUserTask "user2@example.com" "Password123!"
-            let userContext2 = UserContext.Authenticated(userId2, [], TenantId.Default) 
+            let userContext2 = UserContext.Authenticated(userId2, []) 
             let! result = userService.GetUserAsync(userContext2, userId1) 
             Expect.isError result "should be error"
         }
 
-        ftestCaseTask "create a user and retrieve it then change the current tenant of that user, then retrieve again" <| fun _ -> task {
+        testCaseTask "create a user and retrieve it then change the current tenant of that user, then retrieve again" <| fun _ -> task {
             setUp()
             let userService = getUserService()
             let! userId = registerUserTask "user@example.com" "Password123!"
@@ -51,7 +51,7 @@ let tests =
             let (eventId1, _) = result1 |> Result.get
             printfn "XXXXX. event Id1: %i\n" eventId1
             let tenantService = getTenantService()
-            let userContext = UserContext.Authenticated(userId, [], TenantId.Default) 
+            let userContext = UserContext.Authenticated(userId, []) 
             let tenant = Tenant.New(userId, TenantName.New "Random Tenant" |> Result.get, "Addr")
             let! createResult = tenantService.CreateTenantAsync(userContext, tenant)
             Expect.isOk createResult (sprintf "tenant creation failed: %A" createResult)

@@ -121,7 +121,7 @@ let tagViewerAsync = getAggregateStorageFreshStateViewerAsync<Tags, TagEvent, st
 let tenantViewerAsync = getAggregateStorageFreshStateViewerAsync<Tenant, TenantEvent, string> pgEventStore
 
 let adminId = UserId (System.Guid.Parse("787b784e-42d8-416b-9d57-f1e62f857f47"))
-let adminContext = UserContext.Authenticated (adminId, [Role.Admin], TenantId.Default)
+let adminContext = UserContext.Authenticated (adminId, [Role.Admin])
 
 let fakeEmailNotificator: IMailNotificator = new FakeEmailNotificator()
 let fakeReservationService: IReservationService = new FakeReservationService()
@@ -305,6 +305,16 @@ let truncateVectorDb () =
     cmd.ExecuteNonQuery() |> ignore
 
 let setUp () =
+    UserContext.UserTenantProvider <- Some (fun userId ->
+        try
+            let task = userViewerAsync None userId
+            let res = task.GetAwaiter().GetResult()
+            match res with
+            | Ok (_, user) -> user.CurrentTenant
+            | Error _ -> TenantId.Default
+        with _ ->
+            TenantId.Default
+    )
     pgEventStore.Reset Book.Version Book.StorageName
     pgEventStore.ResetAggregateStream Book.Version Book.StorageName
     pgEventStore.Reset Author.Version Author.StorageName

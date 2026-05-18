@@ -36,7 +36,7 @@ module ConverterUtils =
                     | "user" -> Some User // user is not a role. verify
                     | _ -> None)
                 |> Seq.toList
-            UserContext.Authenticated(UserId(guid), roles, TenantId.Default)
+            UserContext.Authenticated(UserId(guid), roles)
         else
             UserContext.Anonymous
 
@@ -70,7 +70,8 @@ module ConverterUtils =
                     | "user" -> Some User // user is not a role. verify
                     | _ -> None)
                 |> Seq.toList
-            UserContext.Authenticated(UserId(guid), roles, tenantId)
+            let context = UserContext.Authenticated(UserId(guid), roles)
+            context.WithNewTenant(tenantId)
         else
             UserContext.Anonymous
         

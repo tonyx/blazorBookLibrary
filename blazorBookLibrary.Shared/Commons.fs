@@ -508,32 +508,57 @@ type Role =
             roles 
             |> List.map (fun r -> r |> Role.FromString)
 
+let private tenantTable = System.Runtime.CompilerServices.ConditionalWeakTable<obj, TenantId>()
+
+let mutable private userTenantProvider : Option<Guid -> TenantId> = None
+
 type UserContext = 
-    | Authenticated of UserId: UserId * Roles: List<Role> * CurrentTenant: TenantId
+    | Authenticated of UserId: UserId * Roles: List<Role>
     | Anonymous
     with 
+        static member UserTenantProvider
+            with get() = userTenantProvider
+            and set(value) = userTenantProvider <- value
+
         member this.IsInRole (role: Role) = 
             match this with
-            | Authenticated(_, roles, _) -> roles |> List.exists (fun r -> r = role)
+            | Authenticated(_, roles) -> roles |> List.exists (fun r -> r = role)
             | Anonymous -> false
         
         member this.UserId = 
             match this with
-            | Authenticated(userId, _, _) -> Some userId
+            | Authenticated(userId, _) -> Some userId
             | Anonymous -> None
 
         member this.TenantId =
             match this with
-            | Authenticated(_, _, tenantId) -> tenantId
             | Anonymous -> TenantId.Default
+            | Authenticated(userId, _) ->
+                match UserContext.UserTenantProvider with
+                | None -> 
+                    match tenantTable.TryGetValue(this) with
+                    | true, tenantId -> tenantId
+                    | _ -> TenantId.Default
+                | Some provider ->
+                    try
+                        provider userId.Value
+                    with _ ->
+                        TenantId.Default
+
         member this.Roles =
             match this with
-            | Authenticated(_, roles, _) -> roles
+            | Authenticated(_, roles) -> roles
             | Anonymous -> []
+
         member this.WithNewTenant (tenantId: TenantId) =
             match this with
-            | Authenticated(userId, roles, _) -> Authenticated(userId, roles, tenantId)
+            | Authenticated(userId, roles) -> 
+                let newCtx = Authenticated(userId, roles)
+                tenantTable.Remove(newCtx) |> ignore
+                tenantTable.Add(newCtx, tenantId)
+                newCtx
             | Anonymous -> Anonymous
+
 
 type Name =
     | Name of string

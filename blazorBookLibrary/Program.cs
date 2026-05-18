@@ -183,6 +183,30 @@ app.MapAdditionalIdentityEndpoints();
 // Seed Admin role to a specified user from appsettings if they exist
 using (var scope = app.Services.CreateScope())
 {
+    var startupUserService = scope.ServiceProvider.GetRequiredService<BookLibrary.Shared.Services.IUserService>();
+    BookLibrary.Shared.Commons.UserContext.UserTenantProvider = Microsoft.FSharp.Core.FSharpOption<Microsoft.FSharp.Core.FSharpFunc<Guid, BookLibrary.Shared.Commons.TenantId>>.Some(
+        Microsoft.FSharp.Core.FSharpFunc<Guid, BookLibrary.Shared.Commons.TenantId>.FromConverter(userId =>
+        {
+            try
+            {
+                var task = startupUserService.GetUserUnsafeAsync(
+                    BookLibrary.Shared.Commons.UserId.NewUserId(userId),
+                    Microsoft.FSharp.Core.FSharpOption<System.Threading.CancellationToken>.None
+                );
+                var result = task.GetAwaiter().GetResult();
+                if (result.IsOk)
+                {
+                    return result.ResultValue.CurrentTenant;
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[UserTenantProvider] Error: {ex.Message}");
+            }
+            return BookLibrary.Shared.Commons.TenantId.Default;
+        })
+    );
+
     var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
     var adminUsername = app.Configuration["AdminUsername"];
     if (!string.IsNullOrWhiteSpace(adminUsername))

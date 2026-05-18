@@ -82,8 +82,8 @@ type TenantService
                 do!
                     match context, tenant with
                     | UserContext.Anonymous, _ -> Error "Anonymous users cannot create tenants"
-                    | UserContext.Authenticated(userId, _, _), tenant when tenant.OwnerId <> userId -> Error "User is not the owner of the tenant"
-                    | UserContext.Authenticated(userId, _, _), tenant when tenant.OwnerId = userId -> Ok()
+                    | UserContext.Authenticated(userId, _), tenant when tenant.OwnerId <> userId -> Error "User is not the owner of the tenant"
+                    | UserContext.Authenticated(userId, _), tenant when tenant.OwnerId = userId -> Ok()
                     | _, _ -> Error $"Invalid context: userId {context.UserId} is not owner of tenant {tenant.OwnerId}"
 
                 let! result = 
@@ -110,16 +110,16 @@ type TenantService
         member private this.IsAuthorized (context: UserContext, tenant: Tenant) =
             match context with
             | UserContext.Anonymous -> false
-            | UserContext.Authenticated(userId, _, _) when userId = tenant.OwnerId -> true
+            | UserContext.Authenticated(userId, _) when userId = tenant.OwnerId -> true
             | UserContext.Authenticated _ when context.IsInRole Role.Admin -> true
             | _ -> false
 
         member private this.IsMemberOrAdmin (context: UserContext, tenant: Tenant) =
             match context with
             | UserContext.Anonymous -> false
-            | UserContext.Authenticated(userId, _, _) when userId = tenant.OwnerId -> true
+            | UserContext.Authenticated(userId, _) when userId = tenant.OwnerId -> true
             | UserContext.Authenticated _ when context.IsInRole Role.Admin -> true
-            | UserContext.Authenticated(userId, _, _) when tenant.Patrons |> List.exists (fun (u, _) -> u = userId) -> true
+            | UserContext.Authenticated(userId, _) when tenant.Patrons |> List.exists (fun (u, _) -> u = userId) -> true
             | _ -> false
         member private this.IsAdmin (context: UserContext) =
             match context with

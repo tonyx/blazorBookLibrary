@@ -52,7 +52,7 @@ let tests =
             Expect.isOk addBook "should be ok"
 
             let! userId = registerUserTask "test@example.com" "Password123!"
-            let userContext = UserContext.Authenticated(userId, [], TenantId.Default) 
+            let userContext = UserContext.Authenticated(userId, []) 
 
             let! user = userService.GetUserAsync(userContext, userId)
             Expect.isOk user "should be ok"

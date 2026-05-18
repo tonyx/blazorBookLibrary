@@ -18,7 +18,7 @@ let tests =
             let tenantService = getTenantService()
             
             let! userId = registerUserTask "owner@test.com" "Password123!"
-            let userContext = UserContext.Authenticated(userId, [], TenantId.Default)
+            let userContext = UserContext.Authenticated(userId, [])
             
             let tenant = Tenant.New(userId, TenantName.New "My Personal Library" |> Result.get, "123 Main St")
             let! result = tenantService.CreateTenantAsync(userContext, tenant)
@@ -32,7 +32,7 @@ let tests =
             let! userId1 = registerUserTask "user1@test.com" "Password123!"
             let! userId2 = registerUserTask "user2@test.com" "Password123!"
             
-            let user1Context = UserContext.Authenticated(userId1, [], TenantId.Default)
+            let user1Context = UserContext.Authenticated(userId1, [])
             
             // User 1 tries to create a tenant for User 2
             let tenant = Tenant.New(userId2, TenantName.New "Stolen Library" |> Result.get, "123 Main St")
@@ -45,7 +45,7 @@ let tests =
             let tenantService = getTenantService()
             
             let! ownerId = registerUserTask "owner@test.com" "Password123!"
-            let ownerContext = UserContext.Authenticated(ownerId, [], TenantId.Default)
+            let ownerContext = UserContext.Authenticated(ownerId, [])
             
             // Create a public tenant (true is default)
             let tenant = Tenant.New(ownerId, TenantName.New "Public Library" |> Result.get, "123 Main St", true)
@@ -54,7 +54,7 @@ let tests =
             Expect.isOk createResult "Tenant creation should succeed"
             
             let! otherUserId = registerUserTask "other@test.com" "Password123!"
-            let otherUserContext = UserContext.Authenticated(otherUserId, [], TenantId.Default)
+            let otherUserContext = UserContext.Authenticated(otherUserId, [])
             
             // Other user retrieves the tenant
             let! getResult = tenantService.GetTenantAsync(otherUserContext, tenantId)
@@ -71,7 +71,7 @@ let tests =
             let tenantService = getTenantService()
             
             let! ownerId = registerUserTask "owner@test.com" "Password123!"
-            let ownerContext = UserContext.Authenticated(ownerId, [], TenantId.Default)
+            let ownerContext = UserContext.Authenticated(ownerId, [])
             
             // Create a private tenant
             let tenant = Tenant.New(ownerId, TenantName.New "Private Library" |> Result.get, "123 Main St", false)
@@ -94,7 +94,7 @@ let tests =
             let tenantService = getTenantService()
             
             let! ownerId = registerUserTask "owner@test.com" "Password123!"
-            let ownerContext = UserContext.Authenticated(ownerId, [], TenantId.Default)
+            let ownerContext = UserContext.Authenticated(ownerId, [])
             
             // Create a private tenant
             let tenant = Tenant.New(ownerId, TenantName.New "Secret Library" |> Result.get, "123 Main St", false)
@@ -116,7 +116,7 @@ let tests =
             let tenantService = getTenantService()
             
             let! ownerId = registerUserTask "owner@test.com" "Password123!"
-            let ownerContext = UserContext.Authenticated(ownerId, [], TenantId.Default)
+            let ownerContext = UserContext.Authenticated(ownerId, [])
             
             // Create a private tenant
             let tenant = Tenant.New(ownerId, TenantName.New "Private Library" |> Result.get, "123 Main St", false)
@@ -125,7 +125,7 @@ let tests =
             Expect.isOk createResult "Tenant creation should succeed"
             
             let! otherUserId = registerUserTask "other@test.com" "Password123!"
-            let otherUserContext = UserContext.Authenticated(otherUserId, [], TenantId.Default)
+            let otherUserContext = UserContext.Authenticated(otherUserId, [])
             
             // Other user tries to retrieve the private tenant
             let! getResult = tenantService.GetTenantAsync(otherUserContext, tenantId)
@@ -136,7 +136,7 @@ let tests =
             setUp()
             let tenantService = getTenantService()
             let! ownerId = registerUserTask "owner@test.com" "Password123!"
-            let ownerContext = UserContext.Authenticated(ownerId, [], TenantId.Default)
+            let ownerContext = UserContext.Authenticated(ownerId, [])
             let tenant = Tenant.New(ownerId, TenantName.New "My Library" |> Result.get, "123 Main St")
             let tenantId = tenant.TenantId
             let! _ = tenantService.CreateTenantAsync(ownerContext, tenant)
@@ -156,7 +156,7 @@ let tests =
             setUp()
             let tenantService = getTenantService()
             let! ownerId = registerUserTask "owner@test.com" "Password123!"
-            let ownerContext = UserContext.Authenticated(ownerId, [], TenantId.Default)
+            let ownerContext = UserContext.Authenticated(ownerId, [])
             let tenant = Tenant.New(ownerId, TenantName.New "My Library" |> Result.get, "123 Main St")
             let tenantId = tenant.TenantId
             let! _ = tenantService.CreateTenantAsync(ownerContext, tenant)
@@ -184,7 +184,7 @@ let tests =
             setUp()
             let tenantService = getTenantService()
             let! ownerId = registerUserTask "owner@test.com" "Password123!"
-            let ownerContext = UserContext.Authenticated(ownerId, [], TenantId.Default)
+            let ownerContext = UserContext.Authenticated(ownerId, [])
             let tenant = Tenant.New(ownerId, TenantName.New "My Library" |> Result.get, "123 Main St")
             let tenantId = tenant.TenantId
             let! _ = tenantService.CreateTenantAsync(ownerContext, tenant)
@@ -204,13 +204,13 @@ let tests =
             setUp()
             let tenantService = getTenantService()
             let! ownerId = registerUserTask "owner@test.com" "Password123!"
-            let ownerContext = UserContext.Authenticated(ownerId, [], TenantId.Default)
+            let ownerContext = UserContext.Authenticated(ownerId, [])
             let tenant = Tenant.New(ownerId, TenantName.New "My Library" |> Result.get, "123 Main St")
             let tenantId = tenant.TenantId
             let! _ = tenantService.CreateTenantAsync(ownerContext, tenant)
             
             let! otherUserId = registerUserTask "other@test.com" "Password123!"
-            let otherContext = UserContext.Authenticated(otherUserId, [], TenantId.Default)
+            let otherContext = UserContext.Authenticated(otherUserId, [])
             
             let! patronId = registerUserTask "patron@test.com" "Password123!"
             let! result = tenantService.AddPatronAsync(otherContext, tenantId, patronId, PatronRole.User)
@@ -221,7 +221,7 @@ let tests =
             setUp()
             let tenantService = getTenantService()
             let! ownerId = registerUserTask "owner@test.com" "Password123!"
-            let ownerContext = UserContext.Authenticated(ownerId, [], TenantId.Default)
+            let ownerContext = UserContext.Authenticated(ownerId, [])
             let tenant = Tenant.New(ownerId, TenantName.New "My Library" |> Result.get, "123 Main St", false)
             let tenantId = tenant.TenantId
             let! _ = tenantService.CreateTenantAsync(ownerContext, tenant)
@@ -229,7 +229,7 @@ let tests =
             let! patronId = registerUserTask "patron@test.com" "Password123!"
             let! _ = tenantService.AddPatronAsync(ownerContext, tenantId, patronId, PatronRole.User)
             
-            let patronContext = UserContext.Authenticated(patronId, [], tenantId)
+            let patronContext = UserContext.Authenticated(patronId, []).WithNewTenant(tenantId)
             let! roleResult = tenantService.GetUserRoleAsync(patronContext, tenantId, patronId)
             
             Expect.isOk roleResult "Patron should be able to retrieve their own role"
@@ -241,7 +241,7 @@ let tests =
             setUp()
             let tenantService = getTenantService()
             let! ownerId = registerUserTask "owner@test.com" "Password123!"
-            let ownerContext = UserContext.Authenticated(ownerId, [], TenantId.Default)
+            let ownerContext = UserContext.Authenticated(ownerId, [])
             let tenant = Tenant.New(ownerId, TenantName.New "Private Library" |> Result.get, "123 Main St", false)
             let tenantId = tenant.TenantId
             let! _ = tenantService.CreateTenantAsync(ownerContext, tenant)
@@ -249,7 +249,7 @@ let tests =
             let! patronId = registerUserTask "patron@test.com" "Password123!"
             let! _ = tenantService.AddPatronAsync(ownerContext, tenantId, patronId, PatronRole.User)
             
-            let patronContext = UserContext.Authenticated(patronId, [], tenantId)
+            let patronContext = UserContext.Authenticated(patronId, []).WithNewTenant(tenantId)
             let! getResult = tenantService.GetTenantAsync(patronContext, tenantId)
             
             Expect.isOk getResult "Patron should be able to retrieve a private tenant they belong to"
