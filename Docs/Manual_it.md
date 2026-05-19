@@ -1,26 +1,34 @@
 # Manuale Utente: Blazor Book Library
 
-Benvenuti nel manuale di **Blazor Book Library**. Questa guida ti aiuterà a navigare nel sistema, gestire il catalogo e comprendere le funzionalità principali della piattaforma.
+Benvenuti nel manuale utente di **Blazor Book Library**. Questa guida ti aiuterà a navigare nel sistema, comprendere il concetto di multi-tenancy, gestire i cataloghi ed esplorare le funzionalità avanzate della piattaforma.
 
 ---
 
 ## Tabella dei Contenuti
 1. [Introduzione](#introduzione)
-2. [Sia Inizia](#per-iniziare)
-3. [Funzionalità per Tutti gli Utenti](#funzionalità-per-tutti-gli-utenti)
+2. [Guida all'Avvio e Multi-Tenancy](#guida-allavvio-e-multi-tenancy)
+    - [L'Architettura Multi-Tenant (Circuiti)](#larchitettura-multi-tenant-circuiti)
+    - [Login e Autenticazione](#login-e-autenticazione)
+    - [Contesto Attivo e Cambio di Circuito](#contesto-attivo-e-cambio-di-circuito)
+3. [Funzionalità Principali per Tutti gli Utenti](#funzionalità-principali-per-tutti-gli-utenti)
     - [Ricerca e Scoperta](#ricerca-e-scoperta)
     - [Visualizzazione Dettagli Libro](#visualizzazione-dettagli-libro)
-4. [Privilegi dei Membri](#privilegi-dei-membri)
-    - [Prestiti e Restituzioni](#prestiti-e-restituzioni)
+4. [Privilegi dei Patron e Circolazione](#privilegi-dei-patron-e-circolazione)
+    - [Accettare un Invito a un Circuito](#accettare-un-invito-a-un-circuito)
+    - [Prestiti e Restituzioni (Regole di Circolazione)](#prestiti-e-restituzioni-regole-di-circolazione)
     - [Prenotazioni](#prenotazioni)
-5. [Strumenti per Bibliotecari e Manager](#strumenti-per-bibliotecari-e-manager)
+5. [Strumenti per Proprietari di Tenant e Manager](#strumenti-per-proprietari-di-tenant-e-manager)
+    - [Creare il Proprio Tenant (Library-as-a-Service)](#creare-il-proprio-tenant-library-as-a-service)
+    - [Visibilità e Impostazioni del Tenant (Pubblico vs. Privato)](#visibilità-e-impostazioni-del-tenant-pubblico-vs-privato)
+    - [Elenco Patron e Delega dei Ruoli](#elenco-patron-e-delega-dei-ruoli)
+    - [Gestione dei Punti di Distribuzione e Custodia](#gestione-dei-punti-di-distribuzione-e-custodia)
     - [Gestione del Catalogo](#gestione-del-catalogo)
-    - [Scansione Barcode](#scansione-barcode)
-    - [Riconoscimento Copertina IA](#riconoscimento-copertina-ia)
-    - [Registro Autori](#registro-autori)
-    - [Operazioni Massive](#operazioni-massive)
+    - [Arricchimento tramite IA ed Embedding](#arricchimento-tramite-ia-ed-embedding)
+    - [Importazione ed Esportazione Archivio](#importazione-ed-esportazione-archivio)
 6. [Amministrazione del Sistema](#amministrazione-del-sistema)
     - [Gestione Utenti](#gestione-utenti)
+    - [Pannello di Controllo Admin e Riconciliazione](#pannello-di-controllo-admin-e-riconciliazione)
+    - [Anonimizzazione GDPR e "Diritto all'Oblio"](#anonimizzazione-gdpr-e-diritto-alloblio)
     - [Affidabilità del Servizio Email](#affidabilità-del-servizio-email)
 7. [Risoluzione dei Problemi e Supporto](#risoluzione-dei-problemi-e-supporto)
 
@@ -28,154 +36,155 @@ Benvenuti nel manuale di **Blazor Book Library**. Questa guida ti aiuterà a nav
 
 <a name="introduzione"></a>
 ## 1. Introduzione
-Blazor Book Library è un sistema di archiviazione moderno e ad alte prestazioni, progettato per la scopribilità e la facilità d'uso. Sfrutta l'event-sourcing per una tracciabilità perfetta e si integra con servizi globali come Google Books per mantenere il catalogo ricco e accurato.
+Blazor Book Library è un sistema di archiviazione e prestito moderno e ad alte prestazioni. È alimentato da un'architettura basata su event-sourcing e sfrutta integrazioni IA avanzate (come la ricerca semantica e il riconoscimento delle copertine) per rendere la catalogazione e la scoperta dei libri un'esperienza immediata.
 
-<a name="per-iniziare"></a>
-## 2. Per Iniziare
+Invece di utilizzare un unico database condiviso in cui tutti gli utenti visualizzano gli stessi dati, la piattaforma organizza libri, prestiti e membri in ecosistemi di prestito isolati chiamati **Circuiti** (o **Tenant**). Questa guida ti illustrerà sia l'esperienza di utilizzo standard della biblioteca sia il processo per gestire il tuo servizio bibliotecario digitale indipendente.
+
+---
+
+<a name="guida-allavvio-e-multi-tenancy"></a>
+## 2. Guida all'Avvio e Multi-Tenancy
+
+<a name="larchitettura-multi-tenant-circuiti"></a>
+### L'Architettura Multi-Tenant (Circuiti)
+Per servire diverse comunità e collezionisti di libri, il sistema funziona secondo un modello multi-tenant auto-governato:
+1. **Il Circuito di Dimostrazione (Tenant di Default)**: Al momento della registrazione, tutti gli utenti si uniscono ed esplorano automaticamente il **Tenant di Default** (`TenantId.Default`). Questo funge da sandbox pubblica comune contenente un catalogo predefinito, categorie di esempio e punti di distribuzione dimostrativi, consentendo un'esplorazione immediata.
+2. **Circuiti Autonomi (Library-as-a-Service)**: Qualsiasi utente registrato può creare istantaneamente un **Tenant** completamente isolato in qualsiasi momento. In qualità di **Proprietario (Owner)**, avrai il controllo assoluto su questo circuito personalizzato: potrai catalogare i tuoi libri, invitare amici o vicini, assegnare ruoli e decidere le politiche di accesso senza interferire con nessun altro utente.
+
+<a name="login-and-authentication"></a>
 ### Login e Autenticazione
 - Accedi al sistema tramite il link **Login** nel menu di navigazione.
 - Puoi registrare un nuovo account o accedere con le tue credenziali esistenti.
-- Il sistema supporta il **Social Login** (es. Google OAuth) per un'esperienza immediata.
-- Il sistema supporta autenticazione a due fattori (2FA).   
-- Il sistema supporta l'autenticazione tramite passkey.
+- Il sistema supporta il **Social Login** (es. Google OAuth), l'**Autenticazione Passkey** e l'**Autenticazione a Due Fattori (2FA)** per un accesso sicuro e moderno.
 
-### Dashboard Principale
-- Una volta effettuato l'accesso, la pagina **Home** offre una panoramica rapida delle ultime aggiunte in biblioteca.
-- Usa la barra laterale o la navigazione superiore per passare alla **Ricerca Biblioteca**, al **Gestore Libri** o al **Gestore Autori** (a seconda del tuo ruolo).
+<a name="contesto-attivo-e-cambio-di-circuito"></a>
+### Contesto Attivo e Cambio di Circuito
+- Il circuito attivo determina ciò che vedi. Ogni consultazione del catalogo, ricerca semantica, verifica dei punti di distribuzione o transazione di prestito opera rigorosamente entro i confini del tuo **Tenant Attivo**.
+- Cambia contesto facilmente utilizzando il menu a discesa **Selettore Tenant** situato nella barra di navigazione. Seleziona qualsiasi circuito di tua proprietà o a cui appartieni come patron per aggiornare istantaneamente il contesto della tua area di lavoro.
 
 ---
 
-<a name="funzionalità-per-tutti-gli-utenti"></a>
-## 3. Funzionalità per Tutti gli Utenti
+<a name="funzionalità-principali-per-tutti-gli-utenti"></a>
+## 3. Funzionalità Principali per Tutti gli Utenti
 
 <a name="ricerca-e-scoperta"></a>
 ### Ricerca e Scoperta
-La pagina di **Ricerca Biblioteca** è lo strumento principale per trovare letteratura.
+La pagina **Ricerca Biblioteca** è progettata per interrogare il catalogo del tenant attivo:
 - **Ricerca per Titolo**: Inserisci qualsiasi parte del titolo di un libro.
 - **Ricerca per ISBN**: Trova un libro specifico tramite il suo codice ISBN a 10 o 13 cifre.
-- **Filtri Avanzati**:
-    - **Autori**: Filtra per uno o più autori.
-    - **Categorie**: Filtra per genere o classificazione (es. Fiction, Scienza, Storia).
-    - **Cronologia**: Cerca libri pubblicati in un anno specifico o in un intervallo.
-    - **Disponibilità**: Filtra per mostrare solo i libri immediatamente disponibili per il prestito.
-- **Scoperta Semantica AI**:
-    - Inserisci una descrizione testuale (es. "un romanzo distopico sulla sorveglianza") per trovare libri con significati simili, anche se non contengono le parole esatte cercate.
-    - Specifica il numero massimo di risultati desiderati per affinare la tua scoperta.
+- **Filtri Avanzati**: Filtra per uno o più autori, generi/categorie, intervalli di pubblicazione o mostra solo i libri immediatamente disponibili.
+- **Scoperta Semantica IA**:
+    - Inserisci query in linguaggio naturale (es. "una storia distopica sulla perdita di memoria e il controllo totalitario") per recuperare libri con argomenti semanticamente correlati, anche se non condividono le parole chiave esatte.
+    - Limita il numero di risultati restituiti per affinare le liste di scoperta.
 
 <a name="visualizzazione-dettagli-libro"></a>
 ### Visualizzazione Dettagli Libro
-Cliccando sul titolo di un libro si apre la pagina **Visualizza Libro**.
-- **Panoramica**: Visualizza immagini di copertina, riassunti e metadati.
-- **Stato Disponibilità**: Vedi a colpo d'occhio se il libro è sullo scaffale, in prestito o solo per consultazione.
+Cliccando su un libro si apre la pagina **Visualizza Libro**:
+- **Panoramica**: Visualizza immagini di copertina, riassunti e categorie.
+- **Posizione e Custodia**: Verifica quale **Punto di Distribuzione** fisico contiene attualmente il libro.
+- **Stato Disponibilità**: Vedi a colpo d'occhio se il libro è sullo scaffale, in prestito (con data di restituzione prevista) o contrassegnato solo per consultazione.
 
 ---
 
-<a name="privilegi-dei-membri"></a>
-## 4. Privilegi dei Membri
+<a name="privilegi-dei-patron-e-circolazione"></a>
+## 4. Privilegi dei Patron e Circolazione
 
-<a name="prestiti-e-restituzioni"></a>
-### Prestiti e Restituzioni
-I membri possono gestire i propri prestiti.
-- **Prestito**: Vai alla pagina dei dettagli del libro e clicca su **"Prendi in prestito"** se il libro è disponibile.
-- **Restituzione**: I prestiti attivi possono essere conclusi cliccando su **"Restituisci"**, rendendo il libro nuovamente disponibile per gli altri.
+<a name="accettare-un-invito-a-un-circuito"></a>
+### Accettare un Invito a un Circuito
+Se un amico, un familiare o un leader di una comunità ti invita nel suo tenant privato, riceverai un'email di invito contenente un link sicuro.
+1. Clicca sul link dinamico presente nell'email.
+2. Accedi o crea un nuovo account se non lo hai già fatto.
+3. Il sistema converte l'invito registrandoti nel ruolo di **Patron** all'interno del tenant ospitante, imposta il tuo contesto tenant attivo e salva un cookie sicuro (`selected_tenant`).
+4. Verrai reindirizzato alla nuova dashboard personalizzata per iniziare subito a sfogliare la collezione.
+
+<a name="prestiti-e-restituzioni-regole-di-circolazione"></a>
+### Prestiti e Restituzioni (Regole di Circolazione)
+- **Prestito**: Vai alla pagina dei dettagli di un libro disponibile e clicca su **"Prendi in prestito"**. Puoi selezionare un **Punto di Distribuzione** fisico per coordinare il ritiro.
+- **Restituzioni (Vincolo Stretto)**: Per preservare la tracciabilità dell'inventario fisico, **i libri devono essere restituiti all'esatto Punto di Distribuzione fisico** da cui sono stati borrowed o registrati.
+- **Self-Service vs. Approvazione del Custode**:
+  - In un tenant **Gestito da Custodi**, un referente designato (Utente di Riferimento) deve controllare fisicamente e approvare il ritiro o la restituzione nel sistema.
+  - In un tenant **Self-Service (Basato sulla Fiducia)**, i patron confermano direttamente i loro ritiri e restituzioni digitali, affidandosi interamente alla fiducia reciproca e all'onestà.
 
 <a name="prenotazioni"></a>
 ### Prenotazioni
-Se un libro è attualmente in prestito, puoi effettuare una **Prenotazione**.
-- Verrai avvisato quando il libro verrà restituito e sarà riservato per te.
-- Le prenotazioni possono essere annullate in qualsiasi momento dal tuo profilo o dalla pagina del libro (todo: implementare).
+Se un libro è attualmente in prestito, clicca su **"Prenota"** per metterti in coda. Verrai avvisato via email al momento della restituzione. Le prenotazioni possono essere annullate in qualsiasi momento dalla dashboard del tuo profilo.
 
 ---
 
-<a name="strumenti-per-bibliotecari-e-manager"></a>
-## 5. Strumenti per Bibliotecari e Manager
+<a name="strumenti-per-proprietari-di-tenant-e-manager"></a>
+## 5. Strumenti per Proprietari di Tenant e Manager
+
+<a name="creare-il-proprio-tenant-library-as-a-service"></a>
+### Creare il Proprio Tenant (Library-as-a-Service)
+Per ospitare il tuo circuito di condivisione:
+1. Naviga nella **Dashboard Tenant** e seleziona **"Crea Nuovo Circuito"**.
+2. Assegna un nome univoco al tuo circuito.
+3. Al momento della creazione, verrai registrato come **Proprietario (Owner)** del nuovo contesto tenant, ottenendo il controllo amministrativo assoluto.
+
+<a name="visibilità-e-impostazioni-del-tenant-pubblico-vs-privato"></a>
+### Visibilità e Impostazioni del Tenant (Pubblico vs. Privato)
+I proprietari possono attivare e disattivare la visibilità del proprio tenant:
+- **🔒 Privato (Cerchio Chiuso)**: Praticamente invisibile. Il catalogo e i dettagli sono completamente nascosti agli utenti generici della piattaforma. Gli utenti devono essere invitati via email per sfogliare o prendere in prestito. Perfetto per scaffali familiari, club del libro o ristrette cerchie di amici.
+- **🏛️ Pubblico (Biblioteca Comunitaria)**: Ricercabile e consultabile da qualsiasi utente registrato sulla piattaforma. Ideale per spazi di coworking, caffè di quartiere, micro-biblioteche pubbliche e reti di bookcrossing.
+
+<a name="elenco-patron-e-delega-dei-ruoli"></a>
+### Elenco Patron e Delega dei Ruoli
+In qualità di Proprietario del Tenant:
+- **Onboarding dei Patron**: Inserisci l'email di un utente nella sezione **"Invita Patron"** per inviare un invito via email. È possibile visualizzare tutti gli inviti in sospeso e revocarli se necessario.
+- **Assegnazione Manager**: Promuovi i Patron attivi al ruolo di **Manager**, consentendo loro di gestire libri, autori, categorie e generare embedding IA.
+- **Rimozione / Revoca**: Retrocedi i manager a patron o rimuovi completamente i membri inattivi dall'elenco del tuo tenant.
+
+<a name="gestione-dei-punti-di-distribuzione-e-custodia"></a>
+### Gestione dei Punti di Distribuzione e Custodia
+Definisci l'infrastruttura fisica in cui risiedono i libri (es. "Scaffale Soggiorno", "Armadietto Ufficio", "Box Caffè Verde"):
+1. Crea nuovi **Punti di Distribuzione** all'interno del tuo tenant.
+2. Scegli un **Modello di Prestito**:
+   - **Self-Service**: Disattiva la verifica del custode. Gli utenti prendono in prestito e restituiscono i libri in autonomia.
+   - **Custodia Delegata**: Assegna uno o più patron come **Utenti di Riferimento** per posizioni specifiche. Queste persone dovranno approvare fisicamente le azioni nel sistema.
 
 <a name="gestione-del-catalogo"></a>
 ### Gestione del Catalogo
-I manager utilizzano il **Gestore Libri** per mantenere l'eccellenza della biblioteca.
-- **Aggiunta Libri**: Clicca su **"Aggiungi Nuovo Libro"** per aprire il modulo di registrazione.
-- **Integrazione Google Books**: Inserisci un titolo e clicca su **"Cerca tramite API"** per recuperare automaticamente i metadati (descrizione, anno, autori) dai record globali.
-- **Modifica Record**: Clicca su qualsiasi titolo nell'elenco per modificarne i dettagli, incluse le categorie e le note d'archivio.
-- **Arricchimento tramite IA**:
-    - **Generazione Descrizioni Mancanti**: Se un libro non ha un riassunto, usa lo strumento **"Genera Descrizione"**. Il sistema utilizza l'IA per sintetizzare un abstract di alta qualità basato sul titolo e sui metadati esistenti.
-    - **Annullamento Narrativo (Undo)**: Se non sei soddisfatto del testo generato dall'IA, usa il pulsante **"Annulla"** per ripristinare istantaneamente la versione precedente.
-- **Gestione Embedding AI**:
-    - Per abilitare la ricerca semantica, ogni libro deve avere un "embedding" (vettore di dati) associato alla sua descrizione.
-    - Nella pagina di modifica del libro, se manca il dato vettoriale, clicca su **"Genera Embedding"**. Il sistema utilizzerà l'intelligenza artificiale per convertire la descrizione in dati vettoriali.
-    - **Controllo di Integrità**: Una volta generato, puoi eseguire un **"Sanity Check"** inserendo un testo simile alla descrizione e verificando se il libro appare correttamente tra i primi risultati della ricerca semantica.
-    - È possibile rimuovere o aggiornare l'embedding in qualsiasi momento, ad esempio dopo aver modificato drasticamente la descrizione del libro.
+I manager e i proprietari utilizzano il registro **Gestione Libri**:
+- **Aggiungi Nuovo Libro**: Inserisci i dettagli manualmente o scansiona il codice a barre di un libro fisico utilizzando la fotocamera del tuo dispositivo per recuperare i metadati da Google Books.
+- **Riconoscimento Copertina IA**: Se un codice a barre è danneggiato o assente, clicca sull'icona della fotocamera, scatta una foto nitida della copertina e lascia che la nostra visione IA identifichi titolo, autori e metadati.
+- **Registro Autori**: Gestisci i creatori, ricerca le biografie e importa i ritratti direttamente da Wikipedia. Puoi **"Sigillare"** i profili degli autori per bloccarli contro modifiche accidentali.
 
-<a name="scansione-barcode"></a>
-### Scansione Barcode
-Il sistema supporta scanner hardware fisici o la scansione tramite fotocamera.
-- Nel modulo di aggiunta libro, clicca sull'icona della fotocamera **"Scansiona"**.
-- Posiziona il codice a barre del libro nel riquadro. Il sistema catturerà l'ISBN e ti permetterà di **"Autocompletare"** i metadati immediatamente.
+<a name="arricchimento-tramite-ia-ed-embedding"></a>
+### Arricchimento tramite IA ed Embedding
+- **Genera Descrizioni**: Clicca su **"Genera Descrizione"** per fare scrivere all'IA un riassunto completo basato sul titolo e sui metadati. È possibile annullare (Undo) la generazione se necessario.
+- **Embedding Vettoriali per Ricerca Semantica**: Per abilitare la ricerca semantica IA, clicca su **"Genera Embedding"** nella pagina di modifica di un libro. L'IA converte le descrizioni in vettori matematici.
+- **Controllo di Integrità**: Verifica la precisione dei tuoi indici semantici digitando query in linguaggio naturale direttamente nel pannello di validazione per vedere dove si posiziona il libro.
 
-<a name="riconoscimento-copertina-ia"></a>
-### Riconoscimento Copertina tramite IA
-Se un libro non ha un codice a barre o preferisci un approccio visivo, puoi usare l'IA per identificare il libro dalla sua copertina.
-- Nel modulo di aggiunta libro, clicca sull'icona **"Cattura Copertina"**.
-- Scatta una foto chiara dell'intera copertina del libro usando la fotocamera del tuo dispositivo.
-- Il sistema utilizza l'intelligenza artificiale avanzata per analizzare l'immagine e risolvere automaticamente il **Titolo**, gli **Autori** e spesso l'**ISBN**.
-- Questo è il modo più veloce per registrare libri antichi o con codici a barre danneggiati.
-
-<a name="registro-autori"></a>
-### Registro Autori
-Gestisci il database dei creatori nel **Gestore Autori**.
-- **Ricerca Wikipedia**: Quando aggiungi un autore, usa lo strumento **"Scopri Ritratto"** per recuperare automaticamente un'immagine del profilo e un link biografico da Wikipedia.
-- **Sigillare Record**: I profili degli autori possono essere **Sigillati** (bloccati) per prevenire modifiche accidentali durante le revisioni amministrative.
-
-<a name="operazioni-massive"></a>
-### Operazioni Massive
-Risparmia tempo con gli aggiornamenti di massa:
-- Seleziona più libri nel registro del **Gestore Libri**.
-- Clicca su **"Modifica Massiva"** per aggiornare simultaneamente anni di pubblicazione, categorie o stato di disponibilità per l'intera selezione.
-
-<a name="importazione-ed-esportazione"></a>
+<a name="importazione-ed-esportazione-archivio"></a>
 ### Importazione ed Esportazione Archivio
-Il **Gestore Libri** offre potenti strumenti per la gestione massiva dei dati.
-- **Esportazione dell'Archivio**: Usa il menu a discesa **"Esporta"** per scaricare l'intero catalogo della biblioteca nei formati **JSON** o **CSV**. Questo è ideale per backup o analisi esterne.
-- **Importazione Massiva via ISBN**: 
-    - Clicca su **"Importa"** per aprire lo strumento di registrazione massiva.
-    - Incolla un elenco di codici ISBN (uno per riga) o carica un file di testo.
-    - **Opzioni di Configurazione**:
-        - **Genera autori mancanti**: Crea automaticamente i profili autore per i creatori non riconosciuti.
-        - **Consenti ISBN duplicati**: Abilita questa opzione per permettere più voci con lo stesso ISBN.
-        - **Genera descrizioni mancanti**: Usa l'IA per sintetizzare riassunti per i libri dove le API globali non ne forniscono alcuno.
-        - **Genera embedding automaticamente**: Prepara istantaneamente il libro per la ricerca semantica al momento dell'importazione.
-    - **Risoluzione Intelligente**: Il sistema ricerca automaticamente i metadati per ogni ISBN tramite API globali e servizi di IA.
-    - **Monitoraggio Avanzamento**: Una barra di avanzamento in tempo reale mostra lo stato corrente e il tempo stimato rimanente per le importazioni di grandi dimensioni.
-    - **Riepilogo Post-Importazione**: Al termine, un report dettagliato mostra le importazioni riuscite, gli avvisi e gli errori. Puoi copiare facilmente gli ISBN dei record falliti per riprovare in seguito.
+- **Esportazione**: Scarica istantaneamente il catalogo del tenant attivo in formato **CSV** o **JSON** per backup digitali o stampe cartacee.
+- **Importazione ISBN Massiva**: Incolla una lista di ISBN (uno per riga) o carica un file di testo. Personalizza le opzioni per recuperare automaticamente i metadati, generare descrizioni mancanti, creare profili autore e creare embedding semantici al volo con un monitor di avanzamento in tempo reale.
 
 ---
 
-<a name="gestione-utenti"></a>
+<a name="amministrazione-del-sistema"></a>
 ## 6. Amministrazione del Sistema
 
+<a name="gestione-utenti"></a>
 ### Gestione Utenti
-Gli amministratori gestiscono gli accessi tramite il **Gestore Utenti**.
-- **Assegnazione Ruoli**: Promuovi gli utenti ai ruoli di **Manager** o **Bibliotecario** per concedere l'accesso al catalogo.
-- **Controllo Account**: Cerca gli utenti per email o nome utente per revisionare il loro stato e i loro ruoli.
+Gli Amministratori Globali supervisionano la sicurezza della piattaforma e i ruoli a livello di sistema attraverso il **Gestore Utenti**, cercando profili, esaminando lo stato globale e assegnando ruoli di manager globali.
 
-<a name="control-panel"></a>
+<a name="pannello-di-controllo-admin-e-riconciliazione"></a>
 ### Pannello di Controllo Admin e Riconciliazione
-Il **Pannello di Controllo** fornisce strumenti di manutenzione critici per l'integrità del sistema.
-- **Riconciliazione Database Vettoriale**: 
-    - **Pulisci Vettori Orfani**: Rimuove gli embedding dal database vettoriale che non sono più collegati a libri attivi nell'archivio. Usa questo strumento per mantenere il database vettoriale efficiente e accurato.
-    - **Sincronizzazione Stati Libri**: Rileva i libri che fanno riferimento a un embedding che è stato perso o eliminato dal database vettoriale. Ripristina automaticamente lo stato del libro per garantire che non dichiari più di avere un embedding valido.
-- **Estensibilità Futura**: Questo pannello è progettato per ospitare funzionalità future come l'audit degli eventi in tempo reale e la pianificazione automatizzata dei task.
+Fornisce controlli di integrità a livello di piattaforma:
+- **Pulisci Vettori Orfani**: Rimuove gli embedding di ricerca obsoleti non legati a libri esistenti.
+- **Sincronizzazione Stati Libri**: Corregge la discrepanza in cui i libri fanno riferimento a puntatori di database vettoriali non validi.
 
+<a name="anonimizzazione-gdpr-e-diritto-alloblio"></a>
 ### Anonimizzazione GDPR e "Diritto all'Oblio"
-Gli utenti possono richiedere la cancellazione dell'account tramite le impostazioni del profilo (**Gestisci i tuoi dati**).
-- **Flusso di Anonimizzazione**: Per conformarsi al GDPR preservando al contempo i record storici della biblioteca (come prestiti e recensioni passati), il sistema esegue l'**Anonimizzazione** invece della cancellazione fisica.
-- **Disabilitazione Account**: I dettagli personali dell'utente (Email, Nome, Codice Fiscale) vengono cancellati definitivamente e sostituiti con identificatori casuali. L'account viene quindi bloccato in modo permanente.
-- **Preservazione dei Record**: Tutte le interazioni storiche (es. che un libro è stato preso in prestito dall'*Utente X*) rimangono intatte per l'integrità dell'archivio, ma l'*Utente X* non è più identificabile.
+I membri possono attivare l'anonimizzazione nella sezione **"Gestisci i tuoi dati"**. Per mantenere l'integrità del catalogo e dello storico dei prestiti nel rispetto delle normative sulla privacy:
+- Le informazioni personali (Email, Nome, Codice Fiscale) vengono completamente sostituite con dati casuali.
+- L'account utente viene disattivato in modo permanente.
+- Le transazioni storiche di prestito sono conservate come record "fantasma" anonimi.
 
 <a name="affidabilità-del-servizio-email"></a>
 ### Affidabilità del Servizio Email
-Il sistema include un servizio dedicato di **Re-invio Email in Background**.
-- Se un'email di notifica (come la conferma dell'account o gli avvisi di prestito) fallisce a causa di problemi del servizio esterno, il sistema la mette automaticamente in coda.
-- Un worker in background riprova l'invio delle email fallite ogni 10 minuti fino al successo, garantendo che nessuna comunicazione critica vada persa.
+Un worker in background elabora le consegne delle notifiche in coda (es. inviti, conferme), riprovando l'invio delle email fallite ogni 10 minuti per garantire la massima affidabilità.
 
 ---
 
@@ -184,10 +193,11 @@ Il sistema include un servizio dedicato di **Re-invio Email in Background**.
 
 | Problema | Possibile Soluzione |
 | :--- | :--- |
-| **Email non ricevuta** | Controlla la cartella Spam. Se non è ancora arrivata, il worker in background riproverà l'invio automaticamente. |
-| **Scansione fallita** | Assicurati che ci sia un'illuminazione adeguata e che il codice a barre sia pulito. In alternativa, digita l'ISBN manualmente e usa il pulsante **Cerca**. |
-| **Impossibile modificare record** | Controlla se il record è **"Sigillato"**. Un Manager o Amministratore deve dissigillarlo prima che gli aggiornamenti possano essere applicati. |
-| **Nessun risultato da Google Books** | Verifica l'ortografia del titolo o prova a cercare per ISBN per una corrispondenza più precisa. |
+| **Email non ricevuta** | Controlla la cartella Spam. Se assente, il worker in background riproverà l'invio entro 10 minuti. |
+| **Impossibile vedere il catalogo invitato** | Assicurati di aver accettato il link di invito e che la tua area di lavoro attiva sia impostata sul nuovo tenant. |
+| **Scansione o acquisizione copertina fallita** | Assicurati che ci sia una buona illuminazione. Se continua a fallire, inserisci manualmente l'ISBN per l'autofill. |
+| **Il record è bloccato** | Controlla se il libro o l'autore è "Sigillato". Un Proprietario, Manager o Admin deve sbloccarlo prima di poter applicare aggiornamenti. |
+| **Restituzione di circolazione bloccata** | I libri devono essere restituiti allo specifico Punto di Distribuzione presso cui sono registrati. Seleziona la destinazione corretta. |
 
 ---
-*Per i dettagli tecnici sull'architettura, consulta [Architecture.md](file:///Users/antoniolucca/github/blazorBookLibrary/Docs/Architecture.md).*
+*Per i dettagli sull'architettura tecnica, consulta [Architecture.md](file:///Users/antoniolucca/github/blazorBookLibrary/Docs/Architecture.md).*
