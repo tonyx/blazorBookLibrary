@@ -28,6 +28,10 @@
     <None Include="Templates/it/LoanNotification.txt" CopyToOutputDirectory="PreserveNewest" />
     <None Include="Templates/en/LoanReturnNotification.txt" CopyToOutputDirectory="PreserveNewest" />
     <None Include="Templates/it/LoanReturnNotification.txt" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="Templates/en/PatronInvitationBody.txt" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="Templates/it/PatronInvitationBody.txt" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="Templates/en/PatronInvitationSubject.txt" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="Templates/it/PatronInvitationSubject.txt" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>
@@ -53,6 +57,7 @@
     <Compile Include="Domain/Tenant/Commands.fs" />
 
     <Compile Include="Utils/SecretReader.fs" />
+    <Compile Include="Utils/Utils.fs" />
     
     <Compile Include="MessagesScheduler/MailsQueue/MailQueue.fs" />
     <Compile Include="MessagesScheduler/MailsQueue/Events.fs" />

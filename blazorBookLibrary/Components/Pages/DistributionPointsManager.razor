@@ -348,7 +348,11 @@
                 var authState = await AuthStateProvider.GetAuthenticationStateAsync();
                 var userContext = TenantState.GetUserContext(authState.User);
                 var tenantId = TenantState.CurrentTenant?.TenantId ?? TenantId.Default;
-                var newDp = DistributionPoint.New(tenantId, nameResult.ResultValue, Info.New(editingInfo));
+
+                // safe to get the userId as it is authenticated
+                var userId = userContext.UserId.Value;
+
+                var newDp = DistributionPoint.New(tenantId, nameResult.ResultValue, Info.New(editingInfo), userId);
                 result = await DistributionPointService.CreateDistributionPointAsync(userContext, newDp);
                 if (result.IsError) { errorMessage = result.ErrorValue; return; }
                 

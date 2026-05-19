@@ -17,3 +17,6 @@ type IMailBodyRetriever =
     abstract member GetReleaseLoanNotificationSubject: shortLang:ShortLang -> string
     abstract member GetReservationNotificationTextMailAsync: shortLang:ShortLang * [<Optional; DefaultParameterValue(null)>] ?ct:CancellationToken -> Task<Result<string, string>>
     abstract member GetReservationNotificationSubject: shortLang:ShortLang * [<Optional; DefaultParameterValue(null)>] ?ct:CancellationToken -> Task<Result<string, string>>
+    abstract member GetPatronInvitationTextMailAsync: shortLang:ShortLang * [<Optional; DefaultParameterValue(null)>] ?ct:CancellationToken -> Task<Result<string, string>>
+    abstract member GetPatronInvitationSubject: shortLang:ShortLang * [<Optional; DefaultParameterValue(null)>] ?ct:CancellationToken -> Task<Result<string, string>>
+    

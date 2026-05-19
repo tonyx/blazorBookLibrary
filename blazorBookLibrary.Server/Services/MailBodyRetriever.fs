@@ -50,6 +50,20 @@ type MailBodyRetriever() =
             taskResult {
                 let! content = System.IO.File.ReadAllTextAsync (templatePath, ct)
                 return content
+            }        
+        member this.GetPatronInvitationSubject(shortLang: ShortLang, ct: CancellationToken option): Tasks.Task<Result<string,string>> = 
+            let templatePath = System.IO.Path.Combine (AppDomain.CurrentDomain.BaseDirectory, "Templates", shortLang.Value, "PatronInvitationSubject.txt")
+            let ct = defaultArg ct CancellationToken.None
+            taskResult {
+                let! content = System.IO.File.ReadAllTextAsync (templatePath, ct)
+                return content
+            }
+        member this.GetPatronInvitationTextMailAsync(shortLang: ShortLang, ct: CancellationToken option): Tasks.Task<Result<string,string>> = 
+            let templatePath = System.IO.Path.Combine (AppDomain.CurrentDomain.BaseDirectory, "Templates", shortLang.Value, "PatronInvitationBody.txt")
+            let ct = defaultArg ct CancellationToken.None
+            taskResult {
+                let! content = System.IO.File.ReadAllTextAsync (templatePath, ct)
+                return content
             }
 
 

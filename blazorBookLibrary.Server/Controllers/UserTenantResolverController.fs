@@ -23,3 +23,4 @@ type UserTenantResolverController(resolverService: IUserTenantResolverService) =
             | Ok tenantId -> return this.Ok(tenantId) :> IActionResult
             | Error msg -> return this.BadRequest(msg) :> IActionResult
         }
+

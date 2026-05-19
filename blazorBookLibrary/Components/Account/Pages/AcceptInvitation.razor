@@ -1,0 +1,174 @@
+@page "/Account/AcceptInvitation"
+
+@using System.Text
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.AspNetCore.WebUtilities
+@using BookLibrary.Domain
+@using BookLibrary.Shared.Services
+@using BookLibrary.Shared
+@using static BookLibrary.Shared.Commons
+@using blazorBookLibrary.Data
+@using Microsoft.AspNetCore.Components.Authorization
+
+@inject ITenantService TenantService
+@inject IUserService UserService
+@inject NavigationManager NavigationManager
+@inject IdentityRedirectManager RedirectManager
+
+<PageTitle>Accept Invitation — The Modern Archivist</PageTitle>
+
+<div class="container py-5 d-flex justify-content-center align-items-center" style="min-height: 60vh;">
+    <div class="card card-sanctuary shadow-lg border-0 bg-surface-low text-center p-5 rounded-4 animate-slide-up" style="max-width: 500px; width: 100%;">
+        @if (isLoading)
+        {
+            <div class="py-5">
+                <div class="spinner-border text-primary mb-4" role="status" style="width: 3.5rem; height: 3.5rem;">
+                    <span class="visually-hidden">Processing...</span>
+                </div>
+                <h2 class="h4 text-serif mb-2">Processing Invitation</h2>
+                <p class="text-muted">Please wait while we record your archival registration...</p>
+            </div>
+        }
+        else if (isSuccess)
+        {
+            <div class="py-4">
+                <div class="bg-success bg-opacity-10 text-success rounded-circle p-4 d-inline-flex mb-4 shadow-sm">
+                    <i class="bi bi-check-circle h1 mb-0"></i>
+                </div>
+                <h2 class="h3 text-serif mb-3 text-success">Welcome to the Library!</h2>
+                <p class="text-muted lead mb-4">
+                    You have successfully joined the <strong>@tenantName</strong> library as a patron.
+                </p>
+                <a href="/" class="btn btn-primary rounded-pill px-5 py-2.5 shadow-sm">
+                    <i class="bi bi-house-door-fill me-2"></i>Go to Home
+                </a>
+            </div>
+        }
+        else
+        {
+            <div class="py-4">
+                <div class="bg-danger bg-opacity-10 text-danger rounded-circle p-4 d-inline-flex mb-4 shadow-sm">
+                    <i class="bi bi-x-circle h1 mb-0"></i>
+                </div>
+                <h2 class="h3 text-serif mb-3 text-danger">Invitation Failed</h2>
+                <p class="text-muted mb-4">@errorMessage</p>
+                <a href="/" class="btn btn-outline-secondary rounded-pill px-4">
+                    Go to Home
+                </a>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    [SupplyParameterFromQuery]
+    private string? TenantId { get; set; }
+
+    [SupplyParameterFromQuery]
+    private string? Code { get; set; }
+
+    private bool isLoading = true;
+    private bool isSuccess = false;
+    private string? errorMessage;
+    private string tenantName = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        var principal = HttpContext.User;
+        if (principal?.Identity?.IsAuthenticated != true)
+        {
+            // Redirect the user to Login page with ReturnUrl
+            RedirectManager.RedirectTo("Account/Login", new() { ["ReturnUrl"] = NavigationManager.Uri });
+            return;
+        }
+
+        if (string.IsNullOrEmpty(TenantId) || string.IsNullOrEmpty(Code))
+        {
+            isLoading = false;
+            errorMessage = "Invalid invitation link. Tenant identifier or invitation code is missing.";
+            return;
+        }
+
+        try
+        {
+            var userContext = blazorBookLibrary.Shared.ConverterUtils.fromClaimsPrincipal(principal);
+            var parsedTenantId = Commons.TenantId.NewTenantId(Guid.Parse(TenantId));
+            
+            if (!Guid.TryParse(Code, out var parsedGuid))
+            {
+                isLoading = false;
+                errorMessage = "Invalid invitation code format.";
+                return;
+            }
+            var parsedCode = Commons.PatronInvitationCode.NewPatronInvitationCode(parsedGuid);
+
+            // 1. Accept the invitation
+            var acceptResult = await TenantService.ConvertInvitedPatronToPatronAsync(
+                userContext,
+                parsedTenantId,
+                parsedCode,
+                Microsoft.FSharp.Core.FSharpOption<System.Threading.CancellationToken>.None
+            );
+
+            if (acceptResult.IsError)
+            {
+
+                isLoading = false;
+                errorMessage = acceptResult.ErrorValue;
+                return;
+            }
+
+            // 2. Fetch the newly joined Tenant details to get its name
+            var tenantResult = await TenantService.GetTenantAsync(
+                userContext,
+                parsedTenantId,
+                Microsoft.FSharp.Core.FSharpOption<System.Threading.CancellationToken>.None
+            );
+
+            Tenant? joinedTenant = null;
+            if (tenantResult.IsOk)
+            {
+                joinedTenant = tenantResult.ResultValue;
+                tenantName = joinedTenant.TentantName.Value;
+            }
+            else
+            {
+                tenantName = "New Library";
+            }
+
+            // 3. Update current tenant in backend (set it to the newly joined tenant)
+            var setTenantResult = await UserService.SetCurrentTenantAsync(
+                userContext,
+                userContext.UserId.Value,
+                parsedTenantId,
+                Microsoft.FSharp.Core.FSharpOption<System.Threading.CancellationToken>.None
+            );
+
+            if (setTenantResult.IsError)
+            {
+
+                isLoading = false;
+                errorMessage = setTenantResult.ErrorValue;
+                return;
+            }
+
+            // 4. Update current tenant in HTTP response cookies so that the server & client recognize it immediately
+            HttpContext.Response.Cookies.Append(
+                "selected_tenant", 
+                parsedTenantId.Value.ToString(), 
+                new CookieOptions { Expires = DateTimeOffset.UtcNow.AddDays(30), HttpOnly = false, SameSite = SameSiteMode.Lax }
+            );
+
+            isSuccess = true;
+            isLoading = false;
+        }
+        catch (Exception ex)
+        {
+            isLoading = false;
+            errorMessage = ex.Message;
+        }
+    }
+}

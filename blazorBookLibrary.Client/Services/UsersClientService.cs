@@ -100,8 +100,16 @@ public class UsersClientService : IUserService
         return await ServiceClientHelper.HandleUnitResponse(response);
     }
 
+    public async Task<FSharpResult<Commons.UserId, string>> GetUserIdByEmailAsync(Commons.UserContext context, string email, FSharpOption<CancellationToken> ct)
+    {
+        var response = await _httpClient.GetAsync($"api/Users/by-email/{System.Uri.EscapeDataString(email)}", ServiceClientHelper.GetValue(ct, CancellationToken.None));
+        var result = await ServiceClientHelper.HandleResponse<Guid>(response);
+        return result.IsOk ? FSharpResult<Commons.UserId, string>.NewOk(Commons.UserId.NewUserId(result.ResultValue)) : FSharpResult<Commons.UserId, string>.NewError(result.ErrorValue);
+    }
+
     public async Task<FSharpResult<Unit, string>> SetAppUserInfoUnsafeAsync(Commons.UserId userId, Commons.AppUserInfo appUserInfo, FSharpOption<CancellationToken> ct)
     {
         throw new NotImplementedException("SetAppUserInfoUnsafeAsync is not implemented on the client side");
     }
 }
+

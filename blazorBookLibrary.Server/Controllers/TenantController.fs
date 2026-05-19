@@ -77,6 +77,40 @@ type TenantController(tenantService: ITenantService) =
             | Error msg -> return this.BadRequest(msg) :> IActionResult
         }
 
+    [<HttpPost("{id}/patrons/{userId}/invite")>]
+    member this.InvitePatron(id: Guid, userId: Guid) =
+        task {
+            let context = UserContextMapper.mapFromRequest this.Request
+            let! result = tenantService.InvitePatronAsync(context, TenantId id, UserId userId)
+            match result with
+            | Ok _ -> return this.Ok() :> IActionResult
+            | Error msg -> return this.BadRequest(msg) :> IActionResult
+        }
+
+    [<HttpDelete("{id}/patrons/{userId}/invite")>]
+    member this.RevokePatronInvitation(id: Guid, userId: Guid) =
+        task {
+            let context = UserContextMapper.mapFromRequest this.Request
+            let! result = tenantService.RevokePatronInvitation(context, TenantId id, UserId userId)
+            match result with
+            | Ok _ -> return this.Ok() :> IActionResult
+            | Error msg -> return this.BadRequest(msg) :> IActionResult
+        }
+
+    [<HttpPut("{id}/patrons/convert")>]
+    member this.ConvertInvitedPatronToPatron(id: Guid, [<FromQuery>] invitationCode: string) =
+        task {
+            let context = UserContextMapper.mapFromRequest this.Request
+            match System.Guid.TryParse(invitationCode) with
+            | false, _ -> return this.BadRequest("Invalid invitation code format") :> IActionResult
+            | true, parsedGuid ->
+                let code = PatronInvitationCode.PatronInvitationCode parsedGuid
+                let! result = tenantService.ConvertInvitedPatronToPatronAsync(context, TenantId id, code)
+                match result with
+                | Ok _ -> return this.Ok() :> IActionResult
+                | Error msg -> return this.BadRequest(msg) :> IActionResult
+        }
+
     [<HttpGet("{id}/patrons/{userId}/role")>]
     member this.GetUserRole(id: Guid, userId: Guid) =
         task {

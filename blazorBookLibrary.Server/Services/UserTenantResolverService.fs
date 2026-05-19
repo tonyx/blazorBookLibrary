@@ -50,7 +50,6 @@ type UserTenantResolverService(
                 let! user = userViewerAsync ct userId.Value |> TaskResult.map snd
                 return user.CurrentTenant
         }
-
     interface IUserTenantResolverService with 
         member this.GetTenantForUserAsync(context: UserContext, ?ct: CancellationToken) =
             let ct = defaultArg ct CancellationToken.None

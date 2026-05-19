@@ -254,4 +254,33 @@ let tests =
             
             Expect.isOk getResult "Patron should be able to retrieve a private tenant they belong to"
         }
+        testCaseTask "owner can invite a patron and convert invited patron to patron" <| fun _ -> task {
+            setUp()
+            let tenantService = getTenantService()
+            let! ownerId = registerUserTask "owner@test.com" "Password123!"
+            let ownerContext = UserContext.Authenticated(ownerId, [])
+            let tenant = Tenant.New(ownerId, TenantName.New "My Library" |> Result.get, "123 Main St")
+            let tenantId = tenant.TenantId
+            let! _ = tenantService.CreateTenantAsync(ownerContext, tenant)
+            
+            let! patronId = registerUserTask "patron@test.com" "Password123!"
+            let! inviteResult = tenantService.InvitePatronAsync(ownerContext, tenantId, patronId)
+            Expect.isOk inviteResult "Owner should be able to invite a patron"
+            
+            let! getResult = tenantService.GetTenantAsync(ownerContext, tenantId)
+            match getResult with
+            | Ok t ->
+                Expect.equal t.InvitedPatrons.Length 1 "There should be one invited patron"
+                let (_, code) = t.InvitedPatrons.[0]
+                let! convertResult = tenantService.ConvertInvitedPatronToPatronAsync(ownerContext, tenantId, code)
+                Expect.isOk convertResult "Owner should be able to convert invited patron to patron"
+                
+                let! getResultAfter = tenantService.GetTenantAsync(ownerContext, tenantId)
+                match getResultAfter with
+                | Ok tAfter ->
+                    Expect.equal tAfter.InvitedPatrons.Length 0 "Invited patrons should be empty"
+                    Expect.exists tAfter.Patrons (fun (u, r) -> u = patronId && r = PatronRole.User) "Patron should be in the list"
+                | Error msg -> failwith msg
+            | Error msg -> failwith msg
+        }
     ]

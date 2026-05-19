@@ -8,10 +8,37 @@ open System
 type PatronRole = 
     | Manager
     | User
+
+
 type 
-    Tenant = {
+    Tenant001 = {
         OwnerId: UserId
         TenantId: TenantId
+        Patrons: List<UserId * PatronRole>
+        TentantName: TenantName
+        Address: string
+        TenantState: TenantState
+        Public: bool
+        Tags: List<Tag>
+    }
+    with 
+        member 
+            this.Upcast(): Tenant =
+                {
+                    OwnerId = this.OwnerId
+                    TenantId = this.TenantId
+                    InvitedPatrons = []
+                    Patrons = this.Patrons
+                    TentantName = this.TentantName
+                    Address = this.Address
+                    TenantState = this.TenantState
+                    Public = this.Public
+                    Tags = this.Tags
+                }
+and Tenant = {
+        OwnerId: UserId
+        TenantId: TenantId
+        InvitedPatrons: List<(UserId * PatronInvitationCode)>
         Patrons: List<UserId * PatronRole>
         TentantName: TenantName
         Address: string
@@ -24,6 +51,7 @@ with
     static member New (userId: UserId, tenantName: TenantName, address: string, ?pub: bool) = {
         OwnerId = userId
         TenantId = TenantId.New()
+        InvitedPatrons = []
         Patrons = []
         TentantName = tenantName
         Address = address
@@ -65,6 +93,33 @@ with
                     |> not
                     |> Result.ofBool "User is already a patron"
                 return { this with Patrons = this.Patrons @ [(user, role)] }
+            }
+    member this.InvitePatron (user: UserId, invitationCode: PatronInvitationCode) =
+        result
+            {
+                do! 
+                    this.Patrons |> List.exists (fun (u, _) -> u = user)
+                    |> not
+                    |> Result.ofBool "User is already a patron"
+                return { this with InvitedPatrons = this.InvitedPatrons @ [(user, invitationCode)] }
+            }
+    member this.RevokeInvitation (userId: UserId) =
+        result
+            {
+                do! 
+                    this.InvitedPatrons |> List.exists (fun (u, _) -> u = userId)
+                    |> Result.ofBool "User is not an invited patron"
+                return { this with InvitedPatrons = this.InvitedPatrons |> List.filter (fun (u, _) -> u <> userId) }
+            }
+    member this.ConvertInvitedPatronToPatron (invitationCode: PatronInvitationCode) =
+        result
+            {
+                do! 
+                    this.InvitedPatrons |> List.exists (fun (_, i) -> i = invitationCode)
+                    |> Result.ofBool "User is not an invited patron"
+                let user = 
+                    this.InvitedPatrons |> List.find (fun (_, i) -> i = invitationCode) |> fst
+                return { this with Patrons = this.Patrons @ [(user, PatronRole.User)]; InvitedPatrons = this.InvitedPatrons |> List.filter (fun (u, _) -> u <> user) }
             }
     member this.DemotePatron (user: UserId) =
         result
@@ -125,11 +180,14 @@ with
         (this, jsonOptions) |> JsonSerializer.Serialize
         
     static member Deserialize (data: string) = 
-        // reminder: a proper computation expression could be used here.
         try
             (data, jsonOptions) |> JsonSerializer.Deserialize<Tenant> |> Ok
         with
             | ex -> 
-                Error (ex.Message)
+                try
+                    let fallback = (data, jsonOptions) |> JsonSerializer.Deserialize<Tenant001>
+                    fallback.Upcast () |> Ok
+                with
+                    | _ -> Error (ex.Message)
                     
 

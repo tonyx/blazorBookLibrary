@@ -69,12 +69,6 @@ type LoanService
                 let! user =
                     userViewerAsync (Some ct) loan.UserId.Value
                     |> TaskResult.map snd
-
-                // todo: check permissions
-
-                // do!    
-                //     user.Tenants |> List.contains context.TenantId
-                //     |> Result.ofBool $"User tenant does not contains tenant id {context.TenantId}"
                 
                 let! userDetails = 
                     usersService.GetUserDetailsAsync (context, user.UserId, ct)

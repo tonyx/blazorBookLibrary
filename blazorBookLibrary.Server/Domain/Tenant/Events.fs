@@ -11,11 +11,14 @@ type TenantEvent =
     | ScheduledForDeletion of DateTime
     | TagAdded of Tag
     | TagRemoved of Tag
-    | TagReplaced of (Tag * Tag)
-    | PatronAdded of (UserId * PatronRole)
+    | TagReplaced of Tag * Tag
+    | PatronAdded of UserId * PatronRole
     | PatronDemoted of UserId
     | PatronPromoted of UserId
     | PatronRemoved of UserId
+    | PatronInvited of UserId * PatronInvitationCode
+    | InvitedPatronConvertedToPatron of PatronInvitationCode
+    | PatronInvitationRevoked of UserId
     | PublicSet
     | PrivateSet
     interface Event<Tenant> with
@@ -41,11 +44,16 @@ type TenantEvent =
                 tenant.PromotePatron userId
             | PatronRemoved userId ->
                 tenant.RemovePatron userId
+            | PatronInvited (userId, invitationCode) ->
+                tenant.InvitePatron (userId, invitationCode)
+            | InvitedPatronConvertedToPatron invitationCode ->
+                tenant.ConvertInvitedPatronToPatron invitationCode    
             | PublicSet ->
                 tenant.SetPublic ()
             | PrivateSet ->
                 tenant.SetPrivate ()
-                
+            | PatronInvitationRevoked userId ->
+                tenant.RevokeInvitation userId
 
     static member Deserialize (x: string): Result<TenantEvent, string> =
         try

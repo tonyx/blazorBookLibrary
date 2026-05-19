@@ -140,6 +140,15 @@ type ReservationCode =
             | ReservationCode v -> v
             | EmptyReservationCode -> ""
 
+type PatronInvitationCode =
+    | PatronInvitationCode of Guid
+    with
+        static member New() = PatronInvitationCode(Guid.NewGuid())
+        member this.Value = 
+            match this with
+            | PatronInvitationCode v -> v
+            
+
 type BookId =
     | BookId of Guid
     with

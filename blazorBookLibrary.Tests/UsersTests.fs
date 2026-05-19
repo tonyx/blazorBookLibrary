@@ -49,7 +49,6 @@ let tests =
             let! result1 = userViewerAsync None userId.Value
             Expect.isOk result1 "should be ok"
             let (eventId1, _) = result1 |> Result.get
-            printfn "XXXXX. event Id1: %i\n" eventId1
             let tenantService = getTenantService()
             let userContext = UserContext.Authenticated(userId, []) 
             let tenant = Tenant.New(userId, TenantName.New "Random Tenant" |> Result.get, "Addr")

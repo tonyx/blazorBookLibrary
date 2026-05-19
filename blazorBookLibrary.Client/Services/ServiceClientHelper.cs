@@ -68,12 +68,6 @@ public static class ServiceClientHelper
     {
         var request = new HttpRequestMessage(method, uri);
 
-        // XXXXXXX
-        // refatoring the tenant header - it is not more needed
-        // if (context.IsAuthenticated)
-        // {
-        //     request.Headers.Add("X-Tenant-Id", context.TenantId.Value.ToString());
-        // }
         return request;
     }
 

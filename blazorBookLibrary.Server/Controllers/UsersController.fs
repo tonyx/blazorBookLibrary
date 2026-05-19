@@ -99,3 +99,14 @@ type UsersController(userService: IUserService) =
             | Ok _ -> return this.Ok() :> IActionResult
             | Error msg -> return this.BadRequest(msg) :> IActionResult
         }
+
+    [<HttpGet("by-email/{email}")>]
+    member this.GetUserIdByEmail(email: string) =
+        task {
+            let context = UserContextMapper.mapFromRequest this.Request
+            let! result = userService.GetUserIdByEmailAsync(context, email)
+            match result with
+            | Ok userId -> return this.Ok(userId.Value) :> IActionResult
+            | Error msg -> return this.NotFound(msg) :> IActionResult
+        }
+

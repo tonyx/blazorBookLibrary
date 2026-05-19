@@ -24,6 +24,8 @@ open Sharpino.Cache
 open BookLibrary.Details.Details
 open Microsoft.Extensions.Configuration
 open Microsoft.Extensions.Logging
+open blazorBookLibrary.Shared.Infrastructure.Services
+open Microsoft.AspNetCore.Http
 
 type TenantService
     (
@@ -32,18 +34,37 @@ type TenantService
         configuration: IConfiguration,
         tenantViewerAsync: AggregateViewerAsync2<Tenant>,
         userViewerAsync: AggregateViewerAsync2<User>,
-        logger: ILogger<ITenantService>
+        mailNotificator: IMailNotificator,
+        mailBodyRetriever: IMailBodyRetriever,
+        logger: ILogger<ITenantService>,
+        httpContextAccessor: IHttpContextAccessor
     ) =
     new 
         (secretsReader: SecretsReader, 
         configuration: IConfiguration,
+        mailNotificator: IMailNotificator,
+        mailBodyRetriever: IMailBodyRetriever,
         logger: ILogger<ITenantService>) =
             let connectionString = secretsReader.GetBookLibraryConnectionString()
             let messageSenders = MessageSenders.NoSender
             let eventStore = PgStorage.PgEventStore connectionString
             let tenantViewerAsync = getAggregateStorageFreshStateViewerAsync<Tenant, BookLibrary.Domain.TenantEvent, string> eventStore
             let userViewerAsync = getAggregateStorageFreshStateViewerAsync<User, BookLibrary.Domain.UserEvent, string> eventStore
-            TenantService(eventStore, messageSenders, configuration, tenantViewerAsync, userViewerAsync, logger)
+            TenantService(eventStore, messageSenders, configuration, tenantViewerAsync, userViewerAsync, mailNotificator, mailBodyRetriever, logger, null)
+
+    new 
+        (secretsReader: SecretsReader, 
+        configuration: IConfiguration,
+        mailNotificator: IMailNotificator,
+        mailBodyRetriever: IMailBodyRetriever,
+        logger: ILogger<ITenantService>,
+        httpContextAccessor: IHttpContextAccessor) =
+            let connectionString = secretsReader.GetBookLibraryConnectionString()
+            let messageSenders = MessageSenders.NoSender
+            let eventStore = PgStorage.PgEventStore connectionString
+            let tenantViewerAsync = getAggregateStorageFreshStateViewerAsync<Tenant, BookLibrary.Domain.TenantEvent, string> eventStore
+            let userViewerAsync = getAggregateStorageFreshStateViewerAsync<User, BookLibrary.Domain.UserEvent, string> eventStore
+            TenantService(eventStore, messageSenders, configuration, tenantViewerAsync, userViewerAsync, mailNotificator, mailBodyRetriever, logger, httpContextAccessor)
 
         member private this.DefaultTenantIdExists (?ct: CancellationToken) =
             task {
@@ -107,7 +128,7 @@ type TenantService
                     return! Error "Access denied to private tenant"
             }
 
-        member private this.IsAuthorized (context: UserContext, tenant: Tenant) =
+        member private this.IsOnwerOrAdmin (context: UserContext, tenant: Tenant) =
             match context with
             | UserContext.Anonymous -> false
             | UserContext.Authenticated(userId, _) when userId = tenant.OwnerId -> true
@@ -121,6 +142,14 @@ type TenantService
             | UserContext.Authenticated _ when context.IsInRole Role.Admin -> true
             | UserContext.Authenticated(userId, _) when tenant.Patrons |> List.exists (fun (u, _) -> u = userId) -> true
             | _ -> false
+
+        member private this.IsInvitedOrAdmin (context: UserContext, tenant: Tenant) =
+            match context with
+            | UserContext.Anonymous -> false
+            | UserContext.Authenticated _ when context.IsInRole Role.Admin -> true
+            | UserContext.Authenticated(userId, _) when tenant.InvitedPatrons |> List.exists (fun (u, _) -> u = userId) -> true
+            | _ -> false
+
         member private this.IsAdmin (context: UserContext) =
             match context with
             | UserContext.Authenticated _ when context.IsInRole Role.Admin -> true
@@ -137,7 +166,7 @@ type TenantService
         member this.AddPatron (context: UserContext, tenantId: TenantId, userId: UserId, role: PatronRole, ?ct: CancellationToken) =
             taskResult {
                 let! (_, tenant) = tenantViewerAsync ct tenantId.Value
-                if this.IsAuthorized(context, tenant) then
+                if this.IsOnwerOrAdmin(context, tenant) then
                     let command = TenantCommand.AddPatron (userId, role)
                     return! 
                         runAggregateCommandMdAsync<Tenant, TenantEvent, string>
@@ -154,7 +183,7 @@ type TenantService
         member this.DemotePatron (context: UserContext, tenantId: TenantId, userId: UserId, ?ct: CancellationToken) =
             taskResult {
                 let! (_, tenant) = tenantViewerAsync ct tenantId.Value
-                if this.IsAuthorized(context, tenant) then
+                if this.IsOnwerOrAdmin(context, tenant) then
                     let command = TenantCommand.DemotePatron userId
                     return! 
                         runAggregateCommandMdAsync<Tenant, TenantEvent, string>
@@ -171,7 +200,8 @@ type TenantService
         member this.PromotePatron (context: UserContext, tenantId: TenantId, userId: UserId, ?ct: CancellationToken) =
             taskResult {
                 let! (_, tenant) = tenantViewerAsync ct tenantId.Value
-                if this.IsAuthorized(context, tenant) then
+                if this.IsOnwerOrAdmin(context, tenant) then
+
                     let command = TenantCommand.PromotePatron userId
                     return! 
                         runAggregateCommandMdAsync<Tenant, TenantEvent, string>
@@ -188,7 +218,7 @@ type TenantService
         member this.RemovePatron (context: UserContext, tenantId: TenantId, userId: UserId, ?ct: CancellationToken) =
             taskResult {
                 let! (_, tenant) = tenantViewerAsync ct tenantId.Value
-                if this.IsAuthorized(context, tenant) then
+                if this.IsOnwerOrAdmin(context, tenant) then
                     let command = TenantCommand.RemovePatron userId
                     return! 
                         runAggregateCommandMdAsync<Tenant, TenantEvent, string>
@@ -200,6 +230,105 @@ type TenantService
                             ct
                 else
                     return! Error "Access denied: only owner or admin can remove patrons"
+            }
+
+        member this.InvitePatron (context: UserContext, tenantId: TenantId, userId: UserId, ?ct: CancellationToken) =
+
+            // todo: use a smart way to detect failed reads from config
+            let senderAddress = 
+                configuration.GetValue<string>("BooksLibrary:FromEmail", "noreply@blazorbooklibrary.com")
+            let senderName = 
+                configuration.GetValue<string>("BooksLibrary:FromName", "Blazor Book Library")
+            taskResult {
+                let! (_, tenant) = tenantViewerAsync ct tenantId.Value
+                let! (_, user) =
+                    userViewerAsync ct userId.Value
+                do!
+                    this.IsOnwerOrAdmin(context, tenant) 
+                    |> Result.ofBool "Access denied: only owner or admin can invite patrons" 
+
+                let shortLang = ShortLang.New(Globalization.CultureInfo.CurrentCulture.Name)
+                let! emailSubject = mailBodyRetriever.GetPatronInvitationSubject(shortLang, ?ct = ct)
+                let! emailBody = mailBodyRetriever.GetPatronInvitationTextMailAsync(shortLang, ?ct = ct)
+
+                let patronInvitationCode = PatronInvitationCode.New ()
+                let baseUrl =
+                    if isNull httpContextAccessor then 
+                        Utils.getFallbackUrl ()
+                    else
+                        match httpContextAccessor.HttpContext with
+                        | null -> Utils.getFallbackUrl ()
+                        | ctx ->
+                            let request = ctx.Request
+                            $"{request.Scheme}://{request.Host}{request.PathBase}"
+                let confirmationLink = $"{baseUrl}/Account/AcceptInvitation?tenantId={tenantId.Value}&code={patronInvitationCode.Value}"
+                let command = TenantCommand.InvitePatron (userId, patronInvitationCode)
+
+                let substitutedSubject = 
+                    emailSubject
+                        .Replace("{tenantName}", tenant.TentantName.Value)
+                        .Replace("{userName}", user.AppUserInfo.UserName)
+
+                let substitutedBody = 
+                    emailBody
+                        .Replace("{tenantName}", tenant.TentantName.Value)
+                        .Replace("{userName}", user.AppUserInfo.UserName)
+                        .Replace("{urlToClick}", confirmationLink)
+
+                let! result =
+                    runAggregateCommandMdAsync<Tenant, TenantEvent, string>
+                        tenantId.Value
+                        eventStore
+                        messageSenders
+                        ""
+                        command
+                        ct
+                do!
+                    task {
+                        do!
+                            mailNotificator.SendEmailAsync(
+                                senderAddress,
+                                senderName,
+                                user.AppUserInfo.Email,
+                                substitutedSubject,
+                                substitutedBody
+                            )
+                    }
+                return ()
+            }
+
+        member this.ConvertInvitedPatronToPatron (context: UserContext, tenantId: TenantId, patronInvitationCode: PatronInvitationCode, ?ct: CancellationToken) =
+            taskResult {
+                let! (_, tenant) = tenantViewerAsync ct tenantId.Value
+                if this.IsInvitedOrAdmin(context, tenant) then
+                    let command = TenantCommand.ConvertInvitedPatronToPatron patronInvitationCode
+                    return! 
+                        runAggregateCommandMdAsync<Tenant, TenantEvent, string>
+                            tenantId.Value
+                            eventStore
+                            messageSenders
+                            ""
+                            command
+                            ct
+                else
+                    return! Error "Access denied: only owner or admin can convert invited patrons to patrons"
+            }
+
+        member this.RevokePatronInvitation (context: UserContext, tenantId: TenantId, userId: UserId, ?ct: CancellationToken) =
+            taskResult {
+                let! (_, tenant) = tenantViewerAsync ct tenantId.Value
+                if this.IsOnwerOrAdmin(context, tenant) then
+                    let command = TenantCommand.RevokePatronInvitation userId
+                    return! 
+                        runAggregateCommandMdAsync<Tenant, TenantEvent, string>
+                            tenantId.Value
+                            eventStore
+                            messageSenders
+                            ""
+                            command
+                            ct
+                else
+                    return! Error "Access denied: only owner or admin can revoke patron invitations"
             }
 
         member this.GetAllPublicTenants (context: UserContext, ?ct: CancellationToken) =
@@ -301,7 +430,7 @@ type TenantService
         member this.SetPrivate (context: UserContext, tenantId: TenantId, ?ct: CancellationToken) =
             taskResult {
                 let! (_, tenant) = tenantViewerAsync ct tenantId.Value
-                if this.IsAuthorized(context, tenant) then
+                if this.IsOnwerOrAdmin(context, tenant) then
                     let command = TenantCommand.SetPrivate
                     return! 
                         runAggregateCommandMdAsync<Tenant, TenantEvent, string>
@@ -330,6 +459,12 @@ type TenantService
                 this.PromotePatron(context, tenantId, userId, ?ct = ct)
             member this.RemovePatronAsync (context, tenantId, userId, ?ct) =
                 this.RemovePatron(context, tenantId, userId, ?ct = ct)
+            member this.InvitePatronAsync (context, tenantId, userId, ?ct) =
+                this.InvitePatron(context, tenantId, userId, ?ct = ct)
+            member this.ConvertInvitedPatronToPatronAsync (context, tenantId, patronInvitationCode, ?ct) =
+                this.ConvertInvitedPatronToPatron(context, tenantId, patronInvitationCode, ?ct = ct)
+            member this.RevokePatronInvitation (context, tenantId, userId, ?ct) =
+                this.RevokePatronInvitation(context, tenantId, userId, ?ct = ct)
             member this.GetUserRoleAsync (context, tenantId, userId, ?ct) =
                 this.GetUserRole(context, tenantId, userId, ?ct = ct)
             member this.GetAllPublicTenantsAsync (context, ?ct) =

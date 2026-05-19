@@ -8,10 +8,12 @@
 @using BookLibrary.Shared
 @using blazorBookLibrary.Shared
 @using static BookLibrary.Shared.Details
+@using System.ComponentModel.DataAnnotations
 
 @attribute [Authorize]
 @inject IDetailsService DetailsService
 @inject IUserService UserService
+@inject ITenantService TenantService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject blazorBookLibrary.Client.Services.TenantStateService TenantState
 @inject IStringLocalizer<SharedResources> L
@@ -240,6 +242,12 @@
                         </button>
                     </li>
                     <li class="nav-item" role="presentation">
+                        <button class="nav-link py-3 px-4 border-0 @(activeTab == "invitedPatrons" ? "active border-bottom border-primary fw-bold text-primary" : "text-muted")"
+                                id="invitedPatrons-tab" type="button" role="tab" @onclick='() => activeTab = "invitedPatrons"'>
+                            <i class="bi bi-envelope me-2"></i>@L["InvitedPatronsList"] (@libraryDetails.InvitedPatrons.Count())
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
                         <button class="nav-link py-3 px-4 border-0 @(activeTab == "loans" ? "active border-bottom border-primary fw-bold text-primary" : "text-muted")"
                                 id="loans-tab" type="button" role="tab" @onclick='() => activeTab = "loans"'>
                             <i class="bi bi-journal-bookmark me-2"></i>@L["LoansHistory"] (@libraryDetails.Loans.Count())
@@ -316,6 +324,114 @@
                                                                 <i class="bi bi-shield-slash"></i> @L["Unverified"]
                                                             </span>
                                                         }
+                                                    </td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
+                                </div>
+                            }
+                        </div>
+                    }
+
+                    @* Invited Patrons Tab Panel *@
+                    @if (activeTab == "invitedPatrons")
+                    {
+                        <div class="card card-sanctuary border-0 shadow-sm p-4 bg-surface-low animate-fade-in">
+                            <h3 class="h5 text-serif border-bottom pb-3 mb-3"><i class="bi bi-envelope-fill me-2 text-primary"></i>@L["InvitedPatrons"]</h3>
+                            
+                            @* Invite Patron Form *@
+                            <div class="card card-sanctuary mb-4 border-0 shadow-sm bg-surface-low border-start border-primary border-4 animate-slide-down">
+                                <div class="card-body p-4">
+                                    <h4 class="h6 text-serif mb-2">
+                                        <i class="bi bi-person-plus-fill text-primary me-2"></i>@L["Invite a New Patron"]
+                                    </h4>
+                                    <p class="text-muted small mb-4">
+                                        @L["Enter the exact email address of the user to search the database and send an invitation."]
+                                    </p>
+                                    <EditForm Model="@inviteModel" OnValidSubmit="HandleInvitePatron">
+                                        <DataAnnotationsValidator />
+                                        <div class="row g-3 align-items-center">
+                                            <div class="col-md-8">
+                                                <div class="input-group">
+                                                    <span class="input-group-text bg-transparent border-end-0 text-muted">
+                                                        <i class="bi bi-envelope-at"></i>
+                                                    </span>
+                                                    <InputText @bind-Value="inviteModel.Email" class="form-control border-start-0 ps-0" placeholder="@L["Enter patron email address..."]" />
+                                                </div>
+                                                <ValidationMessage For="@(() => inviteModel.Email)" class="text-danger small mt-1 d-block" />
+                                            </div>
+                                            <div class="col-md-4">
+                                                <button type="submit" class="btn btn-primary w-100 rounded-pill shadow-sm" disabled="@isInviting">
+                                                    @if (isInviting)
+                                                    {
+                                                        <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                                                    }
+                                                    else
+                                                    {
+                                                        <i class="bi bi-send-fill me-2"></i>
+                                                    }
+                                                    @L["Invite Patron"]
+                                                </button>
+                                            </div>
+                                        </div>
+                                        @if (!string.IsNullOrEmpty(inviteErrorMessage))
+                                        {
+                                            <div class="text-danger small mt-2">
+                                                <i class="bi bi-exclamation-circle me-1"></i> @inviteErrorMessage
+                                            </div>
+                                        }
+                                    </EditForm>
+                                </div>
+                            </div>
+
+                            @if (libraryDetails.InvitedPatrons.Length == 0)
+                            {
+                                <div class="text-center py-5 text-muted italic">
+                                    <i class="bi bi-envelope display-4 opacity-25 d-block mb-3"></i>
+                                    @L["NoInvitedPatronsFound"]
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="table-responsive">
+                                    <table class="table align-middle">
+                                        <thead>
+                                            <tr class="text-uppercase small text-muted">
+                                                <th>@L["PatronName"]</th>
+                                                <th>@L["Email"]</th>
+                                                <th>@L["Verification"]</th>
+                                                <th class="text-end">@L["Actions"]</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach (var patron in libraryDetails.InvitedPatrons)
+                                            {
+                                                <tr>
+                                                    <td>
+                                                        <div class="fw-bold">@patron.AppUserInfo.Nome @patron.AppUserInfo.Cognome</div>
+                                                        <div class="small text-muted font-monospace" style="font-size: 0.75rem;">@patron.UserId.Value</div>
+                                                    </td>
+                                                    <td>@patron.AppUserInfo.Email</td>
+                                                    <td>
+                                                        @if (patron.AppUserInfo.IsIdentifiedPhysically)
+                                                        {
+                                                            <span class="text-success small fw-bold" title="@L["PhysicallyIdentified"]">
+                                                                <i class="bi bi-shield-check"></i> @L["Verified"]
+                                                            </span>
+                                                        }
+                                                        else
+                                                        {
+                                                            <span class="text-muted small italic" title="@L["NotPhysicallyIdentified"]">
+                                                                <i class="bi bi-shield-slash"></i> @L["Unverified"]
+                                                            </span>
+                                                        }
+                                                    </td>
+                                                    <td class="text-end">
+                                                        <button class="btn btn-outline-danger btn-sm rounded-pill px-3 shadow-sm"
+                                                                @onclick="() => HandleRevokeInvitation(patron)">
+                                                            <i class="bi bi-x-circle me-1"></i> @L["Revoke"]
+                                                        </button>
                                                     </td>
                                                 </tr>
                                             }
@@ -479,6 +595,113 @@
     private bool isAuthorized = false;
     private string errorMessage = "";
     private string activeTab = "patrons";
+    private bool isOwner = false;
+
+    private InvitePatronModel inviteModel = new();
+    private bool isInviting = false;
+    private string? inviteErrorMessage;
+
+    private class InvitePatronModel
+    {
+        [Required(ErrorMessage = "Email address is required")]
+        [EmailAddress(ErrorMessage = "Invalid email address format")]
+        public string Email { get; set; } = "";
+    }
+
+    private async Task HandleInvitePatron()
+    {
+        isInviting = true;
+        inviteErrorMessage = null;
+        try
+        {
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var claimsPrincipal = authState.User;
+            if (claimsPrincipal == null) return;
+            var userContext = TenantState.GetUserContext(claimsPrincipal);
+            var tenantId = TenantId.NewTenantId(Id);
+
+            // 1. Look up user ID by exact email address using ASP.NET Identity database via UserService
+            var lookupResult = await UserService.GetUserIdByEmailAsync(userContext, inviteModel.Email.Trim(), Microsoft.FSharp.Core.FSharpOption<System.Threading.CancellationToken>.None);
+            if (lookupResult.IsError)
+            {
+                inviteErrorMessage = lookupResult.ErrorValue;
+                await JSRuntime.InvokeVoidAsync("showToast", lookupResult.ErrorValue, "error");
+                return;
+            }
+
+            var targetUserId = lookupResult.ResultValue;
+
+            // 2. Call InvitePatronAsync in TenantService
+            var inviteResult = await TenantService.InvitePatronAsync(userContext, tenantId, targetUserId, Microsoft.FSharp.Core.FSharpOption<System.Threading.CancellationToken>.None);
+            if (inviteResult.IsError)
+            {
+                inviteErrorMessage = inviteResult.ErrorValue;
+                await JSRuntime.InvokeVoidAsync("showToast", inviteResult.ErrorValue, "error");
+            }
+            else
+            {
+                inviteModel = new();
+                await JSRuntime.InvokeVoidAsync("showToast", L["Patron invited successfully!"].Value, "success");
+                
+                // Refresh tenant details to show the newly invited patron
+                var refreshResult = await DetailsService.GetTenantDetailsAsync(userContext, tenantId, Microsoft.FSharp.Core.FSharpOption<System.Threading.CancellationToken>.None);
+                if (refreshResult.IsOk)
+                {
+                    libraryDetails = refreshResult.ResultValue;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            inviteErrorMessage = ex.Message;
+            await JSRuntime.InvokeVoidAsync("showToast", ex.Message, "error");
+        }
+        finally
+        {
+            isInviting = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task HandleRevokeInvitation(User patron)
+    {
+        var confirmed = await JSRuntime.InvokeAsync<bool>("confirm", $"{L["ConfirmRevokeOf"]} {patron.AppUserInfo.Nome} {patron.AppUserInfo.Cognome}?");
+        if (!confirmed) return;
+
+        try
+        {
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var claimsPrincipal = authState.User;
+            if (claimsPrincipal == null) return;
+            var userContext = TenantState.GetUserContext(claimsPrincipal);
+            var tenantId = TenantId.NewTenantId(Id);
+
+            var result = await TenantService.RevokePatronInvitation(userContext, tenantId, patron.UserId, Microsoft.FSharp.Core.FSharpOption<System.Threading.CancellationToken>.None);
+            if (result.IsError)
+            {
+                await JSRuntime.InvokeVoidAsync("showToast", result.ErrorValue, "error");
+            }
+            else
+            {
+                await JSRuntime.InvokeVoidAsync("showToast", L["Patron invitation revoked successfully!"].Value, "success");
+                
+                // Refresh tenant details to show updated list
+                var refreshResult = await DetailsService.GetTenantDetailsAsync(userContext, tenantId, Microsoft.FSharp.Core.FSharpOption<System.Threading.CancellationToken>.None);
+                if (refreshResult.IsOk)
+                {
+                    libraryDetails = refreshResult.ResultValue;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("showToast", ex.Message, "error");
+        }
+        finally
+        {
+            StateHasChanged();
+        }
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -506,7 +729,6 @@
                 
                 var currentUserIdClaim = claimsPrincipal.FindFirst(c => c.Type == System.Security.Claims.ClaimTypes.NameIdentifier) ?? claimsPrincipal.FindFirst("sub");
                 var isAdmin = claimsPrincipal.IsInRole("Admin");
-                var isOwner = false;
 
                 if (currentUserIdClaim != null && Guid.TryParse(currentUserIdClaim.Value, out var guid))
                 {

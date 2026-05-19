@@ -433,4 +433,7 @@
   <data name="EnterAddress" xml:space="preserve"><value>e.g. 123 Scholar Street</value></data>
   <data name="Public" xml:space="preserve"><value>Public</value></data>
   <data name="ErrorCreatingLibrary" xml:space="preserve"><value>An error occurred while establishing the library: {0}</value></data>
+  <data name="InvitedPatronsList" xml:space="preserve"><value>Invited Patrons</value></data>
+  <data name="InvitedPatrons" xml:space="preserve"><value>Invited Patrons</value></data>
+  <data name="NoInvitedPatronsFound" xml:space="preserve"><value>No invited patrons found.</value></data>
 </root>

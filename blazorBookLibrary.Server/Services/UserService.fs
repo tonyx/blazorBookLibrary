@@ -373,6 +373,23 @@ type UserService
                 return! result
             }
 
+    member this.GetUserIdByEmailAsync (context: UserContext, email: string, ?ct: CancellationToken) : Task<Result<UserId, string>> =
+        let ct = defaultArg ct CancellationToken.None
+        taskResult {
+            match context with
+            | UserContext.Anonymous -> 
+                return! Error "Anonymous users are not allowed to search users"
+            | UserContext.Authenticated(_, _) ->
+                use scope = scopeFactory.CreateScope()
+                let userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>()
+                let! appUser = 
+                    task {
+                        let! user = userManager.FindByEmailAsync(email)
+                        if user <> null then return Ok user else return Error (sprintf "User with email %s not found" email)
+                    }
+                return UserId (Guid.Parse(appUser.Id))
+        }
+
     new(configuration: IConfiguration, scopeFactory: IServiceScopeFactory, secretsReader: BookLibrary.Utils.SecretsReader, reviewService: IReviewService, userTenantResolverService: IUserTenantResolverService, logger: ILogger<UserService>) =
         UserService(PgStorage.PgEventStore (secretsReader.GetBookLibraryConnectionString ()), scopeFactory, reviewService, userTenantResolverService, logger)
 
@@ -423,3 +440,6 @@ type UserService
         member this.SetCurrentTenantAsync (context, userId: UserId, tenantId: TenantId, ?ct: CancellationToken) : Task<Result<unit, string>> =
             let ct = defaultArg ct CancellationToken.None
             this.SetCurrentTenantAsync(context, userId, tenantId, ct)
+        member this.GetUserIdByEmailAsync (context, email: string, ?ct: CancellationToken) : Task<Result<UserId, string>> =
+            let ct = defaultArg ct CancellationToken.None
+            this.GetUserIdByEmailAsync(context, email, ct)

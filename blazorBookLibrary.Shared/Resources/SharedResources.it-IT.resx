@@ -889,4 +889,7 @@
   <data name="TargetDistributionPoint" xml:space="preserve"><value>Punto di Distribuzione di Destinazione</value></data>
   <data name="SwitchAllBooks" xml:space="preserve"><value>Sposta Tutti i Libri</value></data>
   <data name="ConfirmSwitchAllBooks" xml:space="preserve"><value>Sei sicuro di voler spostare tutti i libri da {0} a {1}?</value></data>
+  <data name="InvitedPatronsList" xml:space="preserve"><value>Lettori Invitati</value></data>
+  <data name="InvitedPatrons" xml:space="preserve"><value>Lettori Invitati</value></data>
+  <data name="NoInvitedPatronsFound" xml:space="preserve"><value>Nessun lettore invitato trovato.</value></data>
 </root>

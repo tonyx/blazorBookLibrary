@@ -105,6 +105,7 @@ module Details =
             Tenant: Tenant
             Owner: User
             Patrons: List<User*PatronRole>
+            InvitedPatrons: List<User>
             Reservations: List<Reservation>
             Loans: List<Loan>
         }

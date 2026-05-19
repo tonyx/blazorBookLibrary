@@ -66,6 +66,27 @@ public class TenantClientService : ITenantService
         return await ServiceClientHelper.HandleUnitResponse(response);
     }
 
+    public async Task<FSharpResult<Unit, string>> InvitePatronAsync(Commons.UserContext context, Commons.TenantId tenantId, Commons.UserId userId, FSharpOption<CancellationToken> ct)
+    {
+        var request = ServiceClientHelper.CreateRequest(HttpMethod.Post, $"api/Tenant/{tenantId.Value}/patrons/{userId.Value}/invite", context);
+        var response = await _httpClient.SendAsync(request, ServiceClientHelper.GetValue(ct, CancellationToken.None));
+        return await ServiceClientHelper.HandleUnitResponse(response);
+    }
+
+    public async Task<FSharpResult<Unit, string>> RevokePatronInvitation(Commons.UserContext context, Commons.TenantId tenantId, Commons.UserId userId, FSharpOption<CancellationToken> ct)
+    {
+        var request = ServiceClientHelper.CreateRequest(HttpMethod.Delete, $"api/Tenant/{tenantId.Value}/patrons/{userId.Value}/invite", context);
+        var response = await _httpClient.SendAsync(request, ServiceClientHelper.GetValue(ct, CancellationToken.None));
+        return await ServiceClientHelper.HandleUnitResponse(response);
+    }
+
+    public async Task<FSharpResult<Unit, string>> ConvertInvitedPatronToPatronAsync(Commons.UserContext context, Commons.TenantId tenantId, Commons.PatronInvitationCode patronInvitationCode, FSharpOption<CancellationToken> ct)
+    {
+        var request = ServiceClientHelper.CreateRequest(HttpMethod.Put, $"api/Tenant/{tenantId.Value}/patrons/convert?invitationCode={System.Uri.EscapeDataString(patronInvitationCode.Value.ToString())}", context);
+        var response = await _httpClient.SendAsync(request, ServiceClientHelper.GetValue(ct, CancellationToken.None));
+        return await ServiceClientHelper.HandleUnitResponse(response);
+    }
+
     public async Task<FSharpResult<PatronRole, string>> GetUserRoleAsync(Commons.UserContext context, Commons.TenantId tenantId, Commons.UserId userId, FSharpOption<CancellationToken> ct)
     {
         var request = ServiceClientHelper.CreateRequest(HttpMethod.Get, $"api/Tenant/{tenantId.Value}/patrons/{userId.Value}/role", context);

@@ -432,12 +432,17 @@ type DetailsService (
                             let! reservations = 
                                 StateView.getAllFilteredAggregateStatesAsync<Reservation, ReservationEvent, string> (fun reservation -> reservation.TenantId = tenantId) eventStore (Some ct)
                                 |> TaskResult.map (fun reservations -> reservations |> List.map snd)
+                            let! invitedPatrons = 
+                                tenant.InvitedPatrons
+                                |> List.traverseTaskResultM 
+                                    (fun (invitedPatron, _) -> userViewerAsync (ct |> Some) invitedPatron.Value |> TaskResult.map snd)
                             
                             let tenantDetails =   
                                 {
                                     Tenant = tenant
                                     Owner = owner
                                     Patrons = patrons
+                                    InvitedPatrons = invitedPatrons
                                     Loans = loans
                                     Reservations = reservations
                                 }
@@ -451,17 +456,18 @@ type DetailsService (
                                 TenantDetails = tenantDetails
                                 Refresher = refresher
                             } :> RefreshableAsync<RefreshableTenantDetails>,
-                             
-                                [
-                                    id.Value;
-                                    tenantDetails.Tenant.OwnerId.Value;
-                                ] 
-                                @ 
-                                (tenantDetails.Patrons |> List.map (fun (patron, _) -> patron.Id))
-                                @
-                                (tenantDetails.Loans |> List.map (fun loan -> loan.Id))
-                                @
-                                (tenantDetails.Reservations |> List.map (fun reservation -> reservation.Id))
+                            [
+                                id.Value;
+                                tenantDetails.Tenant.OwnerId.Value;
+                            ] 
+                            @ 
+                            (tenantDetails.Patrons |> List.map (fun (patron, _) -> patron.Id))
+                            @
+                            (tenantDetails.InvitedPatrons |> List.map (fun invitedPatron -> invitedPatron.Id))
+                            @
+                            (tenantDetails.Loans |> List.map (fun loan -> loan.Id))
+                            @
+                            (tenantDetails.Reservations |> List.map (fun reservation -> reservation.Id))
                     }
         let key = DetailsCacheKey.OfType typeof<RefreshableTenantDetails> id.Value
         StateView.getRefreshableDetailsTaskResultAsync<RefreshableTenantDetails> (fun ct -> detailsBuilder ct) key (ct |> Some)

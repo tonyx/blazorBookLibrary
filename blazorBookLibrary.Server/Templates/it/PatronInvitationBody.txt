@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="utf-8" />
+    <title>Invito a unirsi alla biblioteca {tenantName}</title>
+</head>
+<body>
+<p>Gentile {userName}, </p>
+<p>sei stato invitato a diventare un utente di {tenantName}. </p>
+<p>Dal link seguente puoi accettare o rifiutare questa iscrizione:</p>
+<p><a href="{urlToClick}">Accetta o rifiuta l'iscrizione</a></p>
+
+<p>{urlToClick}</p>
+
+<p>Se non hai richiesto questa iscrizione, ti preghiamo di ignorare questa email, con le nostre scuse per l'inconveniente.</p>
+<p>Cordiali saluti, </p>
+<p>il team di {tenantName}</p>
+</body>
+</html>

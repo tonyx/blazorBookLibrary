@@ -15,6 +15,9 @@ type TenantCommand =
     | DemotePatron of UserId
     | PromotePatron of UserId
     | RemovePatron of UserId
+    | InvitePatron of UserId * PatronInvitationCode
+    | ConvertInvitedPatronToPatron of PatronInvitationCode
+    | RevokePatronInvitation of UserId
     | SetPublic
     | SetPrivate
     interface AggregateCommand<Tenant, TenantEvent> with
@@ -50,6 +53,15 @@ type TenantCommand =
             | RemovePatron userId ->
                 tenant.RemovePatron userId
                 |> Result.map (fun t -> (t, [TenantEvent.PatronRemoved userId]))
+            | InvitePatron (userId, invitationCode) ->
+                tenant.InvitePatron (userId, invitationCode)
+                |> Result.map (fun t -> (t, [TenantEvent.PatronInvited (userId, invitationCode)]))
+            | ConvertInvitedPatronToPatron invitationCode ->
+                tenant.ConvertInvitedPatronToPatron invitationCode
+                |> Result.map (fun t -> (t, [TenantEvent.InvitedPatronConvertedToPatron invitationCode]))
+            | RevokePatronInvitation userId ->
+                tenant.RevokeInvitation userId
+                |> Result.map (fun t -> (t, [TenantEvent.PatronInvitationRevoked userId]))
             | SetPublic ->
                 tenant.SetPublic()
                 |> Result.map (fun t -> (t, [TenantEvent.PublicSet]))
