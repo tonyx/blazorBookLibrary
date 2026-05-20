@@ -80,7 +80,8 @@ type LoanService
                     UserCommand.AddLoan (loan.LoanId)
 
                 let! emailTextRetrieved = 
-                    mailBodyRetriever.GetLoanNotificationTextMailAsync(shortLang)
+                    mailBodyRetriever.GetLoanNotificationTextMailAsync(user.LangPref)
+
 
                 let! result = 
                     runInitAndTwoAggregateCommandsMdAsync<Book, BookEvent, User, UserEvent, string, Loan>
@@ -103,7 +104,7 @@ type LoanService
                                 fromEmail,
                                 fromName,
                                 userDetails.AppUser.Email,
-                                mailBodyRetriever.GetLoanNotificationSubject shortLang,
+                                mailBodyRetriever.GetLoanNotificationSubject user.LangPref,
                                 emailBody
                             )
                         return Ok ()
@@ -198,7 +199,8 @@ type LoanService
                 let! userDetails = 
                     usersService.GetUserDetailsAsync (context, loan.UserId, ct)
                 let! emailTextRetrieved =
-                    mailBodyRetriever.GetReleaseLoanNotificationTextMailAsync(shortLang)
+                    mailBodyRetriever.GetReleaseLoanNotificationTextMailAsync(user.LangPref)
+
 
                 let! result = 
                     runThreeAggregateCommandsMdAsync<Book, BookEvent, Loan, LoanEvent, User, UserEvent, string>
@@ -222,7 +224,7 @@ type LoanService
                                     fromEmail, 
                                     fromName, 
                                     userDetails.AppUser.Email, 
-                                    mailBodyRetriever.GetReleaseLoanNotificationSubject shortLang, 
+                                    mailBodyRetriever.GetReleaseLoanNotificationSubject user.LangPref, 
                                     emailBody
                                 )
                             return Ok ()
@@ -278,7 +280,8 @@ type LoanService
                     UserCommand.LoanFromReservation (loan.LoanId, reservationId)
 
                 let! emailTextRetrieved =
-                    mailBodyRetriever.GetLoanNotificationTextMailAsync(shortLang)
+                    mailBodyRetriever.GetLoanNotificationTextMailAsync(reservationDetails.UserDetails.User.LangPref)
+
 
                 let! result = 
                     runInitAndThreeAggregateCommandsMdAsync<Reservation, ReservationEvent, Book, BookEvent, User, UserEvent, string, Loan>
@@ -301,7 +304,7 @@ type LoanService
                         fromEmail,
                         fromName,
                         reservationDetails.UserDetails.AppUser.Email,
-                        mailBodyRetriever.GetLoanNotificationSubject shortLang,
+                        mailBodyRetriever.GetLoanNotificationSubject reservationDetails.UserDetails.User.LangPref,
                         emailBody
                     )
                 

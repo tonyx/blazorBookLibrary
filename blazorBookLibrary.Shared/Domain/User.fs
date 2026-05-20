@@ -7,13 +7,32 @@ open BookLibrary.Shared.Commons
 open System
 open System.Globalization
 
-type User =
+type User001 =
+    { 
+        Id: UserId
+        CurrentTenant: TenantId
+        AppUserInfo: AppUserInfo
+        Reservations: List<ReservationId>
+        CurrentLoans: List<LoanId>
+    }
+        with 
+            member this.Upcast(): User = {
+                UserId = this.Id
+                CurrentTenant = this.CurrentTenant
+                AppUserInfo = this.AppUserInfo
+                Reservations = this.Reservations
+                CurrentLoans = this.CurrentLoans
+                LangPref = ShortLang.New "it"
+            }
+
+and User =
     {
         UserId: UserId
         CurrentTenant: TenantId
         AppUserInfo: AppUserInfo
         Reservations: List<ReservationId>
         CurrentLoans: List<LoanId>
+        LangPref: ShortLang
     }
     with
         // yes, its correct that any newly created user is set to the default tenant
@@ -24,6 +43,7 @@ type User =
                 AppUserInfo = AppUserInfo.NewEmpty(userId)
                 Reservations = []
                 CurrentLoans = [] 
+                LangPref = ShortLang.New "it"
             }
         static member NewWithUserInfo(userId: UserId, appUserInfo: AppUserInfo) = 
             { 
@@ -32,6 +52,7 @@ type User =
                 AppUserInfo = appUserInfo
                 Reservations = []
                 CurrentLoans = [] 
+                LangPref = ShortLang.New "it" 
             }
     
         member this.AddReservation (reservationId: ReservationId) = 
@@ -84,6 +105,9 @@ type User =
         member this.ReleaseLoan (loanId: LoanId) = 
             { this with CurrentLoans = this.CurrentLoans |> List.filter (fun id -> id <> loanId) } |> Ok
 
+        member this.SetLangPref (langPref: ShortLang) = 
+            { this with LangPref = langPref } |> Ok
+
         member this.ConvertReservationToLoan (loanId: LoanId) (reservationId: ReservationId) = 
             result
                 {
@@ -125,7 +149,13 @@ type User =
             try
                 (data, jsonOptions) |> JsonSerializer.Deserialize<User> |> Ok
             with
-                | ex -> 
-                    Error ex.Message
+                | ex ->
+                    try
+                        let result = 
+                            (data, jsonOptions) |> JsonSerializer.Deserialize<User001>
+                        result.Upcast() |> Ok
+                    with
+                        | ex2 -> 
+                            Error (ex.Message + ", " + ex2.Message)
 
     

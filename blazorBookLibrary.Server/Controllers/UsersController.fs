@@ -100,6 +100,17 @@ type UsersController(userService: IUserService) =
             | Error msg -> return this.BadRequest(msg) :> IActionResult
         }
 
+    [<HttpPost("{id}/lang-pref")>]
+    member this.SetLangPref(id: Guid, [<FromBody>] langPref: string) =
+        task {
+            let context = UserContextMapper.mapFromRequest this.Request
+            let lp = ShortLang.New langPref
+            let! result = userService.SetLangPrefAsync(context, UserId id, lp)
+            match result with
+            | Ok _ -> return this.Ok() :> IActionResult
+            | Error msg -> return this.BadRequest(msg) :> IActionResult
+        }
+
     [<HttpGet("by-email/{email}")>]
     member this.GetUserIdByEmail(email: string) =
         task {

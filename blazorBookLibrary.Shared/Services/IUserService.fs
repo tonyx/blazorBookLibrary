@@ -30,5 +30,7 @@ type IUserService =
     abstract member GetDistributionPointsManagedByUserAsync: context: UserContext * userId:UserId * [<Optional; DefaultParameterValue(null)>] ?ct:CancellationToken -> Task<Result<List<DistributionPoint>, string>>
     abstract member SetCurrentTenantAsync: context: UserContext * userId:UserId * tenantId:TenantId * [<Optional; DefaultParameterValue(null)>] ?ct:CancellationToken -> Task<Result<unit, string>>
     abstract member GetUserIdByEmailAsync: context: UserContext * email:string * [<Optional; DefaultParameterValue(null)>] ?ct:CancellationToken -> Task<Result<UserId, string>>
+    abstract member SetLangPrefAsync: context: UserContext * userId:UserId * langPref:ShortLang * [<Optional; DefaultParameterValue(null)>] ?ct:CancellationToken -> Task<Result<unit, string>>
+    
 
     

@@ -19,6 +19,7 @@ type UserEvent =
     | PhysicalIdentificationUnset
     | NomeSet of string
     | CognomeSet of string
+    | LangPrefSet of ShortLang
     | AppUserInfoSet of AppUserInfo
     | CurrentTenantSet of TenantId
     interface Event<User> with
@@ -48,6 +49,8 @@ type UserEvent =
                 user.SetNome nome
             | CognomeSet cognome ->
                 user.SetCognome cognome
+            | LangPrefSet langPref ->
+                user.SetLangPref langPref
             | AppUserInfoSet appUserInfo ->
                 user.SetAppUserInfo appUserInfo
             | CurrentTenantSet tenantId ->

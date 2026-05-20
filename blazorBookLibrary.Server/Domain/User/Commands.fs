@@ -19,6 +19,7 @@ type UserCommand =
     | SetNome of string
     | SetCognome of string
     | SetAppUserInfo of AppUserInfo
+    | SetLangPref of ShortLang
     | SetCurrentTenant of TenantId
     interface AggregateCommand<User, UserEvent> with
         member this.Execute (user: User) =
@@ -65,5 +66,8 @@ type UserCommand =
             | SetCurrentTenant tenantId ->
                 user.SetCurrentTenant tenantId
                 |> Result.map (fun u -> (u, [CurrentTenantSet tenantId]))
+            | SetLangPref langPref ->
+                user.SetLangPref langPref
+                |> Result.map (fun u -> (u, [LangPrefSet(langPref)]))
 
         member this.Undoer = None

@@ -180,9 +180,9 @@ type ReservationService
                     let! userDetails = 
                         usersService.GetUserDetailsAsync (context, user.UserId, ct)
                     let! emailTextRetrieved = 
-                        mailBodyRetriever.GetReservationNotificationTextMailAsync(shortLang, ct)
+                        mailBodyRetriever.GetReservationNotificationTextMailAsync(user.LangPref, ct)
                     let! emailSubjectRetrieved = 
-                        mailBodyRetriever.GetReservationNotificationSubject(shortLang, ct)
+                        mailBodyRetriever.GetReservationNotificationSubject(user.LangPref, ct)
 
                     let! optDpName = 
                         match book.DistributionPoint with

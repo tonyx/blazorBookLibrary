@@ -107,6 +107,12 @@ public class UsersClientService : IUserService
         return result.IsOk ? FSharpResult<Commons.UserId, string>.NewOk(Commons.UserId.NewUserId(result.ResultValue)) : FSharpResult<Commons.UserId, string>.NewError(result.ErrorValue);
     }
 
+    public async Task<FSharpResult<Unit, string>> SetLangPrefAsync(Commons.UserContext context, Commons.UserId userId, Commons.ShortLang langPref, FSharpOption<CancellationToken> ct)
+    {
+        var response = await _httpClient.PostAsJsonAsync($"api/Users/{userId.Value}/lang-pref", langPref.Value, ServiceClientHelper.JsonOptions, ServiceClientHelper.GetValue(ct, CancellationToken.None));
+        return await ServiceClientHelper.HandleUnitResponse(response);
+    }
+
     public async Task<FSharpResult<Unit, string>> SetAppUserInfoUnsafeAsync(Commons.UserId userId, Commons.AppUserInfo appUserInfo, FSharpOption<CancellationToken> ct)
     {
         throw new NotImplementedException("SetAppUserInfoUnsafeAsync is not implemented on the client side");

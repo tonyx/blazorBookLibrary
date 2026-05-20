@@ -390,6 +390,23 @@ type UserService
                 return UserId (Guid.Parse(appUser.Id))
         }
 
+    member this.SetLangPref (context: UserContext, userId: UserId, langPref: ShortLang, ?ct: CancellationToken) : Task<Result<unit, string>> =
+        let ct = defaultArg ct CancellationToken.None
+        taskResult {
+            let! (_, user) = userViewerAsync (Some ct) userId.Value
+            let setLangPrefCommand = UserCommand.SetLangPref langPref
+            let result =
+                runAggregateCommandMdAsync 
+                    userId.Value
+                    eventStore
+                    messageSenders
+                    "System"
+                    setLangPrefCommand
+                    (ct |> Some)
+
+            return! result
+        }
+
     new(configuration: IConfiguration, scopeFactory: IServiceScopeFactory, secretsReader: BookLibrary.Utils.SecretsReader, reviewService: IReviewService, userTenantResolverService: IUserTenantResolverService, logger: ILogger<UserService>) =
         UserService(PgStorage.PgEventStore (secretsReader.GetBookLibraryConnectionString ()), scopeFactory, reviewService, userTenantResolverService, logger)
 
@@ -430,6 +447,10 @@ type UserService
         member this.SetAppUserInfoAsync (context, userId: UserId, appUserInfo: AppUserInfo, ?ct: CancellationToken) : Task<Result<unit, string>> =
             let ct = defaultArg ct CancellationToken.None
             this.SetAppUserInfoAsync(context, userId, appUserInfo, ct)
+
+        member this.SetLangPrefAsync (context: UserContext, userId: UserId, langPref: ShortLang, ?ct: CancellationToken) : Task<Result<unit, string>> =
+            let ct = defaultArg ct CancellationToken.None
+            this.SetLangPref(context, userId, langPref, ct)
 
         member this.SetAppUserInfoUnsafeAsync (userId: UserId, appUserInfo: AppUserInfo, ?ct: CancellationToken) : Task<Result<unit, string>> =
             let ct = defaultArg ct CancellationToken.None
