@@ -96,9 +96,9 @@ type TenantService
                     ownedTenants |> List.length <= maxTenants |> Result.ofBool "User has reached the maximum number of tenants"
 
                 do!
-                    ownedTenants |> List.exists (fun (t: Tenant) -> t.TentantName = tenant.TentantName)
+                    ownedTenants |> List.exists (fun (t: Tenant) -> t.Name = tenant.Name)
                     |> not
-                    |> Result.ofBool $"Tenant name {tenant.TentantName} already exists"
+                    |> Result.ofBool $"Tenant name {tenant.Name} already exists"
 
                 do!
                     match context, tenant with
@@ -148,6 +148,7 @@ type TenantService
             | UserContext.Anonymous -> false
             | UserContext.Authenticated _ when context.IsInRole Role.Admin -> true
             | UserContext.Authenticated(userId, _) when tenant.InvitedPatrons |> List.exists (fun (u, _) -> u = userId) -> true
+            | UserContext.Authenticated(userId, _) when userId = tenant.OwnerId -> true
             | _ -> false
 
         member private this.IsAdmin (context: UserContext) =
@@ -248,7 +249,7 @@ type TenantService
                     |> Result.ofBool "Access denied: only owner or admin can invite patrons" 
 
                 let shortLang = ShortLang.New(Globalization.CultureInfo.CurrentCulture.Name)
-                let! emailSubject = mailBodyRetriever.GetPatronInvitationSubject(shortLang, ?ct = ct)
+                let! emailSubject = mailBodyRetriever.GetPatronInvitationSubject(tenant.Name, user.AppUserInfo.UserName, shortLang, ?ct = ct)
                 let! emailBody = mailBodyRetriever.GetPatronInvitationTextMailAsync(shortLang, ?ct = ct)
 
                 let patronInvitationCode = PatronInvitationCode.New ()
@@ -266,12 +267,12 @@ type TenantService
 
                 let substitutedSubject = 
                     emailSubject
-                        .Replace("{tenantName}", tenant.TentantName.Value)
+                        .Replace("{tenantName}", tenant.Name.Value)
                         .Replace("{userName}", user.AppUserInfo.UserName)
 
                 let substitutedBody = 
                     emailBody
-                        .Replace("{tenantName}", tenant.TentantName.Value)
+                        .Replace("{tenantName}", tenant.Name.Value)
                         .Replace("{userName}", user.AppUserInfo.UserName)
                         .Replace("{urlToClick}", confirmationLink)
 

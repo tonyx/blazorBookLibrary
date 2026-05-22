@@ -49,6 +49,7 @@
   <ItemGroup>
     <None Include="appSettings.json" CopyToOutputDirectory="PreserveNewest" />
     <None Include="testImgData\*" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../blazorBookLibrary.Server/Templates/**/*" CopyToOutputDirectory="PreserveNewest" Link="Templates/%(RecursiveDir)%(Filename)%(Extension)" />
   </ItemGroup>
 
 </Project>

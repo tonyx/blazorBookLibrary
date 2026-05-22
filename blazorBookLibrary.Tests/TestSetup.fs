@@ -214,6 +214,7 @@ let getLoanService () : ILoanService =
         loanViewerAsync,
         userViewerAsync,
         tenantViewerAsync,
+        distributionPointViewerAsync,
         getUserTenantResolverService(),
         getReservationService(),
         getUserService(),

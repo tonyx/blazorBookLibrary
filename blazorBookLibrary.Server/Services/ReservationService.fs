@@ -179,16 +179,12 @@ type ReservationService
 
                     let! userDetails = 
                         usersService.GetUserDetailsAsync (context, user.UserId, ct)
-                    let! emailTextRetrieved = 
-                        mailBodyRetriever.GetReservationNotificationTextMailAsync(user.LangPref, ct)
-                    let! emailSubjectRetrieved = 
-                        mailBodyRetriever.GetReservationNotificationSubject(user.LangPref, ct)
 
                     let! optDpName = 
                         match book.DistributionPoint with
                         | None -> 
                             task
-                                { return "unspecified distribution point" |> Ok}
+                                { return "Unspecified" |> Ok}
                            
                         | Some dpId -> 
                             taskResult
@@ -197,6 +193,18 @@ type ReservationService
                                         distributionPointViewerAsync (ct |> Some) dpId.Value
                                     return dp.Name.Value 
                                 }
+
+                    let! emailTextRetrieved = 
+                        mailBodyRetriever.GetReservationNotificationTextMailAsync(
+                            book.Title,
+                            reservation.ReservationCode,
+                            tenant.Name,
+                            optDpName,
+                            user.LangPref,
+                            ?ct = Some ct
+                        )
+                    let! emailSubjectRetrieved = 
+                        mailBodyRetriever.GetReservationNotificationSubject(user.LangPref, ?ct = Some ct)
                 
 
                     let! result =
@@ -211,13 +219,13 @@ type ReservationService
                             addReservationToUserCommand
                             (Some ct)
 
-                    let emailBody = 
-                        emailTextRetrieved.Replace("{bookTitle}", book.Title.Value)
-                            .Replace("{code}", reservation.ReservationCode.Value)
-                            .Replace("{tenantName}", tenant.TentantName.Value)
-                            .Replace("{distributionPoint}", optDpName)
+                    let emailBody = emailTextRetrieved
 
                     let emailSubject = emailSubjectRetrieved.Replace("{bookTitle}", book.Title.Value)
+
+                    let key = DetailsCacheKey.OfType typeof<RefreshableTenantDetails> reservation.Id
+                    let updateDetails =
+                           DetailsCache.Instance.UpdateMultipleAggregateIdAssociation [|reservation.Id|] key
                     
                     do! 
                         task {
@@ -234,6 +242,7 @@ type ReservationService
 
                     return result
                 }
+
         member this.AddReservationAsync (context: UserContext, reservation: Reservation, dateTime: DateTime, ?ct: CancellationToken) =
             this.AddReservationAsync (context, reservation, dateTime, ShortLang.New "en", ?ct = ct)
 

@@ -1,1 +1,6 @@
-Hai restituito il libro "{bookTitle}". Grazie.
+Gentile {UserName},
+
+Ti informiamo che il libro "{BookTitle}" che hai preso in prestito il "{LoanedAt}" risulta restituito il "{ReturnedAt}".
+Il punto di distribuzione usato per la restituzione è "{DistributionPointName}".
+
+Grazie per aver usufruito della biblioteca "{TenantName}".

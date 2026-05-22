@@ -205,7 +205,7 @@
         {
             var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
             var context = blazorBookLibrary.Shared.ConverterUtils.fromClaimsPrincipal(authState.User);
-            var result = await LoanService.ReleaseLoanAsync(context, loanDetails.Loan.LoanId, ShortLang.New(CultureInfo.CurrentCulture.Name), DateTime.UtcNow);
+            var result = await LoanService.ReleaseLoanAsync(context, loanDetails.Loan.LoanId, DateTime.UtcNow);
             if (result.IsOk)
             {
                 await JSRuntime.InvokeVoidAsync("showToast", $"{L["LoanReturnedSuccessfully"]}", "success");

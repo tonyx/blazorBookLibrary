@@ -106,8 +106,8 @@ module Details =
             Owner: User
             Patrons: List<User*PatronRole>
             InvitedPatrons: List<User>
-            Reservations: List<Reservation>
-            Loans: List<Loan>
+            PendingReservations: List<ReservationDetails>
+            UnarchLoanDetails: List<LoanDetails>
         }
 
     type AdditionalBookSearchFilter = Book -> bool

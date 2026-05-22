@@ -892,4 +892,7 @@
   <data name="InvitedPatronsList" xml:space="preserve"><value>Lettori Invitati</value></data>
   <data name="InvitedPatrons" xml:space="preserve"><value>Lettori Invitati</value></data>
   <data name="NoInvitedPatronsFound" xml:space="preserve"><value>Nessun lettore invitato trovato.</value></data>
+  <data name="ConfirmDeleteOfLoan" xml:space="preserve"><value>Sei sicuro di voler eliminare questa registrazione di prestito?</value></data>
+  <data name="LoanDeletedSuccessfully" xml:space="preserve"><value>Registrazione del prestito eliminata con successo.</value></data>
+  <data name="ActiveLoansCannotBeDeleted" xml:space="preserve"><value>I prestiti attivi non possono essere eliminati. Il libro deve essere prima restituito.</value></data>
 </root>

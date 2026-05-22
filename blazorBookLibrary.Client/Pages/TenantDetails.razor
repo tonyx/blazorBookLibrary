@@ -14,6 +14,7 @@
 @inject IDetailsService DetailsService
 @inject IUserService UserService
 @inject ITenantService TenantService
+@inject ILoanService LoanService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject blazorBookLibrary.Client.Services.TenantStateService TenantState
 @inject IStringLocalizer<SharedResources> L
@@ -21,7 +22,7 @@
 @inject NavigationManager NavigationManager
 @rendermode InteractiveAuto
 
-<PageTitle>@(libraryDetails != null ? $"{libraryDetails.Tenant.TentantName.Value} — {L["TenantDetails"]}" : L["TenantDetails"]) — @L["TheModernArchivist"]</PageTitle>
+<PageTitle>@(libraryDetails != null ? $"{libraryDetails.Tenant.Name.Value} — {L["TenantDetails"]}" : L["TenantDetails"]) — @L["TheModernArchivist"]</PageTitle>
 
 <div class="sanctuary-container py-5">
     @* Page Header / Navigation *@
@@ -70,7 +71,7 @@
                     <span class="badge-sanctuary badge-neutral mb-3 text-uppercase letter-spacing-1 fw-bold">
                         <i class="bi bi-bank me-2"></i>@L["LibraryAggregateDetails"]
                     </span>
-                    <h1 class="display-4 text-serif mb-2">@libraryDetails.Tenant.TentantName.Value</h1>
+                    <h1 class="display-4 text-serif mb-2">@libraryDetails.Tenant.Name.Value</h1>
                     <p class="text-muted lead mb-0">
                         <i class="bi bi-geo-alt-fill me-2 text-primary"></i>@libraryDetails.Tenant.Address
                     </p>
@@ -128,14 +129,14 @@
                 <div class="card card-sanctuary border-0 shadow-sm p-4 bg-surface-low text-center hover-lift h-100">
                     <i class="bi bi-journal-check display-5 text-primary mb-2"></i>
                     <h5 class="text-muted small text-uppercase fw-bold mb-1">@L["ActiveLoans"]</h5>
-                    <p class="display-6 text-serif mb-0 fw-bold">@libraryDetails.Loans.Where(l => l.InProgress).Count()</p>
+                    <p class="display-6 text-serif mb-0 fw-bold">@libraryDetails.UnarchLoanDetails.Where(l => l.Loan.InProgress).Count()</p>
                 </div>
             </div>
             <div class="col-6 col-lg-3">
                 <div class="card card-sanctuary border-0 shadow-sm p-4 bg-surface-low text-center hover-lift h-100">
                     <i class="bi bi-calendar-event-fill display-5 text-primary mb-2"></i>
                     <h5 class="text-muted small text-uppercase fw-bold mb-1">@L["Reservations"]</h5>
-                    <p class="display-6 text-serif mb-0 fw-bold">@libraryDetails.Reservations.Count()</p>
+                    <p class="display-6 text-serif mb-0 fw-bold">@libraryDetails.PendingReservations.Count()</p>
                 </div>
             </div>
         </div>
@@ -153,7 +154,7 @@
                         </div>
                         <div>
                             <label class="small text-muted text-uppercase fw-bold d-block">@L["LibraryName"]</label>
-                            <span class="fw-bold">@libraryDetails.Tenant.TentantName.Value</span>
+                            <span class="fw-bold">@libraryDetails.Tenant.Name.Value</span>
                         </div>
                         <div>
                             <label class="small text-muted text-uppercase fw-bold d-block">@L["Address"]</label>
@@ -250,13 +251,13 @@
                     <li class="nav-item" role="presentation">
                         <button class="nav-link py-3 px-4 border-0 @(activeTab == "loans" ? "active border-bottom border-primary fw-bold text-primary" : "text-muted")"
                                 id="loans-tab" type="button" role="tab" @onclick='() => activeTab = "loans"'>
-                            <i class="bi bi-journal-bookmark me-2"></i>@L["LoansHistory"] (@libraryDetails.Loans.Count())
+                            <i class="bi bi-journal-bookmark me-2"></i>@L["LoansHistory"] (@libraryDetails.UnarchLoanDetails.Count())
                         </button>
                     </li>
                     <li class="nav-item" role="presentation">
                         <button class="nav-link py-3 px-4 border-0 @(activeTab == "reservations" ? "active border-bottom border-primary fw-bold text-primary" : "text-muted")"
                                 id="reservations-tab" type="button" role="tab" @onclick='() => activeTab = "reservations"'>
-                            <i class="bi bi-calendar-event me-2"></i>@L["ReservationsList"] (@libraryDetails.Reservations.Count())
+                            <i class="bi bi-calendar-event me-2"></i>@L["ReservationsList"] (@libraryDetails.PendingReservations.Count())
                         </button>
                     </li>
                 </ul>
@@ -447,7 +448,7 @@
                     {
                         <div class="card card-sanctuary border-0 shadow-sm p-4 bg-surface-low animate-fade-in">
                             <h3 class="h5 text-serif border-bottom pb-3 mb-3"><i class="bi bi-journal-bookmark-fill me-2 text-primary"></i>@L["LibraryLoansLedger"]</h3>
-                            @if (libraryDetails.Loans.Length == 0)
+                            @if (libraryDetails.UnarchLoanDetails.Length == 0)
                             {
                                 <div class="text-center py-5 text-muted italic">
                                     <i class="bi bi-journal-x display-4 opacity-25 d-block mb-3"></i>
@@ -460,34 +461,38 @@
                                     <table class="table align-middle">
                                         <thead>
                                             <tr class="text-uppercase small text-muted">
-                                                <th>@L["BookId"]</th>
+                                                <th>@L["Book"]</th>
                                                 <th>@L["PatronId"]</th>
                                                 <th>@L["Duration"]</th>
-                                                <th class="text-end">@L["Status"]</th>
+                                                <th>@L["Status"]</th>
+                                                <th class="text-end">@L["Actions"]</th>
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            @foreach (var loan in libraryDetails.Loans)
+                                            @foreach (var loan in libraryDetails.UnarchLoanDetails)
                                             {
                                                 <tr>
                                                     <td>
-                                                        <div class="font-monospace small text-truncate" style="max-width: 100px;" title="@loan.BookId.Value">@loan.BookId.Value</div>
+                                                        <a href="/book-edit/@loan.Book.Id" class="text-decoration-none fw-semibold text-primary font-monospace small text-truncate d-inline-block" style="max-width: 200px;" title="@loan.Book.Title.Value">
+                                                            @loan.Book.Title.Value
+                                                        </a>
                                                     </td>
                                                     <td>
-                                                        <div class="font-monospace small text-truncate" style="max-width: 100px;" title="@loan.UserId.Value">@loan.UserId.Value</div>
+                                                        @* <div class="font-monospace small text-truncate" style="max-width: 100px;" title="@loan.Loan.UserId.Value">@loan.Loan.UserId.Value</div> *@
+                                                        <div class="font-monospace small text-truncate" style="max-width: 100px;" title="@loan.UserDetails.AppUser.UserName">@loan.UserDetails.AppUser.UserName</div>
                                                     </td>
                                                     <td>
                                                         <div class="small">
-                                                            <span class="fw-bold">@L["Start"]:</span> @loan.TimeSlot.Start.ToLocalTime().ToString("yyyy-MM-dd HH:mm")
+                                                            <span class="fw-bold">@L["Start"]:</span> @loan.Loan.TimeSlot.Start.ToLocalTime().ToString("yyyy-MM-dd HH:mm")
                                                         </div>
                                                         <div class="small">
-                                                            <span class="fw-bold">@L["End"]:</span> @loan.TimeSlot.End.ToLocalTime().ToString("yyyy-MM-dd HH:mm")
+                                                            <span class="fw-bold">@L["End"]:</span> @loan.Loan.TimeSlot.End.ToLocalTime().ToString("yyyy-MM-dd HH:mm")
                                                         </div>
                                                     </td>
-                                                    <td class="text-end">
-                                                        @if (loan.InProgress)
+                                                    <td>
+                                                        @if (loan.Loan.InProgress)
                                                         {
-                                                            @if (loan.IsOverdue(DateTime.UtcNow))
+                                                            @if (loan.Loan.IsOverdue(DateTime.UtcNow))
                                                             {
                                                                 <span class="badge bg-danger text-white rounded-pill px-2 py-1 small fw-bold">
                                                                     @L["Overdue"]
@@ -507,6 +512,21 @@
                                                             </span>
                                                         }
                                                     </td>
+                                                    <td class="text-end">
+                                                        @if (loan.Loan.InProgress)
+                                                        {
+                                                            <button class="btn btn-outline-danger btn-sm rounded-pill px-3 shadow-sm" disabled title="@L["ActiveLoansCannotBeDeleted"]">
+                                                                <i class="bi bi-trash me-1"></i> @L["Delete"]
+                                                            </button>
+                                                        }
+                                                        else
+                                                        {
+                                                            <button class="btn btn-outline-danger btn-sm rounded-pill px-3 shadow-sm"
+                                                                    @onclick="() => HandleDeleteLoan(loan)">
+                                                                <i class="bi bi-trash me-1"></i> @L["Delete"]
+                                                            </button>
+                                                        }
+                                                    </td>
                                                 </tr>
                                             }
                                         </tbody>
@@ -521,7 +541,7 @@
                     {
                         <div class="card card-sanctuary border-0 shadow-sm p-4 bg-surface-low animate-fade-in">
                             <h3 class="h5 text-serif border-bottom pb-3 mb-3"><i class="bi bi-calendar-event-fill me-2 text-primary"></i>@L["ActiveReservations"]</h3>
-                            @if (libraryDetails.Reservations.Length == 0)
+                            @if (libraryDetails.PendingReservations.Length == 0)
                             {
                                 <div class="text-center py-5 text-muted italic">
                                     <i class="bi bi-calendar-x display-4 opacity-25 d-block mb-3"></i>
@@ -534,32 +554,34 @@
                                     <table class="table align-middle">
                                         <thead>
                                             <tr class="text-uppercase small text-muted">
-                                                <th>@L["BookId"]</th>
-                                                <th>@L["PatronId"]</th>
+                                                <th>@L["Book"]</th>
+                                                <th>@L["Patron"]</th>
                                                 <th>@L["ReservationTime"]</th>
                                                 <th class="text-end">@L["Status"]</th>
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            @foreach (var res in libraryDetails.Reservations)
+                                            @foreach (var res in libraryDetails.PendingReservations)
                                             {
                                                 <tr>
                                                     <td>
-                                                        <div class="font-monospace small text-truncate" style="max-width: 100px;" title="@res.BookId.Value">@res.BookId.Value</div>
+                                                        <a href="/book-edit/@res.Book.Id" class="text-decoration-none fw-semibold text-primary font-monospace small text-truncate d-inline-block" style="max-width: 200px;" title="@res.Book.Title.Value">
+                                                            @res.Book.Title.Value
+                                                        </a>
                                                     </td>
                                                     <td>
-                                                        <div class="font-monospace small text-truncate" style="max-width: 100px;" title="@res.UserId.Value">@res.UserId.Value</div>
+                                                        <div class="font-monospace small text-truncate" style="max-width: 100px;" title="@res.UserDetails.User.AppUserInfo.Email">@res.UserDetails.User.AppUserInfo.Email</div>
                                                     </td>
                                                     <td>
                                                         <div class="small">
-                                                            <span class="fw-bold">@L["Start"]:</span> @res.TimeSlot.Start.ToLocalTime().ToString("yyyy-MM-dd HH:mm")
+                                                            <span class="fw-bold">@L["Start"]:</span> @res.Reservation.TimeSlot.Start.ToLocalTime().ToString("yyyy-MM-dd HH:mm")
                                                         </div>
                                                         <div class="small">
-                                                            <span class="fw-bold">@L["End"]:</span> @res.TimeSlot.End.ToLocalTime().ToString("yyyy-MM-dd HH:mm")
+                                                            <span class="fw-bold">@L["End"]:</span> @res.Reservation.TimeSlot.End.ToLocalTime().ToString("yyyy-MM-dd HH:mm")
                                                         </div>
                                                     </td>
                                                     <td class="text-end">
-                                                        @if (res.IsPending)
+                                                        @if (res.Reservation.IsPending)
                                                         {
                                                             <span class="badge bg-warning text-dark rounded-pill px-2 py-1 small fw-bold">
                                                                 @L["Pending"]
@@ -684,6 +706,46 @@
             else
             {
                 await JSRuntime.InvokeVoidAsync("showToast", L["Patron invitation revoked successfully!"].Value, "success");
+                
+                // Refresh tenant details to show updated list
+                var refreshResult = await DetailsService.GetTenantDetailsAsync(userContext, tenantId, Microsoft.FSharp.Core.FSharpOption<System.Threading.CancellationToken>.None);
+                if (refreshResult.IsOk)
+                {
+                    libraryDetails = refreshResult.ResultValue;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("showToast", ex.Message, "error");
+        }
+        finally
+        {
+            StateHasChanged();
+        }
+    }
+
+    private async Task HandleDeleteLoan(LoanDetails loanDetails)
+    {
+        var confirmed = await JSRuntime.InvokeAsync<bool>("confirm", $"{L["ConfirmDeleteOfLoan"]} {loanDetails.Book.Title.Value}?");
+        if (!confirmed) return;
+
+        try
+        {
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var claimsPrincipal = authState.User;
+            if (claimsPrincipal == null) return;
+            var userContext = TenantState.GetUserContext(claimsPrincipal);
+            var tenantId = TenantId.NewTenantId(Id);
+
+            var result = await LoanService.ArchiveLoanAsync(userContext, loanDetails.Loan.LoanId, Microsoft.FSharp.Core.FSharpOption<System.Threading.CancellationToken>.None);
+            if (result.IsError)
+            {
+                await JSRuntime.InvokeVoidAsync("showToast", result.ErrorValue, "error");
+            }
+            else
+            {
+                await JSRuntime.InvokeVoidAsync("showToast", L["LoanDeletedSuccessfully"].Value, "success");
                 
                 // Refresh tenant details to show updated list
                 var refreshResult = await DetailsService.GetTenantDetailsAsync(userContext, tenantId, Microsoft.FSharp.Core.FSharpOption<System.Threading.CancellationToken>.None);

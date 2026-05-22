@@ -711,6 +711,7 @@ type Availability =
 type LoanStatus =
     | InProgress
     | Returned of DateTime
+    | Archived
 
 type ReservationStatus =
     | Pending

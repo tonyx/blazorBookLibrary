@@ -427,11 +427,15 @@ type DetailsService (
                                 |> List.traverseTaskResultM 
                                     (fun (patron, role) -> userViewerAsync (ct |> Some) patron.Value |> TaskResult.map (fun x -> (x |> snd, role)))
                             let! loans = 
-                                StateView.getAllFilteredAggregateStatesAsync<Loan, LoanEvent, string> (fun loan -> loan.TenantId = tenantId) eventStore (Some ct)
-                                |> TaskResult.map (fun loans -> loans |> List.map snd)
-                            let! reservations = 
-                                StateView.getAllFilteredAggregateStatesAsync<Reservation, ReservationEvent, string> (fun reservation -> reservation.TenantId = tenantId) eventStore (Some ct)
-                                |> TaskResult.map (fun reservations -> reservations |> List.map snd)
+                                loanService.GetUnarchivedLoansAsync(context, ct)
+
+                            let! loansDetails =
+                                loans
+                                |> List.traverseTaskResultM (fun loan -> this.GetLoanDetailsAsync(context, loan.LoanId, ct))
+
+                            let! reservationsDetails = 
+                                reservationService.GetAllPendingReservationsDetailsAsync(context, ct)
+
                             let! invitedPatrons = 
                                 tenant.InvitedPatrons
                                 |> List.traverseTaskResultM 
@@ -443,8 +447,8 @@ type DetailsService (
                                     Owner = owner
                                     Patrons = patrons
                                     InvitedPatrons = invitedPatrons
-                                    Loans = loans
-                                    Reservations = reservations
+                                    UnarchLoanDetails = loansDetails
+                                    PendingReservations = reservationsDetails
                                 }
                             return tenantDetails
                         }
@@ -465,9 +469,9 @@ type DetailsService (
                             @
                             (tenantDetails.InvitedPatrons |> List.map (fun invitedPatron -> invitedPatron.Id))
                             @
-                            (tenantDetails.Loans |> List.map (fun loan -> loan.Id))
+                            (tenantDetails.UnarchLoanDetails |> List.map (fun loan -> loan.Loan.Id))
                             @
-                            (tenantDetails.Reservations |> List.map (fun reservation -> reservation.Id))
+                            (tenantDetails.PendingReservations |> List.map (fun reservation -> reservation.Reservation.Id))
                     }
         let key = DetailsCacheKey.OfType typeof<RefreshableTenantDetails> id.Value
         StateView.getRefreshableDetailsTaskResultAsync<RefreshableTenantDetails> (fun ct -> detailsBuilder ct) key (ct |> Some)

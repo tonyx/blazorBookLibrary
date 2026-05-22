@@ -7,11 +7,15 @@ open BookLibrary.Shared.Commons
 
 type LoanCommand =
     | Return of DateTime
+    | Archive of DateTime
     interface AggregateCommand<Loan, LoanEvent> with
         member this.Execute (loan: Loan) =
             match this with
             | Return dateTime ->
                 loan.Return dateTime
                 |> Result.map (fun l -> (l, [LoanReturned dateTime]))
+            | Archive dateTime ->
+                loan.Archive dateTime
+                |> Result.map (fun l -> (l, [LoanArchived dateTime]))
 
         member this.Undoer = None

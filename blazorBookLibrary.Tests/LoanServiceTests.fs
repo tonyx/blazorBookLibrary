@@ -28,7 +28,7 @@ let tests =
             let timeSlot = TimeSlot.New (System.DateTime.Now) (System.DateTime.Now.AddDays(timeSlotDurationInDays))
             let loan = Loan.New TenantId.Default book.BookId userId (System.DateTime.Now) timeSlot
 
-            let! addLoan = loanService.AddLoanAsync (adminContext, loan, ShortLang.New "en")
+            let! addLoan = loanService.AddLoanAsync (adminContext, loan)
             Expect.isOk addLoan "should be ok"
 
             let! retrieveLoanResult = loanService.GetLoanAsync (adminContext, loan.LoanId)
@@ -43,7 +43,7 @@ let tests =
             let (loanRetrieved: Loan) = retrieveLoanResult |> Result.get
             Expect.isTrue (loanRetrieved.BookId = book.BookId) "should contain the book"
 
-            let! releaseLoan = loanService.ReleaseLoanAsync (adminContext, loan.LoanId, ShortLang.New "en", System.DateTime.Now)
+            let! releaseLoan = loanService.ReleaseLoanAsync (adminContext, loan.LoanId, System.DateTime.Now)
             Expect.isOk releaseLoan "should be ok"
 
             let! retrieveLoanResultAfter = loanService.GetLoanAsync (adminContext, loan.LoanId)
@@ -75,7 +75,7 @@ let tests =
             let timeSlot = TimeSlot.New (System.DateTime.Now) (System.DateTime.Now.AddDays(timeSlotDurationInDays))
             let loan = Loan.New TenantId.Default book.BookId userId (System.DateTime.Now) timeSlot
 
-            let! addLoan = loanService.AddLoanAsync (adminContext, loan, ShortLang.New "en")
+            let! addLoan = loanService.AddLoanAsync (adminContext, loan)
             Expect.isOk addLoan "should be ok"
 
             let! userRetrievedResult = userService.GetUserAsync(adminContext, userId)
@@ -98,10 +98,10 @@ let tests =
             let timeSlot = TimeSlot.New (System.DateTime.Now) (System.DateTime.Now.AddDays(timeSlotDurationInDays))
             let loan = Loan.New TenantId.Default book.BookId userId (System.DateTime.Now) timeSlot
 
-            let! addLoan = loanService.AddLoanAsync (adminContext, loan, ShortLang.New "en")
+            let! addLoan = loanService.AddLoanAsync (adminContext, loan)
             Expect.isOk addLoan "should be ok"
 
-            let! releaseLoan = loanService.ReleaseLoanAsync (adminContext, loan.LoanId, ShortLang.New "en", System.DateTime.Now)
+            let! releaseLoan = loanService.ReleaseLoanAsync (adminContext, loan.LoanId, System.DateTime.Now)
             Expect.isOk releaseLoan "should be ok"
 
             let! bookRetrievedResult = bookService.GetBookAsync(adminContext, book.BookId)
@@ -130,10 +130,10 @@ let tests =
             let timeSlot = TimeSlot.New (System.DateTime.Now) (System.DateTime.Now.AddDays(timeSlotDurationInDays))
             let loan = Loan.New TenantId.Default book.BookId userId (System.DateTime.Now) timeSlot
 
-            let! addLoan = loanService.AddLoanAsync (adminContext, loan, ShortLang.New "en")
+            let! addLoan = loanService.AddLoanAsync (adminContext, loan)
             Expect.isOk addLoan "should be ok"
 
-            let! releaseLoan = loanService.ReleaseLoanAsync (adminContext, loan.LoanId, ShortLang.New "en", System.DateTime.Now)
+            let! releaseLoan = loanService.ReleaseLoanAsync (adminContext, loan.LoanId, System.DateTime.Now)
             Expect.isOk releaseLoan "should be ok"
 
             let! bookRetrievedResult = bookService.GetBookAsync(adminContext, book.BookId)

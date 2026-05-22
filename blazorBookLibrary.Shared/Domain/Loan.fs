@@ -53,9 +53,21 @@ type Loan = {
                 do!
                     match this.LoanStatus with
                     | InProgress -> Ok ()
-                    | Returned _ -> Error "Loan is already returned" 
+                    |  _ -> Error "Loan is already returned or archived" 
                 return { this with LoanStatus = Returned dateTime } 
             }
+
+    member this.Archive (dateTime: DateTime) = 
+        result
+            {
+                do!
+                    match this.LoanStatus with
+                    | InProgress -> Error "Loan is not returned yet. Please return the loan before archiving."
+                    | Returned _ -> Ok ()
+                    | Archived -> Error "Loan is already archived"
+                return { this with LoanStatus = Archived } 
+            }
+
     member this.Id = this.LoanId.Value
     static member SnapshotsInterval = 50
     static member StorageName = "_Loan"

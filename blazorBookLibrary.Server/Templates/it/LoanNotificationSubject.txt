@@ -1,0 +1,1 @@
+Preso in prestito: {BookTitle} Restituire entro: {dueDate}

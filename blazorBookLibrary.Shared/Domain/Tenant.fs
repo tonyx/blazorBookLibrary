@@ -29,7 +29,7 @@ type
                     TenantId = this.TenantId
                     InvitedPatrons = []
                     Patrons = this.Patrons
-                    TentantName = this.TentantName
+                    Name = this.TentantName
                     Address = this.Address
                     TenantState = this.TenantState
                     Public = this.Public
@@ -40,7 +40,7 @@ and Tenant = {
         TenantId: TenantId
         InvitedPatrons: List<(UserId * PatronInvitationCode)>
         Patrons: List<UserId * PatronRole>
-        TentantName: TenantName
+        Name: TenantName
         Address: string
         TenantState: TenantState
         Public: bool
@@ -53,7 +53,7 @@ with
         TenantId = TenantId.New()
         InvitedPatrons = []
         Patrons = []
-        TentantName = tenantName
+        Name = tenantName
         Address = address
         TenantState = TenantState.Active
         Public = pub |> Option.defaultValue false

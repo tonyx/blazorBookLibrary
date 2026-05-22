@@ -8,11 +8,14 @@ open System.Text.Json
 
 type LoanEvent =
     | LoanReturned of DateTime
+    | LoanArchived of DateTime
     interface Event<Loan> with
         member this.Process (loan: Loan) =
             match this with
             | LoanReturned dateTime ->
                 loan.Return dateTime
+            | LoanArchived dateTime ->
+                loan.Archive dateTime
 
     static member Deserialize (x: string): Result<LoanEvent, string> =
         try

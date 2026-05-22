@@ -959,4 +959,7 @@
   <data name="TargetDistributionPoint" xml:space="preserve"><value>Target Distribution Point</value></data>
   <data name="SwitchAllBooks" xml:space="preserve"><value>Move All Books</value></data>
   <data name="ConfirmSwitchAllBooks" xml:space="preserve"><value>Are you sure you want to move all books from {0} to {1}?</value></data>
+  <data name="ConfirmDeleteOfLoan" xml:space="preserve"><value>Are you sure you want to delete this loan record?</value></data>
+  <data name="LoanDeletedSuccessfully" xml:space="preserve"><value>Loan record deleted successfully.</value></data>
+  <data name="ActiveLoansCannotBeDeleted" xml:space="preserve"><value>Active loans cannot be deleted. The book must be returned first.</value></data>
 </root>

@@ -106,10 +106,10 @@ let tests =
                     DateTime.Now 
                     timeSlot
             let! userContext = getUserContext userId
-            let! addLoan = (loanService: ILoanService).AddLoanAsync (userContext, loan, (ShortLang.New "en"))
+            let! addLoan = (loanService: ILoanService).AddLoanAsync (userContext, loan)
             Expect.isOk addLoan "should be ok"
 
-            let! releaseLoan = (loanService:> ILoanService).ReleaseLoanAsync (userContext, loan.LoanId, (ShortLang.New "en"), DateTime.Now)
+            let! releaseLoan = (loanService:> ILoanService).ReleaseLoanAsync (userContext, loan.LoanId, DateTime.Now)
             Expect.isOk releaseLoan "should be ok"
 
             let! userDetails = detailsService.GetUserDetailsAsync (userContext, userId)
@@ -165,10 +165,10 @@ let tests =
                         DateTime.Now 
                         timeSlot
                 let! userContext = getUserContext userId
-                let! addLoan = (loanService: ILoanService).AddLoanAsync (userContext, loan, (ShortLang.New "en"))
+                let! addLoan = (loanService: ILoanService).AddLoanAsync (userContext, loan)
                 Expect.isOk addLoan "should be ok"
 
-                let! releaseLoan = (loanService:> ILoanService).ReleaseLoanAsync (userContext, loan.LoanId, (ShortLang.New "en"), DateTime.Now)
+                let! releaseLoan = (loanService:> ILoanService).ReleaseLoanAsync (userContext, loan.LoanId, DateTime.Now)
                 Expect.isOk releaseLoan "should be ok"
 
                 let! userDetails = detailsService.GetUserDetailsAsync (userContext, userId)
@@ -226,10 +226,10 @@ let tests =
                     userId
                     DateTime.Now 
                     timeSlot
-            let! addLoan = (loanService: ILoanService).AddLoanAsync (adminContext, loan, (ShortLang.New "en"))
+            let! addLoan = (loanService: ILoanService).AddLoanAsync (adminContext, loan)
             Expect.isOk addLoan "should be ok"
 
-            let! releaseLoan = (loanService:> ILoanService).ReleaseLoanAsync (adminContext, loan.LoanId, (ShortLang.New "en"), DateTime.Now)
+            let! releaseLoan = (loanService:> ILoanService).ReleaseLoanAsync (adminContext, loan.LoanId, DateTime.Now)
             Expect.isOk releaseLoan "should be ok"
 
             let! userDetails = detailsService.GetUserDetailsAsync (adminContext, userId)
@@ -295,10 +295,10 @@ let tests =
                     userId
                     DateTime.Now 
                     timeSlot
-            let! addLoan = (loanService:> ILoanService).AddLoanAsync (adminContext, loan, (ShortLang.New "en"))
+            let! addLoan = (loanService:> ILoanService).AddLoanAsync (adminContext, loan)
             Expect.isOk addLoan "should be ok"
 
-            let! releaseLoan = (loanService:> ILoanService).ReleaseLoanAsync (adminContext, loan.LoanId, (ShortLang.New "en"), DateTime.Now)
+            let! releaseLoan = (loanService:> ILoanService).ReleaseLoanAsync (adminContext, loan.LoanId, DateTime.Now)
             Expect.isOk releaseLoan "should be ok"
 
             let! userDetails = detailsService.GetUserDetailsAsync (adminContext, userId)
@@ -368,10 +368,10 @@ let tests =
                     userId
                     DateTime.Now 
                     timeSlot
-            let! addLoan = (loanService:> ILoanService).AddLoanAsync (adminContext, loan, (ShortLang.New "en"))
+            let! addLoan = (loanService:> ILoanService).AddLoanAsync (adminContext, loan)
             Expect.isOk addLoan "should be ok"
 
-            let! releaseLoan = (loanService:> ILoanService).ReleaseLoanAsync (adminContext, loan.LoanId, (ShortLang.New "en"), DateTime.Now)
+            let! releaseLoan = (loanService:> ILoanService).ReleaseLoanAsync (adminContext, loan.LoanId, DateTime.Now)
             Expect.isOk releaseLoan "should be ok"
 
             let! userDetails = detailsService.GetUserDetailsAsync (adminContext, userId)

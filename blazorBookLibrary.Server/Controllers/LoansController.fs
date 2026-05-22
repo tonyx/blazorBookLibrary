@@ -25,6 +25,16 @@ type LoansController(loanService: ILoanService) =
             | Error msg -> return this.BadRequest(msg) :> IActionResult
         }
 
+    [<HttpGet("unarchived")>]
+    member this.GetUnarchivedLoans() =
+        task {
+            let context = UserContextMapper.mapFromClaimsPrincipal this.User
+            let! result = loanService.GetUnarchivedLoansAsync(context)
+            match result with
+            | Ok loans -> return this.Ok(loans) :> IActionResult
+            | Error msg -> return this.BadRequest(msg) :> IActionResult
+        }
+
     [<HttpGet("history/{userId}")>]
     member this.GetHistory(userId: Guid) =
         task {
@@ -36,11 +46,10 @@ type LoansController(loanService: ILoanService) =
         }
 
     [<HttpPost>]
-    member this.AddLoan(loan: Loan, [<FromQuery>] lang: string) =
+    member this.AddLoan(loan: Loan) =
         task {
             let context = UserContextMapper.mapFromClaimsPrincipal this.User
-            let shortLang = if System.String.IsNullOrWhiteSpace(lang) then (ShortLang.New "it") else (ShortLang.New lang)
-            let! result = loanService.AddLoanAsync(context, loan, shortLang)
+            let! result = loanService.AddLoanAsync(context, loan)
             match result with
             | Ok _ -> return this.Ok() :> IActionResult
             | Error msg -> return this.BadRequest(msg) :> IActionResult
@@ -57,23 +66,41 @@ type LoansController(loanService: ILoanService) =
         }
 
     [<HttpPost("release/{id}")>]
-    member this.ReleaseLoan(id: Guid, [<FromQuery>] lang: string) =
+    member this.ReleaseLoan(id: Guid) =
         task {
             let context = UserContextMapper.mapFromClaimsPrincipal this.User
-            let shortLang = if System.String.IsNullOrWhiteSpace(lang) then (ShortLang.New "it") else (ShortLang.New lang)
-            let! result = loanService.ReleaseLoanAsync(context, LoanId id, shortLang, DateTime.UtcNow)
+            let! result = loanService.ReleaseLoanAsync(context, LoanId id, DateTime.UtcNow)
             match result with
             | Ok () -> return this.Ok() :> IActionResult
             | Error msg -> return this.BadRequest(msg) :> IActionResult
         }
 
     [<HttpPost("transform-reservation/{reservationId}")>]
-    member this.TransformReservation(reservationId: Guid, [<FromBody>] reservationCode: string, [<FromQuery>] lang: string) =
+    member this.TransformReservation(reservationId: Guid, [<FromBody>] reservationCode: string) =
         task {
             let context = UserContextMapper.mapFromClaimsPrincipal this.User
-            let shortLang = if System.String.IsNullOrWhiteSpace(lang) then (ShortLang.New "it") else (ShortLang.New lang)
-            let! result = loanService.TransformReservationIntoLoanAsync(context, ReservationId reservationId, ReservationCode reservationCode, shortLang, DateTime.UtcNow)
+            let! result = loanService.TransformReservationIntoLoanAsync(context, ReservationId reservationId, ReservationCode reservationCode, DateTime.UtcNow)
             match result with
             | Ok _ -> return this.Ok() :> IActionResult
+            | Error msg -> return this.BadRequest(msg) :> IActionResult
+        }
+
+    [<HttpDelete("{id}")>]
+    member this.RemoveLoan(id: Guid) =
+        task {
+            let context = UserContextMapper.mapFromClaimsPrincipal this.User
+            let! result = loanService.RemoveLoanAsync(context, LoanId id)
+            match result with
+            | Ok () -> return this.Ok() :> IActionResult
+            | Error msg -> return this.BadRequest(msg) :> IActionResult
+        }
+
+    [<HttpPost("archive/{id}")>]
+    member this.ArchiveLoan(id: Guid) =
+        task {
+            let context = UserContextMapper.mapFromClaimsPrincipal this.User
+            let! result = loanService.ArchiveLoanAsync(context, LoanId id)
+            match result with
+            | Ok () -> return this.Ok() :> IActionResult
             | Error msg -> return this.BadRequest(msg) :> IActionResult
         }

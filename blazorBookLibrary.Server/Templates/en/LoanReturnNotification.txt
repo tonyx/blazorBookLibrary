@@ -1,1 +1,9 @@
-Your returned the book "{bookTitle}". Thank you.
+Dear {UserName}
+We inform you that the book "{BookTitle}" you lended on "{LoanedAt}" is returned on date "{ReturnedAt}".
+The distribution point used for the return is "{DistributionPointName}".
+
+Thank you for using the "{TenantName}" library.
+
+
+
+
