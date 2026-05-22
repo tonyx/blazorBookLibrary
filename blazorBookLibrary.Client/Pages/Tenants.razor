@@ -13,6 +13,7 @@
 @inject ITenantService TenantService
 @inject IUserService UserService
 @inject IStringLocalizer<SharedResources> L
+@inject ILogger<Tenants> Logger
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject blazorBookLibrary.Client.Services.TenantStateService TenantState
 @inject IJSRuntime JSRuntime
@@ -34,22 +35,22 @@
                 <h1 class="display-4 text-serif mb-2">@L[CurrentTitleKey]</h1>
                 <p class="text-muted lead mb-0">@L[CurrentDescriptionKey]</p>
             </div>
-            
+
             @* View Selector *@
             <div class="btn-group p-1 bg-surface-low rounded-pill shadow-sm border" role="group">
-                <button type="button" 
-                        class="btn btn-sm rounded-pill px-4 @(currentView == TenantView.Allowed ? "btn-primary" : "btn-link text-decoration-none text-muted")"
-                        @onclick="() => SwitchView(TenantView.Allowed)">
+                <button type="button"
+                    class="btn btn-sm rounded-pill px-4 @(currentView == TenantView.Allowed ? "btn-primary" : "btn-link text-decoration-none text-muted")"
+                    @onclick="() => SwitchView(TenantView.Allowed)">
                     <i class="bi bi-grid-fill me-2"></i>@L["Allowed"]
                 </button>
-                <button type="button" 
-                        class="btn btn-sm rounded-pill px-4 @(currentView == TenantView.My ? "btn-primary" : "btn-link text-decoration-none text-muted")"
-                        @onclick="() => SwitchView(TenantView.My)">
+                <button type="button"
+                    class="btn btn-sm rounded-pill px-4 @(currentView == TenantView.My ? "btn-primary" : "btn-link text-decoration-none text-muted")"
+                    @onclick="() => SwitchView(TenantView.My)">
                     <i class="bi bi-person-workspace me-2"></i>@L["My"]
                 </button>
-                <button type="button" 
-                        class="btn btn-sm rounded-pill px-4 @(currentView == TenantView.Owned ? "btn-primary" : "btn-link text-decoration-none text-muted")"
-                        @onclick="() => SwitchView(TenantView.Owned)">
+                <button type="button"
+                    class="btn btn-sm rounded-pill px-4 @(currentView == TenantView.Owned ? "btn-primary" : "btn-link text-decoration-none text-muted")"
+                    @onclick="() => SwitchView(TenantView.Owned)">
                     <i class="bi bi-shield-lock me-2"></i>@L["Owned"]
                 </button>
             </div>
@@ -60,31 +61,36 @@
     {
         @* Create Tenant Form *@
         <div class="card card-sanctuary mb-5 border-0 shadow-sm bg-surface-low animate-slide-down">
-            <div class="card-body p-4">
-                <h2 class="h4 text-serif mb-4"><i class="bi bi-plus-circle-fill text-primary me-2"></i>@L["CreateNewLibrary"]</h2>
-                <EditForm Model="@newTenant" OnValidSubmit="HandleCreateTenant">
-                    <DataAnnotationsValidator />
-                    <div class="row g-3">
-                        <div class="col-md-4">
-                            <label class="form-label small fw-bold text-muted">@L["LibraryName"]</label>
-                            <InputText @bind-Value="newTenant.Name" class="form-control" placeholder="@L["EnterLibraryName"]" />
-                            <ValidationMessage For="@(() => newTenant.Name)" class="text-danger small" />
+        <div class="card-body p-4">
+            <h2 class="h4 text-serif mb-4"><i
+                    class="bi bi-plus-circle-fill text-primary me-2"></i>@L["CreateNewLibrary"]</h2>
+            <EditForm Model="@newTenant" OnValidSubmit="HandleCreateTenant">
+                <DataAnnotationsValidator />
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold text-muted">@L["LibraryName"]</label>
+                        <InputText @bind-Value="newTenant.Name" class="form-control"
+                            placeholder="@L["EnterLibraryName"]" />
+                        <ValidationMessage For="@(() => newTenant.Name)" class="text-danger small" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold text-muted">@L["LibraryAddress"]</label>
+                        <InputText @bind-Value="newTenant.Address" class="form-control"
+                            placeholder="@L["EnterAddress"]" />
+                        <ValidationMessage For="@(() => newTenant.Address)" class="text-danger small" />
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label small fw-bold text-muted">@L["PublicStatus"]</label>
+                        <div class="form-check form-switch mt-2">
+                            <InputCheckbox @bind-Value="newTenant.IsPublic" class="form-check-input"
+                                id="publicSwitch" />
+                            <label class="form-check-label small text-muted" for="publicSwitch">@L["Public"]</label>
                         </div>
-                        <div class="col-md-4">
-                            <label class="form-label small fw-bold text-muted">@L["LibraryAddress"]</label>
-                            <InputText @bind-Value="newTenant.Address" class="form-control" placeholder="@L["EnterAddress"]" />
-                            <ValidationMessage For="@(() => newTenant.Address)" class="text-danger small" />
-                        </div>
-                        <div class="col-md-2">
-                            <label class="form-label small fw-bold text-muted">@L["PublicStatus"]</label>
-                            <div class="form-check form-switch mt-2">
-                                <InputCheckbox @bind-Value="newTenant.IsPublic" class="form-check-input" id="publicSwitch" />
-                                <label class="form-check-label small text-muted" for="publicSwitch">@L["Public"]</label>
-                            </div>
-                        </div>
-                        <div class="col-md-2 d-flex align-items-end">
-                            <button type="submit" class="btn btn-primary w-100 rounded-pill shadow-sm" disabled="@isSubmitting">
-                                @if (isSubmitting)
+                    </div>
+                    <div class="col-md-2 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary w-100 rounded-pill shadow-sm"
+                            disabled="@isSubmitting">
+                            @if (isSubmitting)
                                 {
                                     <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
                                 }
@@ -136,17 +142,19 @@
                     <div class="card card-sanctuary h-100 border-0 shadow-sm hover-lift transition-all bg-surface-low">
                         <div class="card-body p-4 d-flex flex-column">
                             <div class="d-flex align-items-center mb-4">
-                                <div class="tenant-icon-wrapper bg-primary bg-opacity-10 text-primary rounded-4 p-3 me-3 shadow-sm">
+                                <div
+                                    class="tenant-icon-wrapper bg-primary bg-opacity-10 text-primary rounded-4 p-3 me-3 shadow-sm">
                                     <i class="bi bi-building h3 mb-0"></i>
                                 </div>
                                 <div>
                                     <h3 class="card-title h5 text-serif mb-1">@tenant.Name.Value</h3>
                                     <span class="badge-sanctuary badge-neutral small">
-                                        <i class="bi bi-geo-alt me-1"></i> @(string.IsNullOrWhiteSpace(tenant.Address) ? L["Unspecified"] : tenant.Address)
+                                        <i class="bi bi-geo-alt me-1"></i> @(string.IsNullOrWhiteSpace(tenant.Address) ?
+                                L["Unspecified"] : tenant.Address)
                                     </span>
                                 </div>
                             </div>
-                            
+
                             <div class="mb-4 flex-grow-1">
                                 <div class="small text-muted text-uppercase fw-bold letter-spacing-1 mb-2">@L["Status"]</div>
                                 <div class="d-flex align-items-center gap-2">
@@ -157,7 +165,8 @@
 
                             <div class="mt-auto border-top pt-4">
                                 <div class="d-flex justify-content-between align-items-center">
-                                    <div class="small text-muted italic serif">@tenant.Patrons.Count() @L["ArchivalStatus"]</div>
+                                    <div class="small text-muted italic serif">@tenant.Patrons.Count() @L["ArchivalStatus"]
+                                    </div>
                                     <div class="d-flex gap-2">
                                         @if (TenantState.CurrentTenant?.TenantId.Value == tenant.TenantId.Value)
                                         {
@@ -167,13 +176,15 @@
                                         }
                                         else
                                         {
-                                            <button class="btn btn-outline-secondary btn-sm rounded-pill px-4" @onclick="() => HandleSelectTenant(tenant)">
+                                            <button class="btn btn-outline-secondary btn-sm rounded-pill px-4"
+                                            @onclick="() => HandleSelectTenant(tenant)">
                                                 @L["Select"]
                                             </button>
                                         }
                                         @if (currentView == TenantView.Owned)
                                         {
-                                            <a href="/tenants/@tenant.TenantId.Value" class="btn btn-outline-primary btn-sm rounded-pill px-4">
+                                            <a href="/tenants/@tenant.TenantId.Value"
+                                                class="btn btn-outline-primary btn-sm rounded-pill px-4">
                                                 @L["ViewDetails"] <i class="bi bi-arrow-right ms-1"></i>
                                             </a>
                                         }
@@ -195,10 +206,12 @@
         border-radius: 50%;
         display: inline-block;
     }
+
     .hover-lift:hover {
         transform: translateY(-5px);
-        box-shadow: 0 .5rem 1.5rem rgba(0,0,0,.08) !important;
+        box-shadow: 0 .5rem 1.5rem rgba(0, 0, 0, .08) !important;
     }
+
     .letter-spacing-1 {
         letter-spacing: 0.1em;
     }
@@ -257,31 +270,35 @@
 
     private async Task HandleSelectTenant(Tenant tenant)
     {
-        try 
+        try
         {
             var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
             if (authState.User.Identity?.IsAuthenticated == true)
             {
                 // 1. Update backend state (Sharpino aggregate)
                 var userContext = TenantState.GetUserContext(authState.User);
-                var result = await UserService.SetCurrentTenantAsync(userContext, userContext.UserId.Value, tenant.TenantId, Microsoft.FSharp.Core.FSharpOption<System.Threading.CancellationToken>.None);
-                
+                var result = await UserService.SetCurrentTenantAsync(userContext, userContext.UserId.Value, tenant.TenantId,
+                Microsoft.FSharp.Core.FSharpOption<System.Threading.CancellationToken>.None);
+
                 if (result.IsError)
                 {
-                    await JSRuntime.InvokeVoidAsync("showToast", result.ErrorValue, "error");
+                    Logger.LogError("Error setting current tenant: {Error}", result.ErrorValue);
+                    await JSRuntime.InvokeVoidAsync("showToast", L["ErrorOccurred"].Value, "error");
                     return;
                 }
             }
 
+
             // 2. Update local state (Cookie + Memory)
             await TenantState.SetTenantAsync(tenant);
-            await JSRuntime.InvokeVoidAsync("showToast", L["TenantUpdated"], "success");
+            await JSRuntime.InvokeVoidAsync("showToast", L["TenantUpdated"].Value, "success");
         }
         catch (Exception ex)
         {
-            await JSRuntime.InvokeVoidAsync("showToast", ex.Message, "error");
+            Logger.LogError(ex, "Exception when selecting tenant");
+            await JSRuntime.InvokeVoidAsync("showToast", L["ErrorOccurred"].Value, "error");
         }
-        finally 
+        finally
         {
             StateHasChanged();
         }
@@ -302,12 +319,12 @@
                 errorMessage = name.ErrorValue;
                 return;
             }
-            
+
             var tenant = Tenant.New(
-                userContext.UserId.Value,
-                name.ResultValue, 
-                newTenant.Address, 
-                Microsoft.FSharp.Core.FSharpOption<bool>.Some(newTenant.IsPublic)
+            userContext.UserId.Value,
+            name.ResultValue,
+            newTenant.Address,
+            Microsoft.FSharp.Core.FSharpOption<bool>.Some(newTenant.IsPublic)
             );
 
             var result = await TenantService.CreateTenantAsync(userContext, tenant, default);
@@ -343,7 +360,7 @@
             if (authState.User.Identity?.IsAuthenticated == true)
             {
                 var userContext = TenantState.GetUserContext(authState.User);
-                
+
                 var result = currentView switch
                 {
                     TenantView.Allowed => await TenantService.GetAllowedTenantsAsync(userContext, default),
@@ -352,7 +369,7 @@
                     _ => await TenantService.GetAllowedTenantsAsync(userContext, default)
                 };
                 isLoading = false;
-                
+
                 if (result.IsOk)
                 {
                     tenants = result.ResultValue;

@@ -16,6 +16,7 @@
 @inject IDetailsService DetailsService
 @inject IJSRuntime JSRuntime
 @inject IStringLocalizer<SharedResources> L
+@inject ILogger<Loans> Logger
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @rendermode InteractiveAuto
 
@@ -194,7 +195,8 @@
         }
         else
         {
-            await JSRuntime.InvokeVoidAsync("showToast", string.Format(L["ErrorLoadingLoans"], result.ErrorValue), "error");
+            Logger.LogError("Error loading loans details: {Error}", result.ErrorValue);
+            await JSRuntime.InvokeVoidAsync("showToast", L["ErrorOccurred"].Value, "error");
         }
     }
 
@@ -213,7 +215,8 @@
             }
             else
             {
-                await JSRuntime.InvokeVoidAsync("showToast", string.Format(L["ErrorReturningLoan"], result.ErrorValue), "error");
+                Logger.LogError("Error returning loan: {Error}", result.ErrorValue);
+                await JSRuntime.InvokeVoidAsync("showToast", L["ErrorOccurred"].Value, "error");
             }
         }
     }

@@ -20,6 +20,7 @@
 @inject IJSRuntime JSRuntime
 @inject NavigationManager NavigationManager
 @inject AuthenticationStateProvider AuthenticationStateProvider
+@inject ILogger<PendingReservations> Logger
 @rendermode InteractiveAuto
 
 <PageTitle>@L["PendingReservations"]</PageTitle>
@@ -229,12 +230,14 @@
             }
             else
             {
-                await ShowStatus($"{L["ErrorLoadingReservations"]}: {result.ErrorValue}", "danger");
+                Logger.LogError("Error loading pending reservations: {Error}", result.ErrorValue);
+                await ShowStatus(L["ErrorOccurred"].Value, "danger");
             }
         }
         catch (Exception ex)
         {
-            await ShowStatus($"{L["FatalError"]}: {ex.Message}", "danger");
+            Logger.LogError(ex, "Exception while loading pending reservations");
+            await ShowStatus(L["ErrorOccurred"].Value, "danger");
         }
         finally
         {
@@ -291,12 +294,14 @@
             }
             else
             {
-                await ShowStatus($"{L["ConversionError"]}: {result.ErrorValue}", "danger");
+                Logger.LogError("Error converting reservation {ReservationId} with code {ReservationCode} into loan: {Error}", resId.Value, resCode.Value, result.ErrorValue);
+                await ShowStatus(L["ErrorOccurred"].Value, "danger");
             }
         }
         catch (Exception ex)
         {
-            await ShowStatus($"{L["FatalError"]}: {ex.Message}", "danger");
+            Logger.LogError(ex, "Exception while converting reservation {ReservationId} with code {ReservationCode} into loan", selectedReservation.Reservation.ReservationId.Value, reservationCodeInput);
+            await ShowStatus(L["ErrorOccurred"].Value, "danger");
         }
         finally
         {

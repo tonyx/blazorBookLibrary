@@ -424,6 +424,7 @@
   <data name="RemoveCurrentImage" xml:space="preserve"><value>Rimuovi Immagine Attuale</value></data>
   <data name="RemoveImage" xml:space="preserve"><value>Rimuovi Immagine</value></data>
   <data name="Rename" xml:space="preserve"><value>Rinomina</value></data>
+  <data name="TenantUpdated" xml:space="preserve"><value>Tenant aggiornato</value></data>
   <data name="ResetAuthenticatorApp" xml:space="preserve"><value>Reimposta app di autenticazione</value></data>
   <data name="ResetRecoveryCodes" xml:space="preserve"><value>Reimposta codici di recupero</value></data>
   <data name="RevokeManager" xml:space="preserve"><value>Revoca Manager</value></data>
@@ -845,6 +846,7 @@
   <data name="Tag" xml:space="preserve"><value>Tag</value></data>
   <data name="ErrorAddingTag" xml:space="preserve"><value>Errore durante l'aggiunta del tag: {0}</value></data>
   <data name="ErrorAddingTagGeneric" xml:space="preserve"><value>Errore durante l'aggiunta del tag: {0}</value></data>
+  <data name="ErrorOccurred" xml:space="preserve"><value>Si è verificato un errore</value></data>
   <data name="ErrorRemovingTag" xml:space="preserve"><value>Errore durante la rimozione del tag: {0}</value></data>
   <data name="ErrorRemovingTagGeneric" xml:space="preserve"><value>Errore durante la rimozione del tag: {0}</value></data>
   <data name="FilterByTags" xml:space="preserve"><value>Filtra per Tag</value></data>

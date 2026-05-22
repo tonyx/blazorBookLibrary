@@ -14,6 +14,7 @@
 @inject UserManager<ApplicationUser> UserManager
 @inject IStringLocalizer<SharedResources> L
 @inject IJSRuntime JSRuntime
+@inject ILogger<DistributionPointsManager> Logger
 @rendermode InteractiveServer
 
 <PageTitle>@L["DistributionPointsManager"] — @L["TheModernArchivist"]</PageTitle>
@@ -246,12 +247,14 @@
             }
             else
             {
-                await ShowStatus(result.ErrorValue, "error");
+                Logger.LogError("Error loading distribution points: {Error}", result.ErrorValue);
+                await ShowStatus(L["ErrorOccurred"].Value, "error");
             }
         }
         catch (Exception ex)
         {
-            await ShowStatus(ex.Message, "error");
+            Logger.LogError(ex, "Exception loading distribution points");
+            await ShowStatus(L["ErrorOccurred"].Value, "error");
         }
         finally
         {
@@ -331,14 +334,24 @@
                 if (currentEditPoint.Name.Value != editingName)
                 {
                     result = await AdminServices.RenameDistributionPointAsync(userContext,currentEditPoint.DistributionPointId, nameResult.ResultValue);
-                    if (result.IsError) { errorMessage = result.ErrorValue; return; }
+                    if (result.IsError) 
+                    { 
+                        Logger.LogError("Error renaming distribution point: {Error}", result.ErrorValue);
+                        errorMessage = L["ErrorOccurred"].Value; 
+                        return; 
+                    }
                 }
                 
                 // Update Info if changed
                 if (currentEditPoint.Info.Value != editingInfo)
                 {
                     result = await AdminServices.UpdateDistributionPointInfoAsync(userContext,currentEditPoint.DistributionPointId, Info.New(editingInfo));
-                    if (result.IsError) { errorMessage = result.ErrorValue; return; }
+                    if (result.IsError) 
+                    { 
+                        Logger.LogError("Error updating distribution point info: {Error}", result.ErrorValue);
+                        errorMessage = L["ErrorOccurred"].Value; 
+                        return; 
+                    }
                 }
                 
                 await ShowStatus(L["DistributionPointUpdated"], "success");
@@ -354,7 +367,12 @@
 
                 var newDp = DistributionPoint.New(tenantId, nameResult.ResultValue, Info.New(editingInfo), userId);
                 result = await DistributionPointService.CreateDistributionPointAsync(userContext, newDp);
-                if (result.IsError) { errorMessage = result.ErrorValue; return; }
+                if (result.IsError) 
+                { 
+                    Logger.LogError("Error creating distribution point: {Error}", result.ErrorValue);
+                    errorMessage = L["ErrorOccurred"].Value; 
+                    return; 
+                }
                 
                 await ShowStatus(L["DistributionPointCreated"], "success");
             }
@@ -364,7 +382,8 @@
         }
         catch (Exception ex)
         {
-            errorMessage = ex.Message;
+            Logger.LogError(ex, "Exception saving distribution point");
+            errorMessage = L["ErrorOccurred"].Value;
         }
         finally
         {
@@ -388,12 +407,14 @@
             }
             else
             {
-                await ShowStatus(result.ErrorValue, "error");
+                Logger.LogError("Error assigning manager {UserId} to distribution point {DistributionPointId}: {Error}", user.Id, dp.DistributionPointId.Value, result.ErrorValue);
+                await ShowStatus(L["ErrorOccurred"].Value, "error");
             }
         }
         catch (Exception ex)
         {
-            await ShowStatus(ex.Message, "error");
+            Logger.LogError(ex, "Exception assigning manager {UserId} to distribution point {DistributionPointId}", user.Id, dp.DistributionPointId.Value);
+            await ShowStatus(L["ErrorOccurred"].Value, "error");
         }
     }
 
@@ -412,12 +433,14 @@
             }
             else
             {
-                await ShowStatus(result.ErrorValue, "error");
+                Logger.LogError("Error unassigning manager {UserId} from distribution point {DistributionPointId}: {Error}", userId.Value, dp.DistributionPointId.Value, result.ErrorValue);
+                await ShowStatus(L["ErrorOccurred"].Value, "error");
             }
         }
         catch (Exception ex)
         {
-            await ShowStatus(ex.Message, "error");
+            Logger.LogError(ex, "Exception unassigning manager {UserId} from distribution point {DistributionPointId}", userId.Value, dp.DistributionPointId.Value);
+            await ShowStatus(L["ErrorOccurred"].Value, "error");
         }
     }
 

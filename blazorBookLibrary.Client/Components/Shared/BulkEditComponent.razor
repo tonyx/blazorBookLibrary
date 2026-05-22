@@ -8,6 +8,7 @@
 @inject IStringLocalizer<SharedResources> L
 @inject IAuthorService AuthorService
 @inject IJSRuntime JSRuntime
+@inject ILogger<BulkEditComponent> Logger
 
 <div class="bulk-edit-container p-4 bg-white rounded shadow-sm border animate-fade-in">
     <div class="d-flex align-items-center justify-content-between mb-4 border-bottom pb-3">
@@ -311,12 +312,14 @@
             }
             else
             {
-                await JSRuntime.InvokeVoidAsync("showToast", L["BulkEditError", result.ErrorValue].Value, "error");
+                Logger.LogError("Error during bulk book edit: {Error}", result.ErrorValue);
+                await JSRuntime.InvokeVoidAsync("showToast", L["ErrorOccurred"].Value, "error");
             }
         }
         catch (Exception ex)
         {
-            await JSRuntime.InvokeVoidAsync("showToast", L["BulkEditError", ex.Message].Value, "error");
+            Logger.LogError(ex, "Exception during bulk book edit");
+            await JSRuntime.InvokeVoidAsync("showToast", L["ErrorOccurred"].Value, "error");
         }
         finally
         {

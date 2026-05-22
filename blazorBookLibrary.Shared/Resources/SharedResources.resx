@@ -409,6 +409,7 @@
   <data name="CleanDuplicatedVectors" xml:space="preserve"><value>Clean Duplicated Vectors</value></data>
   <data name="CleanDuplicatedVectorsDescription" xml:space="preserve"><value>Identify and remove redundant vector embeddings that point to the same BookId, ensuring each book has only one unique semantic representation.</value></data>
   <data name="Tenants" xml:space="preserve"><value>Tenants</value></data>
+  <data name="TenantUpdated" xml:space="preserve"><value>Tenant Updated</value></data>
   <data name="PublicTenants" xml:space="preserve"><value>Public Tenants</value></data>
   <data name="TenantsDescription" xml:space="preserve"><value>Explore the public tenants available in our library network.</value></data>
   <data name="NoPublicTenantsFound" xml:space="preserve"><value>No public tenants found.</value></data>
@@ -433,6 +434,7 @@
   <data name="EnterAddress" xml:space="preserve"><value>e.g. 123 Scholar Street</value></data>
   <data name="Public" xml:space="preserve"><value>Public</value></data>
   <data name="ErrorCreatingLibrary" xml:space="preserve"><value>An error occurred while establishing the library: {0}</value></data>
+  <data name="ErrorOccurred" xml:space="preserve"><value>An error occurred</value></data>
   <data name="InvitedPatronsList" xml:space="preserve"><value>Invited Patrons</value></data>
   <data name="InvitedPatrons" xml:space="preserve"><value>Invited Patrons</value></data>
   <data name="NoInvitedPatronsFound" xml:space="preserve"><value>No invited patrons found.</value></data>

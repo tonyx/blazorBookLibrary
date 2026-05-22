@@ -19,6 +19,7 @@
 @inject blazorBookLibrary.Client.Services.TenantStateService TenantState
 @inject IStringLocalizer<SharedResources> L
 @inject IJSRuntime JSRuntime
+@inject ILogger<TenantDetails> Logger
 @inject NavigationManager NavigationManager
 @rendermode InteractiveAuto
 
@@ -646,8 +647,9 @@
             var lookupResult = await UserService.GetUserIdByEmailAsync(userContext, inviteModel.Email.Trim(), Microsoft.FSharp.Core.FSharpOption<System.Threading.CancellationToken>.None);
             if (lookupResult.IsError)
             {
-                inviteErrorMessage = lookupResult.ErrorValue;
-                await JSRuntime.InvokeVoidAsync("showToast", lookupResult.ErrorValue, "error");
+                Logger.LogError("Error looking up user ID by email {Email}: {Error}", inviteModel.Email, lookupResult.ErrorValue);
+                inviteErrorMessage = L["ErrorOccurred"].Value;
+                await JSRuntime.InvokeVoidAsync("showToast", L["ErrorOccurred"].Value, "error");
                 return;
             }
 
@@ -657,8 +659,9 @@
             var inviteResult = await TenantService.InvitePatronAsync(userContext, tenantId, targetUserId, Microsoft.FSharp.Core.FSharpOption<System.Threading.CancellationToken>.None);
             if (inviteResult.IsError)
             {
-                inviteErrorMessage = inviteResult.ErrorValue;
-                await JSRuntime.InvokeVoidAsync("showToast", inviteResult.ErrorValue, "error");
+                Logger.LogError("Error inviting patron: {Error}", inviteResult.ErrorValue);
+                inviteErrorMessage = L["ErrorOccurred"].Value;
+                await JSRuntime.InvokeVoidAsync("showToast", L["ErrorOccurred"].Value, "error");
             }
             else
             {
@@ -675,8 +678,9 @@
         }
         catch (Exception ex)
         {
-            inviteErrorMessage = ex.Message;
-            await JSRuntime.InvokeVoidAsync("showToast", ex.Message, "error");
+            Logger.LogError(ex, "Exception while inviting patron");
+            inviteErrorMessage = L["ErrorOccurred"].Value;
+            await JSRuntime.InvokeVoidAsync("showToast", L["ErrorOccurred"].Value, "error");
         }
         finally
         {
@@ -701,7 +705,8 @@
             var result = await TenantService.RevokePatronInvitation(userContext, tenantId, patron.UserId, Microsoft.FSharp.Core.FSharpOption<System.Threading.CancellationToken>.None);
             if (result.IsError)
             {
-                await JSRuntime.InvokeVoidAsync("showToast", result.ErrorValue, "error");
+                Logger.LogError("Error revoking invitation for user {UserId}: {Error}", patron.UserId, result.ErrorValue);
+                await JSRuntime.InvokeVoidAsync("showToast", L["ErrorOccurred"].Value, "error");
             }
             else
             {
@@ -717,7 +722,8 @@
         }
         catch (Exception ex)
         {
-            await JSRuntime.InvokeVoidAsync("showToast", ex.Message, "error");
+            Logger.LogError(ex, "Exception while revoking invitation");
+            await JSRuntime.InvokeVoidAsync("showToast", L["ErrorOccurred"].Value, "error");
         }
         finally
         {
@@ -741,7 +747,8 @@
             var result = await LoanService.ArchiveLoanAsync(userContext, loanDetails.Loan.LoanId, Microsoft.FSharp.Core.FSharpOption<System.Threading.CancellationToken>.None);
             if (result.IsError)
             {
-                await JSRuntime.InvokeVoidAsync("showToast", result.ErrorValue, "error");
+                Logger.LogError("Error archiving loan {LoanId}: {Error}", loanDetails.Loan.LoanId, result.ErrorValue);
+                await JSRuntime.InvokeVoidAsync("showToast", L["ErrorOccurred"].Value, "error");
             }
             else
             {
@@ -757,7 +764,8 @@
         }
         catch (Exception ex)
         {
-            await JSRuntime.InvokeVoidAsync("showToast", ex.Message, "error");
+            Logger.LogError(ex, "Exception while archiving/deleting loan");
+            await JSRuntime.InvokeVoidAsync("showToast", L["ErrorOccurred"].Value, "error");
         }
         finally
         {

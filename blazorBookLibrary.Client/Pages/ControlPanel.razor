@@ -12,6 +12,7 @@
 @inject ITagService TagService
 @inject AuthenticationStateProvider AuthStateProvider
 @inject IStringLocalizer<SharedResources> L
+@inject ILogger<ControlPanel> Logger
 @inject IJSRuntime JSRuntime
 @rendermode InteractiveAuto
 
@@ -382,7 +383,8 @@
         }
         else
         {
-            await JSRuntime.InvokeVoidAsync("showToast", result.ErrorValue, "error");
+            Logger.LogError("Error adding tag: {Error}", result.ErrorValue);
+            await JSRuntime.InvokeVoidAsync("showToast", L["ErrorOccurred"].Value, "error");
         }
     }
 
@@ -399,7 +401,8 @@
         }
         else
         {
-            await JSRuntime.InvokeVoidAsync("showToast", result.ErrorValue, "error");
+            Logger.LogError("Error removing tag: {Error}", result.ErrorValue);
+            await JSRuntime.InvokeVoidAsync("showToast", L["ErrorOccurred"].Value, "error");
         }
     }
 
@@ -452,7 +455,8 @@
                 }
                 else
                 {
-                    await JSRuntime.InvokeVoidAsync("showToast", $"{L["ActionFailed"]}: {result.ErrorValue}", "error");
+                    Logger.LogError("Error purging vectors: {Error}", result.ErrorValue);
+                    await JSRuntime.InvokeVoidAsync("showToast", L["ErrorOccurred"].Value, "error");
                 }
             }
         }
@@ -462,7 +466,8 @@
         }
         catch (Exception ex)
         {
-            await JSRuntime.InvokeVoidAsync("showToast", $"{L["ActionFailed"]}: {ex.Message}", "error");
+            Logger.LogError(ex, "Exception while purging vectors");
+            await JSRuntime.InvokeVoidAsync("showToast", L["ErrorOccurred"].Value, "error");
         }
         finally
         {
@@ -493,7 +498,8 @@
                 }
                 else
                 {
-                    await JSRuntime.InvokeVoidAsync("showToast", $"{L["ActionFailed"]}: {result.ErrorValue}", "error");
+                    Logger.LogError("Error adjusting book states: {Error}", result.ErrorValue);
+                    await JSRuntime.InvokeVoidAsync("showToast", L["ErrorOccurred"].Value, "error");
                 }
             }
         }
@@ -503,7 +509,8 @@
         }
         catch (Exception ex)
         {
-            await JSRuntime.InvokeVoidAsync("showToast", $"{L["ActionFailed"]}: {ex.Message}", "error");
+            Logger.LogError(ex, "Exception while adjusting book states");
+            await JSRuntime.InvokeVoidAsync("showToast", L["ErrorOccurred"].Value, "error");
         }
         finally
         {
@@ -534,7 +541,8 @@
                 }
                 else
                 {
-                    await JSRuntime.InvokeVoidAsync("showToast", $"{L["ActionFailed"]}: {result.ErrorValue}", "error");
+                    Logger.LogError("Error cleaning duplicated vectors: {Error}", result.ErrorValue);
+                    await JSRuntime.InvokeVoidAsync("showToast", L["ErrorOccurred"].Value, "error");
                 }
             }
         }
@@ -544,7 +552,8 @@
         }
         catch (Exception ex)
         {
-            await JSRuntime.InvokeVoidAsync("showToast", $"{L["ActionFailed"]}: {ex.Message}", "error");
+            Logger.LogError(ex, "Exception while cleaning duplicated vectors");
+            await JSRuntime.InvokeVoidAsync("showToast", L["ErrorOccurred"].Value, "error");
         }
         finally
         {
@@ -575,12 +584,14 @@
             }
             else
             {
-                await JSRuntime.InvokeVoidAsync("showToast", $"{L["ActionFailed"]}: {result.ErrorValue}", "error");
+                Logger.LogError("Error detaching all books: {Error}", result.ErrorValue);
+                await JSRuntime.InvokeVoidAsync("showToast", L["ErrorOccurred"].Value, "error");
             }
         }
         catch (Exception ex)
         {
-            await JSRuntime.InvokeVoidAsync("showToast", $"{L["ActionFailed"]}: {ex.Message}", "error");
+            Logger.LogError(ex, "Exception while detaching all books");
+            await JSRuntime.InvokeVoidAsync("showToast", L["ErrorOccurred"].Value, "error");
         }
         finally
         {
@@ -618,12 +629,14 @@
             }
             else
             {
-                await JSRuntime.InvokeVoidAsync("showToast", $"{L["ActionFailed"]}: {result.ErrorValue}", "error");
+                Logger.LogError("Error switching all books: {Error}", result.ErrorValue);
+                await JSRuntime.InvokeVoidAsync("showToast", L["ErrorOccurred"].Value, "error");
             }
         }
         catch (Exception ex)
         {
-            await JSRuntime.InvokeVoidAsync("showToast", $"{L["ActionFailed"]}: {ex.Message}", "error");
+            Logger.LogError(ex, "Exception while switching all books");
+            await JSRuntime.InvokeVoidAsync("showToast", L["ErrorOccurred"].Value, "error");
         }
         finally
         {

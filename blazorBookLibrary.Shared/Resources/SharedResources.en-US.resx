@@ -210,6 +210,7 @@
   <data name="ImageFoundWikipedia" xml:space="preserve"><value>Image found via Wikipedia!</value></data>
   <data name="WikipediaImageNotFound" xml:space="preserve"><value>Wikipedia image not found</value></data>
   <data name="ErrorSearchingImage" xml:space="preserve"><value>Error searching image</value></data>
+  <data name="ErrorOccurred" xml:space="preserve"><value>An error occurred</value></data>
   <data name="SearchBooksForm" xml:space="preserve"><value>Search Books</value></data>
   <data name="TitleSearch" xml:space="preserve"><value>Title Search</value></data>
   <data name="SearchByTitlePlaceholder" xml:space="preserve"><value>Search by title...</value></data>
@@ -303,6 +304,7 @@
   <data name="ChangeEmail" xml:space="preserve"><value>Change email</value></data>
   <data name="ManageYourPasskeys" xml:space="preserve"><value>Manage your passkeys</value></data>
   <data name="Rename" xml:space="preserve"><value>Rename</value></data>
+  <data name="TenantUpdated" xml:space="preserve"><value>Tenant updated</value></data>
   <data name="Delete" xml:space="preserve"><value>Delete</value></data>
   <data name="NoPasskeysRegistered" xml:space="preserve"><value>No passkeys are registered.</value></data>
   <data name="AddANewPasskey" xml:space="preserve"><value>Add a new passkey</value></data>

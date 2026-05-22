@@ -18,6 +18,7 @@
 @inject IJSRuntime JSRuntime
 @inject IDetailsService DetailsService
 @inject AuthenticationStateProvider AuthenticationStateProvider
+@inject ILogger<AuthorsDetails> Logger
 @rendermode InteractiveAuto
 
 <PageTitle>@L["AuthorDetails"]</PageTitle>
@@ -428,12 +429,14 @@
             }
             else
             {
-                await ShowStatus(string.Format(L["LookupError"], result.ErrorValue), "alert-warning");
+                Logger.LogError("Error looking up author image for {Name}: {Error}", authorDetails.Author.Name.Value, result.ErrorValue);
+                await ShowStatus(L["ErrorOccurred"].Value, "alert-warning");
             }
         }
         catch (Exception ex)
         {
-            await ShowStatus(string.Format(L["LookupErrorGeneric"], ex.Message), "alert-danger");
+            Logger.LogError(ex, "Exception while looking up author image for {Name}", authorDetails.Author.Name.Value);
+            await ShowStatus(L["ErrorOccurred"].Value, "alert-danger");
         }
         finally
         {
@@ -481,7 +484,8 @@
 
         if (!Uri.TryCreate(editedImageUrl, UriKind.Absolute, out var newUri))
         {
-            await ShowStatus(L["InvalidUrlFormat"], "alert-danger");
+            Logger.LogWarning("Invalid image URL format entered: {Url}", editedImageUrl);
+            await ShowStatus(L["ErrorOccurred"].Value, "alert-danger");
             return;
         }
 
@@ -500,7 +504,8 @@
             using var response = await client.GetAsync(newUri, HttpCompletionOption.ResponseHeadersRead);
             if (!response.IsSuccessStatusCode)
             {
-                await ShowStatus(string.Format(L["BrokenLinkError"], response.StatusCode), "alert-danger");
+                Logger.LogError("Broken link check failed for URL {Url} with status code {StatusCode}", newUri, response.StatusCode);
+                await ShowStatus(L["ErrorOccurred"].Value, "alert-danger");
                 return;
             }
 
@@ -514,12 +519,14 @@
             }
             else
             {
-                await ShowStatus(string.Format(L["ErrorUpdatingImage"], result.ErrorValue), "alert-danger");
+                Logger.LogError("Error updating author image URL to {Url}: {Error}", newUri, result.ErrorValue);
+                await ShowStatus(L["ErrorOccurred"].Value, "alert-danger");
             }
         }
         catch (Exception ex)
         {
-            await ShowStatus(string.Format(L["ErrorUpdatingImageGeneric"], ex.Message), "alert-danger");
+            Logger.LogError(ex, "Exception while updating author image URL to {Url}", newUri);
+            await ShowStatus(L["ErrorOccurred"].Value, "alert-danger");
         }
     }
 
@@ -539,12 +546,14 @@
             }
             else
             {
-                await ShowStatus(string.Format(L["ErrorRemovingImage"], result.ErrorValue), "alert-danger");
+                Logger.LogError("Error removing author image URL: {Error}", result.ErrorValue);
+                await ShowStatus(L["ErrorOccurred"].Value, "alert-danger");
             }
         }
         catch (Exception ex)
         {
-            await ShowStatus(string.Format(L["ErrorRemovingImageGeneric"], ex.Message), "alert-danger");
+            Logger.LogError(ex, "Exception while removing author image URL");
+            await ShowStatus(L["ErrorOccurred"].Value, "alert-danger");
         }
     }
 
@@ -587,12 +596,14 @@
             }
             else
             {
-                await ShowStatus(string.Format(L["ErrorRenamingAuthor"], result.ErrorValue), "alert-danger");
+                Logger.LogError("Error updating author name to {NewName}: {Error}", editedName, result.ErrorValue);
+                await ShowStatus(L["ErrorOccurred"].Value, "alert-danger");
             }
         }
         catch (Exception ex)
         {
-            await ShowStatus(string.Format(L["ErrorUpdatingNameGeneric"], ex.Message), "alert-danger");
+            Logger.LogError(ex, "Exception while updating author name to {NewName}", editedName);
+            await ShowStatus(L["ErrorOccurred"].Value, "alert-danger");
         }
     }
 
@@ -637,7 +648,8 @@
             }
             else
             {
-                await ShowStatus(string.Format(L["InvalidIsniValue"], result.ErrorValue) + ". " + L["AcceptInvalidIsniPrompt"], "alert-danger");
+                Logger.LogWarning("Invalid ISNI value entered: {Error}", result.ErrorValue);
+                await ShowStatus(L["ErrorOccurred"].Value, "alert-danger");
                 return;
             }
         }
@@ -654,12 +666,14 @@
             }
             else
             {
-                await ShowStatus(string.Format(L["ErrorUpdatingIsni"], result.ErrorValue), "alert-danger");
+                Logger.LogError("Error updating author ISNI: {Error}", result.ErrorValue);
+                await ShowStatus(L["ErrorOccurred"].Value, "alert-danger");
             }
         }
         catch (Exception ex)
         {
-            await ShowStatus(string.Format(L["ErrorUpdatingIsniGeneric"], ex.Message), "alert-danger");
+            Logger.LogError(ex, "Exception while updating author ISNI");
+            await ShowStatus(L["ErrorOccurred"].Value, "alert-danger");
         }
     }
 
@@ -693,12 +707,14 @@
             }
             else
             {
-                await ShowStatus(string.Format(L["ErrorDuringDeletionGeneric"], result.ErrorValue), "alert-danger");
+                Logger.LogError("Error deleting author {AuthorId}: {Error}", authorDetails.Author.AuthorId.Value, result.ErrorValue);
+                await ShowStatus(L["ErrorOccurred"].Value, "alert-danger");
             }
         }
         catch (Exception ex)
         {
-            await ShowStatus(string.Format(L["ErrorDuringDeletion"], ex.Message), "alert-danger");
+            Logger.LogError(ex, "Exception while deleting author {AuthorId}", authorDetails.Author.AuthorId.Value);
+            await ShowStatus(L["ErrorOccurred"].Value, "alert-danger");
         }
     }
 
@@ -720,12 +736,14 @@
             }
             else
             {
-                await ShowStatus(string.Format(L["ErrorChangingAuthorSealState"], result.ErrorValue), "alert-danger");
+                Logger.LogError("Error toggling seal state for author {AuthorId}: {Error}", authorDetails.Author.AuthorId.Value, result.ErrorValue);
+                await ShowStatus(L["ErrorOccurred"].Value, "alert-danger");
             }
         }
         catch (Exception ex)
         {
-            await ShowStatus(string.Format(L["ErrorTogglingSealStateGeneric"], ex.Message), "alert-danger");
+            Logger.LogError(ex, "Exception while toggling seal state for author {AuthorId}", authorDetails.Author.AuthorId.Value);
+            await ShowStatus(L["ErrorOccurred"].Value, "alert-danger");
         }
     }
 
@@ -742,17 +760,26 @@
     private async Task UpdateBio()
     {
         if (authorDetails == null) return;
-        var context = await GetContext();
-        var result = await AuthorService.UpdateBioAsync(context, authorDetails.Author.AuthorId, editedBio);
-        if (result.IsOk)
+        try
         {
-            await LoadAuthorDetails();
-            isEditingBio = false;
-            await ShowStatus(L["BioUpdatedSuccessfully"], "alert-success");
+            var context = await GetContext();
+            var result = await AuthorService.UpdateBioAsync(context, authorDetails.Author.AuthorId, editedBio);
+            if (result.IsOk)
+            {
+                await LoadAuthorDetails();
+                isEditingBio = false;
+                await ShowStatus(L["BioUpdatedSuccessfully"], "alert-success");
+            }
+            else
+            {
+                Logger.LogError("Error updating biography for author {AuthorId}: {Error}", authorDetails.Author.AuthorId.Value, result.ErrorValue);
+                await ShowStatus(L["ErrorOccurred"].Value, "alert-danger");
+            }
         }
-        else
+        catch (Exception ex)
         {
-            await ShowStatus(result.ErrorValue, "alert-danger");
+            Logger.LogError(ex, "Exception while updating biography for author {AuthorId}", authorDetails.Author.AuthorId.Value);
+            await ShowStatus(L["ErrorOccurred"].Value, "alert-danger");
         }
     }
 
@@ -770,6 +797,16 @@
                 candidateBios = result.ResultValue.ToList();
                 await ShowStatus(L["BioFoundWikipedia"], "alert-success");
             }
+            else
+            {
+                Logger.LogError("Error looking up bio for {Name}: {Error}", authorDetails.Author.Name.Value, result.ErrorValue);
+                await ShowStatus(L["ErrorOccurred"].Value, "alert-warning");
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Exception while looking up bio for {Name}", authorDetails.Author.Name.Value);
+            await ShowStatus(L["ErrorOccurred"].Value, "alert-danger");
         }
         finally
         {
@@ -801,22 +838,32 @@
 
         if (Uri.TryCreate(editedWikipediaUri, UriKind.Absolute, out var uri))
         {
-            var context = await GetContext();
-            var result = await AuthorService.UpdateWikipediaUriAsync(context, authorDetails.Author.AuthorId, uri);
-            if (result.IsOk)
+            try
             {
-                await LoadAuthorDetails();
-                isEditingWikipediaUri = false;
-                await ShowStatus(L["WikipediaLinkUpdated"], "alert-success");
+                var context = await GetContext();
+                var result = await AuthorService.UpdateWikipediaUriAsync(context, authorDetails.Author.AuthorId, uri);
+                if (result.IsOk)
+                {
+                    await LoadAuthorDetails();
+                    isEditingWikipediaUri = false;
+                    await ShowStatus(L["WikipediaLinkUpdated"], "alert-success");
+                }
+                else
+                {
+                    Logger.LogError("Error updating Wikipedia URI for author {AuthorId}: {Error}", authorDetails.Author.AuthorId.Value, result.ErrorValue);
+                    await ShowStatus(L["ErrorOccurred"].Value, "alert-danger");
+                }
             }
-            else
+            catch (Exception ex)
             {
-                await ShowStatus(result.ErrorValue, "alert-danger");
+                Logger.LogError(ex, "Exception while updating Wikipedia URI for author {AuthorId}", authorDetails.Author.AuthorId.Value);
+                await ShowStatus(L["ErrorOccurred"].Value, "alert-danger");
             }
         }
         else
         {
-            await ShowStatus(L["InvalidUrlFormat"], "alert-danger");
+            Logger.LogWarning("Invalid URL format entered: {Url}", editedWikipediaUri);
+            await ShowStatus(L["ErrorOccurred"].Value, "alert-danger");
         }
     }
 
@@ -834,6 +881,16 @@
                 editedWikipediaUri = result.ResultValue;
                 await ShowStatus(L["WikipediaLinkFound"], "alert-success");
             }
+            else
+            {
+                Logger.LogError("Error looking up Wikipedia URI for {Name}: {Error}", authorDetails.Author.Name.Value, result.ErrorValue);
+                await ShowStatus(L["ErrorOccurred"].Value, "alert-warning");
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Exception while looking up Wikipedia URI for {Name}", authorDetails.Author.Name.Value);
+            await ShowStatus(L["ErrorOccurred"].Value, "alert-danger");
         }
         finally
         {

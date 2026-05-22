@@ -16,6 +16,7 @@
 @inject IDetailsService DetailsService
 @inject IJSRuntime JSRuntime
 @inject IStringLocalizer<SharedResources> L
+@inject ILogger<ReviewManager> Logger
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @rendermode InteractiveAuto
 
@@ -204,7 +205,8 @@
         }
         else
         {
-            await JSRuntime.InvokeVoidAsync("showToast", string.Format(L["ErrorLoadingReview"], result.ErrorValue), "error");
+            Logger.LogError("Error loading review details: {Error}", result.ErrorValue);
+            await JSRuntime.InvokeVoidAsync("showToast", L["ErrorOccurred"].Value, "error");
         }
     }
 
@@ -221,7 +223,8 @@
         }
         else
         {
-            await JSRuntime.InvokeVoidAsync("showToast", result.ErrorValue, "error");
+            Logger.LogError("Error approving review: {Error}", result.ErrorValue);
+            await JSRuntime.InvokeVoidAsync("showToast", L["ErrorOccurred"].Value, "error");
         }
     }
 
@@ -238,7 +241,8 @@
         }
         else
         {
-            await JSRuntime.InvokeVoidAsync("showToast", result.ErrorValue, "error");
+            Logger.LogError("Error rejecting review: {Error}", result.ErrorValue);
+            await JSRuntime.InvokeVoidAsync("showToast", L["ErrorOccurred"].Value, "error");
         }
     }
 }

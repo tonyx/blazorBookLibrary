@@ -19,7 +19,7 @@
 @inject NavigationManager NavigationManager
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject IBotScoreService BotScoreService
-@inject ILogger<AddReview> Logger
+@inject ILogger<EditReview> Logger
 @inject IConfiguration Configuration
 @inject IJSRuntime JSRuntime
 @inject IStringLocalizer<SharedResources> L
@@ -243,12 +243,14 @@
             }
             else
             {
-                errorMessage = result.ErrorValue;
+                Logger.LogError("Error loading review details for ReviewId {ReviewId}: {Error}", reviewIdGuid, result.ErrorValue);
+                errorMessage = L["ErrorOccurred"].Value;
             }
         }
         catch (Exception ex)
         {
-            errorMessage = ex.Message;
+            Logger.LogError(ex, "Exception while loading review details for ReviewId {ReviewId}", reviewIdGuid);
+            errorMessage = L["ErrorOccurred"].Value;
         }
         finally
         {
@@ -275,12 +277,14 @@
             }
             else
             {
-                errorMessage = result.ErrorValue;
+                Logger.LogError("Error saving review for ReviewId {ReviewId}: {Error}", reviewDetails.Review.ReviewId.Value, result.ErrorValue);
+                errorMessage = L["ErrorOccurred"].Value;
             }
         }
         catch (Exception ex)
         {
-            errorMessage = ex.Message;
+            Logger.LogError(ex, "Exception while saving review for ReviewId {ReviewId}", reviewDetails.Review.ReviewId.Value);
+            errorMessage = L["ErrorOccurred"].Value;
         }
         finally
         {
