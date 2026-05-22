@@ -15,6 +15,7 @@ type IAuthorService =
     abstract member AddAuthorsAsync: context: UserContext * authors: List<Author> * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> TaskResult<unit, string>
     abstract member GetAuthorAsync : context: UserContext * id: AuthorId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<Author, string>>
     abstract member GetAuthorsAsync : context: UserContext * ids: List<AuthorId> * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<List<Author>, string>>
+    abstract member GetAuthorBooksAsync : context: UserContext * authorId: AuthorId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<List<Book>, string>>
     abstract member RenameAsync : context: UserContext * authorId: AuthorId * name: Name * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> TaskResult<unit, string>
     abstract member RemoveAsync : context: UserContext * authorId: AuthorId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> TaskResult<unit, string>
     abstract member GetAuthorDetailsAsync : context: UserContext * id: AuthorId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<AuthorDetails, string>>

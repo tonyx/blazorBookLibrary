@@ -93,19 +93,20 @@ type BookService
                     (authors |> List.forall (fun author -> tenantId = author.TenantId))
                     |> Result.ofBool "Author tenant id not matching"
 
-                let authorAddBooks: List<AggregateCommand<Author, AuthorEvent>> = 
-                    authors
-                    |> List.map (fun _ -> AuthorCommand.AddBook book.BookId)
+                let! result =
+                    runInitAsync<Book, BookEvent, string>
+                        eventStore
+                        messageSenders
+                        book
+                        (Some ct)
 
-                return!
-                    runInitAndNAggregateCommandsMdAsync<Author, AuthorEvent, Book, string>
-                    (book.Authors |>> (fun authorId -> authorId.Value))
-                    eventStore
-                    messageSenders
-                    book
-                    ""
-                    authorAddBooks
-                    (Some ct)
+                authors
+                |> List.iter (fun author ->
+                    let authorKey = DetailsCacheKey.OfType typeof<RefreshableAuthorDetails> author.Id
+                    DetailsCache.Instance.UpdateMultipleAggregateIdAssociation [| book.BookId.Value |] authorKey
+                )
+
+                return result
             }
 
     member this.AddBooksAsync (context: UserContext, books: List<Book>, ?ct: CancellationToken) = 
@@ -187,18 +188,18 @@ type BookService
                 let bookAddAuthorCommand = 
                     BookCommand.AddAuthor (authorId, dateTime)
 
-                let authorAddBookCommand: AggregateCommand<Author, AuthorEvent> = 
-                    AuthorCommand.AddBook book.BookId
                 let! result = 
-                    runTwoNAggregateCommandsMdAsync<Book, BookEvent, Author, AuthorEvent, string>
-                        [book.Id]
-                        [author.Id]
+                    runAggregateCommandMdAsync<Book, BookEvent, string>
+                        bookId.Value
                         eventStore
                         messageSenders
                         ""
-                        [bookAddAuthorCommand]
-                        [authorAddBookCommand]
+                        bookAddAuthorCommand
                         (Some ct)
+
+                let authorKey = DetailsCacheKey.OfType typeof<RefreshableAuthorDetails> authorId.Value
+                DetailsCache.Instance.UpdateMultipleAggregateIdAssociation [| bookId.Value |] authorKey
+
                 return result
             }
 
@@ -666,19 +667,19 @@ type BookService
                 
                 let bookRemoveAuthorCommand = 
                     BookCommand.RemoveAuthor (authorId, dateTime)
-                let authorRemoveBookCommand: AggregateCommand<Author, AuthorEvent> = 
-                    AuthorCommand.RemoveBook book.BookId
-                let result = 
-                    runTwoNAggregateCommandsMdAsync<Book, BookEvent, Author, AuthorEvent, string>
-                        [book.Id]
-                        [authorId.Value]
+                let! result = 
+                    runAggregateCommandMdAsync<Book, BookEvent, string>
+                        bookId.Value
                         eventStore
                         messageSenders
                         ""
-                        [bookRemoveAuthorCommand]
-                        [authorRemoveBookCommand]
+                        bookRemoveAuthorCommand
                         (Some ct)
-                return! result
+
+                let authorKey = DetailsCacheKey.OfType typeof<RefreshableAuthorDetails> authorId.Value
+                DetailsCache.Instance.UpdateMultipleAggregateIdAssociation [| bookId.Value |] authorKey
+
+                return result
             }
 
     member this.GetBookAsync (context: UserContext, id: BookId, ?ct: CancellationToken): Task<Result<Book, string>> = 

@@ -259,9 +259,12 @@ type DetailsService (
                             let! tenantId = userTenantResolverService.GetTenantForUserAsync(context, ct)
                             let! author = authorViewerAsync (Some ct) id.Value |> TaskResult.map snd
                             do! author.TenantId = tenantId |> Result.ofBool $"Author '{id}' doesn't belong to this tenant '{tenantId}'"
-                            let! books = 
-                                author.Books
-                                |> List.traverseTaskResultM (fun bookId -> bookViewerAsync (Some ct) bookId.Value |> TaskResult.map snd)
+                            let! booksWithId =
+                                StateView.getAllFilteredAggregateStatesAsync<Book, BookEvent, string>
+                                    (fun book -> book.TenantId = tenantId && (book.Authors |> List.contains id))
+                                    eventStore
+                                    (Some ct)
+                            let books = booksWithId |> List.ofSeq |> List.map snd
                             return
                                 {
                                     Author = author
@@ -276,7 +279,7 @@ type DetailsService (
                             Refresher = refresher
                         } :> RefreshableAsync<RefreshableAuthorDetails>
                         ,
-                        id.Value :: (authorDetails.Author.Books |> List.map _.Value)
+                        id.Value :: (authorDetails.Books |> List.map (fun book -> book.BookId.Value))
                 }
         let key = DetailsCacheKey.OfType typeof<RefreshableAuthorDetails> id.Value
         StateView.getRefreshableDetailsTaskResultAsync<RefreshableAuthorDetails> (fun ct -> detailsBuilder ct) key ct
@@ -286,6 +289,15 @@ type DetailsService (
         taskResult {
             let! refreshableAuthorDetails = this.GetRefreshableAuthorDetailsAsync (context, id, ct)
             return refreshableAuthorDetails.AuthorDetails 
+        }
+
+    member this.GetAuthorsDetailsAsync (context: UserContext, ids: List<AuthorId>, ?ct: CancellationToken) =
+        let ct = defaultArg ct CancellationToken.None
+        taskResult {
+            let! detailsList = 
+                ids
+                |> List.traverseTaskResultM (fun id -> this.GetAuthorDetailsAsync(context, id, ct))
+            return detailsList
         }
 
     member private this.GetRefreshableBookDetailsAsync(context: UserContext, bookId: BookId, ?ct:CancellationToken): TaskResult<RefreshableBookDetails, string> =
@@ -546,6 +558,8 @@ type DetailsService (
             this.GetReservationDetailsAsync(context, reservationId, defaultArg ct CancellationToken.None)
         member this.GetAuthorDetailsAsync (context, authorId, ?ct) = 
             this.GetAuthorDetailsAsync(context, authorId, defaultArg ct CancellationToken.None)
+        member this.GetAuthorsDetailsAsync (context, ids, ?ct) =
+            this.GetAuthorsDetailsAsync(context, ids, defaultArg ct CancellationToken.None)
         member this.GetAllPendingReservationsDetailsAsync (context, ?ct) = 
             this.GetAllPendingReservationDetailsAsync(context, defaultArg ct CancellationToken.None)
         member this.GetReviewDetailsAsync (context, reviewId, ?ct) = 

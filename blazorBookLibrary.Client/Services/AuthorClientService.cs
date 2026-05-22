@@ -43,6 +43,13 @@ public class AuthorClientService : IAuthorService
         return result.IsOk ? FSharpResult<FSharpList<Author>, string>.NewOk(ListModule.OfSeq(result.ResultValue)) : FSharpResult<FSharpList<Author>, string>.NewError(result.ErrorValue);
     }
 
+    public async Task<FSharpResult<FSharpList<Book>, string>> GetAuthorBooksAsync(Commons.UserContext context, Commons.AuthorId authorId, FSharpOption<CancellationToken> ct)
+    {
+        var response = await _httpClient.GetAsync($"api/Authors/{authorId.Value}/books", ServiceClientHelper.GetValue(ct, CancellationToken.None));
+        var result = await ServiceClientHelper.HandleResponse<List<Book>>(response);
+        return result.IsOk ? FSharpResult<FSharpList<Book>, string>.NewOk(ListModule.OfSeq(result.ResultValue)) : FSharpResult<FSharpList<Book>, string>.NewError(result.ErrorValue);
+    }
+
     public async Task<FSharpResult<Unit, string>> RenameAsync(Commons.UserContext context, Commons.AuthorId authorId, Commons.Name name, FSharpOption<CancellationToken> ct)
     {
         var response = await _httpClient.PostAsJsonAsync($"api/Authors/{authorId.Value}/rename", name.Value, ServiceClientHelper.JsonOptions, ServiceClientHelper.GetValue(ct, CancellationToken.None));

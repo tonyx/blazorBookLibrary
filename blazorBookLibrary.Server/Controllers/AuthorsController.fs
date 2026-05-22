@@ -45,6 +45,16 @@ type AuthorsController(authorService: IAuthorService) =
             | Error msg -> return this.NotFound(msg) :> IActionResult
         }
 
+    [<HttpGet("{id}/books")>]
+    member this.GetAuthorBooks(id: Guid) =
+        task {
+            let context = UserContextMapper.mapFromClaimsPrincipal this.User
+            let! result = authorService.GetAuthorBooksAsync(context, AuthorId id)
+            match result with
+            | Ok books -> return this.Ok(books) :> IActionResult
+            | Error msg -> return this.NotFound(msg) :> IActionResult
+        }
+
     [<HttpGet>]
     member this.GetAllAuthors() =
         task {

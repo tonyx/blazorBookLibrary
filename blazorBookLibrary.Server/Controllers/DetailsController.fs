@@ -87,6 +87,17 @@ type DetailsController(detailsService: IDetailsService) =
             | Error msg -> return this.NotFound(msg) :> IActionResult
         }
 
+    [<HttpPost("authors")>]
+    member this.GetAuthorsDetails([<FromBody>] ids: List<Guid>) =
+        task {
+            let context = UserContextMapper.mapFromClaimsPrincipal this.User
+            let authorIds = ids |> Seq.map AuthorId |> List.ofSeq
+            let! result = detailsService.GetAuthorsDetailsAsync(context, authorIds)
+            match result with
+            | Ok details -> return this.Ok(details) :> IActionResult
+            | Error msg -> return this.BadRequest(msg) :> IActionResult
+        }
+
     [<HttpGet("review/{id}")>]
     member this.GetReviewDetails([<FromRoute>] id: Guid) =
         task {

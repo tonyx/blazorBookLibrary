@@ -2,6 +2,7 @@
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.QuickGrid
 @using BookLibrary.Shared.Services
+@using BookLibrary.Shared
 @using blazorBookLibrary.Shared.Resources
 @using BookLibrary.Domain
 @using static BookLibrary.Shared.Commons
@@ -11,6 +12,7 @@
 
 @attribute [Authorize(Roles = "Admin, Manager")]
 @inject IAuthorService AuthorService
+@inject IDetailsService DetailsService
 @inject IUserTenantResolverService UserTenantResolverService
 @inject IAuthorsSearchService AuthorsSearchService
 @inject IJSRuntime JSRuntime
@@ -192,14 +194,14 @@
                                 </div>
                             </ColumnOptions>
                             <ChildContent>
-                                <a href="/author-details/@context.Id" class="text-decoration-none text-reset transition-hover py-2 d-block">
-                                    @context.Name.Value
+                                <a href="/author-details/@context.Author.Id" class="text-decoration-none text-reset transition-hover py-2 d-block">
+                                    @context.Author.Name.Value
                                 </a>
                             </ChildContent>
                         </TemplateColumn>
 
                         <TemplateColumn Title="@L["Identity"]" Align="Align.Center">
-                            @if (context.ImageUri != null && FSharpOption<Uri>.get_IsSome(context.ImageUri))
+                            @if (context.Author.ImageUri != null && FSharpOption<Uri>.get_IsSome(context.Author.ImageUri))
                             {
                                 <span class="text-success"><i class="bi bi-person-badge-fill"></i></span>
                             }
@@ -210,13 +212,13 @@
                         </TemplateColumn>
 
                         <TemplateColumn Title="@L["IsniIdentifier"]" Sortable="true" Class="font-monospace small">
-                            @if (string.IsNullOrEmpty(context.Isni.Value))
+                            @if (string.IsNullOrEmpty(context.Author.Isni.Value))
                             {
                                 <span class="text-muted opacity-25 italic">@L["NoneNotSet"]</span>
                             }
                             else
                             {
-                                @context.Isni.Value
+                                @context.Author.Isni.Value
                             }
                         </TemplateColumn>
 
@@ -225,7 +227,7 @@
                         </TemplateColumn>
 
                         <TemplateColumn Title="@L["Status"]" Align="Align.End" Class="pe-5">
-                            @if (context.Sealed.Sealed)
+                            @if (context.Author.Sealed.Sealed)
                             {
                                 <span class="text-muted small fw-bold"><i class="bi bi-lock-fill me-2" style="font-size: 0.5rem;"></i>@L["Sealed"]</span>
                             }
@@ -253,9 +255,9 @@
     }
 
     private bool showAddSection = false;
-    private List<Author> authors = new();
+    private List<Details.AuthorDetails> authors = new();
     private PaginationState pagination = new() { ItemsPerPage = 12 };
-    private GridSort<Author> sortName = GridSort<Author>.ByAscending(a => a.Name.Value);
+    private GridSort<Details.AuthorDetails> sortName = GridSort<Details.AuthorDetails>.ByAscending(a => a.Author.Name.Value);
     
     private string nameFilter = "";
     private string isniFilter = "";
@@ -294,29 +296,39 @@
             var context = await GetContext();
             var name = Name.New(searchName);
             var isni = Isni.NewInvalid(searchIsni);
-            result = await AuthorService.SearchByIsniAndNameAsync(context, isni, name);
+            result = await AuthorService.SearchByIsniAndNameAsync(context, isni, name, FSharpOption<CancellationToken>.None);
         }
         else if (hasName)
         {
             var context = await GetContext();
             var name = Name.New(searchName);
-            result = await AuthorService.SearchByNameAsync(context, name);
+            result = await AuthorService.SearchByNameAsync(context, name, FSharpOption<CancellationToken>.None);
         }
         else if (hasIsni)
         {
             var context = await GetContext();
             var isni = Isni.NewInvalid(searchIsni);
-            result = await AuthorService.SearchByIsniAsync(context, isni); 
+            result = await AuthorService.SearchByIsniAsync(context, isni, FSharpOption<CancellationToken>.None); 
         }
         else
         {
             var context = await GetContext();
-            result = await AuthorService.GetAllAsync(context);
+            result = await AuthorService.GetAllAsync(context, FSharpOption<CancellationToken>.None);
         }
 
         if (result.IsOk)
         {
-            authors = result.ResultValue.ToList();
+            var context = await GetContext();
+            var authorIds = ListModule.OfSeq(result.ResultValue.Select(a => a.AuthorId));
+            var detailsResult = await DetailsService.GetAuthorsDetailsAsync(context, authorIds, FSharpOption<CancellationToken>.None);
+            if (detailsResult.IsOk)
+            {
+                authors = detailsResult.ResultValue.ToList();
+            }
+            else
+            {
+                await ShowStatus(string.Format(L["ErrorLoadingAuthors"], detailsResult.ErrorValue), "error");
+            }
         }
         else
         {
@@ -324,10 +336,10 @@
         }
     }
 
-    private IQueryable<Author> FilteredAuthors => 
+    private IQueryable<Details.AuthorDetails> FilteredAuthors => 
         authors.AsQueryable()
-            .Where(a => a.Name.Value.Contains(nameFilter, StringComparison.OrdinalIgnoreCase))
-            .Where(a => a.Isni.Value.Contains(isniFilter, StringComparison.OrdinalIgnoreCase));
+            .Where(a => a.Author.Name.Value.Contains(nameFilter, StringComparison.OrdinalIgnoreCase))
+            .Where(a => a.Author.Isni.Value.Contains(isniFilter, StringComparison.OrdinalIgnoreCase));
 
     private async Task HandleAddAuthor()
     {

@@ -44,9 +44,9 @@ let tests =
             let! addBook = bookService.AddBookAsync(adminContext, book)
             Expect.isOk addBook "should be ok"
 
-            let! getAuthorResult = authorService.GetAuthorAsync(UserContext.Anonymous, author.AuthorId)
-            let (author: Author ) = getAuthorResult |> Result.get
-            Expect.isTrue (List.contains book.BookId author.Books) "should contain the book"
+            let! getBooksResult = authorService.GetAuthorBooksAsync(UserContext.Anonymous, author.AuthorId)
+            let books = getBooksResult |> Result.get
+            Expect.isTrue (books |> List.exists (fun b -> b.BookId = book.BookId)) "should contain the book"
         }
 
         testCaseTask "the author contains references to the books they are author of, test many authors - Ok " <| fun _ -> task {
@@ -64,17 +64,16 @@ let tests =
             let book = Book.New TenantId.Default (Title.New "The Great Gatsby") [author.AuthorId; author2.AuthorId] [] [] None  Category.Other [] (Year.New 1924) (Isbn.NewEmpty()) None
             let! addBook = bookService.AddBookAsync(adminContext, book)
             Expect.isOk addBook "should be ok"
-            let! retrieveAuthorResult = authorService.GetAuthorAsync(UserContext.Anonymous, author.AuthorId)
-            Expect.isOk retrieveAuthorResult "should be ok"
+            
+            let! retrieveBooksResult = authorService.GetAuthorBooksAsync(UserContext.Anonymous, author.AuthorId)
+            Expect.isOk retrieveBooksResult "should be ok"
+            let books = retrieveBooksResult |> Result.get
+            Expect.isTrue (books |> List.exists (fun b -> b.BookId = book.BookId)) "should contain the book"
 
-            let (authorRetrieved: Author) = retrieveAuthorResult |> Result.get
-            Expect.isTrue (authorRetrieved.Books |> List.contains book.BookId) "should contain the book"
-
-            let! retrieveAuthor2Result = authorService.GetAuthorAsync(UserContext.Anonymous, author2.AuthorId)
-            Expect.isOk retrieveAuthor2Result "should be ok"
-
-            let (authorRetrieved2: Author) = retrieveAuthor2Result |> Result.get
-            Expect.isTrue (authorRetrieved2.Books |> List.contains book.BookId) "should contain the book"
+            let! retrieveBooks2Result = authorService.GetAuthorBooksAsync(UserContext.Anonymous, author2.AuthorId)
+            Expect.isOk retrieveBooks2Result "should be ok"
+            let books2 = retrieveBooks2Result |> Result.get
+            Expect.isTrue (books2 |> List.exists (fun b -> b.BookId = book.BookId)) "should contain the book"
         }
 
         testCaseTask "add an author, add a book without authors and then add an author to that book and retrieve the author checking the mutal references  - Ok" <| fun _ -> task {
@@ -91,11 +90,10 @@ let tests =
             
             let! _ = (bookService :> IBookService).AddAuthorToBookAsync(adminContext, author.AuthorId, book.BookId)
 
-            let! retrieveAuthorResult = authorService.GetAuthorAsync(UserContext.Anonymous, author.AuthorId)
-            Expect.isOk retrieveAuthorResult "should be ok"
-
-            let (authorRetrieved: Author) = retrieveAuthorResult |> Result.get
-            Expect.isTrue (authorRetrieved.Books |> List.contains book.BookId) "should contain the book"
+            let! retrieveBooksResult = authorService.GetAuthorBooksAsync(UserContext.Anonymous, author.AuthorId)
+            Expect.isOk retrieveBooksResult "should be ok"
+            let books = retrieveBooksResult |> Result.get
+            Expect.isTrue (books |> List.exists (fun b -> b.BookId = book.BookId)) "should contain the book"
 
             let! retrieveBookResult = bookService.GetBookAsync(UserContext.Anonymous, book.BookId)
             Expect.isOk retrieveBookResult "should be ok"
@@ -118,11 +116,10 @@ let tests =
             
             let! _ = (bookService :> IBookService).AddAuthorToBookAsync(adminContext, author.AuthorId, book.BookId)
 
-            let! retrieveAuthorResult = authorService.GetAuthorAsync(UserContext.Anonymous, author.AuthorId)
-            Expect.isOk retrieveAuthorResult "should be ok"
-
-            let (authorRetrieved: Author) = retrieveAuthorResult |> Result.get
-            Expect.isTrue (authorRetrieved.Books |> List.contains book.BookId) "should contain the book"
+            let! retrieveBooksResult = authorService.GetAuthorBooksAsync(UserContext.Anonymous, author.AuthorId)
+            Expect.isOk retrieveBooksResult "should be ok"
+            let books = retrieveBooksResult |> Result.get
+            Expect.isTrue (books |> List.exists (fun b -> b.BookId = book.BookId)) "should contain the book"
 
             let! retrieveBookResult = bookService.GetBookAsync(UserContext.Anonymous, book.BookId)
             Expect.isOk retrieveBookResult "should be ok"

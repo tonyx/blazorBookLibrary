@@ -93,9 +93,12 @@ type AuthorService
                                 let! tenantId = userTenantResolverService.GetTenantForUserAsync(context, ct)
                                 let! author = 
                                     authorViewerAsync (Some ct) id.Value |> TaskResult.map snd
-                                let! books = 
-                                    author.Books
-                                    |> List.traverseTaskResultM (fun bookId -> bookViewerAsync (Some ct) bookId.Value |> TaskResult.map snd)
+                                let! booksWithId =
+                                    StateView.getAllFilteredAggregateStatesAsync<Book, BookEvent, string>
+                                        (fun book -> book.TenantId = tenantId && (book.Authors |> List.contains id))
+                                        eventStore
+                                        (Some ct)
+                                let books = booksWithId |> List.ofSeq |> List.map snd
                                 do!
                                     author.TenantId = tenantId
                                     |> Result.ofBool "Tenant ids not matching"
@@ -113,7 +116,7 @@ type AuthorService
                                 Refresher = refresher
                             } :> RefreshableAsync<RefreshableAuthorDetails>
                             ,
-                            id.Value :: (authorDetails.Author.Books |> List.map _.Value)
+                            id.Value :: (authorDetails.Books |> List.map (fun book -> book.BookId.Value))
                     }
             let key = DetailsCacheKey.OfType typeof<RefreshableAuthorDetails> id.Value
             StateView.getRefreshableDetailsTaskResultAsync<RefreshableAuthorDetails> (fun ct -> detailsBuilder ct) key ct
@@ -125,6 +128,16 @@ type AuthorService
                 let! refreshableAuthorDetails = this.GetRefreshableAuthorDetailsAsync(context, authorId, ct)
                 return refreshableAuthorDetails.AuthorDetails
             }
+
+    member this.GetAuthorBooksAsync (context: UserContext, authorId: AuthorId, ?ct: CancellationToken) =
+        taskResult {
+            let ct = defaultArg ct CancellationToken.None
+            let! tenantId = userTenantResolverService.GetTenantForUserAsync(context, ct)
+            let filter (book: Book) = 
+                book.TenantId = tenantId && (book.Authors |> List.contains authorId)
+            let! booksWithId = StateView.getAllFilteredAggregateStatesAsync<Book, BookEvent, string> filter eventStore (Some ct)
+            return booksWithId |> List.ofSeq |> List.map snd
+        }
 
     member this.GetAuthorsAsync(context: UserContext, ids: List<AuthorId>, ?ct: CancellationToken) =
         let ct = defaultArg ct CancellationToken.None
@@ -327,12 +340,16 @@ type AuthorService
                     tenantId = author.TenantId
                     |> Result.ofBool "Tenant ids not matching"
                 do! checkIsGlobalAdminOrTenantManager context ct
+                let! books = this.GetAuthorBooksAsync(context, authorId, ct)
+                do! 
+                    books.IsEmpty 
+                    |> Result.ofBool "Cannot remove an author that has books"
                 return!
                     runDeleteAsync<Author, AuthorEvent, string>
                     eventStore
                     messageSenders
                     authorId.Value
-                    (fun _ -> author.Books.Length = 0)
+                    (fun _ -> true)
                     (Some ct)
             }
 
@@ -430,6 +447,9 @@ type AuthorService
         member this.GetAuthorsAsync(context, ids: List<AuthorId>, ?ct: CancellationToken) = 
             let ct = defaultArg ct CancellationToken.None
             this.GetAuthorsAsync(context, ids, ct)
+        member this.GetAuthorBooksAsync(context, authorId: AuthorId, ?ct: CancellationToken) = 
+            let ct = defaultArg ct CancellationToken.None
+            this.GetAuthorBooksAsync(context, authorId, ct)
         member this.RenameAsync (context, authorId: AuthorId, newName: Name, ?ct: CancellationToken) = 
             let ct = defaultArg ct CancellationToken.None
             this.RenameAsync(context, authorId, newName, ct)

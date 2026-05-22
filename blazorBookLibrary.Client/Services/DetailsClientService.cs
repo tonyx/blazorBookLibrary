@@ -64,6 +64,13 @@ public class DetailsClientService : IDetailsService
         return await ServiceClientHelper.HandleResponse<AuthorDetails>(response);
     }
 
+    public async Task<FSharpResult<FSharpList<AuthorDetails>, string>> GetAuthorsDetailsAsync(Commons.UserContext context, FSharpList<AuthorId> ids, FSharpOption<CancellationToken> ct)
+    {
+        var response = await _httpClient.PostAsJsonAsync("api/Details/authors", ids.Select(i => i.Value).ToList(), ServiceClientHelper.JsonOptions, ServiceClientHelper.GetValue(ct, CancellationToken.None));
+        var result = await ServiceClientHelper.HandleResponse<List<AuthorDetails>>(response);
+        return result.IsOk ? FSharpResult<FSharpList<AuthorDetails>, string>.NewOk(ListModule.OfSeq(result.ResultValue)) : FSharpResult<FSharpList<AuthorDetails>, string>.NewError(result.ErrorValue);
+    }
+
     public async Task<FSharpResult<ReviewDetails, string>> GetReviewDetailsAsync(Commons.UserContext context, ReviewId id, FSharpOption<CancellationToken> ct)
     {
         var response = await _httpClient.GetAsync($"api/Details/review/{id.Value}", ServiceClientHelper.GetValue(ct, CancellationToken.None));
