@@ -24,26 +24,26 @@ public sealed partial class MailNotificator : IMailNotificator
     {
         this._mailResenderService = mailResenderService;
         try
-            {
-                _config = config;
-                _logger = logger;
-                var mailjetApiKey = config["Mailjet:ApiKey"] ?? throw new InvalidOperationException("Mailjet API key not found.");
-                var mailjetSecretKey = config["Mailjet:SecretKey"] ?? throw new InvalidOperationException("Mailjet secret key not found.");
+        {
+            _config = config;
+            _logger = logger;
+            var mailjetApiKey = config["Mailjet:ApiKey"] ?? throw new InvalidOperationException("Mailjet API key not found.");
+            var mailjetSecretKey = config["Mailjet:SecretKey"] ?? throw new InvalidOperationException("Mailjet secret key not found.");
 
-                _mailjetClient = new MailjetClient(
-                    mailjetApiKey,
-                    mailjetSecretKey
-                );
+            _mailjetClient = new MailjetClient(
+                mailjetApiKey,
+                mailjetSecretKey
+            );
 
-                _isEmailSendEnabled = _config.GetValue<bool>("BooksLibrary:EmailNotificationEnabled", true);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Failed to initialize MailNotificator");
-                throw;
-            }
+            _isEmailSendEnabled = _config.GetValue<bool>("BooksLibrary:EmailNotificationEnabled", true);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to initialize MailNotificator");
+            throw;
+        }
     }
-    
+
     public async Task SendEmailAsync(string emailFrom, string nameFrom, string emailRecipient, string subject, string body)
     {
         if (!_isEmailSendEnabled) // can be disabled only in case of development
@@ -51,7 +51,7 @@ public sealed partial class MailNotificator : IMailNotificator
             _logger.LogWarning("Email sending is disabled. Some features may not work. Particularly the user will be unable to log at all in case Program.cs uses options.SignIn.RequireConfirmedAccount = true");
             return;
         }
-        
+
         var email = new TransactionalEmailBuilder()
             .WithFrom(from: new SendContact(emailFrom, nameFrom))
             .WithSubject(subject)
@@ -92,4 +92,3 @@ public sealed partial class MailNotificator : IMailNotificator
     [LoggerMessage(Level = LogLevel.Error, Message = "Failed to send email to {EmailRecipient}")]
     private partial void LogEmailSendError(Exception ex, string emailRecipient);
 }
-    

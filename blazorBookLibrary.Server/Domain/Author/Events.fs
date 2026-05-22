@@ -8,6 +8,8 @@ open System.Text.Json
 type AuthorEvent =
     | Renamed of Name * DateTime
     | IsniUpdated of Isni * DateTime
+    | BookAdded of BookId
+    | BookRemoved of BookId
     | Sealed of DateTime
     | Unsealed of DateTime
     | ImageUrlUpdated of Uri * DateTime
@@ -26,6 +28,9 @@ type AuthorEvent =
             | ImageUrlRemoved dateTime -> author.RemoveImageUrl dateTime
             | Sealed dateTime -> author.Seal dateTime
             | Unsealed dateTime -> author.Unseal dateTime
+            | BookAdded bookId -> author |> Ok
+            | BookRemoved bookId -> author |> Ok
+
 
     static member Deserialize(x: string) : Result<AuthorEvent, string> =
         try
