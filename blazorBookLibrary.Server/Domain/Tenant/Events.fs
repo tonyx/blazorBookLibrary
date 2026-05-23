@@ -17,6 +17,8 @@ type TenantEvent =
     | PatronPromoted of UserId
     | PatronRemoved of UserId
     | PatronInvited of UserId * PatronInvitationCode
+    | PatronSuspended of UserId * string
+    | PatronReadmitted of UserId
     | InvitedPatronConvertedToPatron of PatronInvitationCode
     | PatronInvitationRevoked of UserId
     | PublicSet
@@ -48,6 +50,10 @@ type TenantEvent =
                 tenant.InvitePatron (userId, invitationCode)
             | InvitedPatronConvertedToPatron invitationCode ->
                 tenant.ConvertInvitedPatronToPatron invitationCode    
+            | PatronSuspended (userId, reason) ->
+                tenant.SuspendPatron (userId, reason)
+            | PatronReadmitted userId ->
+                tenant.ReAdmittPatron userId
             | PublicSet ->
                 tenant.SetPublic ()
             | PrivateSet ->

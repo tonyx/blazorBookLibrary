@@ -306,6 +306,8 @@ let getTenantService () : ITenantService =
         config,
         fakeEmailNotificator,
         getMailBodyRetriever(),
+        getBookService(),
+        getAuthorService(),
         getDummyLogger<ITenantService>()
     ) :> ITenantService
 

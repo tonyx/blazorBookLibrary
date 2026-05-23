@@ -358,6 +358,17 @@ type AuthorService
                 |> List.filter (fun a -> tenantId = a.TenantId)
         }
 
+    member this.GetAllAuthorsOfTenantAsync(context: UserContext, tenantId: TenantId, ?ct: CancellationToken) =
+        let ct = defaultArg ct CancellationToken.None
+        taskResult {
+            let! authorsWithId = getAllFilteredAggregateStatesAsync<Author, AuthorEvent, string> (fun a -> a.TenantId = tenantId) eventStore (Some ct)
+            return
+                authorsWithId
+                |> List.ofSeq
+                |> List.map snd
+        }
+
+
     member this.GetAllAuthorsFilteredByName(context: UserContext, name: Name, ?ct: CancellationToken) =
         let ct = defaultArg ct CancellationToken.None
 
@@ -512,6 +523,10 @@ type AuthorService
         member this.GetAllAsync(context, ?ct: CancellationToken) =
             let ct = defaultArg ct CancellationToken.None
             this.GetAllAuthorsAsync(context, ct)
+
+        member this.GetAllAuthorsOfTenantAsync(context, tenantId: TenantId, ?ct: CancellationToken) =
+            let ct = defaultArg ct CancellationToken.None
+            this.GetAllAuthorsOfTenantAsync(context, tenantId, ct)
 
         member this.SearchByNameAsync(context, name: Name, ?ct: CancellationToken) =
             let ct = defaultArg ct CancellationToken.None

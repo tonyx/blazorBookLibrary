@@ -897,4 +897,11 @@
   <data name="ConfirmDeleteOfLoan" xml:space="preserve"><value>Sei sicuro di voler eliminare questa registrazione di prestito?</value></data>
   <data name="LoanDeletedSuccessfully" xml:space="preserve"><value>Registrazione del prestito eliminata con successo.</value></data>
   <data name="ActiveLoansCannotBeDeleted" xml:space="preserve"><value>I prestiti attivi non possono essere eliminati. Il libro deve essere prima restituito.</value></data>
+  <data name="RemoveDistributionPoint" xml:space="preserve"><value>Rimuovi Punto di Distribuzione</value></data>
+  <data name="ConfirmRemoveDistributionPoint" xml:space="preserve"><value>Sei sicuro di voler rimuovere questo punto di distribuzione? Questa azione non può essere annullata.</value></data>
+  <data name="DistributionPointRemoved" xml:space="preserve"><value>Punto di distribuzione rimosso con successo.</value></data>
+  <data name="Books" xml:space="preserve"><value>Libri</value></data>
+  <data name="ConfirmDeleteTenant" xml:space="preserve"><value>Sei sicuro di voler eliminare definitivamente la biblioteca '{0}'? Questa azione è irreversibile.</value></data>
+  <data name="TenantDeletedSuccessfully" xml:space="preserve"><value>Biblioteca eliminata con successo.</value></data>
+  <data name="NotDeletableContains" xml:space="preserve"><value>Non eliminabile. Contiene: {0} lettori, {1} libri, {2} autori, {3} punti di distribuzione.</value></data>
 </root>

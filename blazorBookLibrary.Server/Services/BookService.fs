@@ -74,7 +74,6 @@ type BookService
             vectorDbService
         )
 
-
     member this.AddBookAsync (context: UserContext, book: Book, ?ct: CancellationToken) =
         taskResult
             {
@@ -719,6 +718,14 @@ type BookService
             {
                 let! tenantId = userTenantResolverService.GetTenantForUserAsync(context)
                 let! booksWithId = StateView.getAllFilteredAggregateStatesAsync<Book, BookEvent, string> (fun b -> b.TenantId = tenantId && criteria.Invoke b) eventStore ct 
+                return booksWithId |> List.ofSeq |> List.map snd
+            }
+
+    member this.GetAllBooksOfTenantAsync(context: UserContext, tenantId: TenantId, ?ct: CancellationToken) = 
+        let ct = defaultArg ct CancellationToken.None
+        taskResult
+            {
+                let! booksWithId = StateView.getAllFilteredAggregateStatesAsync<Book, BookEvent, string> (fun b -> b.TenantId = tenantId) eventStore (Some ct) 
                 return booksWithId |> List.ofSeq |> List.map snd
             }
 
@@ -1473,6 +1480,9 @@ type BookService
             let criteria = defaultArg (criteria |> Option.bind Option.ofObj) SearchCriteria.searchAllBooks
             let ct = defaultArg ct CancellationToken.None
             this.GetAllBooksAsync(context, criteria, ct)
+        member this.GetAllBooksOfTenantAsync(context: UserContext, tenantId: TenantId, ?ct: CancellationToken) =
+            let ct = defaultArg ct CancellationToken.None
+            this.GetAllBooksOfTenantAsync(context, tenantId, ct)
         member this.SearchByTitleAsync(context: UserContext, title: Title, ?criteria: BookSearchCriteria, ?ct: CancellationToken) = 
             let criteria = defaultArg (criteria |> Option.bind Option.ofObj) SearchCriteria.searchAllBooks
             let ct = defaultArg ct CancellationToken.None

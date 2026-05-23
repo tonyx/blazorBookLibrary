@@ -54,6 +54,16 @@ public class TenantStateService
         catch { /* Prerendering or JS not available */ }
     }
 
+    public async Task ClearTenantAsync()
+    {
+        CurrentTenant = null;
+        try 
+        {
+            await _jsRuntime.InvokeVoidAsync("blazorCookies.set", CookieName, "", -1);
+        }
+        catch { /* Prerendering or JS not available */ }
+    }
+
     public async Task<Guid?> GetPersistedTenantIdAsync()
     {
         try 

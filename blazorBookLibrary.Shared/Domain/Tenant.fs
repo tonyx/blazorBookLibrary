@@ -9,6 +9,7 @@ open System
 type PatronRole =
     | Manager
     | User
+    | Suspended of string
 
 type Tenant001 =
     { OwnerId: UserId
@@ -169,6 +170,40 @@ and Tenant =
                         this.Patrons
                         |> List.map (fun (u, r) -> if u = user then (u, PatronRole.Manager) else (u, r)) }
         }
+    
+    member this.SuspendPatron(user: UserId, reason: string) =
+        result {
+            do!
+                this.Patrons
+                |> List.exists (fun (u, _) -> u = user)
+                |> Result.ofBool "User is not a patron"
+
+            return
+                { this with
+                    Patrons =
+                        this.Patrons
+                        |> List.map (fun (u, r) -> if u = user then (u, PatronRole.Suspended reason) else (u, r)) }
+        }
+
+    member this.ReAdmittPatron (user: UserId) =
+        result {
+            do!
+                this.Patrons
+                |> List.exists (fun (u, _) -> u = user)
+                |> Result.ofBool "User is not a patron"
+
+            do! 
+                this.Patrons
+                |> List.find (fun (u, _) -> u = user)
+                |> fun (_, r) -> r.IsSuspended
+                |> Result.ofBool "Must be suspended before readmission"
+
+            return
+                { this with
+                    Patrons =
+                        this.Patrons
+                        |> List.map (fun (u, r) -> if u = user then (u, PatronRole.User) else (u, r)) }
+        }
 
     member this.RemovePatron(user: UserId) =
         result {
@@ -176,6 +211,11 @@ and Tenant =
                 this.Patrons
                 |> List.exists (fun (u, _) -> u = user)
                 |> Result.ofBool "User is not a patron"
+
+            do! this.Patrons
+                |> List.find (fun (u, r) -> u = user)
+                |> fun (_, r) -> r.IsSuspended
+                |> Result.ofBool "Must be suspended before removal"
 
             return
                 { this with

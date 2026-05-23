@@ -65,6 +65,16 @@ type AuthorsController(authorService: IAuthorService) =
             | Error msg -> return this.BadRequest(msg) :> IActionResult
         }
 
+    [<HttpGet("tenant/{tenantId}")>]
+    member this.GetAllAuthorsOfTenant(tenantId: Guid) =
+        task {
+            let context = UserContextMapper.mapFromClaimsPrincipal this.User
+            let! result = authorService.GetAllAuthorsOfTenantAsync(context, TenantId tenantId)
+            match result with
+            | Ok authors -> return this.Ok(authors) :> IActionResult
+            | Error msg -> return this.BadRequest(msg) :> IActionResult
+        }
+
     [<HttpPost("{id}/rename")>]
     member this.RenameAuthor(id: Guid, [<FromBody>] newName: string) =
         task {

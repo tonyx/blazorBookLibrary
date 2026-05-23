@@ -192,6 +192,9 @@ let tests =
             let! patronId = registerUserTask "patron@test.com" "Password123!"
             let! _ = tenantService.AddPatronAsync(ownerContext, tenantId, patronId, PatronRole.User)
             
+            let! suspendResult = tenantService.SuspendPatron(ownerContext, tenantId, patronId, "Suspended for removal")
+            Expect.isOk suspendResult "Owner should be able to suspend a patron"
+            
             let! removeResult = tenantService.RemovePatronAsync(ownerContext, tenantId, patronId)
             Expect.isOk removeResult "Owner should be able to remove a patron"
             
@@ -282,5 +285,59 @@ let tests =
                     Expect.exists tAfter.Patrons (fun (u, r) -> u = patronId && r = PatronRole.User) "Patron should be in the list"
                 | Error msg -> failwith msg
             | Error msg -> failwith msg
+        }
+        testCaseTask "owner can suspend and readmit a patron" <| fun _ -> task {
+            setUp()
+            let tenantService = getTenantService()
+            let! ownerId = registerUserTask "owner@test.com" "Password123!"
+            let ownerContext = UserContext.Authenticated(ownerId, [])
+            let tenant = Tenant.New(ownerId, TenantName.New "My Library" |> Result.get, "123 Main St")
+            let tenantId = tenant.TenantId
+            let! _ = tenantService.CreateTenantAsync(ownerContext, tenant)
+            
+            let! patronId = registerUserTask "patron@test.com" "Password123!"
+            let! _ = tenantService.AddPatronAsync(ownerContext, tenantId, patronId, PatronRole.User)
+            
+            let! suspendResult = tenantService.SuspendPatron(ownerContext, tenantId, patronId, "Violated policies")
+            Expect.isOk suspendResult "Owner should be able to suspend a patron"
+            
+            let! getResult = tenantService.GetTenantAsync(ownerContext, tenantId)
+            match getResult with
+            | Ok t -> 
+                Expect.exists t.Patrons (fun (u, r) -> u = patronId && r = PatronRole.Suspended "Violated policies") "Patron should be suspended"
+            | Error msg -> failwith msg
+            
+            let! readmitResult = tenantService.ReAdmittPatron(ownerContext, tenantId, patronId)
+            Expect.isOk readmitResult "Owner should be able to readmit a patron"
+            
+            let! getResult2 = tenantService.GetTenantAsync(ownerContext, tenantId)
+            match getResult2 with
+            | Ok t -> 
+                Expect.exists t.Patrons (fun (u, r) -> u = patronId && r = PatronRole.User) "Patron should be readmitted to User role"
+            | Error msg -> failwith msg
+        }
+        testCaseTask "non-owner/non-admin cannot suspend or readmit a patron" <| fun _ -> task {
+            setUp()
+            let tenantService = getTenantService()
+            let! ownerId = registerUserTask "owner@test.com" "Password123!"
+            let ownerContext = UserContext.Authenticated(ownerId, [])
+            let tenant = Tenant.New(ownerId, TenantName.New "My Library" |> Result.get, "123 Main St")
+            let tenantId = tenant.TenantId
+            let! _ = tenantService.CreateTenantAsync(ownerContext, tenant)
+            
+            let! patronId = registerUserTask "patron@test.com" "Password123!"
+            let! _ = tenantService.AddPatronAsync(ownerContext, tenantId, patronId, PatronRole.User)
+            
+            let! otherUserId = registerUserTask "other@test.com" "Password123!"
+            let otherContext = UserContext.Authenticated(otherUserId, [])
+            
+            let! suspendResult = tenantService.SuspendPatron(otherContext, tenantId, patronId, "Some reason")
+            Expect.isError suspendResult "Non-owner should not be able to suspend a patron"
+            
+            // Suspend first as owner so we can try to readmit as non-owner
+            let! _ = tenantService.SuspendPatron(ownerContext, tenantId, patronId, "Some reason")
+            
+            let! readmitResult = tenantService.ReAdmittPatron(otherContext, tenantId, patronId)
+            Expect.isError readmitResult "Non-owner should not be able to readmit a patron"
         }
     ]

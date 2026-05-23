@@ -35,7 +35,7 @@ and User =
         LangPref: ShortLang
     }
     with
-        // yes, its correct that any newly created user is set to the default tenant
+        // yes, it's correct that any newly created user is set to the default tenant
         static member New (userId: UserId) = 
             { 
                 CurrentTenant = TenantId.Default

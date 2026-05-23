@@ -18,6 +18,8 @@ type TenantCommand =
     | InvitePatron of UserId * PatronInvitationCode
     | ConvertInvitedPatronToPatron of PatronInvitationCode
     | RevokePatronInvitation of UserId
+    | SuspendPatron of UserId * string
+    | ReadmittPatron of UserId
     | SetPublic
     | SetPrivate
     interface AggregateCommand<Tenant, TenantEvent> with
@@ -62,6 +64,12 @@ type TenantCommand =
             | RevokePatronInvitation userId ->
                 tenant.RevokeInvitation userId
                 |> Result.map (fun t -> (t, [TenantEvent.PatronInvitationRevoked userId]))
+            | SuspendPatron (userId, reason) ->
+                tenant.SuspendPatron(userId, reason)
+                |> Result.map (fun t -> (t, [TenantEvent.PatronSuspended(userId, reason)]))
+            | ReadmittPatron userId ->
+                tenant.ReAdmittPatron(userId)
+                |> Result.map (fun t -> (t, [TenantEvent.PatronReadmitted(userId)]))
             | SetPublic ->
                 tenant.SetPublic()
                 |> Result.map (fun t -> (t, [TenantEvent.PublicSet]))

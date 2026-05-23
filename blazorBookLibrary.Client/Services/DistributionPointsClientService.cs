@@ -37,10 +37,36 @@ public class DistributionPointsClientService : IDistributionPointService
         return result.IsOk ? FSharpResult<FSharpList<DistributionPoint>, string>.NewOk(ListModule.OfSeq(result.ResultValue)) : FSharpResult<FSharpList<DistributionPoint>, string>.NewError(result.ErrorValue);
     }
 
+    public async Task<FSharpResult<FSharpList<DistributionPoint>, string>> GetAllDistributionPointsOfATenantAsync(Commons.UserContext context, Commons.TenantId tenantId, FSharpOption<CancellationToken> ct)
+    {
+        var response = await _httpClient.GetAsync($"api/DistributionPoints/tenant/{tenantId.Value}", ServiceClientHelper.GetValue(ct, CancellationToken.None));
+        var result = await ServiceClientHelper.HandleResponse<List<DistributionPoint>>(response);
+        return result.IsOk ? FSharpResult<FSharpList<DistributionPoint>, string>.NewOk(ListModule.OfSeq(result.ResultValue)) : FSharpResult<FSharpList<DistributionPoint>, string>.NewError(result.ErrorValue);
+    }
+
     public async Task<FSharpResult<FSharpList<DistributionPoint>, string>> FindDistributionPointsAsync(Commons.UserContext context, Commons.Name name, FSharpOption<CancellationToken> ct)
     {
         var response = await _httpClient.GetAsync($"api/DistributionPoints/find/{Uri.EscapeDataString(name.Value)}", ServiceClientHelper.GetValue(ct, CancellationToken.None));
         var result = await ServiceClientHelper.HandleResponse<List<DistributionPoint>>(response);
         return result.IsOk ? FSharpResult<FSharpList<DistributionPoint>, string>.NewOk(ListModule.OfSeq(result.ResultValue)) : FSharpResult<FSharpList<DistributionPoint>, string>.NewError(result.ErrorValue);
+    }
+
+    public async Task<FSharpResult<FSharpList<Book>, string>> GetAllBooksOfADistributionPointAsync(Commons.UserContext context, Commons.DistributionPointId distributionPointId, FSharpOption<CancellationToken> ct)
+    {
+        var response = await _httpClient.GetAsync($"api/DistributionPoints/{distributionPointId.Value}/books", ServiceClientHelper.GetValue(ct, CancellationToken.None));
+        var result = await ServiceClientHelper.HandleResponse<List<Book>>(response);
+        return result.IsOk ? FSharpResult<FSharpList<Book>, string>.NewOk(ListModule.OfSeq(result.ResultValue)) : FSharpResult<FSharpList<Book>, string>.NewError(result.ErrorValue);
+    }
+
+    public async Task<FSharpResult<bool, string>> IsRemovableAsync(Commons.UserContext context, Commons.DistributionPointId distributionPointId, FSharpOption<CancellationToken> ct)
+    {
+        var response = await _httpClient.GetAsync($"api/DistributionPoints/{distributionPointId.Value}/is-removable", ServiceClientHelper.GetValue(ct, CancellationToken.None));
+        return await ServiceClientHelper.HandleResponse<bool>(response);
+    }
+
+    public async Task<FSharpResult<Unit, string>> RemoveDistributionPointAsync(Commons.UserContext context, Commons.DistributionPointId id, FSharpOption<CancellationToken> ct)
+    {
+        var response = await _httpClient.DeleteAsync($"api/DistributionPoints/{id.Value}", ServiceClientHelper.GetValue(ct, CancellationToken.None));
+        return await ServiceClientHelper.HandleUnitResponse(response);
     }
 }

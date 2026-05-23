@@ -97,6 +97,26 @@ type TenantController(tenantService: ITenantService) =
             | Error msg -> return this.BadRequest(msg) :> IActionResult
         }
 
+    [<HttpPut("{id}/patrons/{userId}/suspend")>]
+    member this.SuspendPatron(id: Guid, userId: Guid, [<FromQuery>] reason: string) =
+        task {
+            let context = UserContextMapper.mapFromRequest this.Request
+            let! result = tenantService.SuspendPatron(context, TenantId id, UserId userId, reason)
+            match result with
+            | Ok _ -> return this.Ok() :> IActionResult
+            | Error msg -> return this.BadRequest(msg) :> IActionResult
+        }
+
+    [<HttpPut("{id}/patrons/{userId}/readmit")>]
+    member this.ReAdmittPatron(id: Guid, userId: Guid) =
+        task {
+            let context = UserContextMapper.mapFromRequest this.Request
+            let! result = tenantService.ReAdmittPatron(context, TenantId id, UserId userId)
+            match result with
+            | Ok _ -> return this.Ok() :> IActionResult
+            | Error msg -> return this.BadRequest(msg) :> IActionResult
+        }
+
     [<HttpPut("{id}/patrons/convert")>]
     member this.ConvertInvitedPatronToPatron(id: Guid, [<FromQuery>] invitationCode: string) =
         task {
@@ -176,6 +196,16 @@ type TenantController(tenantService: ITenantService) =
         task {
             let context = UserContextMapper.mapFromRequest this.Request
             let! result = tenantService.SetPrivateAsync(context, TenantId id)
+            match result with
+            | Ok _ -> return this.Ok() :> IActionResult
+            | Error msg -> return this.BadRequest(msg) :> IActionResult
+        }
+
+    [<HttpDelete("{id}")>]
+    member this.DeleteTenant(id: Guid) =
+        task {
+            let context = UserContextMapper.mapFromClaimsPrincipal this.User
+            let! result = tenantService.DeleteTenantAsync(context, TenantId id)
             match result with
             | Ok _ -> return this.Ok() :> IActionResult
             | Error msg -> return this.BadRequest(msg) :> IActionResult

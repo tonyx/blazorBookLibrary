@@ -18,6 +18,8 @@ type ITenantService =
     abstract member InvitePatronAsync: UserContext * TenantId * UserId * [<Optional; DefaultParameterValue(null)>] ?ct:CancellationToken -> Task<Result<unit, string>>
     abstract member ConvertInvitedPatronToPatronAsync: UserContext * TenantId * PatronInvitationCode * [<Optional; DefaultParameterValue(null)>] ?ct:CancellationToken -> Task<Result<unit, string>>
     abstract member RevokePatronInvitation: UserContext * TenantId * UserId * [<Optional; DefaultParameterValue(null)>] ?ct:CancellationToken -> Task<Result<unit, string>>
+    abstract member SuspendPatron: UserContext * TenantId * UserId * reason:string * [<Optional; DefaultParameterValue(null)>] ?ct:CancellationToken -> Task<Result<unit, string>>
+    abstract member ReAdmittPatron: UserContext * TenantId * UserId * [<Optional; DefaultParameterValue(null)>] ?ct:CancellationToken -> Task<Result<unit, string>>
     abstract member GetUserRoleAsync: UserContext * TenantId * UserId * [<Optional; DefaultParameterValue(null)>] ?ct:CancellationToken -> Task<Result<PatronRole, string>> 
     abstract member GetAllPublicTenantsAsync: UserContext * [<Optional; DefaultParameterValue(null)>] ?ct:CancellationToken -> Task<Result<List<Tenant>, string>> 
     abstract member GetAllowedTenantsAsync: UserContext * [<Optional; DefaultParameterValue(null)>] ?ct:CancellationToken -> Task<Result<List<Tenant>, string>>
@@ -25,3 +27,4 @@ type ITenantService =
     abstract member GetMyOwnedTenantsAsync: UserContext * [<Optional; DefaultParameterValue(null)>] ?ct:CancellationToken -> Task<Result<List<Tenant>, string>>
     abstract member SetPublicAsync: UserContext * TenantId * [<Optional; DefaultParameterValue(null)>] ?ct:CancellationToken -> Task<Result<unit, string>>
     abstract member SetPrivateAsync: UserContext * TenantId * [<Optional; DefaultParameterValue(null)>] ?ct:CancellationToken -> Task<Result<unit, string>>
+    abstract member DeleteTenantAsync: UserContext * TenantId * [<Optional; DefaultParameterValue(null)>] ?ct:CancellationToken -> Task<Result<unit, string>>

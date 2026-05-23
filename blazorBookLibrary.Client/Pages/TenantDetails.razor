@@ -21,6 +21,7 @@
 @inject IJSRuntime JSRuntime
 @inject ILogger<TenantDetails> Logger
 @inject NavigationManager NavigationManager
+@inject IConfiguration Configuration
 @rendermode InteractiveAuto
 
 <PageTitle>@(libraryDetails != null ? $"{libraryDetails.Tenant.Name.Value} — {L["TenantDetails"]}" : L["TenantDetails"]) — @L["TheModernArchivist"]</PageTitle>
@@ -285,7 +286,8 @@
                                                 <th>@L["PatronName"]</th>
                                                 <th>@L["Email"]</th>
                                                 <th>@L["Role"]</th>
-                                                <th class="text-end">@L["Verification"]</th>
+                                                <th>@L["Verification"]</th>
+                                                <th class="text-end">@L["Actions"]</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -300,7 +302,14 @@
                                                     </td>
                                                     <td>@patron.AppUserInfo.Email</td>
                                                     <td>
-                                                        @if (role.IsManager)
+                                                        @if (role.IsSuspended)
+                                                        {
+                                                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill px-2 py-1 small fw-bold" 
+                                                                  title="@GetSuspensionReason(role)">
+                                                                <i class="bi bi-slash-circle me-1"></i>@L["Suspended"]
+                                                            </span>
+                                                        }
+                                                        else if (role.IsManager)
                                                         {
                                                             <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-2 py-1 small">
                                                                 @L["Manager"]
@@ -313,7 +322,7 @@
                                                             </span>
                                                         }
                                                     </td>
-                                                    <td class="text-end">
+                                                    <td>
                                                         @if (patron.AppUserInfo.IsIdentifiedPhysically)
                                                         {
                                                             <span class="text-success small fw-bold" title="@L["PhysicallyIdentified"]">
@@ -325,6 +334,25 @@
                                                             <span class="text-muted small italic" title="@L["NotPhysicallyIdentified"]">
                                                                 <i class="bi bi-shield-slash"></i> @L["Unverified"]
                                                             </span>
+                                                        }
+                                                    </td>
+                                                    <td class="text-end">
+                                                        @if (patron.UserId.Value != libraryDetails.Owner.UserId.Value)
+                                                        {
+                                                            @if (role.IsSuspended)
+                                                            {
+                                                                <button class="btn btn-outline-success btn-sm rounded-pill px-3 shadow-sm"
+                                                                        @onclick="() => HandleReadmitPatron(patron)">
+                                                                    <i class="bi bi-check-circle me-1"></i> @L["Readmit"]
+                                                                </button>
+                                                            }
+                                                            else
+                                                            {
+                                                                <button class="btn btn-outline-danger btn-sm rounded-pill px-3 shadow-sm"
+                                                                        @onclick="() => InitiateSuspendPatron(patron)">
+                                                                    <i class="bi bi-slash-circle me-1"></i> @L["Suspend"]
+                                                                </button>
+                                                            }
                                                         }
                                                     </td>
                                                 </tr>
@@ -551,58 +579,225 @@
                             }
                             else
                             {
-                                <div class="table-responsive">
-                                    <table class="table align-middle">
-                                        <thead>
-                                            <tr class="text-uppercase small text-muted">
-                                                <th>@L["Book"]</th>
-                                                <th>@L["Patron"]</th>
-                                                <th>@L["ReservationTime"]</th>
-                                                <th class="text-end">@L["Status"]</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            @foreach (var res in libraryDetails.PendingReservations)
-                                            {
-                                                <tr>
-                                                    <td>
-                                                        <a href="/book-edit/@res.Book.Id" class="text-decoration-none fw-semibold text-primary font-monospace small text-truncate d-inline-block" style="max-width: 200px;" title="@res.Book.Title.Value">
-                                                            @res.Book.Title.Value
-                                                        </a>
-                                                    </td>
-                                                    <td>
-                                                        <div class="font-monospace small text-truncate" style="max-width: 100px;" title="@res.UserDetails.User.AppUserInfo.Email">@res.UserDetails.User.AppUserInfo.Email</div>
-                                                    </td>
-                                                    <td>
-                                                        <div class="small">
-                                                            <span class="fw-bold">@L["Start"]:</span> @res.Reservation.TimeSlot.Start.ToLocalTime().ToString("yyyy-MM-dd HH:mm")
+                                <div class="row g-4">
+                                    <div class="@(selectedReservation == null ? "col-12" : "col-lg-8")">
+                                        <div class="table-responsive">
+                                            <table class="table align-middle">
+                                                <thead>
+                                                    <tr class="text-uppercase small text-muted">
+                                                        <th>@L["Book"]</th>
+                                                        <th>@L["Patron"]</th>
+                                                        <th>@L["ReservationTime"]</th>
+                                                        <th>@L["Queue"]</th>
+                                                        <th class="text-end">@L["Actions"]</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    @foreach (var res in libraryDetails.PendingReservations)
+                                                    {
+                                                        <tr @onclick="() => SelectReservation(res)"
+                                                            class="clickable-row @(selectedReservation?.Reservation.ReservationId == res.Reservation.ReservationId ? "table-active shadow-sm" : "")"
+                                                            style="cursor: pointer; transition: all 0.2s ease;">
+                                                            <td>
+                                                                <div class="d-flex align-items-center gap-2">
+                                                                    <div class="bg-surface-low rounded flex-shrink-0 d-flex align-items-center justify-content-center" style="width: 30px; height: 42px; overflow: hidden;">
+                                                                        @if (Microsoft.FSharp.Core.FSharpOption<Uri>.get_IsSome(res.Book.ImageUrl))
+                                                                        {
+                                                                            <img src="@res.Book.ImageUrl.Value" class="w-100 h-100" style="object-fit: cover;" />
+                                                                        }
+                                                                        else
+                                                                        {
+                                                                            <i class="bi bi-book text-muted"></i>
+                                                                        }
+                                                                    </div>
+                                                                    <div>
+                                                                        <a href="/book-edit/@res.Book.Id" class="text-decoration-none fw-semibold text-primary font-monospace small text-truncate d-inline-block" style="max-width: 150px;" title="@res.Book.Title.Value" @onclick:stopPropagation>
+                                                                            @res.Book.Title.Value
+                                                                        </a>
+                                                                    </div>
+                                                                </div>
+                                                            </td>
+                                                            <td>
+                                                                <div class="font-monospace small text-truncate" style="max-width: 100px;" title="@res.UserDetails.AppUser.Email">@res.UserDetails.AppUser.Email</div>
+                                                            </td>
+                                                            <td>
+                                                                <div class="small">
+                                                                    <span class="text-muted">@L["Start"]:</span> @res.Reservation.TimeSlot.Start.ToLocalTime().ToString("yyyy-MM-dd HH:mm")
+                                                                </div>
+                                                                <div class="small">
+                                                                    <span class="text-muted">@L["End"]:</span> @res.Reservation.TimeSlot.End.ToLocalTime().ToString("yyyy-MM-dd HH:mm")
+                                                                </div>
+                                                            </td>
+                                                            <td>
+                                                                @if (res.Reservation.IsPending)
+                                                                {
+                                                                    @if (IsFirstInQueue(res))
+                                                                    {
+                                                                        <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2 py-1 small fw-bold" title="@L["EarliestPendingReservationForBook"]">
+                                                                            <i class="bi bi-star-fill me-1"></i>@L["FirstInQueue"]
+                                                                        </span>
+                                                                    }
+                                                                    else
+                                                                    {
+                                                                        <span class="badge bg-warning-subtle text-warning border border-warning-subtle rounded-pill px-2 py-1 small" title="@L["EarlierPendingReservationsExist"]">
+                                                                            <i class="bi bi-hourglass-split me-1"></i>@L["Queued"]
+                                                                        </span>
+                                                                    }
+                                                                }
+                                                                else
+                                                                {
+                                                                    <span class="badge bg-secondary text-white rounded-pill px-2 py-1 small">
+                                                                        @L["Completed"]
+                                                                    </span>
+                                                                }
+                                                            </td>
+                                                            <td class="text-end">
+                                                                @if (res.Reservation.IsPending)
+                                                                {
+                                                                    <button class="btn btn-outline-primary btn-sm rounded-pill px-3 shadow-sm"
+                                                                            @onclick:stopPropagation
+                                                                            @onclick="() => SelectReservation(res)">
+                                                                        @L["Select"] <i class="bi bi-chevron-right ms-1"></i>
+                                                                    </button>
+                                                                }
+                                                            </td>
+                                                        </tr>
+                                                    }
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                    @if (selectedReservation != null)
+                                    {
+                                        <div class="col-lg-4">
+                                            <div class="card card-sanctuary border border-primary-subtle shadow p-4 bg-surface-low rounded-xl">
+                                                <h4 class="h5 text-serif border-bottom pb-2 mb-3">@L["ConvertToLoan"]</h4>
+                                                
+                                                <div class="mb-4 p-3 bg-primary-subtle rounded-xl border border-primary-subtle shadow-sm">
+                                                    <h6 class="serif fw-bold text-primary mb-1">@selectedReservation.Book.Title.Value</h6>
+                                                    <p class="x-small text-muted mb-0">@L["Borrower"]: @selectedReservation.UserDetails.AppUser.UserName</p>
+                                                </div>
+                                                
+                                                @if (!selectedReservation.Book.Available)
+                                                {
+                                                    <div class="alert alert-danger border-danger-subtle bg-danger-subtle text-danger-emphasis p-3 rounded-xl mb-4 small animate-fade-in">
+                                                        <i class="bi bi-x-circle-fill me-2"></i>
+                                                        <strong>@L["Unavailable"]:</strong> @L["BookIsCurrentlyOnLoan"]
+                                                    </div>
+
+                                                    <div class="text-center mt-3">
+                                                        <button class="btn btn-link btn-sm text-decoration-none text-muted" @onclick="() => selectedReservation = null">
+                                                            @L["CancelSelection"]
+                                                        </button>
+                                                    </div>
+                                                }
+                                                else
+                                                {
+                                                    @if (!IsFirstInQueue(selectedReservation))
+                                                    {
+                                                        <div class="alert alert-warning border-warning-subtle bg-warning-subtle text-warning-emphasis p-3 rounded-xl mb-4 small animate-fade-in">
+                                                            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                                                            <strong>@L["Warning"]:</strong> @L["NotFirstInQueueWarning"]
                                                         </div>
-                                                        <div class="small">
-                                                            <span class="fw-bold">@L["End"]:</span> @res.Reservation.TimeSlot.End.ToLocalTime().ToString("yyyy-MM-dd HH:mm")
+                                                    }
+
+                                                    <div class="mb-4">
+                                                        <label for="reservationCodeField" class="form-label small text-muted text-uppercase fw-bold">@L["ReservationCode"]</label>
+                                                        <div class="input-group">
+                                                            <span class="input-group-text bg-transparent border-end-0 text-muted"><i class="bi bi-qr-code-scan"></i></span>
+                                                            <input type="text" 
+                                                                   id="reservationCodeField"
+                                                                   class="form-control border-start-0 ps-0 serif" 
+                                                                   placeholder="@L["EnterReservationCode"]" 
+                                                                   @bind="reservationCodeInput" />
                                                         </div>
-                                                    </td>
-                                                    <td class="text-end">
-                                                        @if (res.Reservation.IsPending)
+                                                        <div class="form-text x-small serif italic mt-2">
+                                                            @L["VerifyCodeOnPatronSubmission"]
+                                                        </div>
+                                                    </div>
+
+                                                    <button class="btn btn-primary w-100 py-3 rounded-xl d-flex align-items-center justify-content-center gap-2 shadow"
+                                                            @onclick="ProcessConversion"
+                                                            disabled="@isProcessingReservation">
+                                                        @if (isProcessingReservation)
                                                         {
-                                                            <span class="badge bg-warning text-dark rounded-pill px-2 py-1 small fw-bold">
-                                                                @L["Pending"]
-                                                            </span>
+                                                            <span class="spinner-border spinner-border-sm" role="status"></span>
                                                         }
                                                         else
                                                         {
-                                                            <span class="badge bg-secondary text-white rounded-pill px-2 py-1 small">
-                                                                @L["Completed"]
-                                                            </span>
+                                                            <i class="bi bi-arrow-repeat fs-5"></i>
                                                         }
-                                                    </td>
-                                                </tr>
-                                            }
-                                        </tbody>
-                                    </table>
+                                                        <span class="fw-bold">@L["FinalizeLoan"]</span>
+                                                    </button>
+                                                    
+                                                    <div class="text-center mt-3">
+                                                        <button class="btn btn-link btn-sm text-decoration-none text-muted" @onclick="() => selectedReservation = null">
+                                                            @L["CancelSelection"]
+                                                        </button>
+                                                    </div>
+                                                }
+                                            </div>
+                                        </div>
+                                    }
                                 </div>
                             }
                         </div>
                     }
+                </div>
+            </div>
+        </div>
+    }
+
+    @if (patronToSuspend != null)
+    {
+        <div class="modal-backdrop fade show"></div>
+        <div class="modal fade show d-block" tabindex="-1" role="dialog" style="background-color: rgba(0, 0, 0, 0.4);">
+            <div class="modal-dialog modal-dialog-centered" role="document">
+                <div class="modal-content border-0 shadow-lg bg-surface-lowest">
+                    <div class="modal-header border-bottom-0 p-4 pb-2">
+                        <h5 class="modal-title text-serif h4 text-primary">
+                            <i class="bi bi-slash-circle text-danger me-2"></i>@L["Suspend Patron"]
+                        </h5>
+                        <button type="button" class="btn-close" @onclick="CancelSuspendPatron" aria-label="Close"></button>
+                    </div>
+                    <EditForm Model="@suspendModel" OnValidSubmit="HandleSuspendPatron">
+                        <DataAnnotationsValidator />
+                        <div class="modal-body p-4 pt-2">
+                            <p class="text-muted small mb-4">
+                                @L["Please specify the reason for suspending"] <strong>@patronToSuspend.AppUserInfo.Nome @patronToSuspend.AppUserInfo.Cognome</strong>.
+                                @L["This patron will be restricted from borrowing books or using tenant services until readmitted."]
+                            </p>
+                            
+                            <div class="mb-3">
+                                <label for="suspensionReason" class="form-label fw-semibold small">@L["Suspension Reason"]</label>
+                                <InputTextArea id="suspensionReason" @bind-Value="suspendModel.Reason" class="form-control" rows="3" placeholder="@L["Enter a detailed reason for suspension..."]" />
+                                <ValidationMessage For="@(() => suspendModel.Reason)" class="text-danger small mt-1 d-block" />
+                            </div>
+                            
+                            @if (!string.IsNullOrEmpty(suspendErrorMessage))
+                            {
+                                <div class="text-danger small mt-2">
+                                    <i class="bi bi-exclamation-circle me-1"></i> @suspendErrorMessage
+                                </div>
+                            }
+                        </div>
+                        <div class="modal-footer border-top-0 p-4 pt-0 gap-2">
+                            <button type="button" class="btn btn-outline-secondary rounded-pill px-4" @onclick="CancelSuspendPatron">
+                                @L["Cancel"]
+                            </button>
+                            <button type="submit" class="btn btn-danger rounded-pill px-4 shadow-sm" disabled="@isSuspending">
+                                @if (isSuspending)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                                }
+                                else
+                                {
+                                    <i class="bi bi-slash-circle me-2"></i>
+                                }
+                                @L["Suspend Patron"]
+                            </button>
+                        </div>
+                    </EditForm>
                 </div>
             </div>
         </div>
@@ -623,6 +818,22 @@
     private InvitePatronModel inviteModel = new();
     private bool isInviting = false;
     private string? inviteErrorMessage;
+
+    private SuspendPatronModel suspendModel = new();
+    private User? patronToSuspend;
+    private bool isSuspending = false;
+    private string? suspendErrorMessage;
+
+    private ReservationDetails? selectedReservation;
+    private string reservationCodeInput = "";
+    private bool isProcessingReservation = false;
+
+    private class SuspendPatronModel
+    {
+        [Required(ErrorMessage = "Suspension reason is required")]
+        [MinLength(1, ErrorMessage = "Suspension reason cannot be empty")]
+        public string Reason { get; set; } = "";
+    }
 
     private class InvitePatronModel
     {
@@ -685,6 +896,206 @@
         finally
         {
             isInviting = false;
+            StateHasChanged();
+        }
+    }
+
+    private string GetSuspensionReason(BookLibrary.Domain.PatronRole role)
+    {
+        if (role.IsSuspended && role is BookLibrary.Domain.PatronRole.Suspended suspended)
+        {
+            return suspended.Item;
+        }
+        return string.Empty;
+    }
+
+    private void InitiateSuspendPatron(User patron)
+    {
+        patronToSuspend = patron;
+        suspendModel = new SuspendPatronModel();
+        suspendErrorMessage = null;
+    }
+
+    private void CancelSuspendPatron()
+    {
+        patronToSuspend = null;
+    }
+
+    private async Task HandleSuspendPatron()
+    {
+        if (patronToSuspend == null) return;
+        
+        isSuspending = true;
+        suspendErrorMessage = null;
+        try
+        {
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var claimsPrincipal = authState.User;
+            if (claimsPrincipal == null) return;
+            var userContext = TenantState.GetUserContext(claimsPrincipal);
+            var tenantId = TenantId.NewTenantId(Id);
+
+            var result = await TenantService.SuspendPatron(
+                userContext, 
+                tenantId, 
+                patronToSuspend.UserId, 
+                suspendModel.Reason.Trim(), 
+                Microsoft.FSharp.Core.FSharpOption<System.Threading.CancellationToken>.None);
+
+            if (result.IsError)
+            {
+                Logger.LogError("Error suspending patron {UserId}: {Error}", patronToSuspend.UserId, result.ErrorValue);
+                suspendErrorMessage = result.ErrorValue;
+                await JSRuntime.InvokeVoidAsync("showToast", L["ErrorOccurred"].Value, "error");
+            }
+            else
+            {
+                await JSRuntime.InvokeVoidAsync("showToast", L["Patron suspended successfully!"].Value, "success");
+                patronToSuspend = null;
+                
+                // Refresh tenant details to show updated list
+                var refreshResult = await DetailsService.GetTenantDetailsAsync(userContext, tenantId, Microsoft.FSharp.Core.FSharpOption<System.Threading.CancellationToken>.None);
+                if (refreshResult.IsOk)
+                {
+                    libraryDetails = refreshResult.ResultValue;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Exception while suspending patron");
+            suspendErrorMessage = L["ErrorOccurred"].Value;
+            await JSRuntime.InvokeVoidAsync("showToast", L["ErrorOccurred"].Value, "error");
+        }
+        finally
+        {
+            isSuspending = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task HandleReadmitPatron(User patron)
+    {
+        var confirmed = await JSRuntime.InvokeAsync<bool>("confirm", $"{L["ConfirmReadmitOf"]} {patron.AppUserInfo.Nome} {patron.AppUserInfo.Cognome}?");
+        if (!confirmed) return;
+
+        try
+        {
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var claimsPrincipal = authState.User;
+            if (claimsPrincipal == null) return;
+            var userContext = TenantState.GetUserContext(claimsPrincipal);
+            var tenantId = TenantId.NewTenantId(Id);
+
+            var result = await TenantService.ReAdmittPatron(userContext, tenantId, patron.UserId, Microsoft.FSharp.Core.FSharpOption<System.Threading.CancellationToken>.None);
+            if (result.IsError)
+            {
+                Logger.LogError("Error readmitting patron {UserId}: {Error}", patron.UserId, result.ErrorValue);
+                await JSRuntime.InvokeVoidAsync("showToast", L["ErrorOccurred"].Value, "error");
+            }
+            else
+            {
+                await JSRuntime.InvokeVoidAsync("showToast", L["Patron readmitted successfully!"].Value, "success");
+                
+                // Refresh tenant details to show updated list
+                var refreshResult = await DetailsService.GetTenantDetailsAsync(userContext, tenantId, Microsoft.FSharp.Core.FSharpOption<System.Threading.CancellationToken>.None);
+                if (refreshResult.IsOk)
+                {
+                    libraryDetails = refreshResult.ResultValue;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Exception while readmitting patron");
+            await JSRuntime.InvokeVoidAsync("showToast", L["ErrorOccurred"].Value, "error");
+        }
+        finally
+        {
+            StateHasChanged();
+        }
+    }
+
+    private bool IsFirstInQueue(ReservationDetails res)
+    {
+        if (libraryDetails == null || libraryDetails.PendingReservations == null) return false;
+        
+        var bookRes = libraryDetails.PendingReservations
+            .Where(r => r.Book.Id == res.Book.Id && r.Reservation.IsPending)
+            .OrderBy(r => r.Reservation.TimeSlot.Start)
+            .FirstOrDefault();
+            
+        return bookRes != null && bookRes.Reservation.ReservationId.Value == res.Reservation.ReservationId.Value;
+    }
+
+    private void SelectReservation(ReservationDetails res)
+    {
+        selectedReservation = res;
+        
+        var preFill = Configuration.GetValue<bool>("BooksLibrary:PreFillReservationCode", false);
+        if (preFill)
+        {
+            reservationCodeInput = res.Reservation.ReservationCode.Value;
+        }
+        else
+        {
+            reservationCodeInput = "";
+        }
+    }
+
+    private async Task ProcessConversion()
+    {
+        if (selectedReservation == null) return;
+
+        if (string.IsNullOrWhiteSpace(reservationCodeInput))
+        {
+            await JSRuntime.InvokeVoidAsync("showToast", L["ReservationCodeRequired"].Value, "warning");
+            return;
+        }
+
+        isProcessingReservation = true;
+        try
+        {
+            var resId = selectedReservation.Reservation.ReservationId;
+            var resCode = ReservationCode.ReservationCode.NewReservationCode(reservationCodeInput);
+            
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var context = blazorBookLibrary.Shared.ConverterUtils.fromClaimsPrincipal(authState.User);
+            var result = await LoanService.TransformReservationIntoLoanAsync(
+                context,
+                resId,
+                resCode,
+                DateTime.UtcNow,
+                Microsoft.FSharp.Core.FSharpOption<CancellationToken>.None);
+
+            if (result.IsOk)
+            {
+                await JSRuntime.InvokeVoidAsync("showToast", L["ReservationConvertedSuccess"].Value, "success");
+                selectedReservation = null;
+                reservationCodeInput = "";
+                
+                // Refresh tenant details to show updated lists
+                var tenantId = TenantId.NewTenantId(Id);
+                var refreshResult = await DetailsService.GetTenantDetailsAsync(context, tenantId, Microsoft.FSharp.Core.FSharpOption<System.Threading.CancellationToken>.None);
+                if (refreshResult.IsOk)
+                {
+                    libraryDetails = refreshResult.ResultValue;
+                }
+            }
+            else
+            {
+                Logger.LogError("Error converting reservation {ReservationId} with code {ReservationCode} into loan: {Error}", resId.Value, resCode.Value, result.ErrorValue);
+                await JSRuntime.InvokeVoidAsync("showToast", L["ErrorOccurred"].Value, "error");
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Exception while converting reservation {ReservationId} with code {ReservationCode} into loan", selectedReservation.Reservation.ReservationId.Value, reservationCodeInput);
+            await JSRuntime.InvokeVoidAsync("showToast", L["ErrorOccurred"].Value, "error");
+        }
+        finally
+        {
+            isProcessingReservation = false;
             StateHasChanged();
         }
     }
@@ -809,6 +1220,28 @@
                 {
                     libraryDetails = details;
                     isAuthorized = true;
+
+                    if (isOwner && TenantState.CurrentTenant?.TenantId.Value != details.Tenant.TenantId.Value)
+                    {
+                        try
+                        {
+                            var switchResult = await UserService.SetCurrentTenantAsync(userContext, userContext.UserId.Value, details.Tenant.TenantId,
+                                Microsoft.FSharp.Core.FSharpOption<System.Threading.CancellationToken>.None);
+
+                            if (switchResult.IsOk)
+                            {
+                                await TenantState.SetTenantAsync(details.Tenant);
+                            }
+                            else
+                            {
+                                Logger.LogError("Error auto-switching current tenant to owned tenant: {Error}", switchResult.ErrorValue);
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            Logger.LogError(ex, "Exception when auto-selecting owned tenant");
+                        }
+                    }
                 }
                 else
                 {

@@ -36,6 +36,8 @@ type TenantService
         userViewerAsync: AggregateViewerAsync2<User>,
         mailNotificator: IMailNotificator,
         mailBodyRetriever: IMailBodyRetriever,
+        bookService: IBookService,
+        authorService: IAuthorService,
         logger: ILogger<ITenantService>,
         httpContextAccessor: IHttpContextAccessor
     ) =
@@ -44,13 +46,15 @@ type TenantService
         configuration: IConfiguration,
         mailNotificator: IMailNotificator,
         mailBodyRetriever: IMailBodyRetriever,
+        bookService: IBookService,
+        authorService: IAuthorService,
         logger: ILogger<ITenantService>) =
             let connectionString = secretsReader.GetBookLibraryConnectionString()
             let messageSenders = MessageSenders.NoSender
             let eventStore = PgStorage.PgEventStore connectionString
             let tenantViewerAsync = getAggregateStorageFreshStateViewerAsync<Tenant, BookLibrary.Domain.TenantEvent, string> eventStore
             let userViewerAsync = getAggregateStorageFreshStateViewerAsync<User, BookLibrary.Domain.UserEvent, string> eventStore
-            TenantService(eventStore, messageSenders, configuration, tenantViewerAsync, userViewerAsync, mailNotificator, mailBodyRetriever, logger, null)
+            TenantService(eventStore, messageSenders, configuration, tenantViewerAsync, userViewerAsync, mailNotificator, mailBodyRetriever, bookService, authorService, logger, null)
 
     new 
         (secretsReader: SecretsReader, 
@@ -58,13 +62,15 @@ type TenantService
         mailNotificator: IMailNotificator,
         mailBodyRetriever: IMailBodyRetriever,
         logger: ILogger<ITenantService>,
+        bookService: IBookService,
+        authorService: IAuthorService,
         httpContextAccessor: IHttpContextAccessor) =
             let connectionString = secretsReader.GetBookLibraryConnectionString()
             let messageSenders = MessageSenders.NoSender
             let eventStore = PgStorage.PgEventStore connectionString
             let tenantViewerAsync = getAggregateStorageFreshStateViewerAsync<Tenant, BookLibrary.Domain.TenantEvent, string> eventStore
             let userViewerAsync = getAggregateStorageFreshStateViewerAsync<User, BookLibrary.Domain.UserEvent, string> eventStore
-            TenantService(eventStore, messageSenders, configuration, tenantViewerAsync, userViewerAsync, mailNotificator, mailBodyRetriever, logger, httpContextAccessor)
+            TenantService(eventStore, messageSenders, configuration, tenantViewerAsync, userViewerAsync, mailNotificator, mailBodyRetriever, bookService, authorService, logger, httpContextAccessor)
 
         member private this.DefaultTenantIdExists (?ct: CancellationToken) =
             task {
@@ -359,6 +365,7 @@ type TenantService
                 let userId = context.UserId.Value
                 let filter = 
                     fun (tenant: Tenant) -> 
+                        context.IsInRole Role.Admin ||
                         tenant.Public || 
                         tenant.OwnerId = userId || 
                         tenant.Patrons |> List.exists (fun (u, _) -> u = userId)
@@ -445,6 +452,80 @@ type TenantService
                     return! Error "Access denied: only owner or admin can set private"
             }
 
+        member this.SuspendPatron (context: UserContext, tenantId: TenantId, userId: UserId, reason: string, ?ct: CancellationToken) =
+            taskResult {
+                let! (_, tenant) = tenantViewerAsync ct tenantId.Value
+                if this.IsOnwerOrAdmin(context, tenant) then
+                    let command = TenantCommand.SuspendPatron (userId, reason)
+                    return! 
+                        runAggregateCommandMdAsync<Tenant, TenantEvent, string>
+                            tenantId.Value
+                            eventStore
+                            messageSenders
+                            ""
+                            command
+                            ct
+                else
+                    return! Error "Access denied: only owner or admin can suspend patrons"
+            }
+
+        member this.ReAdmittPatron (context: UserContext, tenantId: TenantId, userId: UserId, ?ct: CancellationToken) =
+            taskResult {
+                let! (_, tenant) = tenantViewerAsync ct tenantId.Value
+                if this.IsOnwerOrAdmin(context, tenant) then
+                    let command = TenantCommand.ReadmittPatron userId
+                    return! 
+                        runAggregateCommandMdAsync<Tenant, TenantEvent, string>
+                            tenantId.Value
+                            eventStore
+                            messageSenders
+                            ""
+                            command
+                            ct
+                else
+                    return! Error "Access denied: only owner or admin can readmit patrons"
+            }
+
+        member this.DeleteTenant (context: UserContext, tenantId: TenantId, ?ct: CancellationToken) =
+            taskResult {
+                let ctValue = defaultArg ct CancellationToken.None
+                let! (_, tenant) = tenantViewerAsync (ctValue |> Some) tenantId.Value
+                do! this.IsOnwerOrAdmin(context, tenant) |> Result.ofBool "Access denied: only owner or admin can delete tenants"
+                
+                // Strict backend safety checks querying event streams directly
+                let! books = 
+                    StateView.getAllFilteredAggregateStatesAsync<Book, BookEvent, string> 
+                        (fun b -> b.TenantId = tenantId) 
+                        eventStore 
+                        (Some ctValue)
+                do! books.IsEmpty |> Result.ofBool $"Tenant has {books.Length} books. Cannot delete."
+                
+                let! authors = 
+                    StateView.getAllFilteredAggregateStatesAsync<Author, AuthorEvent, string> 
+                        (fun a -> a.TenantId = tenantId) 
+                        eventStore 
+                        (Some ctValue)
+                do! authors.IsEmpty |> Result.ofBool $"Tenant has {authors.Length} authors. Cannot delete."
+                
+                let! dps = 
+                    StateView.getAllFilteredAggregateStatesAsync<DistributionPoint, DistributionPointEvent, string> 
+                        (fun dp -> dp.TenantId = tenantId) 
+                        eventStore 
+                        (Some ctValue)
+                do! dps.IsEmpty |> Result.ofBool $"Tenant has {dps.Length} distribution points. Cannot delete."
+                
+                do! tenant.Patrons.IsEmpty |> Result.ofBool $"Tenant has {tenant.Patrons.Length} patrons. Cannot delete."
+                
+                let! result = 
+                    runDeleteAsync<Tenant, TenantEvent, string>
+                        eventStore
+                        messageSenders
+                        tenantId.Value
+                        (fun _ -> true)
+                        (ctValue |> Some)
+                return result
+            }
+
         interface ITenantService with
             member this.EnsureDefaultTenantExistsAsync (userId: UserId,?ct: CancellationToken) =
                 this.EnsureDefaultTenantExists(userId, ?ct = ct)
@@ -466,6 +547,10 @@ type TenantService
                 this.ConvertInvitedPatronToPatron(context, tenantId, patronInvitationCode, ?ct = ct)
             member this.RevokePatronInvitation (context, tenantId, userId, ?ct) =
                 this.RevokePatronInvitation(context, tenantId, userId, ?ct = ct)
+            member this.SuspendPatron (context, tenantId, userId, reason, ?ct) =
+                this.SuspendPatron(context, tenantId, userId, reason, ?ct = ct)
+            member this.ReAdmittPatron (context, tenantId, userId, ?ct) =
+                this.ReAdmittPatron(context, tenantId, userId, ?ct = ct)
             member this.GetUserRoleAsync (context, tenantId, userId, ?ct) =
                 this.GetUserRole(context, tenantId, userId, ?ct = ct)
             member this.GetAllPublicTenantsAsync (context, ?ct) =
@@ -480,5 +565,5 @@ type TenantService
                 this.SetPublic(context, tenantId, ?ct = ct)
             member this.SetPrivateAsync (context, tenantId, ?ct) =
                 this.SetPrivate(context, tenantId, ?ct = ct)
-
-
+            member this.DeleteTenantAsync (context, tenantId, ?ct) =
+                this.DeleteTenant(context, tenantId, ?ct = ct)

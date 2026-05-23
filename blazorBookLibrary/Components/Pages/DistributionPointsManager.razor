@@ -157,9 +157,18 @@
                                                 </ul>
                                             </div>
                                         }
+                                        <a href="/books-manager?dp=@dp.DistributionPointId.Value" class="btn btn-outline-info btn-sm rounded-pill px-3 d-inline-flex align-items-center text-decoration-none">
+                                            <i class="bi bi-journal-text me-1"></i> @L["Books"]
+                                        </a>
                                         <button class="btn btn-outline-secondary btn-sm rounded-pill px-3" @onclick="() => OpenEditModal(dp)">
                                             <i class="bi bi-pencil me-1"></i> @L["Edit"]
                                         </button>
+                                        @if (removablePoints.Contains(dp.DistributionPointId.Value))
+                                        {
+                                            <button class="btn btn-outline-danger btn-sm rounded-pill px-3" @onclick="() => ConfirmRemove(dp)">
+                                                <i class="bi bi-trash me-1"></i> @L["RemoveDistributionPoint"]
+                                            </button>
+                                        }
                                     </div>
                                 </td>
                             </tr>
@@ -213,6 +222,7 @@
 }
 
 @code {
+    private HashSet<Guid> removablePoints = new();
     private List<DistributionPoint>? distributionPoints;
     private List<ApplicationUser>? availableManagers;
     private string searchQuery = "";
@@ -244,6 +254,15 @@
             if (result.IsOk)
             {
                 distributionPoints = result.ResultValue.ToList();
+                removablePoints.Clear();
+                foreach (var dp in distributionPoints)
+                {
+                    var isRemovableResult = await DistributionPointService.IsRemovableAsync(userContext, dp.DistributionPointId);
+                    if (isRemovableResult.IsOk && isRemovableResult.ResultValue)
+                    {
+                        removablePoints.Add(dp.DistributionPointId.Value);
+                    }
+                }
             }
             else
             {
@@ -440,6 +459,35 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Exception unassigning manager {UserId} from distribution point {DistributionPointId}", userId.Value, dp.DistributionPointId.Value);
+            await ShowStatus(L["ErrorOccurred"].Value, "error");
+        }
+    }
+
+    private async Task ConfirmRemove(DistributionPoint dp)
+    {
+        try
+        {
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            var userContext = TenantState.GetUserContext(authState.User);
+            
+            bool confirmed = await JSRuntime.InvokeAsync<bool>("confirm", L["ConfirmRemoveDistributionPoint"].Value);
+            if (!confirmed) return;
+
+            var result = await DistributionPointService.RemoveDistributionPointAsync(userContext, dp.DistributionPointId);
+            if (result.IsOk)
+            {
+                await ShowStatus(L["DistributionPointRemoved"].Value, "success");
+                await LoadDistributionPoints();
+            }
+            else
+            {
+                Logger.LogError("Error removing distribution point {DistributionPointId}: {Error}", dp.DistributionPointId.Value, result.ErrorValue);
+                await ShowStatus(L["ErrorOccurred"].Value, "error");
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Exception removing distribution point {DistributionPointId}", dp.DistributionPointId.Value);
             await ShowStatus(L["ErrorOccurred"].Value, "error");
         }
     }

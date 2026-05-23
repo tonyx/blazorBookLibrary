@@ -116,6 +116,12 @@ public class AuthorClientService : IAuthorService
         var result = await ServiceClientHelper.HandleResponse<List<Author>>(response);
         return result.IsOk ? FSharpResult<FSharpList<Author>, string>.NewOk(ListModule.OfSeq(result.ResultValue)) : FSharpResult<FSharpList<Author>, string>.NewError(result.ErrorValue);
     }
+    public async Task<FSharpResult<FSharpList<Author>, string>> GetAllAuthorsOfTenantAsync(Commons.UserContext context, Commons.TenantId tenantId, FSharpOption<CancellationToken> ct)
+    {
+        var response = await _httpClient.GetAsync($"api/Authors/tenant/{tenantId.Value}", ServiceClientHelper.GetValue(ct, CancellationToken.None));
+        var result = await ServiceClientHelper.HandleResponse<List<Author>>(response);
+        return result.IsOk ? FSharpResult<FSharpList<Author>, string>.NewOk(ListModule.OfSeq(result.ResultValue)) : FSharpResult<FSharpList<Author>, string>.NewError(result.ErrorValue);
+    }
 
     public async Task<FSharpResult<FSharpList<Author>, string>> SearchByNameAsync(Commons.UserContext context, Commons.Name name, FSharpOption<CancellationToken> ct)
     {

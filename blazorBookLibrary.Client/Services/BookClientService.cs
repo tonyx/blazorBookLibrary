@@ -65,6 +65,12 @@ public class BookClientService : IBookService
         var result = await ServiceClientHelper.HandleResponse<List<Book>>(response);
         return result.IsOk ? FSharpResult<FSharpList<Book>, string>.NewOk(ApplyCriteria(ListModule.OfSeq(result.ResultValue), criteria)) : FSharpResult<FSharpList<Book>, string>.NewError(result.ErrorValue);
     }
+    public async Task<FSharpResult<FSharpList<Book>, string>> GetAllBooksOfTenantAsync(Commons.UserContext context, Commons.TenantId tenantId, FSharpOption<CancellationToken> ct)
+    {
+        var response = await _httpClient.GetAsync($"api/Books/tenant/{tenantId.Value}", ServiceClientHelper.GetValue(ct, CancellationToken.None));
+        var result = await ServiceClientHelper.HandleResponse<List<Book>>(response);
+        return result.IsOk ? FSharpResult<FSharpList<Book>, string>.NewOk(ListModule.OfSeq(result.ResultValue)) : FSharpResult<FSharpList<Book>, string>.NewError(result.ErrorValue);
+    }
     public async Task<FSharpResult<FSharpList<Book>, string>> SearchByTitleAndIsbnAsync(Commons.UserContext context, Commons.Title title, Commons.Isbn isbn, FSharpOption<BookSearchCriteria> criteria, FSharpOption<CancellationToken> ct)
     {
         var response = await _httpClient.GetAsync($"api/Books/search/title-isbn?title={Uri.EscapeDataString(title.Value)}&isbn={Uri.EscapeDataString(isbn.Value)}", ServiceClientHelper.GetValue(ct, CancellationToken.None));

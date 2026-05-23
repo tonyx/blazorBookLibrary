@@ -73,6 +73,16 @@ type BooksController(bookService: IBookService) =
             | Error msg -> return this.BadRequest(msg) :> IActionResult
         }
 
+    [<HttpGet("tenant/{tenantId}")>]
+    member this.GetAllBooksOfTenant(tenantId: Guid) =
+        task {
+            let context = UserContextMapper.mapFromRequest this.Request
+            let! result = bookService.GetAllBooksOfTenantAsync(context, TenantId tenantId)
+            match result with
+            | Ok books -> return this.Ok(books) :> IActionResult
+            | Error msg -> return this.BadRequest(msg) :> IActionResult
+        }
+
     [<HttpPost("get-multiple")>]
     member this.GetBooks([<FromBody>] ids: List<Guid>) =
         task {

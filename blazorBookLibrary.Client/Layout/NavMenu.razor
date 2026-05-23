@@ -29,7 +29,7 @@
             </NavLink>
         </div>
         <div class="nav-item">
-            <NavLink class="nav-link sanctuary-nav-link" href="distribution-points">
+            <NavLink class="nav-link sanctuary-nav-link" href="distribution-points" target="_top">
                 <span class="bi bi-geo-alt" aria-hidden="true"></span> @L["DistributionPoints"]
             </NavLink>
         </div>
@@ -44,12 +44,12 @@
 
         <AuthorizeView Roles="Admin">
             <div class="nav-item">
-                <NavLink class="nav-link sanctuary-nav-link" href="users-manager">
+                <NavLink class="nav-link sanctuary-nav-link" href="users-manager" target="_top">
                     <span class="bi bi-people" aria-hidden="true"></span> @L["UsersManager"]
                 </NavLink>
             </div>
             <div class="nav-item">
-                <NavLink class="nav-link sanctuary-nav-link" href="distribution-points-manager">
+                <NavLink class="nav-link sanctuary-nav-link" href="distribution-points-manager" target="_top">
                     <span class="bi bi-geo-alt" aria-hidden="true"></span> @L["DistributionPointsManager"]
                 </NavLink>
             </div>
@@ -93,7 +93,7 @@
         <AuthorizeView>
             <Authorized>
                 <div class="nav-item">
-                    <NavLink class="nav-link sanctuary-nav-link" href="Account/Manage">
+                    <NavLink class="nav-link sanctuary-nav-link" href="Account/Manage" target="_top">
                         <span class="bi bi-person-circle" aria-hidden="true"></span> @context.User.Identity?.Name
                     </NavLink>
                 </div>
@@ -109,12 +109,12 @@
             </Authorized>
             <NotAuthorized>
                 <div class="nav-item">
-                    <NavLink class="nav-link sanctuary-nav-link" href="Account/Register">
+                    <NavLink class="nav-link sanctuary-nav-link" href="Account/Register" target="_top">
                         <span class="bi bi-person-plus" aria-hidden="true"></span> @L["Register"]
                     </NavLink>
                 </div>
                 <div class="nav-item">
-                    <NavLink class="nav-link sanctuary-nav-link" href="Account/Login">
+                    <NavLink class="nav-link sanctuary-nav-link" href="Account/Login" target="_top">
                         <span class="bi bi-box-arrow-in-right" aria-hidden="true"></span> @L["Login"]
                     </NavLink>
                 </div>

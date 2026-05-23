@@ -25,6 +25,16 @@ type DistributionPointsController(distributionPointService: IDistributionPointSe
             | Error msg -> return this.BadRequest(msg) :> IActionResult
         }
 
+    [<HttpGet("tenant/{tenantId}")>]
+    member this.GetAllDistributionPointsOfATenant(tenantId: Guid) =
+        task {
+            let context = UserContextMapper.mapFromClaimsPrincipal this.User
+            let! result = distributionPointService.GetAllDistributionPointsOfATenantAsync(context, TenantId tenantId)
+            match result with
+            | Ok dps -> return this.Ok(dps) :> IActionResult
+            | Error msg -> return this.BadRequest(msg) :> IActionResult
+        }
+
     [<HttpGet("{id}")>]
     member this.GetDistributionPoint(id: Guid) =
         task {
@@ -33,6 +43,26 @@ type DistributionPointsController(distributionPointService: IDistributionPointSe
             match result with
             | Ok dp -> return this.Ok(dp) :> IActionResult
             | Error msg -> return this.NotFound(msg) :> IActionResult
+        }
+
+    [<HttpGet("{id}/books")>]
+    member this.GetAllBooksOfADistributionPoint(id: Guid) =
+        task {
+            let context = UserContextMapper.mapFromClaimsPrincipal this.User
+            let! result = distributionPointService.GetAllBooksOfADistributionPointAsync(context, DistributionPointId id)
+            match result with
+            | Ok books -> return this.Ok(books) :> IActionResult
+            | Error msg -> return this.BadRequest(msg) :> IActionResult
+        }
+
+    [<HttpGet("{id}/is-removable")>]
+    member this.IsRemovable(id: Guid) =
+        task {
+            let context = UserContextMapper.mapFromClaimsPrincipal this.User
+            let! result = distributionPointService.IsRemovableAsync(context, DistributionPointId id)
+            match result with
+            | Ok isRemovable -> return this.Ok(isRemovable) :> IActionResult
+            | Error msg -> return this.BadRequest(msg) :> IActionResult
         }
 
     [<HttpGet("find/{name}")>]
@@ -50,6 +80,16 @@ type DistributionPointsController(distributionPointService: IDistributionPointSe
         task {
             let context = UserContextMapper.mapFromClaimsPrincipal this.User
             let! result = distributionPointService.CreateDistributionPointAsync(context, dp)
+            match result with
+            | Ok _ -> return this.Ok() :> IActionResult
+            | Error msg -> return this.BadRequest(msg) :> IActionResult
+        }
+
+    [<HttpDelete("{id}")>]
+    member this.RemoveDistributionPoint(id: Guid) =
+        task {
+            let context = UserContextMapper.mapFromClaimsPrincipal this.User
+            let! result = distributionPointService.RemoveDistributionPointAsync(context, DistributionPointId id)
             match result with
             | Ok _ -> return this.Ok() :> IActionResult
             | Error msg -> return this.BadRequest(msg) :> IActionResult

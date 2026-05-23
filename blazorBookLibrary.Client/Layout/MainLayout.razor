@@ -1,6 +1,14 @@
 @inherits LayoutComponentBase
 @using blazorBookLibrary.Client.Components.Shared
+@using blazorBookLibrary.Shared.Resources
+@using BookLibrary.Domain
+@using Microsoft.Extensions.Localization
+@using Microsoft.FSharp.Collections
 @inject NavigationManager NavigationManager
+@inject BookLibrary.Shared.Services.ITenantService TenantService
+@inject BookLibrary.Shared.Services.IUserService UserService
+@inject IStringLocalizer<SharedResources> L
+@inject IJSRuntime JSRuntime
 
 <div class="page">
     <div class="sidebar">
@@ -11,10 +19,30 @@
         <div class="top-row">
             <div class="top-row-inner d-flex align-items-center justify-content-between w-100 px-4">
                 <div class="current-tenant d-flex align-items-center gap-2">
-                    @if (TenantState.CurrentTenant != null)
+                    <i class="bi bi-building text-primary"></i>
+                    @if (isLoadingAllowedTenants)
                     {
-                        <i class="bi bi-building"></i>
-                        <span class="tenant-name fw-bold">@TenantState.CurrentTenant.Name.Value</span>
+                        <div class="spinner-border spinner-border-sm text-primary" role="status">
+                            <span class="visually-hidden">@L["Loading"]...</span>
+                        </div>
+                    }
+                    else if (allowedTenants != null && allowedTenants.Any())
+                    {
+                        <form action="/ActiveTenant/SetActiveTenant" method="post" class="d-inline-block m-0 p-0">
+                            <input type="hidden" name="returnUrl" value="@currentUrl" />
+                            <select class="tenant-select" name="tenantId" onchange="this.form.submit()">
+                                @foreach (var tenant in allowedTenants)
+                                {
+                                    <option value="@tenant.TenantId.Value" selected="@(tenant.TenantId.Value == TenantState.CurrentTenant?.TenantId.Value)">
+                                        @tenant.Name.Value
+                                    </option>
+                                }
+                            </select>
+                        </form>
+                    }
+                    else if (TenantState.CurrentTenant != null)
+                    {
+                        <span class="tenant-name fw-bold text-serif">@TenantState.CurrentTenant.Name.Value</span>
                     }
                 </div>
                 <div class="d-flex align-items-center gap-3">
@@ -45,6 +73,9 @@
 
 @code {
     private string? currentUrl;
+    private FSharpList<Tenant>? allowedTenants;
+    private bool isLoadingAllowedTenants = false;
+
 
     protected override void OnInitialized()
     {
@@ -68,6 +99,36 @@
             {
                 TenantState.CurrentTenant = result.ResultValue.CurrentTenant;
             }
+
+            await LoadAllowedTenantsAsync();
+        }
+    }
+
+    private async Task LoadAllowedTenantsAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        if (authState.User.Identity?.IsAuthenticated == true)
+        {
+            isLoadingAllowedTenants = true;
+            StateHasChanged();
+            try
+            {
+                var userContext = TenantState.GetUserContext(authState.User);
+                var allowedResult = await TenantService.GetAllowedTenantsAsync(userContext, Microsoft.FSharp.Core.FSharpOption<System.Threading.CancellationToken>.None);
+                if (allowedResult.IsOk)
+                {
+                    allowedTenants = allowedResult.ResultValue;
+                }
+            }
+            catch (Exception ex)
+            {
+                // Silent log
+            }
+            finally
+            {
+                isLoadingAllowedTenants = false;
+                StateHasChanged();
+            }
         }
     }
 
@@ -78,6 +139,39 @@
 }
 
 <style>
+    .tenant-select {
+        appearance: none;
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='none' stroke='%235d4632' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 0.75rem center;
+        background-size: 10px 10px;
+        background-color: var(--surface-container-lowest);
+        color: var(--primary);
+        border: 1px solid var(--outline-variant);
+        border-radius: var(--radius-full);
+        padding: 0.25rem 2rem 0.25rem var(--spacing-3);
+        font-family: var(--font-sans);
+        font-weight: 600;
+        font-size: 0.85rem;
+        cursor: pointer;
+        transition: all 0.2s ease-in-out;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+    }
+
+    .tenant-select:hover {
+        background-color: var(--surface-container);
+        border-color: var(--secondary);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+    }
+
+    .tenant-select:focus {
+        outline: none;
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(1, 45, 29, 0.15);
+    }
+
     .main-content {
         min-height: 100vh;
         background-color: var(--surface);

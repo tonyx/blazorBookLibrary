@@ -28,6 +28,7 @@ type IAuthorService =
     abstract member SealAsync : context: UserContext * authorId: AuthorId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> TaskResult<unit, string>
     abstract member UnsealAsync : context: UserContext * authorId: AuthorId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> TaskResult<unit, string>
     abstract member GetAllAsync: context: UserContext * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<List<Author>, string>>
+    abstract member GetAllAuthorsOfTenantAsync: context: UserContext * tenantId: TenantId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<List<Author>, string>>
     abstract member SearchByNameAsync: context: UserContext * name: Name * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<List<Author>, string>>
     abstract member SearchByIsniAsync: context: UserContext * strisni: Isni * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<List<Author>, string>>
     abstract member SearchByIsniAndNameAsync: context: UserContext * isni: Isni * name: Name * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<List<Author>, string>>

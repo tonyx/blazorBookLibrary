@@ -438,4 +438,11 @@
   <data name="InvitedPatronsList" xml:space="preserve"><value>Invited Patrons</value></data>
   <data name="InvitedPatrons" xml:space="preserve"><value>Invited Patrons</value></data>
   <data name="NoInvitedPatronsFound" xml:space="preserve"><value>No invited patrons found.</value></data>
+  <data name="RemoveDistributionPoint" xml:space="preserve"><value>Remove Distribution Point</value></data>
+  <data name="ConfirmRemoveDistributionPoint" xml:space="preserve"><value>Are you sure you want to remove this distribution point? This action cannot be undone.</value></data>
+  <data name="DistributionPointRemoved" xml:space="preserve"><value>Distribution point removed successfully.</value></data>
+  <data name="Books" xml:space="preserve"><value>Books</value></data>
+  <data name="ConfirmDeleteTenant" xml:space="preserve"><value>Are you sure you want to permanently delete the library '{0}'? This action is irreversible.</value></data>
+  <data name="TenantDeletedSuccessfully" xml:space="preserve"><value>Library deleted successfully.</value></data>
+  <data name="NotDeletableContains" xml:space="preserve"><value>Not deletable. Contains: {0} patrons, {1} books, {2} authors, {3} distribution points.</value></data>
 </root>

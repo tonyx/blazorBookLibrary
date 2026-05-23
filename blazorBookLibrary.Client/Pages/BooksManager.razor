@@ -176,7 +176,7 @@
 
     @* Search & Filter Toolbar *@
     <div class="card-sanctuary mb-5 p-4 border-0 shadow-none bg-surface-low">
-        <BookSearchToolbar OnSearchResultsFound="HandleSearchResultsFound" OnError="ShowSearchError" OnSearchStarted="HandleSearchStarted" />
+        <BookSearchToolbar InitialDistributionPointId="@DpId" OnSearchResultsFound="HandleSearchResultsFound" OnError="ShowSearchError" OnSearchStarted="HandleSearchStarted" />
     </div>
 
     @if (searchBooksPerformed)
@@ -794,6 +794,9 @@
 @code {
     [CascadingParameter]
     private Task<AuthenticationState> authenticationStateTask { get; set; } = default!;
+
+    [SupplyParameterFromQuery(Name = "dp")]
+    public string? DpId { get; set; }
 
     private UserContext? _cachedUserContext;
     private bool showBulkEdit = false;
