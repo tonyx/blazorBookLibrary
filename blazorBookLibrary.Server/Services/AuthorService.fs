@@ -47,6 +47,7 @@ type AuthorService
         taskResult {
             let! tenantId = userTenantResolverService.GetTenantForUserAsync(context, ct)
             do! tenantId = author.TenantId |> Result.ofBool "Tenant ids not matching"
+            do! checkIsGlobalAdminOrTenantManager context ct
 
             return! runInitAsync<Author, AuthorEvent, string> eventStore messageSenders author (Some ct)
         }
@@ -360,12 +361,17 @@ type AuthorService
 
     member this.GetAllAuthorsOfTenantAsync(context: UserContext, tenantId: TenantId, ?ct: CancellationToken) =
         let ct = defaultArg ct CancellationToken.None
+
         taskResult {
-            let! authorsWithId = getAllFilteredAggregateStatesAsync<Author, AuthorEvent, string> (fun a -> a.TenantId = tenantId) eventStore (Some ct)
-            return
-                authorsWithId
-                |> List.ofSeq
-                |> List.map snd
+            do! checkIsGlobalAdminOrTenantManager context ct
+
+            let! authorsWithId =
+                getAllFilteredAggregateStatesAsync<Author, AuthorEvent, string>
+                    (fun a -> a.TenantId = tenantId)
+                    eventStore
+                    (Some ct)
+
+            return authorsWithId |> List.ofSeq |> List.map snd
         }
 
 

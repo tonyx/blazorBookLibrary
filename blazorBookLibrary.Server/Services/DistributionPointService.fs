@@ -29,6 +29,13 @@ type DistributionPointService
             return! Security.checkIsGlobalAdminOrTenantManager tenant context
         }
 
+    let checkIsGlobalAdminOrTenantManagerOrSelf (context: UserContext) (ct: CancellationToken) (userId: UserId) =
+        taskResult {
+            let! tenantId = userTenantResolverService.GetTenantForUserAsync(context, ct)
+            let! tenant = tenantViewerAsync (ct |> Some) tenantId.Value |> TaskResult.map snd
+            return! Security.checkIsGlobalAdminOrTenantManagerOrSelf tenant context userId
+        }
+
     new
         (
             secretsReader: SecretsReader,
@@ -58,23 +65,24 @@ type DistributionPointService
     member this.GetAllDistributionPointsAsync(context: UserContext, ?ct: CancellationToken) =
         taskResult {
             let! tenantId = userTenantResolverService.GetTenantForUserAsync(context, ?ct = ct)
+
             let! result =
                 StateView.getAllFilteredAggregateStatesAsync<DistributionPoint, DistributionPointEvent, string>
                     (fun (x: DistributionPoint) -> x.TenantId = tenantId)
                     eventStore
                     ct
+
             return result |>> snd
         }
 
-    member this.GetBooksOfADistributionPoint
-        (context: UserContext, id: DistributionPointId, ?ct: CancellationToken)
-        =
-        taskResult { 
-            let searchCriteria = 
-                BookSearchCriteria (fun (x: Book) -> x.DistributionPoint.IsSome && x.DistributionPoint.Value.Value = id.Value)
-            let! result =
-                bookService.GetAllAsync(context, searchCriteria)
-            return result 
+    member this.GetBooksOfADistributionPoint(context: UserContext, id: DistributionPointId, ?ct: CancellationToken) =
+        taskResult {
+            let searchCriteria =
+                BookSearchCriteria(fun (x: Book) ->
+                    x.DistributionPoint.IsSome && x.DistributionPoint.Value.Value = id.Value)
+
+            let! result = bookService.GetAllAsync(context, searchCriteria)
+            return result
         }
 
     member this.GetDistributionPointAsync(context: UserContext, id: DistributionPointId, ?ct: CancellationToken) =
@@ -132,37 +140,61 @@ type DistributionPointService
                     ct
         }
 
-    member this.RemoveDistributionPointAsync(context: UserContext, distributionPointId: DistributionPointId, ?ct: CancellationToken) =
+    member this.RemoveDistributionPointAsync
+        (context: UserContext, distributionPointId: DistributionPointId, ?ct: CancellationToken)
+        =
         let ctValue = defaultArg ct CancellationToken.None
+
         taskResult {
             do! checkIsGlobalAdminOrTenantManager context ctValue
-            let! books = this.GetBooksOfADistributionPoint (context, distributionPointId, ?ct = ct)
+            let! books = this.GetBooksOfADistributionPoint(context, distributionPointId, ?ct = ct)
+
             do!
-                books.Length = 0 
+                books.Length = 0
                 |> Result.ofBool $"Distribution point has {books.Length} books. Please remove all books first."
+
             let! result =
-                runDeleteAsync<DistributionPoint,DistributionPointEvent,string>
+                runDeleteAsync<DistributionPoint, DistributionPointEvent, string>
                     eventStore
                     messageSenders
                     distributionPointId.Value
                     (fun _ -> books.Length = 0)
                     (ctValue |> Some)
+
             return result
         }
 
-    member this.GetAllDistributionPointsOfTenantAsync(context: UserContext, tenantId: TenantId, ?ct: CancellationToken) =
+    member this.GetAllDistributionPointsOfTenantAsync
+        (context: UserContext, tenantId: TenantId, ?ct: CancellationToken)
+        =
         let ctValue = defaultArg ct CancellationToken.None
+
         taskResult {
+            let! userId =
+                match context with
+                | UserContext.Anonymous -> Error "Anonymous users cannot access distribution points"
+                | UserContext.Authenticated(userId, _) -> Ok userId
+
+            let! selectedTenantId = userTenantResolverService.GetTenantForUserAsync(context, ctValue)
+
+            do!
+                selectedTenantId = tenantId
+                |> Result.ofBool "User is not authorized to access this tenant"
+
             let! result =
                 StateView.getAllFilteredAggregateStatesAsync<DistributionPoint, DistributionPointEvent, string>
                     (fun (x: DistributionPoint) -> x.TenantId = tenantId)
                     eventStore
                     ct
+
             return result |>> snd
         }
 
-    member this.IsRemovableAsync (context: UserContext, distributionPointId: DistributionPointId, ?ct: CancellationToken) =
+    member this.IsRemovableAsync
+        (context: UserContext, distributionPointId: DistributionPointId, ?ct: CancellationToken)
+        =
         let ctValue = defaultArg ct CancellationToken.None
+
         taskResult {
             let! books = this.GetBooksOfADistributionPoint(context, distributionPointId, ?ct = ct)
             return books.Length = 0
@@ -171,12 +203,22 @@ type DistributionPointService
     interface IDistributionPointService with
         member this.GetDistributionPointAsync(context: UserContext, id: DistributionPointId, ?ct: CancellationToken) =
             this.GetDistributionPointAsync(context, id, ?ct = ct)
-        member this.GetAllDistributionPointsOfATenantAsync (context: UserContext, tenantId: TenantId, ct: CancellationToken option): Tasks.Task<Result<List<DistributionPoint>,string>> = 
+
+        member this.GetAllDistributionPointsOfATenantAsync
+            (context: UserContext, tenantId: TenantId, ct: CancellationToken option)
+            : Tasks.Task<Result<List<DistributionPoint>, string>> =
             this.GetAllDistributionPointsOfTenantAsync(context, tenantId, ?ct = ct)
-        member this.GetAllBooksOfADistributionPointAsync(context: UserContext, distributionPointId: DistributionPointId, ?ct: CancellationToken) =
+
+        member this.GetAllBooksOfADistributionPointAsync
+            (context: UserContext, distributionPointId: DistributionPointId, ?ct: CancellationToken)
+            =
             this.GetBooksOfADistributionPoint(context, distributionPointId, ?ct = ct)
-        member this.IsRemovableAsync(context: UserContext, distributionPointId: DistributionPointId, ?ct: CancellationToken) =
+
+        member this.IsRemovableAsync
+            (context: UserContext, distributionPointId: DistributionPointId, ?ct: CancellationToken)
+            =
             this.IsRemovableAsync(context, distributionPointId, ?ct = ct)
+
         member this.GetAllDistributionPointsAsync(context: UserContext, ?ct: CancellationToken) =
             this.GetAllDistributionPointsAsync(context, ?ct = ct)
 
@@ -187,6 +229,8 @@ type DistributionPointService
             (context: UserContext, distributionPoint: DistributionPoint, ?ct: CancellationToken)
             =
             this.CreateDistributionPointAsync(context, distributionPoint, ?ct = ct)
-        member this.RemoveDistributionPointAsync(context: UserContext, distributionPointId: DistributionPointId, ?ct: CancellationToken) =
+
+        member this.RemoveDistributionPointAsync
+            (context: UserContext, distributionPointId: DistributionPointId, ?ct: CancellationToken)
+            =
             this.RemoveDistributionPointAsync(context, distributionPointId, ?ct = ct)
-            

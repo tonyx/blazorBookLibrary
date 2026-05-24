@@ -54,6 +54,13 @@ type LoanService
             return! Security.checkIsGlobalAdminOrTenantManager tenant context
         }
 
+    let checkIsGlobalAdminOrTenantManagerOrSelf (context: UserContext) (ct: CancellationToken) (userId: UserId) =
+        taskResult {
+            let! tenantId = userTenantResolverService.GetTenantForUserAsync(context, ct)
+            let! tenant = tenantViewerAsync (ct |> Some) tenantId.Value |> TaskResult.map snd
+            return! Security.checkIsGlobalAdminOrTenantManagerOrSelf tenant context userId
+        }
+
     member this.AddLoanAsync(context: UserContext, loan: Loan, dateTime: System.DateTime, ?ct: CancellationToken) =
         taskResult {
             let ct = defaultArg ct CancellationToken.None
@@ -65,6 +72,8 @@ type LoanService
                 |> Result.ofBool $"Book tenant id {book.TenantId} does not match user tenant id {tenantId}"
 
             let! user = userViewerAsync (Some ct) loan.UserId.Value |> TaskResult.map snd
+
+            do! checkIsGlobalAdminOrTenantManagerOrSelf context ct user.UserId
 
             let! userDetails = usersService.GetUserDetailsAsync(context, user.UserId, ct)
 
@@ -129,6 +138,9 @@ type LoanService
     member this.GetLoanAsync(context: UserContext, id: LoanId, ?ct: CancellationToken) : TaskResult<Loan, string> =
         taskResult {
             let ct = defaultArg ct CancellationToken.None
+            let! loan = loanViewerAsync (Some ct) id.Value |> TaskResult.map snd
+            let userId = loan.UserId
+            do! checkIsGlobalAdminOrTenantManagerOrSelf context ct userId
             let! result = loanViewerAsync (Some ct) id.Value
             return result |> snd
         }
@@ -293,6 +305,7 @@ type LoanService
 
         taskResult {
             let! tenantId = userTenantResolverService.GetTenantForUserAsync(context, ct)
+            do! checkIsGlobalAdminOrTenantManagerOrSelf context ct userId
 
             let! loans =
                 StateView.getAllFilteredAggregateStatesAsync<Loan, LoanEvent, string>

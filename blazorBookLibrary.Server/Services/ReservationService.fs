@@ -57,6 +57,13 @@ type ReservationService
             return! Security.checkIsGlobalAdminOrTenantManagerOrPublicTenant tenant context
         }
 
+    let checkIsGlobalAdminOrTenantManagerOrSelf (context: UserContext) (ct: CancellationToken) (userId: UserId) =
+        taskResult {
+            let! tenantId = userTenantResolverService.GetTenantForUserAsync(context, ct)
+            let! tenant = tenantViewerAsync (ct |> Some) tenantId.Value |> TaskResult.map snd
+            return! Security.checkIsGlobalAdminOrTenantManagerOrSelf tenant context userId
+        }
+
     new
         (
             eventStore: IEventStore<string>,
@@ -191,6 +198,7 @@ type ReservationService
             let! user = userViewerAsync (Some ct) reservation.UserId.Value |> TaskResult.map snd
 
             let! tenantId = userTenantResolverService.GetTenantForUserAsync(context, ct)
+            do! checkIsGlobalAdminOrTenantManagerOrSelf context ct reservation.UserId
 
             let! userReservations =
                 StateView.getAllFilteredAggregateStatesAsync<Reservation, ReservationEvent, string>
@@ -284,6 +292,7 @@ type ReservationService
     member this.GetAllReservationsAsync(context: UserContext, ?ct: CancellationToken) =
         taskResult {
             let ct = defaultArg ct CancellationToken.None
+            do! checkIsGlobalAdminOrTenantManager context ct
             let! tenantId = userTenantResolverService.GetTenantForUserAsync(context, ct)
 
             let! reservations =
@@ -297,6 +306,8 @@ type ReservationService
         let ct = defaultArg ct CancellationToken.None
 
         taskResult {
+            let! reservation = reservationViewerAsync (ct |> Some) id.Value |> TaskResult.map snd
+            do! checkIsGlobalAdminOrTenantManagerOrSelf context ct reservation.UserId
             let! tenantId = userTenantResolverService.GetTenantForUserAsync(context, ct)
             let! result = reservationViewerAsync (Some ct) id.Value |> TaskResult.map snd
 
@@ -326,8 +337,7 @@ type ReservationService
         taskResult {
             let ct = defaultArg ct CancellationToken.None
             let! reservation = this.GetReservationAsync(context, reservationId, ct)
-
-            let! tenantId = userTenantResolverService.GetTenantForUserAsync(context, ct)
+            do! checkIsGlobalAdminOrTenantManagerOrSelf context ct reservation.UserId
 
             let! result =
                 runDeleteAsync<Reservation, ReservationEvent, string>
