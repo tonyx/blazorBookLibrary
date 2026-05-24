@@ -82,8 +82,6 @@ type LoanService
 
             let setCurrentLoanCommand = BookCommand.SetCurrentLoan(loan.LoanId, dateTime)
 
-            let addLoanToUser = UserCommand.AddLoan(loan.LoanId)
-
             let! emailTextRetrieved =
                 mailBodyRetriever.GetLoanNotificationTextMailAsync(
                     book.Title,
@@ -96,15 +94,13 @@ type LoanService
                 )
 
             let! result =
-                runInitAndTwoAggregateCommandsMdAsync<Book, BookEvent, User, UserEvent, string, Loan>
+                runInitAndAggregateCommandMdAsync<Book, BookEvent, Loan, string>
                     book.Id
-                    user.Id
                     eventStore
                     messageSenders
                     loan
                     ""
                     setCurrentLoanCommand
-                    addLoanToUser
                     (ct |> Some)
 
             let emailBody = emailTextRetrieved
@@ -125,6 +121,8 @@ type LoanService
                     return Ok()
                 }
 
+            // not sure this is needed
+            let! _ = DetailsCache.Instance.RefreshDependentDetailsAsync(loan.UserId.Value, Some ct)
             return result
         }
 
@@ -286,6 +284,7 @@ type LoanService
                     return Ok()
                 }
 
+            let! _ = DetailsCache.Instance.RefreshDependentDetailsAsync(loan.UserId.Value, Some ct)
             return result
         }
 
@@ -404,6 +403,8 @@ type LoanService
                     emailBody
                 )
 
+            let! _ = DetailsCache.Instance.RefreshDependentDetailsAsync(reservation.BookId.Value, Some ct)
+            let! _ = DetailsCache.Instance.RefreshDependentDetailsAsync(reservation.UserId.Value, Some ct)
             return result
         }
 
@@ -506,6 +507,9 @@ type LoanService
             with _ ->
                 ()
 
+            // todo: check if this is needed
+            let! _ = DetailsCache.Instance.RefreshDependentDetailsAsync(reservation.BookId.Value, Some ct)
+            let! _ = DetailsCache.Instance.RefreshDependentDetailsAsync(reservation.UserId.Value, Some ct)
             return result
         }
 

@@ -157,7 +157,7 @@ type BookService
                         eventStore
                         messageSenders
                         bookId.Value
-                        (fun Book -> Book.CurrentLoan.IsNone && Book.CurrentReservations.Length = 0)
+                        (fun Book -> Book.CurrentLoan.IsNone && Book.NoReservations)
                         (Some ct)
                 return result
             }
@@ -334,8 +334,6 @@ type BookService
                 let dateTime = System.DateTime.UtcNow
                 let bookRemoveEmbeddingCommand = 
                     BookCommand.RemoveEmbedding dateTime
-                
-
                 
                 let! result = 
                     runAggregateCommandMdAsync<Book, BookEvent, string>
@@ -691,7 +689,6 @@ type BookService
                 do! 
                     tenantId = book.TenantId
                     |> Result.ofBool "Book tenant id not matching"
-                do! checkIsGlobalAdminOrTenantManagerOrPublicTenant context ct
                 
                 return book
             }
@@ -725,6 +722,8 @@ type BookService
         let ct = defaultArg ct CancellationToken.None
         taskResult
             {
+                do!
+                    checkIsGlobalAdminOrTenantManager context ct
                 let! booksWithId = StateView.getAllFilteredAggregateStatesAsync<Book, BookEvent, string> (fun b -> b.TenantId = tenantId) eventStore (Some ct) 
                 return booksWithId |> List.ofSeq |> List.map snd
             }
@@ -1436,7 +1435,6 @@ type BookService
                 let! user =
                     userViewerAsync (ct |> Some) userId.Value |> TaskResult.map snd
 
-                // todo: speciy better the tenant roles and check avoid redoundant cheks
                 do! 
                     user.CurrentTenant = book.TenantId
                     |> Result.ofBool $"User tenant '{user.CurrentTenant}' doesn't match book tenant '{book.TenantId}'"

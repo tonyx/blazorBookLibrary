@@ -78,3 +78,13 @@ type ReservationsController(reservationService: IReservationService) =
             | Error msg -> return this.BadRequest(msg) :> IActionResult
         }
 
+    [<HttpGet("book/{bookId}")>]
+    member this.GetReservationsOfABook(bookId: Guid) =
+        task {
+            let context = UserContextMapper.mapFromClaimsPrincipal this.User
+            let! result = reservationService.GetReservationsOfABookAsync(context, BookId bookId)
+            match result with
+            | Ok reservations -> return this.Ok(reservations) :> IActionResult
+            | Error msg -> return this.BadRequest(msg) :> IActionResult
+        }
+

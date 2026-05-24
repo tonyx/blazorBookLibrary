@@ -74,15 +74,20 @@ type UserService
                 {
                     let ct = ct |> Option.defaultValue CancellationToken.None
                     let! user = userViewerAsync (Some ct) id.Value |> TaskResult.map snd
-                    let! futurereservations = 
-                        user.Reservations 
-                        |> List.traverseTaskResultM (fun reservationId -> reservationViewerAsync (Some ct) reservationId.Value |> TaskResult.map snd)
-                    let! currentLoans =
-                        user.CurrentLoans
-                        |> List.traverseTaskResultM (fun loanId -> loanViewerAsync (Some ct) loanId.Value |> TaskResult.map snd)
-
                     let! tenantId = 
                         userTenantResolverService.GetTenantForUserAsync(context, ct)
+                    let! futurereservations = 
+                        StateView.getAllFilteredAggregateStatesAsync<Reservation, ReservationEvent, string> 
+                            (fun r -> r.UserId = id && r.TenantId = tenantId && r.IsPending) 
+                            eventStore 
+                            (Some ct)
+                        |> TaskResult.map (List.ofSeq >> List.map snd)
+                    let! currentLoans =
+                        StateView.getAllFilteredAggregateStatesAsync<Loan, LoanEvent, string>
+                            (fun l -> l.UserId = id && l.TenantId = tenantId && l.InProgress)
+                            eventStore
+                            (Some ct)
+                        |> TaskResult.map (List.ofSeq >> List.map snd)
                     let! tenant = tenantViewerAsync (ct |> Some) tenantId.Value |> TaskResult.map snd
 
                     let! reservedBooks =

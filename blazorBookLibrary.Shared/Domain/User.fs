@@ -20,18 +20,31 @@ type User001 =
                 UserId = this.Id
                 CurrentTenant = this.CurrentTenant
                 AppUserInfo = this.AppUserInfo
-                Reservations = this.Reservations
-                CurrentLoans = this.CurrentLoans
                 LangPref = ShortLang.New "it"
             }
 
-and User =
+and User002 =
     {
         UserId: UserId
         CurrentTenant: TenantId
         AppUserInfo: AppUserInfo
         Reservations: List<ReservationId>
         CurrentLoans: List<LoanId>
+        LangPref: ShortLang
+    }
+    with 
+        member this.Upcast(): User = {
+            UserId = this.UserId
+            CurrentTenant = this.CurrentTenant
+            AppUserInfo = this.AppUserInfo
+            LangPref = this.LangPref
+        }
+
+and User =
+    {
+        UserId: UserId
+        CurrentTenant: TenantId
+        AppUserInfo: AppUserInfo
         LangPref: ShortLang
     }
     with
@@ -41,8 +54,6 @@ and User =
                 CurrentTenant = TenantId.Default
                 UserId = userId
                 AppUserInfo = AppUserInfo.NewEmpty(userId)
-                Reservations = []
-                CurrentLoans = [] 
                 LangPref = ShortLang.New "it"
             }
         static member NewWithUserInfo(userId: UserId, appUserInfo: AppUserInfo) = 
@@ -50,13 +61,9 @@ and User =
                 CurrentTenant = TenantId.Default
                 UserId = userId
                 AppUserInfo = appUserInfo
-                Reservations = []
-                CurrentLoans = [] 
                 LangPref = ShortLang.New "it" 
             }
     
-        member this.AddReservation (reservationId: ReservationId) = 
-            { this with Reservations = reservationId :: this.Reservations } |> Ok
         member this.SetCodiceFiscale (fiscalCode: FiscalCode) = 
             { this with AppUserInfo = { this.AppUserInfo with CodiceFiscale = fiscalCode.Value } } |> Ok
 
@@ -96,48 +103,13 @@ and User =
         member this.SetAppUserInfo (appUserInfo: AppUserInfo) =
             { this with AppUserInfo = appUserInfo } |> Ok
 
-        member this.RemoveReservation (reservationId: ReservationId) = 
-            { this with Reservations = this.Reservations |> List.filter (fun id -> id <> reservationId) } |> Ok
-
-        member this.AddLoan (loanId: LoanId) = 
-            { this with CurrentLoans = loanId :: this.CurrentLoans } |> Ok
-    
-        member this.ReleaseLoan (loanId: LoanId) = 
-            { this with CurrentLoans = this.CurrentLoans |> List.filter (fun id -> id <> loanId) } |> Ok
-
         member this.SetLangPref (langPref: ShortLang) = 
             { this with LangPref = langPref } |> Ok
-
-        member this.ConvertReservationToLoan (loanId: LoanId) (reservationId: ReservationId) = 
-            result
-                {
-                    do! 
-                        this.Reservations
-                        |> List.contains reservationId
-                        |> fun x -> if x then Ok () else Error "User has no future reservation"
-                    do! 
-                        this.CurrentLoans
-                        |> List.contains loanId
-                        |> not
-                        |> fun x -> if x then Ok () else Error "User has already a current loan"
-                    return
-                        {
-                            this with 
-                                Reservations = this.Reservations |> List.filter (fun id -> id <> reservationId)
-                                CurrentLoans = loanId :: this.CurrentLoans
-                        }
-                }
 
         // this was meant to replace the entire stream of events with GdprGhosted events (identity event) 
         // but it is not needed anymore as anonymizing ApplicationUser is enough
         member this.GdprGhost () =
             this |> Ok
-
-        member this.HasFutureReservation (reservationId: ReservationId) = 
-            this.Reservations |> List.contains reservationId
-    
-        member this.HasCurrentLoan (loanId: LoanId) = 
-            this.CurrentLoans |> List.contains loanId
 
         member this.Id = this.UserId.Value
         static member StorageName = "_User"
@@ -152,10 +124,16 @@ and User =
                 | ex ->
                     try
                         let result = 
-                            (data, jsonOptions) |> JsonSerializer.Deserialize<User001>
+                            (data, jsonOptions) |> JsonSerializer.Deserialize<User002>
                         result.Upcast() |> Ok
                     with
                         | ex2 -> 
-                            Error (ex.Message + ", " + ex2.Message)
+                            try
+                                let result = 
+                                    (data, jsonOptions) |> JsonSerializer.Deserialize<User001>
+                                result.Upcast() |> Ok
+                            with
+                                | ex3 ->
+                                    Error (ex.Message + ", " + ex2.Message + ", " + ex3.Message)
 
     

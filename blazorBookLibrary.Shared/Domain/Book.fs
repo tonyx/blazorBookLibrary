@@ -6,7 +6,7 @@ open BookLibrary.Shared.Commons
 open System
 open System.Globalization
 
-type Book =
+type Book001 =
     {
         TenantId: TenantId
         BookId: BookId
@@ -21,6 +21,52 @@ type Book =
         Translators: List<AuthorId>
         Languages: List<CultureInfo>
         CurrentReservations: List<ReservationId>
+        CurrentLoan: Option<LoanId>
+        Editor: Option<EditorId>
+        MainCategory: Category
+        AdditionalCategories: List<Category>
+        Tags: List<Tag>
+        Year: Year
+        Isbn: Isbn
+        Sealed: Sealed
+    }
+    member this.Upcast() : Book =
+        {
+            TenantId = this.TenantId
+            BookId = this.BookId
+            Title = this.Title
+            ImageUrl = this.ImageUrl
+            Description = this.Description
+            OptionalEmbedding = this.OptionalEmbedding
+            Availability = this.Availability
+            DistributionPoint = this.DistributionPoint
+            Authors = this.Authors
+            Translators = this.Translators
+            Languages = this.Languages
+            CurrentLoan = this.CurrentLoan
+            Editor = this.Editor
+            MainCategory = this.MainCategory
+            AdditionalCategories = this.AdditionalCategories
+            Tags = this.Tags
+            Year = this.Year
+            Isbn = this.Isbn
+            Sealed = this.Sealed
+        }
+
+and Book =
+    {
+        TenantId: TenantId
+        BookId: BookId
+        Title: Title
+        ImageUrl: Option<Uri>   
+        Description: Option<string>
+        OptionalEmbedding: Option<EmbeddingDataId>
+        Availability: Availability
+        DistributionPoint: Option<DistributionPointId>
+
+        Authors: List<AuthorId>
+        Translators: List<AuthorId>
+        Languages: List<CultureInfo>
         CurrentLoan: Option<LoanId>
         Editor: Option<EditorId>
         MainCategory: Category
@@ -57,7 +103,6 @@ with
             Authors = authors; 
             Translators = translators;
             Languages = languages;
-            CurrentReservations = [];
             CurrentLoan = None;
             Editor = editor; 
             MainCategory = mainCategory;
@@ -345,17 +390,12 @@ with
         result
             {
                 do!
-                    this.CurrentReservations
-                    |> List.contains reservationId
-                    |> Result.ofBool "Reservation not in book"
-                do!
                     this.CurrentLoan
                     |> Option.isNone
                     |> Result.ofBool "Book is already on loan"
                 return
                     { this with 
                         CurrentLoan = Some loanId 
-                        CurrentReservations = this.CurrentReservations |> List.filter (fun x -> x <> reservationId)
                     } 
             }
     member this.ReleaseLoan (loanId: LoanId) (dateTime: DateTime) = 
@@ -378,29 +418,6 @@ with
                     |> Option.isSome
                     |> Result.ofBool "Book is not on loan"
                 return { this with CurrentLoan = None } 
-            }
-    member this.AddReservation 
-        (reservationId: ReservationId) 
-        (dateTime: DateTime) = 
-        result
-            {
-                do!
-                    this.CurrentReservations
-                    |> List.contains reservationId
-                    |> not
-                    |> Result.ofBool "Reservation already in book"
-                return { this with CurrentReservations = this.CurrentReservations @ [reservationId] } 
-            }
-    member this.RemoveReservation 
-        (reservationId: ReservationId) 
-        (dateTime: DateTime) = 
-        result
-            {
-                do!
-                    this.CurrentReservations
-                    |> List.contains reservationId
-                    |> Result.ofBool "Reservation not in book"
-                return { this with CurrentReservations = this.CurrentReservations |> List.filter (fun x -> x <> reservationId) } 
             }
     member this.UpdateEditor 
         (editor: EditorId) 
@@ -506,8 +523,7 @@ with
         |> Option.isNone
 
     member this.NoReservations = 
-        this.CurrentReservations
-        |> List.isEmpty
+        true
 
     member this.Available = 
         this.CurrentLoan
@@ -515,9 +531,7 @@ with
 
     member this.ImmediatelyAvailable =
         this.Availability = Availability.Circulating &&
-        this.Available &&
-        this.CurrentReservations
-        |> List.isEmpty
+        this.Available
 
     member this.AvailabilityStatus =
         if this.NoLoan && this.NoReservations && this.Availability = Availability.Circulating then
@@ -537,9 +551,12 @@ with
         (this, jsonOptions) |> JsonSerializer.Serialize
     static member Deserialize (data: string) =
         try
-            let book = JsonSerializer.Deserialize<Book> (data, jsonOptions)
-            Ok book
+            JsonSerializer.Deserialize<Book> (data, jsonOptions) |> Ok
         with
             | ex -> 
-                sprintf "Failed to deserialize book: %s" ex.Message |> Error
+                try
+                    let fallback = JsonSerializer.Deserialize<Book001> (data, jsonOptions)
+                    fallback.Upcast() |> Ok
+                with
+                    | ex2 -> sprintf "Failed to deserialize book: %s, %s" ex.Message ex2.Message |> Error
 

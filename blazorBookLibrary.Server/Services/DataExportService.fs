@@ -289,7 +289,6 @@ type DataExportService
                                                 Authors = finalAuthorIds
                                                 Translators = []
                                                 Languages = []
-                                                CurrentReservations = []
                                                 CurrentLoan = None
                                                 Editor = None
                                                 MainCategory = mainCategory

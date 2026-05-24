@@ -94,10 +94,9 @@ type BookEvent =
                 book.SetCurrentLoanFromReservation reservationId loanId dateTime
             | LoanReleased (loanId, dateTime) ->
                 book.ReleaseLoan loanId dateTime
-            | ReservationAdded (reservationId, dateTime) ->
-                book.AddReservation reservationId dateTime
-            | ReservationRemoved (reservationId, dateTime) ->
-                book.RemoveReservation reservationId dateTime
+            | ReservationAdded _
+            | ReservationRemoved _ ->
+                Ok book
             | MainCategoryChanged (category, dateTime) ->
                 book.ChangeMainCategory category dateTime
             | AdditionalCategoryAdded (category, dateTime) ->

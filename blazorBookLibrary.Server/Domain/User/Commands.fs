@@ -25,20 +25,15 @@ type UserCommand =
         member this.Execute (user: User) =
             match this with
             | AddReservation reservationId ->
-                user.AddReservation reservationId
-                |> Result.map (fun u -> (u, [ReservationAdded(reservationId)]))
+                Ok (user, [ReservationAdded(reservationId)])
             | RemoveReservation reservationId ->
-                user.RemoveReservation reservationId
-                |> Result.map (fun u -> (u, [ReservationRemoved(reservationId)]))
+                Ok (user, [ReservationRemoved(reservationId)])
             | AddLoan loanId ->
-                user.AddLoan loanId
-                |> Result.map (fun u -> (u, [LoanAdded(loanId)]))
+                Ok (user, [LoanAdded(loanId)])
             | ReleaseLoan loanId ->
-                user.ReleaseLoan loanId
-                |> Result.map (fun u -> (u, [LoanReleased(loanId)]))
+                Ok (user, [LoanReleased(loanId)])
             | LoanFromReservation (loanId, reservationId) ->
-                user.ConvertReservationToLoan loanId reservationId
-                |> Result.map (fun u -> (u, [LoanTakenFromReservation(loanId, reservationId)]))
+                Ok (user, [LoanTakenFromReservation(loanId, reservationId)])
             | GdprGhost ->
                 user.GdprGhost()
                 |> Result.map (fun u -> (u, [GdprGhosted]))

@@ -78,11 +78,11 @@ let tests =
             let! addLoan = loanService.AddLoanAsync (adminContext, loan)
             Expect.isOk addLoan "should be ok"
 
-            let! userRetrievedResult = userService.GetUserAsync(adminContext, userId)
-            Expect.isOk userRetrievedResult "should be ok"
+            let! userDetailsResult = userService.GetUserDetailsAsync(adminContext, userId)
+            Expect.isOk userDetailsResult "should be ok"
 
-            let (userRetrieved: User) = userRetrievedResult |> Result.get
-            Expect.isTrue (userRetrieved.CurrentLoans |> List.contains loan.LoanId) "should contain the loan"
+            let userDetails = userDetailsResult |> Result.get
+            Expect.isTrue (userDetails.CurrentLoans |> List.exists (fun (l, _) -> l.LoanId = loan.LoanId)) "should contain the loan"
         }
 
         testCaseTask "loan a book and then release it. Verify that the book and the user don't relate to the loan anymore - Ok" <| fun _ -> task {
@@ -107,14 +107,14 @@ let tests =
             let! bookRetrievedResult = bookService.GetBookAsync(adminContext, book.BookId)
             Expect.isOk bookRetrievedResult "should be ok"
 
-            let! userRetrievedResult = userService.GetUserAsync(adminContext, userId)
-            Expect.isOk userRetrievedResult "should be ok"
+            let! userDetailsResult = userService.GetUserDetailsAsync(adminContext, userId)
+            Expect.isOk userDetailsResult "should be ok"
 
             let (bookRetrieved: Book) = bookRetrievedResult |> Result.get
             Expect.isTrue (bookRetrieved.CurrentLoan |> Option.isNone) "should not contain the loan"
 
-            let (userRetrieved: User) = userRetrievedResult |> Result.get
-            Expect.isFalse (userRetrieved.CurrentLoans |> List.contains loan.LoanId) "should not contain the loan"
+            let userDetails = userDetailsResult |> Result.get
+            Expect.isFalse (userDetails.CurrentLoans |> List.exists (fun (l, _) -> l.LoanId = loan.LoanId)) "should not contain the loan"
         }
 
         testCaseTask "loan a book and then release it. the book is in the history of loans - Ok" <| fun _ -> task {

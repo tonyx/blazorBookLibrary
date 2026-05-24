@@ -79,4 +79,11 @@ public class ReservationsClientService : IReservationService
         return FSharpResult<Tuple<string, DateTime>, string>.NewError(result.ErrorValue);
     }
 
+    public async Task<FSharpResult<FSharpList<Reservation>, string>> GetReservationsOfABookAsync(Commons.UserContext context, Commons.BookId bookId, FSharpOption<CancellationToken> ct)
+    {
+        var response = await _httpClient.GetAsync($"api/Reservations/book/{bookId.Value}", ServiceClientHelper.GetValue(ct, CancellationToken.None));
+        var result = await ServiceClientHelper.HandleResponse<List<Reservation>>(response);
+        return result.IsOk ? FSharpResult<FSharpList<Reservation>, string>.NewOk(ListModule.OfSeq(result.ResultValue)) : FSharpResult<FSharpList<Reservation>, string>.NewError(result.ErrorValue);
+    }
+
 }

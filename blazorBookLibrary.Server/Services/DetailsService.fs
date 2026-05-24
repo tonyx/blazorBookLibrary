@@ -84,14 +84,19 @@ type DetailsService (
                 // todo: check permissions roles
                 // do! user.Tenants |> Seq.contains context.TenantId |> Result.ofBool $"User '{user.AppUserInfo.Email}' doesn't have access to this tenant '{context.TenantId}'"
 
+                let! tenantId = userTenantResolverService.GetTenantForUserAsync(context, ct)
                 let! futurereservations = 
-                    user.Reservations 
-                    |> List.traverseTaskResultM (fun reservationId -> reservationViewerAsync (Some ct) reservationId.Value |> TaskResult.map snd)
+                    StateView.getAllFilteredAggregateStatesAsync<Reservation, ReservationEvent, string> 
+                        (fun r -> r.UserId = id && r.TenantId = tenantId && r.IsPending) 
+                        eventStore 
+                        (Some ct)
+                    |> TaskResult.map (List.ofSeq >> List.map snd)
                 let! currentLoans =
-                    user.CurrentLoans
-                    |> List.traverseTaskResultM (fun loanId -> loanViewerAsync (Some ct) loanId.Value |> TaskResult.map snd)
-
-                let! user = userViewerAsync (Some ct) id.Value |> TaskResult.map snd
+                    StateView.getAllFilteredAggregateStatesAsync<Loan, LoanEvent, string>
+                        (fun l -> l.UserId = id && l.TenantId = tenantId && l.InProgress)
+                        eventStore
+                        (Some ct)
+                    |> TaskResult.map (List.ofSeq >> List.map snd)
 
                 let! reservedBooks =
                     futurereservations
@@ -322,9 +327,10 @@ type DetailsService (
                             let! authors = 
                                 book.Authors
                                 |> List.traverseTaskResultM (fun authorId -> authorViewerAsync (Some ct) authorId.Value |> TaskResult.map snd)
+                            let! reservations = reservationService.GetReservationsOfABookAsync (context, bookId, ct)
                             let! futureReservations = 
-                                book.CurrentReservations
-                                |> List.traverseTaskResultM (fun reservationId -> reservationService.GetReservationDetailsAsync (context, reservationId, ct))
+                                reservations
+                                |> List.traverseTaskResultM (fun reservation -> reservationService.GetReservationDetailsAsync (context, reservation.ReservationId, ct))
 
                             let! approvedVisibleReviews = this.GetApprovedVisibleReviewsOfBookAsync (context, bookId, ct)
 

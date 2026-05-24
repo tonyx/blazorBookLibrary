@@ -25,16 +25,12 @@ type UserEvent =
     interface Event<User> with
         member this.Process (user: User) : Result<User, string> =
             match this with
-            | ReservationAdded reservationId ->
-                user.AddReservation reservationId
-            | ReservationRemoved reservationId ->
-                user.RemoveReservation reservationId
-            | LoanAdded loanId ->
-                user.AddLoan loanId
-            | LoanReleased loanId ->
-                user.ReleaseLoan loanId
-            | LoanTakenFromReservation (loanId, reservationId) ->
-                user.ConvertReservationToLoan loanId reservationId
+            | ReservationAdded _
+            | ReservationRemoved _
+            | LoanAdded _
+            | LoanReleased _
+            | LoanTakenFromReservation _ ->
+                Ok user
             | GdprGhosted ->
                 user.GdprGhost()
             | CodiceFiscaleSet fiscalCode ->

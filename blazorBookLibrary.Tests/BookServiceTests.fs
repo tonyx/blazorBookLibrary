@@ -48,11 +48,12 @@ let tests =
             let! retrieveReservation = reservationService.GetReservationAsync (adminContext, reservation.ReservationId)
             Expect.isOk retrieveReservation "should be ok"
 
-            let! retrieveBook2 = bookService.GetBookAsync(adminContext, book.BookId)
-            Expect.isOk retrieveBook2 "should be ok"
+            let detailsService = getDetailsService()
+            let! retrieveBook2DetailsResult = detailsService.GetBookDetailsAsync(adminContext, book.BookId)
+            Expect.isOk retrieveBook2DetailsResult "should be ok"
 
-            let (bookRetrieved2: Book) = retrieveBook2 |> Result.get
-            Expect.isTrue (bookRetrieved2.CurrentReservations |> List.contains reservation.ReservationId) "should contain the reservation"
+            let bookDetail = retrieveBook2DetailsResult |> Result.get
+            Expect.isTrue (bookDetail.ReservationsDetails |> List.exists (fun r -> r.Reservation.ReservationId = reservation.ReservationId)) "should contain the reservation"
         }
 
         testCaseTask "if a book has no reservations then you can loan it - Ok" <| fun _ -> task {

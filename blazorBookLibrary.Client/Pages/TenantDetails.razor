@@ -16,6 +16,7 @@
 @inject IUserService UserService
 @inject ITenantService TenantService
 @inject ILoanService LoanService
+@inject IReservationService ReservationService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject blazorBookLibrary.Client.Services.TenantStateService TenantState
 @inject IStringLocalizer<SharedResources> L
@@ -1573,6 +1574,16 @@
             }
             else
             {
+                if (Microsoft.FSharp.Core.FSharpOption<ReservationId>.get_IsSome(loanDetails.Loan.ReservationId))
+                {
+                    var reservationId = loanDetails.Loan.ReservationId.Value;
+                    var resResult = await ReservationService.RemoveReservationAsync(userContext, reservationId, Microsoft.FSharp.Core.FSharpOption<System.Threading.CancellationToken>.None);
+                    if (resResult.IsError)
+                    {
+                        Logger.LogError("Error removing related reservation {ReservationId}: {Error}", reservationId.Value, resResult.ErrorValue);
+                    }
+                }
+
                 await JSRuntime.InvokeVoidAsync("showToast", L["LoanDeletedSuccessfully"].Value, "success");
                 
                 // Refresh tenant details to show updated list

@@ -39,3 +39,7 @@ type FakeReservationService() =
             printfn "FakeReservationService: GeneratePickupPinAsync called for id %A" id
             Task.FromResult(Ok ("123456", System.DateTime.UtcNow.AddMinutes(15.0)))
 
+        member this.GetReservationsOfABookAsync(userContext, bookId, ct) =
+            printfn "FakeReservationService: GetReservationsOfABookAsync called for book %A" bookId
+            Task.FromResult(Ok [])
+

@@ -104,11 +104,12 @@ let tests =
             let! addReservation = reservationService.AddReservationAsync (adminContext, reservation, ShortLang.New "en")
             Expect.isOk addReservation "should be ok"
             
-            let! bookRetrievedResult = bookService.GetBookAsync (adminContext, book.BookId, CancellationToken.None)
-            Expect.isOk bookRetrievedResult "should be ok"
+            let detailsService = getDetailsService()
+            let! bookDetailResult = detailsService.GetBookDetailsAsync (adminContext, book.BookId)
+            Expect.isOk bookDetailResult "should be ok"
 
-            let (bookRetrieved: Book) = bookRetrievedResult |> Result.get
-            Expect.equal (bookRetrieved.CurrentReservations |> List.length) 1 "should contain one reservation"
+            let bookDetail = bookDetailResult |> Result.get
+            Expect.equal (bookDetail.ReservationsDetails |> List.length) 1 "should contain one reservation"
 
             let! removeReservation = reservationService.RemoveReservationAsync (adminContext, reservation.ReservationId)
             Expect.isOk removeReservation "should be ok"
@@ -116,10 +117,10 @@ let tests =
             let! retrieveReservation = reservationService.GetReservationAsync (adminContext, reservation.ReservationId)
             Expect.isError retrieveReservation "should not be ok"
 
-            let! bookRetrieved2Result = bookService.GetBookAsync (adminContext, book.BookId, CancellationToken.None)
-            Expect.isOk bookRetrieved2Result "should be ok"
-            let (bookRetrieved2: Book) = bookRetrieved2Result |> Result.get
-            Expect.equal (bookRetrieved2.CurrentReservations |> List.length) 0 "should not contain reservations"
+            let! bookDetail2Result = detailsService.GetBookDetailsAsync (adminContext, book.BookId)
+            Expect.isOk bookDetail2Result "should be ok"
+            let bookDetail2 = bookDetail2Result |> Result.get
+            Expect.equal (bookDetail2.ReservationsDetails |> List.length) 0 "should not contain reservations"
         }
 
         // todo: handle the delay needed to refresh of dependencies
@@ -537,10 +538,10 @@ let tests =
             let! addReservation = reservationService.AddReservationAsync (adminContext, reservation, ShortLang.New "en")
             Expect.isOk addReservation "should be ok"
 
-            let! userResult = userService.GetUserAsync(adminContext, userId1)
-            Expect.isOk userResult "should be ok"
+            let! userDetailsResult = userService.GetUserDetailsAsync(adminContext, userId1)
+            Expect.isOk userDetailsResult "should be ok"
 
-            Expect.isTrue (userResult.OkValue.Reservations |> List.length = 1) "should contain the reservation"
+            Expect.isTrue (userDetailsResult.OkValue.FutureReservations |> List.length = 1) "should contain the reservation"
         }
 
         testCaseTask "add a reservation, then remove it. Verify that the user has no reservation anymore" <| fun _ -> task {
@@ -560,18 +561,18 @@ let tests =
             let! addReservation = reservationService.AddReservationAsync (adminContext, reservation, ShortLang.New "en")
             Expect.isOk addReservation "should be ok"
 
-            let! userResult = userService.GetUserAsync(adminContext, userId1)
-            Expect.isOk userResult "should be ok"
+            let! userDetailsResult = userService.GetUserDetailsAsync(adminContext, userId1)
+            Expect.isOk userDetailsResult "should be ok"
 
-            Expect.isTrue (userResult.OkValue.Reservations |> List.length = 1) "should contain the reservation"
+            Expect.isTrue (userDetailsResult.OkValue.FutureReservations |> List.length = 1) "should contain the reservation"
 
             let! removeReservation = reservationService.RemoveReservationAsync (adminContext, reservation.ReservationId)
             Expect.isOk removeReservation "should be ok"
 
-            let! user2Result = userService.GetUserAsync(adminContext, userId1)
-            Expect.isOk user2Result "should be ok"
+            let! user2DetailsResult = userService.GetUserDetailsAsync(adminContext, userId1)
+            Expect.isOk user2DetailsResult "should be ok"
 
-            Expect.isTrue (user2Result.OkValue.Reservations |> List.isEmpty) "should not contain the reservation"
+            Expect.isTrue (user2DetailsResult.OkValue.FutureReservations |> List.isEmpty) "should not contain the reservation"
         }
 
         testCaseTask "add a reservation and retrieve the reservation details" <| fun _ -> task {
@@ -936,11 +937,11 @@ let tests =
 
             let loan = loans.OkValue |> List.head
 
-            let! user = userService.GetUserAsync(adminContext, userId1)
-            Expect.isOk user "should be ok"
-            let (user: User) = user |> Result.get
-            Expect.equal (user.CurrentLoans.Length) 1 "should be 1"
-            Expect.equal (user.CurrentLoans |> List.head) loan.LoanId "should contain the loan"
+            let! userDetailsResult = userService.GetUserDetailsAsync(adminContext, userId1)
+            Expect.isOk userDetailsResult "should be ok"
+            let userDetails = userDetailsResult |> Result.get
+            Expect.equal (userDetails.CurrentLoans.Length) 1 "should be 1"
+            Expect.equal (userDetails.CurrentLoans |> List.head |> fst).LoanId loan.LoanId "should contain the loan"
 
             // let! book = bookService.GetBookAsync book.BookId
             // Expect.isOk book "should be ok"

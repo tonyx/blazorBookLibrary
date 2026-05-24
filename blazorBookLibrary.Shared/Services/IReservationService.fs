@@ -44,3 +44,7 @@ type IReservationService =
     abstract member GeneratePickupPinAsync:
         context: UserContext * id: ReservationId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken ->
             Task<Result<string * DateTime, string>>
+
+    abstract member GetReservationsOfABookAsync:
+        context: UserContext * bookId: BookId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken ->
+            Task<Result<List<Reservation>, string>>

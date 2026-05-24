@@ -111,11 +111,9 @@ type BookCommand =
                 book.ReleaseLoan loanId dateTime
                 |> Result.map (fun b -> (b, [LoanReleased(loanId, dateTime)]))
             | AddReservation (reservationId, dateTime) ->
-                book.AddReservation reservationId dateTime
-                |> Result.map (fun b -> (b, [ReservationAdded(reservationId, dateTime)]))
+                Ok (book, [ReservationAdded(reservationId, dateTime)])
             | RemoveReservation (reservationId, dateTime) ->
-                book.RemoveReservation reservationId dateTime
-                |> Result.map (fun b -> (b, [ReservationRemoved(reservationId, dateTime)]))
+                Ok (book, [ReservationRemoved(reservationId, dateTime)])
             | Seal dateTime ->
                 book.Seal dateTime
                 |> Result.map (fun b -> (b, [BookSealed(dateTime)]))
