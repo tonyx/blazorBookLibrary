@@ -150,19 +150,48 @@
                                 </div>
 
                                 <div class="mb-4">
-                                    <label class="form-label small text-muted text-uppercase fw-bold">@L["ReservationCode"]</label>
-                                    <div class="input-group">
-                                        <span class="input-group-text bg-white border-end-0"><i class="bi bi-qr-code-scan"></i></span>
-                                        <input type="text" 
-                                               id="reservationCodeField"
-                                               class="form-control border-start-0 serif" 
-                                               placeholder="@L["EnterReservationCode"]" 
-                                               @bind="reservationCodeInput" />
-                                    </div>
-                                    <div class="form-text x-small serif italic mt-2">
-                                        @L["VerifyCodeOnPatronSubmission"]
+                                    <label class="form-label small text-muted text-uppercase fw-bold d-block mb-2">@L["Checkout Method"]</label>
+                                    <div class="btn-group w-100" role="group">
+                                        <button type="button" class="btn btn-sm @(checkoutMethod == "code" ? "btn-primary" : "btn-outline-primary")" style="border-radius: 8px 0 0 8px;" @onclick='() => checkoutMethod = "code"'>@L["Reservation Code"]</button>
+                                        <button type="button" class="btn btn-sm @(checkoutMethod == "pin" ? "btn-primary" : "btn-outline-primary")" style="border-radius: 0 8px 8px 0;" @onclick='() => checkoutMethod = "pin"'>@L["Pickup PIN"]</button>
                                     </div>
                                 </div>
+
+                                @if (checkoutMethod == "code")
+                                {
+                                    <div class="mb-4 animate-fade-in">
+                                        <label class="form-label small text-muted text-uppercase fw-bold">@L["ReservationCode"]</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text bg-white border-end-0"><i class="bi bi-qr-code-scan"></i></span>
+                                            <input type="text" 
+                                                   id="reservationCodeField"
+                                                   class="form-control border-start-0 serif" 
+                                                   placeholder="@L["EnterReservationCode"]" 
+                                                   @bind="reservationCodeInput" />
+                                        </div>
+                                        <div class="form-text x-small serif italic mt-2">
+                                            @L["VerifyCodeOnPatronSubmission"]
+                                        </div>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="mb-4 animate-fade-in">
+                                        <label class="form-label small text-muted text-uppercase fw-bold">@L["Pickup PIN"]</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text bg-white border-end-0"><i class="bi bi-shield-lock"></i></span>
+                                            <input type="text" 
+                                                   id="pickupPinField"
+                                                   class="form-control border-start-0 serif text-center fw-bold letter-spacing-2" 
+                                                   maxlength="6"
+                                                   placeholder="000000" 
+                                                   @bind="pickupPinInput" />
+                                        </div>
+                                        <div class="form-text x-small serif italic mt-2">
+                                            @L["Enter 6-digit PIN provided by patron"]
+                                        </div>
+                                    </div>
+                                }
 
                                 <button class="btn btn-primary w-100 py-3 rounded-xl d-flex align-items-center justify-content-center gap-2 shadow"
                                         @onclick="ProcessConversion"
@@ -210,6 +239,8 @@
     private List<ReservationDetails> pendingReservations = new();
     private ReservationDetails? selectedReservation;
     private string reservationCodeInput = "";
+    private string checkoutMethod = "code";
+    private string pickupPinInput = "";
 
     protected override async Task OnInitializedAsync()
     {
@@ -264,9 +295,15 @@
     {
         if (selectedReservation == null) return;
 
-        if (string.IsNullOrWhiteSpace(reservationCodeInput))
+        if (checkoutMethod == "code" && string.IsNullOrWhiteSpace(reservationCodeInput))
         {
             await ShowStatus(L["ReservationCodeRequired"], "warning");
+            return;
+        }
+
+        if (checkoutMethod == "pin" && (string.IsNullOrWhiteSpace(pickupPinInput) || pickupPinInput.Length != 6))
+        {
+            await ShowStatus("6-digit Pickup PIN is required", "warning");
             return;
         }
 
@@ -274,33 +311,48 @@
         try
         {
             var resId = selectedReservation.Reservation.ReservationId;
-            var resCode = ReservationCode.ReservationCode.NewReservationCode(reservationCodeInput);
-            
             var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
             var context = blazorBookLibrary.Shared.ConverterUtils.fromClaimsPrincipal(authState.User);
-            var result = await LoanService.TransformReservationIntoLoanAsync(
-                context,
-                resId,
-                resCode,
-                DateTime.UtcNow,
-                Microsoft.FSharp.Core.FSharpOption<CancellationToken>.None);
+            
+            Microsoft.FSharp.Core.FSharpResult<Microsoft.FSharp.Core.Unit, string> result;
+            
+            if (checkoutMethod == "code")
+            {
+                var resCode = ReservationCode.ReservationCode.NewReservationCode(reservationCodeInput);
+                result = await LoanService.TransformReservationIntoLoanAsync(
+                    context,
+                    resId,
+                    resCode,
+                    DateTime.UtcNow,
+                    Microsoft.FSharp.Core.FSharpOption<CancellationToken>.None);
+            }
+            else
+            {
+                result = await LoanService.TransformReservationIntoLoanByPinAsync(
+                    context,
+                    resId,
+                    pickupPinInput,
+                    DateTime.UtcNow,
+                    Microsoft.FSharp.Core.FSharpOption<CancellationToken>.None);
+            }
 
             if (result.IsOk)
             {
                 await ShowStatus(L["ReservationConvertedSuccess"], "success");
                 selectedReservation = null;
                 reservationCodeInput = "";
+                pickupPinInput = "";
                 await LoadPendingReservations();
             }
             else
             {
-                Logger.LogError("Error converting reservation {ReservationId} with code {ReservationCode} into loan: {Error}", resId.Value, resCode.Value, result.ErrorValue);
-                await ShowStatus(L["ErrorOccurred"].Value, "danger");
+                Logger.LogError("Error converting reservation {ReservationId} into loan: {Error}", resId.Value, result.ErrorValue);
+                await ShowStatus(L["ErrorOccurred"].Value + ": " + result.ErrorValue, "danger");
             }
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Exception while converting reservation {ReservationId} with code {ReservationCode} into loan", selectedReservation.Reservation.ReservationId.Value, reservationCodeInput);
+            Logger.LogError(ex, "Exception while converting reservation {ReservationId} into loan", selectedReservation.Reservation.ReservationId.Value);
             await ShowStatus(L["ErrorOccurred"].Value, "danger");
         }
         finally

@@ -22,6 +22,10 @@ type TenantCommand =
     | ReadmittPatron of UserId
     | SetPublic
     | SetPrivate
+    | GenerateJoinPin2 of string
+    | SubmitJoinRequest2 of UserId
+    | ApproveJoinRequest2 of UserId
+    | RejectJoinRequest2 of UserId
     interface AggregateCommand<Tenant, TenantEvent> with
         member this.Execute (tenant: Tenant) =
             match this with
@@ -76,4 +80,16 @@ type TenantCommand =
             | SetPrivate ->
                 tenant.SetPrivate()
                 |> Result.map (fun t -> (t, [TenantEvent.PrivateSet]))
+            | GenerateJoinPin2 pin ->
+                tenant.GenerateJoinPin2 pin
+                |> Result.map (fun t -> (t, [TenantEvent.JoinPinGenerated2 pin]))
+            | SubmitJoinRequest2 userId ->
+                tenant.AddJoinRequest2 userId
+                |> Result.map (fun t -> (t, [TenantEvent.JoinRequestSubmitted2 userId]))
+            | ApproveJoinRequest2 userId ->
+                tenant.ApproveJoinRequest2 userId
+                |> Result.map (fun t -> (t, [TenantEvent.JoinRequestApproved2 userId]))
+            | RejectJoinRequest2 userId ->
+                tenant.RejectJoinRequest2 userId
+                |> Result.map (fun t -> (t, [TenantEvent.JoinRequestRejected2 userId]))
         member this.Undoer = None

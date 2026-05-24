@@ -56,9 +56,23 @@ public class LoansClientService : ILoanService
         return await ServiceClientHelper.HandleUnitResponse(response);
     }
 
+    public async Task<FSharpResult<Unit, string>> TransformReservationIntoLoanByPinAsync(Commons.UserContext context, Commons.ReservationId reservationId, string pin, DateTime date, FSharpOption<CancellationToken> ct)
+    {
+        var response = await _httpClient.PostAsJsonAsync($"api/Loans/transform-reservation-by-pin/{reservationId.Value}", pin, ServiceClientHelper.JsonOptions, ServiceClientHelper.GetValue(ct, CancellationToken.None));
+        return await ServiceClientHelper.HandleUnitResponse(response);
+    }
+
+
     public async Task<FSharpResult<FSharpList<Loan>, string>> GetHistoryLoansOfUserAsync(Commons.UserContext context, Commons.UserId userId, FSharpOption<CancellationToken> ct)
     {
         var response = await _httpClient.GetAsync($"api/Loans/history/{userId.Value}", ServiceClientHelper.GetValue(ct, CancellationToken.None));
+        var result = await ServiceClientHelper.HandleResponse<List<Loan>>(response);
+        return result.IsOk ? FSharpResult<FSharpList<Loan>, string>.NewOk(ListModule.OfSeq(result.ResultValue)) : FSharpResult<FSharpList<Loan>, string>.NewError(result.ErrorValue);
+    }
+
+    public async Task<FSharpResult<FSharpList<Loan>, string>> GetLoansOfUserInATenantAsync(Commons.UserContext context, Commons.TenantId tenantId, Commons.UserId userId, FSharpOption<CancellationToken> ct)
+    {
+        var response = await _httpClient.GetAsync($"api/Loans/tenant/{tenantId.Value}/user/{userId.Value}", ServiceClientHelper.GetValue(ct, CancellationToken.None));
         var result = await ServiceClientHelper.HandleResponse<List<Loan>>(response);
         return result.IsOk ? FSharpResult<FSharpList<Loan>, string>.NewOk(ListModule.OfSeq(result.ResultValue)) : FSharpResult<FSharpList<Loan>, string>.NewError(result.ErrorValue);
     }

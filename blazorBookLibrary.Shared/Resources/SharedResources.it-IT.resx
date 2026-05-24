@@ -904,4 +904,11 @@
   <data name="ConfirmDeleteTenant" xml:space="preserve"><value>Sei sicuro di voler eliminare definitivamente la biblioteca '{0}'? Questa azione è irreversibile.</value></data>
   <data name="TenantDeletedSuccessfully" xml:space="preserve"><value>Biblioteca eliminata con successo.</value></data>
   <data name="NotDeletableContains" xml:space="preserve"><value>Non eliminabile. Contiene: {0} lettori, {1} libri, {2} autori, {3} punti di distribuzione.</value></data>
+  <data name="AccessLevel" xml:space="preserve"><value>Livello di Accesso</value></data>
+  <data name="Private" xml:space="preserve"><value>Privato</value></data>
+  <data name="ConfirmSwitchToPublic" xml:space="preserve"><value>Conferma Visibilità Pubblica</value></data>
+  <data name="SwitchToPublicWarning" xml:space="preserve"><value>Rendere questa biblioteca pubblica significa che chiunque potrà consultarla, non solo i lettori registrati. Vuoi procedere?</value></data>
+  <data name="PrivacyUpdatedSuccessfully" xml:space="preserve"><value>Visibilità della biblioteca aggiornata con successo.</value></data>
+  <data name="PublicPrivacyDescription" xml:space="preserve"><value>Chiunque può trovare e sfogliare questa biblioteca. (Pubblica)</value></data>
+  <data name="PrivatePrivacyDescription" xml:space="preserve"><value>Solo i lettori autorizzati possono sfogliare questa biblioteca. (Privata)</value></data>
 </root>

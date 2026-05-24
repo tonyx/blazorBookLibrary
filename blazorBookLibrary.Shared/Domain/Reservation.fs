@@ -1,4 +1,3 @@
-
 namespace BookLibrary.Domain
 open Sharpino
 open System.Text.Json
@@ -6,7 +5,7 @@ open FsToolkit.ErrorHandling
 open BookLibrary.Shared.Commons
 open System
 
-type Reservation =
+type Reservation001 =
     {
         TenantId: TenantId
         ReservationId: ReservationId
@@ -18,6 +17,37 @@ type Reservation =
         ReservationCode: ReservationCode
         Status: ReservationStatus
         Sealed: Sealed
+    }
+    member this.Upcast() : Reservation = 
+        {
+            TenantId = this.TenantId
+            ReservationId = this.ReservationId
+            BookId = this.BookId
+            UserId = this.UserId
+            TimeSlot = this.TimeSlot
+            ReservedAt = this.ReservedAt
+            CanceledAt = this.CanceledAt
+            ReservationCode = this.ReservationCode
+            Status = this.Status
+            Sealed = this.Sealed
+            PickupPinHash = None
+            PickupPinExpiresAt = None
+        }
+
+and Reservation =
+    {
+        TenantId: TenantId
+        ReservationId: ReservationId
+        BookId: BookId
+        UserId: UserId
+        TimeSlot: TimeSlot
+        ReservedAt: DateTime
+        CanceledAt: Option<Cancellation>
+        ReservationCode: ReservationCode
+        Status: ReservationStatus
+        Sealed: Sealed
+        PickupPinHash: Option<string>
+        PickupPinExpiresAt: Option<DateTime>
     } with 
         static member New (tenantId: TenantId) (bookId: BookId) (userId: UserId) (timeSlot: TimeSlot) (dateTime: DateTime): Reservation = 
             {
@@ -31,6 +61,8 @@ type Reservation =
                 ReservationCode = ReservationCode.New()
                 Status = ReservationStatus.Pending
                 Sealed = Sealed.New(dateTime)
+                PickupPinHash = None
+                PickupPinExpiresAt = None
             }
 
         member this.CancelByUser (cancellation: Cancellation) (dateTime: DateTime) (userId: UserId) =
@@ -83,6 +115,35 @@ type Reservation =
                         Status = ReservationStatus.Loaned 
             } 
             |> Ok
+
+        member this.GeneratePickupPin (pinHash: string, expiresAt: DateTime) =
+            {
+                this
+                    with
+                        PickupPinHash = Some pinHash
+                        PickupPinExpiresAt = Some expiresAt
+            }
+            |> Ok
+
+        member this.ClearPickupPin () =
+            {
+                this
+                    with
+                        PickupPinHash = None
+                        PickupPinExpiresAt = None
+            }
+            |> Ok
+
+        member this.VerifyPickupPinAndLoan (dateTime: DateTime) =
+            { 
+                this 
+                    with 
+                        Status = ReservationStatus.Loaned 
+                        PickupPinHash = None
+                        PickupPinExpiresAt = None
+            } 
+            |> Ok
+
         member this.IsPending =
             this.Status = ReservationStatus.Pending
 
@@ -98,4 +159,8 @@ type Reservation =
                 Ok reservation
             with
                 | ex -> 
-                    sprintf "Failed to deserialize reservation: %s" ex.Message |> Error
+                    try
+                        let fallback = JsonSerializer.Deserialize<Reservation001> (data, jsonOptions)
+                        fallback.Upcast() |> Ok
+                    with _ ->
+                        sprintf "Failed to deserialize reservation: %s" ex.Message |> Error

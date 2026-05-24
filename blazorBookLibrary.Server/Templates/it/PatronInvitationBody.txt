@@ -12,6 +12,8 @@
 
 <p>{urlToClick}</p>
 
+{joinPinInfo}
+
 <p>Se non hai richiesto questa iscrizione, ti preghiamo di ignorare questa email, con le nostre scuse per l'inconveniente.</p>
 <p>Cordiali saluti, </p>
 <p>il team di {tenantName}</p>

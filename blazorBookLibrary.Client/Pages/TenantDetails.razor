@@ -1,4 +1,5 @@
 @page "/tenants/{Id:guid}"
+@page "/tenants/{Id:guid}/{Tab}"
 @using Microsoft.AspNetCore.Authorization
 @using BookLibrary.Shared.Services
 @using blazorBookLibrary.Shared.Resources
@@ -184,6 +185,66 @@
                                 </div>
                             }
                         </div>
+                        @if (isOwner)
+                        {
+                            <div class="border-top pt-3 mt-1 animate-fade-in">
+                                <label class="small text-muted text-uppercase fw-bold d-block mb-2">@L["AccessLevel"]</label>
+                                <div class="form-check form-switch d-flex align-items-center gap-2">
+                                    <input type="checkbox" class="form-check-input" id="privacyToggleSwitch" 
+                                           checked="@libraryDetails.Tenant.Public" 
+                                           @onchange="HandlePrivacyToggle" 
+                                           disabled="@isUpdatingPrivacy" />
+                                    <label class="form-check-label fw-semibold" for="privacyToggleSwitch" style="cursor: pointer;">
+                                        @(libraryDetails.Tenant.Public ? L["Public"] : L["Private"])
+                                    </label>
+                                    @if (isUpdatingPrivacy)
+                                    {
+                                        <span class="spinner-border spinner-border-sm text-primary animate-spin" role="status" aria-hidden="true"></span>
+                                    }
+                                </div>
+                                <small class="text-muted d-block mt-1" style="font-size: 0.8rem; line-height: 1.2;">
+                                    @(libraryDetails.Tenant.Public ? L["PublicPrivacyDescription"] : L["PrivatePrivacyDescription"])
+                                </small>
+                            </div>
+
+                            <div class="border-top pt-3 mt-3 animate-fade-in">
+                                <label class="small text-muted text-uppercase fw-bold d-block mb-2">@L["JoinPINSettings", "Join PIN Settings"]</label>
+                                
+                                <div class="d-flex align-items-center justify-content-between mb-2">
+                                    <div>
+                                        @if (Microsoft.FSharp.Core.FSharpOption<string>.get_IsSome(libraryDetails.Tenant.CurrentJoinPin))
+                                        {
+                                            <div class="d-flex align-items-center gap-2">
+                                                <span class="font-monospace fw-bold px-3 py-1 bg-primary bg-opacity-10 border border-primary border-opacity-10 text-primary rounded" style="font-size: 1.1rem; letter-spacing: 0.1em;">
+                                                    @libraryDetails.Tenant.CurrentJoinPin.Value
+                                                </span>
+                                                <button class="btn btn-link p-0 text-muted" @onclick="CopyToClipboard" title="Copy to Clipboard">
+                                                    <i class="bi bi-clipboard"></i>
+                                                </button>
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted small italic">@L["NoActiveJoinPIN", "No active Join PIN"]</span>
+                                        }
+                                    </div>
+                                    <button class="btn btn-outline-primary btn-sm rounded-pill px-3" @onclick="HandleGenerateJoinPin" disabled="@isGeneratingPin">
+                                        @if (isGeneratingPin)
+                                        {
+                                            <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                                        }
+                                        else
+                                        {
+                                            <i class="bi bi-arrow-repeat me-1"></i>
+                                        }
+                                        @L["GenerateNewPIN", "Generate PIN"]
+                                    </button>
+                                </div>
+                                <small class="text-muted d-block" style="font-size: 0.8rem; line-height: 1.2;">
+                                    @L["JoinPINDescription", "Provide this 6-digit PIN to patrons so they can submit a join request to this library."]
+                                </small>
+                            </div>
+                        }
                     </div>
                 </div>
 
@@ -248,6 +309,16 @@
                         <button class="nav-link py-3 px-4 border-0 @(activeTab == "invitedPatrons" ? "active border-bottom border-primary fw-bold text-primary" : "text-muted")"
                                 id="invitedPatrons-tab" type="button" role="tab" @onclick='() => activeTab = "invitedPatrons"'>
                             <i class="bi bi-envelope me-2"></i>@L["InvitedPatronsList"] (@libraryDetails.InvitedPatrons.Count())
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link py-3 px-4 border-0 @(activeTab == "joinRequests" ? "active border-bottom border-primary fw-bold text-primary" : "text-muted")"
+                                id="joinRequests-tab" type="button" role="tab" @onclick='() => activeTab = "joinRequests"'>
+                            <i class="bi bi-person-fill-exclamation me-2"></i>@L["JoinRequests", "Join Requests"]
+                            @if (joinRequestsList != null && joinRequestsList.Any())
+                            {
+                                <span class="badge bg-danger rounded-pill ms-2">@joinRequestsList.Count</span>
+                            }
                         </button>
                     </li>
                     <li class="nav-item" role="presentation">
@@ -462,6 +533,74 @@
                                                                 @onclick="() => HandleRevokeInvitation(patron)">
                                                             <i class="bi bi-x-circle me-1"></i> @L["Revoke"]
                                                         </button>
+                                                    </td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
+                                </div>
+                            }
+                        </div>
+                    }
+
+                    @* Join Requests Tab Panel *@
+                    @if (activeTab == "joinRequests")
+                    {
+                        <div class="card card-sanctuary border-0 shadow-sm p-4 bg-surface-low animate-fade-in">
+                            <h3 class="h5 text-serif border-bottom pb-3 mb-3"><i class="bi bi-person-fill-exclamation me-2 text-primary"></i>@L["PendingJoinRequests", "Pending Join Requests"]</h3>
+                            @if (joinRequestsList == null || !joinRequestsList.Any())
+                            {
+                                <div class="text-center py-5 text-muted italic">
+                                    <i class="bi bi-person-check display-4 opacity-25 d-block mb-3"></i>
+                                    @L["NoPendingRequests", "No pending join requests found."]
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="table-responsive">
+                                    <table class="table align-middle">
+                                        <thead>
+                                            <tr class="text-uppercase small text-muted">
+                                                <th>@L["RequesterName", "Requester"]</th>
+                                                <th>@L["Email"]</th>
+                                                <th>@L["Verification"]</th>
+                                                <th class="text-end">@L["Actions"]</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach (var user in joinRequestsList)
+                                            {
+                                                <tr>
+                                                    <td>
+                                                        <div class="fw-bold">@user.AppUserInfo.Nome @user.AppUserInfo.Cognome</div>
+                                                        <div class="small text-muted font-monospace" style="font-size: 0.75rem;">@user.UserId.Value</div>
+                                                    </td>
+                                                    <td>@user.AppUserInfo.Email</td>
+                                                    <td>
+                                                        @if (user.AppUserInfo.IsIdentifiedPhysically)
+                                                        {
+                                                            <span class="text-success small fw-bold">
+                                                                <i class="bi bi-shield-check"></i> @L["Verified"]
+                                                            </span>
+                                                        }
+                                                        else
+                                                        {
+                                                            <span class="text-muted small italic">
+                                                                <i class="bi bi-shield-slash"></i> @L["Unverified"]
+                                                            </span>
+                                                        }
+                                                    </td>
+                                                    <td class="text-end">
+                                                        <div class="d-flex justify-content-end gap-2">
+                                                            <button class="btn btn-success btn-sm rounded-pill px-3 shadow-sm"
+                                                                    @onclick="() => HandleApproveJoinRequest(user.UserId)">
+                                                                <i class="bi bi-check-lg me-1"></i> @L["Approve", "Approve"]
+                                                            </button>
+                                                            <button class="btn btn-outline-danger btn-sm rounded-pill px-3 shadow-sm"
+                                                                    @onclick="() => HandleRejectJoinRequest(user.UserId)">
+                                                                <i class="bi bi-x-lg me-1"></i> @L["Reject", "Reject"]
+                                                            </button>
+                                                        </div>
                                                     </td>
                                                 </tr>
                                             }
@@ -702,19 +841,48 @@
                                                     }
 
                                                     <div class="mb-4">
-                                                        <label for="reservationCodeField" class="form-label small text-muted text-uppercase fw-bold">@L["ReservationCode"]</label>
-                                                        <div class="input-group">
-                                                            <span class="input-group-text bg-transparent border-end-0 text-muted"><i class="bi bi-qr-code-scan"></i></span>
-                                                            <input type="text" 
-                                                                   id="reservationCodeField"
-                                                                   class="form-control border-start-0 ps-0 serif" 
-                                                                   placeholder="@L["EnterReservationCode"]" 
-                                                                   @bind="reservationCodeInput" />
-                                                        </div>
-                                                        <div class="form-text x-small serif italic mt-2">
-                                                            @L["VerifyCodeOnPatronSubmission"]
+                                                        <label class="form-label small text-muted text-uppercase fw-bold d-block mb-2">@L["Checkout Method"]</label>
+                                                        <div class="btn-group w-100" role="group">
+                                                            <button type="button" class="btn btn-sm @(checkoutMethod == "code" ? "btn-primary" : "btn-outline-primary")" style="border-radius: 8px 0 0 8px;" @onclick='() => checkoutMethod = "code"'>@L["Reservation Code"]</button>
+                                                            <button type="button" class="btn btn-sm @(checkoutMethod == "pin" ? "btn-primary" : "btn-outline-primary")" style="border-radius: 0 8px 8px 0;" @onclick='() => checkoutMethod = "pin"'>@L["Pickup PIN"]</button>
                                                         </div>
                                                     </div>
+
+                                                    @if (checkoutMethod == "code")
+                                                    {
+                                                        <div class="mb-4 animate-fade-in">
+                                                            <label for="reservationCodeField" class="form-label small text-muted text-uppercase fw-bold">@L["ReservationCode"]</label>
+                                                            <div class="input-group">
+                                                                <span class="input-group-text bg-transparent border-end-0 text-muted"><i class="bi bi-qr-code-scan"></i></span>
+                                                                <input type="text" 
+                                                                       id="reservationCodeField"
+                                                                       class="form-control border-start-0 ps-0 serif" 
+                                                                       placeholder="@L["EnterReservationCode"]" 
+                                                                       @bind="reservationCodeInput" />
+                                                            </div>
+                                                            <div class="form-text x-small serif italic mt-2">
+                                                                @L["VerifyCodeOnPatronSubmission"]
+                                                            </div>
+                                                        </div>
+                                                    }
+                                                    else
+                                                    {
+                                                        <div class="mb-4 animate-fade-in">
+                                                            <label for="pickupPinField" class="form-label small text-muted text-uppercase fw-bold">@L["Pickup PIN"]</label>
+                                                            <div class="input-group">
+                                                                <span class="input-group-text bg-transparent border-end-0 text-muted"><i class="bi bi-shield-lock"></i></span>
+                                                                <input type="text" 
+                                                                       id="pickupPinField"
+                                                                       class="form-control border-start-0 ps-0 serif text-center fw-bold letter-spacing-2" 
+                                                                       maxlength="6"
+                                                                       placeholder="000000" 
+                                                                       @bind="pickupPinInput" />
+                                                            </div>
+                                                            <div class="form-text x-small serif italic mt-2">
+                                                                @L["Enter 6-digit PIN provided by patron"]
+                                                            </div>
+                                                        </div>
+                                                    }
 
                                                     <button class="btn btn-primary w-100 py-3 rounded-xl d-flex align-items-center justify-content-center gap-2 shadow"
                                                             @onclick="ProcessConversion"
@@ -808,14 +976,235 @@
     [Parameter]
     public Guid Id { get; set; }
 
+    [Parameter]
+    public string? Tab { get; set; }
+
     private BookLibrary.Shared.Details.TenantDetails? libraryDetails;
     private bool isLoading = true;
     private bool isAuthorized = false;
     private string errorMessage = "";
     private string activeTab = "patrons";
     private bool isOwner = false;
+    private bool isUpdatingPrivacy = false;
+    private List<User> joinRequestsList = new();
+    private bool isGeneratingPin = false;
 
     private InvitePatronModel inviteModel = new();
+    private string checkoutMethod = "code";
+    private string pickupPinInput = "";
+
+    private async Task HandlePrivacyToggle(ChangeEventArgs e)
+    {
+        if (libraryDetails == null || isUpdatingPrivacy) return;
+
+        var currentPublic = libraryDetails.Tenant.Public;
+        var newPublic = (bool)(e.Value ?? false);
+
+        if (newPublic == currentPublic) return;
+
+        if (newPublic)
+        {
+            var warningMessage = L["SwitchToPublicWarning"].Value ?? "Making this library public means that anyone can browse the library, not only the patrons. Do you want to proceed?";
+            var confirmed = await JSRuntime.InvokeAsync<bool>("confirm", warningMessage);
+            if (!confirmed)
+            {
+                // Revert visual state in browser DOM immediately to prevent discrepancy
+                await JSRuntime.InvokeVoidAsync("eval", "document.getElementById('privacyToggleSwitch').checked = false;");
+                return;
+            }
+        }
+
+        isUpdatingPrivacy = true;
+        StateHasChanged();
+
+        try
+        {
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var claimsPrincipal = authState.User;
+            if (claimsPrincipal == null) return;
+            var userContext = TenantState.GetUserContext(claimsPrincipal);
+            var tenantId = TenantId.NewTenantId(Id);
+
+            Microsoft.FSharp.Core.FSharpResult<Microsoft.FSharp.Core.Unit, string> result;
+            if (newPublic)
+            {
+                result = await TenantService.SetPublicAsync(userContext, tenantId, Microsoft.FSharp.Core.FSharpOption<System.Threading.CancellationToken>.None);
+            }
+            else
+            {
+                result = await TenantService.SetPrivateAsync(userContext, tenantId, Microsoft.FSharp.Core.FSharpOption<System.Threading.CancellationToken>.None);
+            }
+
+            if (result.IsError)
+            {
+                Logger.LogError("Error updating tenant privacy: {Error}", result.ErrorValue);
+                await JSRuntime.InvokeVoidAsync("showToast", result.ErrorValue ?? L["ErrorOccurred"].Value, "error");
+                // Revert checkbox
+                await JSRuntime.InvokeVoidAsync("eval", $"document.getElementById('privacyToggleSwitch').checked = {(!newPublic).ToString().ToLower()};");
+            }
+            else
+            {
+                await JSRuntime.InvokeVoidAsync("showToast", L["PrivacyUpdatedSuccessfully"].Value ?? "Library visibility updated successfully.", "success");
+                
+                // Refresh aggregate details to update badges and stats dynamically
+                var refreshResult = await DetailsService.GetTenantDetailsAsync(userContext, tenantId, Microsoft.FSharp.Core.FSharpOption<System.Threading.CancellationToken>.None);
+                if (refreshResult.IsOk)
+                {
+                    libraryDetails = refreshResult.ResultValue;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Exception while updating tenant privacy");
+            await JSRuntime.InvokeVoidAsync("showToast", L["ErrorOccurred"].Value, "error");
+            // Revert checkbox
+            await JSRuntime.InvokeVoidAsync("eval", $"document.getElementById('privacyToggleSwitch').checked = {(!newPublic).ToString().ToLower()};");
+        }
+        finally
+        {
+            isUpdatingPrivacy = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task HandleGenerateJoinPin()
+    {
+        if (libraryDetails == null || isGeneratingPin) return;
+        isGeneratingPin = true;
+        try
+        {
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var userContext = TenantState.GetUserContext(authState.User);
+            var tenantId = TenantId.NewTenantId(Id);
+
+            var random = new Random();
+            var pin = random.Next(100000, 999999).ToString();
+
+            var result = await TenantService.GenerateJoinPinAsync(userContext, tenantId, pin, default);
+            if (result.IsOk)
+            {
+                await JSRuntime.InvokeVoidAsync("showToast", L["JoinPinGenerated", "Join PIN generated successfully"].Value, "success");
+                
+                var refreshResult = await DetailsService.GetTenantDetailsAsync(userContext, tenantId, Microsoft.FSharp.Core.FSharpOption<System.Threading.CancellationToken>.None);
+                if (refreshResult.IsOk)
+                {
+                    libraryDetails = refreshResult.ResultValue;
+                }
+            }
+            else
+            {
+                await JSRuntime.InvokeVoidAsync("showToast", result.ErrorValue, "error");
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error generating join PIN");
+            await JSRuntime.InvokeVoidAsync("showToast", L["ErrorOccurred"].Value, "error");
+        }
+        finally
+        {
+            isGeneratingPin = false;
+        }
+    }
+
+    private async Task CopyToClipboard()
+    {
+        if (libraryDetails != null && Microsoft.FSharp.Core.FSharpOption<string>.get_IsSome(libraryDetails.Tenant.CurrentJoinPin))
+        {
+            await JSRuntime.InvokeVoidAsync("navigator.clipboard.writeText", libraryDetails.Tenant.CurrentJoinPin.Value);
+            await JSRuntime.InvokeVoidAsync("showToast", L["CopiedToClipboard", "PIN copied to clipboard!"].Value, "success");
+        }
+    }
+
+    private async Task HandleApproveJoinRequest(UserId userId)
+    {
+        if (libraryDetails == null) return;
+        try
+        {
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var userContext = TenantState.GetUserContext(authState.User);
+            var tenantId = TenantId.NewTenantId(Id);
+
+            var result = await TenantService.ApproveJoinRequestAsync(userContext, tenantId, userId, default);
+            if (result.IsOk)
+            {
+                await JSRuntime.InvokeVoidAsync("showToast", L["JoinRequestApproved", "Join request approved successfully"].Value, "success");
+                
+                var refreshResult = await DetailsService.GetTenantDetailsAsync(userContext, tenantId, Microsoft.FSharp.Core.FSharpOption<System.Threading.CancellationToken>.None);
+                if (refreshResult.IsOk)
+                {
+                    libraryDetails = refreshResult.ResultValue;
+                    joinRequestsList.Clear();
+                    if (libraryDetails.Tenant.JoinRequests != null)
+                    {
+                        foreach (var requesterId in libraryDetails.Tenant.JoinRequests)
+                        {
+                            var userRes = await UserService.GetUserAsync(userContext, requesterId, Microsoft.FSharp.Core.FSharpOption<System.Threading.CancellationToken>.None);
+                            if (userRes.IsOk)
+                            {
+                                joinRequestsList.Add(userRes.ResultValue);
+                            }
+                        }
+                    }
+                }
+            }
+            else
+            {
+                await JSRuntime.InvokeVoidAsync("showToast", result.ErrorValue, "error");
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error approving join request");
+            await JSRuntime.InvokeVoidAsync("showToast", L["ErrorOccurred"].Value, "error");
+        }
+    }
+
+    private async Task HandleRejectJoinRequest(UserId userId)
+    {
+        if (libraryDetails == null) return;
+        try
+        {
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var userContext = TenantState.GetUserContext(authState.User);
+            var tenantId = TenantId.NewTenantId(Id);
+
+            var result = await TenantService.RejectJoinRequestAsync(userContext, tenantId, userId, default);
+            if (result.IsOk)
+            {
+                await JSRuntime.InvokeVoidAsync("showToast", L["JoinRequestRejected", "Join request rejected"].Value, "success");
+                
+                var refreshResult = await DetailsService.GetTenantDetailsAsync(userContext, tenantId, Microsoft.FSharp.Core.FSharpOption<System.Threading.CancellationToken>.None);
+                if (refreshResult.IsOk)
+                {
+                    libraryDetails = refreshResult.ResultValue;
+                    joinRequestsList.Clear();
+                    if (libraryDetails.Tenant.JoinRequests != null)
+                    {
+                        foreach (var requesterId in libraryDetails.Tenant.JoinRequests)
+                        {
+                            var userRes = await UserService.GetUserAsync(userContext, requesterId, Microsoft.FSharp.Core.FSharpOption<System.Threading.CancellationToken>.None);
+                            if (userRes.IsOk)
+                            {
+                                joinRequestsList.Add(userRes.ResultValue);
+                            }
+                        }
+                    }
+                }
+            }
+            else
+            {
+                await JSRuntime.InvokeVoidAsync("showToast", result.ErrorValue, "error");
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error rejecting join request");
+            await JSRuntime.InvokeVoidAsync("showToast", L["ErrorOccurred"].Value, "error");
+        }
+    }
+
     private bool isInviting = false;
     private string? inviteErrorMessage;
 
@@ -1047,9 +1436,15 @@
     {
         if (selectedReservation == null) return;
 
-        if (string.IsNullOrWhiteSpace(reservationCodeInput))
+        if (checkoutMethod == "code" && string.IsNullOrWhiteSpace(reservationCodeInput))
         {
             await JSRuntime.InvokeVoidAsync("showToast", L["ReservationCodeRequired"].Value, "warning");
+            return;
+        }
+
+        if (checkoutMethod == "pin" && (string.IsNullOrWhiteSpace(pickupPinInput) || pickupPinInput.Length != 6))
+        {
+            await JSRuntime.InvokeVoidAsync("showToast", "6-digit Pickup PIN is required", "warning");
             return;
         }
 
@@ -1057,22 +1452,37 @@
         try
         {
             var resId = selectedReservation.Reservation.ReservationId;
-            var resCode = ReservationCode.ReservationCode.NewReservationCode(reservationCodeInput);
-            
             var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
             var context = blazorBookLibrary.Shared.ConverterUtils.fromClaimsPrincipal(authState.User);
-            var result = await LoanService.TransformReservationIntoLoanAsync(
-                context,
-                resId,
-                resCode,
-                DateTime.UtcNow,
-                Microsoft.FSharp.Core.FSharpOption<CancellationToken>.None);
+            
+            Microsoft.FSharp.Core.FSharpResult<Microsoft.FSharp.Core.Unit, string> result;
+            
+            if (checkoutMethod == "code")
+            {
+                var resCode = ReservationCode.ReservationCode.NewReservationCode(reservationCodeInput);
+                result = await LoanService.TransformReservationIntoLoanAsync(
+                    context,
+                    resId,
+                    resCode,
+                    DateTime.UtcNow,
+                    Microsoft.FSharp.Core.FSharpOption<CancellationToken>.None);
+            }
+            else
+            {
+                result = await LoanService.TransformReservationIntoLoanByPinAsync(
+                    context,
+                    resId,
+                    pickupPinInput,
+                    DateTime.UtcNow,
+                    Microsoft.FSharp.Core.FSharpOption<CancellationToken>.None);
+            }
 
             if (result.IsOk)
             {
                 await JSRuntime.InvokeVoidAsync("showToast", L["ReservationConvertedSuccess"].Value, "success");
                 selectedReservation = null;
                 reservationCodeInput = "";
+                pickupPinInput = "";
                 
                 // Refresh tenant details to show updated lists
                 var tenantId = TenantId.NewTenantId(Id);
@@ -1084,8 +1494,8 @@
             }
             else
             {
-                Logger.LogError("Error converting reservation {ReservationId} with code {ReservationCode} into loan: {Error}", resId.Value, resCode.Value, result.ErrorValue);
-                await JSRuntime.InvokeVoidAsync("showToast", L["ErrorOccurred"].Value, "error");
+                Logger.LogError("Error converting reservation {ReservationId} into loan: {Error}", resId.Value, result.ErrorValue);
+                await JSRuntime.InvokeVoidAsync("showToast", L["ErrorOccurred"].Value + ": " + result.ErrorValue, "error");
             }
         }
         catch (Exception ex)
@@ -1221,6 +1631,19 @@
                     libraryDetails = details;
                     isAuthorized = true;
 
+                    joinRequestsList.Clear();
+                    if (libraryDetails != null && libraryDetails.Tenant.JoinRequests != null)
+                    {
+                        foreach (var requesterId in libraryDetails.Tenant.JoinRequests)
+                        {
+                            var userRes = await UserService.GetUserAsync(userContext, requesterId, Microsoft.FSharp.Core.FSharpOption<System.Threading.CancellationToken>.None);
+                            if (userRes.IsOk)
+                            {
+                                joinRequestsList.Add(userRes.ResultValue);
+                            }
+                        }
+                    }
+
                     if (isOwner && TenantState.CurrentTenant?.TenantId.Value != details.Tenant.TenantId.Value)
                     {
                         try
@@ -1261,6 +1684,34 @@
         finally
         {
             isLoading = false;
+        }
+    }
+
+    protected override void OnParametersSet()
+    {
+        if (!string.IsNullOrEmpty(Tab))
+        {
+            if (Tab.Equals("approvals", StringComparison.OrdinalIgnoreCase) || 
+                Tab.Equals("joinRequests", StringComparison.OrdinalIgnoreCase))
+            {
+                activeTab = "joinRequests";
+            }
+            else if (Tab.Equals("invitedPatrons", StringComparison.OrdinalIgnoreCase))
+            {
+                activeTab = "invitedPatrons";
+            }
+            else if (Tab.Equals("loans", StringComparison.OrdinalIgnoreCase))
+            {
+                activeTab = "loans";
+            }
+            else if (Tab.Equals("reservations", StringComparison.OrdinalIgnoreCase))
+            {
+                activeTab = "reservations";
+            }
+            else if (Tab.Equals("patrons", StringComparison.OrdinalIgnoreCase))
+            {
+                activeTab = "patrons";
+            }
         }
     }
 }

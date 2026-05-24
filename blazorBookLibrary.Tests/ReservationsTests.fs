@@ -950,5 +950,65 @@ let tests =
 
 
         }
+
+        testCaseTask "generate pickup PIN and transform reservation into loan by PIN - Ok" <| fun _ -> task {
+            setUp ()
+            let bookService = getBookService()
+            let detailsService = getDetailsService()
+            let reservationService = getReservationService()
+            let loanService = getLoanService()
+            let userService = getUserService()
+
+            let book = Book.New TenantId.Default (Title.New "the pickup pin book") [] [] [] None Category.Other [] (Year.New 2026) (Isbn.NewEmpty()) None
+            let! addBook = bookService.AddBookAsync(adminContext, book)
+            Expect.isOk addBook "should be ok"
+
+            let! userId1 = registerUserTask "testpin@example.com" "Password123!"
+
+            let futureTimeSlot = TimeSlot.New (System.DateTime.Now.AddMonths(1)) (System.DateTime.Now.AddMonths(2))
+            let reservation = Reservation.New TenantId.Default book.BookId userId1 futureTimeSlot (System.DateTime.Now)
+            let! addReservation = reservationService.AddReservationAsync (adminContext, reservation, ShortLang.New "en")
+            Expect.isOk addReservation "should be ok"
+
+            // 1. Generate Pickup PIN
+            let! generatePinResult = (reservationService :> IReservationService).GeneratePickupPinAsync(adminContext, reservation.ReservationId)
+            Expect.isOk generatePinResult "should generate PIN successfully"
+            let (rawPin, expiresAt) = generatePinResult.OkValue
+            Expect.equal rawPin.Length 6 "PIN should be 6 digits"
+
+            // Verify pin has been stored as a secure hash in the reservation state
+            let! getReservationResult = reservationService.GetReservationAsync(adminContext, reservation.ReservationId)
+            Expect.isOk getReservationResult "should retrieve reservation state"
+            let updatedReservation = getReservationResult.OkValue
+            Expect.isTrue updatedReservation.PickupPinHash.IsSome "PickupPinHash should be present"
+            Expect.isTrue updatedReservation.PickupPinExpiresAt.IsSome "PickupPinExpiresAt should be present"
+
+            // Compute expected SHA-256 hash to assert security
+            let pinBytes = System.Text.Encoding.UTF8.GetBytes(rawPin)
+            let hashBytes = System.Security.Cryptography.SHA256.HashData(pinBytes)
+            let expectedHash = System.Convert.ToHexString(hashBytes).ToLowerInvariant()
+            Expect.equal updatedReservation.PickupPinHash.Value expectedHash "stored hash should match secure SHA-256 computation"
+
+            // 2. Try to checkout by invalid PIN - should fail
+            let! checkoutWithInvalidPin = (loanService :> ILoanService).TransformReservationIntoLoanByPinAsync(adminContext, reservation.ReservationId, "000000", System.DateTime.UtcNow)
+            Expect.isError checkoutWithInvalidPin "should fail checkout with invalid PIN"
+
+            // 3. Try to checkout by valid PIN - should succeed
+            let! checkoutWithValidPin = (loanService :> ILoanService).TransformReservationIntoLoanByPinAsync(adminContext, reservation.ReservationId, rawPin, System.DateTime.UtcNow)
+            Expect.isOk checkoutWithValidPin "should succeed checkout with valid PIN"
+
+            // Verify checkout effects
+            let! loans = loanService.GetLoansAsync(adminContext)
+            Expect.isOk loans "should retrieve loans list"
+            Expect.equal loans.OkValue.Length 1 "should contain exactly one loan"
+            let createdLoan = loans.OkValue |> List.head
+            Expect.equal createdLoan.UserId userId1 "loan should belong to patron"
+            Expect.equal createdLoan.BookId book.BookId "loan should contain book"
+
+            let! getReservationAfterCheckout = reservationService.GetReservationAsync(adminContext, reservation.ReservationId)
+            Expect.isOk getReservationAfterCheckout "should retrieve reservation"
+            Expect.equal getReservationAfterCheckout.OkValue.Status ReservationStatus.Loaned "reservation status should transition to Loaned"
+            Expect.isTrue getReservationAfterCheckout.OkValue.PickupPinHash.IsNone "PIN hash should be cleared post-checkout"
+        }
     ]
     |> testSequenced

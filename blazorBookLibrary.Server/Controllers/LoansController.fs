@@ -85,6 +85,17 @@ type LoansController(loanService: ILoanService) =
             | Error msg -> return this.BadRequest(msg) :> IActionResult
         }
 
+    [<HttpPost("transform-reservation-by-pin/{reservationId}")>]
+    member this.TransformReservationByPin(reservationId: Guid, [<FromBody>] pin: string) =
+        task {
+            let context = UserContextMapper.mapFromClaimsPrincipal this.User
+            let! result = loanService.TransformReservationIntoLoanByPinAsync(context, ReservationId reservationId, pin, DateTime.UtcNow)
+            match result with
+            | Ok _ -> return this.Ok() :> IActionResult
+            | Error msg -> return this.BadRequest(msg) :> IActionResult
+        }
+
+
     [<HttpDelete("{id}")>]
     member this.RemoveLoan(id: Guid) =
         task {
@@ -102,5 +113,14 @@ type LoansController(loanService: ILoanService) =
             let! result = loanService.ArchiveLoanAsync(context, LoanId id)
             match result with
             | Ok () -> return this.Ok() :> IActionResult
+            | Error msg -> return this.BadRequest(msg) :> IActionResult
+        }
+    [<HttpGet("tenant/{tenantId}/user/{userId}")>]
+    member this.GetLoansOfUserInTenant(tenantId: Guid, userId: Guid) =
+        task {
+            let context = UserContextMapper.mapFromClaimsPrincipal this.User
+            let! result = loanService.GetLoansOfUserInATenantAsync(context, TenantId tenantId, UserId userId)
+            match result with
+            | Ok loans -> return this.Ok(loans) :> IActionResult
             | Error msg -> return this.BadRequest(msg) :> IActionResult
         }

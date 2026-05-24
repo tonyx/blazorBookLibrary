@@ -971,4 +971,11 @@
   <data name="ConfirmDeleteTenant" xml:space="preserve"><value>Are you sure you want to permanently delete the library '{0}'? This action is irreversible.</value></data>
   <data name="TenantDeletedSuccessfully" xml:space="preserve"><value>Library deleted successfully.</value></data>
   <data name="NotDeletableContains" xml:space="preserve"><value>Not deletable. Contains: {0} patrons, {1} books, {2} authors, {3} distribution points.</value></data>
+  <data name="AccessLevel" xml:space="preserve"><value>Access Level</value></data>
+  <data name="Private" xml:space="preserve"><value>Private</value></data>
+  <data name="ConfirmSwitchToPublic" xml:space="preserve"><value>Confirm Public Visibility</value></data>
+  <data name="SwitchToPublicWarning" xml:space="preserve"><value>Making this library public means that anyone can browse the library, not only the patrons. Do you want to proceed?</value></data>
+  <data name="PrivacyUpdatedSuccessfully" xml:space="preserve"><value>Library visibility updated successfully.</value></data>
+  <data name="PublicPrivacyDescription" xml:space="preserve"><value>Anyone can discover and browse this library. (Public)</value></data>
+  <data name="PrivatePrivacyDescription" xml:space="preserve"><value>Only authorized patrons can browse this library. (Private)</value></data>
 </root>

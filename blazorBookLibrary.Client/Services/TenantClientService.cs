@@ -156,4 +156,39 @@ public class TenantClientService : ITenantService
         var response = await _httpClient.SendAsync(request, ServiceClientHelper.GetValue(ct, CancellationToken.None));
         return await ServiceClientHelper.HandleUnitResponse(response);
     }
+
+    public async Task<FSharpResult<Unit, string>> GenerateJoinPinAsync(Commons.UserContext context, Commons.TenantId tenantId, string pin, FSharpOption<CancellationToken> ct)
+    {
+        var request = ServiceClientHelper.CreateRequest(HttpMethod.Post, $"api/Tenant/{tenantId.Value}/join-pin?pin={System.Uri.EscapeDataString(pin)}", context);
+        var response = await _httpClient.SendAsync(request, ServiceClientHelper.GetValue(ct, CancellationToken.None));
+        return await ServiceClientHelper.HandleUnitResponse(response);
+    }
+
+    public async Task<FSharpResult<Unit, string>> SubmitJoinRequestAsync(Commons.UserContext context, Commons.TenantId tenantId, Commons.UserId userId, FSharpOption<CancellationToken> ct)
+    {
+        var request = ServiceClientHelper.CreateRequest(HttpMethod.Post, $"api/Tenant/{tenantId.Value}/join-requests/{userId.Value}", context);
+        var response = await _httpClient.SendAsync(request, ServiceClientHelper.GetValue(ct, CancellationToken.None));
+        return await ServiceClientHelper.HandleUnitResponse(response);
+    }
+
+    public async Task<FSharpResult<Unit, string>> ApproveJoinRequestAsync(Commons.UserContext context, Commons.TenantId tenantId, Commons.UserId userId, FSharpOption<CancellationToken> ct)
+    {
+        var request = ServiceClientHelper.CreateRequest(HttpMethod.Put, $"api/Tenant/{tenantId.Value}/join-requests/{userId.Value}/approve", context);
+        var response = await _httpClient.SendAsync(request, ServiceClientHelper.GetValue(ct, CancellationToken.None));
+        return await ServiceClientHelper.HandleUnitResponse(response);
+    }
+
+    public async Task<FSharpResult<Unit, string>> RejectJoinRequestAsync(Commons.UserContext context, Commons.TenantId tenantId, Commons.UserId userId, FSharpOption<CancellationToken> ct)
+    {
+        var request = ServiceClientHelper.CreateRequest(HttpMethod.Put, $"api/Tenant/{tenantId.Value}/join-requests/{userId.Value}/reject", context);
+        var response = await _httpClient.SendAsync(request, ServiceClientHelper.GetValue(ct, CancellationToken.None));
+        return await ServiceClientHelper.HandleUnitResponse(response);
+    }
+
+    public async Task<FSharpResult<Tenant, string>> FindTenantByJoinPinAsync(string pin, FSharpOption<CancellationToken> ct)
+    {
+        var request = ServiceClientHelper.CreateRequest(HttpMethod.Get, $"api/Tenant/by-pin/{System.Uri.EscapeDataString(pin)}", Commons.UserContext.Anonymous);
+        var response = await _httpClient.SendAsync(request, ServiceClientHelper.GetValue(ct, CancellationToken.None));
+        return await ServiceClientHelper.HandleResponse<Tenant>(response);
+    }
 }

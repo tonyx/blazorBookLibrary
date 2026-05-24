@@ -40,21 +40,101 @@
                 <p class="text-muted lead mb-0">@L["AllowedTenantsDescription"]</p>
             </div>
 
-            @* Toggle Button for Creating a Library *@
-            <button type="button"
-                class="btn btn-sanctuary-primary rounded-pill px-4"
-                @onclick="ToggleCreateForm">
-                @if (showCreateForm)
-                {
-                    <i class="bi bi-dash-circle-fill me-2"></i>@L["Cancel"]
-                }
-                else
-                {
-                    <i class="bi bi-plus-circle-fill me-2"></i>@L["CreateNewLibrary"]
-                }
-            </button>
+            <div class="d-flex gap-2">
+                @* Toggle Button for Joining a Library by PIN *@
+                <button type="button"
+                    class="btn btn-outline-primary rounded-pill px-4"
+                    @onclick="ToggleJoinForm">
+                    @if (showJoinForm)
+                    {
+                        <i class="bi bi-dash-circle-fill me-2"></i>@L["Cancel"]
+                    }
+                    else
+                    {
+                        <i class="bi bi-key-fill me-2"></i>@L["JoinByPIN", "Join by PIN"]
+                    }
+                </button>
+
+                @* Toggle Button for Creating a Library *@
+                <button type="button"
+                    class="btn btn-sanctuary-primary rounded-pill px-4"
+                    @onclick="ToggleCreateForm">
+                    @if (showCreateForm)
+                    {
+                        <i class="bi bi-dash-circle-fill me-2"></i>@L["Cancel"]
+                    }
+                    else
+                    {
+                        <i class="bi bi-plus-circle-fill me-2"></i>@L["CreateNewLibrary"]
+                    }
+                </button>
+            </div>
         </div>
     </div>
+
+    @if (showJoinForm)
+    {
+        @* Join Tenant by PIN Form *@
+        <div class="card card-sanctuary mb-5 border-0 shadow-sm bg-surface-low animate-slide-down">
+            <div class="card-body p-4">
+                <h2 class="h4 text-serif mb-4"><i
+                        class="bi bi-key-fill text-primary me-2"></i>@L["JoinLibraryByPIN", "Join Library by PIN"]</h2>
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-6 col-lg-4">
+                        <label class="form-label small fw-bold text-muted">@L["JoinPIN", "6-Digit Join PIN"]</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-transparent border-end-0"><i class="bi bi-shield-lock-fill text-muted"></i></span>
+                            <input type="text" @bind="joinPin" @bind:event="oninput" @onkeyup="HandlePinKeypress" class="form-control border-start-0 ps-0 text-center fw-bold letter-spacing-1"
+                                   placeholder="e.g. 123456" maxlength="6" style="font-size: 1.1rem; letter-spacing: 0.2rem;" />
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <button type="button" class="btn btn-primary w-100 rounded-pill shadow-sm"
+                                @onclick="HandleLookupPin" disabled="@(joinPin.Length != 6 || isLookingUpPin)">
+                            @if (isLookingUpPin)
+                            {
+                                <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                            }
+                            @L["LookupLibrary", "Lookup Library"]
+                        </button>
+                    </div>
+                </div>
+
+                @if (foundTenant != null)
+                {
+                    <div class="mt-4 p-4 rounded-4 bg-primary bg-opacity-10 border border-primary border-opacity-10 animate-fade-in">
+                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+                            <div>
+                                <h4 class="text-serif h5 mb-1"><i class="bi bi-building me-2"></i>@foundTenant.Name.Value</h4>
+                                <p class="small text-muted mb-0"><i class="bi bi-geo-alt me-1"></i>@(string.IsNullOrWhiteSpace(foundTenant.Address) ? L["Unspecified"].Value : foundTenant.Address)</p>
+                            </div>
+                            <div>
+                                @if (isAlreadyMember)
+                                {
+                                    <span class="badge bg-success rounded-pill px-3 py-2"><i class="bi bi-check-circle-fill me-1"></i> @L["AlreadyMember", "Already a Member"]</span>
+                                }
+                                else if (isJoinRequested)
+                                {
+                                    <span class="badge bg-warning text-dark rounded-pill px-3 py-2"><i class="bi bi-hourglass-split me-1"></i> @L["RequestPending", "Request Pending"]</span>
+                                }
+                                else
+                                {
+                                    <button type="button" class="btn btn-success rounded-pill px-4 shadow-sm"
+                                            @onclick="HandleSubmitJoinRequest" disabled="@isSubmittingJoin">
+                                        @if (isSubmittingJoin)
+                                        {
+                                            <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                                        }
+                                        <i class="bi bi-send-fill me-1"></i> @L["SendJoinRequest", "Request to Join"]
+                                    </button>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    }
 
     @if (showCreateForm)
     {
@@ -305,6 +385,13 @@
     private string? errorMessage;
     private bool isSubmitting = false;
     private bool showCreateForm = false;
+    private bool showJoinForm = false;
+    private string joinPin = "";
+    private bool isLookingUpPin = false;
+    private bool isSubmittingJoin = false;
+    private Tenant? foundTenant;
+    private bool isAlreadyMember = false;
+    private bool isJoinRequested = false;
 
     private Guid? currentUserId;
     private bool isAdmin = false;
@@ -342,6 +429,92 @@
     private void ToggleCreateForm()
     {
         showCreateForm = !showCreateForm;
+        if (showCreateForm) showJoinForm = false;
+    }
+
+    private void ToggleJoinForm()
+    {
+        showJoinForm = !showJoinForm;
+        if (showJoinForm) showCreateForm = false;
+        joinPin = "";
+        foundTenant = null;
+    }
+
+    private async Task HandlePinKeypress(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && joinPin.Length == 6 && !isLookingUpPin)
+        {
+            await HandleLookupPin();
+        }
+    }
+
+    private async Task HandleLookupPin()
+    {
+        if (joinPin.Length != 6) return;
+        isLookingUpPin = true;
+        foundTenant = null;
+        errorMessage = null;
+        try
+        {
+            var result = await TenantService.FindTenantByJoinPinAsync(joinPin, default);
+            if (result.IsOk)
+            {
+                foundTenant = result.ResultValue;
+                if (currentUserId.HasValue)
+                {
+                    isAlreadyMember = foundTenant.OwnerId.Value == currentUserId.Value ||
+                                      foundTenant.Patrons.Any(p => p.Item1.Value == currentUserId.Value);
+                    isJoinRequested = foundTenant.JoinRequests.Any(r => r.Value == currentUserId.Value);
+                }
+            }
+            else
+            {
+                await JSRuntime.InvokeVoidAsync("showToast", result.ErrorValue, "error");
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error looking up tenant by pin");
+            await JSRuntime.InvokeVoidAsync("showToast", L["ErrorOccurred"].Value, "error");
+        }
+        finally
+        {
+            isLookingUpPin = false;
+        }
+    }
+
+    private async Task HandleSubmitJoinRequest()
+    {
+        if (foundTenant == null || !currentUserId.HasValue) return;
+        isSubmittingJoin = true;
+        try
+        {
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var userContext = TenantState.GetUserContext(authState.User);
+            var result = await TenantService.SubmitJoinRequestAsync(userContext, foundTenant.TenantId, userContext.UserId.Value, default);
+            if (result.IsOk)
+            {
+                await JSRuntime.InvokeVoidAsync("showToast", L["JoinRequestSubmitted", "Join request submitted successfully"].Value, "success");
+                isJoinRequested = true;
+                foundTenant = null;
+                joinPin = "";
+                showJoinForm = false;
+                await LoadTenants();
+            }
+            else
+            {
+                await JSRuntime.InvokeVoidAsync("showToast", result.ErrorValue, "error");
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error submitting join request");
+            await JSRuntime.InvokeVoidAsync("showToast", L["ErrorOccurred"].Value, "error");
+        }
+        finally
+        {
+            isSubmittingJoin = false;
+        }
     }
 
     private async Task<bool> HandleSelectTenant(Tenant tenant)

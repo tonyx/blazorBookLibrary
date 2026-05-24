@@ -121,6 +121,7 @@ builder.Services.AddSingleton<IDistributionPointService, DistributionPointServic
 
 builder.Services.AddSingleton<IAdminServices, AdminService>();
 builder.Services.AddSingleton<ITenantService, TenantService>();
+builder.Services.AddSingleton<INotificationService, NotificationService>();
 
 builder.Services.AddTransient<CleanUpService>();
 builder.Services.AddHttpClient();

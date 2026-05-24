@@ -61,4 +61,22 @@ public class ReservationsClientService : IReservationService
         var response = await _httpClient.PostAsync("api/Reservations/expired/remove", null, ServiceClientHelper.GetValue(ct, CancellationToken.None));
         return await ServiceClientHelper.HandleUnitResponse(response);
     }
+
+    public class GeneratedPinResponse
+    {
+        public string Pin { get; set; } = string.Empty;
+        public DateTime ExpiresAt { get; set; }
+    }
+
+    public async Task<FSharpResult<Tuple<string, DateTime>, string>> GeneratePickupPinAsync(Commons.UserContext context, Commons.ReservationId id, FSharpOption<CancellationToken> ct)
+    {
+        var response = await _httpClient.PostAsync($"api/Reservations/{id.Value}/generate-pin", null, ServiceClientHelper.GetValue(ct, CancellationToken.None));
+        var result = await ServiceClientHelper.HandleResponse<GeneratedPinResponse>(response);
+        if (result.IsOk)
+        {
+            return FSharpResult<Tuple<string, DateTime>, string>.NewOk(Tuple.Create(result.ResultValue.Pin, result.ResultValue.ExpiresAt));
+        }
+        return FSharpResult<Tuple<string, DateTime>, string>.NewError(result.ErrorValue);
+    }
+
 }

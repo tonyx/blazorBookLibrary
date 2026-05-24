@@ -1,4 +1,3 @@
-
 namespace BookLibrary.Domain
 
 open System
@@ -12,6 +11,8 @@ type ReservationEvent =
     | ReservationSealed of DateTime
     | ReservationUnsealed of DateTime
     | ReservationLoaned of DateTime
+    | PickupPinGenerated2 of string * DateTime
+    | PickupPinVerified2 of DateTime
     interface Event<Reservation> with
         member this.Process (reservation: Reservation) =
             match this with
@@ -25,6 +26,10 @@ type ReservationEvent =
                 reservation.Unseal dateTime
             | ReservationLoaned dateTime ->
                 reservation.Loan dateTime
+            | PickupPinGenerated2 (pinHash, expiresAt) ->
+                reservation.GeneratePickupPin (pinHash, expiresAt)
+            | PickupPinVerified2 dateTime ->
+                reservation.VerifyPickupPinAndLoan dateTime
 
     static member Deserialize (x: string): Result<ReservationEvent, string> =
         try

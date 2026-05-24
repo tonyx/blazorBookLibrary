@@ -65,3 +65,16 @@ type ReservationsController(reservationService: IReservationService) =
             | Ok details -> return this.Ok(details) :> IActionResult
             | Error msg -> return this.BadRequest(msg) :> IActionResult
         }
+
+    [<HttpPost("{id}/generate-pin")>]
+    member this.GeneratePickupPin(id: Guid) =
+        task {
+            let context = UserContextMapper.mapFromClaimsPrincipal this.User
+            let! result = reservationService.GeneratePickupPinAsync(context, ReservationId id)
+            match result with
+            | Ok (pin, expiresAt) -> 
+                let response = dict [("pin", pin :> obj); ("expiresAt", expiresAt :> obj)]
+                return this.Ok(response) :> IActionResult
+            | Error msg -> return this.BadRequest(msg) :> IActionResult
+        }
+

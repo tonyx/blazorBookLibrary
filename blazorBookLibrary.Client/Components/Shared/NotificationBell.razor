@@ -1,0 +1,368 @@
+@using BookLibrary.Domain
+@using BookLibrary.Shared.Services
+@using BookLibrary.Shared
+@using Microsoft.FSharp.Core
+@using Microsoft.FSharp.Collections
+@inject INotificationService NotificationService
+@inject ITenantService TenantService
+@inject blazorBookLibrary.Client.Services.TenantStateService TenantState
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager NavigationManager
+
+<div class="notification-container dropdown">
+    <button class="btn-notification-bell dropdown-toggle-no-caret" 
+            type="button" 
+            id="notificationDropdownButton"
+            data-bs-toggle="dropdown" 
+            aria-expanded="false"
+            aria-label="Notifications">
+        <i class="bi bi-bell"></i>
+        @if (unreadCount > 0)
+        {
+            <span class="notification-badge">@unreadCount</span>
+        }
+    </button>
+
+    <div class="notification-dropdown dropdown-menu dropdown-menu-end shadow border-0" aria-labelledby="notificationDropdownButton">
+        <div class="dropdown-header d-flex align-items-center justify-content-between">
+            <span class="header-title">Notifications</span>
+            @if (unreadCount > 0)
+            {
+                <a href="/Notifications/MarkAllAsRead?returnUrl=@currentUrl" class="btn-mark-all-read btn-link text-decoration-none">Mark all as read</a>
+            }
+        </div>
+
+        <div class="dropdown-body">
+            @if (notifications == null || !notifications.Any())
+            {
+                <div class="dropdown-placeholder text-muted py-4">
+                    <i class="bi bi-bell-slash fs-3 d-block mb-2"></i>
+                    <span>No new notifications</span>
+                </div>
+            }
+            else
+            {
+                <div class="notification-list">
+                    @foreach (var notif in notifications)
+                    {
+                        var notifUrl = FSharpOption<string>.get_IsSome(notif.ActionUrl) ? notif.ActionUrl.Value : "";
+                        var clickUrl = $"/Notifications/HandleClick?notificationId={notif.NotificationId.Value}&redirectUrl={Uri.EscapeDataString(notifUrl)}";
+
+                        <div class="notification-item @(notif.IsRead ? "" : "unread")">
+                            <a href="@clickUrl" class="notif-content-wrapper text-decoration-none text-dark">
+                                <div class="notif-icon-box">
+                                    @if (notif.Title.Contains("Invite") || notif.Title.Contains("Onboarding"))
+                                    {
+                                        <i class="bi bi-envelope-open text-primary"></i>
+                                    }
+                                    else if (notif.Title.Contains("Request"))
+                                    {
+                                        <i class="bi bi-person-plus text-warning"></i>
+                                    }
+                                    else if (notif.Title.Contains("Approved"))
+                                    {
+                                        <i class="bi bi-check-circle text-success"></i>
+                                    }
+                                    else
+                                    {
+                                        <i class="bi bi-bell text-secondary"></i>
+                                    }
+                                </div>
+                                <div class="notif-details">
+                                    <h5 class="notif-title">@notif.Title</h5>
+                                    <p class="notif-text">@notif.Content</p>
+                                    <span class="notif-time">@GetTimeAgo(notif.CreatedAt)</span>
+                                </div>
+                            </a>
+
+                            @if (notif.Title.Contains("Invitation") && FSharpOption<string>.get_IsSome(notif.ActionUrl))
+                            {
+                                var (tenantIdStr, codeStr) = ParseInvitationParams(notif.ActionUrl.Value);
+                                var acceptUrl = $"/Notifications/AcceptInvitation?notificationId={notif.NotificationId.Value}&tenantId={tenantIdStr}&code={codeStr}";
+                                var dismissUrl = $"/Notifications/Dismiss?notificationId={notif.NotificationId.Value}&returnUrl={Uri.EscapeDataString(currentUrl ?? "/")}";
+
+                                <div class="notif-actions mt-2 d-flex gap-2">
+                                    <a href="@acceptUrl" class="btn btn-sm btn-primary py-1 px-3 radius-full text-decoration-none">Accept</a>
+                                    <a href="@dismissUrl" class="btn btn-sm btn-outline-secondary py-1 px-3 radius-full text-decoration-none">Dismiss</a>
+                                </div>
+                            }
+                            else if (notif.Title.Contains("Join Request") && FSharpOption<string>.get_IsSome(notif.ActionUrl))
+                            {
+                                var tenantIdStr = ParseJoinRequestParams(notif.ActionUrl.Value);
+                                var approveUrl = $"/Notifications/ApproveJoin?notificationId={notif.NotificationId.Value}&tenantId={tenantIdStr}";
+                                var rejectUrl = $"/Notifications/RejectJoin?notificationId={notif.NotificationId.Value}&returnUrl={Uri.EscapeDataString(currentUrl ?? "/")}";
+
+                                <div class="notif-actions mt-2 d-flex gap-2">
+                                    <a href="@approveUrl" class="btn btn-sm btn-success py-1 px-3 radius-full text-decoration-none">Approve</a>
+                                    <a href="@rejectUrl" class="btn btn-sm btn-outline-danger py-1 px-3 radius-full text-decoration-none">Reject</a>
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter] public string? currentUrl { get; set; }
+
+    private List<Notification> notifications = new();
+    private int unreadCount = 0;
+    private Commons.UserContext? userContext;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        if (authState.User.Identity?.IsAuthenticated == true)
+        {
+            userContext = TenantState.GetUserContext(authState.User);
+            if (userContext != null)
+            {
+                try
+                {
+                    var result = await NotificationService.GetUnreadNotificationsForUserAsync(userContext, FSharpOption<CancellationToken>.None);
+                    if (result.IsOk)
+                    {
+                        notifications = result.ResultValue.ToList();
+                        unreadCount = notifications.Count;
+                    }
+                }
+                catch (Exception)
+                {
+                    // Fail silently
+                }
+            }
+        }
+    }
+
+    private string GetTimeAgo(DateTime dt)
+    {
+        var span = DateTime.UtcNow - dt.ToUniversalTime();
+        if (span.TotalMinutes < 1) return "Just now";
+        if (span.TotalHours < 1) return $"{(int)span.TotalMinutes}m ago";
+        if (span.TotalDays < 1) return $"{(int)span.TotalHours}h ago";
+        return $"{dt.ToString("dd MMM")}";
+    }
+
+    private (string tenantId, string code) ParseInvitationParams(string actionUrl)
+    {
+        try
+        {
+            var uri = new Uri(NavigationManager.ToAbsoluteUri(actionUrl).ToString());
+            var queryStr = uri.Query.TrimStart('?');
+            var query = queryStr.Split(new[] { '&' }, StringSplitOptions.RemoveEmptyEntries)
+                .Select(p => p.Split('='))
+                .ToDictionary(p => p[0], p => p.Length > 1 ? Uri.UnescapeDataString(p[1]) : "", StringComparer.OrdinalIgnoreCase);
+
+            query.TryGetValue("tenantId", out var tenantId);
+            query.TryGetValue("code", out var code);
+            return (tenantId ?? "", code ?? "");
+        }
+        catch
+        {
+            return ("", "");
+        }
+    }
+
+    private string ParseJoinRequestParams(string actionUrl)
+    {
+        try
+        {
+            var parts = actionUrl.Split('/');
+            if (parts.Length >= 3)
+            {
+                return parts[2];
+            }
+            return "";
+        }
+        catch
+        {
+            return "";
+        }
+    }
+}
+
+<style>
+    .notification-container {
+        position: relative;
+        display: inline-block;
+    }
+
+    .btn-notification-bell {
+        background: none;
+        border: none;
+        color: var(--primary);
+        font-size: 1.35rem;
+        cursor: pointer;
+        position: relative;
+        padding: 4px;
+        border-radius: var(--radius-full);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .btn-notification-bell:hover {
+        background-color: var(--surface-container);
+        transform: scale(1.1) rotate(5deg);
+    }
+
+    .dropdown-toggle-no-caret {
+        background: none;
+        border: none;
+    }
+
+    .dropdown-toggle-no-caret::after {
+        display: none !important;
+    }
+
+    .notification-badge {
+        position: absolute;
+        top: -2px;
+        right: -2px;
+        background: linear-gradient(135deg, #e06c75, #d14a5b);
+        color: white;
+        border-radius: 50%;
+        padding: 2px 6px;
+        font-size: 0.65rem;
+        font-weight: 800;
+        min-width: 16px;
+        height: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 2px 5px rgba(224, 108, 117, 0.4);
+        animation: pulse 1.5s infinite;
+    }
+
+    @@keyframes pulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.15); }
+        100% { transform: scale(1); }
+    }
+
+    .notification-dropdown {
+        position: absolute;
+        right: 0;
+        top: 2.8rem;
+        width: 340px;
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(20px) saturate(180%);
+        -webkit-backdrop-filter: blur(20px) saturate(180%);
+        border: 1px solid rgba(255, 255, 255, 0.5);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-lg);
+        z-index: 100;
+        overflow: hidden;
+        padding: 0;
+        margin-top: 0.5rem;
+    }
+
+    .dropdown-header {
+        padding: var(--spacing-3) var(--spacing-4);
+        border-bottom: 1px solid var(--outline-variant);
+        background: rgba(255, 255, 255, 0.4);
+    }
+
+    .header-title {
+        font-family: var(--font-sans);
+        font-weight: 750;
+        font-size: 0.95rem;
+        color: var(--primary);
+    }
+
+    .btn-mark-all-read {
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-decoration: none;
+        color: var(--secondary);
+        transition: color 0.15s ease;
+        background: none;
+        border: none;
+        padding: 0;
+        cursor: pointer;
+    }
+
+    .btn-mark-all-read:hover {
+        color: var(--primary);
+    }
+
+    .dropdown-body {
+        max-height: 380px;
+        overflow-y: auto;
+    }
+
+    .dropdown-placeholder {
+        padding: 2rem;
+        text-align: center;
+        font-family: var(--font-sans);
+        font-size: 0.85rem;
+        color: var(--on-surface-variant);
+    }
+
+    .notification-list {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .notification-item {
+        padding: var(--spacing-3) var(--spacing-4);
+        border-bottom: 1px solid var(--outline-variant);
+        transition: all 0.2s ease;
+        background: transparent;
+    }
+
+    .notification-item:hover {
+        background: rgba(255, 255, 255, 0.4);
+    }
+
+    .notification-item.unread {
+        background: rgba(1, 45, 29, 0.03);
+    }
+
+    .notif-content-wrapper {
+        display: flex;
+        gap: 12px;
+        cursor: pointer;
+    }
+
+    .notif-icon-box {
+        font-size: 1.15rem;
+        display: flex;
+        align-items: flex-start;
+        padding-top: 2px;
+    }
+
+    .notif-details {
+        flex: 1;
+    }
+
+    .notif-title {
+        font-family: var(--font-sans);
+        font-weight: 700;
+        font-size: 0.85rem;
+        color: var(--primary);
+        margin: 0 0 3px 0;
+    }
+
+    .notif-text {
+        font-family: var(--font-sans);
+        font-size: 0.78rem;
+        color: var(--on-surface-variant);
+        margin: 0 0 4px 0;
+        line-height: 1.3;
+    }
+
+    .notif-time {
+        font-size: 0.65rem;
+        font-weight: 600;
+        color: var(--secondary);
+    }
+
+    .notif-actions {
+        margin-left: 28px;
+    }
+</style>

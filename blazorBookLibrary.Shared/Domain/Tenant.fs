@@ -30,9 +30,11 @@ type Tenant001 =
           Address = this.Address
           TenantState = this.TenantState
           Public = this.Public
-          Tags = this.Tags }
+          Tags = this.Tags
+          CurrentJoinPin = None
+          JoinRequests = [] }
 
-and Tenant =
+and Tenant002 =
     { OwnerId: UserId
       TenantId: TenantId
       InvitedPatrons: List<(UserId * PatronInvitationCode)>
@@ -43,6 +45,32 @@ and Tenant =
       Public: bool
       Tags: List<Tag> }
 
+    member this.Upcast() : Tenant =
+        { OwnerId = this.OwnerId
+          TenantId = this.TenantId
+          InvitedPatrons = this.InvitedPatrons
+          Patrons = this.Patrons
+          Name = this.Name
+          Address = this.Address
+          TenantState = this.TenantState
+          Public = this.Public
+          Tags = this.Tags
+          CurrentJoinPin = None
+          JoinRequests = [] }
+
+and Tenant =
+    { OwnerId: UserId
+      TenantId: TenantId
+      InvitedPatrons: List<(UserId * PatronInvitationCode)>
+      Patrons: List<UserId * PatronRole>
+      Name: TenantName
+      Address: string
+      TenantState: TenantState
+      Public: bool
+      Tags: List<Tag>
+      CurrentJoinPin: Option<string>
+      JoinRequests: List<UserId> }
+
     static member New(userId: UserId, tenantName: TenantName, address: string, ?pub: bool) =
         { OwnerId = userId
           TenantId = TenantId.New()
@@ -52,11 +80,54 @@ and Tenant =
           Address = address
           TenantState = TenantState.Active
           Public = pub |> Option.defaultValue false
-          Tags = [] }
+          Tags = []
+          CurrentJoinPin = None
+          JoinRequests = [] }
 
     static member NewDefault(userId: UserId, tenantName: TenantName, address: string) =
         { Tenant.New(userId, tenantName, address, true) with
             TenantId = TenantId.Default }
+
+    member this.GenerateJoinPin2 (pin: string) =
+        { this with CurrentJoinPin = Some pin } |> Ok
+
+    member this.AddJoinRequest2 (userId: UserId) =
+        result {
+            do!
+                this.Patrons
+                |> List.exists (fun (u, _) -> u = userId)
+                |> not
+                |> Result.ofBool "User is already a patron of this library"
+            do!
+                this.JoinRequests
+                |> List.contains userId
+                |> not
+                |> Result.ofBool "User has already requested to join this library"
+            return { this with JoinRequests = this.JoinRequests @ [ userId ] }
+        }
+
+    member this.ApproveJoinRequest2 (userId: UserId) =
+        result {
+            do!
+                this.JoinRequests
+                |> List.contains userId
+                |> Result.ofBool "Join request not found"
+            return 
+                { this with
+                    Patrons = this.Patrons @ [ (userId, PatronRole.User) ]
+                    JoinRequests = this.JoinRequests |> List.filter (fun u -> u <> userId) }
+        }
+
+    member this.RejectJoinRequest2 (userId: UserId) =
+        result {
+            do!
+                this.JoinRequests
+                |> List.contains userId
+                |> Result.ofBool "Join request not found"
+            return 
+                { this with
+                    JoinRequests = this.JoinRequests |> List.filter (fun u -> u <> userId) }
+        }
 
     member this.Deactivate =
         match this.TenantState with
@@ -268,7 +339,11 @@ and Tenant =
             (data, jsonOptions) |> JsonSerializer.Deserialize<Tenant> |> Ok
         with ex ->
             try
-                let fallback = (data, jsonOptions) |> JsonSerializer.Deserialize<Tenant001>
+                let fallback = (data, jsonOptions) |> JsonSerializer.Deserialize<Tenant002>
                 fallback.Upcast() |> Ok
             with _ ->
-                Error(ex.Message)
+                try
+                    let fallback1 = (data, jsonOptions) |> JsonSerializer.Deserialize<Tenant001>
+                    fallback1.Upcast() |> Ok
+                with _ ->
+                    Error(ex.Message)

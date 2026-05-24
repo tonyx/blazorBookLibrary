@@ -210,3 +210,52 @@ type TenantController(tenantService: ITenantService) =
             | Ok _ -> return this.Ok() :> IActionResult
             | Error msg -> return this.BadRequest(msg) :> IActionResult
         }
+
+    [<HttpGet("by-pin/{pin}")>]
+    member this.FindTenantByJoinPin(pin: string) =
+        task {
+            let! result = tenantService.FindTenantByJoinPinAsync(pin)
+            match result with
+            | Ok tenant -> return this.Ok(tenant) :> IActionResult
+            | Error msg -> return this.BadRequest(msg) :> IActionResult
+        }
+
+    [<HttpPost("{id}/join-pin")>]
+    member this.GenerateJoinPin(id: Guid, [<FromQuery>] pin: string) =
+        task {
+            let context = UserContextMapper.mapFromRequest this.Request
+            let! result = tenantService.GenerateJoinPinAsync(context, TenantId id, pin)
+            match result with
+            | Ok _ -> return this.Ok() :> IActionResult
+            | Error msg -> return this.BadRequest(msg) :> IActionResult
+        }
+
+    [<HttpPost("{id}/join-requests/{userId}")>]
+    member this.SubmitJoinRequest(id: Guid, userId: Guid) =
+        task {
+            let context = UserContextMapper.mapFromRequest this.Request
+            let! result = tenantService.SubmitJoinRequestAsync(context, TenantId id, UserId userId)
+            match result with
+            | Ok _ -> return this.Ok() :> IActionResult
+            | Error msg -> return this.BadRequest(msg) :> IActionResult
+        }
+
+    [<HttpPut("{id}/join-requests/{userId}/approve")>]
+    member this.ApproveJoinRequest(id: Guid, userId: Guid) =
+        task {
+            let context = UserContextMapper.mapFromRequest this.Request
+            let! result = tenantService.ApproveJoinRequestAsync(context, TenantId id, UserId userId)
+            match result with
+            | Ok _ -> return this.Ok() :> IActionResult
+            | Error msg -> return this.BadRequest(msg) :> IActionResult
+        }
+
+    [<HttpPut("{id}/join-requests/{userId}/reject")>]
+    member this.RejectJoinRequest(id: Guid, userId: Guid) =
+        task {
+            let context = UserContextMapper.mapFromRequest this.Request
+            let! result = tenantService.RejectJoinRequestAsync(context, TenantId id, UserId userId)
+            match result with
+            | Ok _ -> return this.Ok() :> IActionResult
+            | Error msg -> return this.BadRequest(msg) :> IActionResult
+        }

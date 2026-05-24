@@ -23,6 +23,10 @@ type TenantEvent =
     | PatronInvitationRevoked of UserId
     | PublicSet
     | PrivateSet
+    | JoinPinGenerated2 of string
+    | JoinRequestSubmitted2 of UserId
+    | JoinRequestApproved2 of UserId
+    | JoinRequestRejected2 of UserId
     interface Event<Tenant> with
         member this.Process (tenant: Tenant) : Result<Tenant, string> =
             match this with
@@ -60,6 +64,14 @@ type TenantEvent =
                 tenant.SetPrivate ()
             | PatronInvitationRevoked userId ->
                 tenant.RevokeInvitation userId
+            | JoinPinGenerated2 pin ->
+                tenant.GenerateJoinPin2 pin
+            | JoinRequestSubmitted2 userId ->
+                tenant.AddJoinRequest2 userId
+            | JoinRequestApproved2 userId ->
+                tenant.ApproveJoinRequest2 userId
+            | JoinRequestRejected2 userId ->
+                tenant.RejectJoinRequest2 userId
 
     static member Deserialize (x: string): Result<TenantEvent, string> =
         try

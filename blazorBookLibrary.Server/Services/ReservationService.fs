@@ -345,6 +345,48 @@ type ReservationService
                     |> List.traverseTaskResultM (fun reservation -> this.RemoveReservationAsync (context, reservation.ReservationId, now, ct))
                 return ()
             }
+
+    member this.GeneratePickupPinAsync (context: UserContext, id: ReservationId, ?ct: CancellationToken) = 
+        let ct = defaultArg ct CancellationToken.None
+        taskResult
+            {
+                let! tenantId = 
+                    userTenantResolverService.GetTenantForUserAsync(context, ct)
+                let! reservation = 
+                    this.GetReservationAsync (context, id, ct)
+                
+                let isPatron = 
+                    match context.UserId with
+                    | Some uid -> uid = reservation.UserId
+                    | None -> false
+                
+                let! _ = 
+                    if isPatron then TaskResult.ok ()
+                    else checkIsGlobalAdminOrTenantManager context ct
+
+                let rnd = System.Security.Cryptography.RandomNumberGenerator.GetInt32(100000, 999999)
+                let pin = string rnd
+                
+                let pinBytes = System.Text.Encoding.UTF8.GetBytes(pin)
+                let hashBytes = System.Security.Cryptography.SHA256.HashData(pinBytes)
+                let pinHash = System.Convert.ToHexString(hashBytes).ToLowerInvariant()
+                
+                let expiresAt = DateTime.UtcNow.AddMinutes(15.0)
+                
+                let generatePinCommand = ReservationCommand.GeneratePickupPin(pinHash, expiresAt)
+                
+                let! _ =
+                    runAggregateCommandMdAsync<Reservation, ReservationEvent, string>
+                        id.Value
+                        eventStore
+                        messageSenders
+                        (context.ToString())
+                        generatePinCommand
+                        (Some ct)
+                
+                return (pin, expiresAt)
+            }
+
     interface IReservationService with
         member this.AddReservationAsync (context: UserContext, reservation: Reservation, shortLang: ShortLang, ?ct: CancellationToken)= 
             let ct = defaultArg ct CancellationToken.None
@@ -368,6 +410,9 @@ type ReservationService
         member this.RemoveExpiredReservationsAsync (context: UserContext, ?ct: CancellationToken) = 
             let ct = defaultArg ct CancellationToken.None
             this.RemoveExpiredReservationsAsync (context, ct)
+        member this.GeneratePickupPinAsync (context: UserContext, id: ReservationId, ?ct: CancellationToken) =
+            let ct = defaultArg ct CancellationToken.None
+            this.GeneratePickupPinAsync (context, id, ct)
 
         member this.GetAllPendingReservationsDetailsAsync (context: UserContext, ?ct: CancellationToken) = 
             taskResult

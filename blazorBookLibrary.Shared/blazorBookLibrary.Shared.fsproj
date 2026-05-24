@@ -23,6 +23,7 @@
     <Compile Include="Domain/Review.fs" />
     <Compile Include="Domain/DistributionPoint.fs" />
     <Compile Include="Domain/Tenant.fs" />
+    <Compile Include="Domain/Notification.fs" />
 
     <Compile Include="SearchModels.fs" />
     <Compile Include="Details/Details.fs" />
@@ -45,6 +46,7 @@
     <Compile Include="Services/IAdminService.fs" />
     <Compile Include="Services/IDistributionPointService.fs" />
     <Compile Include="Services/ITenantService.fs" />
+    <Compile Include="Services/INotificationService.fs" />
 
     <Compile Include="SearchCriteria.fs" />
     <Compile Include="Infrastructure/Services/IMailNotificator.fs" />
@@ -68,9 +70,9 @@
   <ItemGroup>
     <PackageReference Include="FSharp.SystemTextJson" Version="1.4.36" />
     <PackageReference Include="FsToolkit.ErrorHandling" Version="5.2.0" />
-    <PackageReference Include="Microsoft.Extensions.Configuration" Version="10.0.5" />
-    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.0.5" />
-    <PackageReference Include="Sharpino.Core" Version="4.8.8" />
+    <PackageReference Include="Microsoft.Extensions.Configuration" Version="10.0.8" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.0.8" />
+    <PackageReference Include="Sharpino.Core" Version="5.0.4" />
   </ItemGroup>
 
 </Project>

@@ -186,7 +186,24 @@ type LoanService
 
             return result |> List.filter (fun l -> l.TenantId = tenantId)
         }
-    
+
+    member this.GetLoansOfUserInATenantAsync
+        (context: UserContext, tenantId: TenantId, userId: UserId, ?ct: CancellationToken)
+        : TaskResult<List<Loan>, string> =
+        // todo: add a security check
+        taskResult {
+            let ct = defaultArg ct CancellationToken.None
+
+            let! result =
+                StateView.getAllFilteredAggregateStatesAsync<Loan, LoanEvent, string>
+                    (fun (loan: Loan) -> loan.TenantId = tenantId && loan.UserId = userId)
+                    eventStore
+                    (ct |> Some)
+                |> TaskResult.map (fun x -> x |>> snd)
+
+            return result
+        }
+
     member this.GetUnarchivedLoansAsync(context: UserContext, ?ct: CancellationToken) : TaskResult<List<Loan>, string> =
         taskResult {
             let ct = defaultArg ct CancellationToken.None
@@ -196,7 +213,10 @@ type LoanService
                 loan.TenantId = tenantId && not loan.LoanStatus.IsArchived
 
             let! result =
-                StateView.getAllFilteredAggregateStatesAsync<Loan, LoanEvent, string> isUnarchivedForTenant eventStore (ct |> Some)
+                StateView.getAllFilteredAggregateStatesAsync<Loan, LoanEvent, string>
+                    isUnarchivedForTenant
+                    eventStore
+                    (ct |> Some)
                 |> TaskResult.map (fun x -> x |> List.map snd)
 
             return result
@@ -362,7 +382,9 @@ type LoanService
                     (ct |> Some)
 
             let key = DetailsCacheKey.OfType typeof<RefreshableTenantDetails> reservation.Id
-            let updateDetails = DetailsCache.Instance.UpdateMultipleAggregateIdAssociation [|loan.Id|] key
+
+            let updateDetails =
+                DetailsCache.Instance.UpdateMultipleAggregateIdAssociation [| loan.Id |] key
 
             let emailBody = emailTextRetrieved
 
@@ -385,6 +407,108 @@ type LoanService
             return result
         }
 
+    member this.TransformReservationIntoLoanByPinAsync
+        (context: UserContext, reservationId: ReservationId, pin: string, now: DateTime, ?ct: CancellationToken)
+        =
+        let ct = defaultArg ct CancellationToken.None
+
+        taskResult {
+            let! reservation = reservationViewerAsync (Some ct) reservationId.Value |> TaskResult.map snd
+            let! reservationDetails = reservationService.GetReservationDetailsAsync(context, reservationId, ct)
+
+            let book = reservationDetails.Book
+
+            do! book.NoLoan |> Result.ofBool "Book is already loaned"
+
+            // Compute the SHA-256 hash of the input PIN to match the GeneratePickupPin implementation.
+            let pinBytes = System.Text.Encoding.UTF8.GetBytes(pin)
+            let hashBytes = System.Security.Cryptography.SHA256.HashData(pinBytes)
+            let pinHash = System.Convert.ToHexString(hashBytes).ToLowerInvariant()
+
+            // VerifyPickupPin command validates the PIN hash and expiration time.
+            let verifyPickupPin = ReservationCommand.VerifyPickupPin(pinHash, now)
+
+            let! loan = reservationDetails.ToLoan now
+
+            let setBookLoaned =
+                BookCommand.SetCurrentLoanFromReservation(reservationId, loan.LoanId, now)
+
+            let makeLoanFromReservation =
+                UserCommand.LoanFromReservation(loan.LoanId, reservationId)
+
+            let! optDpName =
+                match book.DistributionPoint with
+                | None -> taskResult { return (localizer.GetString("Unspecified").Value) }
+
+                | Some dpId ->
+                    taskResult {
+                        let! (_, dp) = distributionPointViewerAsync (ct |> Some) dpId.Value
+                        return dp.Name.Value
+                    }
+
+            let! emailTextRetrieved =
+                mailBodyRetriever.GetLoanNotificationTextMailAsync(
+                    book.Title,
+                    reservationDetails.UserDetails.CurrentTenant.Name,
+                    optDpName,
+                    now,
+                    loan.DueDate,
+                    reservationDetails.UserDetails.User.LangPref,
+                    ?ct = Some ct
+                )
+
+            let! result =
+                runInitAndThreeAggregateCommandsMdAsync<
+                    Reservation,
+                    ReservationEvent,
+                    Book,
+                    BookEvent,
+                    User,
+                    UserEvent,
+                    string,
+                    Loan
+                 >
+                    reservation.Id
+                    book.Id
+                    reservationDetails.UserDetails.User.Id
+                    eventStore
+                    messageSenders
+                    loan
+                    ""
+                    verifyPickupPin
+                    setBookLoaned
+                    makeLoanFromReservation
+                    (ct |> Some)
+
+            let key = DetailsCacheKey.OfType typeof<RefreshableTenantDetails> reservation.Id
+
+            let updateDetails =
+                DetailsCache.Instance.UpdateMultipleAggregateIdAssociation [| loan.Id |] key
+
+            let emailBody = emailTextRetrieved
+
+            let! emailSubject =
+                mailBodyRetriever.GetLoanNotificationSubject(
+                    book.Title,
+                    loan.DueDate,
+                    reservationDetails.UserDetails.User.LangPref
+                )
+
+            try
+                do!
+                    mailNotificator.SendEmailAsync(
+                        fromEmail,
+                        fromName,
+                        reservationDetails.UserDetails.AppUser.Email,
+                        emailSubject,
+                        emailBody
+                    )
+            with _ ->
+                ()
+
+            return result
+        }
+
     member this.RemoveLoanAsync(context: UserContext, loanId: LoanId, ?ct: CancellationToken) =
         let ct = defaultArg ct CancellationToken.None
 
@@ -394,18 +518,14 @@ type LoanService
 
             do!
                 match context with
-                | UserContext.Authenticated(_, roles) when roles |> List.contains(Role.Admin) -> Ok ()
-                | UserContext.Authenticated(userId, _) when userId = tenant.OwnerId -> Ok ()
+                | UserContext.Authenticated(_, roles) when roles |> List.contains (Role.Admin) -> Ok()
+                | UserContext.Authenticated(userId, _) when userId = tenant.OwnerId -> Ok()
                 | _ -> Error "User is not authorized to remove loan"
 
             let predicate = fun (loan: Loan) -> not loan.InProgress
 
             let! result =
-                runDeleteAsync<Loan, LoanEvent, string> 
-                    eventStore 
-                    messageSenders 
-                    loanId.Value 
-                    predicate (ct |> Some)
+                runDeleteAsync<Loan, LoanEvent, string> eventStore messageSenders loanId.Value predicate (ct |> Some)
 
             return result
         }
@@ -418,24 +538,25 @@ type LoanService
 
             do!
                 match context with
-                | UserContext.Authenticated(_, roles) when roles |> List.contains(Role.Admin) -> Ok ()
-                | UserContext.Authenticated(userId, _) when userId = tenant.OwnerId -> Ok ()
+                | UserContext.Authenticated(_, roles) when roles |> List.contains (Role.Admin) -> Ok()
+                | UserContext.Authenticated(userId, _) when userId = tenant.OwnerId -> Ok()
                 | _ -> Error "User is not authorized to archive loan"
 
-            let archiveCommand = LoanCommand.Archive (System.DateTime.UtcNow)
+            let archiveCommand = LoanCommand.Archive(System.DateTime.UtcNow)
 
             let! result =
-                runAggregateCommandMdAsync<Loan, LoanEvent, string> 
+                runAggregateCommandMdAsync<Loan, LoanEvent, string>
                     loan.Id
-                    eventStore 
-                    messageSenders 
+                    eventStore
+                    messageSenders
                     (context.ToString())
                     archiveCommand
                     (ct |> Some)
 
-            let key =  DetailsCacheKey.OfType typeof<RefreshableTenantDetails> loan.TenantId.Value
-            let refresh =
-                DetailsCache.Instance.RefreshAsync (key, ct |> Some)
+            let key =
+                DetailsCacheKey.OfType typeof<RefreshableTenantDetails> loan.TenantId.Value
+
+            let refresh = DetailsCache.Instance.RefreshAsync(key, ct |> Some)
 
             return result
         }
@@ -525,6 +646,7 @@ type LoanService
         member this.GetLoanAsync(context: UserContext, id: LoanId, ?ct: CancellationToken) =
             let ct = defaultArg ct CancellationToken.None
             this.GetLoanAsync(context, id, ct)
+
         member this.GetUnarchivedLoansAsync(context: UserContext, ?ct: CancellationToken) =
             let ct = defaultArg ct CancellationToken.None
             this.GetUnarchivedLoansAsync(context, ct)
@@ -536,6 +658,12 @@ type LoanService
         member this.GetLoansAsync(context: UserContext, ?ct: CancellationToken) =
             let ct = defaultArg ct CancellationToken.None
             this.GetLoansAsync(context, ct)
+
+        member this.GetLoansOfUserInATenantAsync
+            (context: UserContext, tenantId: TenantId, userId: UserId, ?ct: CancellationToken)
+            =
+            let ct = defaultArg ct CancellationToken.None
+            this.GetLoansOfUserInATenantAsync(context, tenantId, userId, ct)
 
         member this.GetHistoryLoansOfUserAsync(context: UserContext, userId: UserId, ?ct: CancellationToken) =
             let ct = defaultArg ct CancellationToken.None
@@ -552,9 +680,16 @@ type LoanService
             let ct = defaultArg ct CancellationToken.None
             this.TransformReservationIntoLoanAsync(context, reservationId, providedReservationCode, now, ct)
 
+        member this.TransformReservationIntoLoanByPinAsync
+            (context: UserContext, reservationId: ReservationId, pin: string, now: DateTime, ?ct: CancellationToken)
+            =
+            let ct = defaultArg ct CancellationToken.None
+            this.TransformReservationIntoLoanByPinAsync(context, reservationId, pin, now, ct)
+
         member this.RemoveLoanAsync(context: UserContext, loanId: LoanId, ?ct: CancellationToken) =
             let ct = defaultArg ct CancellationToken.None
             this.RemoveLoanAsync(context, loanId, ct)
+
         member this.ArchiveLoanAsync(context: UserContext, loanId: LoanId, ?ct: CancellationToken) =
             let ct = defaultArg ct CancellationToken.None
             this.ArchiveLoanAsync(context, loanId, ct)

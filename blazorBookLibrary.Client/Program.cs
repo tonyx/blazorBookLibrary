@@ -39,6 +39,7 @@ public class Program
         builder.Services.AddScoped<IBotScoreService, BotScoreClientService>();
         builder.Services.AddScoped<IVectorDbService, VectorDbClientService>();
         builder.Services.AddScoped<ITenantService, TenantClientService>();
+        builder.Services.AddScoped<INotificationService, NotificationClientService>();
         builder.Services.AddScoped<IUserTenantResolverService, UserTenantResolverClientService>();
         builder.Services.AddScoped<TenantStateService>();
 

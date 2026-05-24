@@ -1,4 +1,5 @@
 @page "/book-view/{BookIdStr}"
+@implements IDisposable
 @using System.Globalization
 @using System.Threading
 @using BookLibrary.Shared.Services
@@ -109,8 +110,52 @@
                             @if (userReservation != null)
                             {
                                 <div class="p-3 mb-1 small text-start bg-surface-lowest rounded shadow-sm border-start border-4 border-info">
-                                    <i class="bi bi-check2-all me-2 text-info"></i>
-                                    @L["AlreadyReservedMessage", userReservation.ReservedAt.ToLocalTime().ToString("g")]
+                                    <div class="d-flex align-items-center gap-2 mb-2">
+                                        <i class="bi bi-check2-all text-info fw-bold"></i>
+                                        <span class="fw-bold">@L["Active Reservation"]</span>
+                                    </div>
+                                    <p class="mb-3 text-muted">@L["AlreadyReservedMessage", userReservation.ReservedAt.ToLocalTime().ToString("g")]</p>
+                                    
+                                    @if (string.IsNullOrEmpty(activePin))
+                                    {
+                                        <button class="btn btn-sm btn-info w-100 py-2 text-white shadow-sm d-flex align-items-center justify-content-center gap-2"
+                                                style="border-radius: 8px;"
+                                                @onclick="GeneratePin"
+                                                disabled="@isGeneratingPin">
+                                            @if (isGeneratingPin)
+                                            {
+                                                <span class="spinner-border spinner-border-sm" role="status"></span>
+                                            }
+                                            else
+                                            {
+                                                <i class="bi bi-shield-lock-fill"></i>
+                                            }
+                                            <span>@L["Get Checkout PIN"]</span>
+                                        </button>
+                                    }
+                                    else
+                                    {
+                                        <div class="mt-3 p-3 text-center rounded shadow-inner border border-info-subtle position-relative overflow-hidden" 
+                                             style="background: linear-gradient(135deg, rgba(13, 202, 240, 0.05), rgba(13, 202, 240, 0.15)); backdrop-filter: blur(8px); border-radius: 12px;">
+                                            <div class="small text-muted text-uppercase tracking-wider fw-bold mb-1" style="font-size: 0.7rem;">@L["Checkout PIN"]</div>
+                                            <div class="h3 font-monospace fw-bold tracking-widest text-info my-2" style="font-size: 2rem; letter-spacing: 0.15em;">@activePin</div>
+                                            
+                                            <div class="d-flex align-items-center justify-content-center gap-2 mt-2 text-info">
+                                                <i class="bi bi-stopwatch-fill animate-pulse"></i>
+                                                <span class="font-monospace fw-bold">@formattedCountdown</span>
+                                            </div>
+                                            
+                                            @if (isPinExpired)
+                                            {
+                                                <div class="text-danger small mt-2 fw-bold">
+                                                    <i class="bi bi-exclamation-triangle-fill me-1"></i> @L["PIN expired. Please regenerate."]
+                                                </div>
+                                                <button class="btn btn-sm btn-outline-danger w-100 mt-2 py-1" style="border-radius: 6px;" @onclick="GeneratePin">
+                                                    @L["Regenerate PIN"]
+                                                </button>
+                                            }
+                                        </div>
+                                    }
                                 </div>
                             }
                             else if (loggedInUserDetails != null && 
@@ -320,6 +365,76 @@
     private Reservation? userReservation;
     private string statusMessage = "";
     private string statusClass = "alert-info";
+
+    private string activePin = "";
+    private DateTime pinExpiresAt;
+    private string formattedCountdown = "15:00";
+    private bool isPinExpired = false;
+    private bool isGeneratingPin = false;
+    private System.Threading.Timer? countdownTimer;
+
+    private async Task GeneratePin()
+    {
+        if (userReservation == null) return;
+        isGeneratingPin = true;
+        StateHasChanged();
+        try
+        {
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var context = TenantState.GetUserContext(authState.User);
+            var result = await ReservationService.GeneratePickupPinAsync(context, userReservation.ReservationId, FSharpOption<CancellationToken>.None);
+            if (result.IsOk)
+            {
+                activePin = result.ResultValue.Item1;
+                pinExpiresAt = result.ResultValue.Item2;
+                isPinExpired = false;
+                StartCountdown();
+            }
+            else
+            {
+                Logger.LogError("Error generating pickup PIN: {Error}", result.ErrorValue);
+                await ShowStatus(L["ErrorOccurred"].Value, "alert-danger");
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Exception while generating pickup PIN");
+            await ShowStatus(L["ErrorOccurred"].Value, "alert-danger");
+        }
+        finally
+        {
+            isGeneratingPin = false;
+            StateHasChanged();
+        }
+    }
+
+    private void StartCountdown()
+    {
+        countdownTimer?.Dispose();
+        isPinExpired = false;
+        countdownTimer = new System.Threading.Timer(async _ =>
+        {
+            var remaining = pinExpiresAt - DateTime.UtcNow;
+            if (remaining.TotalSeconds <= 0)
+            {
+                activePin = "";
+                isPinExpired = true;
+                formattedCountdown = "00:00";
+                countdownTimer?.Dispose();
+                await InvokeAsync(StateHasChanged);
+            }
+            else
+            {
+                formattedCountdown = $"{(int)remaining.TotalMinutes:D2}:{remaining.Seconds:D2}";
+                await InvokeAsync(StateHasChanged);
+            }
+        }, null, 0, 1000);
+    }
+
+    public void Dispose()
+    {
+        countdownTimer?.Dispose();
+    }
 
     private void GoBack()
     {

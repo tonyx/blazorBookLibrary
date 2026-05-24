@@ -20,6 +20,13 @@ type ILoanService =
         context: UserContext * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken ->
             Task<Result<List<Loan>, string>>
 
+    abstract member GetLoansOfUserInATenantAsync:
+        context: UserContext *
+        tenantId: TenantId *
+        userId: UserId *
+        [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken ->
+            Task<Result<List<Loan>, string>>
+
     abstract member GetUnarchivedLoansAsync:
         context: UserContext * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken ->
             Task<Result<List<Loan>, string>>
@@ -35,6 +42,14 @@ type ILoanService =
         context: UserContext *
         reservationId: ReservationId *
         providedReservationCode: ReservationCode *
+        date: DateTime *
+        [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken ->
+            Task<Result<unit, string>>
+
+    abstract member TransformReservationIntoLoanByPinAsync:
+        context: UserContext *
+        reservationId: ReservationId *
+        pin: string *
         date: DateTime *
         [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken ->
             Task<Result<unit, string>>
