@@ -447,6 +447,7 @@ type UserService
             let allowed =
                 match context with
                 | UserContext.Authenticated(u, roles) when roles |> List.contains (Role.Admin) -> true
+                | _ when tenant.Public -> true
                 | _ when (tenant.OwnerId = userId) -> true
                 | _ when (tenant.Patrons |> List.exists (fun (u, _) -> u = userId)) -> true
                 | _ -> false

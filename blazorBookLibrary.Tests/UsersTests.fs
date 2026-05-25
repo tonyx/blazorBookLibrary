@@ -65,4 +65,28 @@ let tests =
             Expect.isTrue (eventId2 > 0) "eventId should be greater than zero"
             Expect.isTrue (eventId2 > eventId1) "eventId should have increased"
         }
+
+        testCaseTask "create a public tenant and ensure another ordinary user can select it even if not entitled" <| fun _ -> task {
+            setUp()
+            let userService = getUserService()
+            let tenantService = getTenantService()
+            
+            let! ownerId = registerUserTask "owner@example.com" "Password123!"
+            let ownerContext = UserContext.Authenticated(ownerId, [])
+            
+            let tenant = Tenant.New(ownerId, TenantName.New "Public Tenant" |> Result.get, "Public Address", true)
+            let! createResult = tenantService.CreateTenantAsync(ownerContext, tenant)
+            Expect.isOk createResult (sprintf "tenant creation failed: %A" createResult)
+            
+            let! visitorId = registerUserTask "visitor@example.com" "Password123!"
+            let visitorContext = UserContext.Authenticated(visitorId, [])
+            
+            let! setTenantResult = userService.SetCurrentTenantAsync(visitorContext, visitorId, tenant.TenantId)
+            Expect.isOk setTenantResult "visitor should be able to select the public tenant"
+            
+            let! result = userViewerAsync None visitorId.Value
+            Expect.isOk result "should be ok"
+            let (_, user) = result |> Result.get
+            Expect.equal user.CurrentTenant tenant.TenantId "Current tenant should match the selected public tenant"
+        }
     ]
