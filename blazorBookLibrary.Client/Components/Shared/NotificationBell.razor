@@ -5,9 +5,11 @@
 @using Microsoft.FSharp.Collections
 @inject INotificationService NotificationService
 @inject ITenantService TenantService
+@inject IUserService UserService
 @inject blazorBookLibrary.Client.Services.TenantStateService TenantState
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject NavigationManager NavigationManager
+@inject IJSRuntime JSRuntime
 
 <div class="notification-container dropdown">
     <button class="btn-notification-bell dropdown-toggle-no-caret" 
@@ -51,7 +53,11 @@
                         <div class="notification-item @(notif.IsRead ? "" : "unread")">
                             <a href="@clickUrl" class="notif-content-wrapper text-decoration-none text-dark">
                                 <div class="notif-icon-box">
-                                    @if (notif.Title.Contains("Invite") || notif.Title.Contains("Onboarding"))
+                                    @if (notif.Title.Contains("Public Request"))
+                                    {
+                                        <i class="bi bi-globe text-info"></i>
+                                    }
+                                    else if (notif.Title.Contains("Invite") || notif.Title.Contains("Onboarding"))
                                     {
                                         <i class="bi bi-envelope-open text-primary"></i>
                                     }
@@ -105,12 +111,79 @@
     </div>
 </div>
 
+@if (isAdmin && publicRequestTenants.Count > 1)
+{
+    var visibleDialogs = publicRequestTenants
+        .Where(t => !ignoredTenantIds.Contains(t.TenantId.Value))
+        .ToList();
+
+    // we'll take care of this later
+    @* if (visibleDialogs.Any()) *@
+    if (false)
+    {
+        <div class="admin-dialog-deck">
+            @{
+                var displayedDialogs = visibleDialogs.Take(3).ToList();
+                var remainingCount = visibleDialogs.Count - displayedDialogs.Count;
+            }
+
+            @foreach (var (tenant, index) in displayedDialogs.Select((t, i) => (t, i)))
+            {
+                ownerUsers.TryGetValue(tenant.OwnerId.Value, out var owner);
+                var ownerName = owner != null ? $"{owner.AppUserInfo.Nome} {owner.AppUserInfo.Cognome}" : "Loading...";
+                var ownerEmail = owner != null ? owner.AppUserInfo.Email : "...";
+
+                <div class="admin-dialog-card shadow-lg animate-card-slide" style="--card-index: @index; z-index: @(2000 - index);">
+                    <div class="admin-card-glass-bg"></div>
+                    <div class="admin-card-header d-flex justify-content-between align-items-center">
+                        <span class="admin-card-badge"><i class="bi bi-globe me-1"></i> Public Request</span>
+                        <button type="button" class="btn-close btn-close-white small-close" @onclick="() => HandleIgnore(tenant)" aria-label="Ignore"></button>
+                    </div>
+                    <div class="admin-card-body">
+                        <h4 class="tenant-title serif text-truncate">@tenant.Name.Value</h4>
+                        <div class="tenant-meta small mb-3">
+                            <div class="meta-item"><i class="bi bi-geo-alt-fill text-muted me-1"></i> @(string.IsNullOrWhiteSpace(tenant.Address) ? "Unspecified Address" : tenant.Address)</div>
+                            <div class="meta-item mt-1"><i class="bi bi-person-fill text-muted me-1"></i> <strong>Owner:</strong> @ownerName</div>
+                            <div class="meta-item mt-0.5"><i class="bi bi-envelope-fill text-muted me-1"></i> @ownerEmail</div>
+                        </div>
+                        <p class="card-prompt small text-muted">Would you like to approve this library's request to go public, or push it back to private?</p>
+                    </div>
+                    <div class="admin-card-footer d-flex gap-2">
+                        <button type="button" class="btn btn-sm btn-approve flex-grow-1" @onclick="() => HandleSetPublic(tenant)" disabled="@isHandlingRequest">
+                            <i class="bi bi-check-circle-fill me-1"></i> Approve
+                        </button>
+                        <button type="button" class="btn btn-sm btn-pushback flex-grow-1" @onclick="() => HandleSetPrivate(tenant)" disabled="@isHandlingRequest">
+                            <i class="bi bi-slash-circle-fill me-1"></i> Push Private
+                        </button>
+                        <button type="button" class="btn btn-sm btn-ignore" @onclick="() => HandleIgnore(tenant)" title="Ignore">
+                            Ignore
+                        </button>
+                    </div>
+                </div>
+            }
+
+            @if (remainingCount > 0)
+            {
+                <div class="admin-dialog-queue-badge shadow-sm">
+                    <i class="bi bi-layers-fill me-1"></i> +@remainingCount more requests in queue
+                </div>
+            }
+        </div>
+    }
+}
+
 @code {
     [Parameter] public string? currentUrl { get; set; }
 
     private List<Notification> notifications = new();
     private int unreadCount = 0;
     private Commons.UserContext? userContext;
+    private bool isAdmin = false;
+
+    private List<Tenant> publicRequestTenants = new();
+    private Dictionary<Guid, User> ownerUsers = new();
+    private HashSet<Guid> ignoredTenantIds = new();
+    private bool isHandlingRequest = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -120,14 +193,57 @@
             userContext = TenantState.GetUserContext(authState.User);
             if (userContext != null)
             {
+                isAdmin = userContext.IsInRole(BookLibrary.Shared.Commons.Role.Admin);
                 try
                 {
                     var result = await NotificationService.GetUnreadNotificationsForUserAsync(userContext, FSharpOption<CancellationToken>.None);
                     if (result.IsOk)
                     {
                         notifications = result.ResultValue.ToList();
-                        unreadCount = notifications.Count;
                     }
+
+                    if (isAdmin)
+                    {
+                        var publicTenantsResult = await TenantService.GetTenantsRequstingPublicAsync(userContext, FSharpOption<CancellationToken>.None);
+                        if (publicTenantsResult.IsOk)
+                        {
+                            publicRequestTenants = publicTenantsResult.ResultValue.ToList();
+                            
+                            // Load owner users info asynchronously
+                            foreach (var tenant in publicRequestTenants)
+                            {
+                                var userRes = await UserService.GetUserAsync(userContext, tenant.OwnerId, FSharpOption<CancellationToken>.None);
+                                if (userRes.IsOk)
+                                {
+                                    ownerUsers[tenant.OwnerId.Value] = userRes.ResultValue;
+                                }
+                            }
+
+                            // If count is greater than 1, inject virtual notifications
+                            if (publicRequestTenants.Count > 1)
+                            {
+                                foreach (var tenant in publicRequestTenants)
+                                {
+                                    var ownerName = ownerUsers.TryGetValue(tenant.OwnerId.Value, out var owner) 
+                                        ? $"{owner.AppUserInfo.Nome} {owner.AppUserInfo.Cognome}"
+                                        : tenant.OwnerId.Value.ToString();
+                                    
+                                    var virtualNotif = new Notification(
+                                        NotificationId.NewNotificationId(Guid.NewGuid()),
+                                        userContext.UserId.Value,
+                                        "Public Request: " + tenant.Name.Value,
+                                        $"Library '{tenant.Name.Value}' requested public access (Owner: {ownerName}).",
+                                        false,
+                                        DateTime.UtcNow,
+                                        FSharpOption<string>.Some($"/tenants/{tenant.TenantId.Value}")
+                                    );
+                                    notifications.Insert(0, virtualNotif);
+                                }
+                            }
+                        }
+                    }
+
+                    unreadCount = notifications.Count;
                 }
                 catch (Exception)
                 {
@@ -135,6 +251,80 @@
                 }
             }
         }
+    }
+
+    private async Task HandleSetPublic(Tenant tenant)
+    {
+        if (userContext == null || isHandlingRequest) return;
+        isHandlingRequest = true;
+        try
+        {
+            var result = await TenantService.SetPublicAsync(userContext, tenant.TenantId, FSharpOption<CancellationToken>.None);
+            if (result.IsOk)
+            {
+                await JSRuntime.InvokeVoidAsync("showToast", $"Library '{tenant.Name.Value}' is now Public!", "success");
+                publicRequestTenants.Remove(tenant);
+                var virtualNotif = notifications.FirstOrDefault(n => n.Title.Contains(tenant.Name.Value));
+                if (virtualNotif != null)
+                {
+                    notifications.Remove(virtualNotif);
+                }
+                unreadCount = notifications.Count;
+            }
+            else
+            {
+                await JSRuntime.InvokeVoidAsync("showToast", result.ErrorValue, "error");
+            }
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("showToast", $"Failed to approve: {ex.Message}", "error");
+        }
+        finally
+        {
+            isHandlingRequest = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task HandleSetPrivate(Tenant tenant)
+    {
+        if (userContext == null || isHandlingRequest) return;
+        isHandlingRequest = true;
+        try
+        {
+            var result = await TenantService.SetPrivateAsync(userContext, tenant.TenantId, FSharpOption<CancellationToken>.None);
+            if (result.IsOk)
+            {
+                await JSRuntime.InvokeVoidAsync("showToast", $"Library '{tenant.Name.Value}' reverted to Private.", "success");
+                publicRequestTenants.Remove(tenant);
+                var virtualNotif = notifications.FirstOrDefault(n => n.Title.Contains(tenant.Name.Value));
+                if (virtualNotif != null)
+                {
+                    notifications.Remove(virtualNotif);
+                }
+                unreadCount = notifications.Count;
+            }
+            else
+            {
+                await JSRuntime.InvokeVoidAsync("showToast", result.ErrorValue, "error");
+            }
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("showToast", $"Failed to push back: {ex.Message}", "error");
+        }
+        finally
+        {
+            isHandlingRequest = false;
+            StateHasChanged();
+        }
+    }
+
+    private void HandleIgnore(Tenant tenant)
+    {
+        ignoredTenantIds.Add(tenant.TenantId.Value);
+        StateHasChanged();
     }
 
     private string GetTimeAgo(DateTime dt)
@@ -364,5 +554,200 @@
 
     .notif-actions {
         margin-left: 28px;
+    }
+
+    /* Admin Public Request Dialogues */
+    .admin-dialog-deck {
+        position: fixed;
+        bottom: 24px;
+        right: 24px;
+        width: 360px;
+        height: 250px;
+        z-index: 2000;
+        pointer-events: none;
+    }
+
+    .admin-dialog-card {
+        pointer-events: auto;
+        position: absolute;
+        bottom: 0;
+        right: 0;
+        width: 100%;
+        background: rgba(255, 255, 255, 0.82);
+        backdrop-filter: blur(25px) saturate(190%);
+        -webkit-backdrop-filter: blur(25px) saturate(190%);
+        border: 1px solid rgba(255, 255, 255, 0.5);
+        border-radius: 16px;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.12), 0 8px 16px rgba(0, 0, 0, 0.08);
+        padding: 20px;
+        transform: translateY(calc(var(--card-index) * 12px)) scale(calc(1 - var(--card-index) * 0.04));
+        transform-origin: bottom center;
+        transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        opacity: calc(1 - var(--card-index) * 0.15);
+    }
+
+    .admin-dialog-card:hover {
+        transform: translateY(calc(var(--card-index) * 12px - 8px)) scale(calc(1 - var(--card-index) * 0.02));
+        box-shadow: 0 25px 50px rgba(0, 0, 0, 0.18);
+    }
+
+    .admin-card-glass-bg {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        border-radius: 16px;
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.05));
+        pointer-events: none;
+        z-index: -1;
+    }
+
+    .admin-card-header {
+        margin-bottom: 12px;
+        position: relative;
+    }
+
+    .admin-card-badge {
+        font-family: var(--font-sans);
+        font-weight: 750;
+        font-size: 0.72rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: #0c5460;
+        background: rgba(13, 202, 240, 0.15);
+        padding: 4px 10px;
+        border-radius: 9999px;
+        display: inline-flex;
+        align-items: center;
+    }
+
+    .small-close {
+        padding: 4px !important;
+        font-size: 0.75rem !important;
+        opacity: 0.6;
+        transition: opacity 0.2s ease;
+    }
+    
+    .small-close:hover {
+        opacity: 1;
+    }
+
+    .admin-card-body {
+        margin-bottom: 16px;
+    }
+
+    .tenant-title {
+        font-weight: 750;
+        color: #111827;
+        font-size: 1.15rem;
+        margin: 0 0 8px 0;
+    }
+
+    .tenant-meta {
+        font-size: 0.8rem;
+        color: #4b5563;
+        line-height: 1.4;
+    }
+
+    .meta-item {
+        display: flex;
+        align-items: center;
+        text-overflow: ellipsis;
+        overflow: hidden;
+        white-space: nowrap;
+    }
+
+    .card-prompt {
+        font-size: 0.78rem;
+        line-height: 1.35;
+        margin-top: 8px;
+    }
+
+    .admin-card-footer {
+        border-top: 1px solid rgba(0, 0, 0, 0.05);
+        padding-top: 12px;
+    }
+
+    .btn-approve {
+        background: linear-gradient(135deg, #10b981, #059669);
+        color: white;
+        border: none;
+        font-weight: 650;
+        font-size: 0.82rem;
+        padding: 8px 12px;
+        border-radius: 8px;
+        box-shadow: 0 4px 10px rgba(16, 185, 129, 0.2);
+        transition: all 0.2s ease;
+    }
+
+    .btn-approve:hover {
+        background: linear-gradient(135deg, #059669, #047857);
+        transform: translateY(-1px);
+        box-shadow: 0 6px 14px rgba(16, 185, 129, 0.3);
+        color: white;
+    }
+
+    .btn-pushback {
+        background: linear-gradient(135deg, #f59e0b, #d97706);
+        color: white;
+        border: none;
+        font-weight: 650;
+        font-size: 0.82rem;
+        padding: 8px 12px;
+        border-radius: 8px;
+        box-shadow: 0 4px 10px rgba(245, 158, 11, 0.2);
+        transition: all 0.2s ease;
+    }
+
+    .btn-pushback:hover {
+        background: linear-gradient(135deg, #d97706, #b45309);
+        transform: translateY(-1px);
+        box-shadow: 0 6px 14px rgba(245, 158, 11, 0.3);
+        color: white;
+    }
+
+    .btn-ignore {
+        background: rgba(0, 0, 0, 0.05);
+        border: 1px solid rgba(0, 0, 0, 0.05);
+        color: #4b5563;
+        font-weight: 600;
+        font-size: 0.82rem;
+        padding: 8px 12px;
+        border-radius: 8px;
+        transition: all 0.2s ease;
+    }
+
+    .btn-ignore:hover {
+        background: rgba(0, 0, 0, 0.08);
+        color: #1f2937;
+    }
+
+    .admin-dialog-queue-badge {
+        position: absolute;
+        bottom: -32px;
+        right: 0;
+        background: rgba(31, 41, 55, 0.9);
+        backdrop-filter: blur(10px);
+        color: white;
+        font-family: var(--font-sans);
+        font-weight: 700;
+        font-size: 0.72rem;
+        padding: 4px 10px;
+        border-radius: 9999px;
+        z-index: 1999;
+        pointer-events: auto;
+        animation: card-appear 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+
+    @@keyframes card-appear {
+        0% {
+            opacity: 0;
+            transform: translateY(20px) scale(0.95);
+        }
+        100% {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
     }
 </style>

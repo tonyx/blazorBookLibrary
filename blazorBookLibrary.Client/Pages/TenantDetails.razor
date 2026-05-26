@@ -95,7 +95,7 @@
                         </span>
                     }
 
-                    @if (libraryDetails.Tenant.Public)
+                    @if (libraryDetails.Tenant.TenantVisibility.IsPublic)
                     {
                         <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-3 py-2 fw-bold text-uppercase small">
                             <i class="bi bi-globe me-2"></i>@L["PublicAccess"]
@@ -186,17 +186,17 @@
                                 </div>
                             }
                         </div>
-                        @if (isOwner)
+                        @if (isOwner || isAdmin)
                         {
                             <div class="border-top pt-3 mt-1 animate-fade-in">
                                 <label class="small text-muted text-uppercase fw-bold d-block mb-2">@L["AccessLevel"]</label>
                                 <div class="form-check form-switch d-flex align-items-center gap-2">
                                     <input type="checkbox" class="form-check-input" id="privacyToggleSwitch" 
-                                           checked="@libraryDetails.Tenant.Public" 
+                                           checked="@libraryDetails.Tenant.TenantVisibility.IsPublic" 
                                            @onchange="HandlePrivacyToggle" 
                                            disabled="@isUpdatingPrivacy" />
                                     <label class="form-check-label fw-semibold" for="privacyToggleSwitch" style="cursor: pointer;">
-                                        @(libraryDetails.Tenant.Public ? L["Public"] : L["Private"])
+                                        @(libraryDetails.Tenant.TenantVisibility.IsPublic ? L["Public"] : L["Private"])
                                     </label>
                                     @if (isUpdatingPrivacy)
                                     {
@@ -204,7 +204,7 @@
                                     }
                                 </div>
                                 <small class="text-muted d-block mt-1" style="font-size: 0.8rem; line-height: 1.2;">
-                                    @(libraryDetails.Tenant.Public ? L["PublicPrivacyDescription"] : L["PrivatePrivacyDescription"])
+                                    @(libraryDetails.Tenant.TenantVisibility.IsPublic ? L["PublicPrivacyDescription"] : L["PrivatePrivacyDescription"])
                                 </small>
                             </div>
 
@@ -684,6 +684,10 @@
                                                     <td class="text-end">
                                                         @if (loan.Loan.InProgress)
                                                         {
+                                                            <button class="btn btn-outline-success btn-sm rounded-pill px-3 shadow-sm me-2 shadow-hover"
+                                                                    @onclick="() => HandleReleaseLoan(loan)">
+                                                                <i class="bi bi-box-arrow-in-right me-1"></i> @L["Release"]
+                                                            </button>
                                                             <button class="btn btn-outline-danger btn-sm rounded-pill px-3 shadow-sm" disabled title="@L["ActiveLoansCannotBeDeleted"]">
                                                                 <i class="bi bi-trash me-1"></i> @L["Delete"]
                                                             </button>
@@ -986,6 +990,7 @@
     private string errorMessage = "";
     private string activeTab = "patrons";
     private bool isOwner = false;
+    private bool isAdmin = false;
     private bool isUpdatingPrivacy = false;
     private List<User> joinRequestsList = new();
     private bool isGeneratingPin = false;
@@ -998,7 +1003,7 @@
     {
         if (libraryDetails == null || isUpdatingPrivacy) return;
 
-        var currentPublic = libraryDetails.Tenant.Public;
+        var currentPublic = libraryDetails.Tenant.TenantVisibility.IsPublic;
         var newPublic = (bool)(e.Value ?? false);
 
         if (newPublic == currentPublic) return;
@@ -1029,7 +1034,14 @@
             Microsoft.FSharp.Core.FSharpResult<Microsoft.FSharp.Core.Unit, string> result;
             if (newPublic)
             {
-                result = await TenantService.SetPublicAsync(userContext, tenantId, Microsoft.FSharp.Core.FSharpOption<System.Threading.CancellationToken>.None);
+                if (isAdmin)
+                {
+                    result = await TenantService.SetPublicAsync(userContext, tenantId, Microsoft.FSharp.Core.FSharpOption<System.Threading.CancellationToken>.None);
+                }
+                else
+                {
+                    result = await TenantService.RequestPublicAsync(userContext, tenantId, Microsoft.FSharp.Core.FSharpOption<System.Threading.CancellationToken>.None);
+                }
             }
             else
             {
@@ -1553,6 +1565,48 @@
         }
     }
 
+    private async Task HandleReleaseLoan(LoanDetails loanDetails)
+    {
+        var confirmed = await JSRuntime.InvokeAsync<bool>("confirm", $"{L["ConfirmReturnOf"]} {loanDetails.Book.Title.Value}?");
+        if (!confirmed) return;
+
+        try
+        {
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var claimsPrincipal = authState.User;
+            if (claimsPrincipal == null) return;
+            var userContext = TenantState.GetUserContext(claimsPrincipal);
+            var tenantId = TenantId.NewTenantId(Id);
+
+            var result = await LoanService.ReleaseLoanAsync(userContext, loanDetails.Loan.LoanId, DateTime.UtcNow, Microsoft.FSharp.Core.FSharpOption<System.Threading.CancellationToken>.None);
+            if (result.IsError)
+            {
+                Logger.LogError("Error returning/releasing loan {LoanId}: {Error}", loanDetails.Loan.LoanId, result.ErrorValue);
+                await JSRuntime.InvokeVoidAsync("showToast", L["ErrorOccurred"].Value, "error");
+            }
+            else
+            {
+                await JSRuntime.InvokeVoidAsync("showToast", $"{L["LoanReturnedSuccessfully"]}", "success");
+                
+                // Refresh tenant details to show updated list
+                var refreshResult = await DetailsService.GetTenantDetailsAsync(userContext, tenantId, Microsoft.FSharp.Core.FSharpOption<System.Threading.CancellationToken>.None);
+                if (refreshResult.IsOk)
+                {
+                    libraryDetails = refreshResult.ResultValue;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Exception while releasing loan");
+            await JSRuntime.InvokeVoidAsync("showToast", L["ErrorOccurred"].Value, "error");
+        }
+        finally
+        {
+            StateHasChanged();
+        }
+    }
+
     private async Task HandleDeleteLoan(LoanDetails loanDetails)
     {
         var confirmed = await JSRuntime.InvokeAsync<bool>("confirm", $"{L["ConfirmDeleteOfLoan"]} {loanDetails.Book.Title.Value}?");
@@ -1630,7 +1684,7 @@
                 var details = result.ResultValue;
                 
                 var currentUserIdClaim = claimsPrincipal.FindFirst(c => c.Type == System.Security.Claims.ClaimTypes.NameIdentifier) ?? claimsPrincipal.FindFirst("sub");
-                var isAdmin = claimsPrincipal.IsInRole("Admin");
+                isAdmin = claimsPrincipal.IsInRole("Admin");
 
                 if (currentUserIdClaim != null && Guid.TryParse(currentUserIdClaim.Value, out var guid))
                 {

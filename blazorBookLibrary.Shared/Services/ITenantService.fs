@@ -18,6 +18,10 @@ type ITenantService =
         UserContext * TenantId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken ->
             Task<Result<Tenant, string>>
 
+    abstract member GetTenantsRequstingPublicAsync:
+        UserContext * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken ->
+            Task<Result<List<Tenant>, string>>
+
     abstract member AddPatronAsync:
         UserContext * TenantId * UserId * PatronRole * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken ->
             Task<Result<unit, string>>
@@ -82,7 +86,12 @@ type ITenantService =
         UserContext * TenantId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken ->
             Task<Result<unit, string>>
 
+
     abstract member SetPrivateAsync:
+        UserContext * TenantId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken ->
+            Task<Result<unit, string>>
+
+    abstract member RequestPublicAsync:
         UserContext * TenantId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken ->
             Task<Result<unit, string>>
 

@@ -25,17 +25,39 @@ type IDistributionPointService =
         context: UserContext * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken ->
             Task<Result<List<DistributionPoint>, string>>
 
+    abstract member AddReferenceUser:
+        context: UserContext *
+        distributionPointId: DistributionPointId *
+        userId: UserId *
+        [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken ->
+            Task<Result<unit, string>>
+
+    abstract member RemoveReferenceUser:
+        context: UserContext *
+        distributionPointId: DistributionPointId *
+        userId: UserId *
+        [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken ->
+            Task<Result<unit, string>>
+
+    abstract member GetAllDistributionPointsManagedByUser:
+        context: UserContext * userId: UserId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken ->
+            Task<Result<List<DistributionPoint>, string>>
+
     // this will use the context only to validate permissions and will get the tenant id from the explicit parameter
     abstract member GetAllDistributionPointsOfATenantAsync:
         context: UserContext * tenantId: TenantId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken ->
             Task<Result<List<DistributionPoint>, string>>
 
     abstract member IsRemovableAsync:
-        context: UserContext * distributionPointId: DistributionPointId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken ->
+        context: UserContext *
+        distributionPointId: DistributionPointId *
+        [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken ->
             Task<Result<bool, string>>
 
     abstract member GetAllBooksOfADistributionPointAsync:
-        context: UserContext * distributionPointId: DistributionPointId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken ->
+        context: UserContext *
+        distributionPointId: DistributionPointId *
+        [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken ->
             Task<Result<List<Book>, string>>
 
     abstract member FindDistributionPointsAsync:

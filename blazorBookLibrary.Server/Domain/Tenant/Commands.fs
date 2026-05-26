@@ -21,75 +21,71 @@ type TenantCommand =
     | SuspendPatron of UserId * string
     | ReadmittPatron of UserId
     | SetPublic
+    | RequestPublic
     | SetPrivate
     | GenerateJoinPin2 of string
     | SubmitJoinRequest2 of UserId
     | ApproveJoinRequest2 of UserId
     | RejectJoinRequest2 of UserId
+
     interface AggregateCommand<Tenant, TenantEvent> with
-        member this.Execute (tenant: Tenant) =
+        member this.Execute(tenant: Tenant) =
             match this with
-            | Deactivate ->
-                tenant.Deactivate
-                |> Result.map (fun t -> (t, [TenantEvent.Deactivated]))
-            | Activate ->
-                tenant.Activate
-                |> Result.map (fun t -> (t, [TenantEvent.Activated]))
+            | Deactivate -> tenant.Deactivate |> Result.map (fun t -> (t, [ TenantEvent.Deactivated ]))
+            | Activate -> tenant.Activate |> Result.map (fun t -> (t, [ TenantEvent.Activated ]))
             | ScheduleForDeletion date ->
                 tenant.ScheduleForDeletion date
-                |> Result.map (fun t -> (t, [TenantEvent.ScheduledForDeletion date]))
-            | AddTag tag ->
-                tenant.AddTag tag
-                |> Result.map (fun t -> (t, [TenantEvent.TagAdded tag]))
+                |> Result.map (fun t -> (t, [ TenantEvent.ScheduledForDeletion date ]))
+            | AddTag tag -> tenant.AddTag tag |> Result.map (fun t -> (t, [ TenantEvent.TagAdded tag ]))
             | RemoveTag tag ->
                 tenant.RemoveTag tag
-                |> Result.map (fun t -> (t, [TenantEvent.TagRemoved tag]))
-            | ReplaceTag (oldTag, newTag) ->
-                tenant.ReplaceTag (oldTag, newTag)
-                |> Result.map (fun t -> (t, [TenantEvent.TagReplaced (oldTag, newTag)]))
-            | AddPatron (userId, role) ->
-                tenant.AddPatron (userId, role)
-                |> Result.map (fun t -> (t, [TenantEvent.PatronAdded (userId, role)]))
+                |> Result.map (fun t -> (t, [ TenantEvent.TagRemoved tag ]))
+            | ReplaceTag(oldTag, newTag) ->
+                tenant.ReplaceTag(oldTag, newTag)
+                |> Result.map (fun t -> (t, [ TenantEvent.TagReplaced(oldTag, newTag) ]))
+            | AddPatron(userId, role) ->
+                tenant.AddPatron(userId, role)
+                |> Result.map (fun t -> (t, [ TenantEvent.PatronAdded(userId, role) ]))
             | DemotePatron userId ->
                 tenant.DemotePatron userId
-                |> Result.map (fun t -> (t, [TenantEvent.PatronDemoted userId]))
+                |> Result.map (fun t -> (t, [ TenantEvent.PatronDemoted userId ]))
             | PromotePatron userId ->
                 tenant.PromotePatron userId
-                |> Result.map (fun t -> (t, [TenantEvent.PatronPromoted userId]))
+                |> Result.map (fun t -> (t, [ TenantEvent.PatronPromoted userId ]))
             | RemovePatron userId ->
                 tenant.RemovePatron userId
-                |> Result.map (fun t -> (t, [TenantEvent.PatronRemoved userId]))
-            | InvitePatron (userId, invitationCode) ->
-                tenant.InvitePatron (userId, invitationCode)
-                |> Result.map (fun t -> (t, [TenantEvent.PatronInvited (userId, invitationCode)]))
+                |> Result.map (fun t -> (t, [ TenantEvent.PatronRemoved userId ]))
+            | InvitePatron(userId, invitationCode) ->
+                tenant.InvitePatron(userId, invitationCode)
+                |> Result.map (fun t -> (t, [ TenantEvent.PatronInvited(userId, invitationCode) ]))
             | ConvertInvitedPatronToPatron invitationCode ->
                 tenant.ConvertInvitedPatronToPatron invitationCode
-                |> Result.map (fun t -> (t, [TenantEvent.InvitedPatronConvertedToPatron invitationCode]))
+                |> Result.map (fun t -> (t, [ TenantEvent.InvitedPatronConvertedToPatron invitationCode ]))
             | RevokePatronInvitation userId ->
                 tenant.RevokeInvitation userId
-                |> Result.map (fun t -> (t, [TenantEvent.PatronInvitationRevoked userId]))
-            | SuspendPatron (userId, reason) ->
+                |> Result.map (fun t -> (t, [ TenantEvent.PatronInvitationRevoked userId ]))
+            | SuspendPatron(userId, reason) ->
                 tenant.SuspendPatron(userId, reason)
-                |> Result.map (fun t -> (t, [TenantEvent.PatronSuspended(userId, reason)]))
+                |> Result.map (fun t -> (t, [ TenantEvent.PatronSuspended(userId, reason) ]))
             | ReadmittPatron userId ->
                 tenant.ReAdmittPatron(userId)
-                |> Result.map (fun t -> (t, [TenantEvent.PatronReadmitted(userId)]))
-            | SetPublic ->
-                tenant.SetPublic()
-                |> Result.map (fun t -> (t, [TenantEvent.PublicSet]))
-            | SetPrivate ->
-                tenant.SetPrivate()
-                |> Result.map (fun t -> (t, [TenantEvent.PrivateSet]))
+                |> Result.map (fun t -> (t, [ TenantEvent.PatronReadmitted(userId) ]))
+            | SetPublic -> tenant.SetPublic() |> Result.map (fun t -> (t, [ TenantEvent.PublicSet ]))
+            | RequestPublic ->
+                tenant.RequestPublic()
+                |> Result.map (fun t -> (t, [ TenantEvent.PublicRequested ]))
+            | SetPrivate -> tenant.SetPrivate() |> Result.map (fun t -> (t, [ TenantEvent.PrivateSet ]))
             | GenerateJoinPin2 pin ->
                 tenant.GenerateJoinPin2 pin
-                |> Result.map (fun t -> (t, [TenantEvent.JoinPinGenerated2 pin]))
+                |> Result.map (fun t -> (t, [ TenantEvent.JoinPinGenerated2 pin ]))
             | SubmitJoinRequest2 userId ->
                 tenant.AddJoinRequest2 userId
-                |> Result.map (fun t -> (t, [TenantEvent.JoinRequestSubmitted2 userId]))
+                |> Result.map (fun t -> (t, [ TenantEvent.JoinRequestSubmitted2 userId ]))
             | ApproveJoinRequest2 userId ->
                 tenant.ApproveJoinRequest2 userId
-                |> Result.map (fun t -> (t, [TenantEvent.JoinRequestApproved2 userId]))
+                |> Result.map (fun t -> (t, [ TenantEvent.JoinRequestApproved2 userId ]))
             | RejectJoinRequest2 userId ->
                 tenant.RejectJoinRequest2 userId
-                |> Result.map (fun t -> (t, [TenantEvent.JoinRequestRejected2 userId]))
+                |> Result.map (fun t -> (t, [ TenantEvent.JoinRequestRejected2 userId ]))
+
         member this.Undoer = None

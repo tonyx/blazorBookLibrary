@@ -190,6 +190,21 @@ type DistributionPointService
             return result |>> snd
         }
 
+    member this.GetAllDistributionPointsManagedByUser(context: UserContext, userId: UserId, ?ct: CancellationToken) =
+        taskResult {
+            let ctValue = defaultArg ct CancellationToken.None
+            let! tenantId = userTenantResolverService.GetTenantForUserAsync(context, ctValue)
+            do! checkIsGlobalAdminOrTenantManagerOrSelf context ctValue userId
+
+            let! result =
+                StateView.getAllFilteredAggregateStatesAsync<DistributionPoint, DistributionPointEvent, string>
+                    (fun (x: DistributionPoint) -> x.ReferenceUsers |> List.contains userId)
+                    eventStore
+                    ct
+
+            return result |>> snd
+        }
+
     member this.IsRemovableAsync
         (context: UserContext, distributionPointId: DistributionPointId, ?ct: CancellationToken)
         =
@@ -200,6 +215,44 @@ type DistributionPointService
             return books.Length = 0
         }
 
+    member this.AddReferenceUser
+        (context: UserContext, distributionPointId: DistributionPointId, userId: UserId, ?ct: CancellationToken)
+        =
+        taskResult {
+            let ctValue = defaultArg ct CancellationToken.None
+            do! checkIsGlobalAdminOrTenantManager context ctValue
+            let command = DistributionPointCommand.AddReferenceUser userId
+
+            return!
+                runAggregateCommandMdAsync<DistributionPoint, DistributionPointEvent, string>
+                    distributionPointId.Value
+                    eventStore
+                    messageSenders
+                    (context.ToString())
+                    command
+                    (Some ctValue)
+                |> TaskResult.ignore
+        }
+
+    member this.RemoveReferenceUser
+        (context: UserContext, distributionPointId: DistributionPointId, userId: UserId, ?ct: CancellationToken)
+        =
+        taskResult {
+            let ctValue = defaultArg ct CancellationToken.None
+            do! checkIsGlobalAdminOrTenantManagerOrSelf context ctValue userId
+            let command = DistributionPointCommand.RemoveReferenceUser userId
+
+            return!
+                runAggregateCommandMdAsync<DistributionPoint, DistributionPointEvent, string>
+                    distributionPointId.Value
+                    eventStore
+                    messageSenders
+                    (context.ToString())
+                    command
+                    (Some ctValue)
+                |> TaskResult.ignore
+        }
+
     interface IDistributionPointService with
         member this.GetDistributionPointAsync(context: UserContext, id: DistributionPointId, ?ct: CancellationToken) =
             this.GetDistributionPointAsync(context, id, ?ct = ct)
@@ -208,6 +261,21 @@ type DistributionPointService
             (context: UserContext, tenantId: TenantId, ct: CancellationToken option)
             : Tasks.Task<Result<List<DistributionPoint>, string>> =
             this.GetAllDistributionPointsOfTenantAsync(context, tenantId, ?ct = ct)
+
+        member this.AddReferenceUser
+            (context: UserContext, distributionPointId: DistributionPointId, userId: UserId, ?ct: CancellationToken)
+            =
+            this.AddReferenceUser(context, distributionPointId, userId, ?ct = ct)
+
+        member this.RemoveReferenceUser
+            (context: UserContext, distributionPointId: DistributionPointId, userId: UserId, ?ct: CancellationToken)
+            =
+            this.RemoveReferenceUser(context, distributionPointId, userId, ?ct = ct)
+
+        member this.GetAllDistributionPointsManagedByUser
+            (context: UserContext, userId: UserId, ?ct: CancellationToken)
+            =
+            this.GetAllDistributionPointsManagedByUser(context, userId, ?ct = ct)
 
         member this.GetAllBooksOfADistributionPointAsync
             (context: UserContext, distributionPointId: DistributionPointId, ?ct: CancellationToken)

@@ -13,12 +13,13 @@
 @using blazorBookLibrary.Shared
 @using Microsoft.AspNetCore.Components.QuickGrid
 
-@attribute [Authorize(Roles = "Admin, Manager")]
+@attribute [Authorize]
 @inject IBookService BookService
 @inject IUserService UserService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject ILogger<BooksManager> Logger
 @inject IUserTenantResolverService UserTenantResolverService
+@inject ITenantService TenantService
 @inject ITagService TagService
 @inject IDataExportService DataExportService
 @inject IAuthorService AuthorService
@@ -34,7 +35,35 @@
 
 <PageTitle>@L["BooksManager"] — @L["TheModernArchivist"]</PageTitle>
 
-<div class="sanctuary-container py-5">
+@if (isPageLoading)
+{
+    <div class="sanctuary-container py-5 text-center">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">@L["Loading"]...</span>
+        </div>
+        <p class="mt-2 text-muted">@L["RetrievingArchivalRecords"]...</p>
+    </div>
+}
+else if (!isAuthorized)
+{
+    <div class="sanctuary-container py-5">
+        <div class="card-sanctuary p-5 text-center shadow-lg border-0 rounded-4" style="max-width: 600px; margin: 0 auto; background: #fff; border: 1px solid rgba(0,0,0,0.05); border-radius: 1.25rem;">
+            <div class="text-danger mb-4">
+                <i class="bi bi-shield-lock-fill display-1" style="font-size: 5rem; color: #dc3545;"></i>
+            </div>
+            <h1 class="display-5 text-serif mb-3 text-dark">@L["AccessDenied"]</h1>
+            <p class="text-muted lead mb-4">
+                Access Denied. You must be the Owner of the current library (tenant) or a global Administrator to manage books.
+            </p>
+            <a href="/" class="btn btn-primary rounded-pill px-5 py-3 shadow-sm shadow-hover">
+                <i class="bi bi-house-door me-2"></i> @L["Home"]
+            </a>
+        </div>
+    </div>
+}
+else
+{
+    <div class="sanctuary-container py-5">
     @* Page Header *@
     <div class="mb-5">
         <nav aria-label="breadcrumb">
@@ -790,6 +819,7 @@
         </div>
     }
 </div>
+}
 
 @code {
     [CascadingParameter]
@@ -1083,46 +1113,84 @@
     private List<Tag> bookTags = new();
     private List<Tag> allAvailableTags = new();
     private Category categoryToAdd = Category.Other;
-    private FSharpList<Category> allCategories = Category.AllCases();
-
+    private FSharpList<Category> allCategories = Category.AllCases();    
     private List<DistributionPoint> managedDistributionPoints = new();
+    private bool isAuthorized = false;
+    private bool isPageLoading = true;
 
     protected override async Task OnInitializedAsync()
     {
-        var context = await GetUserContextAsync();
-
-        if (context.IsAuthenticated)
+        isPageLoading = true;
+        try
         {
-            var userId = context.UserId.Value;
-            var userResult = await UserService.GetUserAsync(context, userId);
-            if (userResult.IsOk)
+            var authState = await authenticationStateTask;
+            var claimsPrincipal = authState.User;
+            if (claimsPrincipal != null && claimsPrincipal.Identity?.IsAuthenticated == true)
             {
-                _currentTenant = userResult.ResultValue.CurrentTenant;
-                _cachedUserContext = context.WithNewTenant(_currentTenant);
-                context = _cachedUserContext;
-            }
-        }
+                var userContext = TenantState.GetUserContext(claimsPrincipal);
+                var isAdmin = claimsPrincipal.IsInRole("Admin");
+                bool isOwner = false;
 
-        var tagsResult = await TagService.GetBookTypeTagsAsync(context, FSharpOption<CancellationToken>.None);
-        if (tagsResult.IsOk)
-        {
-            allAvailableTags = tagsResult.ResultValue.ToList();
-        }
-
-        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-        var user = authState.User;
-        if (user.Identity?.IsAuthenticated == true)
-        {
-            var userIdClaim = user.FindFirst(c => c.Type == System.Security.Claims.ClaimTypes.NameIdentifier) ?? user.FindFirst("sub");
-            if (userIdClaim != null && Guid.TryParse(userIdClaim.Value, out var guid))
-            {
-                currentUserId = UserId.NewUserId(guid);
-                var dpResult = await UserService.GetDistributionPointsManagedByUserAsync(context, currentUserId, CancellationToken.None);
-                if (dpResult.IsOk)
+                var tenantResult = await UserTenantResolverService.GetTenantForUserAsync(userContext);
+                if (tenantResult.IsOk)
                 {
-                    managedDistributionPoints = dpResult.ResultValue.ToList();
+                    var tenantId = tenantResult.ResultValue;
+                    var tenantInfoResult = await TenantService.GetTenantAsync(userContext, tenantId);
+                    if (tenantInfoResult.IsOk)
+                    {
+                        var tenant = tenantInfoResult.ResultValue;
+                        isOwner = userContext.UserId.Value.Value.Equals(tenant.OwnerId.Value);
+                    }
+                }
+
+                if (isAdmin || isOwner)
+                {
+                    isAuthorized = true;
+                    
+                    var context = await GetUserContextAsync();
+
+                    if (context.IsAuthenticated)
+                    {
+                        var userId = context.UserId.Value;
+                        var userResult = await UserService.GetUserAsync(context, userId);
+                        if (userResult.IsOk)
+                        {
+                            _currentTenant = userResult.ResultValue.CurrentTenant;
+                            _cachedUserContext = context.WithNewTenant(_currentTenant);
+                            context = _cachedUserContext;
+                        }
+                    }
+
+                    var tagsResult = await TagService.GetBookTypeTagsAsync(context, FSharpOption<CancellationToken>.None);
+                    if (tagsResult.IsOk)
+                    {
+                        allAvailableTags = tagsResult.ResultValue.ToList();
+                    }
+
+                    var user = authState.User;
+                    if (user.Identity?.IsAuthenticated == true)
+                    {
+                        var userIdClaim = user.FindFirst(c => c.Type == System.Security.Claims.ClaimTypes.NameIdentifier) ?? user.FindFirst("sub");
+                        if (userIdClaim != null && Guid.TryParse(userIdClaim.Value, out var guid))
+                        {
+                            currentUserId = UserId.NewUserId(guid);
+                            var dpResult = await UserService.GetDistributionPointsManagedByUserAsync(context, currentUserId, CancellationToken.None);
+                            if (dpResult.IsOk)
+                            {
+                                managedDistributionPoints = dpResult.ResultValue.ToList();
+                            }
+                        }
+                    }
                 }
             }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error during page authorization check");
+        }
+        finally
+        {
+            isPageLoading = false;
         }
     }
 

@@ -5,6 +5,10 @@
 
 @inject NavigationManager NavigationManager
 @inject IStringLocalizer<SharedResources> L
+@inject blazorBookLibrary.Client.Services.TenantStateService TenantState
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IUserTenantResolverService UserTenantResolverService
+@inject ITenantService TenantService
 
 <div class="top-row navbar navbar-light sanctuary-brand-area border-bottom">
     <div class="container-fluid justify-content-center">
@@ -48,11 +52,18 @@
                     <span class="bi bi-people" aria-hidden="true"></span> @L["UsersManager"]
                 </NavLink>
             </div>
+        </AuthorizeView>
+
+        @if (isOwnerOrAdmin)
+        {
             <div class="nav-item">
                 <NavLink class="nav-link sanctuary-nav-link" href="distribution-points-manager" target="_top">
                     <span class="bi bi-geo-alt" aria-hidden="true"></span> @L["DistributionPointsManager"]
                 </NavLink>
             </div>
+        }
+
+        <AuthorizeView Roles="Admin">
             <div class="nav-item">
                 <NavLink class="nav-link sanctuary-nav-link" href="control-panel">
                     <span class="bi bi-shield-lock" aria-hidden="true"></span> @L["ControlPanel"]
@@ -60,17 +71,26 @@
             </div>
         </AuthorizeView>
 
-        <AuthorizeView Roles="Admin, Manager">
+        @if (isOwnerOrAdmin)
+        {
             <div class="nav-item">
                 <NavLink class="nav-link sanctuary-nav-link" href="authors-manager">
                     <span class="bi bi-person-lines-fill" aria-hidden="true"></span> @L["AuthorsManager"]
                 </NavLink>
             </div>
+        }
+
+        @if (isOwnerOrAdmin)
+        {
             <div class="nav-item">
                 <NavLink class="nav-link sanctuary-nav-link" href="books-manager">
                     <span class="bi bi-journals" aria-hidden="true"></span> @L["BooksManager"]
                 </NavLink>
             </div>
+        }
+
+        @if (isOwnerOrAdmin)
+        {
             <div class="nav-item">
                 <NavLink class="nav-link sanctuary-nav-link" href="loans">
                     <span class="bi bi-calendar-check" aria-hidden="true"></span> @L["LoansManagement"]
@@ -86,7 +106,7 @@
                     <span class="bi bi-chat-left-text" aria-hidden="true"></span> @L["ReviewsManagement"]
                 </NavLink>
             </div>
-        </AuthorizeView>
+        }
 
         <div class="my-3 border-bottom opacity-10 mx-3"></div>
 
@@ -125,11 +145,59 @@
 
 @code {
     private string? currentUrl;
+    private bool isOwnerOrAdmin = false;
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
         currentUrl = NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
         NavigationManager.LocationChanged += OnLocationChanged;
+        TenantState.OnChange += OnTenantChanged;
+
+        await CheckOwnershipAsync();
+    }
+
+    private void OnTenantChanged()
+    {
+        _ = InvokeAsync(async () =>
+        {
+            await CheckOwnershipAsync();
+            StateHasChanged();
+        });
+    }
+
+    private async Task CheckOwnershipAsync()
+    {
+        isOwnerOrAdmin = false;
+        try
+        {
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var claimsPrincipal = authState.User;
+            if (claimsPrincipal != null && claimsPrincipal.Identity?.IsAuthenticated == true)
+            {
+                if (claimsPrincipal.IsInRole("Admin"))
+                {
+                    isOwnerOrAdmin = true;
+                    return;
+                }
+
+                var userContext = TenantState.GetUserContext(claimsPrincipal);
+                var tenantResult = await UserTenantResolverService.GetTenantForUserAsync(userContext);
+                if (tenantResult.IsOk)
+                {
+                    var tenantId = tenantResult.ResultValue;
+                    var tenantInfoResult = await TenantService.GetTenantAsync(userContext, tenantId);
+                    if (tenantInfoResult.IsOk)
+                    {
+                        var tenant = tenantInfoResult.ResultValue;
+                        isOwnerOrAdmin = userContext.UserId.Value.Value.Equals(tenant.OwnerId.Value);
+                    }
+                }
+            }
+        }
+        catch
+        {
+            // Silent error
+        }
     }
 
     private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
@@ -141,5 +209,6 @@
     public void Dispose()
     {
         NavigationManager.LocationChanged -= OnLocationChanged;
+        TenantState.OnChange -= OnTenantChanged;
     }
 }

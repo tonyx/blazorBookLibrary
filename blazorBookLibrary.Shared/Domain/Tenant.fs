@@ -29,7 +29,11 @@ type Tenant001 =
           Name = this.TentantName
           Address = this.Address
           TenantState = this.TenantState
-          Public = this.Public
+          TenantVisibility =
+            if this.Public then
+                TenantVisibility.Public
+            else
+                TenantVisibility.Private
           Tags = this.Tags
           CurrentJoinPin = None
           JoinRequests = [] }
@@ -53,12 +57,16 @@ and Tenant002 =
           Name = this.Name
           Address = this.Address
           TenantState = this.TenantState
-          Public = this.Public
+          TenantVisibility =
+            if this.Public then
+                TenantVisibility.Public
+            else
+                TenantVisibility.Private
           Tags = this.Tags
           CurrentJoinPin = None
           JoinRequests = [] }
 
-and Tenant =
+and Tenant003 =
     { OwnerId: UserId
       TenantId: TenantId
       InvitedPatrons: List<(UserId * PatronInvitationCode)>
@@ -71,6 +79,36 @@ and Tenant =
       CurrentJoinPin: Option<string>
       JoinRequests: List<UserId> }
 
+    member this.Upcast() : Tenant =
+        { OwnerId = this.OwnerId
+          TenantId = this.TenantId
+          InvitedPatrons = this.InvitedPatrons
+          Patrons = this.Patrons
+          Name = this.Name
+          Address = this.Address
+          TenantState = this.TenantState
+          TenantVisibility =
+            if this.Public then
+                TenantVisibility.Public
+            else
+                TenantVisibility.Private
+          Tags = this.Tags
+          CurrentJoinPin = this.CurrentJoinPin
+          JoinRequests = this.JoinRequests }
+
+and Tenant =
+    { OwnerId: UserId
+      TenantId: TenantId
+      InvitedPatrons: List<(UserId * PatronInvitationCode)>
+      Patrons: List<UserId * PatronRole>
+      Name: TenantName
+      Address: string
+      TenantState: TenantState
+      TenantVisibility: TenantVisibility
+      Tags: List<Tag>
+      CurrentJoinPin: Option<string>
+      JoinRequests: List<UserId> }
+
     static member New(userId: UserId, tenantName: TenantName, address: string, ?pub: bool) =
         { OwnerId = userId
           TenantId = TenantId.New()
@@ -79,7 +117,11 @@ and Tenant =
           Name = tenantName
           Address = address
           TenantState = TenantState.Active
-          Public = pub |> Option.defaultValue false
+          TenantVisibility =
+            if pub |> Option.defaultValue false then
+                TenantVisibility.RequestedPublic
+            else
+                TenantVisibility.Private
           Tags = []
           CurrentJoinPin = None
           JoinRequests = [] }
@@ -88,43 +130,49 @@ and Tenant =
         { Tenant.New(userId, tenantName, address, true) with
             TenantId = TenantId.Default }
 
-    member this.GenerateJoinPin2 (pin: string) =
+    member this.GenerateJoinPin2(pin: string) =
         { this with CurrentJoinPin = Some pin } |> Ok
 
-    member this.AddJoinRequest2 (userId: UserId) =
+    member this.AddJoinRequest2(userId: UserId) =
         result {
             do!
                 this.Patrons
                 |> List.exists (fun (u, _) -> u = userId)
                 |> not
                 |> Result.ofBool "User is already a patron of this library"
+
             do!
                 this.JoinRequests
                 |> List.contains userId
                 |> not
                 |> Result.ofBool "User has already requested to join this library"
-            return { this with JoinRequests = this.JoinRequests @ [ userId ] }
+
+            return
+                { this with
+                    JoinRequests = this.JoinRequests @ [ userId ] }
         }
 
-    member this.ApproveJoinRequest2 (userId: UserId) =
+    member this.ApproveJoinRequest2(userId: UserId) =
         result {
             do!
                 this.JoinRequests
                 |> List.contains userId
                 |> Result.ofBool "Join request not found"
-            return 
+
+            return
                 { this with
                     Patrons = this.Patrons @ [ (userId, PatronRole.User) ]
                     JoinRequests = this.JoinRequests |> List.filter (fun u -> u <> userId) }
         }
 
-    member this.RejectJoinRequest2 (userId: UserId) =
+    member this.RejectJoinRequest2(userId: UserId) =
         result {
             do!
                 this.JoinRequests
                 |> List.contains userId
                 |> Result.ofBool "Join request not found"
-            return 
+
+            return
                 { this with
                     JoinRequests = this.JoinRequests |> List.filter (fun u -> u <> userId) }
         }
@@ -241,7 +289,7 @@ and Tenant =
                         this.Patrons
                         |> List.map (fun (u, r) -> if u = user then (u, PatronRole.Manager) else (u, r)) }
         }
-    
+
     member this.SuspendPatron(user: UserId, reason: string) =
         result {
             do!
@@ -253,17 +301,21 @@ and Tenant =
                 { this with
                     Patrons =
                         this.Patrons
-                        |> List.map (fun (u, r) -> if u = user then (u, PatronRole.Suspended reason) else (u, r)) }
+                        |> List.map (fun (u, r) ->
+                            if u = user then
+                                (u, PatronRole.Suspended reason)
+                            else
+                                (u, r)) }
         }
 
-    member this.ReAdmittPatron (user: UserId) =
+    member this.ReAdmittPatron(user: UserId) =
         result {
             do!
                 this.Patrons
                 |> List.exists (fun (u, _) -> u = user)
                 |> Result.ofBool "User is not a patron"
 
-            do! 
+            do!
                 this.Patrons
                 |> List.find (fun (u, _) -> u = user)
                 |> fun (_, r) -> r.IsSuspended
@@ -283,7 +335,8 @@ and Tenant =
                 |> List.exists (fun (u, _) -> u = user)
                 |> Result.ofBool "User is not a patron"
 
-            do! this.Patrons
+            do!
+                this.Patrons
                 |> List.find (fun (u, r) -> u = user)
                 |> fun (_, r) -> r.IsSuspended
                 |> Result.ofBool "Must be suspended before removal"
@@ -305,8 +358,27 @@ and Tenant =
                     Tags = this.Tags |> List.map (fun t -> if t = oldTag then newTag else t) }
         }
 
-    member this.SetPublic() = { this with Public = true } |> Ok
-    member this.SetPrivate() = { this with Public = false } |> Ok
+    // this should be allowed only if the previous state is RequestedPublic but for backward events processing I should allow it anyway
+    member this.SetPublic() =
+        { this with
+            TenantVisibility = TenantVisibility.Public }
+        |> Ok
+
+    member this.RequestPublic() =
+        result {
+            do!
+                this.TenantVisibility.IsPrivate
+                |> Result.ofBool "The library must be public or private before requesting public visibility"
+
+            return
+                { this with
+                    TenantVisibility = TenantVisibility.RequestedPublic }
+        }
+
+    member this.SetPrivate() =
+        { this with
+            TenantVisibility = TenantVisibility.Private }
+        |> Ok
 
     member this.GetUserRole userId =
         this.Patrons |> List.tryFind (fun (u, _) -> u = userId) |> Option.map snd
@@ -339,11 +411,15 @@ and Tenant =
             (data, jsonOptions) |> JsonSerializer.Deserialize<Tenant> |> Ok
         with ex ->
             try
-                let fallback = (data, jsonOptions) |> JsonSerializer.Deserialize<Tenant002>
+                let fallback = (data, jsonOptions) |> JsonSerializer.Deserialize<Tenant003>
                 fallback.Upcast() |> Ok
             with _ ->
                 try
-                    let fallback1 = (data, jsonOptions) |> JsonSerializer.Deserialize<Tenant001>
+                    let fallback1 = (data, jsonOptions) |> JsonSerializer.Deserialize<Tenant002>
                     fallback1.Upcast() |> Ok
                 with _ ->
-                    Error(ex.Message)
+                    try
+                        let fallback2 = (data, jsonOptions) |> JsonSerializer.Deserialize<Tenant001>
+                        fallback2.Upcast() |> Ok
+                    with _ ->
+                        Error(ex.Message)

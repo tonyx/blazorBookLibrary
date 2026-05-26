@@ -1,4 +1,3 @@
-
 module TestSetup
 
 open System
@@ -31,10 +30,11 @@ open Microsoft.Extensions.Localization
 open blazorBookLibrary.Shared.Resources
 open BookLibrary.Utils
 open Npgsql
+
 Environment.SetEnvironmentVariable("IsTestEnv", "True")
 Env.Load() |> ignore
 
-let config = 
+let config =
     ConfigurationBuilder()
         .SetBasePath(AppDomain.CurrentDomain.BaseDirectory)
         .AddJsonFile("appSettings.json", false)
@@ -43,35 +43,40 @@ let config =
 let timeSlotDurationInDays =
     config.GetValue<int>("BookLibrary::TimeSlotLoanDurationInDays", 30)
 
-let connection =
-    config.GetConnectionString("BookLibraryDbConnection")
+let connection = config.GetConnectionString("BookLibraryDbConnection")
 
-let pgEventStore:Sharpino.Storage.IEventStore<string> = PgEventStore connection
+let pgEventStore: Sharpino.Storage.IEventStore<string> = PgEventStore connection
 
 let usersDbConnection = config.GetConnectionString("UsersDbConnection")
 
 let getDbContext () =
-    let options = 
-        DbContextOptionsBuilder<ApplicationDbContext>()
-            .UseNpgsql(usersDbConnection)
-            .Options
+    let options =
+        DbContextOptionsBuilder<ApplicationDbContext>().UseNpgsql(usersDbConnection).Options
+
     new ApplicationDbContext(options)
 
 let getServiceScopeFactory () =
     let services = ServiceCollection()
     services.AddLogging() |> ignore
     services.AddDataProtection() |> ignore
-    services.AddDbContext<ApplicationDbContext>(fun options -> 
-        options.UseNpgsql(usersDbConnection) |> ignore) |> ignore
-    services.AddIdentityCore<ApplicationUser>()
+
+    services.AddDbContext<ApplicationDbContext>(fun options -> options.UseNpgsql(usersDbConnection) |> ignore)
+    |> ignore
+
+    services
+        .AddIdentityCore<ApplicationUser>()
         .AddRoles<IdentityRole>()
         .AddEntityFrameworkStores<ApplicationDbContext>()
         .AddClaimsPrincipalFactory<UserClaimsPrincipalFactory<ApplicationUser>>()
-        .AddDefaultTokenProviders() |> ignore
-    services.AddSingleton<BookLibrary.Utils.SecretsReader>(fun _ -> new BookLibrary.Utils.SecretsReader(config)) |> ignore
+        .AddDefaultTokenProviders()
+    |> ignore
 
-    services.AddSingleton<IMailBodyRetriever, MailBodyRetriever>(fun _ -> new MailBodyRetriever()) |> ignore
-    
+    services.AddSingleton<BookLibrary.Utils.SecretsReader>(fun _ -> new BookLibrary.Utils.SecretsReader(config))
+    |> ignore
+
+    services.AddSingleton<IMailBodyRetriever, MailBodyRetriever>(fun _ -> new MailBodyRetriever())
+    |> ignore
+
     let serviceProvider = services.BuildServiceProvider()
     serviceProvider.GetRequiredService<IServiceScopeFactory>()
 
@@ -80,150 +85,187 @@ let getUserManagerOld () =
     let services = ServiceCollection()
     services.AddLogging() |> ignore
     services.AddDataProtection() |> ignore
-    services.AddDbContext<ApplicationDbContext>(fun options -> 
-        options.UseNpgsql(usersDbConnection) |> ignore) |> ignore
-    services.AddIdentityCore<ApplicationUser>()
+
+    services.AddDbContext<ApplicationDbContext>(fun options -> options.UseNpgsql(usersDbConnection) |> ignore)
+    |> ignore
+
+    services
+        .AddIdentityCore<ApplicationUser>()
         .AddEntityFrameworkStores<ApplicationDbContext>()
-        .AddDefaultTokenProviders() |> ignore
-    
+        .AddDefaultTokenProviders()
+    |> ignore
+
     let serviceProvider = services.BuildServiceProvider()
     serviceProvider.GetRequiredService<UserManager<ApplicationUser>>()
 
 let getUserManager () =
-    let serviceScopeFacotry = getServiceScopeFactory()
+    let serviceScopeFacotry = getServiceScopeFactory ()
     let scope = serviceScopeFacotry.CreateScope()
     scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>()
 
 let getClaimsFactory () =
-    let serviceScopeFacotry = getServiceScopeFactory()
+    let serviceScopeFacotry = getServiceScopeFactory ()
     let scope = serviceScopeFacotry.CreateScope()
     scope.ServiceProvider.GetRequiredService<IUserClaimsPrincipalFactory<ApplicationUser>>()
 
 let getSecretReader () =
-    let serviceScopeFacotry = getServiceScopeFactory()
+    let serviceScopeFacotry = getServiceScopeFactory ()
     let scope = serviceScopeFacotry.CreateScope()
     scope.ServiceProvider.GetRequiredService<BookLibrary.Utils.SecretsReader>()
 
 let getMailBodyRetriever () =
-    let serviceScopeFacotry = getServiceScopeFactory()
+    let serviceScopeFacotry = getServiceScopeFactory ()
     let scope = serviceScopeFacotry.CreateScope()
     scope.ServiceProvider.GetRequiredService<IMailBodyRetriever>()
 
-let bookViewerAsync = getAggregateStorageFreshStateViewerAsync<Book, BookEvent, string> pgEventStore
-let authorViewerAsync = getAggregateStorageFreshStateViewerAsync<Author, AuthorEvent, string> pgEventStore
-let editorViewerAsync = getAggregateStorageFreshStateViewerAsync<Editor, EditorEvent, string> pgEventStore
-let reservationViewerAsync = getAggregateStorageFreshStateViewerAsync<Reservation, ReservationEvent, string> pgEventStore
-let loanViewerAsync = getAggregateStorageFreshStateViewerAsync<Loan, LoanEvent, string> pgEventStore
-let userViewerAsync = getAggregateStorageFreshStateViewerAsync<User, UserEvent, string> pgEventStore
-let reviewViewerAsync = getAggregateStorageFreshStateViewerAsync<Review, ReviewEvent, string> pgEventStore
-let distributionPointViewerAsync = getAggregateStorageFreshStateViewerAsync<DistributionPoint, DistributionPointEvent, string> pgEventStore
-let tagViewerAsync = getAggregateStorageFreshStateViewerAsync<Tags, TagEvent, string> pgEventStore
-let tenantViewerAsync = getAggregateStorageFreshStateViewerAsync<Tenant, TenantEvent, string> pgEventStore
+let bookViewerAsync =
+    getAggregateStorageFreshStateViewerAsync<Book, BookEvent, string> pgEventStore
 
-let adminId = UserId (System.Guid.Parse("787b784e-42d8-416b-9d57-f1e62f857f47"))
-let adminContext = UserContext.Authenticated (adminId, [Role.Admin])
+let authorViewerAsync =
+    getAggregateStorageFreshStateViewerAsync<Author, AuthorEvent, string> pgEventStore
+
+let editorViewerAsync =
+    getAggregateStorageFreshStateViewerAsync<Editor, EditorEvent, string> pgEventStore
+
+let reservationViewerAsync =
+    getAggregateStorageFreshStateViewerAsync<Reservation, ReservationEvent, string> pgEventStore
+
+let loanViewerAsync =
+    getAggregateStorageFreshStateViewerAsync<Loan, LoanEvent, string> pgEventStore
+
+let userViewerAsync =
+    getAggregateStorageFreshStateViewerAsync<User, UserEvent, string> pgEventStore
+
+let reviewViewerAsync =
+    getAggregateStorageFreshStateViewerAsync<Review, ReviewEvent, string> pgEventStore
+
+let distributionPointViewerAsync =
+    getAggregateStorageFreshStateViewerAsync<DistributionPoint, DistributionPointEvent, string> pgEventStore
+
+let tagViewerAsync =
+    getAggregateStorageFreshStateViewerAsync<Tags, TagEvent, string> pgEventStore
+
+let tenantViewerAsync =
+    getAggregateStorageFreshStateViewerAsync<Tenant, TenantEvent, string> pgEventStore
+
+let adminId = UserId(System.Guid.Parse("787b784e-42d8-416b-9d57-f1e62f857f47"))
+let adminContext = UserContext.Authenticated(adminId, [ Role.Admin ])
 
 let fakeEmailNotificator: IMailNotificator = new FakeEmailNotificator()
 let fakeReservationService: IReservationService = new FakeReservationService()
-let fakeLocalizer: IStringLocalizer<SharedResources> = new FakeLocalizer<SharedResources>()
 
-let dummyLogger = 
+let fakeLocalizer: IStringLocalizer<SharedResources> =
+    new FakeLocalizer<SharedResources>()
+
+let dummyLogger =
     LoggerFactory.Create(fun builder -> builder.AddConsole() |> ignore).CreateLogger<MailResenderService>()
 
-let getDummyLogger<'T> () = 
+let getDummyLogger<'T> () =
     LoggerFactory.Create(fun builder -> builder.AddConsole() |> ignore).CreateLogger<'T>()
+
 let dummyMailJetClient = new Mailjet.Client.MailjetClient("", "")
 
 let getUserTenantResolverService () : IUserTenantResolverService =
     UserTenantResolverService(pgEventStore, MessageSenders.NoSender, userViewerAsync) :> IUserTenantResolverService
 
-let getAuthorService () : IAuthorService = 
+let getAuthorService () : IAuthorService =
     AuthorService(
-        pgEventStore, 
-        MessageSenders.NoSender, 
-        bookViewerAsync, 
-        authorViewerAsync, 
-        editorViewerAsync, 
-        reservationViewerAsync, 
+        pgEventStore,
+        MessageSenders.NoSender,
+        bookViewerAsync,
+        authorViewerAsync,
+        editorViewerAsync,
+        reservationViewerAsync,
         loanViewerAsync,
         tenantViewerAsync,
-        getUserTenantResolverService(),
-        getSecretReader()) :> IAuthorService
+        getUserTenantResolverService (),
+        getSecretReader ()
+    )
+    :> IAuthorService
 
 let getReviewService () : IReviewService =
     ReviewService(
-        pgEventStore, 
-        MessageSenders.NoSender, 
+        pgEventStore,
+        MessageSenders.NoSender,
         reviewViewerAsync,
-        authorViewerAsync, 
-        editorViewerAsync, 
+        authorViewerAsync,
+        editorViewerAsync,
         bookViewerAsync,
-        reservationViewerAsync, 
+        reservationViewerAsync,
         loanViewerAsync,
         userViewerAsync,
         tenantViewerAsync,
-        getUserTenantResolverService(),
-        getServiceScopeFactory()) :> IReviewService
+        getUserTenantResolverService (),
+        getServiceScopeFactory ()
+    )
+    :> IReviewService
 
 let getUserService () : IUserService =
     UserService(
-        pgEventStore, 
-        MessageSenders.NoSender, 
-        bookViewerAsync, 
-        authorViewerAsync, 
-        editorViewerAsync, 
-        reservationViewerAsync, 
+        pgEventStore,
+        MessageSenders.NoSender,
+        bookViewerAsync,
+        authorViewerAsync,
+        editorViewerAsync,
+        reservationViewerAsync,
         loanViewerAsync,
         userViewerAsync,
         reviewViewerAsync,
         tenantViewerAsync,
-        getUserTenantResolverService(),
+        getUserTenantResolverService (),
         distributionPointViewerAsync,
-        getReviewService(),
-        getServiceScopeFactory(),
-        getDummyLogger<UserService>()) :> IUserService
+        getReviewService (),
+        getServiceScopeFactory (),
+        getDummyLogger<UserService> ()
+    )
+    :> IUserService
 
 let getReservationService () : IReservationService =
     ReservationService(
-        pgEventStore, 
-        MessageSenders.NoSender, 
-        bookViewerAsync, 
-        authorViewerAsync, 
-        editorViewerAsync, 
-        reservationViewerAsync, 
+        pgEventStore,
+        MessageSenders.NoSender,
+        bookViewerAsync,
+        authorViewerAsync,
+        editorViewerAsync,
+        reservationViewerAsync,
         loanViewerAsync,
         userViewerAsync,
         tenantViewerAsync,
         distributionPointViewerAsync,
-        getUserTenantResolverService(),
-        getUserService(),
+        getUserTenantResolverService (),
+        getUserService (),
         fakeEmailNotificator,
         3,
         "noreply@blazorbooklibrary.com",
         "Blazor Book Library",
-        getMailBodyRetriever()) :> IReservationService
+        getMailBodyRetriever ()
+    )
+    :> IReservationService
 
 let getLoanService () : ILoanService =
     LoanService(
-        pgEventStore, 
-        MessageSenders.NoSender, 
-        bookViewerAsync, 
-        authorViewerAsync, 
-        editorViewerAsync, 
-        reservationViewerAsync, 
+        pgEventStore,
+        MessageSenders.NoSender,
+        bookViewerAsync,
+        authorViewerAsync,
+        editorViewerAsync,
+        reservationViewerAsync,
         loanViewerAsync,
         userViewerAsync,
         tenantViewerAsync,
         distributionPointViewerAsync,
-        getUserTenantResolverService(),
-        getReservationService(),
-        getUserService(),
+        getUserTenantResolverService (),
+        getReservationService (),
+        getUserService (),
         fakeEmailNotificator,
         3,
         "noreply@blazorbooklibrary.com",
         "Blazor Book Library",
         fakeLocalizer,
-        getMailBodyRetriever()) :> ILoanService
+        getMailBodyRetriever ()
+    )
+    :> ILoanService
+
 let getDetailsService () : IDetailsService =
     DetailsService(
         pgEventStore,
@@ -237,47 +279,53 @@ let getDetailsService () : IDetailsService =
         reviewViewerAsync,
         tenantViewerAsync,
         distributionPointViewerAsync,
-        getUserTenantResolverService(),
-        getLoanService(),
-        getReservationService(),
-        getReviewService(),
-        getServiceScopeFactory()) :> IDetailsService
+        getUserTenantResolverService (),
+        getLoanService (),
+        getReservationService (),
+        getReviewService (),
+        getServiceScopeFactory ()
+    )
+    :> IDetailsService
 
 
 let getTextEmbeddingService () =
     let httpClient = new HttpClient()
-    TextEmbeddingService(config, httpClient, getDetailsService(), getSecretReader(), getUserTenantResolverService()) :> ITextEmbeddingService
+
+    TextEmbeddingService(config, httpClient, getDetailsService (), getSecretReader (), getUserTenantResolverService ())
+    :> ITextEmbeddingService
 
 let getVectorDbService () =
-    VectorDbService(config, getSecretReader()) :> IVectorDbService
+    VectorDbService(config, getSecretReader ()) :> IVectorDbService
 
 
-let getBookService () : IBookService = 
+let getBookService () : IBookService =
     BookService(
-        pgEventStore, 
-        MessageSenders.NoSender, 
-        bookViewerAsync, 
-        authorViewerAsync, 
-        editorViewerAsync, 
-        reservationViewerAsync, 
+        pgEventStore,
+        MessageSenders.NoSender,
+        bookViewerAsync,
+        authorViewerAsync,
+        editorViewerAsync,
+        reservationViewerAsync,
         loanViewerAsync,
         userViewerAsync,
         tenantViewerAsync,
         distributionPointViewerAsync,
-        getUserTenantResolverService(),
-        getVectorDbService()) :> IBookService
+        getUserTenantResolverService (),
+        getVectorDbService ()
+    )
+    :> IBookService
 
 
 
 let getGoogleBooksService () =
     let httpClient = new HttpClient()
     httpClient.DefaultRequestHeaders.Add("User-Agent", "BlazorBookLibraryTest/1.0")
-    GoogleBooksService(httpClient, config, tenantViewerAsync, getUserTenantResolverService()) :> IGoogleBooksService
+    GoogleBooksService(httpClient, config, tenantViewerAsync, getUserTenantResolverService ()) :> IGoogleBooksService
 
 let getAuthorsSearchService () =
     let httpClient = new HttpClient()
     httpClient.DefaultRequestHeaders.Add("User-Agent", "BlazorBookLibraryTest/1.0")
-    AuthorsSearchService(httpClient, tenantViewerAsync, getUserTenantResolverService()) :> IAuthorsSearchService
+    AuthorsSearchService(httpClient, tenantViewerAsync, getUserTenantResolverService ()) :> IAuthorsSearchService
 
 let getDataExportService () : IDataExportService =
     DataExportService(
@@ -290,29 +338,31 @@ let getDataExportService () : IDataExportService =
         loanViewerAsync,
         userViewerAsync,
         tenantViewerAsync,
-        getUserTenantResolverService(),
-        getBookService(),
-        getAuthorService(),
-        getDetailsService(),
-        getGoogleBooksService(),
-        getAuthorsSearchService(),
-        getTextEmbeddingService(),
-        getVectorDbService()
-    ) :> IDataExportService
+        getUserTenantResolverService (),
+        getBookService (),
+        getAuthorService (),
+        getDetailsService (),
+        getGoogleBooksService (),
+        getAuthorsSearchService (),
+        getTextEmbeddingService (),
+        getVectorDbService ()
+    )
+    :> IDataExportService
 
 let getTenantService () : ITenantService =
     TenantService(
-        getSecretReader(),
+        getSecretReader (),
         config,
         fakeEmailNotificator,
-        getMailBodyRetriever(),
-        getBookService(),
-        getAuthorService(),
-        getDummyLogger<ITenantService>()
-    ) :> ITenantService
+        getMailBodyRetriever (),
+        getBookService (),
+        getAuthorService (),
+        getDummyLogger<ITenantService> ()
+    )
+    :> ITenantService
 
 let getTagService () : ITagService =
-    TagService(getSecretReader(), getUserTenantResolverService()) :> ITagService
+    TagService(getSecretReader (), getUserTenantResolverService ()) :> ITagService
 
 let truncateVectorDb () =
     let connStr = config.GetConnectionString "VectorDbConnection"
@@ -339,34 +389,44 @@ let setUp () =
     pgEventStore.Reset Tags.Version Tags.StorageName
     pgEventStore.ResetAggregateStream Tags.Version Tags.StorageName
 
-    AggregateCache3.Instance.Clear()            
+    AggregateCache3.Instance.Clear()
+
     try
-        let context = getDbContext()
+        let context = getDbContext ()
         context.Database.EnsureDeleted() |> ignore
         context.Database.EnsureCreated() |> ignore
-        let scopeFactory = getServiceScopeFactory()
+        let scopeFactory = getServiceScopeFactory ()
         use scope = scopeFactory.CreateScope()
-        let roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>()
+
+        let roleManager =
+            scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>()
+
         if not (roleManager.RoleExistsAsync("Admin").Result) then
             roleManager.CreateAsync(IdentityRole("Admin")).Result |> ignore
-        
-        let userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>()
+
+        let userManager =
+            scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>()
+
         let adminEmail = "admin@blazorbooklibrary.com"
-        let aspAdmin = ApplicationUser(UserName = adminEmail, Email = adminEmail, Id = adminId.Value.ToString())
+
+        let aspAdmin =
+            ApplicationUser(UserName = adminEmail, Email = adminEmail, Id = adminId.Value.ToString())
+
         userManager.CreateAsync(aspAdmin, "Password123!").Result |> ignore
         userManager.AddToRoleAsync(aspAdmin, "Admin").Result |> ignore
 
-        let userService = getUserService()
+        let userService = getUserService ()
         let adminUser = User.New adminId
         userService.CreateUserAsync(UserContext.Anonymous, adminUser).Result |> ignore
 
-        let tenantService = getTenantService()
+        let tenantService = getTenantService ()
         tenantService.EnsureDefaultTenantExistsAsync(adminId).Result |> ignore
 
-        let tagService = getTagService()
+        let tagService = getTagService ()
         tagService.EnsureTagsRepoCreatedAsync().Result |> ignore
-    with
-    | ex -> printfn "Warning: %s" ex.Message
+    with ex ->
+        printfn "Warning: %s" ex.Message
+
     truncateVectorDb ()
 
 
@@ -374,7 +434,12 @@ let getMailResenderService () =
     MailResenderService(
         config,
         pgEventStore,
-        getAggregateStorageFreshStateViewerAsync<BookLibrary.MessagesScheduler.MailQueue, BookLibrary.MessagesScheduler.MailQueueEvent, string> pgEventStore,
+        getAggregateStorageFreshStateViewerAsync<
+            BookLibrary.MessagesScheduler.MailQueue,
+            BookLibrary.MessagesScheduler.MailQueueEvent,
+            string
+         >
+            pgEventStore,
         dummyMailJetClient,
         dummyLogger
     )
@@ -384,27 +449,34 @@ let registerUser (email: string) (password: string) =
     let guid = Guid.NewGuid()
     let guidStr = guid.ToString("N")
     let parts = email.Split('@')
-    let uniqueEmail = 
+
+    let uniqueEmail =
         if parts.Length = 2 then
             sprintf "%s+%s@%s" parts.[0] guidStr parts.[1]
         else
             sprintf "%s_%s" guidStr email
 
-    let userManager = getUserManager()
+    let userManager = getUserManager ()
     let aspUser = ApplicationUser(UserName = uniqueEmail, Email = uniqueEmail)
     aspUser.Id <- guid.ToString() // ensure same ID as domain user
-    let result = (userManager.CreateAsync(aspUser, password) |> Async.AwaitTask |> Async.RunSynchronously)
+
+    let result =
+        (userManager.CreateAsync(aspUser, password)
+         |> Async.AwaitTask
+         |> Async.RunSynchronously)
+
     if not result.Succeeded then
         failwithf "Identity user creation failed: %A" result.Errors
 
     let userId = UserId guid
-    let userService = getUserService()
+    let userService = getUserService ()
     let user = User.New userId
-    let addUser = 
+
+    let addUser =
         userService.CreateUserAsync(adminContext, user)
         |> Async.AwaitTask
         |> Async.RunSynchronously
-    
+
     if not (addUser |> Result.isOk) then
         failwithf "Domain user creation failed: %A" addUser
 
@@ -415,26 +487,29 @@ let registerUserTask (email: string) (password: string) =
         let guid = Guid.NewGuid()
         let guidStr = guid.ToString("N")
         let parts = email.Split('@')
-        let uniqueEmail = 
+
+        let uniqueEmail =
             if parts.Length = 2 then
                 sprintf "%s+%s@%s" parts.[0] guidStr parts.[1]
             else
                 sprintf "%s_%s" guidStr email
 
-        let userManager = getUserManager()
+        let userManager = getUserManager ()
         let aspUser = ApplicationUser(UserName = uniqueEmail, Email = uniqueEmail)
         aspUser.Id <- guid.ToString()
         let! result = userManager.CreateAsync(aspUser, password)
+
         if not result.Succeeded then
             failwithf "Identity user creation failed: %A" result.Errors
 
         let userId = UserId guid
-        let userService = getUserService()
+        let userService = getUserService ()
         let user = User.New userId
         let! addUser = userService.CreateUserAsync(adminContext, user)
-        
+
         if not (addUser |> Result.isOk) then
             failwithf "Domain user creation failed: %A" addUser
+
         return userId
     }
 
@@ -443,30 +518,33 @@ let registerUserWithAdminRoleTask (email: string) (password: string) =
         let guid = Guid.NewGuid()
         let guidStr = guid.ToString("N")
         let parts = email.Split('@')
-        let uniqueEmail = 
+
+        let uniqueEmail =
             if parts.Length = 2 then
                 sprintf "%s+%s@%s" parts.[0] guidStr parts.[1]
             else
                 sprintf "%s_%s" guidStr email
 
-        let userManager = getUserManager()
+        let userManager = getUserManager ()
         let aspUser = ApplicationUser(UserName = uniqueEmail, Email = uniqueEmail)
         aspUser.Id <- guid.ToString()
         let! result = userManager.CreateAsync(aspUser, password)
+
         if not result.Succeeded then
             failwithf "Identity user creation failed: %A" result.Errors
 
         let! roleResult = userManager.AddToRoleAsync(aspUser, "Admin")
+
         if not roleResult.Succeeded then
             failwithf "Adding Admin role failed: %A" roleResult.Errors
 
         let userId = UserId guid
-        let userService = getUserService()
+        let userService = getUserService ()
         let user = User.New userId
         let! addUser = userService.CreateUserAsync(adminContext, user)
-        
+
         if not (addUser |> Result.isOk) then
             failwithf "Domain user creation failed: %A" addUser
-        
+
         return userId
     }

@@ -136,9 +136,23 @@ public class TenantClientService : ITenantService
         return await ServiceClientHelper.HandleResponse<FSharpList<Tenant>>(response);
     }
 
+    public async Task<FSharpResult<FSharpList<Tenant>, string>> GetTenantsRequstingPublicAsync(Commons.UserContext context, FSharpOption<CancellationToken> ct)
+    {
+        var request = ServiceClientHelper.CreateRequest(HttpMethod.Get, "api/Tenant/requesting-public", context);
+        var response = await _httpClient.SendAsync(request, ServiceClientHelper.GetValue(ct, CancellationToken.None));
+        return await ServiceClientHelper.HandleResponse<FSharpList<Tenant>>(response);
+    }
+
     public async Task<FSharpResult<Unit, string>> SetPublicAsync(Commons.UserContext context, Commons.TenantId tenantId, FSharpOption<CancellationToken> ct)
     {
         var request = ServiceClientHelper.CreateRequest(HttpMethod.Put, $"api/Tenant/{tenantId.Value}/public", context);
+        var response = await _httpClient.SendAsync(request, ServiceClientHelper.GetValue(ct, CancellationToken.None));
+        return await ServiceClientHelper.HandleUnitResponse(response);
+    }
+
+    public async Task<FSharpResult<Unit, string>> RequestPublicAsync(Commons.UserContext context, Commons.TenantId tenantId, FSharpOption<CancellationToken> ct)
+    {
+        var request = ServiceClientHelper.CreateRequest(HttpMethod.Put, $"api/Tenant/{tenantId.Value}/request-public", context);
         var response = await _httpClient.SendAsync(request, ServiceClientHelper.GetValue(ct, CancellationToken.None));
         return await ServiceClientHelper.HandleUnitResponse(response);
     }
@@ -149,6 +163,8 @@ public class TenantClientService : ITenantService
         var response = await _httpClient.SendAsync(request, ServiceClientHelper.GetValue(ct, CancellationToken.None));
         return await ServiceClientHelper.HandleUnitResponse(response);
     }
+
+
 
     public async Task<FSharpResult<Unit, string>> DeleteTenantAsync(Commons.UserContext context, Commons.TenantId tenantId, FSharpOption<CancellationToken> ct)
     {

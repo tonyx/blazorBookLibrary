@@ -5,12 +5,14 @@
 @using BookLibrary.Domain
 @using static BookLibrary.Shared.Commons
 @using BookLibrary.Shared.Services
-@attribute [Authorize(Roles = "Admin")]
+@attribute [Authorize]
 @using Microsoft.FSharp.Core
 @inject IAdminServices AdminServices
 @inject IDistributionPointService DistributionPointService
 @inject AuthenticationStateProvider AuthStateProvider
 @inject blazorBookLibrary.Client.Services.TenantStateService TenantState
+@inject IUserTenantResolverService UserTenantResolverService
+@inject ITenantService TenantService
 @inject UserManager<ApplicationUser> UserManager
 @inject IStringLocalizer<SharedResources> L
 @inject IJSRuntime JSRuntime
@@ -19,7 +21,35 @@
 
 <PageTitle>@L["DistributionPointsManager"] — @L["TheModernArchivist"]</PageTitle>
 
-<div class="sanctuary-container py-5">
+@if (isPageLoading)
+{
+    <div class="sanctuary-container py-5 text-center">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">@L["Loading"]...</span>
+        </div>
+        <p class="mt-2 text-muted">@L["RetrievingArchivalRecords"]...</p>
+    </div>
+}
+else if (!isAuthorized)
+{
+    <div class="sanctuary-container py-5">
+        <div class="card-sanctuary p-5 text-center shadow-lg border-0 rounded-4" style="max-width: 600px; margin: 0 auto;">
+            <div class="text-danger mb-4">
+                <i class="bi bi-shield-lock-fill display-1" style="font-size: 5rem; color: #dc3545;"></i>
+            </div>
+            <h1 class="display-5 text-serif mb-3 text-dark">@L["AccessDenied"]</h1>
+            <p class="text-muted lead mb-4">
+                Access Denied. You must be the Owner of the current library (tenant) or a global Administrator to manage distribution points.
+            </p>
+            <a href="/" class="btn btn-primary rounded-pill px-5 py-3 shadow-sm shadow-hover">
+                <i class="bi bi-house-door me-2"></i> @L["Home"]
+            </a>
+        </div>
+    </div>
+}
+else
+{
+    <div class="sanctuary-container py-5">
     <div class="mb-5">
         <nav aria-label="breadcrumb">
             <ol class="breadcrumb">
@@ -99,7 +129,7 @@
                                             {
                                                 var user = GetManagerById(userId.Value.ToString());
                                                 <span class="badge-sanctuary d-flex align-items-center gap-1">
-                                                    @(user?.Nome ?? "User") @(user?.Cognome ?? "")
+                                                    @GetDisplayName(user)
                                                     <button type="button" class="btn-close ms-1" style="font-size: 0.5rem;" 
                                                             @onclick="() => UnassignManager(dp, userId)" aria-label="Remove"></button>
                                                 </span>
@@ -124,7 +154,7 @@
                                                     {
                                                         <li>
                                                             <button class="dropdown-item py-2" @onclick="() => AssignManager(dp, manager)">
-                                                                <div class="fw-bold small">@manager.Nome @manager.Cognome</div>
+                                                                <div class="fw-bold small">@GetDisplayName(manager)</div>
                                                                 <div class="text-muted smaller">@manager.Email</div>
                                                             </button>
                                                         </li>
@@ -149,7 +179,7 @@
                                                         var user = GetManagerById(userId.Value.ToString());
                                                         <li>
                                                             <button class="dropdown-item py-2 text-danger" @onclick="() => UnassignManager(dp, userId)">
-                                                                <div class="fw-bold small">@(user?.Nome ?? "User") @(user?.Cognome ?? "")</div>
+                                                                <div class="fw-bold small">@GetDisplayName(user)</div>
                                                                 <div class="text-muted smaller">@(user?.Email ?? "ID: " + userId.Value)</div>
                                                             </button>
                                                         </li>
@@ -220,6 +250,7 @@
         </div>
     </div>
 }
+}
 
 @code {
     private HashSet<Guid> removablePoints = new();
@@ -234,10 +265,49 @@
     private string editingInfo = "";
     private DistributionPoint? currentEditPoint;
     private string errorMessage = "";
+    private bool isAuthorized = false;
+    private bool isPageLoading = true;
 
     protected override async Task OnInitializedAsync()
     {
-        await Task.WhenAll(LoadDistributionPoints(), LoadManagers());
+        isPageLoading = true;
+        try
+        {
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            var claimsPrincipal = authState.User;
+            if (claimsPrincipal != null && claimsPrincipal.Identity?.IsAuthenticated == true)
+            {
+                var userContext = TenantState.GetUserContext(claimsPrincipal);
+                var isAdmin = claimsPrincipal.IsInRole("Admin");
+                bool isOwner = false;
+
+                var tenantResult = await UserTenantResolverService.GetTenantForUserAsync(userContext);
+                if (tenantResult.IsOk)
+                {
+                    var tenantId = tenantResult.ResultValue;
+                    var tenantInfoResult = await TenantService.GetTenantAsync(userContext, tenantId);
+                    if (tenantInfoResult.IsOk)
+                    {
+                        var tenant = tenantInfoResult.ResultValue;
+                        isOwner = userContext.UserId.Value.Value.Equals(tenant.OwnerId.Value);
+                    }
+                }
+
+                if (isAdmin || isOwner)
+                {
+                    isAuthorized = true;
+                    await Task.WhenAll(LoadDistributionPoints(), LoadManagers());
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error during page authorization check");
+        }
+        finally
+        {
+            isPageLoading = false;
+        }
     }
 
     private async Task LoadDistributionPoints()
@@ -283,18 +353,59 @@
 
     private async Task<List<ApplicationUser>> LoadManagers()
     {
-        var users = await UserManager.GetUsersInRoleAsync("Manager");
-        var admins = await UserManager.GetUsersInRoleAsync("Admin");
-        availableManagers = users.Concat(admins)
-            .GroupBy(u => u.Id)
-            .Select(g => g.First())
-            .ToList();
+        try
+        {
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            var userContext = TenantState.GetUserContext(authState.User);
+            var tenantResult = await UserTenantResolverService.GetTenantForUserAsync(userContext);
+            if (tenantResult.IsOk)
+            {
+                var tenantId = tenantResult.ResultValue;
+                var tenantInfoResult = await TenantService.GetTenantAsync(userContext, tenantId);
+                if (tenantInfoResult.IsOk)
+                {
+                    var tenant = tenantInfoResult.ResultValue;
+                    var tenantUserIds = new HashSet<string>();
+                    tenantUserIds.Add(tenant.OwnerId.Value.ToString());
+                    foreach (var patron in tenant.Patrons)
+                    {
+                        tenantUserIds.Add(patron.Item1.Value.ToString());
+                    }
+
+                    // Get all users from UserManager that belong to this tenant
+                    availableManagers = UserManager.Users
+                        .Where(u => tenantUserIds.Contains(u.Id))
+                        .ToList();
+                    return availableManagers;
+                }
+                else
+                {
+                    Logger.LogError("Error getting tenant info: {Error}", tenantInfoResult.ErrorValue);
+                }
+            }
+            else
+            {
+                Logger.LogError("Error resolving tenant for user: {Error}", tenantResult.ErrorValue);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Exception loading tenant users");
+        }
+        availableManagers = new List<ApplicationUser>();
         return availableManagers;
     }
 
     private ApplicationUser? GetManagerById(string id)
     {
         return availableManagers?.FirstOrDefault(m => m.Id == id);
+    }
+
+    private string GetDisplayName(ApplicationUser? user)
+    {
+        if (user == null) return "User";
+        var fullName = $"{user.Nome} {user.Cognome}".Trim();
+        return string.IsNullOrWhiteSpace(fullName) ? (user.UserName ?? "User") : fullName;
     }
 
     private async Task HandleKeyUp(KeyboardEventArgs e)
@@ -379,7 +490,19 @@
             {
                 var authState = await AuthStateProvider.GetAuthenticationStateAsync();
                 var userContext = TenantState.GetUserContext(authState.User);
-                var tenantId = TenantState.CurrentTenant?.TenantId ?? TenantId.Default;
+
+                TenantId tenantId;
+                var tenantResult = await UserTenantResolverService.GetTenantForUserAsync(userContext);
+                if (tenantResult.IsOk)
+                {
+                    tenantId = tenantResult.ResultValue;
+                }
+                else
+                {
+                    Logger.LogError("Error resolving tenant for user context: {Error}", tenantResult.ErrorValue);
+                    errorMessage = L["ErrorOccurred"].Value;
+                    return;
+                }
 
                 // safe to get the userId as it is authenticated
                 var userId = userContext.UserId.Value;

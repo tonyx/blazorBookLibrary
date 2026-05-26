@@ -37,6 +37,14 @@ public class DistributionPointsClientService : IDistributionPointService
         return result.IsOk ? FSharpResult<FSharpList<DistributionPoint>, string>.NewOk(ListModule.OfSeq(result.ResultValue)) : FSharpResult<FSharpList<DistributionPoint>, string>.NewError(result.ErrorValue);
     }
 
+    public async Task<FSharpResult<FSharpList<DistributionPoint>, string>> GetAllDistributionPointsManagedByUser(Commons.UserContext context, Commons.UserId userId, FSharpOption<CancellationToken> ct)
+    {
+        var response = await _httpClient.GetAsync($"api/DistributionPoints/managed-by-user/{userId.Value}", ServiceClientHelper.GetValue(ct, CancellationToken.None));
+        var result = await ServiceClientHelper.HandleResponse<List<DistributionPoint>>(response);
+        return result.IsOk ? FSharpResult<FSharpList<DistributionPoint>, string>.NewOk(ListModule.OfSeq(result.ResultValue)) : FSharpResult<FSharpList<DistributionPoint>, string>.NewError(result.ErrorValue);
+    }
+
+
     public async Task<FSharpResult<FSharpList<DistributionPoint>, string>> GetAllDistributionPointsOfATenantAsync(Commons.UserContext context, Commons.TenantId tenantId, FSharpOption<CancellationToken> ct)
     {
         var response = await _httpClient.GetAsync($"api/DistributionPoints/tenant/{tenantId.Value}", ServiceClientHelper.GetValue(ct, CancellationToken.None));
@@ -67,6 +75,18 @@ public class DistributionPointsClientService : IDistributionPointService
     public async Task<FSharpResult<Unit, string>> RemoveDistributionPointAsync(Commons.UserContext context, Commons.DistributionPointId id, FSharpOption<CancellationToken> ct)
     {
         var response = await _httpClient.DeleteAsync($"api/DistributionPoints/{id.Value}", ServiceClientHelper.GetValue(ct, CancellationToken.None));
+        return await ServiceClientHelper.HandleUnitResponse(response);
+    }
+
+    public async Task<FSharpResult<Unit, string>> AddReferenceUser(Commons.UserContext context, Commons.DistributionPointId distributionPointId, Commons.UserId userId, FSharpOption<CancellationToken> ct)
+    {
+        var response = await _httpClient.PostAsync($"api/DistributionPoints/{distributionPointId.Value}/reference-user/{userId.Value}", null, ServiceClientHelper.GetValue(ct, CancellationToken.None));
+        return await ServiceClientHelper.HandleUnitResponse(response);
+    }
+
+    public async Task<FSharpResult<Unit, string>> RemoveReferenceUser(Commons.UserContext context, Commons.DistributionPointId distributionPointId, Commons.UserId userId, FSharpOption<CancellationToken> ct)
+    {
+        var response = await _httpClient.DeleteAsync($"api/DistributionPoints/{distributionPointId.Value}/reference-user/{userId.Value}", ServiceClientHelper.GetValue(ct, CancellationToken.None));
         return await ServiceClientHelper.HandleUnitResponse(response);
     }
 }

@@ -133,6 +133,11 @@ type TenantName =
         match this with
         | TenantName v -> v
 
+type TenantVisibility =
+    | Private
+    | RequestedPublic
+    | Public
+
 type ExportFormat =
     | Csv
     | Json

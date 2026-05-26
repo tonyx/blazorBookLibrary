@@ -108,13 +108,24 @@ type UserService
 
                 let! currentTenant = tenantViewerAsync (Some ct) tenantId.Value |> TaskResult.map snd
 
+                let! distributionPoints =
+                    StateView.getAllFilteredAggregateStatesAsync<DistributionPoint, DistributionPointEvent, string>
+                        (fun (dp: DistributionPoint) ->
+                            dp.ReferenceUsers |> List.exists (fun (userId: UserId) -> userId = id)
+                            && dp.TenantId = tenantId)
+                        eventStore
+                        (Some ct)
+                    |> TaskResult.map (List.ofSeq >> List.map snd)
+
                 return
                     { User = user
                       AppUser = user.AppUserInfo
                       CurrentTenant = currentTenant
                       FutureReservations = reservationsAndBooks
                       CurrentLoans = loansAndBooks
-                      BooksAndReviews = booksAndReviews }
+                      BooksAndReviews = booksAndReviews
+                      RefarenceOfDistributionPoints = distributionPoints }
+
             }
 
     // user creation comes always from a safe caller
@@ -447,7 +458,7 @@ type UserService
             let allowed =
                 match context with
                 | UserContext.Authenticated(u, roles) when roles |> List.contains (Role.Admin) -> true
-                | _ when tenant.Public -> true
+                | _ when tenant.TenantVisibility.IsPublic -> true
                 | _ when (tenant.OwnerId = userId) -> true
                 | _ when (tenant.Patrons |> List.exists (fun (u, _) -> u = userId)) -> true
                 | _ -> false

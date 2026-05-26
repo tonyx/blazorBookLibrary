@@ -35,6 +35,17 @@ type DistributionPointsController(distributionPointService: IDistributionPointSe
             | Error msg -> return this.BadRequest(msg) :> IActionResult
         }
 
+    [<HttpGet("managed-by-user/{userId}")>]
+    member this.GetAllDistributionPointsManagedByUser(userId: Guid) =
+        task {
+            let context = UserContextMapper.mapFromClaimsPrincipal this.User
+            let! result = distributionPointService.GetAllDistributionPointsManagedByUser(context, UserId userId)
+            match result with
+            | Ok dps -> return this.Ok(dps) :> IActionResult
+            | Error msg -> return this.BadRequest(msg) :> IActionResult
+        }
+
+
     [<HttpGet("{id}")>]
     member this.GetDistributionPoint(id: Guid) =
         task {
@@ -94,3 +105,24 @@ type DistributionPointsController(distributionPointService: IDistributionPointSe
             | Ok _ -> return this.Ok() :> IActionResult
             | Error msg -> return this.BadRequest(msg) :> IActionResult
         }
+
+    [<HttpPost("{id}/reference-user/{userId}")>]
+    member this.AddReferenceUser(id: Guid, userId: Guid) =
+        task {
+            let context = UserContextMapper.mapFromClaimsPrincipal this.User
+            let! result = distributionPointService.AddReferenceUser(context, DistributionPointId id, UserId userId)
+            match result with
+            | Ok _ -> return this.Ok() :> IActionResult
+            | Error msg -> return this.BadRequest(msg) :> IActionResult
+        }
+
+    [<HttpDelete("{id}/reference-user/{userId}")>]
+    member this.RemoveReferenceUser(id: Guid, userId: Guid) =
+        task {
+            let context = UserContextMapper.mapFromClaimsPrincipal this.User
+            let! result = distributionPointService.RemoveReferenceUser(context, DistributionPointId id, UserId userId)
+            match result with
+            | Ok _ -> return this.Ok() :> IActionResult
+            | Error msg -> return this.BadRequest(msg) :> IActionResult
+        }
+

@@ -164,7 +164,9 @@ type TenantService
     member this.GetTenant(context: UserContext, tenantId: TenantId, ?ct: CancellationToken) =
         taskResult {
             let! tenant = tenantViewerAsync ct tenantId.Value |> TaskResult.map snd
-            let allowed = tenant.Public || this.IsMemberOrAdmin(context, tenant)
+
+            let allowed =
+                tenant.TenantVisibility.IsPublic || this.IsMemberOrAdmin(context, tenant)
 
             if allowed then
                 return tenant
@@ -447,7 +449,7 @@ type TenantService
 
     member this.GetAllPublicTenants(context: UserContext, ?ct: CancellationToken) =
         let ct = ct |> Option.defaultValue CancellationToken.None
-        let filter = fun (tenant: Tenant) -> tenant.Public
+        let filter = fun (tenant: Tenant) -> tenant.TenantVisibility.IsPublic
 
         taskResult {
             do!
@@ -475,7 +477,7 @@ type TenantService
             let filter =
                 fun (tenant: Tenant) ->
                     context.IsInRole Role.Admin
-                    || tenant.Public
+                    || tenant.TenantVisibility.IsPublic
                     || tenant.OwnerId = userId
                     || tenant.Patrons |> List.exists (fun (u, _) -> u = userId)
 
@@ -561,6 +563,25 @@ type TenantService
                         ct
             else
                 return! Error "Access denied: only owner or admin can set private"
+        }
+
+    member this.RequestPublicAsync(context: UserContext, tenantId: TenantId, ?ct: CancellationToken) =
+        taskResult {
+            let! (_, tenant) = tenantViewerAsync ct tenantId.Value
+
+            if this.IsOnwerOrAdmin(context, tenant) then
+                let command = TenantCommand.RequestPublic
+
+                return!
+                    runAggregateCommandMdAsync<Tenant, TenantEvent, string>
+                        tenantId.Value
+                        eventStore
+                        messageSenders
+                        ""
+                        command
+                        ct
+            else
+                return! Error "Access denied: only owner or admin can request to be public"
         }
 
     member this.SuspendPatron
@@ -808,6 +829,27 @@ type TenantService
             | ((_, tenant) :: _) -> return tenant
         }
 
+    member this.GetTenantsRequstingPublicAsync(context: UserContext, ?ct: CancellationToken) =
+        let ct = ct |> Option.defaultValue CancellationToken.None
+
+        taskResult {
+            do!
+                match context with
+                | UserContext.Anonymous -> Error "not allowed"
+                | UserContext.Authenticated(_, roles) when (roles |> List.contains Role.Admin) -> Ok()
+                | _ -> Error "not allowed"
+
+            let filter =
+                fun (tenant: Tenant) -> tenant.TenantVisibility = TenantVisibility.RequestedPublic
+
+            let! tenants =
+                StateView.getAllFilteredAggregateStatesAsync<Tenant, TenantEvent, string> filter eventStore (ct |> Some)
+
+            match tenants with
+            | [] -> return []
+            | (_, tenant) :: _ -> return List.map snd tenants
+        }
+
     interface ITenantService with
         member this.EnsureDefaultTenantExistsAsync(userId: UserId, ?ct: CancellationToken) =
             this.EnsureDefaultTenantExists(userId, ?ct = ct)
@@ -817,6 +859,9 @@ type TenantService
 
         member this.GetTenantAsync(context: UserContext, tenantId: TenantId, ?ct: CancellationToken) =
             this.GetTenant(context, tenantId, ?ct = ct)
+
+        member this.GetTenantsRequstingPublicAsync(context: UserContext, ?ct: CancellationToken) =
+            this.GetTenantsRequstingPublicAsync(context, ?ct = ct)
 
         member this.AddPatronAsync(context, tenantId, userId, role, ?ct) =
             this.AddPatron(context, tenantId, userId, role, ?ct = ct)
@@ -864,6 +909,9 @@ type TenantService
 
         member this.SetPrivateAsync(context, tenantId, ?ct) =
             this.SetPrivate(context, tenantId, ?ct = ct)
+
+        member this.RequestPublicAsync(context, tenantId, ?ct) =
+            this.RequestPublicAsync(context, tenantId, ?ct = ct)
 
         member this.DeleteTenantAsync(context, tenantId, ?ct) =
             this.DeleteTenant(context, tenantId, ?ct = ct)

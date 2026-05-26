@@ -10,7 +10,8 @@
 @using Microsoft.FSharp.Collections
 @using System.Threading
 
-@attribute [Authorize(Roles = "Admin, Manager")]
+@attribute [Authorize]
+@inject ITenantService TenantService
 @inject IAuthorService AuthorService
 @inject IDetailsService DetailsService
 @inject IUserTenantResolverService UserTenantResolverService
@@ -24,6 +25,34 @@
 
 <PageTitle>@L["AuthorsManager"] — @L["TheModernArchivist"]</PageTitle>
 
+@if (isPageLoading)
+{
+    <div class="sanctuary-container py-5 text-center">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">@L["Loading"]...</span>
+        </div>
+        <p class="mt-2 text-muted">@L["RetrievingArchivalRecords"]...</p>
+    </div>
+}
+else if (!isAuthorized)
+{
+    <div class="sanctuary-container py-5">
+        <div class="card-sanctuary p-5 text-center shadow-lg border-0 rounded-4" style="max-width: 600px; margin: 0 auto; background: #fff; border: 1px solid rgba(0,0,0,0.05); border-radius: 1.25rem;">
+            <div class="text-danger mb-4">
+                <i class="bi bi-shield-lock-fill display-1" style="font-size: 5rem; color: #dc3545;"></i>
+            </div>
+            <h1 class="display-5 text-serif mb-3 text-dark">@L["AccessDenied"]</h1>
+            <p class="text-muted lead mb-4">
+                Access Denied. You must be the Owner of the current library (tenant) or a global Administrator to manage authors.
+            </p>
+            <a href="/" class="btn btn-primary rounded-pill px-5 py-3 shadow-sm shadow-hover">
+                <i class="bi bi-house-door me-2"></i> @L["Home"]
+            </a>
+        </div>
+    </div>
+}
+else
+{
 <div class="sanctuary-container py-5">
     @* Page Header *@
     <div class="mb-5">
@@ -246,12 +275,57 @@
         </div>
     }
 </div>
+}
 
 @code {
+    private bool isAuthorized = false;
+    private bool isPageLoading = true;
+
     private async Task<UserContext> GetContext()
     {
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         return TenantState.GetUserContext(authState.User);
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        isPageLoading = true;
+        try
+        {
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var claimsPrincipal = authState.User;
+            if (claimsPrincipal != null && claimsPrincipal.Identity?.IsAuthenticated == true)
+            {
+                var userContext = TenantState.GetUserContext(claimsPrincipal);
+                var isAdmin = claimsPrincipal.IsInRole("Admin");
+                bool isOwner = false;
+
+                var tenantResult = await UserTenantResolverService.GetTenantForUserAsync(userContext);
+                if (tenantResult.IsOk)
+                {
+                    var tenantId = tenantResult.ResultValue;
+                    var tenantInfoResult = await TenantService.GetTenantAsync(userContext, tenantId);
+                    if (tenantInfoResult.IsOk)
+                    {
+                        var tenant = tenantInfoResult.ResultValue;
+                        isOwner = userContext.UserId.Value.Value.Equals(tenant.OwnerId.Value);
+                    }
+                }
+
+                if (isAdmin || isOwner)
+                {
+                    isAuthorized = true;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error during page authorization check");
+        }
+        finally
+        {
+            isPageLoading = false;
+        }
     }
 
     private bool showAddSection = false;

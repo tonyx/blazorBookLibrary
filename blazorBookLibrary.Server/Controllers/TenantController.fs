@@ -1,4 +1,3 @@
-
 namespace BookLibrary.Controllers
 
 open Microsoft.AspNetCore.Mvc
@@ -22,6 +21,7 @@ type TenantController(tenantService: ITenantService) =
         task {
             let context = UserContextMapper.mapFromRequest this.Request
             let! result = tenantService.CreateTenantAsync(context, tenant)
+
             match result with
             | Ok _ -> return this.Ok() :> IActionResult
             | Error msg -> return this.BadRequest(msg) :> IActionResult
@@ -32,6 +32,7 @@ type TenantController(tenantService: ITenantService) =
         task {
             let context = UserContextMapper.mapFromRequest this.Request
             let! result = tenantService.GetTenantAsync(context, TenantId id)
+
             match result with
             | Ok tenant -> return this.Ok(tenant) :> IActionResult
             | Error msg -> return this.BadRequest(msg) :> IActionResult
@@ -42,6 +43,7 @@ type TenantController(tenantService: ITenantService) =
         task {
             let context = UserContextMapper.mapFromRequest this.Request
             let! result = tenantService.AddPatronAsync(context, TenantId id, UserId patron.UserId, patron.Role)
+
             match result with
             | Ok _ -> return this.Ok() :> IActionResult
             | Error msg -> return this.BadRequest(msg) :> IActionResult
@@ -52,6 +54,7 @@ type TenantController(tenantService: ITenantService) =
         task {
             let context = UserContextMapper.mapFromRequest this.Request
             let! result = tenantService.DemotePatronAsync(context, TenantId id, UserId userId)
+
             match result with
             | Ok _ -> return this.Ok() :> IActionResult
             | Error msg -> return this.BadRequest(msg) :> IActionResult
@@ -62,6 +65,7 @@ type TenantController(tenantService: ITenantService) =
         task {
             let context = UserContextMapper.mapFromRequest this.Request
             let! result = tenantService.PromotePatronAsync(context, TenantId id, UserId userId)
+
             match result with
             | Ok _ -> return this.Ok() :> IActionResult
             | Error msg -> return this.BadRequest(msg) :> IActionResult
@@ -72,6 +76,7 @@ type TenantController(tenantService: ITenantService) =
         task {
             let context = UserContextMapper.mapFromRequest this.Request
             let! result = tenantService.RemovePatronAsync(context, TenantId id, UserId userId)
+
             match result with
             | Ok _ -> return this.Ok() :> IActionResult
             | Error msg -> return this.BadRequest(msg) :> IActionResult
@@ -82,6 +87,7 @@ type TenantController(tenantService: ITenantService) =
         task {
             let context = UserContextMapper.mapFromRequest this.Request
             let! result = tenantService.InvitePatronAsync(context, TenantId id, UserId userId)
+
             match result with
             | Ok _ -> return this.Ok() :> IActionResult
             | Error msg -> return this.BadRequest(msg) :> IActionResult
@@ -92,6 +98,7 @@ type TenantController(tenantService: ITenantService) =
         task {
             let context = UserContextMapper.mapFromRequest this.Request
             let! result = tenantService.RevokePatronInvitation(context, TenantId id, UserId userId)
+
             match result with
             | Ok _ -> return this.Ok() :> IActionResult
             | Error msg -> return this.BadRequest(msg) :> IActionResult
@@ -102,6 +109,7 @@ type TenantController(tenantService: ITenantService) =
         task {
             let context = UserContextMapper.mapFromRequest this.Request
             let! result = tenantService.SuspendPatron(context, TenantId id, UserId userId, reason)
+
             match result with
             | Ok _ -> return this.Ok() :> IActionResult
             | Error msg -> return this.BadRequest(msg) :> IActionResult
@@ -112,6 +120,7 @@ type TenantController(tenantService: ITenantService) =
         task {
             let context = UserContextMapper.mapFromRequest this.Request
             let! result = tenantService.ReAdmittPatron(context, TenantId id, UserId userId)
+
             match result with
             | Ok _ -> return this.Ok() :> IActionResult
             | Error msg -> return this.BadRequest(msg) :> IActionResult
@@ -121,11 +130,13 @@ type TenantController(tenantService: ITenantService) =
     member this.ConvertInvitedPatronToPatron(id: Guid, [<FromQuery>] invitationCode: string) =
         task {
             let context = UserContextMapper.mapFromRequest this.Request
+
             match System.Guid.TryParse(invitationCode) with
             | false, _ -> return this.BadRequest("Invalid invitation code format") :> IActionResult
             | true, parsedGuid ->
                 let code = PatronInvitationCode.PatronInvitationCode parsedGuid
                 let! result = tenantService.ConvertInvitedPatronToPatronAsync(context, TenantId id, code)
+
                 match result with
                 | Ok _ -> return this.Ok() :> IActionResult
                 | Error msg -> return this.BadRequest(msg) :> IActionResult
@@ -136,6 +147,7 @@ type TenantController(tenantService: ITenantService) =
         task {
             let context = UserContextMapper.mapFromRequest this.Request
             let! result = tenantService.GetUserRoleAsync(context, TenantId id, UserId userId)
+
             match result with
             | Ok role -> return this.Ok(role) :> IActionResult
             | Error msg -> return this.BadRequest(msg) :> IActionResult
@@ -146,6 +158,7 @@ type TenantController(tenantService: ITenantService) =
         task {
             let context = UserContextMapper.mapFromRequest this.Request
             let! result = tenantService.GetAllPublicTenantsAsync(context)
+
             match result with
             | Ok tenants -> return this.Ok(tenants) :> IActionResult
             | Error msg -> return this.BadRequest(msg) :> IActionResult
@@ -156,6 +169,7 @@ type TenantController(tenantService: ITenantService) =
         task {
             let context = UserContextMapper.mapFromRequest this.Request
             let! result = tenantService.GetAllowedTenantsAsync(context)
+
             match result with
             | Ok tenants -> return this.Ok(tenants) :> IActionResult
             | Error msg -> return this.BadRequest(msg) :> IActionResult
@@ -166,6 +180,7 @@ type TenantController(tenantService: ITenantService) =
         task {
             let context = UserContextMapper.mapFromRequest this.Request
             let! result = tenantService.GetMyTenantsAsync(context)
+
             match result with
             | Ok tenants -> return this.Ok(tenants) :> IActionResult
             | Error msg -> return this.BadRequest(msg) :> IActionResult
@@ -176,6 +191,18 @@ type TenantController(tenantService: ITenantService) =
         task {
             let context = UserContextMapper.mapFromRequest this.Request
             let! result = tenantService.GetMyOwnedTenantsAsync(context)
+
+            match result with
+            | Ok tenants -> return this.Ok(tenants) :> IActionResult
+            | Error msg -> return this.BadRequest(msg) :> IActionResult
+        }
+
+    [<HttpGet("requesting-public")>]
+    member this.GetTenantsRequstingPublic() =
+        task {
+            let context = UserContextMapper.mapFromRequest this.Request
+            let! result = tenantService.GetTenantsRequstingPublicAsync(context)
+
             match result with
             | Ok tenants -> return this.Ok(tenants) :> IActionResult
             | Error msg -> return this.BadRequest(msg) :> IActionResult
@@ -186,6 +213,7 @@ type TenantController(tenantService: ITenantService) =
         task {
             let context = UserContextMapper.mapFromRequest this.Request
             let! result = tenantService.SetPublicAsync(context, TenantId id)
+
             match result with
             | Ok _ -> return this.Ok() :> IActionResult
             | Error msg -> return this.BadRequest(msg) :> IActionResult
@@ -196,6 +224,18 @@ type TenantController(tenantService: ITenantService) =
         task {
             let context = UserContextMapper.mapFromRequest this.Request
             let! result = tenantService.SetPrivateAsync(context, TenantId id)
+
+            match result with
+            | Ok _ -> return this.Ok() :> IActionResult
+            | Error msg -> return this.BadRequest(msg) :> IActionResult
+        }
+
+    [<HttpPut("{id}/request-public")>]
+    member this.RequestPublic(id: Guid) =
+        task {
+            let context = UserContextMapper.mapFromRequest this.Request
+            let! result = tenantService.RequestPublicAsync(context, TenantId id)
+
             match result with
             | Ok _ -> return this.Ok() :> IActionResult
             | Error msg -> return this.BadRequest(msg) :> IActionResult
@@ -206,6 +246,7 @@ type TenantController(tenantService: ITenantService) =
         task {
             let context = UserContextMapper.mapFromClaimsPrincipal this.User
             let! result = tenantService.DeleteTenantAsync(context, TenantId id)
+
             match result with
             | Ok _ -> return this.Ok() :> IActionResult
             | Error msg -> return this.BadRequest(msg) :> IActionResult
@@ -215,6 +256,7 @@ type TenantController(tenantService: ITenantService) =
     member this.FindTenantByJoinPin(pin: string) =
         task {
             let! result = tenantService.FindTenantByJoinPinAsync(pin)
+
             match result with
             | Ok tenant -> return this.Ok(tenant) :> IActionResult
             | Error msg -> return this.BadRequest(msg) :> IActionResult
@@ -225,6 +267,7 @@ type TenantController(tenantService: ITenantService) =
         task {
             let context = UserContextMapper.mapFromRequest this.Request
             let! result = tenantService.GenerateJoinPinAsync(context, TenantId id, pin)
+
             match result with
             | Ok _ -> return this.Ok() :> IActionResult
             | Error msg -> return this.BadRequest(msg) :> IActionResult
@@ -235,6 +278,7 @@ type TenantController(tenantService: ITenantService) =
         task {
             let context = UserContextMapper.mapFromRequest this.Request
             let! result = tenantService.SubmitJoinRequestAsync(context, TenantId id, UserId userId)
+
             match result with
             | Ok _ -> return this.Ok() :> IActionResult
             | Error msg -> return this.BadRequest(msg) :> IActionResult
@@ -245,6 +289,7 @@ type TenantController(tenantService: ITenantService) =
         task {
             let context = UserContextMapper.mapFromRequest this.Request
             let! result = tenantService.ApproveJoinRequestAsync(context, TenantId id, UserId userId)
+
             match result with
             | Ok _ -> return this.Ok() :> IActionResult
             | Error msg -> return this.BadRequest(msg) :> IActionResult
@@ -255,6 +300,7 @@ type TenantController(tenantService: ITenantService) =
         task {
             let context = UserContextMapper.mapFromRequest this.Request
             let! result = tenantService.RejectJoinRequestAsync(context, TenantId id, UserId userId)
+
             match result with
             | Ok _ -> return this.Ok() :> IActionResult
             | Error msg -> return this.BadRequest(msg) :> IActionResult
