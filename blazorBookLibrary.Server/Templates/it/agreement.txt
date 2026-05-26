@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Subscription Information</title>
+</head>
+
+<body>
+  <p>Gentile {email},</p>
+
+  <p>Ti ringraziamo per l'interesse nel servizio BiblioNet e ti aspettiamo con ansia. Ti forniamo delle brevi informazioni sul trattaemnto dei dati personali ai sensi dell'art. 13 del Regolamento UE 2016/679 (GDPR). </p>
+
+  <p> Ecco un riepilogo:</p>
+  <ul>
+    <li><strong>Sicurezza e privacy dei dati</strong>: I tuoi dati saranno trattati in modo sicuro e utilizzati solo quando necessario per fornire i nostri servizi.</li>
+    <li><strong>Proprietà e accesso ai dati</strong>: Tu conserva il pieno diritto di accedere per rivedere i Suoi dati in qualsiasi momento.</li>
+    <li><strong>Annullamento e cancellazione dei dati</strong>: Tu può annullare l'iscrizione in qualsiasi momento e, per Sua comodità, puo' cancellare definitivamente i Suoi dati</li>
+    <li><strong>Nel caso abbia pubblicato anche una recensione questa resterà comunque visibile in forma anonima</li>
+  </ul>
+
+  <p>Benché il sistema adotti le migliori pratiche per salvaguardare i dati con backup regolari, non possiamo garantire una protezione completa contro la perdita o il danneggiamento dei dati per cause che non siano sotto il nostro controllo</p>
+
+<b>Manutenzione programmata</b>
+  <p>Nel caso di brevi periodi di manutenzione programmata, una notifica sarà visualizzata in fondo a ogni pagina visitata per informare gli utenti in anticipo. Cercheremo sempre di ridurre al minimo i tempi di inattività e di fornire aggiornamenti tempestivi ogni volta che saranno necessarie interruzioni del servizio.</p>
+
+  <p>Sottoscrivendo questo servizio, riconosci e accetti che il servizio non sarà responsabile per eventuali danni diretti o indiretti, inclusa la perdita di dati, che potrebbero verificarsi attraverso l'uso di questo sistema. </p>
+
+  <p>Ti ricordiamo che il servizio è in fase beta, potrebbe pertanto subire modifiche. Ti ringraziamo per la pazienza e la comprensione.</p>
+  <p>Per accettare questi termini e confermare la tua iscrizione, clicca sul link sottostante:</p>
+
+  <p><a href="{confirmationLink}" style="color: #1a73e8; text-decoration: none;">Confirm Subscription</a></p>
+
+  <p>Se hai domande, puoi usare questo canale <a href="https://discord.gg/hXpskuSn" style="color: #1a73e8; text-decoration: none;">discord</a></p>
+
+  <p>Per segnalare un bug, ti invitiamo a farlo utilizzando questo <a href="https://github.com/tonyx/blazorBookLibrary/issues" style="color: #1a73e8; text-decoration: none;">link</a> </p>
+
+  <p>Cordiali saluti<br>
+  Lo staff di BiblioNet
+  
+</body>
+

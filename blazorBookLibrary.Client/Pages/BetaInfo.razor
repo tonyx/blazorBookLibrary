@@ -1,0 +1,205 @@
+@page "/beta-info"
+@rendermode InteractiveAuto
+@using System.Globalization
+
+<PageTitle>@(IsItalian ? "Informazioni Beta — Archivist" : "Beta Information — Archivist")</PageTitle>
+
+<div class="sanctuary-container py-5">
+    
+    @* Page Header *@
+    <div class="mb-5 text-center text-fade-in">
+        <div class="d-inline-flex align-items-center justify-content-center bg-primary-fixed text-primary rounded-circle mb-3 shadow-sm" style="width: 72px; height: 72px;">
+            <i class="bi bi-shield-fill-exclamation" style="font-size: 2.2rem;"></i>
+        </div>
+        <h1 class="display-4 text-serif mb-2 fw-bold">
+            @(IsItalian ? "Protocollo di Beta Test" : "Beta Testing Protocol")
+        </h1>
+        <p class="text-muted lead mx-auto" style="max-width: 800px; font-family: var(--font-sans);">
+            @(IsItalian 
+                ? "Benvenuto nel Laboratorio Digitale Archivist. Navigando in questi cataloghi, partecipi ad un esperimento attivo e ne accetti le condizioni di instabilità." 
+                : "Welcome to the Archivist Digital Laboratory. By traversing these catalogs, you are participating in a living experiment and accepting potential system instability.")
+        </p>
+    </div>
+
+    @* Warning Alert (Glassmorphic design) *@
+    <div class="card-sanctuary mb-5 p-4 border border-warning shadow-none bg-surface-low rounded-3 text-fade-in animation-delay-1">
+        <div class="d-flex align-items-start gap-4">
+            <div class="bg-warning bg-opacity-10 text-warning p-3 rounded-circle d-flex align-items-center justify-content-center" style="width: 48px; height: 48px; flex-shrink: 0;">
+                <i class="bi bi-exclamation-triangle" style="font-size: 1.5rem; margin-right: 0;"></i>
+            </div>
+            <div>
+                <h3 class="h5 fw-bold text-serif text-warning mb-2">
+                    @(IsItalian ? "Accettazione delle Condizioni" : "Acceptance of Conditions")
+                </h3>
+                <p class="mb-0 text-muted" style="font-size: 0.95rem; line-height: 1.6;">
+                    @(IsItalian 
+                        ? "L'utilizzo del sistema in questo momento implica l'accettazione incondizionata del ruolo di beta tester. Trattandosi di una fase sperimentale, alcune funzionalità potrebbero comportarsi in modo instabile e la persistenza dei dati potrebbe variare." 
+                        : "Using the system at this time signifies explicit acceptance of being a beta tester. Because this is an active experimental phase, some functions may exhibit instability and database persistence is subject to changes.")
+                </p>
+            </div>
+        </div>
+    </div>
+
+    @* Protocols Grid *@
+    <div class="row g-4 mb-5 text-fade-in animation-delay-2">
+        
+        @* Card 1: Anonymous Access *@
+        <div class="col-md-6 col-lg-4">
+            <div class="card-sanctuary h-100 floating transition-hover border border-light">
+                <div class="d-flex align-items-center gap-3 mb-3">
+                    <div class="bg-primary bg-opacity-10 text-primary p-2 rounded-3 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                        <i class="bi bi-eye" style="font-size: 1.25rem; margin-right: 0;"></i>
+                    </div>
+                    <h2 class="h5 fw-bold text-serif mb-0">
+                        @(IsItalian ? "Navigazione Anonima" : "Anonymous Browsing")
+                    </h2>
+                </div>
+                <p class="text-muted small mb-0" style="line-height: 1.6;">
+                    @(IsItalian 
+                        ? "Senza autenticazione, il sistema limita rigorosamente l'esperienza alla consultazione dei cataloghi e alle ricerche (inclusa la ricerca semantica guidata dall'IA). Nessuna operazione di modifica o interazione avanzata è consentita." 
+                        : "Without authentication, the system restricts the experience strictly to catalog consultations and searches (including AI-powered semantic discovery). No state modifications or advanced interactive functions are available.")
+                </p>
+            </div>
+        </div>
+
+        @* Card 2: Simulated Actions *@
+        <div class="col-md-6 col-lg-4">
+            <div class="card-sanctuary h-100 floating transition-hover border border-light">
+                <div class="d-flex align-items-center gap-3 mb-3">
+                    <div class="bg-secondary bg-opacity-10 text-secondary p-2 rounded-3 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                        <i class="bi bi-cone-striped" style="font-size: 1.25rem; margin-right: 0;"></i>
+                    </div>
+                    <h2 class="h5 fw-bold text-serif mb-0">
+                        @(IsItalian ? "Azioni Simulate" : "Simulated Operations")
+                    </h2>
+                </div>
+                <p class="text-muted small mb-0" style="line-height: 1.6;">
+                    @(IsItalian 
+                        ? "Anche quando viene effettuato l'accesso, le operazioni sui libri mantengono una natura simulativa. Ad esempio, prenotare un volume rappresenta una pura esercitazione software e non ha effetti fisici o reali di spedizione." 
+                        : "Even when logged in, book transactional actions remain simulated. For instance, reserving a volume represents a pure software simulation and has no actual physical impact or real-world fulfillment.")
+                </p>
+            </div>
+        </div>
+
+        @* Card 3: Assisted Metadata Uploads *@
+        <div class="col-md-6 col-lg-4">
+            <div class="card-sanctuary h-100 floating transition-hover border border-light">
+                <div class="d-flex align-items-center gap-3 mb-3">
+                    <div class="bg-success bg-opacity-10 text-success p-2 rounded-3 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                        <i class="bi bi-stars" style="font-size: 1.25rem; margin-right: 0;"></i>
+                    </div>
+                    <h2 class="h5 fw-bold text-serif mb-0">
+                        @(IsItalian ? "Metadata Assistiti" : "Assisted Metadata")
+                    </h2>
+                </div>
+                <p class="text-muted small mb-0" style="line-height: 1.6;">
+                    @(IsItalian 
+                        ? "Il pannello di gestione libri offre strumenti semiautomatici d'avanguardia: inserisci il titolo per autocompletare la scheda tramite API esterne, acquisisci la foto di copertina, scansiona il codice a barre ISBN o esegui caricamenti massivi usando elenchi di ISBN testuali." 
+                        : "The book manager provides state-of-the-art semiautomated tools: write a book name and make the system auto-complete it, take a cover photo or scan the ISBN barcode via camera, or trigger a bulk upload using a text file of ISBN codes.")
+                </p>
+            </div>
+        </div>
+
+        @* Card 4: Safety Local Backup *@
+        <div class="col-md-6 col-lg-4">
+            <div class="card-sanctuary h-100 floating transition-hover border border-light">
+                <div class="d-flex align-items-center gap-3 mb-3">
+                    <div class="bg-info bg-opacity-10 text-info p-2 rounded-3 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                        <i class="bi bi-download" style="font-size: 1.25rem; margin-right: 0;"></i>
+                    </div>
+                    <h2 class="h5 fw-bold text-serif mb-0">
+                        @(IsItalian ? "Portabilità & Backup" : "Portability & Backups")
+                    </h2>
+                </div>
+                <p class="text-muted small mb-0" style="line-height: 1.6;">
+                    @(IsItalian 
+                        ? "Per navigare in sicurezza ed evitare perdite di informazioni, puoi esportare in qualsiasi momento il catalogo in formato CSV locale. Questa copia salvata ti consentirà di ripristinare e importare nuovamente i dati in seguito." 
+                        : "To interact safely and prevent data loss, you can export your curated library catalogs in a local CSV format at any time. This acts as a local backup that lets you easily restore or re-import your catalogs later.")
+                </p>
+            </div>
+        </div>
+
+        @* Card 5: Virtual Circuits (Tenants) *@
+        <div class="col-md-6 col-lg-4">
+            <div class="card-sanctuary h-100 floating transition-hover border border-light">
+                <div class="d-flex align-items-center gap-3 mb-3">
+                    <div class="bg-primary bg-opacity-10 text-primary p-2 rounded-3 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                        <i class="bi bi-people" style="font-size: 1.25rem; margin-right: 0;"></i>
+                    </div>
+                    <h2 class="h5 fw-bold text-serif mb-0">
+                        @(IsItalian ? "Circuiti & Condivisione" : "Circuits & Collaboration")
+                    </h2>
+                </div>
+                <p class="text-muted small mb-0" style="line-height: 1.6;">
+                    @(IsItalian 
+                        ? "Ogni curatore può stabilire il proprio circuito virtuale (tenant) privato o pubblico, invitando amici e colleghi a consultare o simulare prestiti. Strutture e istituzioni, comprese le biblioteche pubbliche, possono configurare il proprio polo dedicato." 
+                        : "Every owner can create public or private virtual circuits (tenants), inviting peers and mates to share catalogs and simulate book lending. Organizations and public library institutions are welcome to set up their custom archival polo.")
+                </p>
+            </div>
+        </div>
+
+        @* Card 6: Dynamic Future *@
+        <div class="col-md-6 col-lg-4">
+            <div class="card-sanctuary h-100 floating transition-hover border border-light">
+                <div class="d-flex align-items-center gap-3 mb-3">
+                    <div class="bg-danger bg-opacity-10 text-danger p-2 rounded-3 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                        <i class="bi bi-cpu" style="font-size: 1.25rem; margin-right: 0;"></i>
+                    </div>
+                    <h2 class="h5 fw-bold text-serif mb-0">
+                        @(IsItalian ? "Evoluzione Continua" : "Continuous Evolution")
+                    </h2>
+                </div>
+                <p class="text-muted small mb-0" style="line-height: 1.6;">
+                    @(IsItalian 
+                        ? "Nuovi modelli semantici, algoritmi di classificazione assistiti dall'IA e miglioramenti dell'interfaccia utente vengono rilasciati frequentemente. Il tuo feedback sul campo è cruciale per la crescita della piattaforma." 
+                        : "New semantic models, AI-assisted classification algorithms, and overall UI refinements are continuously deployed. Your real-world feedback as a tester drives the growth and optimization of the platform.")
+                </p>
+            </div>
+        </div>
+
+    </div>
+
+    @* Footer Action / Back Button *@
+    <div class="text-center text-fade-in animation-delay-3">
+        <a href="" class="btn-sanctuary-primary">
+            <i class="bi bi-arrow-left"></i>
+            @(IsItalian ? "Ritorna al Catalogo" : "Return to Catalog")
+        </a>
+    </div>
+
+</div>
+
+@code {
+    private bool IsItalian => CultureInfo.CurrentCulture.TwoLetterISOLanguageName.Equals("it", StringComparison.OrdinalIgnoreCase);
+}
+
+<style>
+    /* Sleek fade-in animation rules */
+    .text-fade-in {
+        animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        opacity: 0;
+    }
+    
+    .animation-delay-1 {
+        animation-delay: 0.15s;
+    }
+    
+    .animation-delay-2 {
+        animation-delay: 0.3s;
+    }
+    
+    .animation-delay-3 {
+        animation-delay: 0.45s;
+    }
+
+    @@keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(15px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+</style>

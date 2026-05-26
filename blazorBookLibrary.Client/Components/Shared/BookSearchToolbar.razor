@@ -63,8 +63,26 @@
                  </div>
                  <p class="x-small text-muted mt-2 mb-0 italic">@L["SemanticSearchHelp"]</p>
             </div>
-            <div class="bg-surface-low rounded-xl p-3 p-md-5">
-                <div class="row g-4 g-md-5">
+            <!-- Segmented Capsule Search Mode Switcher -->
+            <div class="search-toggle-container">
+                <div class="search-toggle-pill">
+                    <button type="button" class="search-toggle-btn @(!showAdvancedSearch ? "active" : "")" @onclick="() => showAdvancedSearch = false">
+                        <i class="bi bi-search"></i> @L["SimpleSearch"]
+                    </button>
+                    <button type="button" class="search-toggle-btn @(showAdvancedSearch ? "active" : "")" @onclick="() => showAdvancedSearch = true">
+                        <i class="bi bi-sliders"></i> @L["AdvancedSearch"]
+                        @if (ActiveAdvancedFiltersCount > 0)
+                        {
+                            <span class="search-toggle-badge">@ActiveAdvancedFiltersCount</span>
+                        }
+                    </button>
+                </div>
+            </div>
+
+            @if (showAdvancedSearch)
+            {
+                <div class="bg-surface-low rounded-xl p-3 p-md-5 advanced-filters-panel">
+                    <div class="row g-4 g-md-5">
                     <!-- Column 1: ISBN & Category -->
                     <div class="col-lg-4">
                         <h6 class="serif mb-3 mb-md-4 pb-2 border-bottom" style="border-color: var(--outline-variant) !important;">@L["CoreIdentifiers"]</h6>
@@ -240,6 +258,7 @@
                     </div>
                 </div>
             </div>
+            }
         </EditForm>
     </div>
 </div>
@@ -249,6 +268,24 @@
     [Parameter] public EventCallback<string> OnError { get; set; }
     [Parameter] public EventCallback<bool> OnSearchStarted { get; set; }
     [Parameter] public string? InitialDistributionPointId { get; set; }
+
+    private bool showAdvancedSearch = false;
+
+    private int ActiveAdvancedFiltersCount
+    {
+        get
+        {
+            int count = 0;
+            if (!string.IsNullOrWhiteSpace(searchBookIsbn)) count++;
+            if (searchCategoriesCriteria != null && searchCategoriesCriteria.Any()) count++;
+            if (searchTagsCriteria != null && searchTagsCriteria.Any()) count++;
+            if (searchAuthorsCriteria != null && searchAuthorsCriteria.Any()) count++;
+            if (searchBookYear.HasValue) count++;
+            if (!string.IsNullOrEmpty(searchBookAvailability) && searchBookAvailability != "All") count++;
+            if (searchDistributionPointsCriteria != null && searchDistributionPointsCriteria.Any()) count++;
+            return count;
+        }
+    }
 
     private bool _isLoading = false;
 

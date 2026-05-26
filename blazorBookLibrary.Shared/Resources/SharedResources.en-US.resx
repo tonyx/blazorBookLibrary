@@ -598,6 +598,7 @@
   <data name="ArchivalPatron" xml:space="preserve"><value>Archival Patron</value></data>
   <data name="Deaccession" xml:space="preserve"><value>Deaccession</value></data>
   <data name="TheModernArchivist" xml:space="preserve"><value>The Modern Archivist</value></data>
+  <data name="BiblioNet" xml:space="preserve"><value>BiblioNet</value></data>
   <data name="ManageSystemAccountRolesAndPermissions" xml:space="preserve"><value>Manage system account roles and permissions.</value></data>
   <data name="EnterSearchQueryToBegin" xml:space="preserve"><value>Enter an email or name above to search for patrons.</value></data>
   <data name="AdministrativeNote" xml:space="preserve"><value>Administrative Note</value></data>
@@ -639,7 +640,8 @@
   <data name="Identity" xml:space="preserve"><value>Identity</value></data>
   <data name="LinkedTitles" xml:space="preserve"><value>Linked Titles</value></data>
   <data name="CuratedCatalog" xml:space="preserve"><value>The Curated Catalog</value></data>
-  <data name="ArchivalDiscoveryDescription" xml:space="preserve"><value>Discover works of scholarly significance within our meticulously maintained archival repository. Refine your search using the ledger tools below.</value></data>
+  <data name="SeeHowBiblionetWorks" xml:space="preserve"><value>BiblioNet</value></data>
+  <data name="ArchivalDiscoveryDescription" xml:space="preserve"><value> Explore the Potential of BiblioNet. See how our book-sharing network works by exploring this demo catalog. To start sharing for real, create your personal circuit, catalog your physical books, and invite your friends!</value></data>
   <data name="CatalogDiscovery" xml:space="preserve"><value>Catalog Discovery</value></data>
   <data name="VisualIdentity" xml:space="preserve"><value>Visual Identity</value></data>
   <data name="TitlesFound" xml:space="preserve"><value>Titles Found</value></data>
@@ -978,4 +980,7 @@
   <data name="PrivacyUpdatedSuccessfully" xml:space="preserve"><value>Library visibility updated successfully.</value></data>
   <data name="PublicPrivacyDescription" xml:space="preserve"><value>Anyone can discover and browse this library. (Public)</value></data>
   <data name="PrivatePrivacyDescription" xml:space="preserve"><value>Only authorized patrons can browse this library. (Private)</value></data>
+  <data name="SimpleSearch" xml:space="preserve"><value>Simple Search</value></data>
+  <data name="AdvancedSearch" xml:space="preserve"><value>Advanced Search</value></data>
+  <data name="ActiveFilters" xml:space="preserve"><value>active</value></data>
 </root>

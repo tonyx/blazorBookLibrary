@@ -32,6 +32,8 @@
     <None Include="Templates/it/LoanReturnNotification.txt" CopyToOutputDirectory="PreserveNewest" />
     <None Include="Templates/en/LoanReturnNotificationSubject.txt" CopyToOutputDirectory="PreserveNewest" />
     <None Include="Templates/it/LoanReturnNotificationSubject.txt" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="Templates/en/agreement.txt" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="Templates/it/agreement.txt" CopyToOutputDirectory="PreserveNewest" />
 
     <None Include="Templates/en/PatronInvitationBody.txt" CopyToOutputDirectory="PreserveNewest" />
     <None Include="Templates/it/PatronInvitationBody.txt" CopyToOutputDirectory="PreserveNewest" />

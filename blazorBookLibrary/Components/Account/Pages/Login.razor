@@ -23,15 +23,19 @@
 
 <PageTitle>Log in</PageTitle>
 
-<h1>Log in</h1>
+<div class="text-center mb-4 mt-3 animate-fade-in">
+    <img src="images/BIBLIONET.svg" alt="BiblioNet Logo" style="height: 90px; width: auto;" class="mb-2" />
+    <h1 class="h3 fw-bold text-serif text-primary mb-1">BiblioNet</h1>
+    <p class="text-muted small">Your books in motion — secure catalog access</p>
+</div>
+
 <div class="row">
     <div class="col-lg-6">
         <section>
             <StatusMessage Message="@errorMessage" />
             <EditForm EditContext="editContext" method="post" OnSubmit="LoginUser" FormName="login">
                 <DataAnnotationsValidator />
-                <h2>Use a local account to log in.</h2>
-                <hr />
+                <h4 class="text-serif mb-3">Log in to your account</h4>
                 <ValidationSummary class="text-danger" role="alert" />
                 <div class="form-floating mb-3">
                     <InputText @bind-Value="Input.Email" id="Input.Email" class="form-control" autocomplete="username webauthn" aria-required="true" placeholder="name@example.com" />

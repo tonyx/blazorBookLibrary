@@ -13,7 +13,7 @@
 <div class="top-row navbar navbar-light sanctuary-brand-area border-bottom">
     <div class="container-fluid justify-content-center">
         <a class="navbar-brand serif" href="" style="font-weight: 800; color: var(--primary); font-size: 1.4rem; letter-spacing: -0.02em;">
-            <i class="bi bi-book-half me-2"></i> Archivist
+            <i class="bi bi-book-half me-2"></i> BiblioNet
         </a>
     </div>
 </div>
@@ -107,6 +107,12 @@
                 </NavLink>
             </div>
         }
+
+        <div class="nav-item">
+            <NavLink class="nav-link sanctuary-nav-link" href="beta-info">
+                <span class="bi bi-shield-exclamation" aria-hidden="true"></span> @(System.Globalization.CultureInfo.CurrentCulture.TwoLetterISOLanguageName.Equals("it", StringComparison.OrdinalIgnoreCase) ? "Informazioni Beta" : "Beta Information")
+            </NavLink>
+        </div>
 
         <div class="my-3 border-bottom opacity-10 mx-3"></div>
 

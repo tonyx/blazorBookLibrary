@@ -207,6 +207,7 @@
   <data name="NoCoverImageFoundIsbn" xml:space="preserve"><value>No cover image found for this ISBN.</value></data>
   <data name="CoverUrlApplied" xml:space="preserve"><value>Cover URL applied to form.</value></data>
   <data name="FoundResultsFromApi" xml:space="preserve"><value>Found {0} results from API.</value></data>
+  <data name="BiblioNet" xml:space="preserve"><value>BiblioNet</value></data>
   <data name="NoBooksFoundTitle" xml:space="preserve"><value>No books found with this title.</value></data>
   <data name="BookCreatedSuccessfully" xml:space="preserve"><value>Book '{0}' created successfully.</value></data>
   <data name="SelectFromResultToPopulate" xml:space="preserve"><value>Select a result from the list to populate the form.</value></data>
@@ -389,6 +390,8 @@
   <data name="ViewAvailableBooks" xml:space="preserve"><value>View Available Books</value></data>
   <data name="DistributionPoints" xml:space="preserve"><value>Distribution Points</value></data>
   <data name="Unset" xml:space="preserve"><value>Unset</value></data>
+  <data name="CuratedCatalog" xml:space="preserve"><value>Il Catalogo Curato</value></data>
+  <data name="ArchivalDiscoveryDescription" xml:space="preserve"><value> Explore the Potential of BiblioNet. See how our book-sharing network works by exploring this demo catalog. To start sharing for real, create your personal circuit, catalog your physical books, and invite your friends!</value></data>
   <data name="Set" xml:space="preserve"><value>Set</value></data>
   <data name="SelectToSetDP" xml:space="preserve"><value>Select distribution point...</value></data>
   <data name="NoDistributionPointAssigned" xml:space="preserve"><value>No distribution point assigned</value></data>
@@ -452,4 +455,7 @@
   <data name="PrivacyUpdatedSuccessfully" xml:space="preserve"><value>Library visibility updated successfully.</value></data>
   <data name="PublicPrivacyDescription" xml:space="preserve"><value>Anyone can discover and browse this library. (Public)</value></data>
   <data name="PrivatePrivacyDescription" xml:space="preserve"><value>Only authorized patrons can browse this library. (Private)</value></data>
+  <data name="SimpleSearch" xml:space="preserve"><value>Simple Search</value></data>
+  <data name="AdvancedSearch" xml:space="preserve"><value>Advanced Search</value></data>
+  <data name="ActiveFilters" xml:space="preserve"><value>active</value></data>
 </root>

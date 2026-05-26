@@ -1,0 +1,536 @@
+@page "/books-manager/import"
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.Extensions.Localization
+@using blazorBookLibrary.Shared.Resources
+@using BookLibrary.Domain
+@using blazorBookLibrary.Client.Components.Shared
+@using Microsoft.FSharp.Core
+@using Microsoft.FSharp.Collections
+@using System.Threading
+@using static BookLibrary.Shared.Commons
+@using BookLibrary.Shared
+@using blazorBookLibrary.Shared
+@rendermode InteractiveServer
+@attribute [Authorize]
+
+@inject IDataExportService DataExportService
+@inject IStringLocalizer<SharedResources> L
+@inject blazorBookLibrary.Client.Services.TenantStateService TenantState
+@inject NavigationManager NavigationManager
+@inject IJSRuntime JSRuntime
+
+<PageTitle>@L["Import"] — @L["BiblioNet"]</PageTitle>
+
+<div class="sanctuary-container py-5">
+    @* Page Header *@
+    <div class="mb-5 animate-fade-in">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/" class="text-decoration-none text-muted">@L["Home"]</a></li>
+                <li class="breadcrumb-item"><a href="/books-manager" class="text-decoration-none text-muted">@L["BooksManager"]</a></li>
+                <li class="breadcrumb-item active text-serif" aria-current="page">@L["Import"]</li>
+            </ol>
+        </nav>
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h1 class="display-4 text-serif mb-2">@L["Import"] @L["BooksManager"]</h1>
+                <p class="text-muted lead mb-0">Import bulk catalog entries robustly using a list of ISBNs.</p>
+            </div>
+            <div>
+                <a href="/books-manager" class="btn btn-outline-sanctuary rounded-pill px-4">
+                    <i class="bi bi-arrow-left me-2"></i> @L["Close"]
+                </a>
+            </div>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrEmpty(statusMessage))
+    {
+        <div class="alert @statusClass alert-dismissible fade show mb-4 shadow-sm animate-fade-in" role="alert">
+            <i class="bi @(statusClass.Contains("danger") ? "bi-exclamation-triangle-fill" : "bi-info-circle-fill") me-2"></i>
+            @statusMessage
+            <button type="button" class="btn-close" @onclick='() => statusMessage = ""' aria-label="Close"></button>
+        </div>
+    }
+
+    <div class="row g-4 justify-content-center">
+        @if (currentStep == ImportStep.Configure)
+        {
+            @* Step 1: Configure & Upload *@
+            <div class="col-lg-8 animate-slide-up">
+                <div class="card-sanctuary p-5 shadow border-0 rounded-4 bg-white">
+                    <div class="border-bottom pb-4 mb-4">
+                        <h2 class="h3 text-serif mb-2 text-primary"><i class="bi bi-gear-fill me-2"></i> @L["ImportSettings"]</h2>
+                        <p class="text-muted mb-0">Configure options and drop your text or CSV file containing one ISBN per line.</p>
+                    </div>
+
+                    <div class="row g-4">
+                        <div class="col-md-6">
+                            <div class="form-check form-switch p-3 bg-surface-low rounded-3 border">
+                                <input class="form-check-input ms-0 me-2" type="checkbox" id="allowDuplicatesSwitch" @bind="importAllowDuplicates">
+                                <label class="form-check-label small fw-bold text-muted text-uppercase" for="allowDuplicatesSwitch">@L["AllowDuplicates"]</label>
+                                <div class="form-text mt-1 small opacity-75">@L["AllowDuplicatesHelp"]</div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <div class="form-check form-switch p-3 bg-surface-low rounded-3 border">
+                                <input class="form-check-input ms-0 me-2" type="checkbox" id="generateAuthorsSwitch" @bind="importGenerateAuthors">
+                                <label class="form-check-label small fw-bold text-muted text-uppercase" for="generateAuthorsSwitch">@L["GenerateUnknownAuthors"]</label>
+                                <div class="form-text mt-1 small opacity-75">@L["GenerateAuthorsHelp"]</div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <div class="form-check form-switch p-3 bg-surface-low rounded-3 border">
+                                <input class="form-check-input ms-0 me-2" type="checkbox" id="generateDescriptionsSwitch" @bind="importGenerateMissingDescriptions">
+                                <label class="form-check-label small fw-bold text-muted text-uppercase" for="generateDescriptionsSwitch">@L["GenerateMissingDescriptions"]</label>
+                                <div class="form-text mt-1 small opacity-75">@L["GenerateDescriptionsHelp"]</div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <div class="form-check form-switch p-3 bg-surface-low rounded-3 border">
+                                <input class="form-check-input ms-0 me-2" type="checkbox" id="generateEmbeddingsSwitch" @bind="importGenerateEmbeddings">
+                                <label class="form-check-label small fw-bold text-muted text-uppercase" for="generateEmbeddingsSwitch">@L["GenerateEmbeddings"]</label>
+                                <div class="form-text mt-1 small opacity-75">@L["GenerateEmbeddingsHelp"]</div>
+                            </div>
+                        </div>
+
+                        <div class="col-12 mt-5">
+                            <div class="file-upload-zone p-5 text-center rounded-4 border-2 border-dashed bg-surface-low transition-hover">
+                                <i class="bi bi-file-earmark-arrow-up display-3 text-primary mb-3 d-block opacity-75"></i>
+                                <h4 class="text-serif mb-2">Select Archival Manifest</h4>
+                                <p class="text-muted small mb-4">Accepts list of ISBNs in plain text (.txt) or comma-separated (.csv)</p>
+                                <label for="importFileInput" class="btn btn-sanctuary px-5 py-3 rounded-pill shadow-sm">
+                                    <i class="bi bi-folder2-open me-2"></i> Browse Files
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+        else if (currentStep == ImportStep.Processing)
+        {
+            @* Step 2: Processing Active Progress *@
+            <div class="col-lg-8 animate-slide-up">
+                <div class="card-sanctuary p-5 shadow border-0 rounded-4 bg-white text-center">
+                    <div class="mb-4">
+                        <div class="spinner-border text-primary mb-3" style="width: 3rem; height: 3rem;" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <h2 class="h3 text-serif text-primary mb-2">Archival Verification In Progress</h2>
+                        <p class="text-muted lead">The system is validating and parsing ISBN records using active endpoints.</p>
+                    </div>
+
+                    @if (currentProgress != null)
+                    {
+                        <div class="p-4 bg-surface-low rounded-4 border text-start mb-4 shadow-sm">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <div>
+                                    <span class="text-primary fw-bold h5">@L["ImportProgress"]</span>
+                                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle fs-6 ms-2">@currentProgress.Current / @currentProgress.Total</span>
+                                    @if (importCts != null && importCts.IsCancellationRequested)
+                                    {
+                                        <span class="badge bg-warning text-dark ms-2">@L["Cancelling"]...</span>
+                                    }
+                                </div>
+                                <div>
+                                    @if (FSharpOption<TimeSpan>.get_IsSome(currentProgress.EstimatedRemainingTime))
+                                    {
+                                        <span class="text-muted small fw-bold">
+                                            <i class="bi bi-clock-history text-primary me-1"></i>
+                                            @L["EstimatedTimeRemaining"]: @FormatTimeSpan(currentProgress.EstimatedRemainingTime.Value)
+                                        </span>
+                                    }
+                                </div>
+                            </div>
+
+                            <div class="progress mb-3" style="height: 12px; border-radius: 6px; background-color: var(--surface-high);">
+                                <div class="progress-bar progress-bar-striped progress-bar-animated bg-sanctuary" 
+                                     role="progressbar" 
+                                     style="width: @(GetProgressPercentage())%; transition: width 0.3s ease;">
+                                </div>
+                            </div>
+
+                            @if (FSharpOption<string>.get_IsSome(currentProgress.CurrentItemLabel))
+                            {
+                                <div class="text-muted small italic animate-fade-in text-truncate py-1 bg-white px-3 rounded border border-light">
+                                    <i class="bi bi-info-circle text-primary me-1"></i> @currentProgress.CurrentItemLabel.Value
+                                </div>
+                            }
+                        </div>
+                    }
+
+                    <div class="d-grid gap-2 col-md-6 mx-auto mt-4">
+                        <button class="btn btn-outline-danger rounded-pill py-3" @onclick="CancelImport" disabled="@(importCts == null || importCts.IsCancellationRequested)">
+                            <i class="bi bi-x-circle-fill me-2"></i> @L["Cancel"] Import Process
+                        </button>
+                    </div>
+                </div>
+            </div>
+        }
+        else if (currentStep == ImportStep.Summary)
+        {
+            @* Step 3: Finished & Summary Dashboard *@
+            <div class="col-lg-10 animate-slide-up">
+                <div class="card-sanctuary p-5 shadow border-0 rounded-4 bg-white">
+                    <div class="text-center mb-5">
+                        <div class="success-checkmark-wrapper mb-3">
+                            <i class="bi bi-check-circle-fill text-success display-2"></i>
+                        </div>
+                        <h2 class="display-6 text-serif text-success mb-2">Import Workflow Complete</h2>
+                        <p class="text-muted lead">Validation completed. The catalog ledger has been updated.</p>
+                    </div>
+
+                    @if (lastImportSummary != null)
+                    {
+                        <div class="row g-3 mb-5 text-center">
+                            <div class="col-6 col-md">
+                                <div class="p-4 bg-success-subtle rounded-3 border border-success-subtle h-100 d-flex flex-column justify-content-center shadow-sm">
+                                    <div class="h2 mb-1 text-success fw-bold">@lastImportSummary.SuccessCount</div>
+                                    <div class="small text-success-emphasis text-uppercase fw-bold letter-spacing-1">@L["Success"]</div>
+                                </div>
+                            </div>
+                            <div class="col-6 col-md">
+                                <div class="p-4 bg-danger-subtle rounded-3 border border-danger-subtle h-100 d-flex flex-column justify-content-center shadow-sm">
+                                    <div class="h2 mb-1 text-danger fw-bold">@lastImportSummary.FailureCount</div>
+                                    <div class="small text-danger-emphasis text-uppercase fw-bold letter-spacing-1">@L["Failures"]</div>
+                                </div>
+                            </div>
+                            <div class="col-6 col-md">
+                                <div class="p-4 bg-warning-subtle rounded-3 border border-warning-subtle h-100 d-flex flex-column justify-content-center shadow-sm">
+                                    <div class="h2 mb-1 text-warning-emphasis fw-bold">@lastImportSummary.DuplicateCount</div>
+                                    <div class="small text-warning-emphasis text-uppercase fw-bold letter-spacing-1">@L["Duplicates"]</div>
+                                </div>
+                            </div>
+                            @if (lastImportSummary.InterruptedCount > 0)
+                            {
+                                <div class="col-6 col-md">
+                                    <div class="p-4 bg-secondary-subtle rounded-3 border border-secondary-subtle h-100 d-flex flex-column justify-content-center shadow-sm">
+                                        <div class="h2 mb-1 text-secondary fw-bold">@lastImportSummary.InterruptedCount</div>
+                                        <div class="small text-secondary-emphasis text-uppercase fw-bold letter-spacing-1">@L["Interrupted"]</div>
+                                    </div>
+                                </div>
+                            }
+                            <div class="col">
+                                <div class="p-4 bg-primary-subtle rounded-3 border border-primary-subtle h-100 d-flex flex-column justify-content-center shadow-sm">
+                                    <div class="h2 mb-1 text-primary fw-bold">@lastImportSummary.TotalProcessed</div>
+                                    <div class="small text-primary-emphasis text-uppercase fw-bold letter-spacing-1">@L["Total"]</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h3 class="h5 text-serif mb-0"><i class="bi bi-list-columns-reverse text-primary me-2"></i> Audit Ledger Details</h3>
+                            <button type="button" class="btn btn-outline-primary rounded-pill px-4 py-2 small shadow-sm" @onclick="CopyFailedIsbns">
+                                <i class="bi bi-clipboard me-2"></i> @L["CopyFailedIsbns"]
+                            </button>
+                        </div>
+
+                        <div class="table-responsive rounded-3 border overflow-auto mb-5 shadow-sm" style="max-height: 400px;">
+                            <table class="table table-editorial align-middle mb-0">
+                                <thead class="bg-surface-low sticky-top">
+                                    <tr>
+                                        <th class="small text-uppercase fw-bold p-3">ISBN</th>
+                                        <th class="small text-uppercase fw-bold p-3">@L["Title"]</th>
+                                        <th class="small text-uppercase fw-bold p-3">@L["Status"]</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var detail in lastImportSummary.Details)
+                                    {
+                                        <tr>
+                                            <td class="p-3 font-monospace small">@detail.Isbn.Value</td>
+                                            <td class="p-3">
+                                                @if (FSharpOption<string>.get_IsSome(detail.Title))
+                                                {
+                                                    <span class="text-serif fw-bold">@detail.Title.Value</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="text-muted small italic">@L["MetadataNotFound"]</span>
+                                                }
+                                            </td>
+                                            <td class="p-3">
+                                                @if (detail.Status.IsSuccess)
+                                                {
+                                                    <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 py-2">
+                                                        <i class="bi bi-check-circle-fill me-1"></i> @L["Success"]
+                                                    </span>
+                                                }
+                                                else if (detail.Status.IsDuplicate)
+                                                {
+                                                    <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle rounded-pill px-3 py-2">
+                                                        <i class="bi bi-intersect me-1"></i> @L["Duplicate"]
+                                                    </span>
+                                                }
+                                                else if (detail.Status.IsInterrupted)
+                                                {
+                                                    <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle rounded-pill px-3 py-2">
+                                                        <i class="bi bi-stop-circle-fill me-1"></i> @L["Interrupted"]
+                                                    </span>
+                                                }
+                                                else if (detail.Status is ImportStatus.Failure f)
+                                                {
+                                                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill px-3 py-2" title="@f.reason">
+                                                        <i class="bi bi-exclamation-triangle-fill me-1"></i> @L["Failure"]
+                                                    </span>
+                                                }
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+
+                    <div class="d-flex justify-content-center gap-3">
+                        <button class="btn btn-outline-sanctuary rounded-pill px-5 py-3 shadow-sm shadow-hover" @onclick="RestartImport">
+                            <i class="bi bi-arrow-repeat me-2"></i> Import Another File
+                        </button>
+                        <a href="/books-manager" class="btn btn-primary rounded-pill px-5 py-3 shadow-sm shadow-hover">
+                            <i class="bi bi-arrow-left me-2"></i> Back to Books Manager
+                        </a>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+<InputFile id="importFileInput" OnChange="HandleImportFile" style="display:none" accept=".txt,.csv" />
+
+<style>
+    .card-sanctuary {
+        border-radius: 1.25rem;
+        background: #fff;
+        border: 1px solid rgba(0, 0, 0, 0.05);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.02);
+    }
+    .file-upload-zone {
+        border-color: rgba(var(--primary-rgb), 0.3) !important;
+        border-width: 2px !important;
+        background-color: var(--surface-low);
+    }
+    .file-upload-zone:hover {
+        background-color: var(--surface-high);
+        border-color: var(--primary) !important;
+        cursor: pointer;
+    }
+    .bg-surface-low {
+        background-color: #fcfbf9 !important;
+    }
+    .table-editorial th {
+        font-family: inherit;
+        background-color: #f8f6f2;
+        color: #726250;
+        border-bottom: 2px solid #e7e2d9;
+    }
+    .table-editorial td {
+        border-bottom: 1px solid #efebe4;
+    }
+    .letter-spacing-1 {
+        letter-spacing: 0.1em;
+    }
+    .success-checkmark-wrapper {
+        animation: scaleUp 0.5s ease-in-out;
+    }
+    @@keyframes scaleUp {
+        0% { transform: scale(0.5); opacity: 0; }
+        100% { transform: scale(1); opacity: 1; }
+    }
+    .animate-fade-in {
+        animation: fadeIn 0.4s ease-in-out;
+    }
+    .animate-slide-up {
+        animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    @@keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+    @@keyframes slideUp {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+</style>
+
+@code {
+    private enum ImportStep
+    {
+        Configure,
+        Processing,
+        Summary
+    }
+
+    private ImportStep currentStep = ImportStep.Configure;
+    private string statusMessage = "";
+    private string statusClass = "";
+
+    private bool importAllowDuplicates = false;
+    private bool importGenerateAuthors = true;
+    private bool importGenerateEmbeddings = false;
+    private bool importGenerateMissingDescriptions = false;
+
+    private CancellationTokenSource? importCts;
+    private ImportProgress? currentProgress;
+    private ImportSummary? lastImportSummary;
+
+    [CascadingParameter]
+    private Task<AuthenticationState> authenticationStateTask { get; set; } = default!;
+
+    private async Task<UserContext> GetUserContextAsync()
+    {
+        var authState = await authenticationStateTask;
+        return TenantState.GetUserContext(authState.User);
+    }
+
+    private double GetProgressPercentage()
+    {
+        if (currentProgress == null || currentProgress.Total == 0) return 0;
+        return (double)currentProgress.Current / currentProgress.Total * 100;
+    }
+
+    private string FormatTimeSpan(TimeSpan ts)
+    {
+        if (ts.TotalHours >= 1)
+            return $"{(int)ts.TotalHours}h {ts.Minutes}m {ts.Seconds}s";
+        if (ts.TotalMinutes >= 1)
+            return $"{(int)ts.TotalMinutes}m {ts.Seconds}s";
+        return $"{(int)ts.TotalSeconds}s";
+    }
+
+    private void CancelImport()
+    {
+        importCts?.Cancel();
+    }
+
+    private void RestartImport()
+    {
+        currentStep = ImportStep.Configure;
+        lastImportSummary = null;
+        currentProgress = null;
+        statusMessage = "";
+        StateHasChanged();
+    }
+
+    private async Task ShowStatus(string message, string type)
+    {
+        statusMessage = message;
+        statusClass = type == "success" ? "alert-success text-success" : 
+                      type == "error" ? "alert-danger text-danger" : 
+                      type == "warning" ? "alert-warning text-warning-emphasis" : 
+                      "alert-info text-info";
+        StateHasChanged();
+    }
+
+    private async Task HandleImportFile(InputFileChangeEventArgs e)
+    {
+        if (currentStep == ImportStep.Processing) return;
+        
+        var file = e.File;
+        if (file == null) return;
+
+        currentStep = ImportStep.Processing;
+        statusMessage = "";
+        StateHasChanged();
+        
+        try
+        {
+            // Set a reasonable limit for bulk ISBN files (e.g., 512KB)
+            using var stream = file.OpenReadStream(maxAllowedSize: 512 * 1024);
+            using var reader = new System.IO.StreamReader(stream);
+            var content = await reader.ReadToEndAsync();
+            
+            var isbns = ConverterUtils.parseIsbns(content);
+            if (isbns.Length == 0)
+            {
+                await ShowStatus("No valid ISBNs found in file.", "warning");
+                currentStep = ImportStep.Configure;
+                return;
+            }
+
+            var progress = new Progress<ImportProgress>(p => 
+            {
+                currentProgress = p;
+                InvokeAsync(StateHasChanged);
+            });
+
+            importCts = new CancellationTokenSource();
+            var context = await GetUserContextAsync();
+            var result = await DataExportService.ImportFromIsbns(
+                context, 
+                isbns, 
+                !importAllowDuplicates, 
+                importGenerateAuthors, 
+                importGenerateEmbeddings, 
+                importGenerateMissingDescriptions, 
+                progress, 
+                importCts.Token);
+            
+            if (result.IsOk)
+            {
+                lastImportSummary = result.ResultValue;
+                var successCount = lastImportSummary.SuccessCount;
+                var failureCount = lastImportSummary.FailureCount;
+                
+                if (importCts.IsCancellationRequested)
+                {
+                    await ShowStatus(string.Format(L["ImportInterruptedSummary"], successCount, failureCount), "info");
+                }
+                else
+                {
+                    await ShowStatus(string.Format(L["ImportSummary"], successCount, failureCount), "success");
+                }
+                
+                currentStep = ImportStep.Summary;
+            }
+            else
+            {
+                if (importCts.IsCancellationRequested)
+                {
+                     await ShowStatus(L["ImportCancelled"], "info");
+                }
+                else
+                {
+                    await ShowStatus(string.Format(L["ImportFailed"], result.ErrorValue), "error");
+                }
+                currentStep = ImportStep.Configure;
+            }
+        }
+        catch (Exception ex)
+        {
+            await ShowStatus(string.Format(L["ImportFailed"], ex.Message), "error");
+            currentStep = ImportStep.Configure;
+        }
+        finally
+        {
+            importCts?.Dispose();
+            importCts = null;
+            StateHasChanged();
+        }
+    }
+
+    private async Task CopyFailedIsbns()
+    {
+        if (lastImportSummary == null) return;
+        
+        var failedIsbns = lastImportSummary.Details
+            .Where(d => d.Status.IsFailure)
+            .Select(d => d.Isbn.Value)
+            .ToList();
+        
+        if (failedIsbns.Any())
+        {
+            var text = string.Join(Environment.NewLine, failedIsbns);
+            await JSRuntime.InvokeVoidAsync("navigator.clipboard.writeText", text);
+            await ShowStatus(L["FailedIsbnsCopied"], "success");
+        }
+        else
+        {
+            await ShowStatus(L["NoFailedIsbnsToCopy"], "info");
+        }
+    }
+}

@@ -29,6 +29,7 @@
 
   <p>Per qualsiasi domanda o dubbio riguardo a questa policy, non esiti a contattarci </p>
 
+  <p>Le ricordiamo che il servizio è in fase beta, potrebbe pertanto subire modifiche. La ringraziamo per la pazienza e la comprensione.</p>
   <p>Per accettare questi termini e confermare la Sua iscrizione, clicchi sul link sottostante:</p>
 
   <p><a href="{confirmationLink}" style="color: #1a73e8; text-decoration: none;">Confirm Subscription</a></p>
