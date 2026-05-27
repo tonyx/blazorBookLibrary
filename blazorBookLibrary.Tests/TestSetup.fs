@@ -320,7 +320,9 @@ let getBookService () : IBookService =
 let getGoogleBooksService () =
     let httpClient = new HttpClient()
     httpClient.DefaultRequestHeaders.Add("User-Agent", "BlazorBookLibraryTest/1.0")
-    GoogleBooksService(httpClient, config, tenantViewerAsync, getUserTenantResolverService ()) :> IGoogleBooksService
+
+    GoogleBooksService(httpClient, config, tenantViewerAsync, getUserTenantResolverService ())
+    :> IBooksMetadataSearchService
 
 let getAuthorsSearchService () =
     let httpClient = new HttpClient()

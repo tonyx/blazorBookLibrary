@@ -35,7 +35,7 @@
     <Compile Include="Services/IEditorService.fs" />
     <Compile Include="Services/ILoanService.fs" />
     <Compile Include="Services/IReservationService.fs" />
-    <Compile Include="Services/IGoogleBooksService.fs" />
+    <Compile Include="Services/IBooksMetadataSearchService.fs" />
     <Compile Include="Services/IAuthorsSearchService.fs" />
     <Compile Include="Services/IUserService.fs" />
     <Compile Include="Services/IUserTenantResolverService.fs" />

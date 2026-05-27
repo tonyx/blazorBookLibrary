@@ -32,7 +32,7 @@ public class Program
         builder.Services.AddScoped<IReservationService, ReservationsClientService>();
         builder.Services.AddScoped<ILoanService, LoansClientService>();
         builder.Services.AddScoped<IAdminServices, AdminClientService>();
-        builder.Services.AddScoped<IGoogleBooksService, GoogleBooksClientService>();
+        builder.Services.AddScoped<IBooksMetadataSearchService, GoogleBooksClientService>();
         builder.Services.AddScoped<IDataExportService, DataExportClientService>();
         builder.Services.AddScoped<ITextEmbeddingService, TextEmbeddingClientService>();
         builder.Services.AddScoped<IDetailsService, DetailsClientService>();

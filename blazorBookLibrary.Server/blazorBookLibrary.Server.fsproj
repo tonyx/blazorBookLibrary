@@ -96,6 +96,7 @@
     <Compile Include="Services/LoanService.fs" />
     <Compile Include="Services/VectorDbService.fs" />
     <Compile Include="Services/BookService.fs" />
+    <Compile Include="Services/GeminiBasedBooksMetadataSearchService.fs" />
     <Compile Include="Services/GoogleBooksService.fs" />
     <Compile Include="Services/AuthorsSearchService.fs" />
     <Compile Include="Services/DetailsService.fs" />

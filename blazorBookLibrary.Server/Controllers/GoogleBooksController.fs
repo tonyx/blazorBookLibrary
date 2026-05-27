@@ -1,4 +1,3 @@
-
 namespace BookLibrary.Controllers
 
 open Microsoft.AspNetCore.Mvc
@@ -12,7 +11,7 @@ open System.Collections.Generic
 
 [<ApiController>]
 [<Route("api/[controller]")>]
-type GoogleBooksController(googleBooksService: IGoogleBooksService) =
+type GoogleBooksController(googleBooksService: IBooksMetadataSearchService) =
     inherit ControllerBase()
 
     [<HttpGet("lookup/isbn/{isbn}")>]
@@ -20,6 +19,7 @@ type GoogleBooksController(googleBooksService: IGoogleBooksService) =
         task {
             let context = UserContextMapper.mapFromClaimsPrincipal this.User
             let! result = googleBooksService.LookupByIsbnAsync(context, isbn)
+
             match result with
             | Ok metadata -> return this.Ok(metadata) :> IActionResult
             | Error msg -> return this.BadRequest(msg) :> IActionResult
@@ -30,6 +30,7 @@ type GoogleBooksController(googleBooksService: IGoogleBooksService) =
         task {
             let context = UserContextMapper.mapFromClaimsPrincipal this.User
             let! result = googleBooksService.LookupByTitleAsync(context, title)
+
             match result with
             | Ok metadata -> return this.Ok(metadata) :> IActionResult
             | Error msg -> return this.BadRequest(msg) :> IActionResult
@@ -40,6 +41,7 @@ type GoogleBooksController(googleBooksService: IGoogleBooksService) =
         task {
             let context = UserContextMapper.mapFromClaimsPrincipal this.User
             let! result = googleBooksService.LookupMultipleByTitleAsync(context, title)
+
             match result with
             | Ok results -> return this.Ok(results) :> IActionResult
             | Error msg -> return this.BadRequest(msg) :> IActionResult
@@ -49,7 +51,17 @@ type GoogleBooksController(googleBooksService: IGoogleBooksService) =
     member this.LookupCoverImage(isbn: string) =
         task {
             let context = UserContextMapper.mapFromClaimsPrincipal this.User
-            let! result = googleBooksService.LookupCoverImageByIsbnWithOpenApiAndThenGoogleAsync(context, Isbn.New isbn |> (fun r -> match r with | Ok i -> i | Error _ -> EmptyIsbn))
+
+            let! result =
+                googleBooksService.LookupCoverImageByIsbnWithOpenApiAndThenGoogleAsync(
+                    context,
+                    Isbn.New isbn
+                    |> (fun r ->
+                        match r with
+                        | Ok i -> i
+                        | Error _ -> Isbn.NewInvalid isbn)
+                )
+
             match result with
             | Ok url -> return this.Ok(url) :> IActionResult
             | Error msg -> return this.BadRequest(msg) :> IActionResult
@@ -59,8 +71,20 @@ type GoogleBooksController(googleBooksService: IGoogleBooksService) =
     member this.LookupCoverImageByTitle(title: string, [<FromQuery>] author: string) =
         task {
             let context = UserContextMapper.mapFromClaimsPrincipal this.User
-            let authorOpt = if String.IsNullOrWhiteSpace author then None else Some author
-            let! result = googleBooksService.LookupGoogleApiCoverImageByTitleAndOptionalAuthorAsync(context, title, ?author = authorOpt)
+
+            let authorOpt =
+                if String.IsNullOrWhiteSpace author then
+                    None
+                else
+                    Some author
+
+            let! result =
+                googleBooksService.LookupGoogleApiCoverImageByTitleAndOptionalAuthorAsync(
+                    context,
+                    title,
+                    ?author = authorOpt
+                )
+
             match result with
             | Ok url -> return this.Ok(url) :> IActionResult
             | Error msg -> return this.BadRequest(msg) :> IActionResult

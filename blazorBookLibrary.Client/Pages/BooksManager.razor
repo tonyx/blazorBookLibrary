@@ -24,7 +24,7 @@
 @inject IDataExportService DataExportService
 @inject IAuthorService AuthorService
 @inject IJSRuntime JSRuntime
-@inject IGoogleBooksService GoogleBooksService
+@inject IBooksMetadataSearchService GoogleBooksService
 @inject IAuthorsSearchService AuthorsSearchService
 @inject IStringLocalizer<SharedResources> L
 @inject IConfiguration Configuration
@@ -997,7 +997,7 @@ else
         get 
         {
             if (string.IsNullOrWhiteSpace(newBookIsbn)) return false;
-            return Isbn.IsValid(newBookIsbn);
+            return allowInvalidIsbn || Isbn.IsValid(newBookIsbn);
         }
     }
 
@@ -1613,8 +1613,12 @@ else
                 var size = ThumbRoughSize.Medium;
                 if (coverSizeLookup == "Small") size = ThumbRoughSize.Small;
                 else if (coverSizeLookup == "Large") size = ThumbRoughSize.Large;
+                Isbn isbn;
+                var res = Isbn.New(newBookIsbn);
+                if (res.IsOk) isbn = res.ResultValue;
+                else isbn = Isbn.NewInvalid(newBookIsbn);
 
-                result = await GoogleBooksService.LookupCoverImageByIsbnWithOpenApiAndThenGoogleAsync(context, Isbn.New(newBookIsbn).ResultValue, FSharpOption<ThumbRoughSize>.Some(size), CancellationToken.None);
+                result = await GoogleBooksService.LookupCoverImageByIsbnWithOpenApiAndThenGoogleAsync(context, isbn, FSharpOption<ThumbRoughSize>.Some(size), CancellationToken.None);
             }
             else
             {

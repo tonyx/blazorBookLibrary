@@ -18,7 +18,7 @@
 @inject IAuthorService AuthorService
 @inject IJSRuntime JSRuntime
 @inject NavigationManager NavigationManager
-@inject IGoogleBooksService GoogleBooksService
+@inject IBooksMetadataSearchService GoogleBooksService
 @inject ITagService TagService
 @inject ITextEmbeddingService TextEmbeddingService
 @inject IVectorDbService VectorDbService
@@ -963,7 +963,9 @@ else
 
     private bool isBookIsbnValid()
     {
-        return bookDetails?.Book.Isbn.IsValidIsbn ?? false;
+        if (bookDetails == null) return false;
+        var isbn = bookDetails.Book.Isbn;
+        return isbn.IsValidIsbn || (!isbn.IsNoneIsbn && acceptInvalidIsbn);
     }
 
     private void StartEditingImageUrl()

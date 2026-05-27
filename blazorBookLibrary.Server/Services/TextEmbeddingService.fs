@@ -30,17 +30,6 @@ type GoogleEmbeddingValues = { values: float32[] }
 [<CLIMutable>]
 type GoogleEmbeddingResponse = { embedding: GoogleEmbeddingValues }
 
-[<CLIMutable>]
-type GooglePart = { text: string }
-
-[<CLIMutable>]
-type GoogleContent = { parts: GooglePart[] }
-
-[<CLIMutable>]
-type GoogleCandidate = { content: GoogleContent }
-
-[<CLIMutable>]
-type GoogleGenerateResponse = { candidates: GoogleCandidate[] }
 
 type TextEmbeddingService
     (

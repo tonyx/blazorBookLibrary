@@ -9,7 +9,7 @@ using Microsoft.FSharp.Collections;
 
 namespace blazorBookLibrary.Client.Services;
 
-public class GoogleBooksClientService : IGoogleBooksService
+public class GoogleBooksClientService : IBooksMetadataSearchService
 {
     private readonly HttpClient _httpClient;
 

@@ -42,7 +42,7 @@ type DataExportService
         bookService: IBookService,
         authorService: IAuthorService,
         detailsService: IDetailsService,
-        googleBooksService: IGoogleBooksService,
+        googleBooksService: IBooksMetadataSearchService,
         authorsSearchService: IAuthorsSearchService,
         textEmbeddingService: ITextEmbeddingService,
         vectorDbService: IVectorDbService
@@ -55,7 +55,7 @@ type DataExportService
             bookService: IBookService,
             authorService: IAuthorService,
             detailsService: IDetailsService,
-            googleBooksService: IGoogleBooksService,
+            googleBooksService: IBooksMetadataSearchService,
             authorsSearchService: IAuthorsSearchService,
             textEmbeddingService: ITextEmbeddingService,
             vectorDbService: IVectorDbService
