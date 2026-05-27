@@ -28,13 +28,6 @@ type DistributionPoint =
           Info = info
           ReferenceUsers = [ referenceUser ] }
 
-    static member NewX(tenantId: TenantId, name: NonEmptyName, info: Info, referenceUser: UserId) =
-        { TenantId = tenantId
-          DistributionPointId = DistributionPointId.New()
-          Name = name
-          Info = info
-          ReferenceUsers = [ referenceUser ] }
-
     member this.AddReferenceUser(referenceUser: UserId) =
         if this.ReferenceUsers |> List.contains referenceUser then
             Error "Reference user already exists"

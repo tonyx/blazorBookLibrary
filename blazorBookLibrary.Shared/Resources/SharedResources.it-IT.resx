@@ -916,4 +916,13 @@
   <data name="SimpleSearch" xml:space="preserve"><value>Ricerca Semplice</value></data>
   <data name="AdvancedSearch" xml:space="preserve"><value>Ricerca Avanzata</value></data>
   <data name="ActiveFilters" xml:space="preserve"><value>attivi</value></data>
+  <data name="InvitePatronNotice" xml:space="preserve">
+    <value>Nota: Il lettore deve essere già registrato nel sistema. L'invito a un utente non registrato fallirà.</value>
+  </data>
+  <data name="InviteUserNotFoundError" xml:space="preserve">
+    <value>Utente non trovato. Potrebbe non essere ancora registrato nel sistema.</value>
+  </data>
+  <data name="InviteFailedError" xml:space="preserve">
+    <value>Invito fallito. Verifica che l'utente sia registrato nel sistema.</value>
+  </data>
 </root>

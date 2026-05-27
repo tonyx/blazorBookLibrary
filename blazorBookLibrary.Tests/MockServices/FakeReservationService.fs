@@ -22,6 +22,10 @@ type FakeReservationService() =
             printfn "FakeReservationService: RemoveReservationAsync called for id %A" reservationId
             Task.FromResult(Ok ())
 
+        member this.CancelReservationAsync(userContext, reservationId, reason, ct) =
+            printfn "FakeReservationService: CancelReservationAsync called for id %A (Reason: %A)" reservationId reason
+            Task.FromResult(Ok ())
+
         member this.GetReservationsAsync(userContext, ids, ct) =
             printfn "FakeReservationService: GetReservationsAsync called for %d ids" ids.Length
             Task.FromResult(Ok [])

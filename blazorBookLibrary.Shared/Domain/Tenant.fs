@@ -11,92 +11,8 @@ type PatronRole =
     | User
     | Suspended of string
 
-type Tenant001 =
-    { OwnerId: UserId
-      TenantId: TenantId
-      Patrons: List<UserId * PatronRole>
-      TentantName: TenantName
-      Address: string
-      TenantState: TenantState
-      Public: bool
-      Tags: List<Tag> }
 
-    member this.Upcast() : Tenant =
-        { OwnerId = this.OwnerId
-          TenantId = this.TenantId
-          InvitedPatrons = []
-          Patrons = this.Patrons
-          Name = this.TentantName
-          Address = this.Address
-          TenantState = this.TenantState
-          TenantVisibility =
-            if this.Public then
-                TenantVisibility.Public
-            else
-                TenantVisibility.Private
-          Tags = this.Tags
-          CurrentJoinPin = None
-          JoinRequests = [] }
-
-and Tenant002 =
-    { OwnerId: UserId
-      TenantId: TenantId
-      InvitedPatrons: List<(UserId * PatronInvitationCode)>
-      Patrons: List<UserId * PatronRole>
-      Name: TenantName
-      Address: string
-      TenantState: TenantState
-      Public: bool
-      Tags: List<Tag> }
-
-    member this.Upcast() : Tenant =
-        { OwnerId = this.OwnerId
-          TenantId = this.TenantId
-          InvitedPatrons = this.InvitedPatrons
-          Patrons = this.Patrons
-          Name = this.Name
-          Address = this.Address
-          TenantState = this.TenantState
-          TenantVisibility =
-            if this.Public then
-                TenantVisibility.Public
-            else
-                TenantVisibility.Private
-          Tags = this.Tags
-          CurrentJoinPin = None
-          JoinRequests = [] }
-
-and Tenant003 =
-    { OwnerId: UserId
-      TenantId: TenantId
-      InvitedPatrons: List<(UserId * PatronInvitationCode)>
-      Patrons: List<UserId * PatronRole>
-      Name: TenantName
-      Address: string
-      TenantState: TenantState
-      Public: bool
-      Tags: List<Tag>
-      CurrentJoinPin: Option<string>
-      JoinRequests: List<UserId> }
-
-    member this.Upcast() : Tenant =
-        { OwnerId = this.OwnerId
-          TenantId = this.TenantId
-          InvitedPatrons = this.InvitedPatrons
-          Patrons = this.Patrons
-          Name = this.Name
-          Address = this.Address
-          TenantState = this.TenantState
-          TenantVisibility =
-            if this.Public then
-                TenantVisibility.Public
-            else
-                TenantVisibility.Private
-          Tags = this.Tags
-          CurrentJoinPin = this.CurrentJoinPin
-          JoinRequests = this.JoinRequests }
-
-and Tenant =
+type Tenant =
     { OwnerId: UserId
       TenantId: TenantId
       InvitedPatrons: List<(UserId * PatronInvitationCode)>
@@ -308,7 +224,7 @@ and Tenant =
                                 (u, r)) }
         }
 
-    member this.ReAdmittPatron(user: UserId) =
+    member this.ReAdmittPatron (user: UserId) =
         result {
             do!
                 this.Patrons
@@ -328,7 +244,7 @@ and Tenant =
                         |> List.map (fun (u, r) -> if u = user then (u, PatronRole.User) else (u, r)) }
         }
 
-    member this.RemovePatron(user: UserId) =
+    member this.RemovePatron (user: UserId) =
         result {
             do!
                 this.Patrons
@@ -410,16 +326,4 @@ and Tenant =
         try
             (data, jsonOptions) |> JsonSerializer.Deserialize<Tenant> |> Ok
         with ex ->
-            try
-                let fallback = (data, jsonOptions) |> JsonSerializer.Deserialize<Tenant003>
-                fallback.Upcast() |> Ok
-            with _ ->
-                try
-                    let fallback1 = (data, jsonOptions) |> JsonSerializer.Deserialize<Tenant002>
-                    fallback1.Upcast() |> Ok
-                with _ ->
-                    try
-                        let fallback2 = (data, jsonOptions) |> JsonSerializer.Deserialize<Tenant001>
-                        fallback2.Upcast() |> Ok
-                    with _ ->
-                        Error(ex.Message)
+            Error ex.Message

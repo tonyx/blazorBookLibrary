@@ -168,6 +168,32 @@ type ReservationService
                       UserDetails = userDetails }
             }
 
+    member this.CancelReservationAsync(context: UserContext, reservationId: ReservationId, reason: CancellationReason, ?ct: CancellationToken) =
+        taskResult {
+            let ct = ct |> Option.defaultValue CancellationToken.None
+            let! tenantId = userTenantResolverService.GetTenantForUserAsync(context, ct)
+            let! reservation = reservationViewerAsync (ct |> Some) reservationId.Value |> TaskResult.map snd
+            do!
+                reservation.TenantId = tenantId
+                |> Result.ofBool $"Reservation tenant id {reservation.TenantId} does not match user tenant id {tenantId}"
+
+            do! 
+                if (reason.IsRequestedByUser) then
+                    checkIsGlobalAdminOrTenantManagerOrSelf context ct reservation.UserId
+                else
+                    checkIsGlobalAdminOrTenantManager context ct
+                
+            let cancelReservationCommand = ReservationCommand.Cancel reason
+
+            return! 
+                runAggregateCommandMdAsync<Reservation, ReservationEvent,string>
+                    reservationId.Value
+                    eventStore
+                    messageSenders
+                    ""
+                    cancelReservationCommand
+                    (ct |> Some)
+        }
     member this.MakeReservationDetailsBuilder
         (id: ReservationId, refresher: Option<CancellationToken> -> TaskResult<ReservationDetails, string>)
         =
@@ -459,6 +485,10 @@ type ReservationService
                 let! refreshableDetails = this.GetRefreshableReservationDetailsAsync(context, id, ct)
                 return refreshableDetails.ReservationDetails
             }
+
+        member this.CancelReservationAsync(context: UserContext, reservationId: ReservationId, reason: CancellationReason, ?ct: CancellationToken) =
+            let ct = defaultArg ct CancellationToken.None
+            this.CancelReservationAsync(context, reservationId, reason, ct)
 
         member this.RemoveReservationAsync(context: UserContext, reservationId: ReservationId, ?ct: CancellationToken) =
             let ct = defaultArg ct CancellationToken.None

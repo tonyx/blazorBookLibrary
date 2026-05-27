@@ -35,6 +35,12 @@ public class ReservationsClientService : IReservationService
         var response = await _httpClient.DeleteAsync($"api/Reservations/{reservationId.Value}", ServiceClientHelper.GetValue(ct, CancellationToken.None));
         return await ServiceClientHelper.HandleUnitResponse(response);
     }
+    public async Task<FSharpResult<Unit, string>> CancelReservationAsync(Commons.UserContext context, Commons.ReservationId reservationId, Commons.CancellationReason reason,
+        FSharpOption<CancellationToken> ct = null)
+    {
+        var response = await _httpClient.PostAsJsonAsync($"api/Reservations/{reservationId.Value}/cancel", reason, ServiceClientHelper.JsonOptions, ServiceClientHelper.GetValue(ct, CancellationToken.None));
+        return await ServiceClientHelper.HandleUnitResponse(response);
+    }
 
     public async Task<FSharpResult<FSharpList<Reservation>, string>> GetReservationsAsync(Commons.UserContext context, FSharpList<Commons.ReservationId> ids, FSharpOption<CancellationToken> ct)
     {
@@ -61,6 +67,7 @@ public class ReservationsClientService : IReservationService
         var response = await _httpClient.PostAsync("api/Reservations/expired/remove", null, ServiceClientHelper.GetValue(ct, CancellationToken.None));
         return await ServiceClientHelper.HandleUnitResponse(response);
     }
+
 
     public class GeneratedPinResponse
     {

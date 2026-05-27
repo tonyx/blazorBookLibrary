@@ -56,6 +56,16 @@ type ReservationsController(reservationService: IReservationService) =
             | Error msg -> return this.BadRequest(msg) :> IActionResult
         }
 
+    [<HttpPost("{id}/cancel")>]
+    member this.CancelReservation(id: Guid, [<FromBody>] reason: CancellationReason) =
+        task {
+            let context = UserContextMapper.mapFromClaimsPrincipal this.User
+            let! result = reservationService.CancelReservationAsync(context, ReservationId id, reason)
+            match result with
+            | Ok _ -> return this.Ok() :> IActionResult
+            | Error msg -> return this.BadRequest(msg) :> IActionResult
+        }
+
     [<HttpGet("pending/details")>]
     member this.GetAllPendingReservationsDetails() =
         task {

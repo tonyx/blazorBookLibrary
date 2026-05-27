@@ -359,6 +359,7 @@ let getTenantService () : ITenantService =
         getMailBodyRetriever (),
         getBookService (),
         getAuthorService (),
+        getUserTenantResolverService (),
         getDummyLogger<ITenantService> ()
     )
     :> ITenantService

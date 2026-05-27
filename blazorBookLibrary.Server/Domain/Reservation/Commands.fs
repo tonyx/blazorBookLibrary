@@ -5,7 +5,9 @@ open Sharpino.Core
 open BookLibrary.Shared.Commons
 
 type ReservationCommand =
+    // deprecated
     | CancelByUser of Cancellation * DateTime * UserId
+    | Cancel of CancellationReason
     | CancelByLibrarian of Cancellation * DateTime
     | Seal of DateTime
     | Unseal of DateTime
@@ -18,6 +20,9 @@ type ReservationCommand =
             | CancelByUser (cancellation, dateTime, userId) ->
                 reservation.CancelByUser cancellation dateTime userId
                 |> Result.map (fun r -> (r, [CanceledByUser(cancellation, dateTime, userId)]))
+            | Cancel reason -> 
+                reservation.Cancel reason
+                |> Result.map (fun r -> (r, [ReservationEvent.Canceled reason ]))
             | CancelByLibrarian (cancellation, dateTime) ->
                 reservation.CancelByLibrarian cancellation dateTime
                 |> Result.map (fun r -> (r, [CanceledByLibrarian(cancellation, dateTime)]))

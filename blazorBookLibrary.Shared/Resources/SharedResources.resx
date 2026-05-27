@@ -458,4 +458,13 @@
   <data name="SimpleSearch" xml:space="preserve"><value>Simple Search</value></data>
   <data name="AdvancedSearch" xml:space="preserve"><value>Advanced Search</value></data>
   <data name="ActiveFilters" xml:space="preserve"><value>active</value></data>
+  <data name="InvitePatronNotice" xml:space="preserve">
+    <value>Notice: The patron must already be registered in the system. Sending an invitation to a user who is not part of the system will fail.</value>
+  </data>
+  <data name="InviteUserNotFoundError" xml:space="preserve">
+    <value>User not found. They may not be registered in the system yet.</value>
+  </data>
+  <data name="InviteFailedError" xml:space="preserve">
+    <value>Invitation failed. Verify the user is registered in the system.</value>
+  </data>
 </root>

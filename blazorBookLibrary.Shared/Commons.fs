@@ -808,6 +808,7 @@ type Sealed =
             DateTime = dateTime.ToUniversalTime()
             Sealed = true }
 
+// we will remove this
 type Cancellation =
     { DateTime: DateTime
       Reason: string }
@@ -873,14 +874,15 @@ type LoanStatus =
     | Returned of DateTime
     | Archived
 
-type CanellationReason =
+type CancellationReason =
     | ForcedByOwnwer of string
-    | RequestedByUser
+    | RequestedByUser of string
+    | NotRelevant
 
 type ReservationStatus =
     | Pending
     | Loaned
-    | Canceled
+    | Canceled of CancellationReason
 
 type AvailabilityStatus =
     | Available

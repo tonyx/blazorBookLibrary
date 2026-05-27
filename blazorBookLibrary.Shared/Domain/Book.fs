@@ -7,95 +7,7 @@ open BookLibrary.Shared.Commons
 open System
 open System.Globalization
 
-
-type Book0012 =
-    { BookId: BookId
-      Title: Title
-      ImageUrl: Option<Uri>
-      Description: Option<string>
-      OptionalEmbedding: Option<EmbeddingDataId>
-      Availability: Availability
-      DistributionPoint: Option<DistributionPointId>
-
-      Authors: List<AuthorId>
-      Translators: List<AuthorId>
-      Languages: List<CultureInfo>
-      CurrentReservations: List<ReservationId>
-      CurrentLoan: Option<LoanId>
-      Editor: Option<EditorId>
-      MainCategory: Category
-      AdditionalCategories: List<Category>
-      Tags: List<Tag>
-      Year: Year
-      Isbn: Isbn
-      Sealed: Sealed }
-
-    member this.Upcast() : Book =
-        { TenantId = TenantId.Default
-          BookId = this.BookId
-          Title = this.Title
-          ImageUrl = this.ImageUrl
-          Description = this.Description
-          OptionalEmbedding = this.OptionalEmbedding
-          Availability = this.Availability
-          DistributionPoint = this.DistributionPoint
-          Authors = this.Authors
-          Translators = this.Translators
-          Languages = this.Languages
-          CurrentLoan = this.CurrentLoan
-          Editor = this.Editor
-          MainCategory = this.MainCategory
-          AdditionalCategories = this.AdditionalCategories
-          Tags = this.Tags
-          Year = this.Year
-          Isbn = this.Isbn
-          Sealed = this.Sealed }
-
-and Book001 =
-    { TenantId: TenantId
-      BookId: BookId
-      Title: Title
-      ImageUrl: Option<Uri>
-      Description: Option<string>
-      OptionalEmbedding: Option<EmbeddingDataId>
-      Availability: Availability
-      DistributionPoint: Option<DistributionPointId>
-
-      Authors: List<AuthorId>
-      Translators: List<AuthorId>
-      Languages: List<CultureInfo>
-      CurrentReservations: List<ReservationId>
-      CurrentLoan: Option<LoanId>
-      Editor: Option<EditorId>
-      MainCategory: Category
-      AdditionalCategories: List<Category>
-      Tags: List<Tag>
-      Year: Year
-      Isbn: Isbn
-      Sealed: Sealed }
-
-    member this.Upcast() : Book =
-        { TenantId = this.TenantId
-          BookId = this.BookId
-          Title = this.Title
-          ImageUrl = this.ImageUrl
-          Description = this.Description
-          OptionalEmbedding = this.OptionalEmbedding
-          Availability = this.Availability
-          DistributionPoint = this.DistributionPoint
-          Authors = this.Authors
-          Translators = this.Translators
-          Languages = this.Languages
-          CurrentLoan = this.CurrentLoan
-          Editor = this.Editor
-          MainCategory = this.MainCategory
-          AdditionalCategories = this.AdditionalCategories
-          Tags = this.Tags
-          Year = this.Year
-          Isbn = this.Isbn
-          Sealed = this.Sealed }
-
-and Book =
+type Book =
     { TenantId: TenantId
       BookId: BookId
       Title: Title
@@ -523,13 +435,4 @@ and Book =
         try
             JsonSerializer.Deserialize<Book>(data, jsonOptions) |> Ok
         with ex ->
-            try
-                let fallback = JsonSerializer.Deserialize<Book001>(data, jsonOptions)
-                fallback.Upcast() |> Ok
-            with ex2 ->
-                try
-                    let fallback = JsonSerializer.Deserialize<Book0012>(data, jsonOptions)
-                    fallback.Upcast() |> Ok
-                with ex3 ->
-                    sprintf "Failed to deserialize book: %s, %s, %s" ex.Message ex2.Message ex3.Message
-                    |> Error
+            Error ex.Message

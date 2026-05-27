@@ -6,48 +6,7 @@ open FsToolkit.ErrorHandling
 open BookLibrary.Shared.Commons
 open System
 
-type Author0012 =
-    { AuthorId: AuthorId
-      Name: Name
-      Isni: Isni
-      Bio: string
-      ImageUri: Option<Uri>
-      WikipediaUri: Option<Uri>
-      Sealed: Sealed
-      Books: List<BookId> }
-
-    member this.Upcast() : Author =
-        { TenantId = TenantId.Default
-          AuthorId = this.AuthorId
-          Name = this.Name
-          Isni = this.Isni
-          Bio = this.Bio
-          ImageUri = this.ImageUri
-          WikipediaUri = this.WikipediaUri
-          Sealed = this.Sealed }
-
-and Author001 =
-    { TenantId: TenantId
-      AuthorId: AuthorId
-      Name: Name
-      Isni: Isni
-      Bio: string
-      ImageUri: Option<Uri>
-      WikipediaUri: Option<Uri>
-      Sealed: Sealed
-      Books: List<BookId> }
-
-    member this.Upcast() : Author =
-        { TenantId = this.TenantId
-          AuthorId = this.AuthorId
-          Name = this.Name
-          Isni = this.Isni
-          Bio = this.Bio
-          ImageUri = this.ImageUri
-          WikipediaUri = this.WikipediaUri
-          Sealed = this.Sealed }
-
-and Author =
+type Author =
     { TenantId: TenantId
       AuthorId: AuthorId
       Name: Name
@@ -168,12 +127,4 @@ and Author =
             let author = JsonSerializer.Deserialize<Author>(data, jsonOptions)
             Ok author
         with ex ->
-            try
-                let author001 = JsonSerializer.Deserialize<Author001>(data, jsonOptions)
-                Ok(author001.Upcast())
-            with ex2 ->
-                try
-                    let author0012 = JsonSerializer.Deserialize<Author0012>(data, jsonOptions)
-                    Ok(author0012.Upcast())
-                with ex3 ->
-                    Error(sprintf "Error deserializing Author: %s - %s - %s" ex.Message ex2.Message ex3.Message)
+            Error ex.Message

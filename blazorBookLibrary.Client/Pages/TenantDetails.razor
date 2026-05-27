@@ -411,20 +411,26 @@
                                                     <td class="text-end">
                                                         @if (patron.UserId.Value != libraryDetails.Owner.UserId.Value)
                                                         {
-                                                            @if (role.IsSuspended)
-                                                            {
-                                                                <button class="btn btn-outline-success btn-sm rounded-pill px-3 shadow-sm"
-                                                                        @onclick="() => HandleReadmitPatron(patron)">
-                                                                    <i class="bi bi-check-circle me-1"></i> @L["Readmit"]
-                                                                </button>
-                                                            }
-                                                            else
-                                                            {
-                                                                <button class="btn btn-outline-danger btn-sm rounded-pill px-3 shadow-sm"
-                                                                        @onclick="() => InitiateSuspendPatron(patron)">
-                                                                    <i class="bi bi-slash-circle me-1"></i> @L["Suspend"]
-                                                                </button>
-                                                            }
+                                                            <div class="d-flex justify-content-end gap-2">
+                                                                @if (role.IsSuspended)
+                                                                {
+                                                                    <button class="btn btn-outline-success btn-sm rounded-pill px-3 shadow-sm"
+                                                                            @onclick="() => HandleReadmitPatron(patron)">
+                                                                        <i class="bi bi-check-circle me-1"></i> @L["Readmit"]
+                                                                    </button>
+                                                                    <button class="btn btn-outline-danger btn-sm rounded-pill px-3 shadow-sm"
+                                                                            @onclick="() => HandleRemovePatron(patron)">
+                                                                        <i class="bi bi-person-x me-1"></i> @L["Remove", "Remove"]
+                                                                    </button>
+                                                                }
+                                                                else
+                                                                {
+                                                                    <button class="btn btn-outline-danger btn-sm rounded-pill px-3 shadow-sm"
+                                                                            @onclick="() => InitiateSuspendPatron(patron)">
+                                                                        <i class="bi bi-slash-circle me-1"></i> @L["Suspend"]
+                                                                    </button>
+                                                                }
+                                                            </div>
                                                         }
                                                     </td>
                                                 </tr>
@@ -448,9 +454,15 @@
                                     <h4 class="h6 text-serif mb-2">
                                         <i class="bi bi-person-plus-fill text-primary me-2"></i>@L["Invite a New Patron"]
                                     </h4>
-                                    <p class="text-muted small mb-4">
+                                    <p class="text-muted small mb-3">
                                         @L["Enter the exact email address of the user to search the database and send an invitation."]
                                     </p>
+                                    <div class="alert bg-warning-subtle text-warning-emphasis border border-warning-subtle rounded-3 p-3 mb-4 small d-flex align-items-start gap-2">
+                                        <i class="bi bi-exclamation-triangle-fill mt-1"></i>
+                                        <div>
+                                            @L["InvitePatronNotice", "Notice: The patron must already be registered in the system. Sending an invitation to a user who is not part of the system will fail."]
+                                        </div>
+                                    </div>
                                     <EditForm Model="@inviteModel" OnValidSubmit="HandleInvitePatron">
                                         <DataAnnotationsValidator />
                                         <div class="row g-3 align-items-center">
@@ -815,92 +827,140 @@
                                     {
                                         <div class="col-lg-4">
                                             <div class="card card-sanctuary border border-primary-subtle shadow p-4 bg-surface-low rounded-xl">
-                                                <h4 class="h5 text-serif border-bottom pb-2 mb-3">@L["ConvertToLoan"]</h4>
+                                                <h4 class="h5 text-serif border-bottom pb-2 mb-3">@L["Manage Reservation"]</h4>
                                                 
                                                 <div class="mb-4 p-3 bg-primary-subtle rounded-xl border border-primary-subtle shadow-sm">
                                                     <h6 class="serif fw-bold text-primary mb-1">@selectedReservation.Book.Title.Value</h6>
                                                     <p class="x-small text-muted mb-0">@L["Borrower"]: @selectedReservation.UserDetails.AppUser.UserName</p>
                                                 </div>
+
+                                                <div class="mb-4">
+                                                    <div class="btn-group w-100" role="group">
+                                                        <button type="button" class="btn btn-sm @(selectedAction == "loan" ? "btn-primary" : "btn-outline-primary")" style="border-radius: 8px 0 0 8px;" @onclick='() => selectedAction = "loan"'>@L["ConvertToLoan", "Convert to Loan"]</button>
+                                                        <button type="button" class="btn btn-sm @(selectedAction == "cancel" ? "btn-danger" : "btn-outline-danger")" style="border-radius: 0 8px 8px 0;" @onclick='() => selectedAction = "cancel"'>@L["CancelReservation", "Cancel Reservation"]</button>
+                                                    </div>
+                                                </div>
                                                 
-                                                @if (!selectedReservation.Book.Available)
+                                                @if (selectedAction == "loan")
                                                 {
-                                                    <div class="alert alert-danger border-danger-subtle bg-danger-subtle text-danger-emphasis p-3 rounded-xl mb-4 small animate-fade-in">
-                                                        <i class="bi bi-x-circle-fill me-2"></i>
-                                                        <strong>@L["Unavailable"]:</strong> @L["BookIsCurrentlyOnLoan"]
-                                                    </div>
-
-                                                    <div class="text-center mt-3">
-                                                        <button class="btn btn-link btn-sm text-decoration-none text-muted" @onclick="() => selectedReservation = null">
-                                                            @L["CancelSelection"]
-                                                        </button>
-                                                    </div>
-                                                }
-                                                else
-                                                {
-                                                    @if (!IsFirstInQueue(selectedReservation))
+                                                    @if (!selectedReservation.Book.Available)
                                                     {
-                                                        <div class="alert alert-warning border-warning-subtle bg-warning-subtle text-warning-emphasis p-3 rounded-xl mb-4 small animate-fade-in">
-                                                            <i class="bi bi-exclamation-triangle-fill me-2"></i>
-                                                            <strong>@L["Warning"]:</strong> @L["NotFirstInQueueWarning"]
+                                                        <div class="alert alert-danger border-danger-subtle bg-danger-subtle text-danger-emphasis p-3 rounded-xl mb-4 small animate-fade-in">
+                                                            <i class="bi bi-x-circle-fill me-2"></i>
+                                                            <strong>@L["Unavailable"]:</strong> @L["BookIsCurrentlyOnLoan"]
                                                         </div>
-                                                    }
 
-                                                    <div class="mb-4">
-                                                        <label class="form-label small text-muted text-uppercase fw-bold d-block mb-2">@L["Checkout Method"]</label>
-                                                        <div class="btn-group w-100" role="group">
-                                                            <button type="button" class="btn btn-sm @(checkoutMethod == "code" ? "btn-primary" : "btn-outline-primary")" style="border-radius: 8px 0 0 8px;" @onclick='() => checkoutMethod = "code"'>@L["Reservation Code"]</button>
-                                                            <button type="button" class="btn btn-sm @(checkoutMethod == "pin" ? "btn-primary" : "btn-outline-primary")" style="border-radius: 0 8px 8px 0;" @onclick='() => checkoutMethod = "pin"'>@L["Pickup PIN"]</button>
-                                                        </div>
-                                                    </div>
-
-                                                    @if (checkoutMethod == "code")
-                                                    {
-                                                        <div class="mb-4 animate-fade-in">
-                                                            <label for="reservationCodeField" class="form-label small text-muted text-uppercase fw-bold">@L["ReservationCode"]</label>
-                                                            <div class="input-group">
-                                                                <span class="input-group-text bg-transparent border-end-0 text-muted"><i class="bi bi-qr-code-scan"></i></span>
-                                                                <input type="text" 
-                                                                       id="reservationCodeField"
-                                                                       class="form-control border-start-0 ps-0 serif" 
-                                                                       placeholder="@L["EnterReservationCode"]" 
-                                                                       @bind="reservationCodeInput" />
-                                                            </div>
-                                                            <div class="form-text x-small serif italic mt-2">
-                                                                @L["VerifyCodeOnPatronSubmission"]
-                                                            </div>
+                                                        <div class="text-center mt-3">
+                                                            <button class="btn btn-link btn-sm text-decoration-none text-muted" @onclick="() => selectedReservation = null">
+                                                                @L["CancelSelection"]
+                                                            </button>
                                                         </div>
                                                     }
                                                     else
                                                     {
-                                                        <div class="mb-4 animate-fade-in">
-                                                            <label for="pickupPinField" class="form-label small text-muted text-uppercase fw-bold">@L["Pickup PIN"]</label>
-                                                            <div class="input-group">
-                                                                <span class="input-group-text bg-transparent border-end-0 text-muted"><i class="bi bi-shield-lock"></i></span>
-                                                                <input type="text" 
-                                                                       id="pickupPinField"
-                                                                       class="form-control border-start-0 ps-0 serif text-center fw-bold letter-spacing-2" 
-                                                                       maxlength="6"
-                                                                       placeholder="000000" 
-                                                                       @bind="pickupPinInput" />
+                                                        @if (!IsFirstInQueue(selectedReservation))
+                                                        {
+                                                            <div class="alert alert-warning border-warning-subtle bg-warning-subtle text-warning-emphasis p-3 rounded-xl mb-4 small animate-fade-in">
+                                                                <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                                                                <strong>@L["Warning"]:</strong> @L["NotFirstInQueueWarning"]
                                                             </div>
-                                                            <div class="form-text x-small serif italic mt-2">
-                                                                @L["Enter 6-digit PIN provided by patron"]
+                                                        }
+
+                                                        <div class="mb-4">
+                                                            <label class="form-label small text-muted text-uppercase fw-bold d-block mb-2">@L["Checkout Method"]</label>
+                                                            <div class="btn-group w-100" role="group">
+                                                                <button type="button" class="btn btn-sm @(checkoutMethod == "code" ? "btn-primary" : "btn-outline-primary")" style="border-radius: 8px 0 0 8px;" @onclick='() => checkoutMethod = "code"'>@L["Reservation Code"]</button>
+                                                                <button type="button" class="btn btn-sm @(checkoutMethod == "pin" ? "btn-primary" : "btn-outline-primary")" style="border-radius: 0 8px 8px 0;" @onclick='() => checkoutMethod = "pin"'>@L["Pickup PIN"]</button>
                                                             </div>
                                                         </div>
-                                                    }
 
-                                                    <button class="btn btn-primary w-100 py-3 rounded-xl d-flex align-items-center justify-content-center gap-2 shadow"
-                                                            @onclick="ProcessConversion"
-                                                            disabled="@isProcessingReservation">
-                                                        @if (isProcessingReservation)
+                                                        @if (checkoutMethod == "code")
+                                                        {
+                                                            <div class="mb-4 animate-fade-in">
+                                                                <label for="reservationCodeField" class="form-label small text-muted text-uppercase fw-bold">@L["ReservationCode"]</label>
+                                                                <div class="input-group">
+                                                                    <span class="input-group-text bg-transparent border-end-0 text-muted"><i class="bi bi-qr-code-scan"></i></span>
+                                                                    <input type="text" 
+                                                                           id="reservationCodeField"
+                                                                           class="form-control border-start-0 ps-0 serif" 
+                                                                           placeholder="@L["EnterReservationCode"]" 
+                                                                           @bind="reservationCodeInput" />
+                                                                </div>
+                                                                <div class="form-text x-small serif italic mt-2">
+                                                                    @L["VerifyCodeOnPatronSubmission"]
+                                                                </div>
+                                                            </div>
+                                                        }
+                                                        else
+                                                        {
+                                                            <div class="mb-4 animate-fade-in">
+                                                                <label for="pickupPinField" class="form-label small text-muted text-uppercase fw-bold">@L["Pickup PIN"]</label>
+                                                                <div class="input-group">
+                                                                    <span class="input-group-text bg-transparent border-end-0 text-muted"><i class="bi bi-shield-lock"></i></span>
+                                                                    <input type="text" 
+                                                                           id="pickupPinField"
+                                                                           class="form-control border-start-0 ps-0 serif text-center fw-bold letter-spacing-2" 
+                                                                           maxlength="6"
+                                                                           placeholder="000000" 
+                                                                           @bind="pickupPinInput" />
+                                                                </div>
+                                                                <div class="form-text x-small serif italic mt-2">
+                                                                    @L["Enter 6-digit PIN provided by patron"]
+                                                                </div>
+                                                            </div>
+                                                        }
+
+                                                        <button class="btn btn-primary w-100 py-3 rounded-xl d-flex align-items-center justify-content-center gap-2 shadow"
+                                                                @onclick="ProcessConversion"
+                                                                disabled="@isProcessingReservation">
+                                                            @if (isProcessingReservation)
+                                                            {
+                                                                <span class="spinner-border spinner-border-sm" role="status"></span>
+                                                            }
+                                                            else
+                                                            {
+                                                                <i class="bi bi-arrow-repeat fs-5"></i>
+                                                            }
+                                                            <span class="fw-bold">@L["FinalizeLoan"]</span>
+                                                        </button>
+                                                        
+                                                        <div class="text-center mt-3">
+                                                            <button class="btn btn-link btn-sm text-decoration-none text-muted" @onclick="() => selectedReservation = null">
+                                                                @L["CancelSelection"]
+                                                            </button>
+                                                        </div>
+                                                    }
+                                                }
+                                                else
+                                                {
+                                                    <div class="mb-4 animate-fade-in">
+                                                        <label for="cancellationReasonField" class="form-label small text-muted text-uppercase fw-bold">@L["CancellationReason", "Cancellation Reason"]</label>
+                                                        <div class="input-group">
+                                                            <span class="input-group-text bg-transparent border-end-0 text-muted"><i class="bi bi-chat-left-text"></i></span>
+                                                            <textarea id="cancellationReasonField" 
+                                                                      class="form-control border-start-0 ps-0 serif" 
+                                                                      rows="3"
+                                                                      placeholder="@L["EnterCancellationReason", "Specify a reason for cancellation..."]" 
+                                                                      @bind="cancellationReasonInput"
+                                                                      @bind:event="oninput"></textarea>
+                                                        </div>
+                                                        <div class="form-text x-small serif italic mt-2 text-danger">
+                                                            @L["CancellationForceReasonDisclaimer", "This will forcibly cancel the reservation by owner request."]
+                                                        </div>
+                                                    </div>
+
+                                                    <button class="btn btn-danger w-100 py-3 rounded-xl d-flex align-items-center justify-content-center gap-2 shadow"
+                                                            @onclick="ProcessCancellation"
+                                                            disabled="@(isCancellingReservation || string.IsNullOrWhiteSpace(cancellationReasonInput))">
+                                                        @if (isCancellingReservation)
                                                         {
                                                             <span class="spinner-border spinner-border-sm" role="status"></span>
                                                         }
                                                         else
                                                         {
-                                                            <i class="bi bi-arrow-repeat fs-5"></i>
+                                                            <i class="bi bi-x-circle fs-5"></i>
                                                         }
-                                                        <span class="fw-bold">@L["FinalizeLoan"]</span>
+                                                        <span class="fw-bold">@L["Confirm Cancellation"]</span>
                                                     </button>
                                                     
                                                     <div class="text-center mt-3">
@@ -1229,6 +1289,9 @@
     private ReservationDetails? selectedReservation;
     private string reservationCodeInput = "";
     private bool isProcessingReservation = false;
+    private string selectedAction = "loan";
+    private string cancellationReasonInput = "";
+    private bool isCancellingReservation = false;
 
     private class SuspendPatronModel
     {
@@ -1261,8 +1324,8 @@
             if (lookupResult.IsError)
             {
                 Logger.LogError("Error looking up user ID by email {Email}: {Error}", inviteModel.Email, lookupResult.ErrorValue);
-                inviteErrorMessage = L["ErrorOccurred"].Value;
-                await JSRuntime.InvokeVoidAsync("showToast", L["ErrorOccurred"].Value, "error");
+                inviteErrorMessage = L["InviteUserNotFoundError", "User not found. They may not be registered in the system yet."].Value;
+                await JSRuntime.InvokeVoidAsync("showToast", inviteErrorMessage, "error");
                 return;
             }
 
@@ -1273,8 +1336,8 @@
             if (inviteResult.IsError)
             {
                 Logger.LogError("Error inviting patron: {Error}", inviteResult.ErrorValue);
-                inviteErrorMessage = L["ErrorOccurred"].Value;
-                await JSRuntime.InvokeVoidAsync("showToast", L["ErrorOccurred"].Value, "error");
+                inviteErrorMessage = L["InviteFailedError", "Invitation failed. Verify the user is registered in the system."].Value;
+                await JSRuntime.InvokeVoidAsync("showToast", inviteErrorMessage, "error");
             }
             else
             {
@@ -1292,8 +1355,8 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Exception while inviting patron");
-            inviteErrorMessage = L["ErrorOccurred"].Value;
-            await JSRuntime.InvokeVoidAsync("showToast", L["ErrorOccurred"].Value, "error");
+            inviteErrorMessage = L["InviteFailedError", "Invitation failed. Verify the user is registered in the system."].Value;
+            await JSRuntime.InvokeVoidAsync("showToast", inviteErrorMessage, "error");
         }
         finally
         {
@@ -1418,6 +1481,48 @@
         }
     }
 
+    private async Task HandleRemovePatron(User patron)
+    {
+        var confirmed = await JSRuntime.InvokeAsync<bool>("confirm", $"{L["ConfirmRemoveOf", "Are you sure you want to remove patron"]} {patron.AppUserInfo.Nome} {patron.AppUserInfo.Cognome}?");
+        if (!confirmed) return;
+
+        try
+        {
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var claimsPrincipal = authState.User;
+            if (claimsPrincipal == null) return;
+            var userContext = TenantState.GetUserContext(claimsPrincipal);
+            var tenantId = TenantId.NewTenantId(Id);
+
+            var result = await TenantService.RemovePatronAsync(userContext, tenantId, patron.UserId, Microsoft.FSharp.Core.FSharpOption<System.Threading.CancellationToken>.None);
+            if (result.IsError)
+            {
+                Logger.LogError("Error removing patron {UserId}: {Error}", patron.UserId, result.ErrorValue);
+                await JSRuntime.InvokeVoidAsync("showToast", result.ErrorValue ?? L["ErrorOccurred"].Value, "error");
+            }
+            else
+            {
+                await JSRuntime.InvokeVoidAsync("showToast", L["Patron removed successfully!"].Value, "success");
+                
+                // Refresh tenant details to show updated list
+                var refreshResult = await DetailsService.GetTenantDetailsAsync(userContext, tenantId, Microsoft.FSharp.Core.FSharpOption<System.Threading.CancellationToken>.None);
+                if (refreshResult.IsOk)
+                {
+                    libraryDetails = refreshResult.ResultValue;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Exception while removing patron");
+            await JSRuntime.InvokeVoidAsync("showToast", L["ErrorOccurred"].Value, "error");
+        }
+        finally
+        {
+            StateHasChanged();
+        }
+    }
+
     private bool IsFirstInQueue(ReservationDetails res)
     {
         if (libraryDetails == null || libraryDetails.PendingReservations == null) return false;
@@ -1433,6 +1538,8 @@
     private void SelectReservation(ReservationDetails res)
     {
         selectedReservation = res;
+        selectedAction = "loan";
+        cancellationReasonInput = "";
         
         var preFill = Configuration.GetValue<bool>("BooksLibrary:PreFillReservationCode", false);
         if (preFill)
@@ -1519,6 +1626,52 @@
         finally
         {
             isProcessingReservation = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task ProcessCancellation()
+    {
+        if (selectedReservation == null || string.IsNullOrWhiteSpace(cancellationReasonInput)) return;
+
+        isCancellingReservation = true;
+        try
+        {
+            var resId = selectedReservation.Reservation.ReservationId;
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var context = blazorBookLibrary.Shared.ConverterUtils.fromClaimsPrincipal(authState.User);
+            
+            var reason = CancellationReason.NewForcedByOwnwer(cancellationReasonInput.Trim());
+            var result = await ReservationService.CancelReservationAsync(context, resId, reason, Microsoft.FSharp.Core.FSharpOption<CancellationToken>.None);
+            
+            if (result.IsOk)
+            {
+                await JSRuntime.InvokeVoidAsync("showToast", L["ReservationCanceledSuccess"].Value, "success");
+                selectedReservation = null;
+                cancellationReasonInput = "";
+                
+                // Refresh tenant details to show updated lists
+                var tenantId = TenantId.NewTenantId(Id);
+                var refreshResult = await DetailsService.GetTenantDetailsAsync(context, tenantId, Microsoft.FSharp.Core.FSharpOption<System.Threading.CancellationToken>.None);
+                if (refreshResult.IsOk)
+                {
+                    libraryDetails = refreshResult.ResultValue;
+                }
+            }
+            else
+            {
+                Logger.LogError("Error canceling reservation {ReservationId}: {Error}", resId.Value, result.ErrorValue);
+                await JSRuntime.InvokeVoidAsync("showToast", L["ErrorOccurred"].Value + ": " + result.ErrorValue, "error");
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Exception while canceling reservation {ReservationId}", selectedReservation.Reservation.ReservationId.Value);
+            await JSRuntime.InvokeVoidAsync("showToast", L["ErrorOccurred"].Value, "error");
+        }
+        finally
+        {
+            isCancellingReservation = false;
             StateHasChanged();
         }
     }

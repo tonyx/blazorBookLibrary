@@ -27,6 +27,13 @@ type IReservationService =
         [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken ->
             TaskResult<unit, string>
 
+    abstract member CancelReservationAsync:
+        context: UserContext *
+        reservationId: ReservationId *
+        reason: CancellationReason *
+        [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken ->
+            TaskResult<unit, string>
+
     abstract member GetReservationsAsync:
         context: UserContext * ids: List<ReservationId> * ?ct: CancellationToken ->
             Task<Result<List<Reservation>, string>>

@@ -6,6 +6,8 @@ open BookLibrary.Shared.Commons
 open System.Text.Json
 
 type ReservationEvent =
+    | Canceled of CancellationReason
+    // following is deprecated
     | CanceledByUser of Cancellation * DateTime * UserId
     | CanceledByLibrarian of Cancellation * DateTime
     | ReservationSealed of DateTime
@@ -13,29 +15,23 @@ type ReservationEvent =
     | ReservationLoaned of DateTime
     | PickupPinGenerated2 of string * DateTime
     | PickupPinVerified2 of DateTime
-    interface Event<Reservation> with
-        member this.Process (reservation: Reservation) =
-            match this with
-            | CanceledByUser (cancellation, dateTime, userId) ->
-                reservation.CancelByUser cancellation dateTime userId
-            | CanceledByLibrarian (cancellation, dateTime) ->
-                reservation.CancelByLibrarian cancellation dateTime
-            | ReservationSealed dateTime ->
-                reservation.Seal dateTime
-            | ReservationUnsealed dateTime ->
-                reservation.Unseal dateTime
-            | ReservationLoaned dateTime ->
-                reservation.Loan dateTime
-            | PickupPinGenerated2 (pinHash, expiresAt) ->
-                reservation.GeneratePickupPin (pinHash, expiresAt)
-            | PickupPinVerified2 dateTime ->
-                reservation.VerifyPickupPinAndLoan dateTime
 
-    static member Deserialize (x: string): Result<ReservationEvent, string> =
+    interface Event<Reservation> with
+        member this.Process(reservation: Reservation) =
+            match this with
+            | Canceled reason -> reservation.Cancel reason
+            | CanceledByUser(cancellation, dateTime, userId) -> reservation.CancelByUser cancellation dateTime userId
+            | CanceledByLibrarian(cancellation, dateTime) -> reservation.CancelByLibrarian cancellation dateTime
+            | ReservationSealed dateTime -> reservation.Seal dateTime
+            | ReservationUnsealed dateTime -> reservation.Unseal dateTime
+            | ReservationLoaned dateTime -> reservation.Loan dateTime
+            | PickupPinGenerated2(pinHash, expiresAt) -> reservation.GeneratePickupPin(pinHash, expiresAt)
+            | PickupPinVerified2 dateTime -> reservation.VerifyPickupPinAndLoan dateTime
+
+    static member Deserialize(x: string) : Result<ReservationEvent, string> =
         try
-            JsonSerializer.Deserialize<ReservationEvent> (x, jsonOptions) |> Ok
-        with
-            | ex -> Error ex.Message
-    
-    member this.Serialize =
-        JsonSerializer.Serialize (this, jsonOptions)
+            JsonSerializer.Deserialize<ReservationEvent>(x, jsonOptions) |> Ok
+        with ex ->
+            Error ex.Message
+
+    member this.Serialize = JsonSerializer.Serialize(this, jsonOptions)

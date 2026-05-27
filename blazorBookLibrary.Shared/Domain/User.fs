@@ -7,34 +7,7 @@ open BookLibrary.Shared.Commons
 open System
 open System.Globalization
 
-type User001 =
-    { Id: UserId
-      CurrentTenant: TenantId
-      AppUserInfo: AppUserInfo
-      Reservations: List<ReservationId>
-      CurrentLoans: List<LoanId> }
-
-    member this.Upcast() : User =
-        { UserId = this.Id
-          CurrentTenant = this.CurrentTenant
-          AppUserInfo = this.AppUserInfo
-          LangPref = ShortLang.New "it" }
-
-and User002 =
-    { UserId: UserId
-      CurrentTenant: TenantId
-      AppUserInfo: AppUserInfo
-      Reservations: List<ReservationId>
-      CurrentLoans: List<LoanId>
-      LangPref: ShortLang }
-
-    member this.Upcast() : User =
-        { UserId = this.UserId
-          CurrentTenant = this.CurrentTenant
-          AppUserInfo = this.AppUserInfo
-          LangPref = this.LangPref }
-
-and User =
+type User =
     { UserId: UserId
       CurrentTenant: TenantId
       AppUserInfo: AppUserInfo
@@ -128,12 +101,4 @@ and User =
         try
             (data, jsonOptions) |> JsonSerializer.Deserialize<User> |> Ok
         with ex ->
-            try
-                let result = (data, jsonOptions) |> JsonSerializer.Deserialize<User002>
-                result.Upcast() |> Ok
-            with ex2 ->
-                try
-                    let result = (data, jsonOptions) |> JsonSerializer.Deserialize<User001>
-                    result.Upcast() |> Ok
-                with ex3 ->
-                    Error(ex.Message + ", " + ex2.Message + ", " + ex3.Message)
+            Error ex.Message
