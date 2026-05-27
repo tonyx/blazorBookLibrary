@@ -873,9 +873,14 @@ type LoanStatus =
     | Returned of DateTime
     | Archived
 
+type CanellationReason =
+    | ForcedByOwnwer of string
+    | RequestedByUser
+
 type ReservationStatus =
     | Pending
     | Loaned
+    | Canceled
 
 type AvailabilityStatus =
     | Available

@@ -7,36 +7,38 @@
 </head>
 
 <body>
-  <p>Dear {email},</p>
+  <p>Hi {email},</p>
 
-  <p>Thank you for your interest in BiblioNet; we look forward to welcoming you. We are providing you with brief information on the processing of personal data in accordance with Article 13 of EU Regulation 2016/679 (GDPR). </p>
+  <p>I am Tony and I created this BiblioNet book catalog and exchange service. Below I provide a brief summary of the processing of your personal data (in accordance with Article 13 of EU Regulation 2016/679 (GDPR)). </p>
+  <p>This service allows you to lend or borrow books with other registered users.</p>
 
-  <p> Here is a summary:</p>
+  <p> Here is a summary</p>
   <ul>
-    <li><strong>Data security and privacy</strong>: Your data will be processed securely and used only when necessary to provide our services.</li>
-    <li><strong>Ownership and access to data</strong>: You retain the full right to access and review your data at any time.</li>
-    <li><strong>Unsubscribing and data deletion</strong>: You may unsubscribe at any time and, for your convenience, you may permanently delete your data</li>
-    <li><strong>If you have also posted a review, this will remain visible in anonymous form</li>
+    <li><strong>Data security and privacy</strong>: your data will be processed securely and used to provide the requested services.</li>
+    <li><strong>Ownership and access to data</strong>: you retain the full right to access to review your data at any time.</li>
+    <li><strong>Unsubscribing and data deletion</strong>: you can unsubscribe at any time and, for convenience, permanently delete your data</li>
+    <li><strong>If you have also posted a review, this will remain visible in anonymous form</strong></li>
+    <li><strong>Ownership and access to data</strong>: you retain the full right to access to review your data at any time.</li>
   </ul>
 
-  <p>Although the system adopts best practices to safeguard data with regular backups, we cannot guarantee complete protection against data loss or damage due to causes beyond our control</p>
+  <p>Although I adopt the best practices to safeguard data with regular backups, I cannot guarantee complete protection against data loss or damage due to causes that are not under my control</p>
 
-<b>Scheduled maintenance</b>
-  <p>In the event of short periods of scheduled maintenance, a notification will be displayed at the bottom of every page visited to inform users in advance. We will always endeavour to minimise downtime and provide timely updates whenever service interruptions are necessary.</p>
+  <b>Scheduled maintenance</b>
+  <p>In the event of short periods of scheduled maintenance, I will try to show a notice in advance. I will always endeavour to minimise downtime and provide timely updates whenever service interruptions are necessary.</p>
 
-  <p>By subscribing to this service, you acknowledge and agree that the book lending service shall not be liable for any direct or indirect damages, including data loss, that may arise from the use of this system. </p>
+  <p>By subscribing to this service, you release me from liability for any direct or indirect damages, including data loss. </p>
 
-  <p>Please note that the service is currently in beta and may therefore be subject to changes. We thank you for your patience and understanding.</p>
-  <p>To accept these terms and confirm your subscription, please click on the link below:</p>
+  <p>I remind you that the service is in beta and could therefore undergo changes.</p>
+  <p>To accept these terms and confirm your subscription, you can click on the link below:</p>
 
   <p><a href="{confirmationLink}" style="color: #1a73e8; text-decoration: none;">Confirm Subscription</a></p>
 
-  <p>If you have any question try the <a href="https://discord.gg/hXpskuSn" style="color: #1a73e8; text-decoration: none;">discord</a> channel </p>
+  <p>If you have any questions, you can use this <a href="https://discord.gg/hXpskuSn" style="color: #1a73e8; text-decoration: none;">discord</a> channel</p>
 
-  <p>To report a bug use this <a href="https://github.com/tonyx/blazorBookLibrary/issues" style="color: #1a73e8; text-decoration: none;">link</a> </p>
+  <p>If you want to contribute, for example by reporting bugs, I invite you to do so using this <a href="https://github.com/tonyx/blazorBookLibrary/issues" style="color: #1a73e8; text-decoration: none;">link</a> </p>
+  <p>If you want to contribute in any other way, feel free to contact me, for example through <a href="https://bsky.app/profile/tonyxzt.bsky.social" style="color: #1a73e8; text-decoration: none;">bluesky</a> or <a href="https://www.linkedin.com/in/antonio-lucca-60717a9/" style="color: #1a73e8; text-decoration: none;">linkedin</a></p>
 
   <p>Kind regards<br>
-  The BiblioNet staff
+  Tonino
   
 </body>
-

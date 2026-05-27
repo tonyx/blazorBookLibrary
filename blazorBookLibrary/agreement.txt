@@ -7,38 +7,39 @@
 </head>
 
 <body>
-  <p>Gentile {email},</p>
+  <p>Hi {email},</p>
 
-  <p>La ringraziamo per l'interesse nel servizio di biblioteca digitale e la aspettiamo con ansia. Le forniamo delle brevi informazioni sul trattaemnto dei dati personali ai sensi dell'art. 13 del Regolamento UE 2016/679 (GDPR). </p>
+  <p>I am Tony and I created this BiblioNet book catalog and exchange service. Below I provide a brief summary of the processing of your personal data (in accordance with Article 13 of EU Regulation 2016/679 (GDPR)). </p>
+  <p>This service allows you to lend or borrow books with other registered users.</p>
 
-  <p> Ecco un riepilogo:</p>
+  <p> Here is a summary</p>
   <ul>
-    <li><strong>Sicurezza e privacy dei dati</strong>: I Suoi dati saranno trattati in modo sicuro e utilizzati solo quando necessario per fornire i nostri servizi.</li>
-    <li><strong>Proprietà e accesso ai dati</strong>: Lei conserva il pieno diritto di accedere per rivedere i Suoi dati in qualsiasi momento.</li>
-    <li><strong>Annullamento e cancellazione dei dati</strong>: Lei può annullare l'iscrizione in qualsiasi momento e, per Sua comodità, puo' cancellare definitivamente i Suoi dati</li>
-    <li><strong>Nel caso abbia pubblicato anche una recensione questa resterà comunque visibile in forma anonima</li>
+    <li><strong>Data security and privacy</strong>: your data will be processed securely and used to provide the requested services.</li>
+    <li><strong>Ownership and access to data</strong>: you retain the full right to access to review your data at any time.</li>
+    <li><strong>Unsubscribing and data deletion</strong>: you can unsubscribe at any time and, for convenience, permanently delete your data</li>
+    <li><strong>If you have also posted a review, this will remain visible in anonymous form</strong></li>
+    <li><strong>Ownership and access to data</strong>: you retain the full right to access to review your data at any time.</li>
   </ul>
 
-  <p>Benché il sistema adotti le migliori pratiche per salvaguardare i dati con backup regolari, non possiamo garantire una protezione completa contro la perdita o il danneggiamento dei dati per cause che non siano sotto il nostro controllo</p>
+  <p>Although I adopt the best practices to safeguard data with regular backups, I cannot guarantee complete protection against data loss or damage due to causes that are not under my control</p>
 
+  <b>Scheduled maintenance</b>
+  <p>In the event of short periods of scheduled maintenance, I will try to show a notice in advance. I will always endeavour to minimise downtime and provide timely updates whenever service interruptions are necessary.</p>
 
-<b>Manutenzione programmata</b>
-  <p>Nel caso di brevi periodi di manutenzione programmata, una notifica sarà visualizzata in fondo a ogni pagina visitata per informare gli utenti in anticipo. Cercheremo sempre di ridurre al minimo i tempi di inattività e di fornire aggiornamenti tempestivi ogni volta che saranno necessarie interruzioni del servizio.</p>
+  <p>By subscribing to this service, you release me from liability for any direct or indirect damages, including data loss. </p>
 
-  <p>Sottoscrivendo questo servizio, Lei riconosce e accetta che il servizio prestito libri non sarà responsabile per eventuali danni diretti o indiretti, inclusa la perdita di dati, che potrebbero verificarsi attraverso l'uso di questo sistema. </p>
-
-  <p>Per qualsiasi domanda o dubbio riguardo a questa policy, non esiti a contattarci </p>
-
-  <p>Le ricordiamo che il servizio è in fase beta, potrebbe pertanto subire modifiche. La ringraziamo per la pazienza e la comprensione.</p>
-  <p>Per accettare questi termini e confermare la Sua iscrizione, clicchi sul link sottostante:</p>
+  <p>I remind you that the service is in beta and could therefore undergo changes.</p>
+  <p>To accept these terms and confirm your subscription, you can click on the link below:</p>
 
   <p><a href="{confirmationLink}" style="color: #1a73e8; text-decoration: none;">Confirm Subscription</a></p>
 
-  <p>Se ha domande, non esiti a contattarci.</p>
-  <p><a href="mailto:[EMAIL_ADDRESS]" style="color: #1a73e8; text-decoration: none;">[EMAIL_ADDRESS]</a></p>
+  <p>If you have any questions, you can use this <a href="https://discord.gg/hXpskuSn" style="color: #1a73e8; text-decoration: none;">discord</a> channel</p>
 
-  <p>Cordiali saluti<br>
-  Lo staff della Biblioteca
+  <p>If you want to contribute, for example by reporting bugs, I invite you to do so using this <a href="https://github.com/tonyx/blazorBookLibrary/issues" style="color: #1a73e8; text-decoration: none;">link</a> </p>
+  <p>If you want to contribute in any other way, feel free to contact me, for example through <a href="https://bsky.app/profile/tonyxzt.bsky.social" style="color: #1a73e8; text-decoration: none;">bluesky</a> or <a href="https://www.linkedin.com/in/antonio-lucca-60717a9/" style="color: #1a73e8; text-decoration: none;">linkedin</a></p>
+
+  <p>Kind regards<br>
+  Tonino
   
 </body>
 

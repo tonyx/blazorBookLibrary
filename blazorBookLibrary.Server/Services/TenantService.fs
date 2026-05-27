@@ -38,10 +38,25 @@ type TenantService
         mailBodyRetriever: IMailBodyRetriever,
         bookService: IBookService,
         authorService: IAuthorService,
+        userTenantResolverService: IUserTenantResolverService,
         notificationService: INotificationService,
         logger: ILogger<ITenantService>,
         httpContextAccessor: IHttpContextAccessor
     ) =
+    let checkIsGlobalAdminOrTenantManager (context: UserContext) (ct: CancellationToken) =
+        taskResult {
+            let! tenantId = userTenantResolverService.GetTenantForUserAsync(context, ct)
+            let! tenant = tenantViewerAsync (ct |> Some) tenantId.Value |> TaskResult.map snd
+            return! Security.checkIsGlobalAdminOrTenantManager tenant context
+        }
+
+    let checkIsGlobalAdminOrTenantManagerOrSelf (context: UserContext) (ct: CancellationToken) (userId: UserId) =
+        taskResult {
+            let! tenantId = userTenantResolverService.GetTenantForUserAsync(context, ct)
+            let! tenant = tenantViewerAsync (ct |> Some) tenantId.Value |> TaskResult.map snd
+            return! Security.checkIsGlobalAdminOrTenantManagerOrSelf tenant context userId
+        }
+
     new
         (
             secretsReader: SecretsReader,
@@ -50,6 +65,7 @@ type TenantService
             mailBodyRetriever: IMailBodyRetriever,
             bookService: IBookService,
             authorService: IAuthorService,
+            userTenantResolverService: IUserTenantResolverService,
             logger: ILogger<ITenantService>
         ) =
         let connectionString = secretsReader.GetBookLibraryConnectionString()
@@ -72,6 +88,7 @@ type TenantService
             mailBodyRetriever,
             bookService,
             authorService,
+            userTenantResolverService,
             Unchecked.defaultof<INotificationService>,
             logger,
             null
@@ -86,6 +103,7 @@ type TenantService
             logger: ILogger<ITenantService>,
             bookService: IBookService,
             authorService: IAuthorService,
+            userTenantResolverService: IUserTenantResolverService,
             notificationService: INotificationService,
             httpContextAccessor: IHttpContextAccessor
         ) =
@@ -99,6 +117,7 @@ type TenantService
         let userViewerAsync =
             getAggregateStorageFreshStateViewerAsync<User, BookLibrary.Domain.UserEvent, string> eventStore
 
+
         TenantService(
             eventStore,
             messageSenders,
@@ -109,6 +128,7 @@ type TenantService
             mailBodyRetriever,
             bookService,
             authorService,
+            userTenantResolverService,
             notificationService,
             logger,
             httpContextAccessor
@@ -138,6 +158,7 @@ type TenantService
         taskResult {
             let! ownedTenants = this.GetMyOwnedTenants(context, ?ct = ct)
             let maxTenants = configuration.GetValue<int>("BooksLibrary:MaxTenantsPerUser", 3)
+            let ctVal = ct |> Option.defaultValue CancellationToken.None
 
             do!
                 ownedTenants |> List.length <= maxTenants
@@ -149,13 +170,7 @@ type TenantService
                 |> not
                 |> Result.ofBool $"Tenant name {tenant.Name} already exists"
 
-            do!
-                match context, tenant with
-                | UserContext.Anonymous, _ -> Error "Anonymous users cannot create tenants"
-                | UserContext.Authenticated(userId, _), tenant when tenant.OwnerId <> userId ->
-                    Error "User is not the owner of the tenant"
-                | UserContext.Authenticated(userId, _), tenant when tenant.OwnerId = userId -> Ok()
-                | _, _ -> Error $"Invalid context: userId {context.UserId} is not owner of tenant {tenant.OwnerId}"
+            do! checkIsGlobalAdminOrTenantManagerOrSelf context ctVal tenant.OwnerId
 
             let! result = runInitAsync<Tenant, TenantEvent, string> eventStore messageSenders tenant ct
             return result
@@ -217,78 +232,70 @@ type TenantService
         =
         taskResult {
             let! (_, tenant) = tenantViewerAsync ct tenantId.Value
+            let command = TenantCommand.AddPatron(userId, role)
+            let ctVal = ct |> Option.defaultValue CancellationToken.None
+            do! checkIsGlobalAdminOrTenantManager context ctVal
 
-            if this.IsOnwerOrAdmin(context, tenant) then
-                let command = TenantCommand.AddPatron(userId, role)
-
-                return!
-                    runAggregateCommandMdAsync<Tenant, TenantEvent, string>
-                        tenantId.Value
-                        eventStore
-                        messageSenders
-                        ""
-                        command
-                        ct
-            else
-                return! Error "Access denied: only owner or admin can add patrons"
+            return!
+                runAggregateCommandMdAsync<Tenant, TenantEvent, string>
+                    tenantId.Value
+                    eventStore
+                    messageSenders
+                    ""
+                    command
+                    ct
         }
 
     member this.DemotePatron(context: UserContext, tenantId: TenantId, userId: UserId, ?ct: CancellationToken) =
         taskResult {
             let! (_, tenant) = tenantViewerAsync ct tenantId.Value
+            let ctVal = ct |> Option.defaultValue CancellationToken.None
+            let command = TenantCommand.DemotePatron userId
+            do! checkIsGlobalAdminOrTenantManager context ctVal
 
-            if this.IsOnwerOrAdmin(context, tenant) then
-                let command = TenantCommand.DemotePatron userId
-
-                return!
-                    runAggregateCommandMdAsync<Tenant, TenantEvent, string>
-                        tenantId.Value
-                        eventStore
-                        messageSenders
-                        ""
-                        command
-                        ct
-            else
-                return! Error "Access denied: only owner or admin can demote patrons"
+            return!
+                runAggregateCommandMdAsync<Tenant, TenantEvent, string>
+                    tenantId.Value
+                    eventStore
+                    messageSenders
+                    ""
+                    command
+                    ct
         }
 
     member this.PromotePatron(context: UserContext, tenantId: TenantId, userId: UserId, ?ct: CancellationToken) =
         taskResult {
             let! (_, tenant) = tenantViewerAsync ct tenantId.Value
+            let command = TenantCommand.PromotePatron userId
+            let ctVal = ct |> Option.defaultValue CancellationToken.None
 
-            if this.IsOnwerOrAdmin(context, tenant) then
+            do! checkIsGlobalAdminOrTenantManager context ctVal
 
-                let command = TenantCommand.PromotePatron userId
-
-                return!
-                    runAggregateCommandMdAsync<Tenant, TenantEvent, string>
-                        tenantId.Value
-                        eventStore
-                        messageSenders
-                        ""
-                        command
-                        ct
-            else
-                return! Error "Access denied: only owner or admin can promote patrons"
+            return!
+                runAggregateCommandMdAsync<Tenant, TenantEvent, string>
+                    tenantId.Value
+                    eventStore
+                    messageSenders
+                    ""
+                    command
+                    ct
         }
 
     member this.RemovePatron(context: UserContext, tenantId: TenantId, userId: UserId, ?ct: CancellationToken) =
         taskResult {
             let! (_, tenant) = tenantViewerAsync ct tenantId.Value
+            let ctVal = ct |> Option.defaultValue CancellationToken.None
+            let command = TenantCommand.RemovePatron userId
+            do! checkIsGlobalAdminOrTenantManager context ctVal
 
-            if this.IsOnwerOrAdmin(context, tenant) then
-                let command = TenantCommand.RemovePatron userId
-
-                return!
-                    runAggregateCommandMdAsync<Tenant, TenantEvent, string>
-                        tenantId.Value
-                        eventStore
-                        messageSenders
-                        ""
-                        command
-                        ct
-            else
-                return! Error "Access denied: only owner or admin can remove patrons"
+            return!
+                runAggregateCommandMdAsync<Tenant, TenantEvent, string>
+                    tenantId.Value
+                    eventStore
+                    messageSenders
+                    ""
+                    command
+                    ct
         }
 
     member this.InvitePatron(context: UserContext, tenantId: TenantId, userId: UserId, ?ct: CancellationToken) =
@@ -431,20 +438,18 @@ type TenantService
         =
         taskResult {
             let! (_, tenant) = tenantViewerAsync ct tenantId.Value
+            let command = TenantCommand.RevokePatronInvitation userId
+            let ctVal = ct |> Option.defaultValue CancellationToken.None
+            do! checkIsGlobalAdminOrTenantManager context ctVal
 
-            if this.IsOnwerOrAdmin(context, tenant) then
-                let command = TenantCommand.RevokePatronInvitation userId
-
-                return!
-                    runAggregateCommandMdAsync<Tenant, TenantEvent, string>
-                        tenantId.Value
-                        eventStore
-                        messageSenders
-                        ""
-                        command
-                        ct
-            else
-                return! Error "Access denied: only owner or admin can revoke patron invitations"
+            return!
+                runAggregateCommandMdAsync<Tenant, TenantEvent, string>
+                    tenantId.Value
+                    eventStore
+                    messageSenders
+                    ""
+                    command
+                    ct
         }
 
     member this.GetAllPublicTenants(context: UserContext, ?ct: CancellationToken) =
@@ -530,58 +535,52 @@ type TenantService
     member this.SetPublic(context: UserContext, tenantId: TenantId, ?ct: CancellationToken) =
         taskResult {
             let! (_, tenant) = tenantViewerAsync ct tenantId.Value
+            let ctVal = ct |> Option.defaultValue CancellationToken.None
+            do! checkIsGlobalAdminOrTenantManager context ctVal
+            let command = TenantCommand.SetPublic
 
-            if this.IsAdmin(context) then
-                let command = TenantCommand.SetPublic
-
-                return!
-                    runAggregateCommandMdAsync<Tenant, TenantEvent, string>
-                        tenantId.Value
-                        eventStore
-                        messageSenders
-                        ""
-                        command
-                        ct
-            else
-                return! Error "Access denied: only admin can set public"
+            return!
+                runAggregateCommandMdAsync<Tenant, TenantEvent, string>
+                    tenantId.Value
+                    eventStore
+                    messageSenders
+                    ""
+                    command
+                    ct
         }
 
     member this.SetPrivate(context: UserContext, tenantId: TenantId, ?ct: CancellationToken) =
         taskResult {
             let! (_, tenant) = tenantViewerAsync ct tenantId.Value
+            let command = TenantCommand.SetPrivate
+            let ctVal = ct |> Option.defaultValue CancellationToken.None
+            do! checkIsGlobalAdminOrTenantManager context ctVal
 
-            if this.IsOnwerOrAdmin(context, tenant) then
-                let command = TenantCommand.SetPrivate
-
-                return!
-                    runAggregateCommandMdAsync<Tenant, TenantEvent, string>
-                        tenantId.Value
-                        eventStore
-                        messageSenders
-                        ""
-                        command
-                        ct
-            else
-                return! Error "Access denied: only owner or admin can set private"
+            return!
+                runAggregateCommandMdAsync<Tenant, TenantEvent, string>
+                    tenantId.Value
+                    eventStore
+                    messageSenders
+                    ""
+                    command
+                    ct
         }
 
     member this.RequestPublicAsync(context: UserContext, tenantId: TenantId, ?ct: CancellationToken) =
         taskResult {
             let! (_, tenant) = tenantViewerAsync ct tenantId.Value
+            let ctVal = ct |> Option.defaultValue CancellationToken.None
+            do! checkIsGlobalAdminOrTenantManager context ctVal
+            let command = TenantCommand.RequestPublic
 
-            if this.IsOnwerOrAdmin(context, tenant) then
-                let command = TenantCommand.RequestPublic
-
-                return!
-                    runAggregateCommandMdAsync<Tenant, TenantEvent, string>
-                        tenantId.Value
-                        eventStore
-                        messageSenders
-                        ""
-                        command
-                        ct
-            else
-                return! Error "Access denied: only owner or admin can request to be public"
+            return!
+                runAggregateCommandMdAsync<Tenant, TenantEvent, string>
+                    tenantId.Value
+                    eventStore
+                    messageSenders
+                    ""
+                    command
+                    ct
         }
 
     member this.SuspendPatron
@@ -589,49 +588,43 @@ type TenantService
         =
         taskResult {
             let! (_, tenant) = tenantViewerAsync ct tenantId.Value
+            let ctVal = ct |> Option.defaultValue CancellationToken.None
+            do! checkIsGlobalAdminOrTenantManager context ctVal
+            let command = TenantCommand.SuspendPatron(userId, reason)
 
-            if this.IsOnwerOrAdmin(context, tenant) then
-                let command = TenantCommand.SuspendPatron(userId, reason)
-
-                return!
-                    runAggregateCommandMdAsync<Tenant, TenantEvent, string>
-                        tenantId.Value
-                        eventStore
-                        messageSenders
-                        ""
-                        command
-                        ct
-            else
-                return! Error "Access denied: only owner or admin can suspend patrons"
+            return!
+                runAggregateCommandMdAsync<Tenant, TenantEvent, string>
+                    tenantId.Value
+                    eventStore
+                    messageSenders
+                    ""
+                    command
+                    ct
         }
 
     member this.ReAdmittPatron(context: UserContext, tenantId: TenantId, userId: UserId, ?ct: CancellationToken) =
         taskResult {
             let! (_, tenant) = tenantViewerAsync ct tenantId.Value
+            let ctVal = ct |> Option.defaultValue CancellationToken.None
+            do! checkIsGlobalAdminOrTenantManager context ctVal
+            let command = TenantCommand.ReadmittPatron userId
 
-            if this.IsOnwerOrAdmin(context, tenant) then
-                let command = TenantCommand.ReadmittPatron userId
-
-                return!
-                    runAggregateCommandMdAsync<Tenant, TenantEvent, string>
-                        tenantId.Value
-                        eventStore
-                        messageSenders
-                        ""
-                        command
-                        ct
-            else
-                return! Error "Access denied: only owner or admin can readmit patrons"
+            return!
+                runAggregateCommandMdAsync<Tenant, TenantEvent, string>
+                    tenantId.Value
+                    eventStore
+                    messageSenders
+                    ""
+                    command
+                    ct
         }
 
     member this.DeleteTenant(context: UserContext, tenantId: TenantId, ?ct: CancellationToken) =
         taskResult {
             let ctValue = defaultArg ct CancellationToken.None
             let! (_, tenant) = tenantViewerAsync (ctValue |> Some) tenantId.Value
-
-            do!
-                this.IsOnwerOrAdmin(context, tenant)
-                |> Result.ofBool "Access denied: only owner or admin can delete tenants"
+            let ctVal = ct |> Option.defaultValue CancellationToken.None
+            do! checkIsGlobalAdminOrTenantManager context ctVal
 
             // Strict backend safety checks querying event streams directly
             let! books =
@@ -682,20 +675,18 @@ type TenantService
     member this.GenerateJoinPin(context: UserContext, tenantId: TenantId, pin: string, ?ct: CancellationToken) =
         taskResult {
             let! (_, tenant) = tenantViewerAsync ct tenantId.Value
+            let command = TenantCommand.GenerateJoinPin2 pin
+            let ctVal = ct |> Option.defaultValue CancellationToken.None
+            do! checkIsGlobalAdminOrTenantManager context ctVal
 
-            if this.IsOnwerOrAdmin(context, tenant) then
-                let command = TenantCommand.GenerateJoinPin2 pin
-
-                return!
-                    runAggregateCommandMdAsync<Tenant, TenantEvent, string>
-                        tenantId.Value
-                        eventStore
-                        messageSenders
-                        ""
-                        command
-                        ct
-            else
-                return! Error "Access denied: only owner or admin can generate a join PIN"
+            return!
+                runAggregateCommandMdAsync<Tenant, TenantEvent, string>
+                    tenantId.Value
+                    eventStore
+                    messageSenders
+                    ""
+                    command
+                    ct
         }
 
     member this.SubmitJoinRequest(context: UserContext, tenantId: TenantId, userId: UserId, ?ct: CancellationToken) =
@@ -745,69 +736,68 @@ type TenantService
     member this.ApproveJoinRequest(context: UserContext, tenantId: TenantId, userId: UserId, ?ct: CancellationToken) =
         taskResult {
             let! (_, tenant) = tenantViewerAsync ct tenantId.Value
+            let ctVal = ct |> Option.defaultValue CancellationToken.None
+            do! checkIsGlobalAdminOrTenantManager context ctVal
 
-            if this.IsOnwerOrAdmin(context, tenant) then
-                let command = TenantCommand.ApproveJoinRequest2 userId
+            let command = TenantCommand.ApproveJoinRequest2 userId
 
-                let! result =
-                    runAggregateCommandMdAsync<Tenant, TenantEvent, string>
-                        tenantId.Value
-                        eventStore
-                        messageSenders
-                        ""
-                        command
-                        ct
+            let! result =
+                runAggregateCommandMdAsync<Tenant, TenantEvent, string>
+                    tenantId.Value
+                    eventStore
+                    messageSenders
+                    ""
+                    command
+                    ct
 
-                // Add in-app notification to the approved user:
-                let inAppNotif =
-                    Notification.New(
-                        userId,
-                        "Join Request Approved",
-                        $"Your request to join the library '{tenant.Name.Value}' has been approved!",
-                        "/tenants"
-                    )
+            // Add in-app notification to the approved user:
+            let inAppNotif =
+                Notification.New(
+                    userId,
+                    "Join Request Approved",
+                    $"Your request to join the library '{tenant.Name.Value}' has been approved!",
+                    "/tenants"
+                )
 
-                if not (System.Object.ReferenceEquals(notificationService, null)) then
-                    let! _ = notificationService.CreateNotificationAsync(context, inAppNotif, ?ct = ct)
-                    ()
+            if not (System.Object.ReferenceEquals(notificationService, null)) then
+                let! _ = notificationService.CreateNotificationAsync(context, inAppNotif, ?ct = ct)
+                ()
 
-                return result
-            else
-                return! Error "Access denied: only owner or admin can approve join requests"
+            return result
         }
 
     member this.RejectJoinRequest(context: UserContext, tenantId: TenantId, userId: UserId, ?ct: CancellationToken) =
         taskResult {
             let! (_, tenant) = tenantViewerAsync ct tenantId.Value
+            let ctVal = ct |> Option.defaultValue CancellationToken.None
 
-            if this.IsOnwerOrAdmin(context, tenant) then
-                let command = TenantCommand.RejectJoinRequest2 userId
+            let command = TenantCommand.RejectJoinRequest2 userId
 
-                let! result =
-                    runAggregateCommandMdAsync<Tenant, TenantEvent, string>
-                        tenantId.Value
-                        eventStore
-                        messageSenders
-                        ""
-                        command
-                        ct
+            do! checkIsGlobalAdminOrTenantManager context ctVal
 
-                // Add in-app notification to the rejected user:
-                let inAppNotif =
-                    Notification.New(
-                        userId,
-                        "Join Request Rejected",
-                        $"Your request to join the library '{tenant.Name.Value}' was not approved.",
-                        "/tenants"
-                    )
+            let! result =
+                runAggregateCommandMdAsync<Tenant, TenantEvent, string>
+                    tenantId.Value
+                    eventStore
+                    messageSenders
+                    ""
+                    command
+                    ct
 
-                if not (System.Object.ReferenceEquals(notificationService, null)) then
-                    let! _ = notificationService.CreateNotificationAsync(context, inAppNotif, ?ct = ct)
-                    ()
+            // Add in-app notification to the rejected user:
+            let inAppNotif =
+                Notification.New(
+                    userId,
+                    "Join Request Rejected",
+                    $"Your request to join the library '{tenant.Name.Value}' was not approved.",
+                    "/tenants"
+                )
 
-                return result
-            else
-                return! Error "Access denied: only owner or admin can reject join requests"
+            if not (System.Object.ReferenceEquals(notificationService, null)) then
+                let! _ = notificationService.CreateNotificationAsync(context, inAppNotif, ?ct = ct)
+                ()
+
+            return result
         }
 
     member this.FindTenantByJoinPin(pin: string, ?ct: CancellationToken) =

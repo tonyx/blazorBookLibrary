@@ -76,6 +76,7 @@ type GoogleBooksService
     let secretsReader = SecretsReader(configuration)
     let eventStore = PgEventStore(secretsReader.GetBookLibraryConnectionString())
     let geminiApiKey = configuration.GetValue<string>("GoogleVectorApiKey")
+
     let geminiService =
         GeminiBasedBooksMetadataSearchService(
             eventStore,
@@ -91,6 +92,7 @@ type GoogleBooksService
         task {
             try
                 let! result = primaryCall ()
+
                 match result with
                 | Ok res -> return Ok res
                 | Error err ->
@@ -186,6 +188,7 @@ type GoogleBooksService
             (context: UserContext, isbn: string, [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken)
             =
             let ct = defaultArg ct CancellationToken.None
+
             runWithFallback
                 (fun () ->
                     withTimeout (fun internalCt ->
@@ -216,6 +219,7 @@ type GoogleBooksService
             (context: UserContext, title: string, [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken)
             =
             let ct = defaultArg ct CancellationToken.None
+
             runWithFallback
                 (fun () ->
                     withTimeout (fun internalCt ->
@@ -249,6 +253,7 @@ type GoogleBooksService
             (context: UserContext, title: string, [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken)
             =
             let ct = defaultArg ct CancellationToken.None
+
             runWithFallback
                 (fun () ->
                     withTimeout (fun internalCt ->
@@ -276,7 +281,8 @@ type GoogleBooksService
 
                                     return Ok results
                         }))
-                (fun () -> (geminiService :> IBooksMetadataSearchService).LookupMultipleByTitleAsync(context, title, ct))
+                (fun () ->
+                    (geminiService :> IBooksMetadataSearchService).LookupMultipleByTitleAsync(context, title, ct))
 
         member this.LookupCoverImageByIsbnAsync
             (
@@ -287,6 +293,7 @@ type GoogleBooksService
             ) =
             let ct = defaultArg ct CancellationToken.None
             let size = defaultArg thumbRoughSize ThumbRoughSize.Medium
+
             runWithFallback
                 (fun () ->
                     withTimeout (fun internalCt ->
@@ -308,7 +315,11 @@ type GoogleBooksService
                                         let finalUrl = response.RequestMessage.RequestUri.ToString()
                                         let! content = response.Content.ReadAsByteArrayAsync(linkedCts.Token)
 
-                                        if content.Length > 1000 && not (finalUrl.Contains("blank")) && finalUrl <> url then
+                                        if
+                                            content.Length > 1000
+                                            && not (finalUrl.Contains("blank"))
+                                            && finalUrl <> url
+                                        then
                                             return Ok(Some finalUrl)
                                         else
                                             return Ok None
@@ -317,12 +328,14 @@ type GoogleBooksService
                                 | InvalidIsbn _ -> return Error "Cannot lookup cover for an invalid ISBN."
                                 | EmptyIsbn -> return Ok None
                         }))
-                (fun () -> (geminiService :> IBooksMetadataSearchService).LookupCoverImageByIsbnAsync(context, isbn, size, ct))
+                (fun () ->
+                    (geminiService :> IBooksMetadataSearchService).LookupCoverImageByIsbnAsync(context, isbn, size, ct))
 
         member this.LookupGoogleApiCoverImageByIsbnAsync
             (context: UserContext, isbn: Isbn, [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken)
             =
             let ct = defaultArg ct CancellationToken.None
+
             runWithFallback
                 (fun () ->
                     withTimeout (fun internalCt ->
@@ -341,7 +354,8 @@ type GoogleBooksService
                                     let url =
                                         $"https://www.googleapis.com/books/v1/volumes?q=isbn:{isbnStr}&key={apiKey}"
 
-                                    let! response = httpClient.GetFromJsonAsync<GoogleBooksResponse>(url, linkedCts.Token)
+                                    let! response =
+                                        httpClient.GetFromJsonAsync<GoogleBooksResponse>(url, linkedCts.Token)
 
                                     if
                                         isNull (box response)
@@ -354,13 +368,17 @@ type GoogleBooksService
 
                                         if
                                             not (isNull (box firstItem.VolumeInfo.ImageLinks))
-                                            && not (String.IsNullOrWhiteSpace firstItem.VolumeInfo.ImageLinks.Thumbnail)
+                                            && not (
+                                                String.IsNullOrWhiteSpace firstItem.VolumeInfo.ImageLinks.Thumbnail
+                                            )
                                         then
                                             return Ok(Some firstItem.VolumeInfo.ImageLinks.Thumbnail)
                                         else
                                             return Ok None
                         }))
-                (fun () -> (geminiService :> IBooksMetadataSearchService).LookupGoogleApiCoverImageByIsbnAsync(context, isbn, ct))
+                (fun () ->
+                    (geminiService :> IBooksMetadataSearchService)
+                        .LookupGoogleApiCoverImageByIsbnAsync(context, isbn, ct))
 
         member this.LookupCoverImageByIsbnWithOpenApiAndThenGoogleAsync
             (
@@ -371,6 +389,7 @@ type GoogleBooksService
             ) =
             let ct = defaultArg ct CancellationToken.None
             let size = defaultArg thumbRoughSize ThumbRoughSize.Medium
+
             runWithFallback
                 (fun () ->
                     task {
@@ -380,7 +399,8 @@ type GoogleBooksService
                             return Error "Not authorized to lookup book covers"
                         else
                             let! openLibraryResult =
-                                (this :> IBooksMetadataSearchService).LookupCoverImageByIsbnAsync(context, isbn, size, ct)
+                                (this :> IBooksMetadataSearchService)
+                                    .LookupCoverImageByIsbnAsync(context, isbn, size, ct)
 
                             match openLibraryResult with
                             | Ok(Some url) -> return Ok(Some url)
@@ -389,7 +409,9 @@ type GoogleBooksService
                                     (this :> IBooksMetadataSearchService)
                                         .LookupGoogleApiCoverImageByIsbnAsync(context, isbn, ct)
                     })
-                (fun () -> (geminiService :> IBooksMetadataSearchService).LookupCoverImageByIsbnWithOpenApiAndThenGoogleAsync(context, isbn, size, ct))
+                (fun () ->
+                    (geminiService :> IBooksMetadataSearchService)
+                        .LookupCoverImageByIsbnWithOpenApiAndThenGoogleAsync(context, isbn, size, ct))
 
         member this.LookupGoogleApiCoverImageByTitleAndOptionalAuthorAsync
             (
@@ -399,6 +421,7 @@ type GoogleBooksService
                 [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken
             ) =
             let ct = defaultArg ct CancellationToken.None
+
             runWithFallback
                 (fun () ->
                     withTimeout (fun internalCt ->
@@ -439,4 +462,11 @@ type GoogleBooksService
                                     else
                                         return Ok None
                         }))
-                (fun () -> (geminiService :> IBooksMetadataSearchService).LookupGoogleApiCoverImageByTitleAndOptionalAuthorAsync(context, title, ?author=author, ct=ct))
+                (fun () ->
+                    (geminiService :> IBooksMetadataSearchService)
+                        .LookupGoogleApiCoverImageByTitleAndOptionalAuthorAsync(
+                            context,
+                            title,
+                            ?author = author,
+                            ct = ct
+                        ))
