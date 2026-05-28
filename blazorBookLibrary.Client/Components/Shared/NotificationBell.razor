@@ -94,9 +94,9 @@
                             }
                             else if (notif.Title.Contains("Join Request") && FSharpOption<string>.get_IsSome(notif.ActionUrl))
                             {
-                                var tenantIdStr = ParseJoinRequestParams(notif.ActionUrl.Value);
-                                var approveUrl = $"/Notifications/ApproveJoin?notificationId={notif.NotificationId.Value}&tenantId={tenantIdStr}";
-                                var rejectUrl = $"/Notifications/RejectJoin?notificationId={notif.NotificationId.Value}&returnUrl={Uri.EscapeDataString(currentUrl ?? "/")}";
+                                var (tenantIdStr, requesterIdStr) = ParseJoinRequestParams(notif.ActionUrl.Value);
+                                var approveUrl = $"/Notifications/ApproveJoin?notificationId={notif.NotificationId.Value}&tenantId={tenantIdStr}&requesterId={requesterIdStr}";
+                                var rejectUrl = $"/Notifications/RejectJoin?notificationId={notif.NotificationId.Value}&tenantId={tenantIdStr}&requesterId={requesterIdStr}&returnUrl={Uri.EscapeDataString(currentUrl ?? "/")}";
 
                                 <div class="notif-actions mt-2 d-flex gap-2">
                                     <a href="@approveUrl" class="btn btn-sm btn-success py-1 px-3 radius-full text-decoration-none">Approve</a>
@@ -356,20 +356,39 @@
         }
     }
 
-    private string ParseJoinRequestParams(string actionUrl)
+    private (string tenantId, string requesterId) ParseJoinRequestParams(string actionUrl)
     {
         try
         {
             var parts = actionUrl.Split('/');
-            if (parts.Length >= 3)
+            var tenantId = parts.Length >= 3 ? parts[2] : "";
+            
+            // Check query string for requesterId
+            var requesterId = "";
+            if (actionUrl.Contains("?"))
             {
-                return parts[2];
+                var queryPart = actionUrl.Split('?')[1];
+                var queryParts = queryPart.Split(new[] { '&' }, StringSplitOptions.RemoveEmptyEntries);
+                foreach (var p in queryParts)
+                {
+                    var kv = p.Split('=');
+                    if (kv.Length >= 2 && kv[0].Equals("requesterId", StringComparison.OrdinalIgnoreCase))
+                    {
+                        requesterId = Uri.UnescapeDataString(kv[1]);
+                        break;
+                    }
+                }
             }
-            return "";
+            // Remove query params from tenantId if it somehow got appended
+            if (tenantId.Contains("?"))
+            {
+                tenantId = tenantId.Split('?')[0];
+            }
+            return (tenantId, requesterId);
         }
         catch
         {
-            return "";
+            return ("", "");
         }
     }
 }

@@ -17,6 +17,7 @@
 @inject ITenantService TenantService
 @inject ILoanService LoanService
 @inject IReservationService ReservationService
+@inject BookLibrary.Shared.Services.INotificationService NotificationService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject blazorBookLibrary.Client.Services.TenantStateService TenantState
 @inject IStringLocalizer<SharedResources> L
@@ -1204,6 +1205,28 @@
             {
                 await JSRuntime.InvokeVoidAsync("showToast", L["JoinRequestApproved", "Join request approved successfully"].Value, "success");
                 
+                // Find and mark the associated notification as read:
+                try
+                {
+                    var notifResult = await NotificationService.GetUnreadNotificationsForUserAsync(userContext, Microsoft.FSharp.Core.FSharpOption<System.Threading.CancellationToken>.None);
+                    if (notifResult.IsOk)
+                    {
+                        var targetNotif = notifResult.ResultValue.FirstOrDefault(n => 
+                            n.Title.Contains("Join Request") && 
+                            Microsoft.FSharp.Core.FSharpOption<string>.get_IsSome(n.ActionUrl) && 
+                            (n.ActionUrl.Value.Contains(tenantId.Value.ToString()) && n.ActionUrl.Value.Contains(userId.Value.ToString())));
+                        
+                        if (targetNotif != null)
+                        {
+                            await NotificationService.MarkAsReadAsync(userContext, targetNotif.NotificationId, Microsoft.FSharp.Core.FSharpOption<System.Threading.CancellationToken>.None);
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogWarning(ex, "Failed to mark associated join request notification as read.");
+                }
+
                 var refreshResult = await DetailsService.GetTenantDetailsAsync(userContext, tenantId, Microsoft.FSharp.Core.FSharpOption<System.Threading.CancellationToken>.None);
                 if (refreshResult.IsOk)
                 {
@@ -1248,6 +1271,28 @@
             {
                 await JSRuntime.InvokeVoidAsync("showToast", L["JoinRequestRejected", "Join request rejected"].Value, "success");
                 
+                // Find and mark the associated notification as read:
+                try
+                {
+                    var notifResult = await NotificationService.GetUnreadNotificationsForUserAsync(userContext, Microsoft.FSharp.Core.FSharpOption<System.Threading.CancellationToken>.None);
+                    if (notifResult.IsOk)
+                    {
+                        var targetNotif = notifResult.ResultValue.FirstOrDefault(n => 
+                            n.Title.Contains("Join Request") && 
+                            Microsoft.FSharp.Core.FSharpOption<string>.get_IsSome(n.ActionUrl) && 
+                            (n.ActionUrl.Value.Contains(tenantId.Value.ToString()) && n.ActionUrl.Value.Contains(userId.Value.ToString())));
+                        
+                        if (targetNotif != null)
+                        {
+                            await NotificationService.MarkAsReadAsync(userContext, targetNotif.NotificationId, Microsoft.FSharp.Core.FSharpOption<System.Threading.CancellationToken>.None);
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogWarning(ex, "Failed to mark associated join request notification as read.");
+                }
+
                 var refreshResult = await DetailsService.GetTenantDetailsAsync(userContext, tenantId, Microsoft.FSharp.Core.FSharpOption<System.Threading.CancellationToken>.None);
                 if (refreshResult.IsOk)
                 {
@@ -1930,6 +1975,43 @@
             {
                 activeTab = "patrons";
             }
+        }
+
+        try
+        {
+            var uri = NavigationManager.ToAbsoluteUri(NavigationManager.Uri);
+            var query = uri.Query;
+            if (!string.IsNullOrEmpty(query))
+            {
+                bool handled = false;
+                if (query.Contains("status=approved"))
+                {
+                    handled = true;
+                    _ = Task.Run(async () => {
+                        await Task.Delay(500);
+                        await JSRuntime.InvokeVoidAsync("showToast", L["JoinRequestApproved", "Join request approved successfully"].Value, "success");
+                    });
+                }
+                else if (query.Contains("status=rejected"))
+                {
+                    handled = true;
+                    _ = Task.Run(async () => {
+                        await Task.Delay(500);
+                        await JSRuntime.InvokeVoidAsync("showToast", L["JoinRequestRejected", "Join request rejected"].Value, "success");
+                    });
+                }
+                
+                if (handled)
+                {
+                    // Remove query parameters from url so they don't trigger again on subsequent events/renders
+                    var cleanUri = NavigationManager.Uri.Split('?')[0];
+                    NavigationManager.NavigateTo(cleanUri, replace: true);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Failed to parse query string in TenantDetails");
         }
     }
 }

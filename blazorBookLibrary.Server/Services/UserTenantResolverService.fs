@@ -42,13 +42,16 @@ type UserTenantResolverService(
 
     member this.GetTenantForUser(context: UserContext, ?ct: CancellationToken) =
         taskResult {
-            if context.IsAnonymous then
-                return TenantId.Default
-            else
-                let userId = context.UserId.Value
+            match context.TenantId with
+            | Some tenantId -> return tenantId
+            | None ->
+                if context.IsAnonymous then
+                    return TenantId.Default
+                else
+                    let userId = context.UserId.Value
 
-                let! user = userViewerAsync ct userId.Value |> TaskResult.map snd
-                return user.CurrentTenant
+                    let! user = userViewerAsync ct userId.Value |> TaskResult.map snd
+                    return user.CurrentTenant
         }
     interface IUserTenantResolverService with 
         member this.GetTenantForUserAsync(context: UserContext, ?ct: CancellationToken) =

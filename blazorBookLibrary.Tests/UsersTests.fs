@@ -93,6 +93,9 @@ let tests =
                   let! createResult = tenantService.CreateTenantAsync(ownerContext, tenant)
                   Expect.isOk createResult (sprintf "tenant creation failed: %A" createResult)
 
+                  let! approveResult = tenantService.SetPublicAsync(adminContext, tenant.TenantId)
+                  Expect.isOk approveResult "Admin approval should succeed"
+
                   let! visitorId = registerUserTask "visitor@example.com" "Password123!"
                   let visitorContext = UserContext.Authenticated(visitorId, [])
 

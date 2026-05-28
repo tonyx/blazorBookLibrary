@@ -65,6 +65,9 @@ let tests =
                   let! createResult = tenantService.CreateTenantAsync(ownerContext, tenant)
                   Expect.isOk createResult "Tenant creation should succeed"
 
+                  let! approveResult = tenantService.SetPublicAsync(adminContext, tenantId)
+                  Expect.isOk approveResult "Admin approval should succeed"
+
                   let! otherUserId = registerUserTask "other@test.com" "Password123!"
                   let otherUserContext = UserContext.Authenticated(otherUserId, [])
 
@@ -446,4 +449,31 @@ let tests =
 
                   let! readmitResult = tenantService.ReAdmittPatron(otherContext, tenantId, patronId)
                   Expect.isError readmitResult "Non-owner should not be able to readmit a patron"
+              }
+          testCaseTask "owner can generate a join PIN and find tenant by PIN"
+          <| fun _ ->
+              task {
+                  setUp ()
+                  let tenantService = getTenantService ()
+                  let! ownerId = registerUserTask "owner@test.com" "Password123!"
+                  let ownerContext = UserContext.Authenticated(ownerId, [])
+
+                  let tenant =
+                      Tenant.New(ownerId, TenantName.New "Library with PIN" |> Result.get, "123 Main St")
+
+                  let tenantId = tenant.TenantId
+                  let! _ = tenantService.CreateTenantAsync(ownerContext, tenant)
+
+                  let pin = "123456"
+                  let! genPinResult = tenantService.GenerateJoinPinAsync(ownerContext, tenantId, pin)
+                  Expect.isOk genPinResult "Owner should be able to generate a join PIN"
+
+                  let! findResult = tenantService.FindTenantByJoinPinAsync(pin)
+                  Expect.isOk findResult "Should be able to find the tenant by PIN"
+
+                  match findResult with
+                  | Ok foundTenant ->
+                      Expect.equal foundTenant.TenantId tenantId "Found tenant should have the correct ID"
+                      Expect.equal foundTenant.CurrentJoinPin (Some pin) "Found tenant should have the correct PIN"
+                  | Error msg -> failwith msg
               } ]

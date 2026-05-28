@@ -78,7 +78,7 @@ public class NotificationsController : Controller
     }
 
     [HttpGet]
-    public async Task<IActionResult> ApproveJoin(string notificationId, string tenantId)
+    public async Task<IActionResult> ApproveJoin(string notificationId, string tenantId, string? requesterId = null)
     {
         if (Guid.TryParse(notificationId, out var notifGuid) && 
             Guid.TryParse(tenantId, out var tenantGuid) && 
@@ -86,9 +86,16 @@ public class NotificationsController : Controller
         {
             var userContext = UserContextMapper.mapFromClaimsPrincipal(User);
             var notifId = BookLibrary.Domain.NotificationId.NewNotificationId(notifGuid);
+            var tId = Commons.TenantId.NewTenantId(tenantGuid);
+
+            if (!string.IsNullOrEmpty(requesterId) && Guid.TryParse(requesterId, out var requesterGuid))
+            {
+                var reqId = Commons.UserId.NewUserId(requesterGuid);
+                var result = await _tenantService.ApproveJoinRequestAsync(userContext, tId, reqId, FSharpOption<CancellationToken>.None);
+            }
             
             await _notificationService.MarkAsReadAsync(userContext, notifId, FSharpOption<CancellationToken>.None);
-            return LocalRedirect($"/tenants/{tenantGuid}/joinRequests");
+            return LocalRedirect($"/tenants/{tenantGuid}/joinRequests?status=approved");
         }
         return LocalRedirect("/tenants");
     }
@@ -106,12 +113,24 @@ public class NotificationsController : Controller
     }
 
     [HttpGet]
-    public async Task<IActionResult> RejectJoin(string notificationId, string returnUrl)
+    public async Task<IActionResult> RejectJoin(string notificationId, string? tenantId = null, string? requesterId = null, string? returnUrl = null)
     {
         if (Guid.TryParse(notificationId, out var notifGuid) && User.Identity != null && User.Identity.IsAuthenticated)
         {
             var userContext = UserContextMapper.mapFromClaimsPrincipal(User);
             var notifId = BookLibrary.Domain.NotificationId.NewNotificationId(notifGuid);
+
+            if (!string.IsNullOrEmpty(tenantId) && Guid.TryParse(tenantId, out var tenantGuid) &&
+                !string.IsNullOrEmpty(requesterId) && Guid.TryParse(requesterId, out var requesterGuid))
+            {
+                var tId = Commons.TenantId.NewTenantId(tenantGuid);
+                var reqId = Commons.UserId.NewUserId(requesterGuid);
+                var result = await _tenantService.RejectJoinRequestAsync(userContext, tId, reqId, FSharpOption<CancellationToken>.None);
+                
+                await _notificationService.MarkAsReadAsync(userContext, notifId, FSharpOption<CancellationToken>.None);
+                return LocalRedirect($"/tenants/{tenantGuid}/joinRequests?status=rejected");
+            }
+
             await _notificationService.MarkAsReadAsync(userContext, notifId, FSharpOption<CancellationToken>.None);
         }
         return LocalRedirect(string.IsNullOrWhiteSpace(returnUrl) ? "/" : $"/{returnUrl.TrimStart('/')}");

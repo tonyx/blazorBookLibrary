@@ -234,7 +234,7 @@ type TenantService
             let! (_, tenant) = tenantViewerAsync ct tenantId.Value
             let command = TenantCommand.AddPatron(userId, role)
             let ctVal = ct |> Option.defaultValue CancellationToken.None
-            do! checkIsGlobalAdminOrTenantManager context ctVal
+            do! Security.checkIsGlobalAdminOrTenantManager tenant context
 
             return!
                 runAggregateCommandMdAsync<Tenant, TenantEvent, string>
@@ -251,7 +251,7 @@ type TenantService
             let! (_, tenant) = tenantViewerAsync ct tenantId.Value
             let ctVal = ct |> Option.defaultValue CancellationToken.None
             let command = TenantCommand.DemotePatron userId
-            do! checkIsGlobalAdminOrTenantManager context ctVal
+            do! Security.checkIsGlobalAdminOrTenantManager tenant context
 
             return!
                 runAggregateCommandMdAsync<Tenant, TenantEvent, string>
@@ -269,7 +269,7 @@ type TenantService
             let command = TenantCommand.PromotePatron userId
             let ctVal = ct |> Option.defaultValue CancellationToken.None
 
-            do! checkIsGlobalAdminOrTenantManager context ctVal
+            do! Security.checkIsGlobalAdminOrTenantManager tenant context
 
             return!
                 runAggregateCommandMdAsync<Tenant, TenantEvent, string>
@@ -286,7 +286,7 @@ type TenantService
             let! (_, tenant) = tenantViewerAsync ct tenantId.Value
             let ctVal = ct |> Option.defaultValue CancellationToken.None
             let command = TenantCommand.RemovePatron userId
-            do! checkIsGlobalAdminOrTenantManager context ctVal
+            do! Security.checkIsGlobalAdminOrTenantManager tenant context
 
             return!
                 runAggregateCommandMdAsync<Tenant, TenantEvent, string>
@@ -440,7 +440,7 @@ type TenantService
             let! (_, tenant) = tenantViewerAsync ct tenantId.Value
             let command = TenantCommand.RevokePatronInvitation userId
             let ctVal = ct |> Option.defaultValue CancellationToken.None
-            do! checkIsGlobalAdminOrTenantManager context ctVal
+            do! Security.checkIsGlobalAdminOrTenantManager tenant context
 
             return!
                 runAggregateCommandMdAsync<Tenant, TenantEvent, string>
@@ -536,7 +536,7 @@ type TenantService
         taskResult {
             let! (_, tenant) = tenantViewerAsync ct tenantId.Value
             let ctVal = ct |> Option.defaultValue CancellationToken.None
-            do! checkIsGlobalAdminOrTenantManager context ctVal
+            do! Security.checkIsGlobalAdminOrTenantManager tenant context
             let command = TenantCommand.SetPublic
 
             return!
@@ -554,7 +554,7 @@ type TenantService
             let! (_, tenant) = tenantViewerAsync ct tenantId.Value
             let command = TenantCommand.SetPrivate
             let ctVal = ct |> Option.defaultValue CancellationToken.None
-            do! checkIsGlobalAdminOrTenantManager context ctVal
+            do! Security.checkIsGlobalAdminOrTenantManager tenant context
 
             return!
                 runAggregateCommandMdAsync<Tenant, TenantEvent, string>
@@ -570,7 +570,7 @@ type TenantService
         taskResult {
             let! (_, tenant) = tenantViewerAsync ct tenantId.Value
             let ctVal = ct |> Option.defaultValue CancellationToken.None
-            do! checkIsGlobalAdminOrTenantManager context ctVal
+            do! Security.checkIsGlobalAdminOrTenantManager tenant context
             let command = TenantCommand.RequestPublic
 
             return!
@@ -589,7 +589,7 @@ type TenantService
         taskResult {
             let! (_, tenant) = tenantViewerAsync ct tenantId.Value
             let ctVal = ct |> Option.defaultValue CancellationToken.None
-            do! checkIsGlobalAdminOrTenantManager context ctVal
+            do! Security.checkIsGlobalAdminOrTenantManager tenant context
             let command = TenantCommand.SuspendPatron(userId, reason)
 
             return!
@@ -606,7 +606,7 @@ type TenantService
         taskResult {
             let! (_, tenant) = tenantViewerAsync ct tenantId.Value
             let ctVal = ct |> Option.defaultValue CancellationToken.None
-            do! checkIsGlobalAdminOrTenantManager context ctVal
+            do! Security.checkIsGlobalAdminOrTenantManager tenant context
             let command = TenantCommand.ReadmittPatron userId
 
             return!
@@ -624,7 +624,7 @@ type TenantService
             let ctValue = defaultArg ct CancellationToken.None
             let! (_, tenant) = tenantViewerAsync (ctValue |> Some) tenantId.Value
             let ctVal = ct |> Option.defaultValue CancellationToken.None
-            do! checkIsGlobalAdminOrTenantManager context ctVal
+            do! Security.checkIsGlobalAdminOrTenantManager tenant context
 
             // Strict backend safety checks querying event streams directly
             let! books =
@@ -677,7 +677,7 @@ type TenantService
             let! (_, tenant) = tenantViewerAsync ct tenantId.Value
             let command = TenantCommand.GenerateJoinPin2 pin
             let ctVal = ct |> Option.defaultValue CancellationToken.None
-            do! checkIsGlobalAdminOrTenantManager context ctVal
+            do! Security.checkIsGlobalAdminOrTenantManager tenant context
 
             return!
                 runAggregateCommandMdAsync<Tenant, TenantEvent, string>
@@ -717,7 +717,7 @@ type TenantService
                     tenant.OwnerId,
                     "New Join Request",
                     $"User {user.AppUserInfo.UserName} has requested to join your library '{tenant.Name.Value}'.",
-                    $"/tenants/{tenantId.Value}/approvals"
+                    $"/tenants/{tenantId.Value}/approvals?requesterId={userId.Value}"
                 )
 
             if not (System.Object.ReferenceEquals(notificationService, null)) then
@@ -737,7 +737,7 @@ type TenantService
         taskResult {
             let! (_, tenant) = tenantViewerAsync ct tenantId.Value
             let ctVal = ct |> Option.defaultValue CancellationToken.None
-            do! checkIsGlobalAdminOrTenantManager context ctVal
+            do! Security.checkIsGlobalAdminOrTenantManager tenant context
 
             let command = TenantCommand.ApproveJoinRequest2 userId
 
@@ -773,7 +773,7 @@ type TenantService
 
             let command = TenantCommand.RejectJoinRequest2 userId
 
-            do! checkIsGlobalAdminOrTenantManager context ctVal
+            do! Security.checkIsGlobalAdminOrTenantManager tenant context
 
             let! result =
                 runAggregateCommandMdAsync<Tenant, TenantEvent, string>

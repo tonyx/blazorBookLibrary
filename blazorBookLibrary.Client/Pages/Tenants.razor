@@ -21,7 +21,9 @@
 @inject blazorBookLibrary.Client.Services.TenantStateService TenantState
 @inject IJSRuntime JSRuntime
 @inject NavigationManager NavigationManager
+@inject IUserTenantResolverService UserTenantResolverService
 @rendermode InteractiveAuto
+
 
 <PageTitle>@L["AllowedTenants"] — @L["BiblioNet"]</PageTitle>
 
@@ -676,19 +678,54 @@
 
             var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
             var userContext = TenantState.GetUserContext(authState.User);
+
+            // Check if the tenant being deleted is the currently resolved active tenant
+            var activeTenantResult = await UserTenantResolverService.GetTenantForUserAsync(userContext);
+            bool isDeletingCurrentTenant = false;
+            if (activeTenantResult.IsOk && activeTenantResult.ResultValue.Value == tenant.TenantId.Value)
+            {
+                isDeletingCurrentTenant = true;
+            }
+
             var result = await TenantService.DeleteTenantAsync(userContext, tenant.TenantId, default);
 
             if (result.IsOk)
             {
                 await JSRuntime.InvokeVoidAsync("showToast", L["TenantDeletedSuccessfully"].Value ?? "Library deleted successfully", "success");
                 
-                // If the deleted tenant was the active one, clear/reset selection
-                if (TenantState.CurrentTenant?.TenantId.Value == tenant.TenantId.Value)
+                if (isDeletingCurrentTenant)
                 {
-                    await TenantState.ClearTenantAsync();
+                    if (authState.User.Identity?.IsAuthenticated == true)
+                    {
+                        var setDefaultResult = await UserService.SetCurrentTenantAsync(userContext, userContext.UserId.Value, TenantId.Default,
+                            Microsoft.FSharp.Core.FSharpOption<System.Threading.CancellationToken>.None);
+                        if (setDefaultResult.IsError)
+                        {
+                            Logger.LogError("Error setting current tenant to default: {Error}", setDefaultResult.ErrorValue);
+                        }
+                    }
+
+                    await LoadTenants();
+
+                    var defaultTenantObj = tenants?.FirstOrDefault(t => t.TenantId.Value == TenantId.Default.Value);
+                    if (defaultTenantObj != null)
+                    {
+                        await TenantState.SetTenantAsync(defaultTenantObj);
+                    }
+                    else
+                    {
+                        await TenantState.ClearTenantAsync();
+                    }
                 }
-                
-                await LoadTenants();
+                else
+                {
+                    // If the deleted tenant was the active one, clear/reset selection
+                    if (TenantState.CurrentTenant?.TenantId.Value == tenant.TenantId.Value)
+                    {
+                        await TenantState.ClearTenantAsync();
+                    }
+                    await LoadTenants();
+                }
             }
             else
             {

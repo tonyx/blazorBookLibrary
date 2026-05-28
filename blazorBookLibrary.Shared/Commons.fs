@@ -695,6 +695,11 @@ type UserContext =
             newCtx
         | Anonymous -> Anonymous
 
+    member this.TenantId =
+        match tenantTable.TryGetValue(this) with
+        | true, tenantId -> Some tenantId
+        | _ -> None
+
 
 type Name =
     | Name of string
