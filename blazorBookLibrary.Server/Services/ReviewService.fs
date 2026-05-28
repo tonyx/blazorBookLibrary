@@ -411,7 +411,9 @@ type ReviewService
                 book.TenantId = tenantId
                 |> Result.ofBool $"Book tenant id {book.TenantId} not matching context id {tenantId}"
 
-            do! checkIsGlobalAdminOrTenantManagerOrPublicTenant context ct
+            // the user context will ensure that if the user is there is because is entitled
+            // however, we may revew all the permission policies, for now only the tenant check is here
+            // do! checkIsGlobalAdminOrTenantManagerOrSelf 
 
             let! reviews =
                 StateView.getAllFilteredAggregateStatesAsync<Review, ReviewEvent, string>

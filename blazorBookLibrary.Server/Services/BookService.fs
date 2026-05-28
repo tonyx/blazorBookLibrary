@@ -722,8 +722,8 @@ type BookService
         let ct = defaultArg ct CancellationToken.None
         taskResult
             {
-                do!
-                    checkIsGlobalAdminOrTenantManager context ct
+                // do!
+                //     checkIsGlobalAdminOrTenantManager context ct
                 let! booksWithId = StateView.getAllFilteredAggregateStatesAsync<Book, BookEvent, string> (fun b -> b.TenantId = tenantId) eventStore (Some ct) 
                 return booksWithId |> List.ofSeq |> List.map snd
             }

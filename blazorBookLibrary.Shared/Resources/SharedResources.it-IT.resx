@@ -425,6 +425,9 @@
   <data name="RemoveImage" xml:space="preserve"><value>Rimuovi Immagine</value></data>
   <data name="Rename" xml:space="preserve"><value>Rinomina</value></data>
   <data name="TenantUpdated" xml:space="preserve"><value>Tenant aggiornato</value></data>
+  <data name="AllowedTenants" xml:space="preserve"><value>Tenant consentiti</value></data>
+  <data name="AllowedTenantsDescription" xml:space="preserve"><value>Esplora tutti i circuiti a cui hai accesso.</value></data>
+  <data name="CreateNewLibrary" xml:space="preserve"><value>Aggiungi Nuova Libreria</value></data>
   <data name="ResetAuthenticatorApp" xml:space="preserve"><value>Reimposta app di autenticazione</value></data>
   <data name="ResetRecoveryCodes" xml:space="preserve"><value>Reimposta codici di recupero</value></data>
   <data name="RevokeManager" xml:space="preserve"><value>Revoca Manager</value></data>
