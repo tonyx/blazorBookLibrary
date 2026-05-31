@@ -118,7 +118,11 @@ type ReviewService
         let ct = ct |> Option.defaultValue CancellationToken.None
 
         taskResult {
-            do! checkIsGlobalAdminOrTenantManagerOrPublicTenant context ct
+            let! userId =
+                match context with
+                | UserContext.Authenticated (userId, _) -> Ok userId
+                | UserContext.Anonymous -> Error "no anonymous user allowed"
+            do! checkIsGlobalAdminOrTenantManagerOrSelf context ct userId
             let! comment = reviewViewerAsync (Some ct) commentId.Value |> TaskResult.map snd
             let! tenantId = userTenantResolverService.GetTenantForUserAsync(context, ct)
             do! comment.TenantId = tenantId |> Result.ofBool "Review tenant id not matching"
