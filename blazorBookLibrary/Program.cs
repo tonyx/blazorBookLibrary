@@ -144,6 +144,29 @@ builder.Services.AddHostedService<ExpiredReservationsRemovalScheduler>();
 
 var app = builder.Build();
 
+app.Use(async (context, next) =>
+{
+    // Legge la lista dei domini autorizzati dalle variabili d'ambiente di Azure
+    // Se non trova nulla (es. in locale durante lo sviluppo), lascia passare per non bloccarti
+    var allowedHostsConfig = builder.Configuration["Cloudfare:AllowedHosts"];
+    
+    if (!string.IsNullOrEmpty(allowedHostsConfig))
+    {
+        var allowedHosts = allowedHostsConfig.Split(',', StringSplitOptions.TrimEntries);
+        var currentHost = context.Request.Host.Host;
+
+        if (!allowedHosts.Contains(currentHost, StringComparer.OrdinalIgnoreCase))
+        {
+            context.Response.StatusCode = StatusCodes.Status400BadRequest;
+            await context.Response.WriteAsync("Direct access to origin disabled.");
+            return; 
+        }
+    }
+
+    await next(context);
+});
+
+
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {

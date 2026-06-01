@@ -324,64 +324,63 @@ p, li {
 .search-toggle-container {
     display: flex;
     justify-content: center;
-    margin: 1.5rem 0 0.5rem 0;
+    margin: 1.25rem 0 0.5rem 0;
 }
 
 .search-toggle-pill {
     display: inline-flex;
     background-color: var(--surface-container);
     border-radius: var(--radius-full);
-    padding: 5px;
-    box-shadow: inset 0 2px 5px rgba(0,0,0,0.05), 0 3px 10px rgba(0,0,0,0.02);
+    padding: 3px;
+    box-shadow: inset 0 1.5px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.02);
     border: 1px solid var(--outline-variant);
 }
 
 .search-toggle-btn {
     border: none;
     background: transparent;
-    padding: 0.55rem 1.75rem;
+    padding: 0.35rem 1.1rem;
     border-radius: var(--radius-full);
     font-family: var(--font-sans);
-    font-weight: 700;
-    font-size: 0.92rem;
+    font-weight: 600;
+    font-size: 0.8rem;
     color: var(--secondary);
     cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     display: inline-flex;
     align-items: center;
-    gap: var(--spacing-2);
+    gap: var(--spacing-1);
 }
 
 .search-toggle-btn:hover {
     color: var(--primary);
-    transform: scale(1.02);
 }
 
 .search-toggle-btn:active {
-    transform: scale(0.98);
+    transform: scale(0.97);
 }
 
 .search-toggle-btn.active {
-    background: linear-gradient(135deg, var(--primary), var(--primary-container));
-    color: var(--on-primary);
-    box-shadow: 0 4px 12px rgba(1, 45, 29, 0.15);
+    background-color: var(--surface-container-lowest);
+    color: var(--primary);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
+    font-weight: 700;
 }
 
 .search-toggle-badge {
-    font-size: 0.72rem;
-    background-color: var(--secondary-fixed);
-    color: var(--on-secondary-fixed);
-    padding: 2px 8px;
+    font-size: 0.68rem;
+    background-color: var(--surface-container-highest);
+    color: var(--secondary);
+    padding: 1px 6px;
     border-radius: var(--radius-full);
     font-weight: 800;
     margin-left: 2px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.08);
-    transition: all 0.3s ease;
+    transition: all 0.25s ease;
 }
 
 .search-toggle-btn.active .search-toggle-badge {
-    background-color: var(--surface-container-lowest);
-    color: var(--primary);
+    background-color: var(--primary);
+    color: var(--on-primary);
 }
 
 /* Advanced Search Expand/Collapse Panel animation */

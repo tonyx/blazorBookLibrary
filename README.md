@@ -1,11 +1,11 @@
 
-# Blazor Book Library: The Modern Archivist 📚✨
+# Biblionet: Book Archiving and Sharing System 📚✨
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 
 A premium, high-fidelity archival management system built with **Blazor**, **F# (Domain-driven logic)**, and **Vanilla CSS (The Sanctuary Sanctuary)**. 
 
-Designed for scholarly curators and meticulous catalogers, the **Modern Archivist** provides a seamless interface for managing archival media, featuring metadata-driven discovery, intuitive portrait & cover editing workflows, and a refined "Sanctuary" visual aesthetic.
+Designed for private users and institutions, **Biblionet** provides a seamless interface for managing archival media, featuring metadata-driven discovery, intuitive portrait & cover editing workflows, and a refined "Sanctuary" visual aesthetic.
 
 ## 🏛 The Mission
 To standardize the archival registration process by bridging modern metadata discovery with traditional cataloging precision. We prioritize interactive, premium design and robust domain logic to ensure that every record in the archive is a masterpiece of information.
@@ -13,7 +13,7 @@ To standardize the archival registration process by bridging modern metadata dis
 ## 🏷 Archival License
 This work is released under the **GNU General Public License v3.0**. 
 
-By adopting the **GPL-3.0**, we ensure that the **Modern Archivist** remains a free and open scholarly resource, guaranteeing users the freedom to share, modify, and improve the software as part of a collective digital heritage. 
+By adopting the **GPL-3.0**, we ensure that **Biblionet** remains a free and open scholarly resource, guaranteeing users the freedom to share, modify, and improve the software as part of a collective digital heritage. 
 
 See the [LICENSE](LICENSE) file for the full legal text.
 
@@ -41,4 +41,4 @@ Detailed guides and architectural references are available in the [Docs](./Docs)
 
 *“To catalog is to preserve; to curate is to honor.”*
 
-**Try it on line**:  https://bookslibrary.azurewebsites.net (will be on line for 1 month or so)
+**Try it on line**: https://www.biblionet.eu 
