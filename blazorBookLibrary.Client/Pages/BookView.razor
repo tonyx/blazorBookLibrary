@@ -417,7 +417,6 @@
             var remaining = pinExpiresAt - DateTime.UtcNow;
             if (remaining.TotalSeconds <= 0)
             {
-                activePin = "";
                 isPinExpired = true;
                 formattedCountdown = "00:00";
                 countdownTimer?.Dispose();

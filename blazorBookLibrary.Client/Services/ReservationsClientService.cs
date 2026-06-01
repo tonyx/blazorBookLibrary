@@ -1,5 +1,6 @@
 
 using System.Net.Http.Json;
+using System.Text.Json.Serialization;
 using Microsoft.FSharp.Core;
 using BookLibrary.Shared.Services;
 using BookLibrary.Domain;
@@ -71,7 +72,10 @@ public class ReservationsClientService : IReservationService
 
     public class GeneratedPinResponse
     {
+        [JsonPropertyName("pin")]
         public string Pin { get; set; } = string.Empty;
+
+        [JsonPropertyName("expiresAt")]
         public DateTime ExpiresAt { get; set; }
     }
 

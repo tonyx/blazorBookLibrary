@@ -800,10 +800,11 @@ else
         showBulkEdit = true;
     }
 
-    private void HandleBulkEditSuccess()
+    private async Task HandleBulkEditSuccess()
     {
         showBulkEdit = false;
         selectedBookIds.Clear();
+        await ShowStatus(L["BulkEditSuccess"].Value, "success");
     }
 
     private bool _showAddSection = false;
