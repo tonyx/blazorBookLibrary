@@ -302,7 +302,6 @@ p, li {
     .search-entryway {
         font-size: 1.1rem;
         padding: var(--spacing-4);
-        padding-right: 60px; /* Leave space for icon if button is absolute */
     }
 
     .btn-sanctuary-primary, .btn-sanctuary-outline {

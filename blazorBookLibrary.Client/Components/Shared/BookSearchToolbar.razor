@@ -26,21 +26,8 @@
         
         <EditForm Model="@this" OnValidSubmit="HandleBookSearch" FormName="SearchBookComponentForm">
             <!-- The Entryway: Main Title Search -->
-            <div class="position-relative mb-4 mb-md-5">
+            <div class="mb-4 mb-md-5">
                 <InputText class="search-entryway" @bind-Value="searchBookTitle" placeholder="@L["SearchByTitlePlaceholder"]" />
-                <button type="submit" class="btn-sanctuary-primary position-absolute d-flex align-items-center justify-content-center" 
-                        style="top: 50%; right: 8px; transform: translateY(-50%); padding: 0.6rem 1rem;"
-                        disabled="@_isLoading">
-                    @if (_isLoading)
-                    {
-                        <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                    }
-                    else
-                    {
-                        <i class="bi bi-search @(string.IsNullOrEmpty(L["Search"]) ? "" : "me-md-2")"></i> 
-                    }
-                    <span class="d-none d-md-inline">@L["Search"]</span>
-                </button>
             </div>
             
             <!-- AI Semantic Discovery Region -->
@@ -81,7 +68,7 @@
 
             @if (showAdvancedSearch)
             {
-                <div class="bg-surface-low rounded-xl p-3 p-md-5 advanced-filters-panel">
+                <div class="bg-surface-low rounded-xl p-3 p-md-5 advanced-filters-panel mb-4">
                     <div class="row g-4 g-md-5">
                     <!-- Column 1: ISBN & Category -->
                     <div class="col-lg-4">
@@ -259,6 +246,22 @@
                 </div>
             </div>
             }
+
+            <!-- Search Action Area -->
+            <div class="d-flex justify-content-end mt-4">
+                <button type="submit" class="btn-sanctuary-primary d-flex align-items-center justify-content-center px-4 py-2" 
+                        disabled="@_isLoading">
+                    @if (_isLoading)
+                    {
+                        <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                    }
+                    else
+                    {
+                        <i class="bi bi-search @(string.IsNullOrEmpty(L["Search"]) ? "" : "me-2")"></i> 
+                    }
+                    <span>@L["Search"]</span>
+                </button>
+            </div>
         </EditForm>
     </div>
 </div>

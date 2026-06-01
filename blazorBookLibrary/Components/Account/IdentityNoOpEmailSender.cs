@@ -56,8 +56,8 @@ internal sealed class IdentityNoOpEmailSender : IEmailSender<ApplicationUser>
     }
 
     public Task SendPasswordResetLinkAsync(ApplicationUser user, string email, string resetLink) =>
-        _mailNotificator.SendEmailAsync(_emailFrom, _nameFrom, email, "Reset your password", $"Restaurant System. Please reset your password by <a href='{resetLink}'>clicking here</a>.");
+        _mailNotificator.SendEmailAsync(_emailFrom, _nameFrom, email, "Reset your password", $"Biblio Net. Please reset your password by <a href='{resetLink}'>clicking here</a>.");
 
     public Task SendPasswordResetCodeAsync(ApplicationUser user, string email, string resetCode) =>
-        _mailNotificator.SendEmailAsync(_emailFrom, _nameFrom, email, "Reset your password", $"Restaurant System. Please reset your password using the following code: {resetCode}");
+        _mailNotificator.SendEmailAsync(_emailFrom, _nameFrom, email, "Reset your password", $"Biblio Net. Please reset your password using the following code: {resetCode}");
 }
