@@ -759,7 +759,7 @@
   <data name="ConceptualDescription" xml:space="preserve"><value>Descrizione Concettuale</value></data>
   <data name="SemanticSearchPlaceholder" xml:space="preserve"><value>es. Un romanzo distopico sulla sorveglianza e il totalitarismo...</value></data>
   <data name="MaxResults" xml:space="preserve"><value>Risultati Max</value></data>
-  <data name="SemanticSearchHelp" xml:space="preserve"><value>Questo utilizza l'IA per trovare libri per significato invece di parole chiave esatte. Combinalo con i filtri sotto per una scoperta precisa.</value></data>
+  <data name="SemanticSearchHelp" xml:space="preserve"><value>Utilizza l'IA per trovare libri per significato invece di parole chiave esatte. Combinalo con i filtri sotto per una scoperta precisa.</value></data>
   <data name="SemanticAnalysisFailed" xml:space="preserve"><value>Analisi semantica fallita</value></data>
   <data name="VectorSearchFailed" xml:space="preserve"><value>Ricerca vettoriale fallita</value></data>
   <data name="ErrorRetrievingBooks" xml:space="preserve"><value>Recupero libri fallito</value></data>

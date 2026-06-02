@@ -40,7 +40,7 @@ type UserTenantResolverService(
             let userViewerAsync = getAggregateStorageFreshStateViewerAsync<User, UserEvent, string> eventStore
             UserTenantResolverService(eventStore, MessageSenders.NoSender, userViewerAsync)
 
-    member this.GetTenantForUser(context: UserContext, ?ct: CancellationToken) =
+    member this.GetTenantForUser (context: UserContext, ?ct: CancellationToken) =
         taskResult {
             match context.TenantId with
             | Some tenantId -> return tenantId
@@ -53,10 +53,11 @@ type UserTenantResolverService(
                     let! user = userViewerAsync ct userId.Value |> TaskResult.map snd
                     return user.CurrentTenant
         }
+
     interface IUserTenantResolverService with 
-        member this.GetTenantForUserAsync(context: UserContext, ?ct: CancellationToken) =
+        member this.GetTenantForUserAsync (context: UserContext, ?ct: CancellationToken) =
             let ct = defaultArg ct CancellationToken.None
-            this.GetTenantForUser(context, ct)
+            this.GetTenantForUser (context, ct)
 
 
         

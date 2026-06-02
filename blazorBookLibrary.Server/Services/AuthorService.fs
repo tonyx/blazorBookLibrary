@@ -33,6 +33,7 @@ type AuthorService
         userTenantResolverService: IUserTenantResolverService,
         secretsReader: SecretsReader
     ) =
+
     let checkIsGlobalAdminOrTenantManager (context: UserContext) (ct: CancellationToken) =
         taskResult {
             let! tenantId = userTenantResolverService.GetTenantForUserAsync(context, ct)
@@ -40,6 +41,19 @@ type AuthorService
             return! Security.checkIsGlobalAdminOrTenantManager tenant context
         }
 
+    let checkIsGlobalAdminOrTenantManagerOrPublicTenant (context: UserContext) (ct: CancellationToken) =
+        taskResult {
+            let! tenantId = userTenantResolverService.GetTenantForUserAsync(context, ct)
+            let! tenant = tenantViewerAsync (ct |> Some) tenantId.Value |> TaskResult.map snd
+            return! Security.checkIsGlobalAdminOrTenantManagerOrPublicTenant tenant context
+        }
+
+    let checkIsGlobalAdminOrTenantManagerOrSelf (context: UserContext) (ct: CancellationToken) (userId: UserId) =
+        taskResult {
+            let! tenantId = userTenantResolverService.GetTenantForUserAsync(context, ct)
+            let! tenant = tenantViewerAsync (ct |> Some) tenantId.Value |> TaskResult.map snd
+            return! Security.checkIsGlobalAdminOrTenantManagerOrSelf tenant context userId
+        }
 
     member this.AddAuthorAsync(context: UserContext, author: Author, ?ct: CancellationToken) =
         let ct = defaultArg ct CancellationToken.None
