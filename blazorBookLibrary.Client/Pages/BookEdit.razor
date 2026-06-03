@@ -19,6 +19,7 @@
 @inject IJSRuntime JSRuntime
 @inject NavigationManager NavigationManager
 @inject IBooksMetadataSearchService GoogleBooksService
+@inject IEmbeddingOrchestrationService EmbeddingOrchestrationService
 @inject ITagService TagService
 @inject ITextEmbeddingService TextEmbeddingService
 @inject IVectorDbService VectorDbService
@@ -1643,7 +1644,17 @@ else
         {
             var text = bookDetails.Book.Description.Value;
             var context = await GetContext();
-            var embeddingResult = await TextEmbeddingService.GetEmbeddingAsync(context, text); //, FSharpOption<System.Threading.CancellationToken>.None);
+
+            var embedResult = await EmbeddingOrchestrationService.CreateEmbeddingForBookAsync(context, bookDetails.Book.BookId);  //, FSharpOption<System.Threading.CancellationToken>.None);
+            
+            if (!embedResult.IsOk)
+            {
+                await ShowStatus($"Embedding generation failed: {embedResult.ErrorValue}", "alert-danger");
+                return;
+            }
+
+
+            @* var embeddingResult = await TextEmbeddingService.GetEmbeddingAsync(context, text); //, FSharpOption<System.Threading.CancellationToken>.None);
             
             if (!embeddingResult.IsOk)
             {
@@ -1661,7 +1672,7 @@ else
             }
 
             context = await GetContext();
-            var embedResult = await BookService.EmbedDescriptionAsync(context, bookDetails.Book.BookId, embeddingId, FSharpOption<System.Threading.CancellationToken>.None);
+            var embedResult = await BookService.EmbedDescriptionAsync(context, bookDetails.Book.BookId, embeddingId, FSharpOption<System.Threading.CancellationToken>.None); *@
             
             if (embedResult.IsOk)
             {

@@ -106,6 +106,7 @@
     <Compile Include="Services/AdminService.fs" />
     <Compile Include="Services/TenantService.fs" />
     <Compile Include="Services/NotificationService.fs" />
+    <Compile Include="Services/EmbeddingOrchestrationService.fs" />
     <Compile Include="Controllers/AuthorsSearchController.fs" />
     <Compile Include="Controllers/BooksController.fs" />
     <Compile Include="Controllers/LoansController.fs" />
@@ -122,6 +123,7 @@
     <Compile Include="Controllers/VectorDbController.fs" />
     <Compile Include="Controllers/AIAssistantController.fs" />
     <Compile Include="Controllers/TextEmbeddingController.fs" />
+    <Compile Include="Controllers/EmbeddingOrchestrationController.fs" />
     <Compile Include="Controllers/TenantController.fs" />
     <Compile Include="Controllers/NotificationsController.fs" />
     <Compile Include="Controllers/UserTenantResolverController.fs" />

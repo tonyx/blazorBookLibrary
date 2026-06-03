@@ -54,28 +54,6 @@
                     </label>
                 </div>
 
-                <div class="card mb-3 border-light shadow-sm" style="background: linear-gradient(145deg, #f8f9fa, #e9ecef);">
-                    <div class="card-body py-3">
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <p class="mb-0 small fw-bold text-secondary text-uppercase"><i class="bi bi-shield-check me-1 text-success"></i>@L["HumanVerification"]</p>
-                            <span class="badge bg-white text-primary border border-primary-subtle rounded-pill px-2">Secure</span>
-                        </div>
-                        <div class="d-flex align-items-center gap-3">
-                            <span class="fs-4 fw-bold text-dark font-monospace bg-white border rounded px-3 py-1 shadow-sm">
-                                @Input.Number1 <span class="text-primary">+</span> @Input.Number2
-                            </span>
-                            <span class="fs-4 fw-bold text-secondary">=</span>
-                            <div style="max-width: 90px;">
-                                <InputNumber @bind-Value="Input.HumanAnswer" class="form-control form-control-lg border-2 border-primary text-center fw-bold shadow-sm" placeholder="?" />
-                            </div>
-                        </div>
-                        <ValidationMessage For="() => Input.HumanAnswer" class="text-danger small mt-2" />
-                        <input type="hidden" name="Input.Number1" value="@Input.Number1" />
-                        <input type="hidden" name="Input.Number2" value="@Input.Number2" />
-                        <input type="hidden" name="Input.FormLoadTicks" value="@Input.FormLoadTicks" />
-                    </div>
-                </div>
-
                 <div class="mb-3">
 
                     <button type="submit" class="w-100 btn btn-lg btn-primary shadow-sm transition-hover">Log in</button>
@@ -140,13 +118,6 @@
     protected override async Task OnInitializedAsync()
     {
         Input ??= new();
-        if (HttpMethods.IsGet(HttpContext.Request.Method))
-        {
-            Input.Number1 = Random.Shared.Next(1, 10);
-            Input.Number2 = Random.Shared.Next(1, 10);
-            Input.FormLoadTicks = DateTime.UtcNow.Ticks;
-        }
-
         editContext = new EditContext(Input);
 
         if (HttpMethods.IsGet(HttpContext.Request.Method))
@@ -175,20 +146,6 @@
             // If doing a password sign-in, validate the form.
             if (!editContext.Validate())
             {
-                return;
-            }
-
-            if (Input.HumanAnswer != Input.Number1 + Input.Number2)
-            {
-                errorMessage = L["IncorrectMathResponse"];
-                Input.Number1 = Random.Shared.Next(1, 10);
-                Input.Number2 = Random.Shared.Next(1, 10);
-                return;
-            }
-
-            if ((DateTime.UtcNow - new DateTime(Input.FormLoadTicks)).TotalSeconds < 2)
-            {
-                errorMessage = L["FastSubmissionError"];
                 return;
             }
 
@@ -251,14 +208,6 @@
 
         [Display(Name = "Remember me?")]
         public bool RememberMe { get; set; }
-
-        [Required(ErrorMessage = "HumanVerificationRequired")]
-        [Display(Name = "SolveMathChallenge")]
-        public int? HumanAnswer { get; set; }
-
-        public int Number1 { get; set; }
-        public int Number2 { get; set; }
-        public long FormLoadTicks { get; set; }
 
         public PasskeyInputModel? Passkey { get; set; }
     }

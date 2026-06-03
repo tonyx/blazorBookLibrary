@@ -25,48 +25,54 @@
         <h5 class="serif display-6 mb-4" style="font-size: calc(1.3rem + 0.6vw);">@L["SearchBooks"]</h5>
         
         <EditForm Model="@this" OnValidSubmit="HandleBookSearch" FormName="SearchBookComponentForm">
-            <!-- The Entryway: Main Title Search -->
-            <div class="mb-4 mb-md-5">
-                <InputText class="search-entryway" @bind-Value="searchBookTitle" placeholder="@L["SearchByTitlePlaceholder"]" />
-            </div>
-            
-            <!-- AI Semantic Discovery Region -->
-            <div class="bg-surface-low rounded-xl p-3 p-md-4 mb-4 border border-primary-subtle border-opacity-25 shadow-sm animate-fade-in">
-                 <h6 class="serif mb-3 small text-primary text-uppercase fw-bold letter-spacing-1 d-flex align-items-center gap-2">
-                     <i class="bi bi-magic"></i> @L["AISemanticDiscovery"]
-                 </h6>
-                 <div class="row g-3 align-items-end">
-                     <div class="col-md-9">
-                         <label class="form-label x-small text-muted text-uppercase fw-bold mb-2">@L["ConceptualDescription"]</label>
-                         <InputText class="form-control bg-surface-lowest border-0 rounded-lg shadow-sm py-2" 
-                                    @bind-Value="semanticSearchText" 
-                                    placeholder="@L["SemanticSearchPlaceholder"]" />
+            @if (searchMode == "Simple" || searchMode == "Advanced")
+            {
+                <!-- The Entryway: Main Title Search -->
+                <div class="mb-4 mb-md-5">
+                    <InputText class="search-entryway" @bind-Value="searchBookTitle" placeholder="@L["SearchByTitlePlaceholder"]" />
+                </div>
+            }
+
+            @if (searchMode == "AI")
+            {
+                <!-- AI Semantic Discovery Region -->
+                <div class="bg-surface-low rounded-xl p-3 p-md-4 mb-4 border border-primary-subtle border-opacity-25 shadow-sm">
+                     <h6 class="serif mb-3 small text-primary text-uppercase fw-bold letter-spacing-1 d-flex align-items-center gap-2">
+                         <i class="bi bi-magic"></i> @L["AISemanticDiscovery"]
+                     </h6>
+                     <div class="row g-3 align-items-end">
+                         <div class="col-12">
+                             <label class="form-label x-small text-muted text-uppercase fw-bold mb-2">@L["ConceptualDescription"]</label>
+                             <InputText class="form-control bg-surface-lowest border-0 rounded-lg shadow-sm py-2" 
+                                        @bind-Value="semanticSearchText" 
+                                        placeholder="@L["SemanticSearchPlaceholder"]" />
+                         </div>
                      </div>
-                     <div class="col-md-3">
-                         <label class="form-label x-small text-muted text-uppercase fw-bold mb-2">@L["MaxResults"]</label>
-                         <InputNumber class="form-control bg-surface-lowest border-0 rounded-lg shadow-sm py-2" 
-                                      @bind-Value="semanticSearchLimit" min="1" max="100" />
-                     </div>
-                 </div>
-                 <p class="x-small text-muted mt-2 mb-0 italic">@L["SemanticSearchHelp"]</p>
-            </div>
+                     <p class="x-small text-muted mt-2 mb-0 italic">@L["SemanticSearchHelp"]</p>
+                </div>
+            }
+
+
             <!-- Segmented Capsule Search Mode Switcher -->
             <div class="search-toggle-container">
                 <div class="search-toggle-pill">
-                    <button type="button" class="search-toggle-btn @(!showAdvancedSearch ? "active" : "")" @onclick="() => showAdvancedSearch = false">
+                    <button type="button" class="search-toggle-btn @(searchMode == "Simple" ? "active" : "")" @onclick='() => searchMode = "Simple"'>
                         <i class="bi bi-search"></i> @L["SimpleSearch"]
                     </button>
-                    <button type="button" class="search-toggle-btn @(showAdvancedSearch ? "active" : "")" @onclick="() => showAdvancedSearch = true">
+                    <button type="button" class="search-toggle-btn @(searchMode == "Advanced" ? "active" : "")" @onclick='() => searchMode = "Advanced"'>
                         <i class="bi bi-sliders"></i> @L["AdvancedSearch"]
                         @if (ActiveAdvancedFiltersCount > 0)
                         {
                             <span class="search-toggle-badge">@ActiveAdvancedFiltersCount</span>
                         }
                     </button>
+                    <button type="button" class="search-toggle-btn @(searchMode == "AI" ? "active" : "")" @onclick='() => searchMode = "AI"'>
+                        <i class="bi bi-magic"></i> @L["AISearch"]
+                    </button>
                 </div>
             </div>
 
-            @if (showAdvancedSearch)
+            @if (searchMode == "Advanced")
             {
                 <div class="bg-surface-low rounded-xl p-3 p-md-5 advanced-filters-panel mb-4">
                     <div class="row g-4 g-md-5">
@@ -272,7 +278,7 @@
     [Parameter] public EventCallback<bool> OnSearchStarted { get; set; }
     [Parameter] public string? InitialDistributionPointId { get; set; }
 
-    private bool showAdvancedSearch = false;
+    private string searchMode = "Simple";
 
     private int ActiveAdvancedFiltersCount
     {
@@ -546,8 +552,14 @@
 
         try
         {
-            if (!string.IsNullOrWhiteSpace(semanticSearchText))
+            if (searchMode == "AI")
             {
+                if (string.IsNullOrWhiteSpace(semanticSearchText))
+                {
+                    await OnSearchResultsFound.InvokeAsync(new List<BookSearchResult>());
+                    return;
+                }
+
                 var context = await GetUserContextAsync();
                 var embeddingResult = await TextEmbeddingService.GetEmbeddingAsync(context, semanticSearchText);
                 if (!embeddingResult.IsOk)
@@ -557,49 +569,17 @@
                 }
 
                 IEnumerable<(BookId, double)> targetResults;
-                if (AreOtherFiltersActive)
+                var vectorResult = await VectorDbService.SearchSimilarEmbeddingsWithScoreAsync(
+                    embeddingResult.ResultValue, 
+                    _currentTenant,
+                    semanticSearchLimit);
+                
+                if (!vectorResult.IsOk)
                 {
-                    var filterResult = await ExecuteStandardSearch();
-                    if (!filterResult.IsOk)
-                    {
-                        await OnError.InvokeAsync(L["ErrorSearchingBooks", filterResult.ErrorValue]);
-                        return;
-                    }
-                    var filteredIds = filterResult.ResultValue.Select(b => b.BookId).ToList();
-                    
-                    if (!filteredIds.Any())
-                    {
-                        await OnSearchResultsFound.InvokeAsync(new List<BookSearchResult>());
-                        return;
-                    }
-
-                    var vectorResult = await VectorDbService.SearchSimilarEmbeddingsWithScoreFilteringByBookIdsAsync(
-                        embeddingResult.ResultValue, 
-                        ListModule.OfSeq(filteredIds), 
-                        _currentTenant,
-                        semanticSearchLimit);
-                    
-                    if (!vectorResult.IsOk)
-                    {
-                        await OnError.InvokeAsync($"{L["VectorSearchFailed"]}: {vectorResult.ErrorValue}");
-                        return;
-                    }
-                    targetResults = vectorResult.ResultValue.Select(r => (r.Item2, r.Item3));
+                    await OnError.InvokeAsync($"{L["VectorSearchFailed"]}: {vectorResult.ErrorValue}");
+                    return;
                 }
-                else
-                {
-                    var vectorResult = await VectorDbService.SearchSimilarEmbeddingsWithScoreAsync(
-                        embeddingResult.ResultValue, 
-                        _currentTenant,
-                        semanticSearchLimit);
-                    
-                    if (!vectorResult.IsOk)
-                    {
-                        await OnError.InvokeAsync($"{L["VectorSearchFailed"]}: {vectorResult.ErrorValue}");
-                        return;
-                    }
-                    targetResults = vectorResult.ResultValue.Select(r => (r.Item2, r.Item3));
-                }
+                targetResults = vectorResult.ResultValue.Select(r => (r.Item2, r.Item3));
 
                 var targetResultsList = targetResults.ToList();
                 var bookIdList = targetResultsList.Select(r => r.Item1).ToList();

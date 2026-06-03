@@ -47,6 +47,7 @@
     <Compile Include="Services/IDistributionPointService.fs" />
     <Compile Include="Services/ITenantService.fs" />
     <Compile Include="Services/INotificationService.fs" />
+    <Compile Include="Services/IEmbeddingOrchestrationService.fs" />
 
     <Compile Include="SearchCriteria.fs" />
     <Compile Include="Infrastructure/Services/IMailNotificator.fs" />

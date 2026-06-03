@@ -144,6 +144,7 @@ type Book =
             do! this.Sealed.IsSealed(dateTime) |> not |> Result.ofBool "Book is sealed"
             return { this with Description = None }
         }
+    member this.HasDescription = this.Description.IsSome
 
     member this.AddTag (tag: Tag) (dateTime: DateTime) =
         result {
@@ -181,8 +182,6 @@ type Book =
 
     member this.EmbedDescription (embeddingId: EmbeddingDataId) (dateTime: DateTime) =
         result {
-            do! this.Sealed.IsSealed(dateTime) |> not |> Result.ofBool "Book is sealed"
-
             return
                 { this with
                     OptionalEmbedding = Some embeddingId }
@@ -196,6 +195,8 @@ type Book =
 
     member this.ForceRemoveEmbedding() =
         { this with OptionalEmbedding = None } |> Ok
+
+    member this.HasEmbedding = this.OptionalEmbedding.IsSome
 
     member this.SetAvailability (availability: Availability) (dateTime: DateTime) =
         result {

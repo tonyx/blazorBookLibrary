@@ -311,6 +311,7 @@ let getBookService () : IBookService =
         tenantViewerAsync,
         distributionPointViewerAsync,
         getUserTenantResolverService (),
+        getTextEmbeddingService (),
         getVectorDbService ()
     )
     :> IBookService

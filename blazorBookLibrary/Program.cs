@@ -112,6 +112,8 @@ builder.Services.AddSingleton<IReviewService, ReviewService>();
 builder.Services.AddSingleton<IBooksMetadataSearchService, GoogleBooksService>();
 builder.Services.AddSingleton<ITextEmbeddingService, TextEmbeddingService>();
 
+builder.Services.AddSingleton<IEmbeddingOrchestrationService, EmbeddingOrchestrationService>();
+
 builder.Services.AddSingleton<IUserService, UserService>();
 builder.Services.AddHttpClient<IAuthorsSearchService, AuthorsSearchService>(client =>
 {

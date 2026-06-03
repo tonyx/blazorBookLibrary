@@ -467,4 +467,9 @@
   <data name="InviteFailedError" xml:space="preserve">
     <value>Invitation failed. Verify the user is registered in the system.</value>
   </data>
+  <data name="AISearch" xml:space="preserve"><value>A.I. Search</value></data>
+  <data name="RecordHasEmbedding" xml:space="preserve"><value>Archival record contains AI text embedding.</value></data>
+  <data name="RecordMissingEmbedding" xml:space="preserve"><value>Record lacks AI text embedding.</value></data>
+  <data name="RecordHasDescription" xml:space="preserve"><value>Archival record contains description.</value></data>
+  <data name="RecordMissingDescription" xml:space="preserve"><value>Record lacks description.</value></data>
 </root>

@@ -7,3 +7,7 @@ create index if not exists idx_item_embedding_projections_tenant_id on item_embe
 alter TABLE
     item_embeddings_projections
     add column if not exists created_at timestamp without time zone;
+
+alter TABLE
+    item_embeddings_projections
+    add constraint unique_book_id UNIQUE (book_id);

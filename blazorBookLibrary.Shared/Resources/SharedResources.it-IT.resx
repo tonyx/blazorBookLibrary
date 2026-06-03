@@ -928,4 +928,10 @@
   <data name="InviteFailedError" xml:space="preserve">
     <value>Invito fallito. Verifica che l'utente sia registrato nel sistema.</value>
   </data>
+  <data name="AISearch" xml:space="preserve"><value>Ricerca A.I.</value></data>
+  <data name="RecordHasEmbedding" xml:space="preserve"><value>Il record archivistico contiene l'embedding del testo A.I.</value></data>
+  <data name="RecordMissingEmbedding" xml:space="preserve"><value>Il record non contiene l'embedding del testo A.I.</value></data>
+  <data name="RecordHasDescription" xml:space="preserve"><value>Il record archivistico contiene la descrizione.</value></data>
+  <data name="RecordMissingDescription" xml:space="preserve"><value>Il record non contiene la descrizione.</value></data>
+  <data name="ShowDetailedMetadata" xml:space="preserve"><value>Mostra Campi Dettagliati</value></data>
 </root>

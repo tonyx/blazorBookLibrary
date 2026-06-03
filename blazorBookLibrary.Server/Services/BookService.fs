@@ -36,6 +36,7 @@ type BookService
         tenantViewerAsync: AggregateViewerAsync2<Tenant>,
         distributionPointViewerAsync: AggregateViewerAsync2<DistributionPoint>,
         userTenantResolverService: IUserTenantResolverService,
+        textEmbeddingService: ITextEmbeddingService,
         vectorDbService: IVectorDbService
     ) =
 
@@ -52,7 +53,7 @@ type BookService
             return! Security.checkIsGlobalAdminOrTenantManagerOrPublicTenant tenant context
         }
 
-    new (eventStore: IEventStore<string>, userTenantResolverService: IUserTenantResolverService, vectorDbService: IVectorDbService) =
+    new (eventStore: IEventStore<string>, userTenantResolverService: IUserTenantResolverService, textEmbeddingService: ITextEmbeddingService, vectorDbService: IVectorDbService) =
         BookService (
             eventStore,
             MessageSenders.NoSender,
@@ -65,12 +66,14 @@ type BookService
             getAggregateStorageFreshStateViewerAsync<Tenant, TenantEvent, string> eventStore,
             getAggregateStorageFreshStateViewerAsync<DistributionPoint, DistributionPointEvent, string> eventStore,
             userTenantResolverService,
+            textEmbeddingService,
             vectorDbService
         )
-    new (secretsReader: SecretsReader, userTenantResolverService: IUserTenantResolverService, vectorDbService: IVectorDbService) =
+    new (secretsReader: SecretsReader, userTenantResolverService: IUserTenantResolverService, textEmbeddingService: ITextEmbeddingService, vectorDbService: IVectorDbService) =
         BookService (
             PgStorage.PgEventStore (secretsReader.GetBookLibraryConnectionString ()),
             userTenantResolverService,
+            textEmbeddingService,
             vectorDbService
         )
 
