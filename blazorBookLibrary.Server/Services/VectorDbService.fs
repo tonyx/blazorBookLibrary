@@ -34,7 +34,8 @@ type VectorDbService(connection: string, ?cancellationTokenSourceExpiration: int
     let cancellationTokenSourceExpiration = defaultArg cancellationTokenSourceExpiration 100000
 
     new (configuration: IConfiguration, secretsReader: SecretsReader) =
-        let connectionString = configuration.GetConnectionString "VectorDbConnection"
+        let connectionString = secretsReader.GetVectorDbConnectionString ()
+        // let connectionString = configuration.GetConnectionString "VectorDbConnection"
         let timeout = configuration.GetValue<int>("CancellationTokenSourceExpiration", 100000)
         VectorDbService (connectionString, timeout)
 

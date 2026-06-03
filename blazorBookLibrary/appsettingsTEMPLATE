@@ -10,6 +10,7 @@
   "keyVaultUrl": "https://....",
   "usersDbSecretname": "booksLibraryUsersDb",
   "booksLibraryDbSecretname": "booksLibraryDb",
+  "vectorDbSecretName": "VectorDb",
 
   "syncUsersOnStartup": false,
 

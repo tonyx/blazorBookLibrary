@@ -78,11 +78,48 @@ type SecretsReader(configuration: IConfiguration) =
         else
             failwith "Environment not found: set Environment entry to appsettings.json to Production or Development"
 
+    let vectorDbConnectionString =
+        if (configuration.GetSection("Environment").Exists()) then
+            let env = configuration.GetSection("Environment").Value
+            if (env = "Development") then
+                configuration.GetSection("ConnectionStrings:VectorDbConnection").Value
+            else 
+                let keyVaultUrl = configuration.GetValue<string>("KeyVaultUrl", "unexisting")
+                if (keyVaultUrl = "unexisting") then
+                    failwith "KeyVaultUrl not found in appSettings.json"
+
+                let secretName = configuration.GetValue<string>("vectorDbSecretName", "unexisting")
+                if (secretName = "unexisting") then
+                    failwith "vectorDbSecretName SecretName not found in appSettings.json"
+
+                try
+                    let options = SecretClientOptions()
+                    options.Retry.Delay <- TimeSpan.FromSeconds(2.0)
+                    options.Retry.MaxDelay <- TimeSpan.FromSeconds(16.0)
+                    options.Retry.MaxRetries <- 5
+                    options.Retry.Mode <- RetryMode.Exponential
+                    
+                    let client = new SecretClient(new Uri(keyVaultUrl), new DefaultAzureCredential(), options)
+                    let secret =
+                        client.GetSecretAsync secretName
+                        |> Async.AwaitTask
+                        |> Async.RunSynchronously
+                    secret.Value.Value
+                    
+                with
+                | _ as ex ->
+                    failwith $"Secret password {secretName} not found. Error: {ex.Message}"
+        else
+            failwith "Environment not found: set Environment entry to appsettings.json to Production or Development"
+
     member this.GetAspUsersConnectionString () = 
         aspUsersConnectionString
 
     member this.GetBookLibraryConnectionString () = 
         bookLibraryConnectionString
+
+    member this.GetVectorDbConnectionString () = 
+        vectorDbConnectionString
 
 
 
