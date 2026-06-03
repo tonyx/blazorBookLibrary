@@ -180,12 +180,37 @@
                                 <div class="d-flex flex-wrap gap-1">
                                     @foreach (var tag in libraryDetails.Tenant.Tags)
                                     {
-                                        <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle rounded-pill px-2 py-1 small">
+                                        <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle rounded-pill px-2 py-1 small d-inline-flex align-items-center gap-1">
                                             @tag.TagName
+                                            <button type="button" class="btn-close ms-1" style="font-size: 0.55rem; padding: 0.15rem;" @onclick="() => HandleRemoveTenantTag(tag)" aria-label="Remove"></button>
                                         </span>
                                     }
                                 </div>
                             }
+
+                            <div class="mt-3 border-top pt-3 animate-fade-in">
+                                <label class="small text-muted text-uppercase fw-bold d-block mb-2">@L["AddTag", "Add Tag"]</label>
+                                <div class="input-group input-group-sm">
+                                    <select class="form-select" style="max-width: 100px;" @bind="newTagTypeInput">
+                                        <option value="Generic">@L["GenericTag", "Generic"]</option>
+                                        <option value="Book">@L["BookTag", "Book"]</option>
+                                        <option value="Author">@L["AuthorTag", "Author"]</option>
+                                        <option value="General">@L["GeneralTag", "General"]</option>
+                                        <option value="Person">@L["PersonTag", "Person"]</option>
+                                    </select>
+                                    <input type="text" class="form-control" placeholder="@L["TagName", "Tag Name"]" @bind="newTagNameInput" />
+                                    <button class="btn btn-primary" type="button" @onclick="HandleAddTenantTag" disabled="@(string.IsNullOrWhiteSpace(newTagNameInput) || isAddingTag)">
+                                        @if (isAddingTag)
+                                        {
+                                            <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                                        }
+                                        else
+                                        {
+                                            <i class="bi bi-plus-lg"></i>
+                                        }
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                         @if (isOwner || isAdmin)
                         {
@@ -1059,6 +1084,97 @@
     private InvitePatronModel inviteModel = new();
     private string checkoutMethod = "code";
     private string pickupPinInput = "";
+
+    private string newTagNameInput = "";
+    private string newTagTypeInput = "Generic";
+    private bool isAddingTag = false;
+
+    private async Task HandleAddTenantTag()
+    {
+        if (libraryDetails == null || string.IsNullOrWhiteSpace(newTagNameInput) || isAddingTag) return;
+        isAddingTag = true;
+        try
+        {
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var claimsPrincipal = authState.User;
+            if (claimsPrincipal == null) return;
+            var userContext = TenantState.GetUserContext(claimsPrincipal);
+            var tenantId = TenantId.NewTenantId(Id);
+
+            Tag tag = newTagTypeInput switch
+            {
+                "Book" => Tag.NewBookTag(newTagNameInput.Trim()),
+                "Author" => Tag.NewAuthorTag(newTagNameInput.Trim()),
+                "General" => Tag.NewGeneralTag(newTagNameInput.Trim()),
+                "Person" => Tag.NewPersonTag(newTagNameInput.Trim()),
+                "Generic" => Tag.NewGenericTag(newTagNameInput.Trim()),
+                _ => Tag.NewGenericTag(newTagNameInput.Trim())
+            };
+
+            var result = await TenantService.AddTagAsync(userContext, tenantId, tag, Microsoft.FSharp.Core.FSharpOption<System.Threading.CancellationToken>.None);
+            if (result.IsOk)
+            {
+                newTagNameInput = "";
+                await JSRuntime.InvokeVoidAsync("showToast", L["TagAddedSuccessfully", "Tag added successfully"].Value, "success");
+                
+                var refreshResult = await DetailsService.GetTenantDetailsAsync(userContext, tenantId, Microsoft.FSharp.Core.FSharpOption<System.Threading.CancellationToken>.None);
+                if (refreshResult.IsOk)
+                {
+                    libraryDetails = refreshResult.ResultValue;
+                }
+            }
+            else
+            {
+                await JSRuntime.InvokeVoidAsync("showToast", result.ErrorValue, "error");
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error adding tag to tenant");
+            await JSRuntime.InvokeVoidAsync("showToast", L["ErrorOccurred"].Value, "error");
+        }
+        finally
+        {
+            isAddingTag = false;
+        }
+    }
+
+    private async Task HandleRemoveTenantTag(Tag tag)
+    {
+        if (libraryDetails == null) return;
+        var confirmed = await JSRuntime.InvokeAsync<bool>("confirm", string.Format(L["ConfirmRemoveTag", "Are you sure you want to remove the tag '{0}'?"].Value, tag.TagName));
+        if (!confirmed) return;
+
+        try
+        {
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var claimsPrincipal = authState.User;
+            if (claimsPrincipal == null) return;
+            var userContext = TenantState.GetUserContext(claimsPrincipal);
+            var tenantId = TenantId.NewTenantId(Id);
+
+            var result = await TenantService.RemoveTagAsync(userContext, tenantId, tag, Microsoft.FSharp.Core.FSharpOption<System.Threading.CancellationToken>.None);
+            if (result.IsOk)
+            {
+                await JSRuntime.InvokeVoidAsync("showToast", L["TagRemovedSuccessfully", "Tag removed successfully"].Value, "success");
+                
+                var refreshResult = await DetailsService.GetTenantDetailsAsync(userContext, tenantId, Microsoft.FSharp.Core.FSharpOption<System.Threading.CancellationToken>.None);
+                if (refreshResult.IsOk)
+                {
+                    libraryDetails = refreshResult.ResultValue;
+                }
+            }
+            else
+            {
+                await JSRuntime.InvokeVoidAsync("showToast", result.ErrorValue, "error");
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error removing tag from tenant");
+            await JSRuntime.InvokeVoidAsync("showToast", L["ErrorOccurred"].Value, "error");
+        }
+    }
 
     private async Task HandlePrivacyToggle(ChangeEventArgs e)
     {

@@ -86,7 +86,6 @@ type ITenantService =
         UserContext * TenantId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken ->
             Task<Result<unit, string>>
 
-
     abstract member SetPrivateAsync:
         UserContext * TenantId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken ->
             Task<Result<unit, string>>
@@ -97,6 +96,20 @@ type ITenantService =
 
     abstract member DeleteTenantAsync:
         UserContext * TenantId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken ->
+            Task<Result<unit, string>>
+
+    abstract member AddTagAsync:
+        context: UserContext *
+        tenantId: TenantId *
+        tag: Tag *
+        [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken ->
+            Task<Result<unit, string>>
+
+    abstract member RemoveTagAsync:
+        context: UserContext *
+        tenantId: TenantId *
+        tag: Tag *
+        [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken ->
             Task<Result<unit, string>>
 
     abstract member GenerateJoinPinAsync:

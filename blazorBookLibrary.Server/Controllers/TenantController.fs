@@ -252,6 +252,28 @@ type TenantController(tenantService: ITenantService) =
             | Error msg -> return this.BadRequest(msg) :> IActionResult
         }
 
+    [<HttpPost("{id}/tags")>]
+    member this.AddTag(id: Guid, [<FromBody>] tag: Tag) =
+        task {
+            let context = UserContextMapper.mapFromRequest this.Request
+            let! result = tenantService.AddTagAsync(context, TenantId id, tag)
+
+            match result with
+            | Ok _ -> return this.Ok() :> IActionResult
+            | Error msg -> return this.BadRequest(msg) :> IActionResult
+        }
+
+    [<HttpDelete("{id}/tags")>]
+    member this.RemoveTag(id: Guid, [<FromBody>] tag: Tag) =
+        task {
+            let context = UserContextMapper.mapFromRequest this.Request
+            let! result = tenantService.RemoveTagAsync(context, TenantId id, tag)
+
+            match result with
+            | Ok _ -> return this.Ok() :> IActionResult
+            | Error msg -> return this.BadRequest(msg) :> IActionResult
+        }
+
     [<HttpGet("by-pin/{pin}")>]
     member this.FindTenantByJoinPin(pin: string) =
         task {

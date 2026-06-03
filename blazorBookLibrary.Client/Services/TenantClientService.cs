@@ -173,6 +173,20 @@ public class TenantClientService : ITenantService
         return await ServiceClientHelper.HandleUnitResponse(response);
     }
 
+    public async Task<FSharpResult<Unit, string>> AddTagAsync(Commons.UserContext context, Commons.TenantId tenantId, Tag tag, FSharpOption<CancellationToken> ct)
+    {
+        var request = ServiceClientHelper.CreateRequest(HttpMethod.Post, $"api/Tenant/{tenantId.Value}/tags", context, tag);
+        var response = await _httpClient.SendAsync(request, ServiceClientHelper.GetValue(ct, CancellationToken.None));
+        return await ServiceClientHelper.HandleUnitResponse(response);
+    }
+
+    public async Task<FSharpResult<Unit, string>> RemoveTagAsync(Commons.UserContext context, Commons.TenantId tenantId, Tag tag, FSharpOption<CancellationToken> ct)
+    {
+        var request = ServiceClientHelper.CreateRequest(HttpMethod.Delete, $"api/Tenant/{tenantId.Value}/tags", context, tag);
+        var response = await _httpClient.SendAsync(request, ServiceClientHelper.GetValue(ct, CancellationToken.None));
+        return await ServiceClientHelper.HandleUnitResponse(response);
+    }
+
     public async Task<FSharpResult<Unit, string>> GenerateJoinPinAsync(Commons.UserContext context, Commons.TenantId tenantId, string pin, FSharpOption<CancellationToken> ct)
     {
         var request = ServiceClientHelper.CreateRequest(HttpMethod.Post, $"api/Tenant/{tenantId.Value}/join-pin?pin={System.Uri.EscapeDataString(pin)}", context);

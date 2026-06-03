@@ -117,7 +117,6 @@ type TenantService
         let userViewerAsync =
             getAggregateStorageFreshStateViewerAsync<User, BookLibrary.Domain.UserEvent, string> eventStore
 
-
         TenantService(
             eventStore,
             messageSenders,
@@ -619,6 +618,54 @@ type TenantService
                     ct
         }
 
+    member this.AddTagAsync
+        (
+            context: UserContext,
+            tenantId: TenantId,
+            tag: Tag,
+            ?ct: CancellationToken
+        ) =
+        taskResult {
+            let ctValue = defaultArg ct CancellationToken.None
+            let! (_, tenant) = tenantViewerAsync (ctValue |> Some) tenantId.Value
+            let ctVal = ct |> Option.defaultValue CancellationToken.None
+            do! Security.checkIsGlobalAdminOrTenantManager tenant context
+            let command = TenantCommand.AddTag(tag)
+
+            return!
+                runAggregateCommandMdAsync<Tenant, TenantEvent, string>
+                    tenantId.Value
+                    eventStore
+                    messageSenders
+                    ""
+                    command
+                    ct
+        }
+
+    member this.RemoveTagAsync
+        (
+            context: UserContext,
+            tenantId: TenantId,
+            tag: Tag,
+            ?ct: CancellationToken
+        ) =
+        taskResult {
+            let ctValue = defaultArg ct CancellationToken.None
+            let! (_, tenant) = tenantViewerAsync (ctValue |> Some) tenantId.Value
+            let ctVal = ct |> Option.defaultValue CancellationToken.None
+            do! Security.checkIsGlobalAdminOrTenantManager tenant context
+            let command = TenantCommand.RemoveTag(tag)
+
+            return!
+                runAggregateCommandMdAsync<Tenant, TenantEvent, string>
+                    tenantId.Value
+                    eventStore
+                    messageSenders
+                    ""
+                    command
+                    ct
+        }   
+
     member this.DeleteTenant(context: UserContext, tenantId: TenantId, ?ct: CancellationToken) =
         taskResult {
             let ctValue = defaultArg ct CancellationToken.None
@@ -905,6 +952,12 @@ type TenantService
 
         member this.DeleteTenantAsync(context, tenantId, ?ct) =
             this.DeleteTenant(context, tenantId, ?ct = ct)
+
+        member this.AddTagAsync(context, tenantId, tag, ?ct) =
+            this.AddTagAsync(context, tenantId, tag, ?ct = ct)
+
+        member this.RemoveTagAsync(context, tenantId, tag, ?ct) =
+            this.RemoveTagAsync(context, tenantId, tag, ?ct = ct)
 
         member this.GenerateJoinPinAsync(context, tenantId, pin, ?ct) =
             this.GenerateJoinPin(context, tenantId, pin, ?ct = ct)
