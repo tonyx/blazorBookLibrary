@@ -282,6 +282,7 @@ using (var scope = app.Services.CreateScope())
 
     // Invoke CleanUpService to force snapshots on startup if configured
     // CleanUpService cleanUpService = scope.ServiceProvider.GetRequiredService<BookLibrary.CleanServices.CleanUpServices.CleanUpService>();
+
     var cleanUpService = scope.ServiceProvider.GetRequiredService<CleanUpService>();
     FSharpResult<Unit, string> cleanupResult = await cleanUpService.ReSnapshotOnStartup();
 

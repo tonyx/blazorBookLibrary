@@ -40,6 +40,7 @@ type BookCommand =
     | UnsetDistributionPoint of UserId * DateTime
 
     | AddTag of Tag * DateTime
+    | AddTags of List<Tag> * DateTime
     | RemoveTag of Tag * DateTime
     | ClearTags of DateTime
 
@@ -143,6 +144,9 @@ type BookCommand =
             | AddTag (tag, dateTime) ->
                 book.AddTag tag dateTime
                 |> Result.map (fun b -> (b, [TagAdded(tag, dateTime)]))
+            | AddTags (tags, dateTime) ->
+                book.AddTags tags dateTime
+                |> Result.map (fun b -> (b, [TagsAdded(tags, dateTime)]))
             | RemoveTag (tag, dateTime) ->
                 book.RemoveTag tag dateTime
                 |> Result.map (fun b -> (b, [TagRemoved(tag, dateTime)]))

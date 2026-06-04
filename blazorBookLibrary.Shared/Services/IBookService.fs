@@ -18,12 +18,13 @@ type BulkBookEdit =
         AvailabilityEdit: Option<Availability>
         DistributionPointEdit: Option<DistributionPointId>
         AdditionalAuthorsEdit: Option<List<AuthorId>>
+        AdditionalTagsEdit: Option<List<Tag>>
     }
     with
         static member 
             Empty =
                 { YearEdit = None; MainCategoryEdit = None; AdditionalCategoriesEdit = None; AvailabilityEdit = None; DistributionPointEdit = None; 
-                AdditionalAuthorsEdit = None }
+                AdditionalAuthorsEdit = None; AdditionalTagsEdit = None }
         member 
             this.SetYearIfCondition (year, switch) =
                 if switch then { this with YearEdit = Some year } else this
@@ -42,6 +43,9 @@ type BulkBookEdit =
         member 
             this.SetAdditionalAuthorsIfCondition (authors, switch) =
                 if switch then { this with AdditionalAuthorsEdit = Some authors} else this
+        member 
+            this.SetAdditionalTagsIfCondition (tags, switch) =
+                if switch then { this with AdditionalTagsEdit = Some tags} else this
 
 type IBookService =
     abstract member AddBookAsync : context:UserContext * book: Book * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<unit, string>>

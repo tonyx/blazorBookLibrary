@@ -12,10 +12,12 @@ open Microsoft.Extensions.Logging
 
 module CleanUpServices =
     open BookLibrary.Shared.Commons
+    open BookLibrary.Utils
 
-    type CleanUpService(configuration: IConfiguration, logger: ILogger<CleanUpService>) =
+    type CleanUpService(configuration: IConfiguration, logger: ILogger<CleanUpService>, secretsReader: SecretsReader) =
         let bookDbConnectionString =
-            configuration.GetConnectionString "BookLibraryDbConnection"
+            secretsReader.GetBookLibraryConnectionString()
+            // configuration.GetConnectionString "BookLibraryDbConnection"
         // todo would be bettere to inject the event store
         let bookEventStore: IEventStore<string> =
             PgStorage.PgEventStore bookDbConnectionString

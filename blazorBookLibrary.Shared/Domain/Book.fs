@@ -149,19 +149,19 @@ type Book =
     member this.AddTag (tag: Tag) (dateTime: DateTime) =
         result {
             do! tag.IsBookTag |> Result.ofBool $"Tag {tag} is not a book tag"
-            do! this.Sealed.IsSealed(dateTime) |> not |> Result.ofBool "Book is sealed"
-            do! this.Tags |> List.contains tag |> not |> Result.ofBool "Tag already in book"
             return { this with Tags = this.Tags @ [ tag ] }
         }
 
     member this.RemoveTag (tag: Tag) (dateTime: DateTime) =
         result {
-            do! this.Sealed.IsSealed(dateTime) |> not |> Result.ofBool "Book is sealed"
-            do! this.Tags |> List.contains tag |> Result.ofBool "Tag not found in book"
-
             return
                 { this with
                     Tags = this.Tags |> List.filter (fun t -> t <> tag) }
+        }
+    
+    member this.AddTags (tags: List<Tag>) (dateTime: DateTime) =
+        result {
+            return { this with Tags = this.Tags @ tags |> List.distinct }
         }
 
     member this.ClearTags(dateTime: DateTime) =

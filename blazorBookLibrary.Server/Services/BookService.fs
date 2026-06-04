@@ -610,6 +610,21 @@ type BookService
                         | Ok v ->
                             Some v
                     | None -> None
+                let preExecutedTagEditCommands =
+                    match bulkBookEdit.AdditionalTagsEdit with
+                    | Some tags -> 
+                        let command = BookCommand.AddTags (tags, dateTime)
+                        let! preExecutedTagUpdateCommands =
+                            bookIds
+                            |> List.map _.Value
+                            |> List.traverseResultM (fun id -> preExecuteAggregateCommandMd<Book, BookEvent, string> id eventStore MessageSenders.NoSender "" command)
+                        match preExecutedTagUpdateCommands with
+                        | Error e ->
+                            printf "Error pre-executing tag update command: %A\n" e
+                            None 
+                        | Ok v ->
+                            Some v
+                    | None -> None 
 
                 let allPreExecutedCommands =
                     if preExecutedYearEditCommands.IsSome then
@@ -639,6 +654,11 @@ type BookService
                     @
                     if preExecutedAuthorEditCommands.IsSome then
                         preExecutedAuthorEditCommands.Value
+                    else
+                        []
+                    @
+                    if preExecutedTagEditCommands.IsSome then
+                        preExecutedTagEditCommands.Value
                     else
                         []
                 let result = 

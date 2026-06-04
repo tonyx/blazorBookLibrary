@@ -41,6 +41,7 @@ type BookEvent =
     | DistributionPointUnset of UserId * DateTime
 
     | TagAdded of Tag * DateTime
+    | TagsAdded of List<Tag> * DateTime
     | TagRemoved of Tag * DateTime
     | TagsCleared of DateTime
     | ImageUrlSet of Uri * DateTime
@@ -115,6 +116,8 @@ type BookEvent =
                 book.AddTag tag dateTime
             | TagRemoved (tag, dateTime) ->
                 book.RemoveTag tag dateTime
+            | TagsAdded (tags, dateTime) ->
+                book.AddTags tags dateTime
             | TagsCleared dateTime ->
                 book.ClearTags dateTime
             | ImageUrlSet (imageUrl, dateTime) ->
