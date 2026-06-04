@@ -218,6 +218,42 @@
                 </div>
             </div>
         </div>
+
+        <!-- Remove Tags -->
+        <div class="col-12">
+            <div class="bulk-edit-row d-flex align-items-start p-3 rounded @(editRemoveTags ? "bg-primary-subtle border-primary" : "bg-light border-transparent") border transition-all">
+                <div class="form-check form-switch me-4 mt-2">
+                    <input class="form-check-input" type="checkbox" role="switch" @bind="editRemoveTags" id="toggleRemoveTags">
+                </div>
+                <div class="flex-grow-1">
+                    <label class="form-label fw-bold mb-1 d-flex align-items-center" for="toggleRemoveTags">
+                        <i class="bi bi-tags me-2 text-danger"></i>@L["RemoveTags"]
+                    </label>
+                    <div class="d-flex gap-2 mb-2">
+                        <select class="form-select" @bind="tagToRemoveString" disabled="@(!editRemoveTags)">
+                            <option value="">-- @L["SelectTagToRemove"] --</option>
+                            @foreach (var tag in allBookTags.Where(t => !selectedRemoveTags.Any(st => st.TagName == t.TagName)))
+                            {
+                                <option value="@tag.TagName">@tag.TagName</option>
+                            }
+                        </select>
+                        <button type="button" class="btn btn-outline-primary" @onclick="AddRemoveTag" disabled="@(string.IsNullOrEmpty(tagToRemoveString) || !editRemoveTags)">
+                            <i class="bi bi-plus-lg"></i>
+                        </button>
+                    </div>
+                    <div class="d-flex flex-wrap gap-2 min-vh-5 mt-2">
+                        @foreach (var tag in selectedRemoveTags)
+                        {
+                            <div class="badge bg-danger text-white p-2 d-flex align-items-center gap-2">
+                                @tag.TagName
+                                <button type="button" class="btn-close btn-close-white" style="font-size: 0.5rem" 
+                                        @onclick="() => selectedRemoveTags.Remove(tag)" disabled="@(!editRemoveTags)"></button>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <div class="mt-5 pt-3 border-top d-flex gap-3">
@@ -263,6 +299,7 @@
     private bool editAuthors;
     private bool editDistributionPoint;
     private bool editTags;
+    private bool editRemoveTags;
     private bool isProcessing;
 
     private int year = DateTime.Now.Year;
@@ -272,8 +309,10 @@
     private List<Category> additionalCategories = new();
     private List<Author> selectedAuthors = new();
     private List<Tag> selectedTags = new();
+    private List<Tag> selectedRemoveTags = new();
     private List<Tag> allBookTags = new();
     private string tagToAddString = "";
+    private string tagToRemoveString = "";
 
     protected override async Task OnParametersSetAsync()
     {
@@ -298,6 +337,19 @@
             {
                 selectedTags.Add(tag);
                 tagToAddString = "";
+            }
+        }
+    }
+
+    private void AddRemoveTag()
+    {
+        if (!string.IsNullOrEmpty(tagToRemoveString))
+        {
+            var tag = allBookTags.FirstOrDefault(t => t.TagName == tagToRemoveString);
+            if (tag != null && !selectedRemoveTags.Any(t => t.TagName == tag.TagName))
+            {
+                selectedRemoveTags.Add(tag);
+                tagToRemoveString = "";
             }
         }
     }
@@ -365,7 +417,8 @@
                 .SetAdditionalCategoriesIfCondition(ListModule.OfSeq(additionalCategories), editAdditionalCategories)
                 .SetAvailabilityIfCondition(Availability.FromString(availability), editAvailability)
                 .SetAdditionalAuthorsIfCondition(ListModule.OfSeq(selectedAuthors.Select(a => a.AuthorId)), editAuthors)
-                .SetAdditionalTagsIfCondition(ListModule.OfSeq(selectedTags), editTags);
+                .SetAdditionalTagsIfCondition(ListModule.OfSeq(selectedTags), editTags)
+                .SetRemoveTagsIfCondition(ListModule.OfSeq(selectedRemoveTags), editRemoveTags);
 
             if (editDistributionPoint && !string.IsNullOrEmpty(selectedDpId))
             {

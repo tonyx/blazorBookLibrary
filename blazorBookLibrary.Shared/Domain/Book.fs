@@ -164,6 +164,11 @@ type Book =
             return { this with Tags = this.Tags @ tags |> List.distinct }
         }
 
+    member this.RemoveTags (tags: List<Tag>) (dateTime: DateTime) =
+        result {
+            return { this with Tags = this.Tags |> List.filter (fun t -> tags |> List.contains t |> not) }
+        }
+
     member this.ClearTags(dateTime: DateTime) =
         result {
             do! this.Sealed.IsSealed(dateTime) |> not |> Result.ofBool "Book is sealed"

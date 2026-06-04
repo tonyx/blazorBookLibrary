@@ -989,4 +989,6 @@
   <data name="RecordHasDescription" xml:space="preserve"><value>Archival record contains description.</value></data>
   <data name="RecordMissingDescription" xml:space="preserve"><value>Record lacks description.</value></data>
   <data name="ShowDetailedMetadata" xml:space="preserve"><value>Show Detailed Fields</value></data>
+  <data name="RemoveTags" xml:space="preserve"><value>Remove Tags</value></data>
+  <data name="SelectTagToRemove" xml:space="preserve"><value>Select tag to remove</value></data>
 </root>

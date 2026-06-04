@@ -31,6 +31,24 @@
 
 <PageTitle>@L["BookDetails"]</PageTitle>
 
+<style>
+    .tag-chip {
+        padding: 0.4rem 1rem;
+        border-radius: 2rem;
+        font-size: 0.85rem;
+        font-weight: 500;
+        white-space: nowrap;
+        transition: all 0.2s ease;
+        display: inline-flex;
+        align-items: center;
+    }
+    .type-book { background-color: #3b82f6; color: white; }
+    .type-author { background-color: #10b981; color: white; }
+    .type-general { background-color: #f59e0b; color: white; }
+    .type-person { background-color: #06b6d4; color: white; }
+    .type-generic { background-color: #6b7280; color: white; }
+</style>
+
 <div class="sanctuary-container">
     <!-- Header Area -->
     <div class="d-flex justify-content-between align-items-end mb-5 border-bottom pb-4" style="border-color: var(--outline-variant) !important;">
@@ -222,6 +240,18 @@
                             </a>
                         }
                     </div>
+
+                    @if (bookDetails.Book.Tags.Any())
+                    {
+                        <div class="d-flex flex-wrap gap-2 mb-4">
+                            @foreach (var tag in bookDetails.Book.Tags)
+                            {
+                                <span class="tag-chip @GetTagColorClass(GetTagTypeName(tag)) shadow-sm">
+                                    <i class="bi bi-tag-fill me-1"></i> @tag.TagName
+                                </span>
+                            }
+                        </div>
+                    }
 
                     <div class="row mt-5">
                         <div class="col-md-7">
@@ -698,5 +728,28 @@
         if (availability.IsCirculating) return L["CirculatingRule"];
         if (availability.IsReferenceOnly) return L["ReferenceOnlyRule"];
         return L["UnspecifiedRule"];
+    }
+
+    private string GetTagTypeName(Tag tag)
+    {
+        if (tag.IsBookTag) return "Book";
+        if (tag.IsAuthorTag) return "Author";
+        if (tag.IsGeneralTag) return "General";
+        if (tag.IsPersonTag) return "Person";
+        if (tag.IsGenericTag) return "Generic";
+        return "Generic";
+    }
+
+    private string GetTagColorClass(string type)
+    {
+        return type switch
+        {
+            "Book" => "type-book",
+            "Author" => "type-author",
+            "General" => "type-general",
+            "Person" => "type-person",
+            "Generic" => "type-generic",
+            _ => "type-generic"
+        };
     }
 }

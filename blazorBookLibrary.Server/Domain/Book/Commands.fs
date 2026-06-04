@@ -42,6 +42,7 @@ type BookCommand =
     | AddTag of Tag * DateTime
     | AddTags of List<Tag> * DateTime
     | RemoveTag of Tag * DateTime
+    | RemoveTags of List<Tag> * DateTime
     | ClearTags of DateTime
 
     | SetImageUrl of Uri * DateTime
@@ -150,6 +151,9 @@ type BookCommand =
             | RemoveTag (tag, dateTime) ->
                 book.RemoveTag tag dateTime
                 |> Result.map (fun b -> (b, [TagRemoved(tag, dateTime)]))
+            | RemoveTags (tags, dateTime) ->
+                book.RemoveTags tags dateTime
+                |> Result.map (fun b -> (b, [TagsRemoved(tags, dateTime)]))
             | ClearTags dateTime ->
                 book.ClearTags dateTime
                 |> Result.map (fun b -> (b, [TagsCleared(dateTime)]))

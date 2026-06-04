@@ -14,23 +14,26 @@ open BookLibrary.Shared.Commons
 open BookLibrary.MessagesScheduler
 open Microsoft.Extensions.Logging
 open Microsoft.Extensions.Configuration
+open BookLibrary.Utils
 
 type MailResenderService(
     configuration: IConfiguration,
     eventStore: IEventStore<string>,
     mailQueueViewerAsync: AggregateViewerAsync2<MailQueue>,
+    secretsReader: SecretsReader,
     mailJetCient: MailjetClient,
     logger: ILogger<MailResenderService>
 ) =
-    new (configuration: IConfiguration, logger: ILogger<MailResenderService>) =
-        let connectionString = configuration.GetConnectionString("BookLibraryDbConnection")
+    new (configuration: IConfiguration, secretsReader: SecretsReader, logger: ILogger<MailResenderService>) =
+        // let connectionString = configuration.GetConnectionString("BookLibraryDbConnection")
+        let connectionString = secretsReader.GetBookLibraryConnectionString ()
         let eventStore = PgStorage.PgEventStore connectionString
         let mailQueueViewerAsync = getAggregateStorageFreshStateViewerAsync<MailQueue, MailQueueEvent, string> eventStore
         let mailjetApiKey = configuration["Mailjet:ApiKey"]
         let mailjetSecretKey = configuration["Mailjet:SecretKey"]
         let mailJetCient = MailjetClient(mailjetApiKey, mailjetSecretKey)
         
-        MailResenderService(configuration, eventStore, mailQueueViewerAsync, mailJetCient, logger)
+        MailResenderService(configuration, eventStore, mailQueueViewerAsync, secretsReader, mailJetCient, logger)
 
     member this.GetAllPendingItemsAsync (?ct: CancellationToken) = 
         taskResult

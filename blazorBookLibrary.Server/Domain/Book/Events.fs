@@ -43,6 +43,7 @@ type BookEvent =
     | TagAdded of Tag * DateTime
     | TagsAdded of List<Tag> * DateTime
     | TagRemoved of Tag * DateTime
+    | TagsRemoved of List<Tag> * DateTime
     | TagsCleared of DateTime
     | ImageUrlSet of Uri * DateTime
     | ImageUrlRemoved of DateTime
@@ -118,6 +119,8 @@ type BookEvent =
                 book.RemoveTag tag dateTime
             | TagsAdded (tags, dateTime) ->
                 book.AddTags tags dateTime
+            | TagsRemoved (tags, dateTime) ->
+                book.RemoveTags tags dateTime
             | TagsCleared dateTime ->
                 book.ClearTags dateTime
             | ImageUrlSet (imageUrl, dateTime) ->
