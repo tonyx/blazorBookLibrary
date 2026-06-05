@@ -10,6 +10,7 @@
 @using Microsoft.Extensions.Localization
 @using Microsoft.FSharp.Collections
 @using static BookLibrary.Shared.Commons
+@using Microsoft.AspNetCore.SignalR.Client
 
 @attribute [Authorize(Roles = "Admin, Manager")]
 @inject IReviewService ReviewService
@@ -18,7 +19,9 @@
 @inject IStringLocalizer<SharedResources> L
 @inject ILogger<ReviewManager> Logger
 @inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager NavigationManager
 @rendermode InteractiveAuto
+@implements IAsyncDisposable
 
 <PageTitle>@L["ReviewModeration"] — @L["BiblioNet"]</PageTitle>
 
@@ -159,8 +162,30 @@
     [Parameter] public Guid reviewIdGuid { get; set; }
     private ReviewDetails? details;
 
+    private HubConnection? hubConnection;
+
     protected override async Task OnInitializedAsync()
     {
+        try
+        {
+            hubConnection = new HubConnectionBuilder()
+                .WithUrl(NavigationManager.ToAbsoluteUri("/hubs/library"))
+                .WithAutomaticReconnect()
+                .Build();
+
+            hubConnection.On("ReviewsChanged", async () =>
+            {
+                await LoadReview();
+                await InvokeAsync(StateHasChanged);
+            });
+
+            await hubConnection.StartAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Could not start SignalR hub connection in ReviewManager. Expected during prerendering.");
+        }
+
         await LoadReview();
     }
 
@@ -243,6 +268,14 @@
         {
             Logger.LogError("Error rejecting review: {Error}", result.ErrorValue);
             await JSRuntime.InvokeVoidAsync("showToast", L["ErrorOccurred"].Value, "error");
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (hubConnection is not null)
+        {
+            await hubConnection.DisposeAsync();
         }
     }
 }

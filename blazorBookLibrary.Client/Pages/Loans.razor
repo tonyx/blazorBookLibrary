@@ -10,6 +10,7 @@
 @using Microsoft.Extensions.Localization
 @using Microsoft.FSharp.Collections
 @using static BookLibrary.Shared.Commons
+@using Microsoft.AspNetCore.SignalR.Client
 
 @attribute [Authorize]
 @inject IUserTenantResolverService UserTenantResolverService
@@ -21,7 +22,9 @@
 @inject IStringLocalizer<SharedResources> L
 @inject ILogger<Loans> Logger
 @inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager NavigationManager
 @rendermode InteractiveAuto
+@implements IAsyncDisposable
 
 <PageTitle>@L["LoansManagement"] — @L["BiblioNet"]</PageTitle>
 
@@ -213,8 +216,34 @@ else
                          (string.IsNullOrEmpty(patronFilter) || (ld.UserDetails.AppUser.Email != null && ld.UserDetails.AppUser.Email.Contains(patronFilter, StringComparison.OrdinalIgnoreCase))))
             .OrderByDescending(ld => ld.Loan.TimeSlot.Start);
 
+    private HubConnection? hubConnection;
+
     protected override async Task OnInitializedAsync()
     {
+        try
+        {
+            hubConnection = new HubConnectionBuilder()
+                .WithUrl(NavigationManager.ToAbsoluteUri("/hubs/library"))
+                .WithAutomaticReconnect()
+                .Build();
+
+            Action refreshHandler = async () =>
+            {
+                await LoadLoans();
+                await InvokeAsync(StateHasChanged);
+            };
+
+            hubConnection.On("BookAvailabilityChanged", refreshHandler);
+            hubConnection.On("BookCatalogChanged", refreshHandler);
+            hubConnection.On("LoanListChanged", refreshHandler);
+
+            await hubConnection.StartAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Could not start SignalR hub connection in Loans. Expected during prerendering.");
+        }
+
         isPageLoading = true;
         try
         {
@@ -289,6 +318,14 @@ else
                 Logger.LogError("Error returning loan: {Error}", result.ErrorValue);
                 await JSRuntime.InvokeVoidAsync("showToast", L["ErrorOccurred"].Value, "error");
             }
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (hubConnection is not null)
+        {
+            await hubConnection.DisposeAsync();
         }
     }
 }

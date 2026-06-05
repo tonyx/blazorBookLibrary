@@ -8,6 +8,7 @@
 @using BookLibrary.Shared
 @using System.ComponentModel.DataAnnotations
 @using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.AspNetCore.SignalR.Client
 
 @attribute [Authorize]
 @inject ITenantService TenantService
@@ -23,6 +24,7 @@
 @inject NavigationManager NavigationManager
 @inject IUserTenantResolverService UserTenantResolverService
 @rendermode InteractiveAuto
+@implements IAsyncDisposable
 
 
 <PageTitle>@L["AllowedTenants"] — @L["BiblioNet"]</PageTitle>
@@ -413,8 +415,30 @@
         public bool IsPublic { get; set; } = true;
     }
 
+    private HubConnection? hubConnection;
+
     protected override async Task OnInitializedAsync()
     {
+        try
+        {
+            hubConnection = new HubConnectionBuilder()
+                .WithUrl(NavigationManager.ToAbsoluteUri("/hubs/library"))
+                .WithAutomaticReconnect()
+                .Build();
+
+            hubConnection.On("TenantListChanged", async () =>
+            {
+                await LoadTenants();
+                await InvokeAsync(StateHasChanged);
+            });
+
+            await hubConnection.StartAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Could not start SignalR hub connection in Tenants. Expected during prerendering.");
+        }
+
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         if (authState.User.Identity?.IsAuthenticated == true)
         {
@@ -736,6 +760,14 @@
         {
             Logger.LogError(ex, "Exception when deleting tenant");
             await JSRuntime.InvokeVoidAsync("showToast", L["ErrorOccurred"].Value, "error");
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (hubConnection is not null)
+        {
+            await hubConnection.DisposeAsync();
         }
     }
 }

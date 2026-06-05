@@ -7,6 +7,7 @@
 @using static BookLibrary.Shared.Commons
 @using BookLibrary.Shared
 @using Microsoft.FSharp.Core
+@using Microsoft.AspNetCore.SignalR.Client
 
 @inject IAuthorService AuthorService
 @inject IDetailsService DetailsService
@@ -15,6 +16,7 @@
 @inject IJSRuntime JSRuntime
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @rendermode InteractiveAuto
+@implements IAsyncDisposable
 
 <PageTitle>@L["AuthorDetails"]</PageTitle>
 
@@ -214,8 +216,42 @@
         JSRuntime.InvokeVoidAsync("history.back");
     }
 
+    private HubConnection? hubConnection;
+
     protected override async Task OnInitializedAsync()
     {
+        try
+        {
+            hubConnection = new HubConnectionBuilder()
+                .WithUrl(NavigationManager.ToAbsoluteUri("/hubs/library"))
+                .WithAutomaticReconnect()
+                .Build();
+
+            Action refreshHandler = async () =>
+            {
+                await LoadAuthorDetails();
+                await InvokeAsync(StateHasChanged);
+            };
+
+            hubConnection.On("AuthorsChanged", refreshHandler);
+            hubConnection.On("BookAvailabilityChanged", refreshHandler);
+            hubConnection.On("AuthorCatalogChanged", refreshHandler);
+            hubConnection.On<Guid>("AuthorDetailsChanged", async (id) =>
+            {
+                if (authorDetails != null && authorDetails.Author.AuthorId.Value == id)
+                {
+                    await LoadAuthorDetails();
+                    await InvokeAsync(StateHasChanged);
+                }
+            });
+
+            await hubConnection.StartAsync();
+        }
+        catch (Exception ex)
+        {
+            System.Console.WriteLine($"Could not start SignalR hub connection in AuthorView: {ex}");
+        }
+
         await LoadAuthorDetails();
     }
 
@@ -254,6 +290,14 @@
         finally
         {
             isLoading = false;
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (hubConnection is not null)
+        {
+            await hubConnection.DisposeAsync();
         }
     }
 }

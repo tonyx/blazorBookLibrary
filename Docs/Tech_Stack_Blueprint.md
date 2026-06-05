@@ -550,16 +550,96 @@ The public `GetBookDetailsAsync` unwraps the refreshable wrapper:
 ```fsharp
 member this.GetBookDetailsAsync(bookId, ?ct) =
     taskResult {
-        let! refreshable = this.GetRefreshableBookDetailsAsync(bookId, ct)
-        return refreshable.BookDetails
+   ---
+
+## 11. Real-time UI Synchronization (SignalR + DetailsCache)
+
+To keep the client-side Blazor UI synchronized with backend aggregate modifications in real-time, the solution uses a push-based mechanism combining **Sharpino's DetailsCache dependency tracking** with **ASP.NET Core SignalR**.
+
+### Architectural Flow
+
+1. **State Mutation**: A command modifies an aggregate (e.g. `Loan` is released).
+2. **Cache Invalidation**: Sharpino's `DetailsCache` identifies which refreshable details (e.g. `RefreshableLoanDetails`) depend on that aggregate. It marks the cache entry as dirty and triggers a background refresh.
+3. **Event Emitted**: When a refreshable detail is updated, the cache raises the `Sharpino.Cache.DetailsCache.Instance.OnDetailsRefreshed` event.
+4. **SignalR Broadcast**: In `Program.cs`, the application subscribes to `OnDetailsRefreshed` and broadcasts specific events to all clients via a SignalR Hub (`LibraryHub`).
+5. **UI Update**: Blazor pages listen to these SignalR events and invoke their local reload method, updating the view reactively.
+
+### 1. Centralized Hub Event Mapping (`Program.cs`)
+
+In the host application startup (`Program.cs`), we listen to `OnDetailsRefreshed` and map cache types to client-side SignalR messages:
+
+```csharp
+Sharpino.Cache.DetailsCache.Instance.OnDetailsRefreshed += (sender, args) =>
+{
+    var (typeName, id) = args;
+    using (var scope = app.Services.CreateScope())
+    {
+        var hubContext = scope.ServiceProvider.GetRequiredService<IHubContext<BookLibrary.Hubs.LibraryHub>>();
+        if (typeName == "RefreshableTenantDetails")
+        {
+            hubContext.Clients.All.SendAsync("TenantTagsChanged");
+            hubContext.Clients.All.SendAsync("TenantListChanged");
+        }
+        else if (typeName == "RefreshableLoanDetails")
+        {
+            hubContext.Clients.All.SendAsync("LoanListChanged");
+            hubContext.Clients.All.SendAsync("LoanDetailsChanged", id);
+        }
+        else if (typeName == "RefreshableReservationDetails")
+        {
+            hubContext.Clients.All.SendAsync("ReservationListChanged");
+            hubContext.Clients.All.SendAsync("ReservationDetailsChanged", id);
+        }
+        else if (typeName == "RefreshableBookDetails")
+        {
+            hubContext.Clients.All.SendAsync("BookCatalogChanged");
+            hubContext.Clients.All.SendAsync("BookDetailsChanged", id);
+        }
+        else if (typeName == "RefreshableAuthorDetails")
+        {
+            hubContext.Clients.All.SendAsync("AuthorCatalogChanged");
+            hubContext.Clients.All.SendAsync("AuthorDetailsChanged", id);
+        }
+        else if (typeName == "RefreshableReviewDetails")
+        {
+            hubContext.Clients.All.SendAsync("ReviewsListChanged");
+            hubContext.Clients.All.SendAsync("ReviewDetailsChanged", id);
+        }
     }
+};
 ```
 
-> **Rule:** Always provide cache dependency keys — the list of all aggregate IDs whose changes should invalidate this details cache entry.
+### 2. Client-Side Page Subscription Pattern
+
+Blazor pages connect to `LibraryHub` and registers handlers. We use two main refresh approaches depending on the view:
+
+#### A. Catalog/List Refresh (Unconditional)
+For grids or search pages, listen to the catalog list events:
+```csharp
+hubConnection.On("LoanListChanged", async () =>
+{
+    await LoadLoans();
+    await InvokeAsync(StateHasChanged);
+});
+```
+
+#### B. Single Item Profile Refresh (Conditional on ID)
+For detail views (e.g. `BookView.razor`), verify if the notification belongs to the active record to avoid unnecessary refreshes:
+```csharp
+hubConnection.On<Guid>("BookDetailsChanged", async (id) =>
+{
+    if (bookDetails != null && bookDetails.Book.BookId.Value == id)
+    {
+        await LoadBookDetails();
+        await LoadUserReservation();
+        await InvokeAsync(StateHasChanged);
+    }
+});
+```
 
 ---
 
-## 11. Configuration Pattern — `appsettings.json`
+## 12. Configuration Pattern — `appsettings.json`
 
 Feature flags and domain settings live under a named section:
 
@@ -589,15 +669,15 @@ var isEnabled = Configuration.GetValue<bool>("BooksLibrary:ReviewSytemEnabled");
 
 ---
 
-## 12. Blazor UI Conventions
+## 13. Blazor UI Conventions
 
 ### Feature Flag Gate Pattern (Razor pages)
 ```razor
 @inject IConfiguration Configuration
-
+ 
 @code {
     private bool isFeatureEnabled;
-
+ 
     protected override void OnInitialized() {
         isFeatureEnabled = Configuration.GetValue<bool>("Section:FeatureEnabled");
     }
@@ -627,7 +707,7 @@ if (!featureEnabled) {
 
 ---
 
-## 13. Aggregate-to-Migration Traceability
+## 14. Aggregate-to-Migration Traceability
 
 | Aggregate | `Version` | `StorageName` | Migration file |
 |---|---|---|---|
@@ -644,7 +724,7 @@ if (!featureEnabled) {
 
 ---
 
-## 14. Vector Database & AI Semantic Search
+## 15. Vector Database & AI Semantic Search
 
 To enable **semantic discovery**, the system utilizes a **Vector Database** powered by the PostgreSQL `pgvector` extension. This database stores high-dimensional embeddings of book descriptions, allowing for meaning-based searches.
 
@@ -693,7 +773,7 @@ let sql = "SELECT book_id FROM item_embeddings_projections
 
 ---
 
-## 15. Checklist — Adding a New Aggregate
+## 16. Checklist — Adding a New Aggregate
 
 - [ ] Add `NewAggId` (single-case DU wrapping `Guid`) to `Shared/Commons.fs`
 - [ ] Add any new domain value objects to `Shared/Commons.fs` (string wrappers, enumerations, composite value objects)
@@ -711,7 +791,7 @@ let sql = "SELECT book_id FROM item_embeddings_projections
 
 ---
 
-## 15. GDPR Anonymization Pattern (Ghosting)
+## 17. GDPR Anonymization Pattern (Ghosting)
 
 When users must be removed from the system while preserving the integrity of historical event streams (e.g., loans, reviews, reservations), use the **Anonymization (Ghosting) Pattern** instead of physical deletion.
 

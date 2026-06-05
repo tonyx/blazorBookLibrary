@@ -9,10 +9,8 @@
     <GenerateTestingPlatformEntryPoint>false</GenerateTestingPlatformEntryPoint>
   </PropertyGroup>
 
-  <!-- for development with sharpino library locally available --> 
-
   <!-- <ItemGroup>
-    <ProjectReference Include="..\..\realsharpino\Sharpino\Sharpino.Lib\Sharpino.Lib.fsproj" />
+    <ProjectReference Include="../../realsharpino/Sharpino/Sharpino.Lib/Sharpino.Lib.fsproj" />
   </ItemGroup> -->
 
   <ItemGroup>
@@ -105,6 +103,7 @@
     <Compile Include="Services/TenantService.fs" />
     <Compile Include="Services/NotificationService.fs" />
     <Compile Include="Services/EmbeddingOrchestrationService.fs" />
+    <Compile Include="Hubs/LibraryHub.fs" />
     <Compile Include="Controllers/AuthorsSearchController.fs" />
     <Compile Include="Controllers/BooksController.fs" />
     <Compile Include="Controllers/LoansController.fs" />
@@ -135,7 +134,7 @@
     <PackageReference Include="Microsoft.Extensions.Configuration" Version="10.0.8" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.0.8" />
 
-    <PackageReference Include="Sharpino" Version="6.0.1" />
+    <PackageReference Include="Sharpino" Version="6.0.2" />
 
   </ItemGroup>
 

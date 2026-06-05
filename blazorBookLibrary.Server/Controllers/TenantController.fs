@@ -13,7 +13,7 @@ type PatronRegistration = { UserId: Guid; Role: PatronRole }
 
 [<ApiController>]
 [<Route("api/[controller]")>]
-type TenantController(tenantService: ITenantService) =
+type TenantController(tenantService: ITenantService, hubContext: Microsoft.AspNetCore.SignalR.IHubContext<BookLibrary.Hubs.LibraryHub>) =
     inherit ControllerBase()
 
     [<HttpPost>]
@@ -23,7 +23,9 @@ type TenantController(tenantService: ITenantService) =
             let! result = tenantService.CreateTenantAsync(context, tenant)
 
             match result with
-            | Ok _ -> return this.Ok() :> IActionResult
+            | Ok _ -> 
+                do! hubContext.Clients.All.SendCoreAsync("TenantListChanged", [||])
+                return this.Ok() :> IActionResult
             | Error msg -> return this.BadRequest(msg) :> IActionResult
         }
 
@@ -45,7 +47,9 @@ type TenantController(tenantService: ITenantService) =
             let! result = tenantService.AddPatronAsync(context, TenantId id, UserId patron.UserId, patron.Role)
 
             match result with
-            | Ok _ -> return this.Ok() :> IActionResult
+            | Ok _ -> 
+                do! hubContext.Clients.All.SendCoreAsync("TenantListChanged", [||])
+                return this.Ok() :> IActionResult
             | Error msg -> return this.BadRequest(msg) :> IActionResult
         }
 
@@ -56,7 +60,9 @@ type TenantController(tenantService: ITenantService) =
             let! result = tenantService.DemotePatronAsync(context, TenantId id, UserId userId)
 
             match result with
-            | Ok _ -> return this.Ok() :> IActionResult
+            | Ok _ -> 
+                do! hubContext.Clients.All.SendCoreAsync("TenantListChanged", [||])
+                return this.Ok() :> IActionResult
             | Error msg -> return this.BadRequest(msg) :> IActionResult
         }
 
@@ -67,7 +73,9 @@ type TenantController(tenantService: ITenantService) =
             let! result = tenantService.PromotePatronAsync(context, TenantId id, UserId userId)
 
             match result with
-            | Ok _ -> return this.Ok() :> IActionResult
+            | Ok _ -> 
+                do! hubContext.Clients.All.SendCoreAsync("TenantListChanged", [||])
+                return this.Ok() :> IActionResult
             | Error msg -> return this.BadRequest(msg) :> IActionResult
         }
 
@@ -78,7 +86,9 @@ type TenantController(tenantService: ITenantService) =
             let! result = tenantService.RemovePatronAsync(context, TenantId id, UserId userId)
 
             match result with
-            | Ok _ -> return this.Ok() :> IActionResult
+            | Ok _ -> 
+                do! hubContext.Clients.All.SendCoreAsync("TenantListChanged", [||])
+                return this.Ok() :> IActionResult
             | Error msg -> return this.BadRequest(msg) :> IActionResult
         }
 
@@ -89,7 +99,9 @@ type TenantController(tenantService: ITenantService) =
             let! result = tenantService.InvitePatronAsync(context, TenantId id, UserId userId)
 
             match result with
-            | Ok _ -> return this.Ok() :> IActionResult
+            | Ok _ -> 
+                do! hubContext.Clients.All.SendCoreAsync("TenantListChanged", [||])
+                return this.Ok() :> IActionResult
             | Error msg -> return this.BadRequest(msg) :> IActionResult
         }
 
@@ -100,7 +112,9 @@ type TenantController(tenantService: ITenantService) =
             let! result = tenantService.RevokePatronInvitation(context, TenantId id, UserId userId)
 
             match result with
-            | Ok _ -> return this.Ok() :> IActionResult
+            | Ok _ -> 
+                do! hubContext.Clients.All.SendCoreAsync("TenantListChanged", [||])
+                return this.Ok() :> IActionResult
             | Error msg -> return this.BadRequest(msg) :> IActionResult
         }
 
@@ -111,7 +125,9 @@ type TenantController(tenantService: ITenantService) =
             let! result = tenantService.SuspendPatron(context, TenantId id, UserId userId, reason)
 
             match result with
-            | Ok _ -> return this.Ok() :> IActionResult
+            | Ok _ -> 
+                do! hubContext.Clients.All.SendCoreAsync("TenantListChanged", [||])
+                return this.Ok() :> IActionResult
             | Error msg -> return this.BadRequest(msg) :> IActionResult
         }
 
@@ -122,7 +138,9 @@ type TenantController(tenantService: ITenantService) =
             let! result = tenantService.ReAdmittPatron(context, TenantId id, UserId userId)
 
             match result with
-            | Ok _ -> return this.Ok() :> IActionResult
+            | Ok _ -> 
+                do! hubContext.Clients.All.SendCoreAsync("TenantListChanged", [||])
+                return this.Ok() :> IActionResult
             | Error msg -> return this.BadRequest(msg) :> IActionResult
         }
 
@@ -138,7 +156,9 @@ type TenantController(tenantService: ITenantService) =
                 let! result = tenantService.ConvertInvitedPatronToPatronAsync(context, TenantId id, code)
 
                 match result with
-                | Ok _ -> return this.Ok() :> IActionResult
+                | Ok _ -> 
+                    do! hubContext.Clients.All.SendCoreAsync("TenantListChanged", [||])
+                    return this.Ok() :> IActionResult
                 | Error msg -> return this.BadRequest(msg) :> IActionResult
         }
 
@@ -215,7 +235,9 @@ type TenantController(tenantService: ITenantService) =
             let! result = tenantService.SetPublicAsync(context, TenantId id)
 
             match result with
-            | Ok _ -> return this.Ok() :> IActionResult
+            | Ok _ -> 
+                do! hubContext.Clients.All.SendCoreAsync("TenantListChanged", [||])
+                return this.Ok() :> IActionResult
             | Error msg -> return this.BadRequest(msg) :> IActionResult
         }
 
@@ -226,7 +248,9 @@ type TenantController(tenantService: ITenantService) =
             let! result = tenantService.SetPrivateAsync(context, TenantId id)
 
             match result with
-            | Ok _ -> return this.Ok() :> IActionResult
+            | Ok _ -> 
+                do! hubContext.Clients.All.SendCoreAsync("TenantListChanged", [||])
+                return this.Ok() :> IActionResult
             | Error msg -> return this.BadRequest(msg) :> IActionResult
         }
 
@@ -237,7 +261,9 @@ type TenantController(tenantService: ITenantService) =
             let! result = tenantService.RequestPublicAsync(context, TenantId id)
 
             match result with
-            | Ok _ -> return this.Ok() :> IActionResult
+            | Ok _ -> 
+                do! hubContext.Clients.All.SendCoreAsync("TenantListChanged", [||])
+                return this.Ok() :> IActionResult
             | Error msg -> return this.BadRequest(msg) :> IActionResult
         }
 
@@ -248,7 +274,9 @@ type TenantController(tenantService: ITenantService) =
             let! result = tenantService.DeleteTenantAsync(context, TenantId id)
 
             match result with
-            | Ok _ -> return this.Ok() :> IActionResult
+            | Ok _ -> 
+                do! hubContext.Clients.All.SendCoreAsync("TenantListChanged", [||])
+                return this.Ok() :> IActionResult
             | Error msg -> return this.BadRequest(msg) :> IActionResult
         }
 
@@ -259,7 +287,9 @@ type TenantController(tenantService: ITenantService) =
             let! result = tenantService.AddTagAsync(context, TenantId id, tag)
 
             match result with
-            | Ok _ -> return this.Ok() :> IActionResult
+            | Ok _ -> 
+                do! hubContext.Clients.All.SendCoreAsync("TenantTagsChanged", [||])
+                return this.Ok() :> IActionResult
             | Error msg -> return this.BadRequest(msg) :> IActionResult
         }
 
@@ -270,7 +300,9 @@ type TenantController(tenantService: ITenantService) =
             let! result = tenantService.RemoveTagAsync(context, TenantId id, tag)
 
             match result with
-            | Ok _ -> return this.Ok() :> IActionResult
+            | Ok _ -> 
+                do! hubContext.Clients.All.SendCoreAsync("TenantTagsChanged", [||])
+                return this.Ok() :> IActionResult
             | Error msg -> return this.BadRequest(msg) :> IActionResult
         }
 
@@ -302,7 +334,9 @@ type TenantController(tenantService: ITenantService) =
             let! result = tenantService.SubmitJoinRequestAsync(context, TenantId id, UserId userId)
 
             match result with
-            | Ok _ -> return this.Ok() :> IActionResult
+            | Ok _ -> 
+                do! hubContext.Clients.All.SendCoreAsync("TenantListChanged", [||])
+                return this.Ok() :> IActionResult
             | Error msg -> return this.BadRequest(msg) :> IActionResult
         }
 
@@ -313,7 +347,9 @@ type TenantController(tenantService: ITenantService) =
             let! result = tenantService.ApproveJoinRequestAsync(context, TenantId id, UserId userId)
 
             match result with
-            | Ok _ -> return this.Ok() :> IActionResult
+            | Ok _ -> 
+                do! hubContext.Clients.All.SendCoreAsync("TenantListChanged", [||])
+                return this.Ok() :> IActionResult
             | Error msg -> return this.BadRequest(msg) :> IActionResult
         }
 
@@ -324,6 +360,8 @@ type TenantController(tenantService: ITenantService) =
             let! result = tenantService.RejectJoinRequestAsync(context, TenantId id, UserId userId)
 
             match result with
-            | Ok _ -> return this.Ok() :> IActionResult
+            | Ok _ -> 
+                do! hubContext.Clients.All.SendCoreAsync("TenantListChanged", [||])
+                return this.Ok() :> IActionResult
             | Error msg -> return this.BadRequest(msg) :> IActionResult
         }

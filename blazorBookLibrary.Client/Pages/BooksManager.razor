@@ -13,7 +13,7 @@
 @using blazorBookLibrary.Shared
 @using Microsoft.AspNetCore.Components.QuickGrid
 @using BookLibrary.Shared.Services
-
+@using Microsoft.AspNetCore.SignalR.Client
 @attribute [Authorize]
 @inject IBookService BookService
 @inject IUserService UserService
@@ -32,7 +32,9 @@
 @inject IVectorDbService VectorDbService
 @inject blazorBookLibrary.Client.Services.TenantStateService TenantState
 @inject IEmbeddingOrchestrationService EmbeddingOrchestrationService
+@inject NavigationManager NavigationManager
 @rendermode InteractiveAuto
+@implements IAsyncDisposable
 
 <PageTitle>@L["BooksManager"] — @L["BiblioNet"]</PageTitle>
 
@@ -126,7 +128,7 @@ else
     @* Search & Filter Toolbar *@
     <div class="manager-transition-section @(showAddSection ? "section-hidden" : "")">
         <div class="card-sanctuary mb-5 p-4 border-0 shadow-none bg-surface-low">
-            <BookSearchToolbar InitialDistributionPointId="@DpId" OnSearchResultsFound="HandleSearchResultsFound" OnError="ShowSearchError" OnSearchStarted="HandleSearchStarted" />
+            <BookSearchToolbar @ref="searchToolbar" InitialDistributionPointId="@DpId" OnSearchResultsFound="HandleSearchResultsFound" OnError="ShowSearchError" OnSearchStarted="HandleSearchStarted" />
         </div>
     </div>
 
@@ -1065,6 +1067,7 @@ else
         }
     }
 
+    private BookSearchToolbar searchToolbar = default!;
     private string searchAuthorName = "";
     private string searchAuthorIsni = "";
     private List<Author> foundAuthors = new();
@@ -1135,8 +1138,36 @@ else
     private bool isAuthorized = false;
     private bool isPageLoading = true;
 
+    private HubConnection? hubConnection;
+
     protected override async Task OnInitializedAsync()
     {
+        try
+        {
+            hubConnection = new HubConnectionBuilder()
+                .WithUrl(NavigationManager.ToAbsoluteUri("/hubs/library"))
+                .WithAutomaticReconnect()
+                .Build();
+
+            Action refreshHandler = async () =>
+            {
+                if (searchBooksPerformed && searchToolbar is not null)
+                {
+                    await searchToolbar.PerformSearch();
+                    await InvokeAsync(StateHasChanged);
+                }
+            };
+
+            hubConnection.On("BookCatalogChanged", refreshHandler);
+            hubConnection.On("BookAvailabilityChanged", refreshHandler);
+
+            await hubConnection.StartAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Could not start SignalR hub connection in BooksManager. Expected during prerendering.");
+        }
+
         isPageLoading = true;
         try
         {
@@ -1869,7 +1900,13 @@ else
         }
     }
 
-
+    public async ValueTask DisposeAsync()
+    {
+        if (hubConnection is not null)
+        {
+            await hubConnection.DisposeAsync();
+        }
+    }
 }
 
 

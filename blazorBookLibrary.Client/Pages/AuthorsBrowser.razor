@@ -7,12 +7,14 @@
 @using Microsoft.FSharp.Core
 @using Microsoft.Extensions.Localization
 @using blazorBookLibrary.Shared.Resources
+@using Microsoft.AspNetCore.SignalR.Client
 
 @inject IAuthorService AuthorService
 @inject IStringLocalizer<SharedResources> L
 @inject NavigationManager NavigationManager
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @rendermode InteractiveAuto
+@implements IAsyncDisposable
 
 <PageTitle>@L["AuthorsBrowser"] — @L["BiblioNet"]</PageTitle>
 
@@ -124,6 +126,43 @@
     private PaginationState authorPagination = new() { ItemsPerPage = 10 };
     private GridSort<Author> sortName = GridSort<Author>.ByAscending(a => a.Name.Value);
 
+    private HubConnection? hubConnection;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            hubConnection = new HubConnectionBuilder()
+                .WithUrl(NavigationManager.ToAbsoluteUri("/hubs/library"))
+                .WithAutomaticReconnect()
+                .Build();
+
+            hubConnection.On("AuthorsChanged", async () =>
+            {
+                if (searchPerformed)
+                {
+                    await PerformSearch();
+                    await InvokeAsync(StateHasChanged);
+                }
+            });
+
+            hubConnection.On("AuthorCatalogChanged", async () =>
+            {
+                if (searchPerformed)
+                {
+                    await PerformSearch();
+                    await InvokeAsync(StateHasChanged);
+                }
+            });
+
+            await hubConnection.StartAsync();
+        }
+        catch (Exception ex)
+        {
+            System.Console.WriteLine($"Could not start SignalR hub connection in AuthorsBrowser: {ex}");
+        }
+    }
+
     private async Task<UserContext> GetContext()
     {
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
@@ -165,6 +204,14 @@
         finally
         {
             isLoading = false;
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (hubConnection is not null)
+        {
+            await hubConnection.DisposeAsync();
         }
     }
 }

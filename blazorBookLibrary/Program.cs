@@ -4,6 +4,7 @@ using System.Globalization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.DependencyInjection;
 using System.Linq;
+using Microsoft.AspNetCore.SignalR;
 
 using Microsoft.EntityFrameworkCore;
 using blazorBookLibrary.Client.Pages;
@@ -200,6 +201,7 @@ app.MapRazorComponents<App>()
     .AddAdditionalAssemblies(typeof(blazorBookLibrary.Client._Imports).Assembly);
 
 app.MapControllers();
+app.MapHub<BookLibrary.Hubs.LibraryHub>("/hubs/library");
 
 // Add additional endpoints required by the Identity /Account Razor components.
 app.MapAdditionalIdentityEndpoints();
@@ -333,7 +335,45 @@ using (var scope = app.Services.CreateScope())
     }
 }
 
-// Sharpino.Cache.AggregateCache3.Instance.Clear();
+// Subscribe to Sharpino DetailsCache refreshes
+Sharpino.Cache.DetailsCache.Instance.OnDetailsRefreshed += (sender, args) =>
+{
+    var (typeName, id) = args;
+    using (var scope = app.Services.CreateScope())
+    {
+        var hubContext = scope.ServiceProvider.GetRequiredService<Microsoft.AspNetCore.SignalR.IHubContext<BookLibrary.Hubs.LibraryHub>>();
+        if (typeName == "RefreshableTenantDetails")
+        {
+            hubContext.Clients.All.SendAsync("TenantTagsChanged");
+            hubContext.Clients.All.SendAsync("TenantListChanged");
+        }
+        else if (typeName == "RefreshableLoanDetails")
+        {
+            hubContext.Clients.All.SendAsync("LoanListChanged");
+            hubContext.Clients.All.SendAsync("LoanDetailsChanged", id);
+        }
+        else if (typeName == "RefreshableReservationDetails")
+        {
+            hubContext.Clients.All.SendAsync("ReservationListChanged");
+            hubContext.Clients.All.SendAsync("ReservationDetailsChanged", id);
+        }
+        else if (typeName == "RefreshableBookDetails")
+        {
+            hubContext.Clients.All.SendAsync("BookCatalogChanged");
+            hubContext.Clients.All.SendAsync("BookDetailsChanged", id);
+        }
+        else if (typeName == "RefreshableAuthorDetails")
+        {
+            hubContext.Clients.All.SendAsync("AuthorCatalogChanged");
+            hubContext.Clients.All.SendAsync("AuthorDetailsChanged", id);
+        }
+        else if (typeName == "RefreshableReviewDetails")
+        {
+            hubContext.Clients.All.SendAsync("ReviewsListChanged");
+            hubContext.Clients.All.SendAsync("ReviewDetailsChanged", id);
+        }
+    }
+};
 
 app.Run();
 
