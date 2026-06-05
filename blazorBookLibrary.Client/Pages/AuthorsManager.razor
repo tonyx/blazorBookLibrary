@@ -9,6 +9,7 @@
 @using Microsoft.FSharp.Core
 @using Microsoft.FSharp.Collections
 @using System.Threading
+@using Microsoft.AspNetCore.SignalR.Client
 
 @attribute [Authorize]
 @inject ITenantService TenantService
@@ -20,8 +21,10 @@
 @inject ILogger<AuthorsManager> Logger
 @inject IStringLocalizer<SharedResources> L
 @inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager NavigationManager
 @inject blazorBookLibrary.Client.Services.TenantStateService TenantState
 @rendermode InteractiveAuto
+@implements IAsyncDisposable
 
 <PageTitle>@L["AuthorsManager"] — @L["BiblioNet"]</PageTitle>
 
@@ -287,8 +290,33 @@ else
         return TenantState.GetUserContext(authState.User);
     }
 
+    private HubConnection? hubConnection;
+
     protected override async Task OnInitializedAsync()
     {
+        try
+        {
+            hubConnection = new HubConnectionBuilder()
+                .WithUrl(NavigationManager.ToAbsoluteUri("/hubs/library"))
+                .WithAutomaticReconnect()
+                .Build();
+
+            hubConnection.On("AuthorsChanged", async () =>
+            {
+                if (searchPerformed)
+                {
+                    await LoadAuthors();
+                    await InvokeAsync(StateHasChanged);
+                }
+            });
+
+            await hubConnection.StartAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Could not start SignalR hub connection in AuthorsManager. Expected during prerendering.");
+        }
+
         isPageLoading = true;
         try
         {
@@ -598,5 +626,13 @@ else
     {
         statusMessage = message;
         await JSRuntime.InvokeVoidAsync("showToast", message, type);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (hubConnection is not null)
+        {
+            await hubConnection.DisposeAsync();
+        }
     }
 }

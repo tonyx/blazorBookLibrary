@@ -12,7 +12,7 @@ open System.Collections.Generic
 
 [<ApiController>]
 [<Route("api/[controller]")>]
-type ReservationsController(reservationService: IReservationService) =
+type ReservationsController(reservationService: IReservationService, hubContext: Microsoft.AspNetCore.SignalR.IHubContext<BookLibrary.Hubs.LibraryHub>) =
     inherit ControllerBase()
 
     [<HttpGet("{id}")>]
@@ -42,7 +42,10 @@ type ReservationsController(reservationService: IReservationService) =
             let shortLang = if String.IsNullOrWhiteSpace(lang) then ShortLang.New "en" else ShortLang.New lang
             let! result = reservationService.AddReservationAsync(context, reservation, shortLang)
             match result with
-            | Ok _ -> return this.Ok() :> IActionResult
+            | Ok _ -> 
+                do! hubContext.Clients.All.SendCoreAsync("PendingReservationsChanged", [||])
+                do! hubContext.Clients.All.SendCoreAsync("BookAvailabilityChanged", [||])
+                return this.Ok() :> IActionResult
             | Error msg -> return this.BadRequest(msg) :> IActionResult
         }
 
@@ -52,7 +55,10 @@ type ReservationsController(reservationService: IReservationService) =
             let context = UserContextMapper.mapFromClaimsPrincipal this.User
             let! result = reservationService.RemoveReservationAsync(context, ReservationId id)
             match result with
-            | Ok _ -> return this.Ok() :> IActionResult
+            | Ok _ -> 
+                do! hubContext.Clients.All.SendCoreAsync("PendingReservationsChanged", [||])
+                do! hubContext.Clients.All.SendCoreAsync("BookAvailabilityChanged", [||])
+                return this.Ok() :> IActionResult
             | Error msg -> return this.BadRequest(msg) :> IActionResult
         }
 
@@ -62,7 +68,10 @@ type ReservationsController(reservationService: IReservationService) =
             let context = UserContextMapper.mapFromClaimsPrincipal this.User
             let! result = reservationService.CancelReservationAsync(context, ReservationId id, reason)
             match result with
-            | Ok _ -> return this.Ok() :> IActionResult
+            | Ok _ -> 
+                do! hubContext.Clients.All.SendCoreAsync("PendingReservationsChanged", [||])
+                do! hubContext.Clients.All.SendCoreAsync("BookAvailabilityChanged", [||])
+                return this.Ok() :> IActionResult
             | Error msg -> return this.BadRequest(msg) :> IActionResult
         }
 

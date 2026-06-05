@@ -105,6 +105,7 @@
     <Compile Include="Services/TenantService.fs" />
     <Compile Include="Services/NotificationService.fs" />
     <Compile Include="Services/EmbeddingOrchestrationService.fs" />
+    <Compile Include="Hubs/LibraryHub.fs" />
     <Compile Include="Controllers/AuthorsSearchController.fs" />
     <Compile Include="Controllers/BooksController.fs" />
     <Compile Include="Controllers/LoansController.fs" />

@@ -12,7 +12,7 @@ open System.Collections.Generic
 
 [<ApiController>]
 [<Route("api/[controller]")>]
-type AuthorsController(authorService: IAuthorService) =
+type AuthorsController(authorService: IAuthorService, hubContext: Microsoft.AspNetCore.SignalR.IHubContext<BookLibrary.Hubs.LibraryHub>) =
     inherit ControllerBase()
 
     [<HttpPost>]
@@ -21,7 +21,9 @@ type AuthorsController(authorService: IAuthorService) =
             let context = UserContextMapper.mapFromClaimsPrincipal this.User
             let! result = authorService.AddAuthorAsync(context, author)
             match result with
-            | Ok _ -> return this.Ok() :> IActionResult
+            | Ok _ -> 
+                do! hubContext.Clients.All.SendCoreAsync("AuthorsChanged", [||])
+                return this.Ok() :> IActionResult
             | Error msg -> return this.BadRequest(msg) :> IActionResult
         }
 
@@ -81,7 +83,9 @@ type AuthorsController(authorService: IAuthorService) =
             let context = UserContextMapper.mapFromClaimsPrincipal this.User
             let! result = authorService.RenameAsync(context, AuthorId id, Name.New newName)
             match result with
-            | Ok _ -> return this.Ok() :> IActionResult
+            | Ok _ -> 
+                do! hubContext.Clients.All.SendCoreAsync("AuthorsChanged", [||])
+                return this.Ok() :> IActionResult
             | Error msg -> return this.BadRequest(msg) :> IActionResult
         }
 
@@ -91,7 +95,9 @@ type AuthorsController(authorService: IAuthorService) =
             let context = UserContextMapper.mapFromClaimsPrincipal this.User
             let! result = authorService.RemoveAsync(context, AuthorId id)
             match result with
-            | Ok _ -> return this.Ok() :> IActionResult
+            | Ok _ -> 
+                do! hubContext.Clients.All.SendCoreAsync("AuthorsChanged", [||])
+                return this.Ok() :> IActionResult
             | Error msg -> return this.BadRequest(msg) :> IActionResult
         }
 
@@ -101,7 +107,9 @@ type AuthorsController(authorService: IAuthorService) =
             let context = UserContextMapper.mapFromClaimsPrincipal this.User
             let! result = authorService.AddAuthorsAsync(context, authors |> List.ofSeq)
             match result with
-            | Ok _ -> return this.Ok() :> IActionResult
+            | Ok _ -> 
+                do! hubContext.Clients.All.SendCoreAsync("AuthorsChanged", [||])
+                return this.Ok() :> IActionResult
             | Error msg -> return this.BadRequest(msg) :> IActionResult
         }
 
@@ -124,7 +132,9 @@ type AuthorsController(authorService: IAuthorService) =
             | (true, uri) ->
                 let! result = authorService.UpdateImageUrlAsync(context, AuthorId id, uri)
                 match result with
-                | Ok _ -> return this.Ok() :> IActionResult
+                | Ok _ -> 
+                    do! hubContext.Clients.All.SendCoreAsync("AuthorsChanged", [||])
+                    return this.Ok() :> IActionResult
                 | Error msg -> return this.BadRequest(msg) :> IActionResult
             | _ -> return this.BadRequest("Invalid image URL") :> IActionResult
         }
@@ -135,7 +145,9 @@ type AuthorsController(authorService: IAuthorService) =
             let context = UserContextMapper.mapFromClaimsPrincipal this.User
             let! result = authorService.RemoveImageUrlAsync(context, AuthorId id)
             match result with
-            | Ok _ -> return this.Ok() :> IActionResult
+            | Ok _ -> 
+                do! hubContext.Clients.All.SendCoreAsync("AuthorsChanged", [||])
+                return this.Ok() :> IActionResult
             | Error msg -> return this.BadRequest(msg) :> IActionResult
         }
 
@@ -145,7 +157,9 @@ type AuthorsController(authorService: IAuthorService) =
             let context = UserContextMapper.mapFromClaimsPrincipal this.User
             let! result = authorService.UpdateIsniAsync(context, AuthorId id, Isni.NewInvalid isni)
             match result with
-            | Ok _ -> return this.Ok() :> IActionResult
+            | Ok _ -> 
+                do! hubContext.Clients.All.SendCoreAsync("AuthorsChanged", [||])
+                return this.Ok() :> IActionResult
             | Error msg -> return this.BadRequest(msg) :> IActionResult
         }
 
@@ -155,7 +169,9 @@ type AuthorsController(authorService: IAuthorService) =
             let context = UserContextMapper.mapFromClaimsPrincipal this.User
             let! result = authorService.UpdateBioAsync(context, AuthorId id, bio)
             match result with
-            | Ok _ -> return this.Ok() :> IActionResult
+            | Ok _ -> 
+                do! hubContext.Clients.All.SendCoreAsync("AuthorsChanged", [||])
+                return this.Ok() :> IActionResult
             | Error msg -> return this.BadRequest(msg) :> IActionResult
         }
 
@@ -167,7 +183,9 @@ type AuthorsController(authorService: IAuthorService) =
             | (true, uri) ->
                 let! result = authorService.UpdateWikipediaUriAsync(context, AuthorId id, uri)
                 match result with
-                | Ok _ -> return this.Ok() :> IActionResult
+                | Ok _ -> 
+                    do! hubContext.Clients.All.SendCoreAsync("AuthorsChanged", [||])
+                    return this.Ok() :> IActionResult
                 | Error msg -> return this.BadRequest(msg) :> IActionResult
             | _ -> return this.BadRequest("Invalid Wikipedia URI") :> IActionResult
         }
@@ -178,7 +196,9 @@ type AuthorsController(authorService: IAuthorService) =
             let context = UserContextMapper.mapFromClaimsPrincipal this.User
             let! result = authorService.SealAsync(context, AuthorId id)
             match result with
-            | Ok _ -> return this.Ok() :> IActionResult
+            | Ok _ -> 
+                do! hubContext.Clients.All.SendCoreAsync("AuthorsChanged", [||])
+                return this.Ok() :> IActionResult
             | Error msg -> return this.BadRequest(msg) :> IActionResult
         }
 
@@ -188,7 +208,9 @@ type AuthorsController(authorService: IAuthorService) =
             let context = UserContextMapper.mapFromClaimsPrincipal this.User
             let! result = authorService.UnsealAsync(context, AuthorId id)
             match result with
-            | Ok _ -> return this.Ok() :> IActionResult
+            | Ok _ -> 
+                do! hubContext.Clients.All.SendCoreAsync("AuthorsChanged", [||])
+                return this.Ok() :> IActionResult
             | Error msg -> return this.BadRequest(msg) :> IActionResult
         }
 

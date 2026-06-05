@@ -1,5 +1,5 @@
 @page "/book-view/{BookIdStr}"
-@implements IDisposable
+@implements IAsyncDisposable
 @using System.Globalization
 @using System.Threading
 @using BookLibrary.Shared.Services
@@ -9,6 +9,7 @@
 @using blazorBookLibrary.Shared.Security
 @using blazorBookLibrary.Shared
 @using Microsoft.FSharp.Core
+@using Microsoft.AspNetCore.SignalR.Client
 
 @inject IBookService BookService
 @inject IUserService UserService
@@ -460,9 +461,13 @@
         }, null, 0, 1000);
     }
 
-    public void Dispose()
+    public async ValueTask DisposeAsync()
     {
         countdownTimer?.Dispose();
+        if (hubConnection is not null)
+        {
+            await hubConnection.DisposeAsync();
+        }
     }
 
     private void GoBack()
@@ -551,8 +556,31 @@
         }
     }
 
+    private HubConnection? hubConnection;
+
     protected override async Task OnInitializedAsync()
     {
+        try
+        {
+            hubConnection = new HubConnectionBuilder()
+                .WithUrl(NavManager.ToAbsoluteUri("/hubs/library"))
+                .WithAutomaticReconnect()
+                .Build();
+
+            hubConnection.On("BookAvailabilityChanged", async () =>
+            {
+                await LoadBookDetails();
+                await LoadUserReservation();
+                await InvokeAsync(StateHasChanged);
+            });
+
+            await hubConnection.StartAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Could not start SignalR hub connection in BookView. Expected during prerendering.");
+        }
+
         isReviewSystemEnabled = Configuration.GetValue<bool>("BooksLibrary:ReviewSytemEnabled", true);
         await LoadBookDetails();
         await LoadUserReservation();

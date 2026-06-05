@@ -5,6 +5,7 @@
 @using Microsoft.Extensions.Localization
 @using BookLibrary.Domain
 @using static BookLibrary.Shared.Commons
+@using Microsoft.AspNetCore.SignalR.Client
 @attribute [Authorize(Roles = "Admin")]
 @inject IAdminServices ReconciliationService
 @inject IDistributionPointService DistributionPointService
@@ -15,8 +16,10 @@
 @inject IStringLocalizer<SharedResources> L
 @inject ILogger<ControlPanel> Logger
 @inject IJSRuntime JSRuntime
+@inject NavigationManager NavigationManager
 @using Microsoft.FSharp.Core
 @rendermode InteractiveAuto
+@implements IAsyncDisposable
 
 <PageTitle>@L["ControlPanel"]</PageTitle>
 
@@ -313,8 +316,30 @@
     private string selectedTargetDpId = "";
     private UserId? currentUserId;
 
+    private HubConnection? hubConnection;
+
     protected override async Task OnInitializedAsync()
     {
+        try
+        {
+            hubConnection = new HubConnectionBuilder()
+                .WithUrl(NavigationManager.ToAbsoluteUri("/hubs/library"))
+                .WithAutomaticReconnect()
+                .Build();
+
+            hubConnection.On("TenantTagsChanged", async () =>
+            {
+                await LoadTags();
+                await InvokeAsync(StateHasChanged);
+            });
+
+            await hubConnection.StartAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Could not start SignalR hub connection in ControlPanel. Expected during prerendering.");
+        }
+
         await Task.WhenAll(LoadTags(), LoadDistributionPoints(), LoadCurrentUser());
     }
 
@@ -653,6 +678,14 @@
         finally
         {
             isSwitching = false;
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (hubConnection is not null)
+        {
+            await hubConnection.DisposeAsync();
         }
     }
 }

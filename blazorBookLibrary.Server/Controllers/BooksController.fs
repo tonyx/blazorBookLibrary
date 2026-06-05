@@ -28,7 +28,7 @@ type BulkEditRequest = { BookIds: List<Guid>; EditCriteria: BulkBookEdit }
 
 [<ApiController>]
 [<Route("api/[controller]")>]
-type BooksController(bookService: IBookService) =
+type BooksController(bookService: IBookService, hubContext: Microsoft.AspNetCore.SignalR.IHubContext<BookLibrary.Hubs.LibraryHub>) =
     inherit ControllerBase()
 
 
@@ -48,7 +48,9 @@ type BooksController(bookService: IBookService) =
             let context = UserContextMapper.mapFromRequest this.Request
             let! result = bookService.AddBookAsync(context, book)
             match result with
-            | Ok _ -> return this.Ok() :> IActionResult
+            | Ok _ -> 
+                do! hubContext.Clients.All.SendCoreAsync("BookCatalogChanged", [||])
+                return this.Ok() :> IActionResult
             | Error msg -> return this.BadRequest(msg) :> IActionResult
         }
 
@@ -59,7 +61,9 @@ type BooksController(bookService: IBookService) =
             let fsBooks = List.ofSeq books
             let! result = bookService.AddBooksAsync(context, fsBooks)
             match result with
-            | Ok _ -> return this.Ok() :> IActionResult
+            | Ok _ -> 
+                do! hubContext.Clients.All.SendCoreAsync("BookCatalogChanged", [||])
+                return this.Ok() :> IActionResult
             | Error msg -> return this.BadRequest(msg) :> IActionResult
         }
 
@@ -120,7 +124,9 @@ type BooksController(bookService: IBookService) =
             let context = UserContextMapper.mapFromRequest this.Request
             let! result = bookService.RemoveBookAsync(context, BookId id)
             match result with
-            | Ok _ -> return this.Ok() :> IActionResult
+            | Ok _ -> 
+                do! hubContext.Clients.All.SendCoreAsync("BookCatalogChanged", [||])
+                return this.Ok() :> IActionResult
             | Error msg -> return this.BadRequest(msg) :> IActionResult
         }
 
@@ -201,7 +207,9 @@ type BooksController(bookService: IBookService) =
             let bookIds = request.BookIds |> List.ofSeq |> List.map BookId
             let! result = bookService.BulkEditAsync(context, bookIds, request.EditCriteria)
             match result with
-            | Ok _ -> return this.Ok() :> IActionResult
+            | Ok _ -> 
+                do! hubContext.Clients.All.SendCoreAsync("BookCatalogChanged", [||])
+                return this.Ok() :> IActionResult
             | Error msg -> return this.BadRequest(msg) :> IActionResult
         }
 

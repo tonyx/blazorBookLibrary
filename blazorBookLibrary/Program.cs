@@ -200,6 +200,7 @@ app.MapRazorComponents<App>()
     .AddAdditionalAssemblies(typeof(blazorBookLibrary.Client._Imports).Assembly);
 
 app.MapControllers();
+app.MapHub<BookLibrary.Hubs.LibraryHub>("/hubs/library");
 
 // Add additional endpoints required by the Identity /Account Razor components.
 app.MapAdditionalIdentityEndpoints();

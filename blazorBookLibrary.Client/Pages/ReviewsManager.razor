@@ -11,6 +11,7 @@
 @using Microsoft.FSharp.Collections
 @using static BookLibrary.Shared.Commons
 @using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.SignalR.Client
 
 @attribute [Authorize]
 @inject IUserTenantResolverService UserTenantResolverService
@@ -22,6 +23,7 @@
 @inject IStringLocalizer<SharedResources> L
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @rendermode InteractiveAuto
+@implements IAsyncDisposable
 
 <PageTitle>@L["ReviewsManagement"] — @L["BiblioNet"]</PageTitle>
 
@@ -197,8 +199,30 @@ else
     private IQueryable<ReviewDetails> FilteredReviews => 
         reviewDetailsList.AsQueryable();
 
+    private HubConnection? hubConnection;
+
     protected override async Task OnInitializedAsync()
     {
+        try
+        {
+            hubConnection = new HubConnectionBuilder()
+                .WithUrl(NavigationManager.ToAbsoluteUri("/hubs/library"))
+                .WithAutomaticReconnect()
+                .Build();
+
+            hubConnection.On("ReviewsChanged", async () =>
+            {
+                await LoadReviews();
+                await InvokeAsync(StateHasChanged);
+            });
+
+            await hubConnection.StartAsync();
+        }
+        catch (Exception ex)
+        {
+            System.Console.WriteLine($"Could not start SignalR hub connection in ReviewsManager: {ex}");
+        }
+
         isPageLoading = true;
         try
         {
@@ -261,5 +285,13 @@ else
         var words = comment.Split(' ');
         if (words.Length <= 8) return comment;
         return string.Join(" ", words.Take(8)) + "...";
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (hubConnection is not null)
+        {
+            await hubConnection.DisposeAsync();
+        }
     }
 }

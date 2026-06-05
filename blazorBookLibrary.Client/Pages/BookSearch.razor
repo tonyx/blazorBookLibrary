@@ -13,6 +13,7 @@
 @using static  BookLibrary.Shared.SearchCriteria
 @using System.Threading
 @using static BookLibrary.Shared.Details
+@using Microsoft.AspNetCore.SignalR.Client
 @inject IBotScoreService BotScoreService
 @inject IBookService BookService
 @inject ITextEmbeddingService TextEmbeddingService
@@ -22,7 +23,9 @@
 @inject IJSRuntime JSRuntime
 @inject IStringLocalizer<SharedResources> L
 @inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager NavigationManager
 @rendermode InteractiveAuto
+@implements IAsyncDisposable
 
 <PageTitle>@L["BookSearch"] — @L["BiblioNet"]</PageTitle>
 
@@ -317,5 +320,41 @@
     {
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         return blazorBookLibrary.Shared.ConverterUtils.fromClaimsPrincipal(authState.User);
+    }
+
+    private HubConnection? hubConnection;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            hubConnection = new HubConnectionBuilder()
+                .WithUrl(NavigationManager.ToAbsoluteUri("/hubs/library"))
+                .WithAutomaticReconnect()
+                .Build();
+
+            hubConnection.On("BookAvailabilityChanged", async () =>
+            {
+                if (searchBooksPerformed && searchToolbar is not null)
+                {
+                    await searchToolbar.PerformSearch();
+                    await InvokeAsync(StateHasChanged);
+                }
+            });
+
+            await hubConnection.StartAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Could not start SignalR hub connection in BookSearch. Expected during prerendering.");
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (hubConnection is not null)
+        {
+            await hubConnection.DisposeAsync();
+        }
     }
 }

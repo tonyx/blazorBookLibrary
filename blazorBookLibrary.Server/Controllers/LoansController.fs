@@ -12,7 +12,7 @@ open System.Collections.Generic
 
 [<ApiController>]
 [<Route("api/[controller]")>]
-type LoansController(loanService: ILoanService) =
+type LoansController(loanService: ILoanService, hubContext: Microsoft.AspNetCore.SignalR.IHubContext<BookLibrary.Hubs.LibraryHub>) =
     inherit ControllerBase()
 
     [<HttpGet>]
@@ -51,7 +51,9 @@ type LoansController(loanService: ILoanService) =
             let context = UserContextMapper.mapFromClaimsPrincipal this.User
             let! result = loanService.AddLoanAsync(context, loan)
             match result with
-            | Ok _ -> return this.Ok() :> IActionResult
+            | Ok _ -> 
+                do! hubContext.Clients.All.SendCoreAsync("BookAvailabilityChanged", [||])
+                return this.Ok() :> IActionResult
             | Error msg -> return this.BadRequest(msg) :> IActionResult
         }
 
@@ -71,7 +73,9 @@ type LoansController(loanService: ILoanService) =
             let context = UserContextMapper.mapFromClaimsPrincipal this.User
             let! result = loanService.ReleaseLoanAsync(context, LoanId id, DateTime.UtcNow)
             match result with
-            | Ok () -> return this.Ok() :> IActionResult
+            | Ok () -> 
+                do! hubContext.Clients.All.SendCoreAsync("BookAvailabilityChanged", [||])
+                return this.Ok() :> IActionResult
             | Error msg -> return this.BadRequest(msg) :> IActionResult
         }
 
@@ -81,7 +85,10 @@ type LoansController(loanService: ILoanService) =
             let context = UserContextMapper.mapFromClaimsPrincipal this.User
             let! result = loanService.TransformReservationIntoLoanAsync(context, ReservationId reservationId, ReservationCode reservationCode, DateTime.UtcNow)
             match result with
-            | Ok _ -> return this.Ok() :> IActionResult
+            | Ok _ -> 
+                do! hubContext.Clients.All.SendCoreAsync("PendingReservationsChanged", [||])
+                do! hubContext.Clients.All.SendCoreAsync("BookAvailabilityChanged", [||])
+                return this.Ok() :> IActionResult
             | Error msg -> return this.BadRequest(msg) :> IActionResult
         }
 
@@ -91,7 +98,10 @@ type LoansController(loanService: ILoanService) =
             let context = UserContextMapper.mapFromClaimsPrincipal this.User
             let! result = loanService.TransformReservationIntoLoanByPinAsync(context, ReservationId reservationId, pin, DateTime.UtcNow)
             match result with
-            | Ok _ -> return this.Ok() :> IActionResult
+            | Ok _ -> 
+                do! hubContext.Clients.All.SendCoreAsync("PendingReservationsChanged", [||])
+                do! hubContext.Clients.All.SendCoreAsync("BookAvailabilityChanged", [||])
+                return this.Ok() :> IActionResult
             | Error msg -> return this.BadRequest(msg) :> IActionResult
         }
 
@@ -102,7 +112,9 @@ type LoansController(loanService: ILoanService) =
             let context = UserContextMapper.mapFromClaimsPrincipal this.User
             let! result = loanService.RemoveLoanAsync(context, LoanId id)
             match result with
-            | Ok () -> return this.Ok() :> IActionResult
+            | Ok () -> 
+                do! hubContext.Clients.All.SendCoreAsync("BookAvailabilityChanged", [||])
+                return this.Ok() :> IActionResult
             | Error msg -> return this.BadRequest(msg) :> IActionResult
         }
 
@@ -112,7 +124,9 @@ type LoansController(loanService: ILoanService) =
             let context = UserContextMapper.mapFromClaimsPrincipal this.User
             let! result = loanService.ArchiveLoanAsync(context, LoanId id)
             match result with
-            | Ok () -> return this.Ok() :> IActionResult
+            | Ok () -> 
+                do! hubContext.Clients.All.SendCoreAsync("BookAvailabilityChanged", [||])
+                return this.Ok() :> IActionResult
             | Error msg -> return this.BadRequest(msg) :> IActionResult
         }
     [<HttpGet("tenant/{tenantId}/user/{userId}")>]

@@ -10,6 +10,7 @@
 @using Microsoft.Extensions.Configuration
 @using System.Threading
 @using System.Globalization
+@using Microsoft.AspNetCore.SignalR.Client
 
 @attribute [Authorize]
 @inject IUserTenantResolverService UserTenantResolverService
@@ -25,6 +26,7 @@
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject ILogger<PendingReservations> Logger
 @rendermode InteractiveAuto
+@implements IAsyncDisposable
 
 <PageTitle>@L["PendingReservations"]</PageTitle>
 
@@ -326,9 +328,30 @@ else
     private string selectedAction = "loan";
     private string cancellationReasonInput = "";
     private bool isCancelling = false;
+    private HubConnection? hubConnection;
 
     protected override async Task OnInitializedAsync()
     {
+        try
+        {
+            hubConnection = new HubConnectionBuilder()
+                .WithUrl(NavigationManager.ToAbsoluteUri("/hubs/library"))
+                .WithAutomaticReconnect()
+                .Build();
+
+            hubConnection.On("PendingReservationsChanged", async () =>
+            {
+                await LoadPendingReservations();
+                await InvokeAsync(StateHasChanged);
+            });
+
+            await hubConnection.StartAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Could not start SignalR connection. This is expected during prerendering.");
+        }
+
         isPageLoading = true;
         try
         {
@@ -526,5 +549,13 @@ else
     private async Task ShowStatus(string message, string type)
     {
         await JSRuntime.InvokeVoidAsync("showToast", message, type);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (hubConnection is not null)
+        {
+            await hubConnection.DisposeAsync();
+        }
     }
 }

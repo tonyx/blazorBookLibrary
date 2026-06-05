@@ -12,7 +12,7 @@ open System.Collections.Generic
 
 [<ApiController>]
 [<Route("api/[controller]")>]
-type ReviewsController(reviewService: IReviewService) =
+type ReviewsController(reviewService: IReviewService, hubContext: Microsoft.AspNetCore.SignalR.IHubContext<BookLibrary.Hubs.LibraryHub>) =
     inherit ControllerBase()
 
     [<HttpGet("{id}")>]
@@ -51,7 +51,9 @@ type ReviewsController(reviewService: IReviewService) =
             let context = UserContextMapper.mapFromClaimsPrincipal this.User
             let! result = reviewService.AddReviewAsync(context, review)
             match result with
-            | Ok _ -> return this.Ok() :> IActionResult
+            | Ok _ -> 
+                do! hubContext.Clients.All.SendCoreAsync("ReviewsChanged", [||])
+                return this.Ok() :> IActionResult
             | Error msg -> return this.BadRequest(msg) :> IActionResult
         }
 
@@ -61,7 +63,9 @@ type ReviewsController(reviewService: IReviewService) =
             let context = UserContextMapper.mapFromClaimsPrincipal this.User
             let! result = reviewService.ApproveAsync(context, ReviewId id)
             match result with
-            | Ok _ -> return this.Ok() :> IActionResult
+            | Ok _ -> 
+                do! hubContext.Clients.All.SendCoreAsync("ReviewsChanged", [||])
+                return this.Ok() :> IActionResult
             | Error msg -> return this.BadRequest(msg) :> IActionResult
         }
 
@@ -71,7 +75,9 @@ type ReviewsController(reviewService: IReviewService) =
             let context = UserContextMapper.mapFromClaimsPrincipal this.User
             let! result = reviewService.RejectAsync(context, ReviewId id)
             match result with
-            | Ok _ -> return this.Ok() :> IActionResult
+            | Ok _ -> 
+                do! hubContext.Clients.All.SendCoreAsync("ReviewsChanged", [||])
+                return this.Ok() :> IActionResult
             | Error msg -> return this.BadRequest(msg) :> IActionResult
         }
 
@@ -81,7 +87,9 @@ type ReviewsController(reviewService: IReviewService) =
             let context = UserContextMapper.mapFromClaimsPrincipal this.User
             let! result = reviewService.EditReviewAsync(context, ReviewId id, editedComment)
             match result with
-            | Ok _ -> return this.Ok() :> IActionResult
+            | Ok _ -> 
+                do! hubContext.Clients.All.SendCoreAsync("ReviewsChanged", [||])
+                return this.Ok() :> IActionResult
             | Error msg -> return this.BadRequest(msg) :> IActionResult
         }
 
@@ -91,7 +99,9 @@ type ReviewsController(reviewService: IReviewService) =
             let context = UserContextMapper.mapFromClaimsPrincipal this.User
             let! result = reviewService.ShowAsync(context, ReviewId id)
             match result with
-            | Ok _ -> return this.Ok() :> IActionResult
+            | Ok _ -> 
+                do! hubContext.Clients.All.SendCoreAsync("ReviewsChanged", [||])
+                return this.Ok() :> IActionResult
             | Error msg -> return this.BadRequest(msg) :> IActionResult
         }
 
@@ -101,7 +111,9 @@ type ReviewsController(reviewService: IReviewService) =
             let context = UserContextMapper.mapFromClaimsPrincipal this.User
             let! result = reviewService.HideAsync(context, ReviewId id)
             match result with
-            | Ok _ -> return this.Ok() :> IActionResult
+            | Ok _ -> 
+                do! hubContext.Clients.All.SendCoreAsync("ReviewsChanged", [||])
+                return this.Ok() :> IActionResult
             | Error msg -> return this.BadRequest(msg) :> IActionResult
         }
 
