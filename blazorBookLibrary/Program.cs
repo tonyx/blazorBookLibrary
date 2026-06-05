@@ -4,6 +4,7 @@ using System.Globalization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.DependencyInjection;
 using System.Linq;
+using Microsoft.AspNetCore.SignalR;
 
 using Microsoft.EntityFrameworkCore;
 using blazorBookLibrary.Client.Pages;
@@ -334,7 +335,20 @@ using (var scope = app.Services.CreateScope())
     }
 }
 
-// Sharpino.Cache.AggregateCache3.Instance.Clear();
+// Subscribe to Sharpino DetailsCache refreshes
+Sharpino.Cache.DetailsCache.Instance.OnDetailsRefreshed += (sender, args) =>
+{
+    var (typeName, id) = args;
+    if (typeName == "RefreshableTenantDetails")
+    {
+        using (var scope = app.Services.CreateScope())
+        {
+            var hubContext = scope.ServiceProvider.GetRequiredService<Microsoft.AspNetCore.SignalR.IHubContext<BookLibrary.Hubs.LibraryHub>>();
+            hubContext.Clients.All.SendAsync("TenantTagsChanged");
+            hubContext.Clients.All.SendAsync("TenantListChanged");
+        }
+    }
+};
 
 app.Run();
 
