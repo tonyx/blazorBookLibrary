@@ -235,6 +235,7 @@ else
 
             hubConnection.On("BookAvailabilityChanged", refreshHandler);
             hubConnection.On("BookCatalogChanged", refreshHandler);
+            hubConnection.On("LoanListChanged", refreshHandler);
 
             await hubConnection.StartAsync();
         }

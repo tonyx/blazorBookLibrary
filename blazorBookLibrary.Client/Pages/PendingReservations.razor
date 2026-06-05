@@ -345,6 +345,12 @@ else
                 await InvokeAsync(StateHasChanged);
             });
 
+            hubConnection.On("ReservationListChanged", async () =>
+            {
+                await LoadPendingReservations();
+                await InvokeAsync(StateHasChanged);
+            });
+
             await hubConnection.StartAsync();
         }
         catch (Exception ex)

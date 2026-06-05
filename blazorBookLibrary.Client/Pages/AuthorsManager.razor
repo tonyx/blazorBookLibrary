@@ -310,6 +310,15 @@ else
                 }
             });
 
+            hubConnection.On("AuthorCatalogChanged", async () =>
+            {
+                if (searchPerformed)
+                {
+                    await LoadAuthors();
+                    await InvokeAsync(StateHasChanged);
+                }
+            });
+
             await hubConnection.StartAsync();
         }
         catch (Exception ex)

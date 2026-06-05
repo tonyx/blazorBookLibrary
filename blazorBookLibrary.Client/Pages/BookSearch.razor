@@ -333,14 +333,17 @@
                 .WithAutomaticReconnect()
                 .Build();
 
-            hubConnection.On("BookAvailabilityChanged", async () =>
+            Action refreshSearchHandler = async () =>
             {
                 if (searchBooksPerformed && searchToolbar is not null)
                 {
                     await searchToolbar.PerformSearch();
                     await InvokeAsync(StateHasChanged);
                 }
-            });
+            };
+
+            hubConnection.On("BookAvailabilityChanged", refreshSearchHandler);
+            hubConnection.On("BookCatalogChanged", refreshSearchHandler);
 
             await hubConnection.StartAsync();
         }

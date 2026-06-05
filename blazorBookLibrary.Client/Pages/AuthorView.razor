@@ -235,6 +235,15 @@
 
             hubConnection.On("AuthorsChanged", refreshHandler);
             hubConnection.On("BookAvailabilityChanged", refreshHandler);
+            hubConnection.On("AuthorCatalogChanged", refreshHandler);
+            hubConnection.On<Guid>("AuthorDetailsChanged", async (id) =>
+            {
+                if (authorDetails != null && authorDetails.Author.AuthorId.Value == id)
+                {
+                    await LoadAuthorDetails();
+                    await InvokeAsync(StateHasChanged);
+                }
+            });
 
             await hubConnection.StartAsync();
         }

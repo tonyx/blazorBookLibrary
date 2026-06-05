@@ -574,6 +574,16 @@
                 await InvokeAsync(StateHasChanged);
             });
 
+            hubConnection.On<Guid>("BookDetailsChanged", async (id) =>
+            {
+                if (bookDetails != null && bookDetails.Book.BookId.Value == id)
+                {
+                    await LoadBookDetails();
+                    await LoadUserReservation();
+                    await InvokeAsync(StateHasChanged);
+                }
+            });
+
             await hubConnection.StartAsync();
         }
         catch (Exception ex)

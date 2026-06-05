@@ -216,6 +216,12 @@ else
                 await InvokeAsync(StateHasChanged);
             });
 
+            hubConnection.On("ReviewsListChanged", async () =>
+            {
+                await LoadReviews();
+                await InvokeAsync(StateHasChanged);
+            });
+
             await hubConnection.StartAsync();
         }
         catch (Exception ex)
