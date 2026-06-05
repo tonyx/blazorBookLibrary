@@ -20,7 +20,6 @@
 @inject NavigationManager NavigationManager
 @inject IBooksMetadataSearchService GoogleBooksService
 @inject IEmbeddingOrchestrationService EmbeddingOrchestrationService
-@inject ITagService TagService
 @inject ITextEmbeddingService TextEmbeddingService
 @inject IVectorDbService VectorDbService
 @inject IStringLocalizer<SharedResources> L
@@ -1931,13 +1930,6 @@ else
                     enableAIExplanations = Configuration.GetValue<bool>("BooksLibrary:EnableAIExtendedExplanations");
                     await LoadBookDetails();
                     
-                    var context = await GetContext();
-                    var tagsResult = await TagService.GetBookTypeTagsAsync(context, FSharpOption<CancellationToken>.None);
-                    if (tagsResult.IsOk)
-                    {
-                        allAvailableTags = tagsResult.ResultValue.ToList();
-                    }
-
                     var user = authState.User;
                     if (user.Identity?.IsAuthenticated ?? false)
                     {
@@ -1945,7 +1937,7 @@ else
                         if (userIdClaim != null && Guid.TryParse(userIdClaim.Value, out var guid))
                         {
                             currentUserId = UserId.NewUserId(guid);
-                            context = await GetContext();
+                            var context = await GetContext();
                             
                             var userResult = await UserService.GetUserAsync(context, currentUserId);
                             if (userResult.IsOk)
@@ -1961,6 +1953,13 @@ else
                                 managedDistributionPoints = dpResult.ResultValue.ToList();
                             }
                         }
+                    }
+
+                    var contextForTags = await GetContext();
+                    var tenantResultForTags = await TenantService.GetTenantAsync(contextForTags, _currentTenant, FSharpOption<CancellationToken>.None);
+                    if (tenantResultForTags.IsOk)
+                    {
+                        allAvailableTags = tenantResultForTags.ResultValue.Tags.Where(t => t.IsBookTag).ToList();
                     }
                 }
             }

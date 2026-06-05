@@ -9,11 +9,13 @@
 @inject IAdminServices ReconciliationService
 @inject IDistributionPointService DistributionPointService
 @inject IBookService BookService
-@inject ITagService TagService
+@inject ITenantService TenantService
+@inject blazorBookLibrary.Client.Services.TenantStateService TenantState
 @inject AuthenticationStateProvider AuthStateProvider
 @inject IStringLocalizer<SharedResources> L
 @inject ILogger<ControlPanel> Logger
 @inject IJSRuntime JSRuntime
+@using Microsoft.FSharp.Core
 @rendermode InteractiveAuto
 
 <PageTitle>@L["ControlPanel"]</PageTitle>
@@ -341,11 +343,15 @@
     private async Task LoadTags()
     {
         var authState = await AuthStateProvider.GetAuthenticationStateAsync();
-        var userContext = blazorBookLibrary.Shared.ConverterUtils.fromClaimsPrincipal(authState.User);
-        var result = await TagService.GetTagsAsync(userContext, CancellationToken.None);
-        if (result.IsOk)
+        var userContext = TenantState.GetUserContext(authState.User);
+        if (FSharpOption<TenantId>.get_IsSome(userContext.TenantId))
         {
-            allTags = result.ResultValue.ToList();
+            var tenantId = userContext.TenantId.Value;
+            var result = await TenantService.GetTenantAsync(userContext, tenantId, FSharpOption<CancellationToken>.None);
+            if (result.IsOk)
+            {
+                allTags = result.ResultValue.Tags.ToList();
+            }
         }
     }
 
@@ -372,37 +378,43 @@
         };
 
         var authState = await AuthStateProvider.GetAuthenticationStateAsync();
-        var userContext = blazorBookLibrary.Shared.ConverterUtils.fromClaimsPrincipal(authState.User);
-
-        var result = await TagService.AddTagAsync(userContext, tag);
-        if (result.IsOk)
+        var userContext = TenantState.GetUserContext(authState.User);
+        if (FSharpOption<TenantId>.get_IsSome(userContext.TenantId))
         {
-            newTagName = "";
-            await LoadTags();
-            await JSRuntime.InvokeVoidAsync("showToast", L["ActionSuccessful"].Value, "success");
-        }
-        else
-        {
-            Logger.LogError("Error adding tag: {Error}", result.ErrorValue);
-            await JSRuntime.InvokeVoidAsync("showToast", L["ErrorOccurred"].Value, "error");
+            var tenantId = userContext.TenantId.Value;
+            var result = await TenantService.AddTagAsync(userContext, tenantId, tag, FSharpOption<CancellationToken>.None);
+            if (result.IsOk)
+            {
+                newTagName = "";
+                await LoadTags();
+                await JSRuntime.InvokeVoidAsync("showToast", L["ActionSuccessful"].Value, "success");
+            }
+            else
+            {
+                Logger.LogError("Error adding tag: {Error}", result.ErrorValue);
+                await JSRuntime.InvokeVoidAsync("showToast", L["ErrorOccurred"].Value, "error");
+            }
         }
     }
 
     private async Task RemoveTag(Tag tag)
     {
         var authState = await AuthStateProvider.GetAuthenticationStateAsync();
-        var userContext = blazorBookLibrary.Shared.ConverterUtils.fromClaimsPrincipal(authState.User);
-
-        var result = await TagService.RemoveTagAsync(userContext, tag);
-        if (result.IsOk)
+        var userContext = TenantState.GetUserContext(authState.User);
+        if (FSharpOption<TenantId>.get_IsSome(userContext.TenantId))
         {
-            await LoadTags();
-            await JSRuntime.InvokeVoidAsync("showToast", L["ActionSuccessful"].Value, "success");
-        }
-        else
-        {
-            Logger.LogError("Error removing tag: {Error}", result.ErrorValue);
-            await JSRuntime.InvokeVoidAsync("showToast", L["ErrorOccurred"].Value, "error");
+            var tenantId = userContext.TenantId.Value;
+            var result = await TenantService.RemoveTagAsync(userContext, tenantId, tag, FSharpOption<CancellationToken>.None);
+            if (result.IsOk)
+            {
+                await LoadTags();
+                await JSRuntime.InvokeVoidAsync("showToast", L["ActionSuccessful"].Value, "success");
+            }
+            else
+            {
+                Logger.LogError("Error removing tag: {Error}", result.ErrorValue);
+                await JSRuntime.InvokeVoidAsync("showToast", L["ErrorOccurred"].Value, "error");
+            }
         }
     }
 

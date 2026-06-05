@@ -21,7 +21,6 @@
 @inject ILogger<BooksManager> Logger
 @inject IUserTenantResolverService UserTenantResolverService
 @inject ITenantService TenantService
-@inject ITagService TagService
 @inject IDataExportService DataExportService
 @inject IAuthorService AuthorService
 @inject IJSRuntime JSRuntime
@@ -1179,10 +1178,10 @@ else
                         }
                     }
 
-                    var tagsResult = await TagService.GetBookTypeTagsAsync(context, FSharpOption<CancellationToken>.None);
-                    if (tagsResult.IsOk)
+                    var tenantResultForTags = await TenantService.GetTenantAsync(context, _currentTenant, FSharpOption<CancellationToken>.None);
+                    if (tenantResultForTags.IsOk)
                     {
-                        allAvailableTags = tagsResult.ResultValue.ToList();
+                        allAvailableTags = tenantResultForTags.ResultValue.Tags.Where(t => t.IsBookTag).ToList();
                     }
 
                     var user = authState.User;

@@ -476,4 +476,40 @@ let tests =
                       Expect.equal foundTenant.TenantId tenantId "Found tenant should have the correct ID"
                       Expect.equal foundTenant.CurrentJoinPin (Some pin) "Found tenant should have the correct PIN"
                   | Error msg -> failwith msg
+              }
+          testCaseTask "owner can add and remove tenant tags"
+          <| fun _ ->
+              task {
+                  setUp ()
+                  let tenantService = getTenantService ()
+                  let! ownerId = registerUserTask "owner@test.com" "Password123!"
+                  let ownerContext = UserContext.Authenticated(ownerId, [])
+
+                  let tenant =
+                      Tenant.New(ownerId, TenantName.New "Library with tags" |> Result.get, "123 Main St")
+
+                  let tenantId = tenant.TenantId
+                  let! _ = tenantService.CreateTenantAsync(ownerContext, tenant)
+
+                  let tag = Tag.BookTag "Science"
+                  let! addResult = tenantService.AddTagAsync(ownerContext, tenantId, tag)
+                  Expect.isOk addResult "Owner should be able to add a tag to the tenant"
+
+                  let! getResult = tenantService.GetTenantAsync(ownerContext, tenantId)
+                  Expect.isOk getResult "Should retrieve tenant"
+                  match getResult with
+                  | Ok t ->
+                      Expect.contains t.Tags tag "Tenant should contain the added tag"
+                  | Error msg -> failwith msg
+
+                  let! removeResult = tenantService.RemoveTagAsync(ownerContext, tenantId, tag)
+                  Expect.isOk removeResult "Owner should be able to remove a tag from the tenant"
+
+                  let! getResult2 = tenantService.GetTenantAsync(ownerContext, tenantId)
+                  Expect.isOk getResult2 "Should retrieve tenant"
+                  match getResult2 with
+                  | Ok t ->
+                      Expect.isFalse (t.Tags |> List.contains tag) "Tenant should not contain the removed tag"
+                  | Error msg -> failwith msg
               } ]
+

@@ -101,7 +101,6 @@ builder.Services.AddSingleton<IMailResenderService, MailResenderService>();
 builder.Services.AddSingleton<IMailNotificator, MailNotificator>();
 
 builder.Services.AddSingleton<IUserTenantResolverService, UserTenantResolverService>();
-builder.Services.AddSingleton<ITagService, TagService>();
 
 builder.Services.AddSingleton<IAuthorService, AuthorService>();
 builder.Services.AddSingleton<IReservationService, ReservationService>();
@@ -315,14 +314,6 @@ using (var scope = app.Services.CreateScope())
     // only to setup the mail queue instance at startup if missing
     var mailResenderService = scope.ServiceProvider.GetRequiredService<IMailResenderService>();
     await mailResenderService.CreateInitialMailQueueInstanceAsync(Microsoft.FSharp.Core.FSharpOption<System.Threading.CancellationToken>.None);
-
-    // Ensure Tags repository is created at startup
-    var tagService = scope.ServiceProvider.GetRequiredService<ITagService>();
-    var tagsResult = await tagService.EnsureTagsRepoCreatedAsync(Microsoft.FSharp.Core.FSharpOption<System.Threading.CancellationToken>.None);
-    if (tagsResult.IsError)
-    {
-        Console.WriteLine($"[Startup] Failed to ensure Tags repository: {tagsResult.ErrorValue}");
-    }
 
     var firstAdmin = (await userManager.GetUsersInRoleAsync("Admin")).FirstOrDefault();
     if (firstAdmin != null)

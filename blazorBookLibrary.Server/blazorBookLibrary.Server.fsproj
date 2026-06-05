@@ -56,8 +56,7 @@
     <Compile Include="Domain/User/Commands.fs" />
     <Compile Include="Domain/Review/Events.fs" />
     <Compile Include="Domain/Review/Commands.fs" />
-    <Compile Include="Domain/Tags/Events.fs" />
-    <Compile Include="Domain/Tags/Commands.fs" />
+
     <Compile Include="Domain/DistributionPoint/Events.fs" />
     <Compile Include="Domain/DistributionPoint/Commands.fs" />
     <Compile Include="Domain/Tenant/Events.fs" />
@@ -85,7 +84,6 @@
 
     <Compile Include="Services/MailBodyRetriever.fs" />
     <Compile Include="Services/Security.fs" />
-    <Compile Include="Services/TagService.fs" />
     <Compile Include="Services/UserMapping.fs" />
     <Compile Include="Services/UserContextMapper.fs" />
     <Compile Include="Services/UserTenantResolverService.fs" />
@@ -113,7 +111,6 @@
     <Compile Include="Controllers/AuthorsController.fs" />
     <Compile Include="Controllers/DistributionPointsController.fs" />
     <Compile Include="Controllers/ReviewsController.fs" />
-    <Compile Include="Controllers/TagsController.fs" />
     <Compile Include="Controllers/UsersController.fs" />
     <Compile Include="Controllers/ReservationsController.fs" />
     <Compile Include="Controllers/AdminController.fs" />

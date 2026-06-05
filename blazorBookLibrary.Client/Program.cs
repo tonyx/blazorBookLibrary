@@ -27,7 +27,6 @@ public class Program
         builder.Services.AddScoped<IAuthorsSearchService, AuthorsSearchClientService>();
         builder.Services.AddScoped<IDistributionPointService, DistributionPointsClientService>();
         builder.Services.AddScoped<IReviewService, ReviewsClientService>();
-        builder.Services.AddScoped<ITagService, TagsClientService>();
         builder.Services.AddScoped<IUserService, UsersClientService>();
         builder.Services.AddScoped<IReservationService, ReservationsClientService>();
         builder.Services.AddScoped<ILoanService, LoansClientService>();

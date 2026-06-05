@@ -142,8 +142,6 @@ let reviewViewerAsync =
 let distributionPointViewerAsync =
     getAggregateStorageFreshStateViewerAsync<DistributionPoint, DistributionPointEvent, string> pgEventStore
 
-let tagViewerAsync =
-    getAggregateStorageFreshStateViewerAsync<Tags, TagEvent, string> pgEventStore
 
 let tenantViewerAsync =
     getAggregateStorageFreshStateViewerAsync<Tenant, TenantEvent, string> pgEventStore
@@ -365,8 +363,6 @@ let getTenantService () : ITenantService =
     )
     :> ITenantService
 
-let getTagService () : ITagService =
-    TagService(getSecretReader (), getUserTenantResolverService ()) :> ITagService
 
 let truncateVectorDb () =
     let connStr = config.GetConnectionString "VectorDbConnection"
@@ -390,8 +386,6 @@ let setUp () =
     pgEventStore.ResetAggregateStream User.Version User.StorageName
     pgEventStore.Reset Tenant.Version Tenant.StorageName
     pgEventStore.ResetAggregateStream Tenant.Version Tenant.StorageName
-    pgEventStore.Reset Tags.Version Tags.StorageName
-    pgEventStore.ResetAggregateStream Tags.Version Tags.StorageName
 
     AggregateCache3.Instance.Clear()
 
@@ -425,9 +419,6 @@ let setUp () =
 
         let tenantService = getTenantService ()
         tenantService.EnsureDefaultTenantExistsAsync(adminId).Result |> ignore
-
-        let tagService = getTagService ()
-        tagService.EnsureTagsRepoCreatedAsync().Result |> ignore
     with ex ->
         printfn "Warning: %s" ex.Message
 
@@ -444,6 +435,7 @@ let getMailResenderService () =
             string
          >
             pgEventStore,
+        getSecretReader (),
         dummyMailJetClient,
         dummyLogger
     )

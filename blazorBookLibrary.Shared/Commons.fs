@@ -90,6 +90,16 @@ type TagsId =
         match this with
         | TagsId v -> v
 
+
+type Tag = 
+    | BookTag of string
+    | AuthorTag of string
+    | GeneralTag of string
+    | PersonTag of string
+    | GenericTag of string
+    member this.TagName = match this with | BookTag s | AuthorTag s | GeneralTag s | PersonTag s -> s | GenericTag s -> s
+
+
 type TenantId =
     | TenantId of Guid
 

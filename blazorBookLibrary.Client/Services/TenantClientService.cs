@@ -4,6 +4,7 @@ using Microsoft.FSharp.Core;
 using BookLibrary.Shared.Services;
 using BookLibrary.Domain;
 using BookLibrary.Shared;
+using static BookLibrary.Shared.Commons;
 using System.Runtime.InteropServices;
 using Microsoft.FSharp.Collections;
 

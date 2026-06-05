@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using Microsoft.FSharp.Core;
 using BookLibrary.Shared.Services;
 using BookLibrary.Domain;
+using static BookLibrary.Shared.Commons;
 using BookLibrary.Shared; // Changed from .Commons
 using System.Runtime.InteropServices;
 using Microsoft.FSharp.Collections;

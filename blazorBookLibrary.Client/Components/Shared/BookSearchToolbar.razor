@@ -9,7 +9,7 @@
 @using blazorBookLibrary.Shared.Security
 @inject IBookService BookService
 @inject IAuthorService AuthorService
-@inject ITagService TagService
+@inject ITenantService TenantService
 @inject ITextEmbeddingService TextEmbeddingService
 @inject IVectorDbService VectorDbService
 @inject IJSRuntime JSRuntime
@@ -355,10 +355,10 @@
             }
         }
 
-        var result = await TagService.GetBookTypeTagsAsync(userContext, FSharpOption<CancellationToken>.None);
-        if (result.IsOk)
+        var tenantResult = await TenantService.GetTenantAsync(_userContext ?? userContext, _currentTenant, FSharpOption<CancellationToken>.None);
+        if (tenantResult.IsOk)
         {
-            allBookTags = result.ResultValue.ToList();
+            allBookTags = tenantResult.ResultValue.Tags.Where(t => t.IsBookTag).ToList();
         }
 
         var dpResult = await DistributionPointService.GetAllDistributionPointsAsync(userContext);
