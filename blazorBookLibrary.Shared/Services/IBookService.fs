@@ -10,47 +10,6 @@ open BookLibrary.Shared.Commons
 
 type BookSearchCriteria = delegate of Book -> bool
 
-type BulkBookEdit = 
-    {
-        YearEdit: Option<Year>
-        MainCategoryEdit: Option<Category>
-        AdditionalCategoriesEdit: Option<List<Category>>
-        AvailabilityEdit: Option<Availability>
-        DistributionPointEdit: Option<DistributionPointId>
-        AdditionalAuthorsEdit: Option<List<AuthorId>>
-        AdditionalTagsEdit: Option<List<Tag>>
-        RemoveTagsEdit: Option<List<Tag>>
-    }
-    with
-        static member 
-            Empty =
-                { YearEdit = None; MainCategoryEdit = None; AdditionalCategoriesEdit = None; AvailabilityEdit = None; DistributionPointEdit = None; 
-                AdditionalAuthorsEdit = None; AdditionalTagsEdit = None; RemoveTagsEdit = None }
-        member 
-            this.SetYearIfCondition (year, switch) =
-                if switch then { this with YearEdit = Some year } else this
-        member 
-            this.SetMainCategoryIfCondition (category, switch) =
-                if switch then { this with MainCategoryEdit = Some category } else this
-        member 
-            this.SetAdditionalCategoriesIfCondition (categories, switch) =
-                if switch then { this with AdditionalCategoriesEdit = Some categories } else this
-        member 
-            this.SetAvailabilityIfCondition (availability, switch) =
-                if switch then { this with AvailabilityEdit = Some availability } else this
-        member 
-            this.SetDistributionPointIfCondition (distributionPointId, switch) =
-                if switch then { this with DistributionPointEdit = Some distributionPointId } else this
-        member 
-            this.SetAdditionalAuthorsIfCondition (authors, switch) =
-                if switch then { this with AdditionalAuthorsEdit = Some authors} else this
-        member 
-            this.SetAdditionalTagsIfCondition (tags, switch) =
-                if switch then { this with AdditionalTagsEdit = Some tags} else this
-        member
-            this.SetRemoveTagsIfCondition (tags, switch) =
-                if switch then { this with RemoveTagsEdit = Some tags} else this
-
 type IBookService =
     abstract member AddBookAsync : context:UserContext * book: Book * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<unit, string>>
     abstract member AddBooksAsync : context:UserContext * books: List<Book> * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<unit, string>>

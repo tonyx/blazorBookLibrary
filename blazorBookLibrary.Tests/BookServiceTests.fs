@@ -920,6 +920,61 @@ let tests =
             Expect.equal bookAfterRemove.ImageUrl None "image URL should be removed"
         }
 
+        testCaseTask "bulk edit tags on multiple books - Ok" <| fun _ -> task {
+            setUp ()
+            let bookService = getBookService()
+            
+            let book1 = Book.New TenantId.Default (Title.New "Book 1") [] [] [] None Category.Other [] (Year.New 2024) (Isbn.NewEmpty()) None
+            let book2 = Book.New TenantId.Default (Title.New "Book 2") [] [] [] None Category.Other [] (Year.New 2024) (Isbn.NewEmpty()) None
+            
+            let! add1 = (bookService :> IBookService).AddBookAsync(adminContext, book1)
+            let! add2 = (bookService :> IBookService).AddBookAsync(adminContext, book2)
+            Expect.isOk add1 "should add book 1 ok"
+            Expect.isOk add2 "should add book 2 ok"
+
+            let editCriteria = BulkBookEdit.Empty.SetAdditionalTagsIfCondition([BookTag "bulk-edited-tag"], true)
+            let! bulkEditResult = (bookService :> IBookService).BulkEditAsync(adminContext, [book1.BookId; book2.BookId], editCriteria)
+            Expect.isOk bulkEditResult (sprintf "bulk edit should be ok but was: %A" bulkEditResult)
+
+            let! book1AfterResult = (bookService :> IBookService).GetBookAsync(adminContext, book1.BookId)
+            let book1After = book1AfterResult |> Result.get
+            Expect.isTrue (book1After.Tags |> List.contains (BookTag "bulk-edited-tag")) "book 1 should contain the bulk edited tag"
+
+            let! book2AfterResult = (bookService :> IBookService).GetBookAsync(adminContext, book2.BookId)
+            let book2After = book2AfterResult |> Result.get
+            Expect.isTrue (book2After.Tags |> List.contains (BookTag "bulk-edited-tag")) "book 2 should contain the bulk edited tag"
+        }
+
+        ftestCaseTask "bulk edit tags and categories on multiple books - Ok (expected to fail)" <| fun _ -> task {
+            setUp ()
+            let bookService = getBookService()
+            
+            let book1 = Book.New TenantId.Default (Title.New "Book 1") [] [] [] None Category.Other [] (Year.New 2024) (Isbn.NewEmpty()) None
+            let book2 = Book.New TenantId.Default (Title.New "Book 2") [] [] [] None Category.Other [] (Year.New 2024) (Isbn.NewEmpty()) None
+            
+            let! add1 = (bookService :> IBookService).AddBookAsync(adminContext, book1)
+            let! add2 = (bookService :> IBookService).AddBookAsync(adminContext, book2)
+            Expect.isOk add1 "should add book 1 ok"
+            Expect.isOk add2 "should add book 2 ok"
+
+            let editCriteria = 
+                BulkBookEdit.Empty
+                    .SetAdditionalTagsIfCondition([BookTag "bulk-edited-tag"], true)
+                    .SetAdditionalCategoriesIfCondition([Category.Fantasy; Category.History], true)
+
+            let! bulkEditResult = (bookService :> IBookService).BulkEditAsync(adminContext, [book1.BookId; book2.BookId], editCriteria)
+            Expect.isOk bulkEditResult (sprintf "bulk edit should be ok but was: %A" bulkEditResult)
+
+            let! book1AfterResult = (bookService :> IBookService).GetBookAsync(adminContext, book1.BookId)
+            let book1After = book1AfterResult |> Result.get
+            Expect.isTrue (book1After.Tags |> List.contains (BookTag "bulk-edited-tag")) "book 1 should contain the bulk edited tag"
+            Expect.isTrue (book1After.AdditionalCategories |> List.contains Category.Fantasy) "book 1 should contain Category.Fantasy"
+
+            let! book2AfterResult = (bookService :> IBookService).GetBookAsync(adminContext, book2.BookId)
+            let book2After = book2AfterResult |> Result.get
+            Expect.isTrue (book2After.Tags |> List.contains (BookTag "bulk-edited-tag")) "book 2 should contain the bulk edited tag"
+            Expect.isTrue (book2After.AdditionalCategories |> List.contains Category.Fantasy) "book 2 should contain Category.Fantasy"
+        }
             
     ]
 

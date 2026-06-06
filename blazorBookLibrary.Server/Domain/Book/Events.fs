@@ -37,6 +37,8 @@ type BookEvent =
     | AdditionalCategoryRemoved of Category * DateTime
     | AdditionalCategoriesReplaced of List<Category> * DateTime
 
+    | BulkUpdated of BulkBookEdit * DateTime
+
     | DistributionPointSet of DistributionPointId * UserId * DateTime
     | DistributionPointUnset of UserId * DateTime
 
@@ -107,6 +109,9 @@ type BookEvent =
                 book.RemoveAdditionalCategory category dateTime
             | AdditionalCategoriesReplaced (additionalCategories, dateTime) ->
                 book.ReplaceAdditionalCategories additionalCategories dateTime
+            
+            | BulkUpdated (bulkBookEdit, dateTime) ->
+                book.BulkUpdate bulkBookEdit dateTime
 
             | DistributionPointSet (distributionPoint, userId, dateTime) ->
                 book.SetDistributionPoint distributionPoint userId dateTime
