@@ -13,8 +13,6 @@
 @attribute [Authorize]
 @inject ITenantService TenantService
 @inject IUserService UserService
-@inject IBookService BookService
-@inject IAuthorService AuthorService
 @inject IDistributionPointService DistributionPointService
 @inject IStringLocalizer<SharedResources> L
 @inject ILogger<Tenants> Logger
@@ -317,7 +315,11 @@
                                 {
                                     <div class="text-danger small mt-3 d-flex align-items-start gap-2 p-2 bg-danger bg-opacity-10 rounded border border-danger border-opacity-10 animate-fade-in" style="font-size: 0.8rem;">
                                         <i class="bi bi-exclamation-circle-fill mt-0.5"></i>
-                                        <span>@L["NotDeletableContains", stats.PatronCount, stats.BookCount, stats.AuthorCount, stats.DistributionPointCount]</span>
+                                        <span>
+                                            @(System.Globalization.CultureInfo.CurrentCulture.TwoLetterISOLanguageName == "it" 
+                                                ? $"Non eliminabile. Contiene: {stats.PatronCount} lettori, {stats.DistributionPointCount} punti di distribuzione."
+                                                : $"Not deletable. Contains: {stats.PatronCount} patrons, {stats.DistributionPointCount} distribution points.")
+                                        </span>
                                     </div>
                                 }
                             </div>
@@ -378,11 +380,9 @@
     private class TenantStats
     {
         public int PatronCount { get; set; }
-        public int BookCount { get; set; }
-        public int AuthorCount { get; set; }
         public int DistributionPointCount { get; set; }
         
-        public bool IsDeletable => PatronCount == 0 && BookCount == 0 && AuthorCount == 0 && DistributionPointCount == 0;
+        public bool IsDeletable => PatronCount == 0 && DistributionPointCount == 0;
     }
 
     private bool isLoading = true;
@@ -660,15 +660,11 @@
                     tenantStats.Clear();
                     foreach (var tenant in tenants)
                     {
-                        var booksRes = await BookService.GetAllBooksOfTenantAsync(userContext, tenant.TenantId, default);
-                        var authorsRes = await AuthorService.GetAllAuthorsOfTenantAsync(userContext, tenant.TenantId, default);
                         var dpsRes = await DistributionPointService.GetAllDistributionPointsOfATenantAsync(userContext, tenant.TenantId, default);
 
                         tenantStats[tenant.TenantId.Value] = new TenantStats
                         {
                             PatronCount = tenant.Patrons.Count(),
-                            BookCount = booksRes.IsOk ? booksRes.ResultValue.Count() : 0,
-                            AuthorCount = authorsRes.IsOk ? authorsRes.ResultValue.Count() : 0,
                             DistributionPointCount = dpsRes.IsOk ? dpsRes.ResultValue.Count() : 0
                         };
                     }

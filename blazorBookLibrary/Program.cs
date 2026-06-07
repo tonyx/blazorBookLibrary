@@ -123,6 +123,7 @@ builder.Services.AddSingleton<IDistributionPointService, DistributionPointServic
 
 builder.Services.AddSingleton<IAdminServices, AdminService>();
 builder.Services.AddSingleton<ITenantService, TenantService>();
+builder.Services.AddSingleton<BookLibrary.Shared.Services.ITenantCacheWarmupService, blazorBookLibrary.Infrastructure.Services.TenantCacheWarmupService>();
 builder.Services.AddSingleton<INotificationService, NotificationService>();
 
 builder.Services.AddTransient<CleanUpService>();
@@ -327,6 +328,11 @@ using (var scope = app.Services.CreateScope())
         if (tenantResult.IsError)
         {
             Console.WriteLine($"[Startup] Failed to ensure default tenant: {tenantResult.ErrorValue}");
+        }
+        else
+        {
+            var warmupService = scope.ServiceProvider.GetRequiredService<BookLibrary.Shared.Services.ITenantCacheWarmupService>();
+            await warmupService.WarmupTenantAsync(TenantId.Default, CancellationToken.None);
         }
     }
     else

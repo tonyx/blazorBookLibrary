@@ -513,7 +513,7 @@ type TenantService
             return tenants |>> snd
         }
 
-    member this.GetMyOwnedTenants(context: UserContext, ?ct: CancellationToken) =
+    member this.GetMyOwnedTenants (context: UserContext, ?ct: CancellationToken) =
         let ct = ct |> Option.defaultValue CancellationToken.None
 
         taskResult {
@@ -531,7 +531,7 @@ type TenantService
             return tenants |>> snd
         }
 
-    member this.SetPublic(context: UserContext, tenantId: TenantId, ?ct: CancellationToken) =
+    member this.SetPublic (context: UserContext, tenantId: TenantId, ?ct: CancellationToken) =
         taskResult {
             let! (_, tenant) = tenantViewerAsync ct tenantId.Value
             let ctVal = ct |> Option.defaultValue CancellationToken.None

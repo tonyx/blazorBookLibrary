@@ -7,16 +7,20 @@ using System.Threading;
 using System.Security.Claims;
 using blazorBookLibrary.Shared;
 
+using blazorBookLibrary.Infrastructure.Services;
+
 namespace blazorBookLibrary.Controllers;
 
 [Route("ActiveTenant/[action]")]
 public class ActiveTenantController : Controller
 {
     private readonly IUserService _userService;
+    private readonly ITenantCacheWarmupService _warmupService;
 
-    public ActiveTenantController(IUserService userService)
+    public ActiveTenantController(IUserService userService, ITenantCacheWarmupService warmupService)
     {
         _userService = userService;
+        _warmupService = warmupService;
     }
 
     [HttpPost]
@@ -50,6 +54,9 @@ public class ActiveTenantController : Controller
                             HttpOnly = false, 
                             SameSite = SameSiteMode.Lax 
                         });
+
+                    // 3. Warm up the cache for the new tenant
+                    _ = Task.Run(() => _warmupService.WarmupTenantAsync(tenantIdentifier, CancellationToken.None));
                 }
             }
         }
