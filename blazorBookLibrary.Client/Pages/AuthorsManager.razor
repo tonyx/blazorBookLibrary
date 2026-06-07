@@ -91,8 +91,16 @@ else
                     <InputText class="form-control bg-white border-0 shadow-sm py-2" @bind-Value="searchIsni" placeholder="@L["SearchByIsni"]" />
                 </div>
                 <div class="col-md-2">
-                    <button type="submit" class="btn btn-primary w-100 py-2 rounded-pill">
-                        <i class="bi bi-search me-2"></i> @L["Search"]
+                    <button type="submit" class="btn btn-primary w-100 py-2 rounded-pill" disabled="@isSearching">
+                        @if (isSearching)
+                        {
+                            <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                        }
+                        else
+                        {
+                            <i class="bi bi-search me-2"></i>
+                        }
+                        @L["Search"]
                     </button>
                 </div>
             </div>
@@ -388,11 +396,20 @@ else
     private string searchName = "";
     private string searchIsni = "";
     private bool searchPerformed = false;
+    private bool isSearching = false;
 
     private async Task HandleSearch()
     {
+        isSearching = true;
         searchPerformed = true;
-        await LoadAuthors();
+        try
+        {
+            await LoadAuthors();
+        }
+        finally
+        {
+            isSearching = false;
+        }
     }
 
     private async Task LoadAuthors()

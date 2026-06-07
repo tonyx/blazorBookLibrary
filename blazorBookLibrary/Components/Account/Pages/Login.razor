@@ -29,8 +29,8 @@
     <p class="text-muted small">Your books in motion — secure catalog access</p>
 </div>
 
-<div class="row">
-    <div class="col-lg-6">
+<div class="row justify-content-center">
+    <div class="col-12 col-md-8 col-lg-6">
         <section>
             <StatusMessage Message="@errorMessage" />
             <EditForm EditContext="editContext" method="post" OnSubmit="LoginUser" FormName="login">
@@ -91,13 +91,6 @@
                     <a href="Account/ResendEmailConfirmation" class="text-secondary small">Resend email confirmation</a>
                 </p>
             </div>
-        </section>
-    </div>
-    <div class="col-lg-4 col-lg-offset-2">
-        <section>
-            <h3>Use another service to log in.</h3>
-            <hr />
-            <ExternalLoginPicker />
         </section>
     </div>
 </div>

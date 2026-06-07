@@ -497,7 +497,7 @@ type BookService
                         (Some ct)
             }
 
-    member this.BulkEditAsync (context: UserContext, bookIds: List<BookId>, bulkBookEdit: BulkBookEdit, ?ct: CancellationToken) = 
+    member this.BulkEditAsyncBack (context: UserContext, bookIds: List<BookId>, bulkBookEdit: BulkBookEdit, ?ct: CancellationToken) = 
         let ct = defaultArg ct CancellationToken.None
         taskResult
             {
@@ -515,6 +515,7 @@ type BookService
                     checkIsGlobalAdminOrTenantManager context ct
                 
                 let dateTime = System.DateTime.UtcNow
+
                 let preExecutedYearEditCommands = 
                     match bulkBookEdit.YearEdit with
                     | Some year -> 
@@ -687,6 +688,49 @@ type BookService
                         eventStore
                         messageSenders
                 return! result
+            }
+    member this.BulkEditAsync (context: UserContext, bookIds: List<BookId>, bulkBookEdit: BulkBookEdit, ?ct: CancellationToken) = 
+        let ct = defaultArg ct CancellationToken.None
+
+        let preExecuteCommandAsync command bookId ct = 
+            taskResult
+                {
+                    let! preExecutedCommand =
+                        bookIds
+                        |> List.map _.Value
+                        |> List.traverseTaskResultM (fun id -> preExecuteAggregateCommandMdAsync<Book, BookEvent, string> id eventStore MessageSenders.NoSender "" command ct)
+                    return preExecutedCommand |> Some
+                }
+
+        taskResult
+            {
+                let! tenantId = userTenantResolverService.GetTenantForUserAsync(context)
+                let! books = 
+                    bookIds
+                    |> List.traverseTaskResultM (fun bookId -> bookViewerAsync (Some ct) bookId.Value |> TaskResult.map snd)
+                do! 
+                    (books |> List.forall (fun book -> tenantId = book.TenantId))
+                    |> Result.ofBool "Book tenant id not matching"
+                let! userId = 
+                    context.UserId |> Result.ofOption "user must be some for bulkEdit"
+
+                do!
+                    checkIsGlobalAdminOrTenantManager context ct
+
+                let dateTime = System.DateTime.UtcNow
+
+                let commands: List<AggregateCommand<Book, BookEvent>> = 
+                    bookIds |>> fun _ -> BookCommand.BulkUpdate (bulkBookEdit, dateTime)
+
+                let! result =
+                    runNAggregateCommandsMdAsync<Book, BookEvent, string>
+                        (bookIds |>> _.Value)
+                        eventStore
+                        messageSenders
+                        ""
+                        commands
+                        (Some ct)
+                return result
             }
 
     member this.RemoveAuthorFromBookAsync (context: UserContext, authorId: AuthorId, bookId: BookId, dateTime: System.DateTime, ?ct: CancellationToken) = 

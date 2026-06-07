@@ -7,6 +7,48 @@ open BookLibrary.Shared.Commons
 open System
 open System.Globalization
 
+type BulkBookEdit = 
+    {
+        YearEdit: Option<Year>
+        MainCategoryEdit: Option<Category>
+        AdditionalCategoriesEdit: Option<List<Category>>
+        AvailabilityEdit: Option<Availability>
+        DistributionPointEdit: Option<DistributionPointId>
+        AdditionalAuthorsEdit: Option<List<AuthorId>>
+        AdditionalTagsEdit: Option<List<Tag>>
+        RemoveTagsEdit: Option<List<Tag>>
+    }
+    with
+        static member 
+            Empty =
+                { YearEdit = None; MainCategoryEdit = None; AdditionalCategoriesEdit = None; AvailabilityEdit = None; DistributionPointEdit = None; 
+                AdditionalAuthorsEdit = None; AdditionalTagsEdit = None; RemoveTagsEdit = None }
+        member 
+            this.SetYearIfCondition (year, switch) =
+                if switch then { this with YearEdit = Some year } else this
+        member 
+            this.SetMainCategoryIfCondition (category, switch) =
+                if switch then { this with MainCategoryEdit = Some category } else this
+        member 
+            this.SetAdditionalCategoriesIfCondition (categories, switch) =
+                if switch then { this with AdditionalCategoriesEdit = Some categories } else this
+        member 
+            this.SetAvailabilityIfCondition (availability, switch) =
+                if switch then { this with AvailabilityEdit = Some availability } else this
+        member 
+            this.SetDistributionPointIfCondition (distributionPointId, switch) =
+                if switch then { this with DistributionPointEdit = Some distributionPointId } else this
+        member 
+            this.SetAdditionalAuthorsIfCondition (authors, switch) =
+                if switch then { this with AdditionalAuthorsEdit = Some authors} else this
+        member 
+            this.SetAdditionalTagsIfCondition (tags, switch) =
+                if switch then { this with AdditionalTagsEdit = Some tags} else this
+        member
+            this.SetRemoveTagsIfCondition (tags, switch) =
+                if switch then { this with RemoveTagsEdit = Some tags} else this
+
+
 type Book =
     { TenantId: TenantId
       BookId: BookId
@@ -391,6 +433,58 @@ type Book =
         result {
             do! this.Sealed.IsSealed(dateTime) |> not |> Result.ofBool "Book is sealed"
             return { this with Isbn = isbn }
+        }
+    member this.BulkUpdate (bulkBookEdit: BulkBookEdit) (dateTime: DateTime) =
+        result {
+            let adjustAddTags =
+                match bulkBookEdit.AdditionalTagsEdit with
+                | Some tags ->
+                    { this with Tags = this.Tags @ tags |> List.distinct } 
+                | _ -> this 
+
+            let adjustYear =
+                match bulkBookEdit.YearEdit with
+                | Some year -> 
+                    { adjustAddTags with Year = year }
+                | _ -> adjustAddTags
+
+            let adjustMainCategory =
+                match bulkBookEdit.MainCategoryEdit with
+                | Some mainCategory -> 
+                    { adjustYear with MainCategory = mainCategory }
+                | _ -> adjustYear
+
+            let adjustAdditionalCategories =
+                match bulkBookEdit.AdditionalCategoriesEdit with
+                | Some additionalCategories -> 
+                    { adjustMainCategory with AdditionalCategories = additionalCategories }
+                | _ -> adjustMainCategory
+
+            let adjustAvailability =
+                match bulkBookEdit.AvailabilityEdit with
+                | Some availability -> 
+                    { adjustAdditionalCategories with Availability = availability }
+                | _ -> adjustAdditionalCategories
+
+            let adjustRemoveTags =
+                match bulkBookEdit.RemoveTagsEdit with
+                | Some tagsToRemove -> 
+                    { adjustAvailability with Tags = adjustAvailability.Tags |> List.filter (fun x -> not (tagsToRemove |> List.contains x)) }
+                | _ -> adjustAvailability
+
+            let adjustDistributionPoint =
+                match bulkBookEdit.DistributionPointEdit with
+                | Some distributionPoint -> 
+                    { adjustRemoveTags with DistributionPoint = Some distributionPoint }
+                | _ -> adjustRemoveTags
+
+            let adjustAdditionalAuthors =
+                match bulkBookEdit.AdditionalAuthorsEdit with
+                | Some additionalAuthors -> 
+                    { adjustDistributionPoint with Authors = this.Authors @ additionalAuthors |> List.distinct }
+                | _ -> adjustDistributionPoint
+
+            return adjustAdditionalAuthors
         }
 
     member this.Seal(dateTime: DateTime) =

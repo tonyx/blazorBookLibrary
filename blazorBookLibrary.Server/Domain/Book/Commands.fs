@@ -39,6 +39,8 @@ type BookCommand =
     | SetDistributionPoint of DistributionPointId * UserId * DateTime
     | UnsetDistributionPoint of UserId * DateTime
 
+    | BulkUpdate of BulkBookEdit * DateTime
+
     | AddTag of Tag * DateTime
     | AddTags of List<Tag> * DateTime
     | RemoveTag of Tag * DateTime
@@ -141,6 +143,10 @@ type BookCommand =
             | UnsetDistributionPoint (userId, dateTime) ->
                 book.UnsetDistributionPoint userId dateTime
                 |> Result.map (fun b -> (b, [DistributionPointUnset(userId, dateTime)]))
+
+            | BulkUpdate (bulkBookEdit, dateTime) ->
+                book.BulkUpdate bulkBookEdit dateTime
+                |> Result.map (fun b -> (b, [BulkUpdated(bulkBookEdit, dateTime)]))
 
             | AddTag (tag, dateTime) ->
                 book.AddTag tag dateTime
