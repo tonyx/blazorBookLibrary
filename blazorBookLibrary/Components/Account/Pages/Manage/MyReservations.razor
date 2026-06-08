@@ -1,0 +1,262 @@
+@page "/Account/Manage/MyReservations"
+@rendermode InteractiveServer
+@implements IAsyncDisposable
+
+@using Microsoft.AspNetCore.Identity
+@using blazorBookLibrary.Data
+@using BookLibrary.Domain
+@using BookLibrary.Shared.Services
+@using static BookLibrary.Shared.Details
+@using static BookLibrary.Shared.Commons
+@using blazorBookLibrary.Shared.Resources
+@using Microsoft.AspNetCore.SignalR.Client
+
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject UserManager<ApplicationUser> UserManager
+@inject IReservationService ReservationService
+@inject IUserTenantResolverService UserTenantResolverService
+@inject ITenantService TenantService
+@inject IdentityRedirectManager RedirectManager
+@inject IStringLocalizer<SharedResources> L
+@inject NavigationManager NavigationManager
+@inject IJSRuntime JSRuntime
+
+<PageTitle>@L["MyReservations"]</PageTitle>
+
+<StatusMessage />
+<h3>@L["MyReservations"]</h3>
+
+<div class="row">
+    <div class="col-md-10">
+        <div class="card-sanctuary p-4 mb-4">
+            <h4 class="text-serif mb-3">@L["CurrentTenant"]</h4>
+            @if (tenant == null)
+            {
+                <div class="d-flex align-items-center gap-3 text-muted italic">
+                    <div class="spinner-border spinner-border-sm" role="status"></div>
+                    <span>@L["Loading"]...</span>
+                </div>
+            }
+            else
+            {
+                <div class="p-3 bg-light rounded-3 border border-secondary-subtle">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-bank text-primary fs-4"></i>
+                        <div>
+                            <span class="fw-bold fs-5 text-dark">@tenant.Name.Value</span>
+                            <span class="badge bg-primary ms-2">@L["CurrentTenantBadge"]</span>
+                        </div>
+                    </div>
+                    <p class="text-muted small mt-2 mb-0">
+                        @L["ReservationsContextDisclaimer"]
+                    </p>
+                </div>
+            }
+        </div>
+
+        <div class="card-sanctuary p-4">
+            <h4 class="text-serif mb-4">@L["MyReservations"]</h4>
+            @if (reservations == null)
+            {
+                <div class="d-flex align-items-center gap-3 text-muted italic">
+                    <div class="spinner-border spinner-border-sm" role="status"></div>
+                    <span>@L["Loading"]...</span>
+                </div>
+            }
+            else if (!reservations.Any())
+            {
+                <div class="p-5 bg-surface-low rounded-lg text-center italic text-muted">
+                    <i class="bi bi-calendar-x d-block mb-3 fs-3 text-muted opacity-50"></i>
+                    @L["NoPendingReservationsFound"]
+                </div>
+            }
+            else
+            {
+                <div class="list-group list-group-flush shadow-sm rounded-lg border overflow-hidden">
+                    @foreach (var res in reservations)
+                    {
+                        <div class="list-group-item p-4">
+                            <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+                                <div class="d-flex align-items-start gap-3 flex-grow-1">
+                                    <div class="bg-light rounded flex-shrink-0 d-flex align-items-center justify-content-center" style="width: 50px; height: 70px; overflow: hidden; border: 1px solid rgba(0,0,0,0.1);">
+                                        @if (Microsoft.FSharp.Core.FSharpOption<Uri>.get_IsSome(res.Book.ImageUrl))
+                                        {
+                                            <img src="@res.Book.ImageUrl.Value" class="w-100 h-100" style="object-fit: cover;" />
+                                        }
+                                        else
+                                        {
+                                            <i class="bi bi-book text-muted fs-4"></i>
+                                        }
+                                    </div>
+                                    <div>
+                                        <div class="d-flex align-items-center gap-2 mb-1 flex-wrap">
+                                            <h5 class="h6 mb-0 text-serif fw-bold">@res.Book.Title.Value</h5>
+                                            <span class="badge bg-warning text-dark" style="font-size: 0.75rem;">@L["Pending"]</span>
+                                        </div>
+                                        <div class="x-small text-muted mb-2 font-monospace">ISBN: @res.Book.Isbn.Value</div>
+                                        <div class="small text-muted">
+                                            <i class="bi bi-calendar-range me-1"></i>
+                                            @L["From"]: <span class="fw-semibold">@res.Reservation.TimeSlot.Start.ToLocalTime().ToString("d MMM yyyy")</span> 
+                                            @L["To"]: <span class="fw-semibold">@res.Reservation.TimeSlot.End.ToLocalTime().ToString("d MMM yyyy")</span>
+                                        </div>
+                                        <div class="small text-muted mt-1">
+                                            <i class="bi bi-key me-1"></i>
+                                            @L["ReservationCode"]: <span class="font-monospace fw-bold text-dark">@res.Reservation.ReservationCode.Value</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="d-flex align-items-center justify-content-start justify-content-md-end">
+                                    <button class="btn btn-outline-danger btn-sm rounded-pill px-3 shadow-sm shadow-hover d-flex align-items-center gap-1"
+                                            @onclick="() => ConfirmAndCancelReservation(res)"
+                                            disabled="@isProcessing">
+                                        <i class="bi bi-x-circle"></i>
+                                        <span>@L["Cancel"]</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<style>
+    .rounded-lg { border-radius: 12px !important; }
+    .bg-surface-low { background-color: var(--surface-low, #f8f9fa); }
+    .shadow-hover:hover {
+        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06) !important;
+        transform: translateY(-1px);
+        transition: all 0.2s ease-in-out;
+    }
+</style>
+
+@code {
+    private Tenant? tenant;
+    private List<ReservationDetails>? reservations;
+    private HubConnection? hubConnection;
+    private bool isProcessing = false;
+    private System.Security.Claims.ClaimsPrincipal? userClaims;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        userClaims = authState.User;
+        if (userClaims == null || userClaims.Identity?.IsAuthenticated != true)
+        {
+            return;
+        }
+
+        var user = await UserManager.GetUserAsync(userClaims);
+        if (user is null)
+        {
+            return;
+        }
+
+        var context = blazorBookLibrary.Shared.ConverterUtils.fromClaimsPrincipal(userClaims);
+        
+        // 1. Resolve referred tenant
+        var tenantResult = await UserTenantResolverService.GetTenantForUserAsync(context);
+        if (tenantResult.IsOk)
+        {
+            var tenantId = tenantResult.ResultValue;
+            var tenantInfoResult = await TenantService.GetTenantAsync(context, tenantId);
+            if (tenantInfoResult.IsOk)
+            {
+                tenant = tenantInfoResult.ResultValue;
+            }
+        }
+
+        // 2. Fetch pending reservations of user
+        await LoadReservations();
+
+        // 3. Connect to SignalR
+        try
+        {
+            hubConnection = new HubConnectionBuilder()
+                .WithUrl(NavigationManager.ToAbsoluteUri("/hubs/library"))
+                .WithAutomaticReconnect()
+                .Build();
+
+            hubConnection.On("PendingReservationsChanged", async () =>
+            {
+                await LoadReservations();
+                await InvokeAsync(StateHasChanged);
+            });
+
+            hubConnection.On("ReservationListChanged", async () =>
+            {
+                await LoadReservations();
+                await InvokeAsync(StateHasChanged);
+            });
+
+            await hubConnection.StartAsync();
+        }
+        catch (Exception ex)
+        {
+            // Prerendering might trigger this, so we handle it silently
+        }
+    }
+
+    private async Task LoadReservations()
+    {
+        if (userClaims == null) return;
+        var context = blazorBookLibrary.Shared.ConverterUtils.fromClaimsPrincipal(userClaims);
+        var resResult = await ReservationService.GetMyPendingReservationsAsync(context, Microsoft.FSharp.Core.FSharpOption<System.Threading.CancellationToken>.None);
+        if (resResult.IsOk)
+        {
+            reservations = resResult.ResultValue.ToList();
+        }
+        else
+        {
+            reservations = new();
+        }
+    }
+
+    private async Task ConfirmAndCancelReservation(ReservationDetails res)
+    {
+        var confirmationMsg = L["ConfirmCancelReservationText", "Are you sure you want to cancel this reservation?"].Value;
+        var confirmed = await JSRuntime.InvokeAsync<bool>("confirm", confirmationMsg);
+        if (!confirmed) return;
+
+        isProcessing = true;
+        try
+        {
+            if (userClaims == null) return;
+            var context = blazorBookLibrary.Shared.ConverterUtils.fromClaimsPrincipal(userClaims);
+            var reason = CancellationReason.NewRequestedByUser("Cancelled by patron via account panel");
+            var result = await ReservationService.CancelReservationAsync(
+                context, 
+                res.Reservation.ReservationId, 
+                reason, 
+                Microsoft.FSharp.Core.FSharpOption<System.Threading.CancellationToken>.None);
+            
+            if (result.IsOk)
+            {
+                await JSRuntime.InvokeVoidAsync("showToast", L["ReservationCanceledSuccess", "Reservation canceled successfully."].Value, "success");
+                await LoadReservations();
+            }
+            else
+            {
+                await JSRuntime.InvokeVoidAsync("showToast", L["ErrorOccurred"].Value + ": " + result.ErrorValue, "danger");
+            }
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("showToast", L["ErrorOccurred"].Value, "danger");
+        }
+        finally
+        {
+            isProcessing = false;
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (hubConnection is not null)
+        {
+            await hubConnection.DisposeAsync();
+        }
+    }
+}

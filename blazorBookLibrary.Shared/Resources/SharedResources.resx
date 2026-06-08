@@ -391,7 +391,8 @@
   <data name="DistributionPoints" xml:space="preserve"><value>Distribution Points</value></data>
   <data name="Unset" xml:space="preserve"><value>Unset</value></data>
   <data name="CuratedCatalog" xml:space="preserve"><value>Il Catalogo Curato</value></data>
-  <data name="ArchivalDiscoveryDescription" xml:space="preserve"><value> Explore the Potential of BiblioNet. See how our book-sharing network works by exploring this demo catalog. To start sharing for real, create your personal circuit, catalog your physical books, and invite your friends!</value></data>
+  <data name="ArchivalDiscoveryDescription" xml:space="preserve"><value> Explore the Potential of BiblioNet. See how our book-sharing network works by exploring this demo catalog. To start sharing for real, {0}, catalog your physical books, and invite your friends!</value></data>
+  <data name="CreateYourPersonalCircuit" xml:space="preserve"><value>create your personal circuit</value></data>
   <data name="Set" xml:space="preserve"><value>Set</value></data>
   <data name="SelectToSetDP" xml:space="preserve"><value>Select distribution point...</value></data>
   <data name="NoDistributionPointAssigned" xml:space="preserve"><value>No distribution point assigned</value></data>

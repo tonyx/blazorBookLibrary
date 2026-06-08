@@ -39,6 +39,9 @@ type FakeReservationService() =
         member this.GetAllPendingReservationsDetailsAsync(userContext, ct) = 
             printfn "FakeReservationService: GetAllPendingReservationsDetailsAsync called"
             Task.FromResult(Ok [])
+        member this.GetMyPendingReservationsAsync(userContext, ct) = 
+            printfn "FakeReservationService: GetMyPendingReservationsAsync called"
+            Task.FromResult(Ok [])
         member this.GeneratePickupPinAsync(userContext, id, ct) =
             printfn "FakeReservationService: GeneratePickupPinAsync called for id %A" id
             Task.FromResult(Ok ("123456", System.DateTime.UtcNow.AddMinutes(15.0)))

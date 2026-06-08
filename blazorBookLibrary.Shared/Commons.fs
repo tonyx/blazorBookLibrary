@@ -121,6 +121,14 @@ type TenantState =
         | Deactivated -> "Deactivated"
         | ScheduledForDeletion dt -> $"ScheduledForDeletion {dt}"
 
+type NotificationMethod =
+    | ByEmail
+    | NoNotification
+    member this.Value =
+        match this with
+        | ByEmail -> "By Email"
+        | NoNotification -> "No Notification"
+
 type TenantInfo =
     | TenantInfo of TenantInfo
 

@@ -11,8 +11,7 @@ type PatronRole =
     | User
     | Suspended of string
 
-
-type Tenant =
+type Tenant001 =
     { OwnerId: UserId
       TenantId: TenantId
       InvitedPatrons: List<(UserId * PatronInvitationCode)>
@@ -24,8 +23,39 @@ type Tenant =
       Tags: List<Tag>
       CurrentJoinPin: Option<string>
       JoinRequests: List<UserId> }
+        with 
+            member
+                this.Upcast (): Tenant =
+                    {
+                        OwnerId = this.OwnerId
+                        TenantId = this.TenantId
+                        InvitedPatrons = this.InvitedPatrons
+                        Patrons = this.Patrons
+                        Name = this.Name
+                        Address = this.Address
+                        TenantState = this.TenantState
+                        ReservationNotificationMethod = NotificationMethod.NoNotification
+                        TenantVisibility = this.TenantVisibility
+                        Tags = this.Tags
+                        CurrentJoinPin = this.CurrentJoinPin
+                        JoinRequests = this.JoinRequests
+                    }
 
-    static member New(userId: UserId, tenantName: TenantName, address: string, ?pub: bool) =
+and Tenant =
+    { OwnerId: UserId
+      TenantId: TenantId
+      InvitedPatrons: List<(UserId * PatronInvitationCode)>
+      Patrons: List<UserId * PatronRole>
+      Name: TenantName
+      Address: string
+      TenantState: TenantState
+      ReservationNotificationMethod: NotificationMethod
+      TenantVisibility: TenantVisibility
+      Tags: List<Tag>
+      CurrentJoinPin: Option<string>
+      JoinRequests: List<UserId> }
+
+    static member New (userId: UserId, tenantName: TenantName, address: string, ?pub: bool) =
         { OwnerId = userId
           TenantId = TenantId.New()
           InvitedPatrons = []
@@ -38,12 +68,13 @@ type Tenant =
                 TenantVisibility.RequestedPublic
             else
                 TenantVisibility.Private
+          ReservationNotificationMethod = NotificationMethod.NoNotification
           Tags = []
           CurrentJoinPin = None
           JoinRequests = [] }
 
-    static member NewDefault(userId: UserId, tenantName: TenantName, address: string) =
-        { Tenant.New(userId, tenantName, address, true) with
+    static member NewDefault (userId: UserId, tenantName: TenantName, address: string) =
+        { Tenant.New (userId, tenantName, address, true) with
             TenantId = TenantId.Default }
 
     member this.GenerateJoinPin2(pin: string) =
@@ -322,8 +353,14 @@ type Tenant =
 
     member this.Serialize = (this, jsonOptions) |> JsonSerializer.Serialize
 
-    static member Deserialize(data: string) =
+    static member Deserialize (data: string) =
         try
             (data, jsonOptions) |> JsonSerializer.Deserialize<Tenant> |> Ok
         with ex ->
-            Error ex.Message
+            try
+                let tenant001 = (data, jsonOptions) |> JsonSerializer.Deserialize<Tenant001>
+                tenant001.Upcast () |> Ok
+            with ex2 -> Error (ex.Message + ex2.Message)
+                
+                
+            

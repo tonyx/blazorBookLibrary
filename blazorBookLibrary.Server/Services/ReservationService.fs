@@ -194,6 +194,7 @@ type ReservationService
                     cancelReservationCommand
                     (ct |> Some)
         }
+
     member this.MakeReservationDetailsBuilder
         (id: ReservationId, refresher: Option<CancellationToken> -> TaskResult<ReservationDetails, string>)
         =
@@ -205,7 +206,6 @@ type ReservationService
                   Refresher = refresher }
                 :> RefreshableAsync<RefreshableReservationDetails>,
                 [ id.Value
-                  reservationDetails.Reservation.BookId.Value
                   reservationDetails.Book.BookId.Value ]
         }
 
@@ -468,6 +468,31 @@ type ReservationService
             return reservations
         }
 
+    member this.GetMyPendingReservationsAsync(context: UserContext, ?ct: CancellationToken) =
+        taskResult {
+            let ct = defaultArg ct CancellationToken.None
+            let! tenantId = userTenantResolverService.GetTenantForUserAsync(context, ct)
+            let! userId =
+                match context with
+                | UserContext.Authenticated(userId, _) -> Ok userId
+                | UserContext.Anonymous  -> Error "User is not authenticated"
+                
+            let! reservations =
+                StateView.getAllFilteredAggregateStatesAsync<Reservation, ReservationEvent, string>
+                    (fun r -> r.UserId = userId && r.TenantId = tenantId && r.IsPending)
+                    eventStore
+                    (Some ct)
+                |> TaskResult.map (List.ofSeq >> List.map snd)
+
+            let! reservationDetails =
+                reservations
+                |> List.traverseTaskResultM (fun reservation ->
+                    (this :> IReservationService)
+                        .GetReservationDetailsAsync(context, reservation.ReservationId, ct))
+
+            return reservationDetails
+        }
+
     interface IReservationService with
         member this.AddReservationAsync
             (context: UserContext, reservation: Reservation, shortLang: ShortLang, ?ct: CancellationToken)
@@ -526,6 +551,9 @@ type ReservationService
 
                 return reservationDetails
             }
+        member this.GetMyPendingReservationsAsync (context: UserContext, ct: CancellationToken option): Task<Result<List<ReservationDetails>,string>> = 
+            let ct = defaultArg ct CancellationToken.None
+            this.GetMyPendingReservationsAsync(context, ct)
 
         member this.GetReservationsOfABookAsync(context: UserContext, bookId: BookId, ?ct: CancellationToken) =
             let ct = defaultArg ct CancellationToken.None

@@ -402,6 +402,18 @@
 
     private NewTenantModel newTenant = new();
 
+    [SupplyParameterFromQuery(Name = "create")]
+    public bool? Create { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        if (Create == true)
+        {
+            showCreateForm = true;
+            showJoinForm = false;
+        }
+    }
+
     private class NewTenantModel
     {
         [Required(ErrorMessage = "Library name is required")]

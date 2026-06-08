@@ -641,7 +641,8 @@
   <data name="LinkedTitles" xml:space="preserve"><value>Linked Titles</value></data>
   <data name="CuratedCatalog" xml:space="preserve"><value>The Curated Catalog</value></data>
   <data name="SeeHowBiblionetWorks" xml:space="preserve"><value>BiblioNet</value></data>
-  <data name="ArchivalDiscoveryDescription" xml:space="preserve"><value> Explore the Potential of BiblioNet. See how our book-sharing network works by exploring this demo catalog. To start sharing for real, create your personal circuit, catalog your physical books, and invite your friends!</value></data>
+  <data name="ArchivalDiscoveryDescription" xml:space="preserve"><value> Explore the Potential of BiblioNet. See how our book-sharing network works by exploring this demo catalog. To start sharing for real, {0}, catalog your physical books, and invite your friends!</value></data>
+  <data name="CreateYourPersonalCircuit" xml:space="preserve"><value>create your personal circuit</value></data>
   <data name="CatalogDiscovery" xml:space="preserve"><value>Catalog Discovery</value></data>
   <data name="VisualIdentity" xml:space="preserve"><value>Visual Identity</value></data>
   <data name="TitlesFound" xml:space="preserve"><value>Titles Found</value></data>
@@ -854,7 +855,7 @@
   <data name="ConceptualDescription" xml:space="preserve"><value>Conceptual Description</value></data>
   <data name="SemanticSearchPlaceholder" xml:space="preserve"><value>e.g. A dystopian novel about surveillance and totalitarism...</value></data>
   <data name="MaxResults" xml:space="preserve"><value>Max Results</value></data>
-  <data name="SemanticSearchHelp" xml:space="preserve"><value>This uses AI to find books by meaning rather than exact keywords. Combine with filters below for precise discovery.</value></data>
+  <data name="SemanticSearchHelp" xml:space="preserve"><value>Find books by meaning rather than exact keywords.</value></data>
   <data name="SemanticAnalysisFailed" xml:space="preserve"><value>Semantic analysis failed</value></data>
   <data name="VectorSearchFailed" xml:space="preserve"><value>Vector search failed</value></data>
   <data name="ErrorRetrievingBooks" xml:space="preserve"><value>Failed to retrieve books</value></data>
@@ -991,4 +992,10 @@
   <data name="ShowDetailedMetadata" xml:space="preserve"><value>Show Detailed Fields</value></data>
   <data name="RemoveTags" xml:space="preserve"><value>Remove Tags</value></data>
   <data name="SelectTagToRemove" xml:space="preserve"><value>Select tag to remove</value></data>
+  <data name="MyReservations" xml:space="preserve"><value>My Reservations</value></data>
+  <data name="CurrentTenant" xml:space="preserve"><value>Library Context</value></data>
+  <data name="CurrentTenantBadge" xml:space="preserve"><value>Active Library</value></data>
+  <data name="ReservationsContextDisclaimer" xml:space="preserve"><value>Your reservations shown below are associated with this library.</value></data>
+  <data name="ConfirmCancelReservationText" xml:space="preserve"><value>Are you sure you want to cancel this reservation?</value></data>
+  <data name="ReservationCanceledSuccess" xml:space="preserve"><value>Reservation canceled successfully.</value></data>
 </root>

@@ -16,6 +16,16 @@
     <ImportMap />
     <link rel="icon" type="image/svg+xml" href="images/BIBLIONET.svg" />
     <HeadOutlet />
+    <script>
+        if (document.cookie.split(';').some((item) => item.trim().startsWith('hide_welcome_msg=true'))) {
+            document.documentElement.classList.add('hide-welcome-msg');
+        }
+    </script>
+    <style>
+        .hide-welcome-msg .welcome-message-dismissible {
+            display: none !important;
+        }
+    </style>
 </head>
 
 <body>
