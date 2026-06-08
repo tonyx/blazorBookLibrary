@@ -583,6 +583,23 @@ type TenantService
                     ct
         }
 
+    member this.SetLoanNotificationPreferenceAsync(context: UserContext, tenantId: TenantId, notificationPreference: NotificationPreference, ?ct: CancellationToken) =
+        taskResult {
+            let! (_, tenant) = tenantViewerAsync ct tenantId.Value
+            let ctVal = ct |> Option.defaultValue CancellationToken.None
+            do! Security.checkIsGlobalAdminOrTenantManager tenant context
+            let command = TenantCommand.SetLoanNotificationPreference notificationPreference
+
+            return!
+                runAggregateCommandMdAsync<Tenant, TenantEvent, string>
+                    tenantId.Value
+                    eventStore
+                    messageSenders
+                    ""
+                    command
+                    ct
+        }
+
     member this.RequestPublicAsync(context: UserContext, tenantId: TenantId, ?ct: CancellationToken) =
         taskResult {
             let! (_, tenant) = tenantViewerAsync ct tenantId.Value
@@ -967,6 +984,9 @@ type TenantService
 
         member this.SetReservationNotificationPreferenceAsync(context, tenantId, notificationPreference, ?ct) =
             this.SetReservationNotificationPreferenceAsync(context, tenantId, notificationPreference, ?ct = ct)
+
+        member this.SetLoanNotificationPreferenceAsync(context, tenantId, notificationPreference, ?ct) =
+            this.SetLoanNotificationPreferenceAsync(context, tenantId, notificationPreference, ?ct = ct)
 
         member this.RequestPublicAsync(context, tenantId, ?ct) =
             this.RequestPublicAsync(context, tenantId, ?ct = ct)

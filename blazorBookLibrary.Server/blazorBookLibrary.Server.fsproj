@@ -37,6 +37,15 @@
     <None Include="Templates/it/PatronInvitationBody.txt" CopyToOutputDirectory="PreserveNewest" />
     <None Include="Templates/en/PatronInvitationSubject.txt" CopyToOutputDirectory="PreserveNewest" />
     <None Include="Templates/it/PatronInvitationSubject.txt" CopyToOutputDirectory="PreserveNewest" />
+
+    <None Include="InAppTemplates/en/ReservationNotification.txt" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="InAppTemplates/it/ReservationNotification.txt" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="InAppTemplates/en/LoanNotification.txt" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="InAppTemplates/it/LoanNotification.txt" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="InAppTemplates/en/LoanReturnNotification.txt" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="InAppTemplates/it/LoanReturnNotification.txt" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="InAppTemplates/en/PatronInvitationBody.txt" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="InAppTemplates/it/PatronInvitationBody.txt" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>
@@ -81,6 +90,7 @@
     <Compile Include="SeedServices/RandomBooksGeneratorService.fs" />
 
     <Compile Include="Services/MailBodyRetriever.fs" />
+    <Compile Include="Services/InAppMessagesRetriever.fs" />
     <Compile Include="Services/Security.fs" />
     <Compile Include="Services/UserMapping.fs" />
     <Compile Include="Services/UserContextMapper.fs" />
@@ -101,9 +111,9 @@
     <Compile Include="Services/DataExportService.fs" />
     <Compile Include="Services/AdminService.fs" />
     <Compile Include="Services/TenantService.fs" />
+    <Compile Include="Hubs/LibraryHub.fs" />
     <Compile Include="Services/NotificationService.fs" />
     <Compile Include="Services/EmbeddingOrchestrationService.fs" />
-    <Compile Include="Hubs/LibraryHub.fs" />
     <Compile Include="Controllers/AuthorsSearchController.fs" />
     <Compile Include="Controllers/BooksController.fs" />
     <Compile Include="Controllers/LoansController.fs" />
@@ -122,6 +132,7 @@
     <Compile Include="Controllers/EmbeddingOrchestrationController.fs" />
     <Compile Include="Controllers/TenantController.fs" />
     <Compile Include="Controllers/NotificationsController.fs" />
+    <Compile Include="Controllers/InAppMessagesRetrieverController.fs" />
     <Compile Include="Controllers/UserTenantResolverController.fs" />
   </ItemGroup>
 

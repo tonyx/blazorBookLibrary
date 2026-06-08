@@ -15,21 +15,24 @@ open BookLibrary.Shared.Commons
 open BookLibrary.Utils
 open System.Threading.Tasks
 open Microsoft.Extensions.Logging
+open Microsoft.AspNetCore.SignalR
+open BookLibrary.Hubs
 
 type NotificationService
     (
         eventStore: IEventStore<string>,
         messageSenders: MessageSenders,
         notificationViewerAsync: AggregateViewerAsync2<Notification>,
-        logger: ILogger<INotificationService>
+        logger: ILogger<INotificationService>,
+        hubContext: IHubContext<LibraryHub>
     ) =
 
-    new (secretsReader: SecretsReader, logger: ILogger<INotificationService>) =
+    new (secretsReader: SecretsReader, logger: ILogger<INotificationService>, hubContext: IHubContext<LibraryHub>) =
         let connectionString = secretsReader.GetBookLibraryConnectionString()
         let messageSenders = MessageSenders.NoSender
         let eventStore = PgStorage.PgEventStore connectionString
         let notificationViewerAsync = getAggregateStorageFreshStateViewerAsync<Notification, BookLibrary.Domain.NotificationEvent, string> eventStore
-        NotificationService(eventStore, messageSenders, notificationViewerAsync, logger)
+        NotificationService(eventStore, messageSenders, notificationViewerAsync, logger, hubContext)
 
     member this.GetUnreadNotificationsForUser (context: UserContext, ?ct: CancellationToken) =
         let ct = ct |> Option.defaultValue CancellationToken.None
@@ -82,6 +85,14 @@ type NotificationService
                     ""
                     command
                     ct
+            do! 
+                task {
+                    try
+                        do! hubContext.Clients.All.SendAsync("NotificationChanged", notification.UserId.Value.ToString())
+                    with ex ->
+                        logger.LogError(ex, "Failed to broadcast NotificationChanged via SignalR")
+                    return Ok()
+                }
             return ()
         }
 
@@ -99,6 +110,14 @@ type NotificationService
                     messageSenders
                     notification
                     ct
+            do! 
+                task {
+                    try
+                        do! hubContext.Clients.All.SendAsync("NotificationChanged", notification.UserId.Value.ToString())
+                    with ex ->
+                        logger.LogError(ex, "Failed to broadcast NotificationChanged via SignalR")
+                    return Ok()
+                }
             return ()
         }
 

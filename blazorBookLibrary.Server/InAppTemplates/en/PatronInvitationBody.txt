@@ -1,0 +1,1 @@
+You have been invited to become a patron of {tenantName}. Click here to accept or refuse: {urlToClick} {joinPinInfo}

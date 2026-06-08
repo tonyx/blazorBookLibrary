@@ -94,6 +94,10 @@ type ITenantService =
         UserContext * TenantId * NotificationPreference * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken ->
             Task<Result<unit, string>>
 
+    abstract member SetLoanNotificationPreferenceAsync:
+        UserContext * TenantId * NotificationPreference * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken ->
+            Task<Result<unit, string>>
+
     abstract member RequestPublicAsync:
         UserContext * TenantId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken ->
             Task<Result<unit, string>>

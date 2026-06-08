@@ -40,7 +40,202 @@
     <script src="/_content/BlazorBarcodeScanner.ZXing.JS/BlazorBarcodeScanner.js"></script>
 
     <script src="site.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
+    <script>
+        (function() {
+            function initNotificationListener() {
+                const bellContainer = document.getElementById('notification-bell-container');
+                if (!bellContainer) {
+                    // Retry after Blazor routing finishes/updates
+                    setTimeout(initNotificationListener, 500);
+                    return;
+                }
+                const currentUserId = bellContainer.getAttribute('data-user-id');
+                if (!currentUserId || currentUserId === '') return;
 
+                if (window.notificationHubConnection) {
+                    // Already connected or connecting, update the user context if needed
+                    window.notificationHubConnection.userId = currentUserId;
+                    return;
+                }
+
+                const connection = new signalR.HubConnectionBuilder()
+                    .withUrl("/hubs/library")
+                    .withAutomaticReconnect()
+                    .build();
+
+                connection.userId = currentUserId;
+
+                connection.on("NotificationChanged", function(payloadUserId) {
+                    if (connection.userId && connection.userId === payloadUserId) {
+                        updateNotificationBell();
+                    }
+                });
+
+                connection.start()
+                    .then(function() {
+                        console.log("SignalR connection established for notification updates.");
+                    })
+                    .catch(function(err) {
+                        console.error("SignalR connection failed: ", err);
+                    });
+
+                window.notificationHubConnection = connection;
+            }
+
+            function updateNotificationBell() {
+                fetch('/Notifications/GetUnreadNotifications')
+                    .then(response => response.json())
+                    .then(notifications => {
+                        const badgeContainer = document.getElementById('notification-badge-container');
+                        const listBody = document.getElementById('notification-dropdown-body');
+                        
+                        if (badgeContainer) {
+                            if (notifications.length > 0) {
+                                badgeContainer.innerHTML = '<span class="notification-badge">' + notifications.length + '</span>';
+                            } else {
+                                badgeContainer.innerHTML = '';
+                            }
+                        }
+
+                        if (listBody) {
+                            if (notifications.length === 0) {
+                                listBody.innerHTML = `
+                                    <div class="dropdown-placeholder text-muted py-4">
+                                        <i class="bi bi-bell-slash fs-3 d-block mb-2"></i>
+                                        <span>No new notifications</span>
+                                    </div>
+                                `;
+                            } else {
+                                let html = '<div class="notification-list">';
+                                notifications.forEach(function(notif) {
+                                    const actionUrl = notif.actionUrl || '';
+                                    const isClickable = actionUrl !== '' && !actionUrl.toLowerCase().startsWith('/reservations/');
+                                    const redirectUrl = encodeURIComponent(actionUrl);
+                                    const clickUrl = `/Notifications/HandleClick?notificationId=${notif.notificationId}&redirectUrl=${redirectUrl}`;
+                                    const isUnread = !notif.isRead ? 'unread' : '';
+                                    
+                                    let iconHtml = '<i class="bi bi-bell text-secondary"></i>';
+                                    if (notif.title.includes("Public Request")) {
+                                        iconHtml = '<i class="bi bi-globe text-info"></i>';
+                                    } else if (notif.title.includes("Invite") || notif.title.includes("Onboarding")) {
+                                        iconHtml = '<i class="bi bi-envelope-open text-primary"></i>';
+                                    } else if (notif.title.includes("Request")) {
+                                        iconHtml = '<i class="bi bi-person-plus text-warning"></i>';
+                                    } else if (notif.title.includes("Approved")) {
+                                        iconHtml = '<i class="bi bi-check-circle text-success"></i>';
+                                    }
+
+                                    // Simple relative time calculation (time ago)
+                                    let timeAgo = 'Just now';
+                                    if (notif.createdAt) {
+                                        const createdDate = new Date(notif.createdAt);
+                                        const now = new Date();
+                                        const diffMs = now - createdDate;
+                                        const diffMins = Math.floor(diffMs / 60000);
+                                        const diffHours = Math.floor(diffMins / 60);
+                                        const diffDays = Math.floor(diffHours / 24);
+
+                                        if (diffMins >= 1 && diffMins < 60) {
+                                            timeAgo = diffMins + 'm ago';
+                                        } else if (diffHours >= 1 && diffHours < 24) {
+                                            timeAgo = diffHours + 'h ago';
+                                        } else if (diffDays >= 1) {
+                                            timeAgo = diffDays + 'd ago';
+                                        }
+                                    }
+
+                                    html += `<div class="notification-item ${isUnread}">`;
+
+                                    if (isClickable) {
+                                        html += `
+                                            <a href="${clickUrl}" class="notif-content-wrapper text-decoration-none text-dark">
+                                                <div class="notif-icon-box">
+                                                    ${iconHtml}
+                                                </div>
+                                                <div class="notif-details">
+                                                    <h5 class="notif-title">${notif.title}</h5>
+                                                    <p class="notif-text">${notif.content}</p>
+                                                    <span class="notif-time">${timeAgo}</span>
+                                                </div>
+                                            </a>
+                                        `;
+                                    } else {
+                                        html += `
+                                            <div class="notif-content-wrapper text-dark">
+                                                <div class="notif-icon-box">
+                                                    ${iconHtml}
+                                                </div>
+                                                <div class="notif-details">
+                                                    <h5 class="notif-title">${notif.title}</h5>
+                                                    <p class="notif-text">${notif.content}</p>
+                                                    <span class="notif-time">${timeAgo}</span>
+                                                </div>
+                                            </div>
+                                        `;
+                                    }
+
+                                    if (!notif.isRead && !notif.title.includes("Invitation") && !notif.title.includes("Join Request")) {
+                                        const dismissUrl = `/Notifications/Dismiss?notificationId=${notif.notificationId}&returnUrl=${encodeURIComponent(window.location.pathname + window.location.search)}`;
+                                        html += `
+                                            <div class="notif-actions mt-1">
+                                                <a href="${dismissUrl}" class="btn btn-sm btn-link p-0 text-decoration-none text-secondary" style="font-size: 0.72rem; font-weight: 650;">
+                                                    <i class="bi bi-check-lg me-1"></i>Mark as read
+                                                </a>
+                                            </div>
+                                        `;
+                                    }
+
+                                    if (notif.title.includes("Invitation") && actionUrl) {
+                                        const params = new URLSearchParams(actionUrl.split('?')[1] || '');
+                                        const tenantId = params.get('tenantId') || '';
+                                        const code = params.get('code') || '';
+                                        const acceptUrl = `/Notifications/AcceptInvitation?notificationId=${notif.notificationId}&tenantId=${tenantId}&code=${code}`;
+                                        const dismissUrl = `/Notifications/Dismiss?notificationId=${notif.notificationId}&returnUrl=${encodeURIComponent(window.location.pathname + window.location.search)}`;
+
+                                        html += `
+                                            <div class="notif-actions mt-2 d-flex gap-2">
+                                                <a href="${acceptUrl}" class="btn btn-sm btn-primary py-1 px-3 radius-full text-decoration-none">Accept</a>
+                                                <a href="${dismissUrl}" class="btn btn-sm btn-outline-secondary py-1 px-3 radius-full text-decoration-none">Dismiss</a>
+                                            </div>
+                                        `;
+                                    } else if (notif.title.includes("Join Request") && actionUrl) {
+                                        const parts = actionUrl.split('/');
+                                        let tenantId = parts.length >= 3 ? parts[2] : '';
+                                        if (tenantId.includes('?')) {
+                                            tenantId = tenantId.split('?')[0];
+                                        }
+                                        const params = new URLSearchParams(actionUrl.split('?')[1] || '');
+                                        const requesterId = params.get('requesterId') || '';
+                                        
+                                        const approveUrl = `/Notifications/ApproveJoin?notificationId=${notif.notificationId}&tenantId=${tenantId}&requesterId=${requesterId}`;
+                                        const rejectUrl = `/Notifications/RejectJoin?notificationId=${notif.notificationId}&tenantId=${tenantId}&requesterId=${requesterId}&returnUrl=${encodeURIComponent(window.location.pathname + window.location.search)}`;
+
+                                        html += `
+                                            <div class="notif-actions mt-2 d-flex gap-2">
+                                                <a href="${approveUrl}" class="btn btn-sm btn-success py-1 px-3 radius-full text-decoration-none">Approve</a>
+                                                <a href="${rejectUrl}" class="btn btn-sm btn-outline-danger py-1 px-3 radius-full text-decoration-none">Reject</a>
+                                            </div>
+                                        `;
+                                    }
+
+                                    html += `
+                                        </div>
+                                    `;
+                                });
+                                html += '</div>';
+                                listBody.innerHTML = html;
+                            }
+                        }
+                    });
+            }
+
+            document.addEventListener('DOMContentLoaded', initNotificationListener);
+            if (typeof Blazor !== 'undefined') {
+                document.addEventListener('enhancedload', initNotificationListener);
+            }
+        })();
+    </script>
 </body>
 
 </html>

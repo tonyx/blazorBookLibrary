@@ -1,0 +1,1 @@
+Il libro "{BookTitle}" che hai preso in prestito il "{LoanedAt}" risulta restituito il "{ReturnedAt}" presso "{DistributionPointName}".

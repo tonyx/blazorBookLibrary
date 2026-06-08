@@ -1,0 +1,1 @@
+Sei stato invitato a diventare un utente di {tenantName}. Clicca qui per accettare o rifiutare: {urlToClick} {joinPinInfo}

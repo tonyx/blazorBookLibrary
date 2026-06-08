@@ -39,7 +39,7 @@ type LoanService
         userTenantResolverService: IUserTenantResolverService,
         reservationService: IReservationService,
         usersService: IUserService,
-        mailNotificator: IMailNotificator,
+        notificationDispatcher: INotificationDispatcher,
         maxLoanPerUser: int,
         fromEmail: string,
         fromName: string,
@@ -91,17 +91,6 @@ type LoanService
 
             let setCurrentLoanCommand = BookCommand.SetCurrentLoan(loan.LoanId, dateTime)
 
-            let! emailTextRetrieved =
-                mailBodyRetriever.GetLoanNotificationTextMailAsync(
-                    book.Title,
-                    tenant.Name,
-                    optDpName,
-                    dateTime,
-                    loan.DueDate,
-                    user.LangPref,
-                    ?ct = Some ct
-                )
-
             let! result =
                 runInitAndAggregateCommandMdAsync<Book, BookEvent, Loan, string>
                     book.Id
@@ -112,23 +101,14 @@ type LoanService
                     setCurrentLoanCommand
                     (ct |> Some)
 
-            let emailBody = emailTextRetrieved
-
-            let! emailSubject = mailBodyRetriever.GetLoanNotificationSubject(book.Title, loan.DueDate, user.LangPref)
-
-            do!
-                task {
-                    do!
-                        mailNotificator.SendEmailAsync(
-                            fromEmail,
-                            fromName,
-                            userDetails.AppUser.Email,
-                            emailSubject,
-                            emailBody
-                        )
-
-                    return Ok()
-                }
+            let! _ =
+                notificationDispatcher.DispatchNotificationAsync(
+                    context,
+                    loan.UserId,
+                    tenantId,
+                    Some $"/loans/{loan.Id}",
+                    ct
+                )
 
             // not sure this is needed
             let! _ = DetailsCache.Instance.RefreshDependentDetailsAsync(loan.UserId.Value, Some ct)
@@ -252,23 +232,6 @@ type LoanService
             let releaseLoanCommand = BookCommand.ReleaseLoan(loanId, dateTime)
             let releaseBookCommand = LoanCommand.Return dateTime
             let userReleaseLoanCommandr = UserCommand.ReleaseLoan(loanId)
-            let! userDetails = usersService.GetUserDetailsAsync(context, loan.UserId, ct)
-
-            let! emailBody =
-                mailBodyRetriever.GetReleaseLoanNotificationTextMailAsync(
-                    user.AppUserInfo.UserName,
-                    book.Title,
-                    loan.LoanedAt,
-                    dateTime,
-                    tenant.Name,
-                    distributionPointName,
-                    user.LangPref,
-                    ?ct = Some ct
-                )
-
-            let! emailSubject =
-                mailBodyRetriever.GetReleaseLoanNotificationSubject(book.Title, user.LangPref, ?ct = Some ct)
-
             let! result =
                 runThreeAggregateCommandsMdAsync<Book, BookEvent, Loan, LoanEvent, User, UserEvent, string>
                     book.Id
@@ -282,19 +245,14 @@ type LoanService
                     userReleaseLoanCommandr
                     (ct |> Some)
 
-            do!
-                task {
-                    do!
-                        mailNotificator.SendEmailAsync(
-                            fromEmail,
-                            fromName,
-                            userDetails.AppUser.Email,
-                            emailSubject,
-                            emailBody
-                        )
-
-                    return Ok()
-                }
+            let! _ =
+                notificationDispatcher.DispatchNotificationAsync(
+                    context,
+                    loan.UserId,
+                    loan.TenantId,
+                    Some $"/loans/{loan.Id}/release",
+                    ct
+                )
 
             let! _ = DetailsCache.Instance.RefreshDependentDetailsAsync(loan.UserId.Value, Some ct)
             return result
@@ -359,17 +317,6 @@ type LoanService
                         return dp.Name.Value
                     }
 
-            let! emailTextRetrieved =
-                mailBodyRetriever.GetLoanNotificationTextMailAsync(
-                    book.Title,
-                    reservationDetails.UserDetails.CurrentTenant.Name,
-                    optDpName,
-                    now,
-                    loan.DueDate,
-                    reservationDetails.UserDetails.User.LangPref,
-                    ?ct = Some ct
-                )
-
             let! result =
                 runInitAndThreeAggregateCommandsMdAsync<
                     Reservation,
@@ -398,22 +345,13 @@ type LoanService
             let updateDetails =
                 DetailsCache.Instance.UpdateMultipleAggregateIdAssociation [| loan.Id |] key
 
-            let emailBody = emailTextRetrieved
-
-            let! emailSubject =
-                mailBodyRetriever.GetLoanNotificationSubject(
-                    book.Title,
-                    loan.DueDate,
-                    reservationDetails.UserDetails.User.LangPref
-                )
-
-            do!
-                mailNotificator.SendEmailAsync(
-                    fromEmail,
-                    fromName,
-                    reservationDetails.UserDetails.AppUser.Email,
-                    emailSubject,
-                    emailBody
+            let! _ =
+                notificationDispatcher.DispatchNotificationAsync(
+                    context,
+                    reservation.UserId,
+                    reservation.TenantId,
+                    Some $"/loans/{loan.Id}",
+                    ct
                 )
 
             let! _ = DetailsCache.Instance.RefreshDependentDetailsAsync(reservation.BookId.Value, Some ct)
@@ -460,17 +398,6 @@ type LoanService
                         return dp.Name.Value
                     }
 
-            let! emailTextRetrieved =
-                mailBodyRetriever.GetLoanNotificationTextMailAsync(
-                    book.Title,
-                    reservationDetails.UserDetails.CurrentTenant.Name,
-                    optDpName,
-                    now,
-                    loan.DueDate,
-                    reservationDetails.UserDetails.User.LangPref,
-                    ?ct = Some ct
-                )
-
             let! result =
                 runInitAndThreeAggregateCommandsMdAsync<
                     Reservation,
@@ -499,26 +426,14 @@ type LoanService
             let updateDetails =
                 DetailsCache.Instance.UpdateMultipleAggregateIdAssociation [| loan.Id |] key
 
-            let emailBody = emailTextRetrieved
-
-            let! emailSubject =
-                mailBodyRetriever.GetLoanNotificationSubject(
-                    book.Title,
-                    loan.DueDate,
-                    reservationDetails.UserDetails.User.LangPref
+            let! _ =
+                notificationDispatcher.DispatchNotificationAsync(
+                    context,
+                    reservation.UserId,
+                    reservation.TenantId,
+                    Some $"/loans/{loan.Id}",
+                    ct
                 )
-
-            try
-                do!
-                    mailNotificator.SendEmailAsync(
-                        fromEmail,
-                        fromName,
-                        reservationDetails.UserDetails.AppUser.Email,
-                        emailSubject,
-                        emailBody
-                    )
-            with _ ->
-                ()
 
             // todo: check if this is needed
             let! _ = DetailsCache.Instance.RefreshDependentDetailsAsync(reservation.UserId.Value, Some ct)
@@ -582,7 +497,7 @@ type LoanService
             eventStore: IEventStore<string>,
             reservationService: IReservationService,
             usersService: IUserService,
-            mailNotificator: IMailNotificator,
+            notificationDispatcher: INotificationDispatcher,
             localizer: IStringLocalizer<SharedResources>,
             configuration: IConfiguration,
             mailBodyRetriever: IMailBodyRetriever,
@@ -602,7 +517,7 @@ type LoanService
             userTenantResolverService,
             reservationService,
             usersService,
-            mailNotificator,
+            notificationDispatcher,
             configuration.GetValue<int>("BooksLibrary:MaxLoanPerUser", 3),
             configuration.GetValue<string>("BooksLibrary:FromEmail", "noreply@blazorbooklibrary.com"),
             configuration.GetValue<string>("BooksLibrary:FromName", "Blazor Book Library"),
@@ -615,7 +530,7 @@ type LoanService
             configuration: IConfiguration,
             reservationService: IReservationService,
             usersService: IUserService,
-            mailNotificator: IMailNotificator,
+            notificationDispatcher: INotificationDispatcher,
             localizer: IStringLocalizer<SharedResources>,
             mailBodyRetriever: IMailBodyRetriever,
             secretsReader: SecretsReader,
@@ -625,7 +540,7 @@ type LoanService
             PgStorage.PgEventStore(secretsReader.GetBookLibraryConnectionString()),
             reservationService,
             usersService,
-            mailNotificator,
+            notificationDispatcher,
             localizer,
             configuration,
             mailBodyRetriever,
@@ -637,7 +552,7 @@ type LoanService
             connectionString: string,
             reservationService: IReservationService,
             usersService: IUserService,
-            mailNotificator: IMailNotificator,
+            notificationDispatcher: INotificationDispatcher,
             localizer: IStringLocalizer<SharedResources>,
             configuration: IConfiguration,
             mailBodyRetriever: IMailBodyRetriever,
@@ -647,7 +562,7 @@ type LoanService
             PgStorage.PgEventStore connectionString,
             reservationService,
             usersService,
-            mailNotificator,
+            notificationDispatcher,
             localizer,
             configuration,
             mailBodyRetriever,

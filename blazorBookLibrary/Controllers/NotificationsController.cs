@@ -153,4 +153,27 @@ public class NotificationsController : Controller
         }
         return LocalRedirect(string.IsNullOrWhiteSpace(returnUrl) ? "/" : $"/{returnUrl.TrimStart('/')}");
     }
+
+    [HttpGet]
+    public async Task<IActionResult> GetUnreadNotifications()
+    {
+        if (User.Identity != null && User.Identity.IsAuthenticated)
+        {
+            var userContext = UserContextMapper.mapFromClaimsPrincipal(User);
+            var result = await _notificationService.GetUnreadNotificationsForUserAsync(userContext, FSharpOption<CancellationToken>.None);
+            if (result.IsOk)
+            {
+                var list = result.ResultValue.Select(n => new {
+                    notificationId = n.NotificationId.Value,
+                    title = n.Title,
+                    content = n.Content,
+                    isRead = n.IsRead,
+                    createdAt = n.CreatedAt,
+                    actionUrl = FSharpOption<string>.get_IsSome(n.ActionUrl) ? n.ActionUrl.Value : ""
+                }).ToList();
+                return Json(list);
+            }
+        }
+        return Json(new object[0]);
+    }
 }
