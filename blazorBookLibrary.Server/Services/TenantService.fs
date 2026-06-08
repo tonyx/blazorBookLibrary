@@ -565,6 +565,24 @@ type TenantService
                     ct
         }
 
+
+    member this.SetReservationNotificationPreferenceAsync(context: UserContext, tenantId: TenantId, notificationPreference: NotificationPreference, ?ct: CancellationToken) =
+        taskResult {
+            let! (_, tenant) = tenantViewerAsync ct tenantId.Value
+            let ctVal = ct |> Option.defaultValue CancellationToken.None
+            do! Security.checkIsGlobalAdminOrTenantManager tenant context
+            let command = TenantCommand.SetReservationNotificationPreference notificationPreference
+
+            return!
+                runAggregateCommandMdAsync<Tenant, TenantEvent, string>
+                    tenantId.Value
+                    eventStore
+                    messageSenders
+                    ""
+                    command
+                    ct
+        }
+
     member this.RequestPublicAsync(context: UserContext, tenantId: TenantId, ?ct: CancellationToken) =
         taskResult {
             let! (_, tenant) = tenantViewerAsync ct tenantId.Value
@@ -946,6 +964,9 @@ type TenantService
 
         member this.SetPrivateAsync(context, tenantId, ?ct) =
             this.SetPrivate(context, tenantId, ?ct = ct)
+
+        member this.SetReservationNotificationPreferenceAsync(context, tenantId, notificationPreference, ?ct) =
+            this.SetReservationNotificationPreferenceAsync(context, tenantId, notificationPreference, ?ct = ct)
 
         member this.RequestPublicAsync(context, tenantId, ?ct) =
             this.RequestPublicAsync(context, tenantId, ?ct = ct)

@@ -23,6 +23,7 @@ type TenantEvent =
     | PatronInvitationRevoked of UserId
     | PublicSet
     | PublicRequested
+    | ReservationNotificationPreferenceSet of NotificationPreference
     | PrivateSet
     | JoinPinGenerated2 of string
     | JoinRequestSubmitted2 of UserId
@@ -48,6 +49,7 @@ type TenantEvent =
             | PatronReadmitted userId -> tenant.ReAdmittPatron userId
             | PublicSet -> tenant.SetPublic()
             | PublicRequested -> tenant.RequestPublic()
+            | ReservationNotificationPreferenceSet n -> tenant.SetReservationNotificationPreference n
             | PrivateSet -> tenant.SetPrivate()
             | PatronInvitationRevoked userId -> tenant.RevokeInvitation userId
             | JoinPinGenerated2 pin -> tenant.GenerateJoinPin2 pin

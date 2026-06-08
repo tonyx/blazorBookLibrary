@@ -165,6 +165,13 @@ public class TenantClientService : ITenantService
         return await ServiceClientHelper.HandleUnitResponse(response);
     }
 
+    public async Task<FSharpResult<Unit, string>> SetReservationNotificationPreferenceAsync(Commons.UserContext context, Commons.TenantId tenantId, NotificationPreference notificationPreference, FSharpOption<CancellationToken> ct)
+    {
+        var request = ServiceClientHelper.CreateRequest(HttpMethod.Put, $"api/Tenant/{tenantId.Value}/reservation-notification-preference", context, notificationPreference);
+        var response = await _httpClient.SendAsync(request, ServiceClientHelper.GetValue(ct, CancellationToken.None));
+        return await ServiceClientHelper.HandleUnitResponse(response);
+    }
+
 
 
     public async Task<FSharpResult<Unit, string>> DeleteTenantAsync(Commons.UserContext context, Commons.TenantId tenantId, FSharpOption<CancellationToken> ct)

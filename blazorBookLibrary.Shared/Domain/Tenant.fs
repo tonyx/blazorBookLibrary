@@ -34,7 +34,7 @@ type Tenant001 =
                         Name = this.Name
                         Address = this.Address
                         TenantState = this.TenantState
-                        ReservationNotificationMethod = NotificationMethod.NoNotification
+                        ReservationNotificationPreference = NotificationPreference.InApp
                         TenantVisibility = this.TenantVisibility
                         Tags = this.Tags
                         CurrentJoinPin = this.CurrentJoinPin
@@ -49,7 +49,7 @@ and Tenant =
       Name: TenantName
       Address: string
       TenantState: TenantState
-      ReservationNotificationMethod: NotificationMethod
+      ReservationNotificationPreference: NotificationPreference
       TenantVisibility: TenantVisibility
       Tags: List<Tag>
       CurrentJoinPin: Option<string>
@@ -68,7 +68,7 @@ and Tenant =
                 TenantVisibility.RequestedPublic
             else
                 TenantVisibility.Private
-          ReservationNotificationMethod = NotificationMethod.NoNotification
+          ReservationNotificationPreference = NotificationPreference.InApp
           Tags = []
           CurrentJoinPin = None
           JoinRequests = [] }
@@ -325,6 +325,11 @@ and Tenant =
     member this.SetPrivate() =
         { this with
             TenantVisibility = TenantVisibility.Private }
+        |> Ok
+
+    member this.SetReservationNotificationPreference (notificationPreference: NotificationPreference) =
+        { this with
+            ReservationNotificationPreference = notificationPreference }
         |> Ok
 
     member this.GetUserRole userId =

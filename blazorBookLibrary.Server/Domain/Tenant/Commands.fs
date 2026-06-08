@@ -23,6 +23,7 @@ type TenantCommand =
     | SetPublic
     | RequestPublic
     | SetPrivate
+    | SetReservationNotificationPreference of NotificationPreference
     | GenerateJoinPin2 of string
     | SubmitJoinRequest2 of UserId
     | ApproveJoinRequest2 of UserId
@@ -75,6 +76,9 @@ type TenantCommand =
                 tenant.RequestPublic()
                 |> Result.map (fun t -> (t, [ TenantEvent.PublicRequested ]))
             | SetPrivate -> tenant.SetPrivate() |> Result.map (fun t -> (t, [ TenantEvent.PrivateSet ]))
+            | SetReservationNotificationPreference n ->
+                tenant.SetReservationNotificationPreference n
+                |> Result.map (fun t -> (t, [ TenantEvent.ReservationNotificationPreferenceSet n ]))
             | GenerateJoinPin2 pin ->
                 tenant.GenerateJoinPin2 pin
                 |> Result.map (fun t -> (t, [ TenantEvent.JoinPinGenerated2 pin ]))

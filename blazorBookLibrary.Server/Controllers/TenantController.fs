@@ -254,6 +254,20 @@ type TenantController(tenantService: ITenantService, hubContext: Microsoft.AspNe
             | Error msg -> return this.BadRequest(msg) :> IActionResult
         }
 
+    [<HttpPut("{id}/reservation-notification-preference")>]
+    member this.SetReservationNotificationPreference(id: Guid, [<FromBody>] preference: NotificationPreference) =
+        task {
+            let context = UserContextMapper.mapFromRequest this.Request
+            let! result = tenantService.SetReservationNotificationPreferenceAsync(context, TenantId id, preference)
+
+            match result with
+            | Ok _ -> 
+                do! hubContext.Clients.All.SendCoreAsync("TenantListChanged", [||])
+                return this.Ok() :> IActionResult
+            | Error msg -> return this.BadRequest(msg) :> IActionResult
+        }
+
+
     [<HttpPut("{id}/request-public")>]
     member this.RequestPublic(id: Guid) =
         task {
