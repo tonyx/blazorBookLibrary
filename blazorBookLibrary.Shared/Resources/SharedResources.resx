@@ -473,4 +473,8 @@
   <data name="RecordMissingEmbedding" xml:space="preserve"><value>Record lacks AI text embedding.</value></data>
   <data name="RecordHasDescription" xml:space="preserve"><value>Archival record contains description.</value></data>
   <data name="RecordMissingDescription" xml:space="preserve"><value>Record lacks description.</value></data>
+  <data name="ReservationNotificationPreference" xml:space="preserve"><value>Reservation Notification Preference</value></data>
+  <data name="ReservationNotificationPreferenceDescription" xml:space="preserve"><value>Choose how patrons are notified when their reserved books become available.</value></data>
+  <data name="LoanNotificationPreference" xml:space="preserve"><value>Loan Notification Preference</value></data>
+  <data name="LoanNotificationPreferenceDescription" xml:space="preserve"><value>Choose how patrons are notified regarding their active loans.</value></data>
 </root>

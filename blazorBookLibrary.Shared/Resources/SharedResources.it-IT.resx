@@ -943,4 +943,8 @@
   <data name="ReservationsContextDisclaimer" xml:space="preserve"><value>Le tue prenotazioni mostrate sotto sono associate a questa biblioteca.</value></data>
   <data name="ConfirmCancelReservationText" xml:space="preserve"><value>Sei sicuro di voler annullare questa prenotazione?</value></data>
   <data name="ReservationCanceledSuccess" xml:space="preserve"><value>Prenotazione annullata con successo.</value></data>
+  <data name="ReservationNotificationPreference" xml:space="preserve"><value>Preferenza notifiche prenotazioni</value></data>
+  <data name="ReservationNotificationPreferenceDescription" xml:space="preserve"><value>Scegli come notificare gli utenti quando i libri prenotati diventano disponibili.</value></data>
+  <data name="LoanNotificationPreference" xml:space="preserve"><value>Preferenza notifiche prestiti</value></data>
+  <data name="LoanNotificationPreferenceDescription" xml:space="preserve"><value>Scegli come notificare gli utenti riguardo i loro prestiti attivi.</value></data>
 </root>

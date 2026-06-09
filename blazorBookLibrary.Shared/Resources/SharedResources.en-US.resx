@@ -998,4 +998,8 @@
   <data name="ReservationsContextDisclaimer" xml:space="preserve"><value>Your reservations shown below are associated with this library.</value></data>
   <data name="ConfirmCancelReservationText" xml:space="preserve"><value>Are you sure you want to cancel this reservation?</value></data>
   <data name="ReservationCanceledSuccess" xml:space="preserve"><value>Reservation canceled successfully.</value></data>
+  <data name="ReservationNotificationPreference" xml:space="preserve"><value>Reservation Notification Preference</value></data>
+  <data name="ReservationNotificationPreferenceDescription" xml:space="preserve"><value>Choose how patrons are notified when their reserved books become available.</value></data>
+  <data name="LoanNotificationPreference" xml:space="preserve"><value>Loan Notification Preference</value></data>
+  <data name="LoanNotificationPreferenceDescription" xml:space="preserve"><value>Choose how patrons are notified regarding their active loans.</value></data>
 </root>

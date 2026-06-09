@@ -10,6 +10,7 @@
 @using blazorBookLibrary.Shared
 @using static BookLibrary.Shared.Details
 @using System.ComponentModel.DataAnnotations
+@using Microsoft.AspNetCore.SignalR.Client
 
 @attribute [Authorize]
 @inject IDetailsService DetailsService
@@ -26,6 +27,7 @@
 @inject NavigationManager NavigationManager
 @inject IConfiguration Configuration
 @rendermode InteractiveAuto
+@implements IAsyncDisposable
 
 <PageTitle>@(libraryDetails != null ? $"{libraryDetails.Tenant.Name.Value} — {L["TenantDetails"]}" : L["TenantDetails"]) — @L["BiblioNet"]</PageTitle>
 
@@ -1127,6 +1129,7 @@
     private List<User> joinRequestsList = new();
     private bool isGeneratingPin = false;
     private bool isUpdatingPreference = false;
+    private HubConnection? hubConnection;
 
     private InvitePatronModel inviteModel = new();
     private string checkoutMethod = "code";
@@ -1200,6 +1203,7 @@
          {
              "Email" => NotificationPreference.Email,
              "In App" => NotificationPreference.InApp,
+             "In App and Email" => NotificationPreference.InAppAndEmail,
              _ => NotificationPreference.InApp
          };
 
@@ -2127,8 +2131,14 @@
         }
     }
 
-    protected override async Task OnInitializedAsync()
+    private async Task LoadTenantDetailsAsync(bool isSilent = false)
     {
+        if (!isSilent)
+        {
+            isLoading = true;
+            errorMessage = "";
+        }
+
         try
         {
             var tenantId = TenantId.NewTenantId(Id);
@@ -2139,7 +2149,7 @@
             {
                 isAuthorized = false;
                 errorMessage = L["NotAuthenticated"] ?? "You must be authenticated to view this page.";
-                isLoading = false;
+                if (!isSilent) isLoading = false;
                 return;
             }
 
@@ -2216,7 +2226,58 @@
         }
         finally
         {
-            isLoading = false;
+            if (!isSilent) isLoading = false;
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadTenantDetailsAsync();
+
+        try
+        {
+            hubConnection = new HubConnectionBuilder()
+                .WithUrl(NavigationManager.ToAbsoluteUri("/hubs/library"))
+                .WithAutomaticReconnect()
+                .Build();
+
+            hubConnection.On("TenantListChanged", async () =>
+            {
+                await LoadTenantDetailsAsync(isSilent: true);
+                await InvokeAsync(StateHasChanged);
+            });
+
+            hubConnection.On("TenantTagsChanged", async () =>
+            {
+                await LoadTenantDetailsAsync(isSilent: true);
+                await InvokeAsync(StateHasChanged);
+            });
+
+            hubConnection.On("PendingReservationsChanged", async () =>
+            {
+                await LoadTenantDetailsAsync(isSilent: true);
+                await InvokeAsync(StateHasChanged);
+            });
+
+            hubConnection.On("BookAvailabilityChanged", async () =>
+            {
+                await LoadTenantDetailsAsync(isSilent: true);
+                await InvokeAsync(StateHasChanged);
+            });
+
+            await hubConnection.StartAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Could not start SignalR hub connection in TenantDetails. Expected during prerendering.");
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (hubConnection is not null)
+        {
+            await hubConnection.DisposeAsync();
         }
     }
 
