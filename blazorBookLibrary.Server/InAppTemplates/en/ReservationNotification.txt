@@ -1,0 +1,1 @@
+Your loan request for "{bookTitle}" ({tenantName}) has been approved. Pickup location: {distributionPoint}. Code: {code}.

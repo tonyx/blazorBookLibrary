@@ -11,7 +11,7 @@
 @inject NavigationManager NavigationManager
 @inject IJSRuntime JSRuntime
 
-<div class="notification-container dropdown">
+<div class="notification-container dropdown" id="notification-bell-container" data-user-id="@GetCurrentUserIdString()">
     <button class="btn-notification-bell dropdown-toggle-no-caret" 
             type="button" 
             id="notificationDropdownButton"
@@ -19,10 +19,12 @@
             aria-expanded="false"
             aria-label="Notifications">
         <i class="bi bi-bell"></i>
-        @if (unreadCount > 0)
-        {
-            <span class="notification-badge">@unreadCount</span>
-        }
+        <span id="notification-badge-container">
+            @if (unreadCount > 0)
+            {
+                <span class="notification-badge">@unreadCount</span>
+            }
+        </span>
     </button>
 
     <div class="notification-dropdown dropdown-menu dropdown-menu-end shadow border-0" aria-labelledby="notificationDropdownButton">
@@ -34,7 +36,7 @@
             }
         </div>
 
-        <div class="dropdown-body">
+        <div class="dropdown-body" id="notification-dropdown-body">
             @if (notifications == null || !notifications.Any())
             {
                 <div class="dropdown-placeholder text-muted py-4">
@@ -48,38 +50,84 @@
                     @foreach (var notif in notifications)
                     {
                         var notifUrl = FSharpOption<string>.get_IsSome(notif.ActionUrl) ? notif.ActionUrl.Value : "";
+                        var isClickable = !string.IsNullOrWhiteSpace(notifUrl) && !notifUrl.StartsWith("/reservations/", StringComparison.OrdinalIgnoreCase);
                         var clickUrl = $"/Notifications/HandleClick?notificationId={notif.NotificationId.Value}&redirectUrl={Uri.EscapeDataString(notifUrl)}";
 
                         <div class="notification-item @(notif.IsRead ? "" : "unread")">
-                            <a href="@clickUrl" class="notif-content-wrapper text-decoration-none text-dark">
-                                <div class="notif-icon-box">
-                                    @if (notif.Title.Contains("Public Request"))
-                                    {
-                                        <i class="bi bi-globe text-info"></i>
-                                    }
-                                    else if (notif.Title.Contains("Invite") || notif.Title.Contains("Onboarding"))
-                                    {
-                                        <i class="bi bi-envelope-open text-primary"></i>
-                                    }
-                                    else if (notif.Title.Contains("Request"))
-                                    {
-                                        <i class="bi bi-person-plus text-warning"></i>
-                                    }
-                                    else if (notif.Title.Contains("Approved"))
-                                    {
-                                        <i class="bi bi-check-circle text-success"></i>
-                                    }
-                                    else
-                                    {
-                                        <i class="bi bi-bell text-secondary"></i>
-                                    }
+                            @if (isClickable)
+                            {
+                                <a href="@clickUrl" class="notif-content-wrapper text-decoration-none text-dark">
+                                    <div class="notif-icon-box">
+                                        @if (notif.Title.Contains("Public Request"))
+                                        {
+                                            <i class="bi bi-globe text-info"></i>
+                                        }
+                                        else if (notif.Title.Contains("Invite") || notif.Title.Contains("Onboarding"))
+                                        {
+                                            <i class="bi bi-envelope-open text-primary"></i>
+                                        }
+                                        else if (notif.Title.Contains("Request"))
+                                        {
+                                            <i class="bi bi-person-plus text-warning"></i>
+                                        }
+                                        else if (notif.Title.Contains("Approved"))
+                                        {
+                                            <i class="bi bi-check-circle text-success"></i>
+                                        }
+                                        else
+                                        {
+                                            <i class="bi bi-bell text-secondary"></i>
+                                        }
+                                    </div>
+                                    <div class="notif-details">
+                                        <h5 class="notif-title">@notif.Title</h5>
+                                        <p class="notif-text">@notif.Content</p>
+                                        <span class="notif-time">@GetTimeAgo(notif.CreatedAt)</span>
+                                    </div>
+                                </a>
+                            }
+                            else
+                            {
+                                <div class="notif-content-wrapper text-dark">
+                                    <div class="notif-icon-box">
+                                        @if (notif.Title.Contains("Public Request"))
+                                        {
+                                            <i class="bi bi-globe text-info"></i>
+                                        }
+                                        else if (notif.Title.Contains("Invite") || notif.Title.Contains("Onboarding"))
+                                        {
+                                            <i class="bi bi-envelope-open text-primary"></i>
+                                        }
+                                        else if (notif.Title.Contains("Request"))
+                                        {
+                                            <i class="bi bi-person-plus text-warning"></i>
+                                        }
+                                        else if (notif.Title.Contains("Approved"))
+                                        {
+                                            <i class="bi bi-check-circle text-success"></i>
+                                        }
+                                        else
+                                        {
+                                            <i class="bi bi-bell text-secondary"></i>
+                                        }
+                                    </div>
+                                    <div class="notif-details">
+                                        <h5 class="notif-title">@notif.Title</h5>
+                                        <p class="notif-text">@notif.Content</p>
+                                        <span class="notif-time">@GetTimeAgo(notif.CreatedAt)</span>
+                                    </div>
                                 </div>
-                                <div class="notif-details">
-                                    <h5 class="notif-title">@notif.Title</h5>
-                                    <p class="notif-text">@notif.Content</p>
-                                    <span class="notif-time">@GetTimeAgo(notif.CreatedAt)</span>
+                            }
+
+                            @if (!notif.IsRead && !notif.Title.Contains("Invitation") && !notif.Title.Contains("Join Request"))
+                            {
+                                var dismissUrl = $"/Notifications/Dismiss?notificationId={notif.NotificationId.Value}&returnUrl={Uri.EscapeDataString(currentUrl ?? "/")}";
+                                <div class="notif-actions mt-1">
+                                    <a href="@dismissUrl" class="btn btn-sm btn-link p-0 text-decoration-none text-secondary" style="font-size: 0.72rem; font-weight: 650;">
+                                        <i class="bi bi-check-lg me-1"></i>Mark as read
+                                    </a>
                                 </div>
-                            </a>
+                            }
 
                             @if (notif.Title.Contains("Invitation") && FSharpOption<string>.get_IsSome(notif.ActionUrl))
                             {
@@ -174,6 +222,15 @@
 
 @code {
     [Parameter] public string? currentUrl { get; set; }
+
+    private string GetCurrentUserIdString()
+    {
+        if (userContext != null && FSharpOption<BookLibrary.Shared.Commons.UserId>.get_IsSome(userContext.UserId))
+        {
+            return userContext.UserId.Value.Value.ToString();
+        }
+        return "";
+    }
 
     private List<Notification> notifications = new();
     private int unreadCount = 0;

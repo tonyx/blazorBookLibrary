@@ -97,9 +97,11 @@ builder.Services.AddIdentityCore<ApplicationUser>(options =>
     .AddDefaultTokenProviders();
 
 builder.Services.AddSingleton<IMailBodyRetriever, MailBodyRetriever>();
+builder.Services.AddSingleton<IInAppMessagesRetriever, InAppMessagesRetriever>();
 builder.Services.AddSingleton<IMailResenderService, MailResenderService>();
 
 builder.Services.AddSingleton<IMailNotificator, MailNotificator>();
+builder.Services.AddSingleton<INotificationDispatcher, NotificationDispatcher>();
 
 builder.Services.AddSingleton<IUserTenantResolverService, UserTenantResolverService>();
 

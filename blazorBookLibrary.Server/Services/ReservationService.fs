@@ -37,7 +37,7 @@ type ReservationService
         distributionPointViewerAsync: AggregateViewerAsync2<DistributionPoint>,
         userTenantResolverService: IUserTenantResolverService,
         usersService: IUserService,
-        mailNotificator: IMailNotificator,
+        notificationDispatcher: INotificationDispatcher,
         maxReservations: int,
         fromEmail: string,
         fromName: string,
@@ -68,7 +68,7 @@ type ReservationService
         (
             eventStore: IEventStore<string>,
             userService: IUserService,
-            mailNotificator: IMailNotificator,
+            notificationDispatcher: INotificationDispatcher,
             configuration: IConfiguration,
             mailBodyRetriever: IMailBodyRetriever,
             userTenantResolverService: IUserTenantResolverService
@@ -121,7 +121,7 @@ type ReservationService
             distributionPointViewerAsync,
             userTenantResolverService,
             userService,
-            mailNotificator,
+            notificationDispatcher,
             maxReservations,
             fromEmail,
             fromName,
@@ -132,7 +132,7 @@ type ReservationService
         (
             configuration: IConfiguration,
             userService: IUserService,
-            mailNotificator: IMailNotificator,
+            notificationDispatcher: INotificationDispatcher,
             mailBodyRetriever: IMailBodyRetriever,
             secretsReader: SecretsReader,
             userTenantResolverService: IUserTenantResolverService
@@ -143,7 +143,7 @@ type ReservationService
         ReservationService(
             eventStore,
             userService,
-            mailNotificator,
+            notificationDispatcher,
             configuration,
             mailBodyRetriever,
             userTenantResolverService
@@ -256,54 +256,22 @@ type ReservationService
 
             let! userDetails = usersService.GetUserDetailsAsync(context, user.UserId, ct)
 
-            let! optDpName =
-                match book.DistributionPoint with
-                | None -> task { return "Unspecified" |> Ok }
-
-                | Some dpId ->
-                    taskResult {
-                        let! (_, dp) = distributionPointViewerAsync (ct |> Some) dpId.Value
-                        return dp.Name.Value
-                    }
-
-            let! emailTextRetrieved =
-                mailBodyRetriever.GetReservationNotificationTextMailAsync(
-                    book.Title,
-                    reservation.ReservationCode,
-                    tenant.Name,
-                    optDpName,
-                    user.LangPref,
-                    ?ct = Some ct
-                )
-
-            let! emailSubjectRetrieved =
-                mailBodyRetriever.GetReservationNotificationSubject(user.LangPref, ?ct = Some ct)
-
             let! result =
                 runInitAsync<Reservation, ReservationEvent, string> eventStore messageSenders reservation (ct |> Some)
-
-            let emailBody = emailTextRetrieved
-
-            let emailSubject = emailSubjectRetrieved.Replace("{bookTitle}", book.Title.Value)
 
             let key = DetailsCacheKey.OfType typeof<RefreshableTenantDetails> reservation.Id
 
             let updateDetails =
                 DetailsCache.Instance.UpdateMultipleAggregateIdAssociation [| reservation.Id |] key
 
-            do!
-                task {
-                    do!
-                        mailNotificator.SendEmailAsync(
-                            fromEmail,
-                            fromName,
-                            userDetails.AppUser.Email,
-                            emailSubject,
-                            emailBody
-                        )
-
-                    return Ok()
-                }
+            let! _ =
+                notificationDispatcher.DispatchNotificationAsync(
+                    context,
+                    reservation.UserId,
+                    tenantId,
+                    Some $"/reservations/{reservation.Id}",
+                    ct
+                )
 
             let! _ = DetailsCache.Instance.RefreshDependentDetailsAsync(reservation.BookId.Value, Some ct)
             let! _ = DetailsCache.Instance.RefreshDependentDetailsAsync(reservation.UserId.Value, Some ct)

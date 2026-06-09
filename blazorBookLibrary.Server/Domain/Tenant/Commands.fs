@@ -24,6 +24,7 @@ type TenantCommand =
     | RequestPublic
     | SetPrivate
     | SetReservationNotificationPreference of NotificationPreference
+    | SetLoanNotificationPreference of NotificationPreference
     | GenerateJoinPin2 of string
     | SubmitJoinRequest2 of UserId
     | ApproveJoinRequest2 of UserId
@@ -79,6 +80,9 @@ type TenantCommand =
             | SetReservationNotificationPreference n ->
                 tenant.SetReservationNotificationPreference n
                 |> Result.map (fun t -> (t, [ TenantEvent.ReservationNotificationPreferenceSet n ]))
+            | SetLoanNotificationPreference n ->
+                tenant.SetLoanNotificaitonPreference n
+                |> Result.map (fun t -> (t, [ TenantEvent.LoanNotificationPreferenceSet n ]))
             | GenerateJoinPin2 pin ->
                 tenant.GenerateJoinPin2 pin
                 |> Result.map (fun t -> (t, [ TenantEvent.JoinPinGenerated2 pin ]))

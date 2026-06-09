@@ -150,6 +150,16 @@ let adminId = UserId(System.Guid.Parse("787b784e-42d8-416b-9d57-f1e62f857f47"))
 let adminContext = UserContext.Authenticated(adminId, [ Role.Admin ])
 
 let fakeEmailNotificator: IMailNotificator = new FakeEmailNotificator()
+
+type FakeNotificationDispatcher() =
+    interface INotificationDispatcher with
+        member this.DispatchNotificationAsync(context, recipientId, tenantId, actionUrl, ?ct) =
+            task {
+                printfn "FakeNotificationDispatcher: Dispatched notification to user %A" recipientId.Value
+                return Ok()
+            }
+
+let fakeNotificationDispatcher: INotificationDispatcher = new FakeNotificationDispatcher()
 let fakeReservationService: IReservationService = new FakeReservationService()
 
 let fakeLocalizer: IStringLocalizer<SharedResources> =
@@ -232,7 +242,7 @@ let getReservationService () : IReservationService =
         distributionPointViewerAsync,
         getUserTenantResolverService (),
         getUserService (),
-        fakeEmailNotificator,
+        fakeNotificationDispatcher,
         3,
         "noreply@blazorbooklibrary.com",
         "Blazor Book Library",
@@ -255,7 +265,7 @@ let getLoanService () : ILoanService =
         getUserTenantResolverService (),
         getReservationService (),
         getUserService (),
-        fakeEmailNotificator,
+        fakeNotificationDispatcher,
         3,
         "noreply@blazorbooklibrary.com",
         "Blazor Book Library",
@@ -388,6 +398,7 @@ let setUp () =
     pgEventStore.ResetAggregateStream Tenant.Version Tenant.StorageName
 
     AggregateCache3.Instance.Clear()
+    DetailsCache.Instance.Clear()
 
     try
         let context = getDbContext ()

@@ -267,6 +267,19 @@ type TenantController(tenantService: ITenantService, hubContext: Microsoft.AspNe
             | Error msg -> return this.BadRequest(msg) :> IActionResult
         }
 
+    [<HttpPut("{id}/loan-notification-preference")>]
+    member this.SetLoanNotificationPreference(id: Guid, [<FromBody>] preference: NotificationPreference) =
+        task {
+            let context = UserContextMapper.mapFromRequest this.Request
+            let! result = tenantService.SetLoanNotificationPreferenceAsync(context, TenantId id, preference)
+
+            match result with
+            | Ok _ -> 
+                do! hubContext.Clients.All.SendCoreAsync("TenantListChanged", [||])
+                return this.Ok() :> IActionResult
+            | Error msg -> return this.BadRequest(msg) :> IActionResult
+        }
+
 
     [<HttpPut("{id}/request-public")>]
     member this.RequestPublic(id: Guid) =
