@@ -42,3 +42,9 @@ Detailed guides and architectural references are available in the [Docs](./Docs)
 *“To catalog is to preserve; to curate is to honor.”*
 
 **Try it on line**: https://www.biblionet.eu 
+
+**Note on the Project**: This repository contains a stable Open Source version of the project. Active development of specific features, extensions, and customizations continues in a private module/fork. The version present here remains usable as a solid public base.
+
+⚠️ **Note on the development transparency:**
+> The version currently distributed and running online reflects the progress status of our **private development repository**. 
+> This means that the live demo includes advanced features, optimizations and custom extensions that are **not present** in the source code of this public repository (which contains exclusively the stable Open Source Core of the project).
