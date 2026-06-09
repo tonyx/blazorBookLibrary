@@ -32,16 +32,36 @@
 <div class="sanctuary-container py-5">
 
     @* Page Header *@
-    <div class="mb-5 text-center">
-        <div class="mb-3 d-inline-block">
+    <div class="mb-3 text-center">
+        <div class="mb-2 d-inline-block">
             <img src="images/BIBLIONET.svg" alt="BiblioNet Logo" style="height: 110px; width: auto; transition: transform 0.3s ease;" class="brand-hero-logo animate-fade-in" />
         </div>
-        @* <h1 class="display-3 text-serif mb-3">@L["SeeHowBiblionetWorks"]</h1> *@
-        <p class="text-muted lead mx-auto" style="max-width: 800px;">@L["ArchivalDiscoveryDescription"]</p>
+        @if (!hideWelcomeMessage)
+        {
+            <div class="position-relative mx-auto animate-fade-in welcome-message-dismissible" style="max-width: 800px; padding-right: 2.5rem; padding-left: 2.5rem;">
+                <p class="text-muted lead mb-0">
+                    @{
+                        var descStr = L["ArchivalDiscoveryDescription"].Value;
+                        var parts = descStr.Split("{0}");
+                    }
+                    @if (parts.Length == 2)
+                    {
+                        @parts[0]
+                        <a href="/tenants?create=true" class="text-primary fw-bold text-decoration-none hover-underline">@L["CreateYourPersonalCircuit"]</a>
+                        @parts[1]
+                    }
+                    else
+                    {
+                        @descStr
+                    }
+                </p>
+                <button type="button" class="btn-close position-absolute top-50 translate-middle-y end-0" aria-label="Close" @onclick="DismissWelcomeMessage" style="font-size: 0.8rem;"></button>
+            </div>
+        }
     </div>
 
     @* Search Toolbar *@
-    <div class="card-sanctuary mb-5 p-4 border-0 shadow-none bg-surface-low rounded-pill-sm">
+    <div class="card-sanctuary mb-4 p-4 border-0 shadow-none bg-surface-low rounded-pill-sm">
         <BookSearchToolbar @ref="searchToolbar" InitialDistributionPointId="@DpId" OnSearchResultsFound="HandleSearchResultsFound" OnError="ShowSearchError" OnSearchStarted="HandleSearchStarted" />
     </div>
 
@@ -176,6 +196,7 @@
 </div>
 
 @code {
+    private bool hideWelcomeMessage = false;
     private bool _isLoading = false;
     private List<BookSearchResult> foundBooks = new();
     private string titleRefinementFilter = "";
@@ -212,6 +233,20 @@
             enableAIExplanations = Configuration.GetValue<bool>("BooksLibrary:EnableAIExtendedExplanations");
             try 
             {
+                var val = await JSRuntime.InvokeAsync<string>("blazorCookies.get", "hide_welcome_msg");
+                if (val == "true")
+                {
+                    hideWelcomeMessage = true;
+                    StateHasChanged();
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error reading welcome message cookie");
+            }
+
+            try 
+            {
                 var token = await JSRuntime.InvokeAsync<string>("generateRecaptchaToken", siteKey, "book_browser");
                 var score = await BotScoreService.GetBotScoreAsync(token);
                 await BotScoreService.ApplyBotDelayAsync(score);
@@ -226,6 +261,19 @@
             {
                 Logger.LogError(ex, "Error during reCAPTCHA verification");
             }
+        }
+    }
+
+    private async Task DismissWelcomeMessage()
+    {
+        hideWelcomeMessage = true;
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("blazorCookies.set", "hide_welcome_msg", "true", 365);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error setting welcome message cookie");
         }
     }
 

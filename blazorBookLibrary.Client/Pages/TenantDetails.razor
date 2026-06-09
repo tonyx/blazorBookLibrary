@@ -170,6 +170,10 @@
                             <span>@libraryDetails.Tenant.TenantState.ToString()</span>
                         </div>
                         <div>
+                            <label class="small text-muted text-uppercase fw-bold d-block">@L["ReservationNotificationPreference", "Reservation Notification Preference"]</label>
+                            <span>@libraryDetails.Tenant.ReservationNotificationPreference.Value</span>
+                        </div>
+                        <div>
                             <label class="small text-muted text-uppercase fw-bold d-block mb-1">@L["Tags"]</label>
                             @if (libraryDetails.Tenant.Tags.Length == 0)
                             {
@@ -269,6 +273,25 @@
                                 </div>
                                 <small class="text-muted d-block" style="font-size: 0.8rem; line-height: 1.2;">
                                     @L["JoinPINDescription", "Provide this 6-digit PIN to patrons so they can submit a join request to this library."]
+                                </small>
+                            </div>
+
+                            <div class="border-top pt-3 mt-3 animate-fade-in">
+                                <label class="small text-muted text-uppercase fw-bold d-block mb-2">@L["ReservationNotificationPreference", "Reservation Notification Preference"]</label>
+                                <div class="d-flex align-items-center gap-2">
+                                    <select class="form-select" @onchange="HandlePreferenceChange" value="@libraryDetails.Tenant.ReservationNotificationPreference.Value" disabled="@isUpdatingPreference">
+                                        @foreach (var preference in NotificationPreference.AllChoices)
+                                        {
+                                            <option value="@preference.Value">@preference.Value</option>
+                                        }
+                                    </select>
+                                    @if (isUpdatingPreference)
+                                    {
+                                        <span class="spinner-border spinner-border-sm text-primary" role="status" aria-hidden="true"></span>
+                                    }
+                                </div>
+                                <small class="text-muted d-block mt-1" style="font-size: 0.8rem; line-height: 1.2;">
+                                    @L["ReservationNotificationPreferenceDescription", "Choose how patrons are notified when their reserved books become available."]
                                 </small>
                             </div>
                         }
@@ -1080,6 +1103,7 @@
     private bool isUpdatingPrivacy = false;
     private List<User> joinRequestsList = new();
     private bool isGeneratingPin = false;
+    private bool isUpdatingPreference = false;
 
     private InvitePatronModel inviteModel = new();
     private string checkoutMethod = "code";
@@ -1088,6 +1112,59 @@
     private string newTagNameInput = "";
     private string newTagTypeInput = "Generic";
     private bool isAddingTag = false;
+    private async Task HandlePreferenceChange(ChangeEventArgs e)
+    {
+        if (libraryDetails == null || isUpdatingPreference) return;
+
+        var selectedVal = e.Value?.ToString();
+        if (string.IsNullOrEmpty(selectedVal)) return;
+
+        NotificationPreference preference = selectedVal switch
+        {
+            "Email" => NotificationPreference.Email,
+            "In App" => NotificationPreference.InApp,
+            _ => NotificationPreference.InApp
+        };
+
+        isUpdatingPreference = true;
+        StateHasChanged();
+
+        try
+        {
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var claimsPrincipal = authState.User;
+            if (claimsPrincipal == null) return;
+            var userContext = TenantState.GetUserContext(claimsPrincipal);
+            var tenantId = TenantId.NewTenantId(Id);
+
+            var result = await TenantService.SetReservationNotificationPreferenceAsync(userContext, tenantId, preference, default);
+            if (result.IsError)
+            {
+                Logger.LogError("Error updating reservation notification preference: {Error}", result.ErrorValue);
+                await JSRuntime.InvokeVoidAsync("showToast", result.ErrorValue ?? L["ErrorOccurred"].Value, "error");
+            }
+            else
+            {
+                await JSRuntime.InvokeVoidAsync("showToast", L["PreferenceUpdatedSuccessfully", "Preference updated successfully."].Value, "success");
+                
+                var refreshResult = await DetailsService.GetTenantDetailsAsync(userContext, tenantId, default);
+                if (refreshResult.IsOk)
+                {
+                    libraryDetails = refreshResult.ResultValue;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Exception while updating reservation notification preference");
+            await JSRuntime.InvokeVoidAsync("showToast", L["ErrorOccurred"].Value, "error");
+        }
+        finally
+        {
+            isUpdatingPreference = false;
+            StateHasChanged();
+        }
+    }
 
     private async Task HandleAddTenantTag()
     {

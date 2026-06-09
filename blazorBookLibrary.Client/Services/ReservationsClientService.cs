@@ -63,6 +63,13 @@ public class ReservationsClientService : IReservationService
         return result.IsOk ? FSharpResult<FSharpList<BookLibrary.Shared.Details.ReservationDetails>, string>.NewOk(ListModule.OfSeq(result.ResultValue)) : FSharpResult<FSharpList<BookLibrary.Shared.Details.ReservationDetails>, string>.NewError(result.ErrorValue);
     }
 
+    public async Task<FSharpResult<FSharpList<BookLibrary.Shared.Details.ReservationDetails>, string>> GetMyPendingReservationsAsync(Commons.UserContext context, FSharpOption<CancellationToken> ct)
+    {
+        var response = await _httpClient.GetAsync("api/Reservations/my-pending", ServiceClientHelper.GetValue(ct, CancellationToken.None));
+        var result = await ServiceClientHelper.HandleResponse<List<BookLibrary.Shared.Details.ReservationDetails>>(response);
+        return result.IsOk ? FSharpResult<FSharpList<BookLibrary.Shared.Details.ReservationDetails>, string>.NewOk(ListModule.OfSeq(result.ResultValue)) : FSharpResult<FSharpList<BookLibrary.Shared.Details.ReservationDetails>, string>.NewError(result.ErrorValue);
+    }
+
     public async Task<FSharpResult<Unit, string>> RemoveExpiredReservationsAsync(Commons.UserContext context, FSharpOption<CancellationToken> ct)
     {
         var response = await _httpClient.PostAsync("api/Reservations/expired/remove", null, ServiceClientHelper.GetValue(ct, CancellationToken.None));

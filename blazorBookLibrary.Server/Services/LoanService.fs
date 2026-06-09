@@ -521,7 +521,6 @@ type LoanService
                 ()
 
             // todo: check if this is needed
-            let! _ = DetailsCache.Instance.RefreshDependentDetailsAsync(reservation.BookId.Value, Some ct)
             let! _ = DetailsCache.Instance.RefreshDependentDetailsAsync(reservation.UserId.Value, Some ct)
             return result
         }

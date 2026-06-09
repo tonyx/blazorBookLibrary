@@ -85,6 +85,16 @@ type ReservationsController(reservationService: IReservationService, hubContext:
             | Error msg -> return this.BadRequest(msg) :> IActionResult
         }
 
+    [<HttpGet("my-pending")>]
+    member this.GetMyPendingReservations() =
+        task {
+            let context = UserContextMapper.mapFromClaimsPrincipal this.User
+            let! result = reservationService.GetMyPendingReservationsAsync(context)
+            match result with
+            | Ok details -> return this.Ok(details) :> IActionResult
+            | Error msg -> return this.BadRequest(msg) :> IActionResult
+        }
+
     [<HttpPost("{id}/generate-pin")>]
     member this.GeneratePickupPin(id: Guid) =
         task {

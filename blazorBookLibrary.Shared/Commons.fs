@@ -121,6 +121,18 @@ type TenantState =
         | Deactivated -> "Deactivated"
         | ScheduledForDeletion dt -> $"ScheduledForDeletion {dt}"
 
+type NotificationPreference =
+    | Email
+    | InApp
+    | InAppAndEmail
+    member this.Value =
+        match this with
+        | Email -> "Email"
+        | InApp -> "In App"
+        | InAppAndEmail -> "In App and Email"
+
+    static member AllChoices = [ Email; InApp; InAppAndEmail ]
+
 type TenantInfo =
     | TenantInfo of TenantInfo
 

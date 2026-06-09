@@ -542,7 +542,8 @@
   <data name="LinkedTitles" xml:space="preserve"><value>Titoli Collegati</value></data>
   <data name="CuratedCatalog" xml:space="preserve"><value>Il Catalogo Curato</value></data>
   <data name="SeeHowBiblionetWorks" xml:space="preserve"><value>BiblioNet</value></data>
-  <data name="ArchivalDiscoveryDescription" xml:space="preserve"><value>Esplora il potenziale di BiblioNet. Scopri come funziona la nostra rete di condivisione esplorando questo catalogo dimostrativo. Per iniziare a scambiare davvero, crea il tuo circuito personale, cataloga i tuoi libri fisici e invita i tuoi amici!  </value></data>
+  <data name="ArchivalDiscoveryDescription" xml:space="preserve"><value>Esplora il potenziale di BiblioNet. Scopri come funziona la nostra rete di condivisione esplorando questo catalogo dimostrativo. Per iniziare a scambiare davvero, {0}, cataloga i tuoi libri fisici e invita i tuoi amici!  </value></data>
+  <data name="CreateYourPersonalCircuit" xml:space="preserve"><value>crea il tuo circuito personale</value></data>
   <data name="CatalogDiscovery" xml:space="preserve"><value>Scoperta nel Catalogo</value></data>
   <data name="VisualIdentity" xml:space="preserve"><value>Identità Visiva</value></data>
   <data name="TitlesFound" xml:space="preserve"><value>Titoli Trovati</value></data>
@@ -759,7 +760,7 @@
   <data name="ConceptualDescription" xml:space="preserve"><value>Descrizione Concettuale</value></data>
   <data name="SemanticSearchPlaceholder" xml:space="preserve"><value>es. Un romanzo distopico sulla sorveglianza e il totalitarismo...</value></data>
   <data name="MaxResults" xml:space="preserve"><value>Risultati Max</value></data>
-  <data name="SemanticSearchHelp" xml:space="preserve"><value>Utilizza l'IA per trovare libri per significato invece di parole chiave esatte. Combinalo con i filtri sotto per una scoperta precisa.</value></data>
+  <data name="SemanticSearchHelp" xml:space="preserve"><value>Cerca descrivendo il significato del libro.</value></data>
   <data name="SemanticAnalysisFailed" xml:space="preserve"><value>Analisi semantica fallita</value></data>
   <data name="VectorSearchFailed" xml:space="preserve"><value>Ricerca vettoriale fallita</value></data>
   <data name="ErrorRetrievingBooks" xml:space="preserve"><value>Recupero libri fallito</value></data>
@@ -936,4 +937,10 @@
   <data name="ShowDetailedMetadata" xml:space="preserve"><value>Mostra Campi Dettagliati</value></data>
   <data name="RemoveTags" xml:space="preserve"><value>Rimuovi Tag</value></data>
   <data name="SelectTagToRemove" xml:space="preserve"><value>Seleziona tag da rimuovere</value></data>
+  <data name="MyReservations" xml:space="preserve"><value>Le Mie Prenotazioni</value></data>
+  <data name="CurrentTenant" xml:space="preserve"><value>Contesto Biblioteca</value></data>
+  <data name="CurrentTenantBadge" xml:space="preserve"><value>Biblioteca Attiva</value></data>
+  <data name="ReservationsContextDisclaimer" xml:space="preserve"><value>Le tue prenotazioni mostrate sotto sono associate a questa biblioteca.</value></data>
+  <data name="ConfirmCancelReservationText" xml:space="preserve"><value>Sei sicuro di voler annullare questa prenotazione?</value></data>
+  <data name="ReservationCanceledSuccess" xml:space="preserve"><value>Prenotazione annullata con successo.</value></data>
 </root>

@@ -45,6 +45,9 @@ type IReservationService =
     abstract member GetAllPendingReservationsDetailsAsync:
         context: UserContext * ?ct: CancellationToken -> Task<Result<List<ReservationDetails>, string>>
 
+    abstract member GetMyPendingReservationsAsync:
+        context: UserContext * ?ct: CancellationToken -> Task<Result<List<ReservationDetails>, string>>
+
     abstract member RemoveExpiredReservationsAsync:
         context: UserContext * ?ct: CancellationToken -> TaskResult<unit, string>
 

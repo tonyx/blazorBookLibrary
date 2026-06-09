@@ -20,16 +20,27 @@
 @inject AuthenticationStateProvider AuthStateProvider
 @inject IUserService UserService
 
-<div class="card-sanctuary bg-surface-lowest floating mb-5 p-0 overflow-hidden">
-    <div class="px-3 px-md-5 pt-4 pt-md-5 pb-4">
-        <h5 class="serif display-6 mb-4" style="font-size: calc(1.3rem + 0.6vw);">@L["SearchBooks"]</h5>
+<div class="card-sanctuary bg-surface-lowest floating mb-3 p-0 overflow-hidden">
+    <div class="px-3 px-md-5 pt-3 pt-md-4 pb-4">
         
         <EditForm Model="@this" OnValidSubmit="HandleBookSearch" FormName="SearchBookComponentForm">
             @if (searchMode == "Simple" || searchMode == "Advanced")
             {
                 <!-- The Entryway: Main Title Search -->
-                <div class="mb-4 mb-md-5">
-                    <InputText class="search-entryway" @bind-Value="searchBookTitle" placeholder="@L["SearchByTitlePlaceholder"]" />
+                <div class="mb-4 mb-md-5 d-flex align-items-stretch">
+                    <InputText class="search-entryway flex-grow-1" @bind-Value="searchBookTitle" placeholder="@L["SearchByTitlePlaceholder"]" style="border-top-right-radius: 0; border-bottom-right-radius: 0; border-right: none;" />
+                    <button type="submit" class="btn-sanctuary-primary d-flex align-items-center justify-content-center px-3 px-md-4" 
+                            disabled="@_isLoading" style="border-top-left-radius: 0; border-bottom-left-radius: 0; white-space: nowrap;">
+                        @if (_isLoading)
+                        {
+                            <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                        }
+                        else
+                        {
+                            <i class="bi bi-search"></i>
+                        }
+                        <span class="d-none d-md-inline ms-2">@L["Search"]</span>
+                    </button>
                 </div>
             }
 
@@ -38,17 +49,32 @@
                 <!-- AI Semantic Discovery Region -->
                 <div class="bg-surface-low rounded-xl p-3 p-md-4 mb-4 border border-primary-subtle border-opacity-25 shadow-sm">
                      <h6 class="serif mb-3 small text-primary text-uppercase fw-bold letter-spacing-1 d-flex align-items-center gap-2">
-                         <i class="bi bi-magic"></i> @L["AISemanticDiscovery"]
-                     </h6>
-                     <div class="row g-3 align-items-end">
-                         <div class="col-12">
-                             <label class="form-label x-small text-muted text-uppercase fw-bold mb-2">@L["ConceptualDescription"]</label>
-                             <InputText class="form-control bg-surface-lowest border-0 rounded-lg shadow-sm py-2" 
-                                        @bind-Value="semanticSearchText" 
-                                        placeholder="@L["SemanticSearchPlaceholder"]" />
-                         </div>
-                     </div>
-                     <p class="x-small text-muted mt-2 mb-0 italic">@L["SemanticSearchHelp"]</p>
+                          <i class="bi bi-magic"></i> @L["AISemanticDiscovery"]
+                      </h6>
+                      <div class="row g-3 align-items-end">
+                          <div class="col-12">
+                              <label class="form-label x-small text-muted text-uppercase fw-bold mb-2">@L["ConceptualDescription"]</label>
+                              <div class="d-flex align-items-stretch">
+                                  <InputText class="form-control bg-surface-lowest border-0 shadow-sm py-2 flex-grow-1" 
+                                             @bind-Value="semanticSearchText" 
+                                             placeholder="@L["SemanticSearchPlaceholder"]" 
+                                             style="border-top-right-radius: 0; border-bottom-right-radius: 0; border-top-left-radius: var(--radius-lg); border-bottom-left-radius: var(--radius-lg);" />
+                                  <button type="submit" class="btn-sanctuary-primary d-flex align-items-center justify-content-center px-3 px-md-4" 
+                                          disabled="@_isLoading" style="border-top-left-radius: 0; border-bottom-left-radius: 0; border-top-right-radius: var(--radius-lg); border-bottom-right-radius: var(--radius-lg); white-space: nowrap;">
+                                      @if (_isLoading)
+                                      {
+                                          <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                                      }
+                                      else
+                                      {
+                                          <i class="bi bi-search"></i>
+                                      }
+                                      <span class="d-none d-md-inline ms-2">@L["Search"]</span>
+                                  </button>
+                              </div>
+                          </div>
+                      </div>
+                      <p class="x-small text-muted mt-2 mb-0 italic">@L["SemanticSearchHelp"]</p>
                 </div>
             }
 
@@ -253,21 +279,7 @@
             </div>
             }
 
-            <!-- Search Action Area -->
-            <div class="d-flex justify-content-end mt-4">
-                <button type="submit" class="btn-sanctuary-primary d-flex align-items-center justify-content-center px-4 py-2" 
-                        disabled="@_isLoading">
-                    @if (_isLoading)
-                    {
-                        <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                    }
-                    else
-                    {
-                        <i class="bi bi-search @(string.IsNullOrEmpty(L["Search"]) ? "" : "me-2")"></i> 
-                    }
-                    <span>@L["Search"]</span>
-                </button>
-            </div>
+
         </EditForm>
     </div>
 </div>
