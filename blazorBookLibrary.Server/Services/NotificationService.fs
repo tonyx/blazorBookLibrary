@@ -23,16 +23,19 @@ type NotificationService
         eventStore: IEventStore<string>,
         messageSenders: MessageSenders,
         notificationViewerAsync: AggregateViewerAsync2<Notification>,
+        userTenantResolverService: IUserTenantResolverService,
+        tenantViewerAsync: AggregateViewerAsync2<Tenant>,
         logger: ILogger<INotificationService>,
         hubContext: IHubContext<LibraryHub>
     ) =
 
-    new (secretsReader: SecretsReader, logger: ILogger<INotificationService>, hubContext: IHubContext<LibraryHub>) =
+    new (secretsReader: SecretsReader, logger: ILogger<INotificationService>, userTenantResolverService: IUserTenantResolverService, hubContext: IHubContext<LibraryHub>) =
         let connectionString = secretsReader.GetBookLibraryConnectionString()
         let messageSenders = MessageSenders.NoSender
         let eventStore = PgStorage.PgEventStore connectionString
+        let tenantViewerAsync = getAggregateStorageFreshStateViewerAsync<Tenant, TenantEvent, string> eventStore
         let notificationViewerAsync = getAggregateStorageFreshStateViewerAsync<Notification, BookLibrary.Domain.NotificationEvent, string> eventStore
-        NotificationService(eventStore, messageSenders, notificationViewerAsync, logger, hubContext)
+        NotificationService(eventStore, messageSenders, notificationViewerAsync, userTenantResolverService, tenantViewerAsync, logger, hubContext)
 
     member this.GetUnreadNotificationsForUser (context: UserContext, ?ct: CancellationToken) =
         let ct = ct |> Option.defaultValue CancellationToken.None
@@ -70,10 +73,20 @@ type NotificationService
 
     member this.MarkAsRead (context: UserContext, notificationId: NotificationId, ?ct: CancellationToken) =
         taskResult {
+
             let! (_, notification) = notificationViewerAsync ct notificationId.Value
-            do! 
+            let! userId =
                 match context with
-                | UserContext.Authenticated (uId, _) when uId = notification.UserId || context.IsInRole Role.Admin -> Ok()
+                | UserContext.Authenticated (uId, _) -> Ok uId
+                | _ -> Error "Access denied: unauthenticated"
+
+            let! tenantId = userTenantResolverService.GetTenantForUserAsync(context, ct |> Option.defaultValue CancellationToken.None)
+            let! (_, tenant) = tenantViewerAsync ct tenantId.Value
+
+            do! 
+                match context, tenant with
+                | UserContext.Authenticated (uId, _), _  when uId = notification.UserId || context.IsInRole Role.Admin -> Ok()
+                | _, t when t.IsManager userId -> Ok ()
                 | _ -> Error "Access denied: cannot modify another user's notifications"
 
             let command = NotificationCommand.MarkAsRead
@@ -99,9 +112,17 @@ type NotificationService
     member this.CreateNotification (context: UserContext, notification: Notification, ?ct: CancellationToken) =
         taskResult {
             // Permit system/admin context or the user themselves to push notifications
-            do!
+
+            let! userId = 
                 match context with
-                | UserContext.Authenticated (uId, _) when uId = notification.UserId || context.IsInRole Role.Admin -> Ok()
+                | UserContext.Authenticated (uId, _) -> Ok uId
+                | _ -> Error "Access denied: cannot create notification for unauthenticated user"
+            let! tenantId = userTenantResolverService.GetTenantForUserAsync(context, ct |> Option.defaultValue CancellationToken.None)
+            let! (_, tenant) = tenantViewerAsync ct tenantId.Value
+            do!
+                match context, tenant with
+                | UserContext.Authenticated (uId, _), _ when uId = notification.UserId || context.IsInRole Role.Admin -> Ok()
+                | _, t when t.IsManager userId -> Ok ()
                 | _ -> Error "Access denied: unauthorized to create this notification"
 
             let! _ = 

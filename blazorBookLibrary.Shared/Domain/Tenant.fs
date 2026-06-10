@@ -226,7 +226,7 @@ and Tenant =
                         |> List.map (fun (u, r) -> if u = user then (u, PatronRole.User) else (u, r)) }
         }
 
-    member this.PromotePatron(user: UserId) =
+    member this.PromotePatron (user: UserId) =
         result {
             do!
                 this.Patrons
@@ -295,6 +295,12 @@ and Tenant =
                 { this with
                     Patrons = this.Patrons |> List.filter (fun (u, _) -> u <> user) }
         }
+
+    member this.IsManager (user: UserId) =
+        this.Patrons |> List.exists (fun (u, r) -> u = user && r.IsManager)
+
+    member this.IsOwner (user: UserId) =
+        this.OwnerId = user
 
     member this.ReplaceTag(oldTag: Tag, newTag: Tag) =
         result {

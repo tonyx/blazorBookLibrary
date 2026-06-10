@@ -220,6 +220,7 @@
         <div class="row g-4 animate-slide-up">
             @foreach (var tenant in tenants)
             {
+                var isManager = currentUserId.HasValue && tenant.IsManager(UserId.NewUserId(currentUserId.Value));
                 var isOwner = currentUserId.HasValue && tenant.OwnerId.Value == currentUserId.Value;
                 var isPatron = currentUserId.HasValue && tenant.Patrons.Any(p => p.Item1.Value == currentUserId.Value);
                 tenantStats.TryGetValue(tenant.TenantId.Value, out var stats);
@@ -243,7 +244,7 @@
 
                             @* Relationship Badges *@
                             <div class="d-flex flex-wrap gap-2 mb-3">
-                                @if (isOwner)
+                                @if (isOwner || isManager)
                                 {
                                     <span class="badge-sanctuary badge-owner small">
                                         <i class="bi bi-shield-fill"></i> @L["Owner"]
@@ -295,7 +296,7 @@
                                                 @L["Select"]
                                             </button>
                                         }
-                                        @if (isOwner || isAdmin)
+                                        @if (isOwner || isAdmin || isManager)
                                         {
                                             <button class="btn btn-outline-primary btn-sm rounded-pill px-4"
                                                 @onclick="() => HandleViewDetails(tenant)">
@@ -311,7 +312,7 @@
                                         }
                                     </div>
                                 </div>
-                                @if ((isOwner || isAdmin) && stats != null && !stats.IsDeletable)
+                                @if ((isOwner || isAdmin || isManager) && stats != null && !stats.IsDeletable)
                                 {
                                     <div class="text-danger small mt-3 d-flex align-items-start gap-2 p-2 bg-danger bg-opacity-10 rounded border border-danger border-opacity-10 animate-fade-in" style="font-size: 0.8rem;">
                                         <i class="bi bi-exclamation-circle-fill mt-0.5"></i>

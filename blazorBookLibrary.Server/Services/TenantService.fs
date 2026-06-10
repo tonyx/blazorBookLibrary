@@ -195,6 +195,14 @@ type TenantService
         | UserContext.Authenticated _ when context.IsInRole Role.Admin -> true
         | _ -> false
 
+    member private this.IsOnwerOrAdminOrTenantManager (context: UserContext, tenant: Tenant) =
+        match context with
+        | UserContext.Anonymous -> false
+        | UserContext.Authenticated(userId, _) when userId = tenant.OwnerId -> true
+        | UserContext.Authenticated _ when context.IsInRole Role.Admin -> true
+        | UserContext.Authenticated(userId, _) when tenant.IsManager(userId) -> true
+        | _ -> false
+
     member private this.IsMemberOrAdmin(context: UserContext, tenant: Tenant) =
         match context with
         | UserContext.Anonymous -> false
@@ -311,7 +319,7 @@ type TenantService
             let! (_, user) = userViewerAsync ct userId.Value
 
             do!
-                this.IsOnwerOrAdmin(context, tenant)
+                this.IsOnwerOrAdminOrTenantManager(context, tenant) 
                 |> Result.ofBool "Access denied: only owner or admin can invite patrons"
 
             let shortLang = ShortLang.New(Globalization.CultureInfo.CurrentCulture.Name)

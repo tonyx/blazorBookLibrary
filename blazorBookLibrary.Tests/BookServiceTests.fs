@@ -945,7 +945,7 @@ let tests =
             Expect.isTrue (book2After.Tags |> List.contains (BookTag "bulk-edited-tag")) "book 2 should contain the bulk edited tag"
         }
 
-        ftestCaseTask "bulk edit tags and categories on multiple books - Ok (expected to fail)" <| fun _ -> task {
+        testCaseTask "bulk edit tags and categories on multiple books - Ok (expected to fail)" <| fun _ -> task {
             setUp ()
             let bookService = getBookService()
             

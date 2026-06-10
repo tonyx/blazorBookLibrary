@@ -222,7 +222,7 @@
                                 </div>
                             </div>
                         </div>
-                        @if (isOwner || isAdmin)
+                        @if (isOwner || isAdmin || isManager)
                         {
                             <div class="border-top pt-3 mt-1 animate-fade-in">
                                 <label class="small text-muted text-uppercase fw-bold d-block mb-2">@L["AccessLevel"]</label>
@@ -499,6 +499,20 @@
                                                                 }
                                                                 else
                                                                 {
+                                                                    @if (role.IsManager)
+                                                                    {
+                                                                        <button class="btn btn-outline-warning btn-sm rounded-pill px-3 shadow-sm"
+                                                                                @onclick="() => HandleDemotePatron(patron)">
+                                                                            <i class="bi bi-arrow-down-circle me-1"></i> @L["Demote", "Demote"]
+                                                                        </button>
+                                                                    }
+                                                                    else
+                                                                    {
+                                                                        <button class="btn btn-outline-primary btn-sm rounded-pill px-3 shadow-sm"
+                                                                                @onclick="() => HandlePromotePatron(patron)">
+                                                                            <i class="bi bi-arrow-up-circle me-1"></i> @L["Promote", "Promote"]
+                                                                        </button>
+                                                                    }
                                                                     <button class="btn btn-outline-danger btn-sm rounded-pill px-3 shadow-sm"
                                                                             @onclick="() => InitiateSuspendPatron(patron)">
                                                                         <i class="bi bi-slash-circle me-1"></i> @L["Suspend"]
@@ -1125,6 +1139,7 @@
     private string activeTab = "patrons";
     private bool isOwner = false;
     private bool isAdmin = false;
+    private bool isManager = false;
     private bool isUpdatingPrivacy = false;
     private List<User> joinRequestsList = new();
     private bool isGeneratingPin = false;
@@ -1842,6 +1857,90 @@
         }
     }
 
+    private async Task HandlePromotePatron(User patron)
+    {
+        var confirmed = await JSRuntime.InvokeAsync<bool>("confirm", $"{L["ConfirmPromoteOf", "Are you sure you want to promote patron"]} {patron.AppUserInfo.Nome} {patron.AppUserInfo.Cognome} {L["ToManager", "to Manager"]}?");
+        if (!confirmed) return;
+
+        try
+        {
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var claimsPrincipal = authState.User;
+            if (claimsPrincipal == null) return;
+            var userContext = TenantState.GetUserContext(claimsPrincipal);
+            var tenantId = TenantId.NewTenantId(Id);
+
+            var result = await TenantService.PromotePatronAsync(userContext, tenantId, patron.UserId, Microsoft.FSharp.Core.FSharpOption<System.Threading.CancellationToken>.None);
+            if (result.IsError)
+            {
+                Logger.LogError("Error promoting patron {UserId}: {Error}", patron.UserId, result.ErrorValue);
+                await JSRuntime.InvokeVoidAsync("showToast", result.ErrorValue ?? L["ErrorOccurred"].Value, "error");
+            }
+            else
+            {
+                await JSRuntime.InvokeVoidAsync("showToast", L["Patron promoted successfully!"].Value, "success");
+                
+                // Refresh tenant details to show updated list
+                var refreshResult = await DetailsService.GetTenantDetailsAsync(userContext, tenantId, Microsoft.FSharp.Core.FSharpOption<System.Threading.CancellationToken>.None);
+                if (refreshResult.IsOk)
+                {
+                    libraryDetails = refreshResult.ResultValue;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Exception while promoting patron");
+            await JSRuntime.InvokeVoidAsync("showToast", L["ErrorOccurred"].Value, "error");
+        }
+        finally
+        {
+            StateHasChanged();
+        }
+    }
+
+    private async Task HandleDemotePatron(User patron)
+    {
+        var confirmed = await JSRuntime.InvokeAsync<bool>("confirm", $"{L["ConfirmDemoteOf", "Are you sure you want to demote manager"]} {patron.AppUserInfo.Nome} {patron.AppUserInfo.Cognome} {L["ToUser", "to User"]}?");
+        if (!confirmed) return;
+
+        try
+        {
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var claimsPrincipal = authState.User;
+            if (claimsPrincipal == null) return;
+            var userContext = TenantState.GetUserContext(claimsPrincipal);
+            var tenantId = TenantId.NewTenantId(Id);
+
+            var result = await TenantService.DemotePatronAsync(userContext, tenantId, patron.UserId, Microsoft.FSharp.Core.FSharpOption<System.Threading.CancellationToken>.None);
+            if (result.IsError)
+            {
+                Logger.LogError("Error demoting patron {UserId}: {Error}", patron.UserId, result.ErrorValue);
+                await JSRuntime.InvokeVoidAsync("showToast", result.ErrorValue ?? L["ErrorOccurred"].Value, "error");
+            }
+            else
+            {
+                await JSRuntime.InvokeVoidAsync("showToast", L["Patron demoted successfully!"].Value, "success");
+                
+                // Refresh tenant details to show updated list
+                var refreshResult = await DetailsService.GetTenantDetailsAsync(userContext, tenantId, Microsoft.FSharp.Core.FSharpOption<System.Threading.CancellationToken>.None);
+                if (refreshResult.IsOk)
+                {
+                    libraryDetails = refreshResult.ResultValue;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Exception while demoting patron");
+            await JSRuntime.InvokeVoidAsync("showToast", L["ErrorOccurred"].Value, "error");
+        }
+        finally
+        {
+            StateHasChanged();
+        }
+    }
+
     private bool IsFirstInQueue(ReservationDetails res)
     {
         if (libraryDetails == null || libraryDetails.PendingReservations == null) return false;
@@ -2167,9 +2266,10 @@
                 if (currentUserIdClaim != null && Guid.TryParse(currentUserIdClaim.Value, out var guid))
                 {
                     isOwner = guid.Equals(details.Tenant.OwnerId.Value);
+                    isManager = details.Tenant.IsManager(UserId.NewUserId(guid));
                 }
 
-                if (isAdmin || isOwner)
+                if (isAdmin || isOwner || isManager)
                 {
                     libraryDetails = details;
                     isAuthorized = true;
