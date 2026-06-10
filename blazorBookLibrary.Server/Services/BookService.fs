@@ -509,8 +509,6 @@ type BookService
                 do! 
                     (books |> List.forall (fun book -> tenantId = book.TenantId))
                     |> Result.ofBool "Book tenant id not matching"
-                let! userId = 
-                    context.UserId |> Result.ofOption "user must be some for bulkEdit"
 
                 do!
                     checkIsGlobalAdminOrTenantManager context ct
@@ -607,8 +605,6 @@ type BookService
         let ct = defaultArg ct CancellationToken.None
         taskResult
             {
-                // do!
-                //     checkIsGlobalAdminOrTenantManager context ct
                 let! booksWithId = StateView.getAllFilteredAggregateStatesAsync<Book, BookEvent, string> (fun b -> b.TenantId = tenantId) eventStore (Some ct) 
                 return booksWithId |> List.ofSeq |> List.map snd
             }
@@ -661,7 +657,6 @@ type BookService
 
                 let compoundFilter = fun (book: Book) -> 
                     filter book && criteria.Invoke book && book.TenantId = tenantId
-
 
                 let! booksWithId = StateView.getAllFilteredAggregateStatesAsync<Book, BookEvent, string> compoundFilter eventStore ct 
                 return booksWithId |> List.ofSeq |> List.map snd

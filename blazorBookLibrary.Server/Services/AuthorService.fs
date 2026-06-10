@@ -409,7 +409,6 @@ type AuthorService
                 |> List.filter (fun a -> tenantId = a.TenantId)
         }
 
-
     member this.GetAllAuthorsFilteredByIsni(context: UserContext, isni: Isni, ?ct: CancellationToken) =
         let ct = defaultArg ct CancellationToken.None
 
