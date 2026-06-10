@@ -73,7 +73,7 @@ type LoanService
 
             let! user = userViewerAsync (Some ct) loan.UserId.Value |> TaskResult.map snd
 
-            do! checkIsGlobalAdminOrTenantManagerOrSelf context ct user.UserId
+            do! checkIsGlobalAdminOrTenantManager context ct
 
             let! userDetails = usersService.GetUserDetailsAsync(context, user.UserId, ct)
 
@@ -450,7 +450,6 @@ type LoanService
             do!
                 match context with
                 | UserContext.Authenticated(_, roles) when roles |> List.contains (Role.Admin) -> Ok()
-                | UserContext.Authenticated(userId, _) when userId = tenant.OwnerId -> Ok()
                 | _ -> Error "User is not authorized to remove loan"
 
             let predicate = fun (loan: Loan) -> not loan.InProgress
