@@ -329,6 +329,7 @@ else
     private string cancellationReasonInput = "";
     private bool isCancelling = false;
     private HubConnection? hubConnection;
+    private Guid? activeTenantId;
 
     protected override async Task OnInitializedAsync()
     {
@@ -339,16 +340,22 @@ else
                 .WithAutomaticReconnect()
                 .Build();
 
-            hubConnection.On("PendingReservationsChanged", async () =>
+            hubConnection.On<Guid, Guid, Guid>("PendingReservationsChanged", async (tenantId, bookId, userId) =>
             {
-                await LoadPendingReservations();
-                await InvokeAsync(StateHasChanged);
+                if (activeTenantId.HasValue && activeTenantId.Value == tenantId)
+                {
+                    await LoadPendingReservations();
+                    await InvokeAsync(StateHasChanged);
+                }
             });
 
-            hubConnection.On("ReservationListChanged", async () =>
+            hubConnection.On<Guid>("ReservationListChanged", async (reservationId) =>
             {
-                await LoadPendingReservations();
-                await InvokeAsync(StateHasChanged);
+                if (pendingReservations != null && pendingReservations.Any(r => r.Reservation.ReservationId.Value == reservationId))
+                {
+                    await LoadPendingReservations();
+                    await InvokeAsync(StateHasChanged);
+                }
             });
 
             await hubConnection.StartAsync();
@@ -373,6 +380,18 @@ else
                 if (tenantResult.IsOk)
                 {
                     var tenantId = tenantResult.ResultValue;
+                    activeTenantId = tenantId.Value;
+                    if (hubConnection != null && hubConnection.State == HubConnectionState.Connected)
+                    {
+                        try
+                        {
+                            await hubConnection.SendAsync("JoinTenantGroup", activeTenantId.Value);
+                        }
+                        catch (Exception ex)
+                        {
+                            Logger.LogWarning(ex, "Failed to join tenant group in PendingReservations");
+                        }
+                    }
                     var tenantInfoResult = await TenantService.GetTenantAsync(userContext, tenantId);
                     if (tenantInfoResult.IsOk)
                     {
@@ -561,6 +580,14 @@ else
     {
         if (hubConnection is not null)
         {
+            if (activeTenantId.HasValue)
+            {
+                try
+                {
+                    await hubConnection.SendAsync("LeaveTenantGroup", activeTenantId.Value);
+                }
+                catch {}
+            }
             await hubConnection.DisposeAsync();
         }
     }

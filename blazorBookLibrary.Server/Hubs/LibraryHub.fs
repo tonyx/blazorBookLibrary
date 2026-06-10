@@ -30,5 +30,23 @@ type LibraryHub
             return! baseTask
         }
 
+    member this.JoinTenantGroup(tenantId: Guid) =
+        this.Groups.AddToGroupAsync(this.Context.ConnectionId, $"Tenant_{tenantId}") :> System.Threading.Tasks.Task
+
+    member this.LeaveTenantGroup(tenantId: Guid) =
+        this.Groups.RemoveFromGroupAsync(this.Context.ConnectionId, $"Tenant_{tenantId}") :> System.Threading.Tasks.Task
+
+    member this.JoinBookGroup(bookId: Guid) =
+        this.Groups.AddToGroupAsync(this.Context.ConnectionId, $"Book_{bookId}") :> System.Threading.Tasks.Task
+
+    member this.LeaveBookGroup(bookId: Guid) =
+        this.Groups.RemoveFromGroupAsync(this.Context.ConnectionId, $"Book_{bookId}") :> System.Threading.Tasks.Task
+
+    member this.JoinUserGroup(userId: Guid) =
+        this.Groups.AddToGroupAsync(this.Context.ConnectionId, $"User_{userId}") :> System.Threading.Tasks.Task
+
+    member this.LeaveUserGroup(userId: Guid) =
+        this.Groups.RemoveFromGroupAsync(this.Context.ConnectionId, $"User_{userId}") :> System.Threading.Tasks.Task
+
 
 

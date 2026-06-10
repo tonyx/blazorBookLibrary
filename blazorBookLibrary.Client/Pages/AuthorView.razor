@@ -234,8 +234,25 @@
             };
 
             hubConnection.On("AuthorsChanged", refreshHandler);
-            hubConnection.On("BookAvailabilityChanged", refreshHandler);
-            hubConnection.On("AuthorCatalogChanged", refreshHandler);
+
+            hubConnection.On<Guid, Guid>("BookAvailabilityChanged", async (tenantId, bookId) =>
+            {
+                if (authorDetails != null && authorDetails.Books.Any(b => b.BookId.Value == bookId))
+                {
+                    await LoadAuthorDetails();
+                    await InvokeAsync(StateHasChanged);
+                }
+            });
+
+            hubConnection.On<Guid>("AuthorCatalogChanged", async (authorId) =>
+            {
+                if (authorDetails != null && authorDetails.Author.AuthorId.Value == authorId)
+                {
+                    await LoadAuthorDetails();
+                    await InvokeAsync(StateHasChanged);
+                }
+            });
+
             hubConnection.On<Guid>("AuthorDetailsChanged", async (id) =>
             {
                 if (authorDetails != null && authorDetails.Author.AuthorId.Value == id)
@@ -253,6 +270,18 @@
         }
 
         await LoadAuthorDetails();
+
+        if (hubConnection != null && hubConnection.State == HubConnectionState.Connected && authorDetails != null)
+        {
+            try
+            {
+                foreach (var book in authorDetails.Books)
+                {
+                    await hubConnection.SendAsync("JoinBookGroup", book.BookId.Value);
+                }
+            }
+            catch {}
+        }
     }
 
     private async Task LoadAuthorDetails()
@@ -297,6 +326,17 @@
     {
         if (hubConnection is not null)
         {
+            if (authorDetails != null)
+            {
+                try
+                {
+                    foreach (var book in authorDetails.Books)
+                    {
+                        await hubConnection.SendAsync("LeaveBookGroup", book.BookId.Value);
+                    }
+                }
+                catch {}
+            }
             await hubConnection.DisposeAsync();
         }
     }

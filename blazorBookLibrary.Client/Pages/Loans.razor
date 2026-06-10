@@ -217,6 +217,7 @@ else
             .OrderByDescending(ld => ld.Loan.TimeSlot.Start);
 
     private HubConnection? hubConnection;
+    private Guid? activeTenantId;
 
     protected override async Task OnInitializedAsync()
     {
@@ -227,15 +228,32 @@ else
                 .WithAutomaticReconnect()
                 .Build();
 
-            Action refreshHandler = async () =>
+            hubConnection.On<Guid, Guid>("BookAvailabilityChanged", async (tenantId, bookId) =>
             {
-                await LoadLoans();
-                await InvokeAsync(StateHasChanged);
-            };
+                if (activeTenantId.HasValue && activeTenantId.Value == tenantId)
+                {
+                    await LoadLoans();
+                    await InvokeAsync(StateHasChanged);
+                }
+            });
 
-            hubConnection.On("BookAvailabilityChanged", refreshHandler);
-            hubConnection.On("BookCatalogChanged", refreshHandler);
-            hubConnection.On("LoanListChanged", refreshHandler);
+            hubConnection.On<Guid>("BookCatalogChanged", async (bookId) =>
+            {
+                if (loanDetailsList != null && loanDetailsList.Any(l => l.Book.BookId.Value == bookId))
+                {
+                    await LoadLoans();
+                    await InvokeAsync(StateHasChanged);
+                }
+            });
+
+            hubConnection.On<Guid>("LoanListChanged", async (loanId) =>
+            {
+                if (loanDetailsList != null && loanDetailsList.Any(l => l.Loan.LoanId.Value == loanId))
+                {
+                    await LoadLoans();
+                    await InvokeAsync(StateHasChanged);
+                }
+            });
 
             await hubConnection.StartAsync();
         }
@@ -259,6 +277,18 @@ else
                 if (tenantResult.IsOk)
                 {
                     var tenantId = tenantResult.ResultValue;
+                    activeTenantId = tenantId.Value;
+                    if (hubConnection != null && hubConnection.State == HubConnectionState.Connected)
+                    {
+                        try
+                        {
+                            await hubConnection.SendAsync("JoinTenantGroup", activeTenantId.Value);
+                        }
+                        catch (Exception ex)
+                        {
+                            Logger.LogWarning(ex, "Failed to join tenant group in Loans");
+                        }
+                    }
                     var tenantInfoResult = await TenantService.GetTenantAsync(userContext, tenantId);
                     if (tenantInfoResult.IsOk)
                     {
@@ -325,6 +355,14 @@ else
     {
         if (hubConnection is not null)
         {
+            if (activeTenantId.HasValue)
+            {
+                try
+                {
+                    await hubConnection.SendAsync("LeaveTenantGroup", activeTenantId.Value);
+                }
+                catch {}
+            }
             await hubConnection.DisposeAsync();
         }
     }

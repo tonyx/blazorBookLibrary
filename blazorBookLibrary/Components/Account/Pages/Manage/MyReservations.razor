@@ -179,19 +179,33 @@
                 .WithAutomaticReconnect()
                 .Build();
 
-            hubConnection.On("PendingReservationsChanged", async () =>
+            hubConnection.On<Guid, Guid, Guid>("PendingReservationsChanged", async (tenantId, bookId, userId) =>
             {
-                await LoadReservations();
-                await InvokeAsync(StateHasChanged);
+                if (user != null && Guid.TryParse(user.Id, out var currentUserId) && currentUserId == userId)
+                {
+                    await LoadReservations();
+                    await InvokeAsync(StateHasChanged);
+                }
             });
 
-            hubConnection.On("ReservationListChanged", async () =>
+            hubConnection.On<Guid>("ReservationListChanged", async (reservationId) =>
             {
-                await LoadReservations();
-                await InvokeAsync(StateHasChanged);
+                if (reservations != null && reservations.Any(r => r.Reservation.ReservationId.Value == reservationId))
+                {
+                    await LoadReservations();
+                    await InvokeAsync(StateHasChanged);
+                }
             });
 
             await hubConnection.StartAsync();
+            if (user != null)
+            {
+                try
+                {
+                    await hubConnection.SendAsync("JoinUserGroup", Guid.Parse(user.Id));
+                }
+                catch {}
+            }
         }
         catch (Exception ex)
         {
@@ -256,6 +270,18 @@
     {
         if (hubConnection is not null)
         {
+            if (userClaims != null)
+            {
+                try
+                {
+                    var user = await UserManager.GetUserAsync(userClaims);
+                    if (user != null)
+                    {
+                        await hubConnection.SendAsync("LeaveUserGroup", Guid.Parse(user.Id));
+                    }
+                }
+                catch {}
+            }
             await hubConnection.DisposeAsync();
         }
     }

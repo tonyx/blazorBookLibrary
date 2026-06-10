@@ -43,8 +43,10 @@ type ReservationsController(reservationService: IReservationService, hubContext:
             let! result = reservationService.AddReservationAsync(context, reservation, shortLang)
             match result with
             | Ok _ -> 
-                do! hubContext.Clients.All.SendCoreAsync("PendingReservationsChanged", [||])
-                do! hubContext.Clients.All.SendCoreAsync("BookAvailabilityChanged", [||])
+                do! hubContext.Clients.Group($"Tenant_{reservation.TenantId.Value}").SendCoreAsync("PendingReservationsChanged", [| reservation.TenantId.Value :> obj; reservation.BookId.Value :> obj; reservation.UserId.Value :> obj |])
+                do! hubContext.Clients.Group($"User_{reservation.UserId.Value}").SendCoreAsync("PendingReservationsChanged", [| reservation.TenantId.Value :> obj; reservation.BookId.Value :> obj; reservation.UserId.Value :> obj |])
+                do! hubContext.Clients.Group($"Tenant_{reservation.TenantId.Value}").SendCoreAsync("BookAvailabilityChanged", [| reservation.TenantId.Value :> obj; reservation.BookId.Value :> obj |])
+                do! hubContext.Clients.Group($"Book_{reservation.BookId.Value}").SendCoreAsync("BookAvailabilityChanged", [| reservation.TenantId.Value :> obj; reservation.BookId.Value :> obj |])
                 return this.Ok() :> IActionResult
             | Error msg -> return this.BadRequest(msg) :> IActionResult
         }
@@ -53,11 +55,24 @@ type ReservationsController(reservationService: IReservationService, hubContext:
     member this.RemoveReservation(id: Guid) =
         task {
             let context = UserContextMapper.mapFromClaimsPrincipal this.User
+            let! resDetails = 
+                task {
+                    match! reservationService.GetReservationAsync(context, ReservationId id) with
+                    | Ok r -> return Some r
+                    | _ -> return None
+                }
             let! result = reservationService.RemoveReservationAsync(context, ReservationId id)
             match result with
             | Ok _ -> 
-                do! hubContext.Clients.All.SendCoreAsync("PendingReservationsChanged", [||])
-                do! hubContext.Clients.All.SendCoreAsync("BookAvailabilityChanged", [||])
+                match resDetails with
+                | Some r ->
+                    do! hubContext.Clients.Group($"Tenant_{r.TenantId.Value}").SendCoreAsync("PendingReservationsChanged", [| r.TenantId.Value :> obj; r.BookId.Value :> obj; r.UserId.Value :> obj |])
+                    do! hubContext.Clients.Group($"User_{r.UserId.Value}").SendCoreAsync("PendingReservationsChanged", [| r.TenantId.Value :> obj; r.BookId.Value :> obj; r.UserId.Value :> obj |])
+                    do! hubContext.Clients.Group($"Tenant_{r.TenantId.Value}").SendCoreAsync("BookAvailabilityChanged", [| r.TenantId.Value :> obj; r.BookId.Value :> obj |])
+                    do! hubContext.Clients.Group($"Book_{r.BookId.Value}").SendCoreAsync("BookAvailabilityChanged", [| r.TenantId.Value :> obj; r.BookId.Value :> obj |])
+                | None ->
+                    do! hubContext.Clients.All.SendCoreAsync("PendingReservationsChanged", [| Guid.Empty :> obj; Guid.Empty :> obj; Guid.Empty :> obj |])
+                    do! hubContext.Clients.All.SendCoreAsync("BookAvailabilityChanged", [| Guid.Empty :> obj; Guid.Empty :> obj |])
                 return this.Ok() :> IActionResult
             | Error msg -> return this.BadRequest(msg) :> IActionResult
         }
@@ -66,11 +81,24 @@ type ReservationsController(reservationService: IReservationService, hubContext:
     member this.CancelReservation(id: Guid, [<FromBody>] reason: CancellationReason) =
         task {
             let context = UserContextMapper.mapFromClaimsPrincipal this.User
+            let! resDetails = 
+                task {
+                    match! reservationService.GetReservationAsync(context, ReservationId id) with
+                    | Ok r -> return Some r
+                    | _ -> return None
+                }
             let! result = reservationService.CancelReservationAsync(context, ReservationId id, reason)
             match result with
             | Ok _ -> 
-                do! hubContext.Clients.All.SendCoreAsync("PendingReservationsChanged", [||])
-                do! hubContext.Clients.All.SendCoreAsync("BookAvailabilityChanged", [||])
+                match resDetails with
+                | Some r ->
+                    do! hubContext.Clients.Group($"Tenant_{r.TenantId.Value}").SendCoreAsync("PendingReservationsChanged", [| r.TenantId.Value :> obj; r.BookId.Value :> obj; r.UserId.Value :> obj |])
+                    do! hubContext.Clients.Group($"User_{r.UserId.Value}").SendCoreAsync("PendingReservationsChanged", [| r.TenantId.Value :> obj; r.BookId.Value :> obj; r.UserId.Value :> obj |])
+                    do! hubContext.Clients.Group($"Tenant_{r.TenantId.Value}").SendCoreAsync("BookAvailabilityChanged", [| r.TenantId.Value :> obj; r.BookId.Value :> obj |])
+                    do! hubContext.Clients.Group($"Book_{r.BookId.Value}").SendCoreAsync("BookAvailabilityChanged", [| r.TenantId.Value :> obj; r.BookId.Value :> obj |])
+                | None ->
+                    do! hubContext.Clients.All.SendCoreAsync("PendingReservationsChanged", [| Guid.Empty :> obj; Guid.Empty :> obj; Guid.Empty :> obj |])
+                    do! hubContext.Clients.All.SendCoreAsync("BookAvailabilityChanged", [| Guid.Empty :> obj; Guid.Empty :> obj |])
                 return this.Ok() :> IActionResult
             | Error msg -> return this.BadRequest(msg) :> IActionResult
         }

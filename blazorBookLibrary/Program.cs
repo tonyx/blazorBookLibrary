@@ -352,32 +352,32 @@ Sharpino.Cache.DetailsCache.Instance.OnDetailsRefreshed += (sender, args) =>
         var hubContext = scope.ServiceProvider.GetRequiredService<Microsoft.AspNetCore.SignalR.IHubContext<BookLibrary.Hubs.LibraryHub>>();
         if (typeName == "RefreshableTenantDetails")
         {
-            hubContext.Clients.All.SendAsync("TenantTagsChanged");
-            hubContext.Clients.All.SendAsync("TenantListChanged");
+            hubContext.Clients.Group($"Tenant_{id}").SendAsync("TenantTagsChanged", id);
+            hubContext.Clients.Group($"Tenant_{id}").SendAsync("TenantListChanged", id);
         }
         else if (typeName == "RefreshableLoanDetails")
         {
-            hubContext.Clients.All.SendAsync("LoanListChanged");
+            hubContext.Clients.All.SendAsync("LoanListChanged", id);
             hubContext.Clients.All.SendAsync("LoanDetailsChanged", id);
         }
         else if (typeName == "RefreshableReservationDetails")
         {
-            hubContext.Clients.All.SendAsync("ReservationListChanged");
+            hubContext.Clients.All.SendAsync("ReservationListChanged", id);
             hubContext.Clients.All.SendAsync("ReservationDetailsChanged", id);
         }
         else if (typeName == "RefreshableBookDetails")
         {
-            hubContext.Clients.All.SendAsync("BookCatalogChanged");
-            hubContext.Clients.All.SendAsync("BookDetailsChanged", id);
+            hubContext.Clients.Group($"Book_{id}").SendAsync("BookCatalogChanged", id);
+            hubContext.Clients.Group($"Book_{id}").SendAsync("BookDetailsChanged", id);
         }
         else if (typeName == "RefreshableAuthorDetails")
         {
-            hubContext.Clients.All.SendAsync("AuthorCatalogChanged");
+            hubContext.Clients.All.SendAsync("AuthorCatalogChanged", id);
             hubContext.Clients.All.SendAsync("AuthorDetailsChanged", id);
         }
         else if (typeName == "RefreshableReviewDetails")
         {
-            hubContext.Clients.All.SendAsync("ReviewsListChanged");
+            hubContext.Clients.All.SendAsync("ReviewsListChanged", id);
             hubContext.Clients.All.SendAsync("ReviewDetailsChanged", id);
         }
     }

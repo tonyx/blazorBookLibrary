@@ -466,6 +466,15 @@
         countdownTimer?.Dispose();
         if (hubConnection is not null)
         {
+            if (bookDetails != null)
+            {
+                try
+                {
+                    await hubConnection.SendAsync("LeaveBookGroup", bookDetails.Book.BookId.Value);
+                    await hubConnection.SendAsync("LeaveTenantGroup", bookDetails.Book.TenantId.Value);
+                }
+                catch {}
+            }
             await hubConnection.DisposeAsync();
         }
     }
@@ -567,11 +576,14 @@
                 .WithAutomaticReconnect()
                 .Build();
 
-            hubConnection.On("BookAvailabilityChanged", async () =>
+            hubConnection.On<Guid, Guid>("BookAvailabilityChanged", async (tenantId, bookId) =>
             {
-                await LoadBookDetails();
-                await LoadUserReservation();
-                await InvokeAsync(StateHasChanged);
+                if (bookDetails != null && bookDetails.Book.BookId.Value == bookId)
+                {
+                    await LoadBookDetails();
+                    await LoadUserReservation();
+                    await InvokeAsync(StateHasChanged);
+                }
             });
 
             hubConnection.On<Guid>("BookDetailsChanged", async (id) =>
@@ -594,6 +606,19 @@
         isReviewSystemEnabled = Configuration.GetValue<bool>("BooksLibrary:ReviewSytemEnabled", true);
         await LoadBookDetails();
         await LoadUserReservation();
+
+        if (hubConnection != null && hubConnection.State == HubConnectionState.Connected && bookDetails != null)
+        {
+            try
+            {
+                await hubConnection.SendAsync("JoinBookGroup", bookDetails.Book.BookId.Value);
+                await hubConnection.SendAsync("JoinTenantGroup", bookDetails.Book.TenantId.Value);
+            }
+            catch (Exception ex)
+            {
+                Logger.LogWarning(ex, "Failed to join SignalR groups in BookView");
+            }
+        }
     }
 
     private async Task LoadBookDetails()

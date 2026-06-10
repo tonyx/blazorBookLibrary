@@ -2241,31 +2241,51 @@
                 .WithAutomaticReconnect()
                 .Build();
 
-            hubConnection.On("TenantListChanged", async () =>
+            hubConnection.On<Guid>("TenantListChanged", async (tenantId) =>
             {
-                await LoadTenantDetailsAsync(isSilent: true);
-                await InvokeAsync(StateHasChanged);
+                if (Id == tenantId)
+                {
+                    await LoadTenantDetailsAsync(isSilent: true);
+                    await InvokeAsync(StateHasChanged);
+                }
             });
 
-            hubConnection.On("TenantTagsChanged", async () =>
+            hubConnection.On<Guid>("TenantTagsChanged", async (tenantId) =>
             {
-                await LoadTenantDetailsAsync(isSilent: true);
-                await InvokeAsync(StateHasChanged);
+                if (Id == tenantId)
+                {
+                    await LoadTenantDetailsAsync(isSilent: true);
+                    await InvokeAsync(StateHasChanged);
+                }
             });
 
-            hubConnection.On("PendingReservationsChanged", async () =>
+            hubConnection.On<Guid, Guid, Guid>("PendingReservationsChanged", async (tenantId, bookId, userId) =>
             {
-                await LoadTenantDetailsAsync(isSilent: true);
-                await InvokeAsync(StateHasChanged);
+                if (Id == tenantId)
+                {
+                    await LoadTenantDetailsAsync(isSilent: true);
+                    await InvokeAsync(StateHasChanged);
+                }
             });
 
-            hubConnection.On("BookAvailabilityChanged", async () =>
+            hubConnection.On<Guid, Guid>("BookAvailabilityChanged", async (tenantId, bookId) =>
             {
-                await LoadTenantDetailsAsync(isSilent: true);
-                await InvokeAsync(StateHasChanged);
+                if (Id == tenantId)
+                {
+                    await LoadTenantDetailsAsync(isSilent: true);
+                    await InvokeAsync(StateHasChanged);
+                }
             });
 
             await hubConnection.StartAsync();
+            try
+            {
+                await hubConnection.SendAsync("JoinTenantGroup", Id);
+            }
+            catch (Exception ex)
+            {
+                Logger.LogWarning(ex, "Failed to join tenant SignalR group in TenantDetails");
+            }
         }
         catch (Exception ex)
         {
@@ -2277,6 +2297,11 @@
     {
         if (hubConnection is not null)
         {
+            try
+            {
+                await hubConnection.SendAsync("LeaveTenantGroup", Id);
+            }
+            catch {}
             await hubConnection.DisposeAsync();
         }
     }
