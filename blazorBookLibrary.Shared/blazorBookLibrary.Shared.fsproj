@@ -7,51 +7,52 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="Security/RecaptchaVerifyResponse.fs" />
-    <Compile Include="Security/IBotScoreService.fs" />
+    <Compile Include="Slices/Security/RecaptchaVerifyResponse.fs" />
+    <Compile Include="Slices/Security/IBotScoreService.fs" />
     <Compile Include="Library.fs" />
-    <Compile Include="Commons.fs" />
-    <Compile Include="Utils/ConverterUtils.fs" />
+    <Compile Include="Slices/Common/Commons.fs" />
+    <Compile Include="Slices/Common/ConverterUtils.fs" />
 
     <!-- <Compile Include="Domain/Tags.fs" /> -->
 
-    <Compile Include="Domain/Book.fs" />
-    <Compile Include="Domain/Author.fs" />
-    <Compile Include="Domain/Editor.fs" />
-    <Compile Include="Domain/Reservation.fs" />
-    <Compile Include="Domain/User.fs" />
-    <Compile Include="Domain/Loan.fs" />
-    <Compile Include="Domain/IsbnRegistry.fs" />
-    <Compile Include="Domain/Review.fs" />
-    <Compile Include="Domain/DistributionPoint.fs" />
-    <Compile Include="Domain/Tenant.fs" />
-    <Compile Include="Domain/Notification.fs" />
+    <Compile Include="Slices/Book/Book.fs" />
+    <Compile Include="Slices/Author/Author.fs" />
+    <Compile Include="Slices/Editor/Editor.fs" />
+    <Compile Include="Slices/User/User.fs" />
+    <Compile Include="Slices/Book/IsbnRegistry.fs" />
+    <Compile Include="Slices/Tenant/Tenant.fs" />
+    <Compile Include="Slices/Reservation/Reservation.fs" />
+    <Compile Include="Slices/Loan/Loan.fs" />
+    <Compile Include="Slices/Review/Review.fs" />
+    <Compile Include="Slices/DistributionPoint/DistributionPoint.fs" />
+    <Compile Include="Slices/Notification/Notification.fs" />
 
     <Compile Include="SearchModels.fs" />
-    <Compile Include="Details/Details.fs" />
-    <Compile Include="Services/IMailBodyRetriever.fs" />
-    <Compile Include="Services/IInAppMessagesRetriever.fs" />
-    <Compile Include="Services/IAuthorService.fs" />
-    <Compile Include="Services/IVectorDbService.fs" />
-    <Compile Include="Services/IBookService.fs" />
-    <Compile Include="Services/IEditorService.fs" />
-    <Compile Include="Services/ILoanService.fs" />
-    <Compile Include="Services/IReservationService.fs" />
-    <Compile Include="Services/IBooksMetadataSearchService.fs" />
-    <Compile Include="Services/IAuthorsSearchService.fs" />
-    <Compile Include="Services/IUserService.fs" />
-    <Compile Include="Services/ICookieService.fs" />
-    <Compile Include="Services/IUserTenantResolverService.fs" />
-    <Compile Include="Services/ITenantCacheWarmupService.fs" />
-    <Compile Include="Services/IReviewService.fs" />
-    <Compile Include="Services/IDetailsService.fs" />
-    <Compile Include="Services/IDataExportService.fs" />
-    <Compile Include="Services/ITextEmbeddingService.fs" />
-    <Compile Include="Services/IAdminService.fs" />
-    <Compile Include="Services/IDistributionPointService.fs" />
-    <Compile Include="Services/ITenantService.fs" />
-    <Compile Include="Services/INotificationService.fs" />
-    <Compile Include="Services/IEmbeddingOrchestrationService.fs" />
+    <Compile Include="Slices/Details/Details.fs" />
+    
+    <Compile Include="Slices/Notification/IMailBodyRetriever.fs" />
+    <Compile Include="Slices/Notification/IInAppMessagesRetriever.fs" />
+    <Compile Include="Slices/Author/IAuthorService.fs" />
+    <Compile Include="Slices/Book/IVectorDbService.fs" />
+    <Compile Include="Slices/Book/IBookService.fs" />
+    <Compile Include="Slices/Editor/IEditorService.fs" />
+    <Compile Include="Slices/Loan/ILoanService.fs" />
+    <Compile Include="Slices/Reservation/IReservationService.fs" />
+    <Compile Include="Slices/Book/IBooksMetadataSearchService.fs" />
+    <Compile Include="Slices/Author/IAuthorsSearchService.fs" />
+    <Compile Include="Slices/User/IUserService.fs" />
+    <Compile Include="Slices/Tenant/ICookieService.fs" />
+    <Compile Include="Slices/Tenant/IUserTenantResolverService.fs" />
+    <Compile Include="Slices/Tenant/ITenantCacheWarmupService.fs" />
+    <Compile Include="Slices/Review/IReviewService.fs" />
+    <Compile Include="Slices/Details/IDetailsService.fs" />
+    <Compile Include="Slices/DataExport/IDataExportService.fs" />
+    <Compile Include="Slices/Book/ITextEmbeddingService.fs" />
+    <Compile Include="Slices/Admin/IAdminService.fs" />
+    <Compile Include="Slices/DistributionPoint/IDistributionPointService.fs" />
+    <Compile Include="Slices/Tenant/ITenantService.fs" />
+    <Compile Include="Slices/Notification/INotificationService.fs" />
+    <Compile Include="Slices/Book/IEmbeddingOrchestrationService.fs" />
 
     <Compile Include="SearchCriteria.fs" />
     <Compile Include="Infrastructure/Services/IMailNotificator.fs" />
