@@ -94,6 +94,7 @@
     <Compile Include="Services/Security.fs" />
     <Compile Include="Services/UserMapping.fs" />
     <Compile Include="Services/UserContextMapper.fs" />
+    <Compile Include="Services/ServerCookieService.fs" />
     <Compile Include="Services/UserTenantResolverService.fs" />
     <Compile Include="Services/ReviewService.fs" />
     <Compile Include="Services/UserService.fs" />
@@ -133,6 +134,7 @@
     <Compile Include="Controllers/TenantController.fs" />
     <Compile Include="Controllers/NotificationsController.fs" />
     <Compile Include="Controllers/InAppMessagesRetrieverController.fs" />
+    <Compile Include="Controllers/CookiesController.fs" />
     <Compile Include="Controllers/UserTenantResolverController.fs" />
   </ItemGroup>
 

@@ -464,11 +464,6 @@ type TenantService
         let filter = fun (tenant: Tenant) -> tenant.TenantVisibility.IsPublic
 
         taskResult {
-            do!
-                match context with
-                | UserContext.Anonymous -> Error "Access denied: only authenticated users can get tenants"
-                | UserContext.Authenticated _ -> Ok()
-
             let! tenants =
                 StateView.getAllFilteredAggregateStatesAsync<Tenant, TenantEvent, string> filter eventStore (ct |> Some)
 

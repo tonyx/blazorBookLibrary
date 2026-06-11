@@ -7,6 +7,7 @@
 @inject NavigationManager NavigationManager
 @inject BookLibrary.Shared.Services.ITenantService TenantService
 @inject BookLibrary.Shared.Services.IUserService UserService
+@inject BookLibrary.Shared.Services.IUserTenantResolverService UserTenantResolverService
 @inject IStringLocalizer<SharedResources> L
 @inject IJSRuntime JSRuntime
 
@@ -92,16 +93,50 @@
     protected override async Task OnInitializedAsync()
     {
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var userContext = TenantState.GetUserContext(authState.User);
+
+        // Resolve current tenant for both authenticated and anonymous users
+        var tenantResult = await UserTenantResolverService.GetTenantForUserAsync(userContext, Microsoft.FSharp.Core.FSharpOption<System.Threading.CancellationToken>.None);
+        if (tenantResult.IsOk)
+        {
+            var tenantInfoResult = await TenantService.GetTenantAsync(userContext, tenantResult.ResultValue, CancellationToken.None);
+            if (tenantInfoResult.IsOk)
+            {
+                TenantState.CurrentTenant = tenantInfoResult.ResultValue;
+            }
+        }
+
         if (authState.User.Identity?.IsAuthenticated == true)
         {
-            var userContext = TenantState.GetUserContext(authState.User);
-            var result = await DetailsService.GetUserDetailsAsync(userContext, userContext.UserId.Value, CancellationToken.None);
-            if (result.IsOk)
-            {
-                TenantState.CurrentTenant = result.ResultValue.CurrentTenant;
-            }
-
             await LoadAllowedTenantsAsync();
+        }
+        else
+        {
+            await LoadPublicTenantsAsync();
+        }
+    }
+
+    private async Task LoadPublicTenantsAsync()
+    {
+        isLoadingAllowedTenants = true;
+        StateHasChanged();
+        try
+        {
+            var userContext = TenantState.GetUserContext(new System.Security.Claims.ClaimsPrincipal());
+            var publicResult = await TenantService.GetAllPublicTenantsAsync(userContext, Microsoft.FSharp.Core.FSharpOption<System.Threading.CancellationToken>.None);
+            if (publicResult.IsOk)
+            {
+                allowedTenants = publicResult.ResultValue;
+            }
+        }
+        catch (Exception ex)
+        {
+            // Silent log
+        }
+        finally
+        {
+            isLoadingAllowedTenants = false;
+            StateHasChanged();
         }
     }
 

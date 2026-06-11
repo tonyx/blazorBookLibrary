@@ -24,6 +24,7 @@
 @inject IStringLocalizer<SharedResources> L
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject NavigationManager NavigationManager
+@inject BookLibrary.Shared.Services.ICookieService CookieService
 @rendermode InteractiveAuto
 @implements IAsyncDisposable
 
@@ -221,6 +222,27 @@
 
     [SupplyParameterFromQuery(Name = "dp")]
     public string? DpId { get; set; }
+
+    [SupplyParameterFromQuery(Name = "tenantId")]
+    public string? QueryTenantId { get; set; }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (!string.IsNullOrEmpty(QueryTenantId))
+        {
+            if (Guid.TryParse(QueryTenantId, out var tenantGuid))
+            {
+                try
+                {
+                    await CookieService.SetCookieAsync("selected_tenant_id", tenantGuid.ToString(), 30);
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogError(ex, "Error setting tenantId cookie from query parameter");
+                }
+            }
+        }
+    }
 
     private HashSet<BookId> loadingExplanations = new();
     private static readonly SemaphoreSlim explanationSemaphore = new(1, 1);

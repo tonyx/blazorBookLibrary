@@ -1,77 +1,83 @@
+using System;
 using System.Security.Claims;
-using Microsoft.JSInterop;
+using System.Threading.Tasks;
 using BookLibrary.Domain;
 using BookLibrary.Shared;
 using blazorBookLibrary.Shared;
+using BookLibrary.Shared.Services;
 
-namespace blazorBookLibrary.Client.Services;
-
-public class TenantStateService
+namespace blazorBookLibrary.Client.Services
 {
-    private readonly IJSRuntime _jsRuntime;
-    private Tenant? _currentTenant;
-    private const string CookieName = "selected_tenant";
-    
-    public TenantStateService(IJSRuntime jsRuntime)
+    public class TenantStateService
     {
-        _jsRuntime = jsRuntime;
-    }
-
-    public Tenant? CurrentTenant
-    {
-        get => _currentTenant;
-        set
+        private readonly ICookieService _cookieService;
+        private Tenant? _currentTenant;
+        private const string CookieName = "selected_tenant_id";
+        
+        public TenantStateService(ICookieService cookieService)
         {
-            if (_currentTenant?.TenantId.Value != value?.TenantId.Value)
+            _cookieService = cookieService;
+        }
+
+        public Tenant? CurrentTenant
+        {
+            get => _currentTenant;
+            set
             {
-                _currentTenant = value;
-                NotifyStateChanged();
+                if (_currentTenant?.TenantId.Value != value?.TenantId.Value)
+                {
+                    _currentTenant = value;
+                    NotifyStateChanged();
+                }
             }
         }
-    }
 
-    public event Action? OnChange;
+        public event Action? OnChange;
 
-    private void NotifyStateChanged() => OnChange?.Invoke();
+        private void NotifyStateChanged() => OnChange?.Invoke();
 
-    public Commons.UserContext GetUserContext(ClaimsPrincipal principal)
-    {
-        var context = ConverterUtils.fromClaimsPrincipal(principal);
-        if (context.IsAuthenticated && _currentTenant != null)
+        public Commons.UserContext GetUserContext(ClaimsPrincipal principal)
         {
-            return context.WithNewTenant(_currentTenant.TenantId);
+            var context = ConverterUtils.fromClaimsPrincipal(principal);
+            if (context.IsAuthenticated && _currentTenant != null)
+            {
+                return context.WithNewTenant(_currentTenant.TenantId);
+            }
+            return context;
         }
-        return context;
-    }
 
-    public async Task SetTenantAsync(Tenant tenant)
-    {
-        CurrentTenant = tenant;
-        try 
+        public async Task SetTenantAsync(Tenant tenant)
         {
-            await _jsRuntime.InvokeVoidAsync("blazorCookies.set", CookieName, tenant.TenantId.Value.ToString(), 30);
+            CurrentTenant = tenant;
+            try 
+            {
+                await _cookieService.SetCookieAsync(CookieName, tenant.TenantId.Value.ToString(), Microsoft.FSharp.Core.FSharpOption<int>.Some(30));
+            }
+            catch { /* Prerendering or JS not available */ }
         }
-        catch { /* Prerendering or JS not available */ }
-    }
 
-    public async Task ClearTenantAsync()
-    {
-        CurrentTenant = null;
-        try 
+        public async Task ClearTenantAsync()
         {
-            await _jsRuntime.InvokeVoidAsync("blazorCookies.set", CookieName, "", -1);
+            CurrentTenant = null;
+            try 
+            {
+                await _cookieService.DeleteCookieAsync(CookieName);
+            }
+            catch { /* Prerendering or JS not available */ }
         }
-        catch { /* Prerendering or JS not available */ }
-    }
 
-    public async Task<Guid?> GetPersistedTenantIdAsync()
-    {
-        try 
+        public async Task<Guid?> GetPersistedTenantIdAsync()
         {
-            var value = await _jsRuntime.InvokeAsync<string>("blazorCookies.get", CookieName);
-            if (Guid.TryParse(value, out var guid)) return guid;
+            try 
+            {
+                var valueOpt = await _cookieService.GetCookieAsync(CookieName);
+                if (valueOpt != null && Microsoft.FSharp.Core.FSharpOption<string>.get_IsSome(valueOpt))
+                {
+                    if (Guid.TryParse(valueOpt.Value, out var guid)) return guid;
+                }
+            }
+            catch { /* Prerendering */ }
+            return null;
         }
-        catch { /* Prerendering */ }
-        return null;
     }
 }

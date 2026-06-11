@@ -41,6 +41,7 @@ public class Program
         builder.Services.AddScoped<ITenantService, TenantClientService>();
         builder.Services.AddScoped<INotificationService, NotificationClientService>();
         builder.Services.AddScoped<IInAppMessagesRetriever, InAppMessagesRetrieverClientService>();
+        builder.Services.AddScoped<ICookieService, ClientCookieService>();
         builder.Services.AddScoped<IUserTenantResolverService, UserTenantResolverClientService>();
         builder.Services.AddScoped<TenantStateService>();
 

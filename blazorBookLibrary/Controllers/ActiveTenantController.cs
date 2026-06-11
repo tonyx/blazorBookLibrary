@@ -26,38 +26,57 @@ public class ActiveTenantController : Controller
     [HttpPost]
     public async Task<IActionResult> SetActiveTenant([FromForm] string tenantId, [FromForm] string returnUrl)
     {
-        if (Guid.TryParse(tenantId, out var tenantGuid) && User.Identity != null && User.Identity.IsAuthenticated)
+        if (Guid.TryParse(tenantId, out var tenantGuid))
         {
-            var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (Guid.TryParse(userIdStr, out var userIdGuid))
+            var tenantIdentifier = Commons.TenantId.NewTenantId(tenantGuid);
+
+            if (User.Identity != null && User.Identity.IsAuthenticated)
             {
-                var userContext = UserContextMapper.mapFromClaimsPrincipal(User);
-                var userId = Commons.UserId.NewUserId(userIdGuid);
-                var tenantIdentifier = Commons.TenantId.NewTenantId(tenantGuid);
-
-                // 1. Persist the tenant selection in the backend event store
-                var setTenantResult = await _userService.SetCurrentTenantAsync(
-                    userContext, 
-                    userId, 
-                    tenantIdentifier, 
-                    FSharpOption<CancellationToken>.None);
-
-                if (setTenantResult.IsOk)
+                var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (Guid.TryParse(userIdStr, out var userIdGuid))
                 {
-                    // 2. Set the cookie for immediate recognition by client & server
-                    Response.Cookies.Append(
-                        "selected_tenant", 
-                        tenantGuid.ToString(), 
-                        new CookieOptions 
-                        { 
-                            Expires = DateTimeOffset.UtcNow.AddDays(30), 
-                            HttpOnly = false, 
-                            SameSite = SameSiteMode.Lax 
-                        });
+                    var userContext = UserContextMapper.mapFromClaimsPrincipal(User);
+                    var userId = Commons.UserId.NewUserId(userIdGuid);
 
-                    // 3. Warm up the cache for the new tenant
-                    _ = Task.Run(() => _warmupService.WarmupTenantAsync(tenantIdentifier, CancellationToken.None));
+                    // 1. Persist the tenant selection in the backend event store
+                    var setTenantResult = await _userService.SetCurrentTenantAsync(
+                        userContext, 
+                        userId, 
+                        tenantIdentifier, 
+                        FSharpOption<CancellationToken>.None);
+
+                    if (setTenantResult.IsOk)
+                    {
+                        // 2. Set the cookie for immediate recognition by client & server
+                        Response.Cookies.Append(
+                            "selected_tenant_id", 
+                            tenantGuid.ToString(), 
+                            new CookieOptions 
+                            { 
+                                Expires = DateTimeOffset.UtcNow.AddDays(30), 
+                                HttpOnly = false, 
+                                SameSite = SameSiteMode.Lax 
+                            });
+
+                        // 3. Warm up the cache for the new tenant
+                        _ = Task.Run(() => _warmupService.WarmupTenantAsync(tenantIdentifier, CancellationToken.None));
+                    }
                 }
+            }
+            else
+            {
+                // Anonymous user - just set the cookie and warm up cache
+                Response.Cookies.Append(
+                    "selected_tenant_id", 
+                    tenantGuid.ToString(), 
+                    new CookieOptions 
+                    { 
+                        Expires = DateTimeOffset.UtcNow.AddDays(30), 
+                        HttpOnly = false, 
+                        SameSite = SameSiteMode.Lax 
+                    });
+
+                _ = Task.Run(() => _warmupService.WarmupTenantAsync(tenantIdentifier, CancellationToken.None));
             }
         }
 

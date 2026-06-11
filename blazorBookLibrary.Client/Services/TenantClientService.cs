@@ -179,8 +179,6 @@ public class TenantClientService : ITenantService
         return await ServiceClientHelper.HandleUnitResponse(response);
     }
 
-
-
     public async Task<FSharpResult<Unit, string>> DeleteTenantAsync(Commons.UserContext context, Commons.TenantId tenantId, FSharpOption<CancellationToken> ct)
     {
         var request = ServiceClientHelper.CreateRequest(HttpMethod.Delete, $"api/Tenant/{tenantId.Value}", context);

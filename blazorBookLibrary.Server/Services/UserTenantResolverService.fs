@@ -31,14 +31,18 @@ open BookLibrary.Utils
 type UserTenantResolverService(
     eventStore: IEventStore<string>,
     messageSenders: MessageSenders,
-    userViewerAsync: AggregateViewerAsync2<User>
+    userViewerAsync: AggregateViewerAsync2<User>,
+    cookieService: ICookieService
 ) =
-    new (secretsReader: SecretsReader)
+    new (eventStore: IEventStore<string>, messageSenders: MessageSenders, userViewerAsync: AggregateViewerAsync2<User>) =
+        UserTenantResolverService(eventStore, messageSenders, userViewerAsync, null)
+
+    new (secretsReader: SecretsReader, cookieService: ICookieService)
         =
             let connectionString = secretsReader.GetBookLibraryConnectionString ()
             let eventStore = PgStorage.PgEventStore connectionString
             let userViewerAsync = getAggregateStorageFreshStateViewerAsync<User, UserEvent, string> eventStore
-            UserTenantResolverService(eventStore, MessageSenders.NoSender, userViewerAsync)
+            UserTenantResolverService(eventStore, MessageSenders.NoSender, userViewerAsync, cookieService)
 
     member this.GetTenantForUser (context: UserContext, ?ct: CancellationToken) =
         taskResult {
@@ -46,7 +50,14 @@ type UserTenantResolverService(
             | Some tenantId -> return tenantId
             | None ->
                 if context.IsAnonymous then
-                    return TenantId.Default
+                    let! cookieVal = cookieService.GetCookieAsync("selected_tenant_id")
+                    match cookieVal with
+                    | Some guidStr ->
+                        match System.Guid.TryParse(guidStr) with
+                        | true, guid -> return TenantId guid
+                        | _ -> return TenantId.Default
+                    | None -> return TenantId.Default
+
                 else
                     let userId = context.UserId.Value
 

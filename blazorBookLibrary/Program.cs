@@ -103,6 +103,7 @@ builder.Services.AddSingleton<IMailResenderService, MailResenderService>();
 builder.Services.AddSingleton<IMailNotificator, MailNotificator>();
 builder.Services.AddSingleton<INotificationDispatcher, NotificationDispatcher>();
 
+builder.Services.AddSingleton<ICookieService, ServerCookieService>();
 builder.Services.AddSingleton<IUserTenantResolverService, UserTenantResolverService>();
 
 builder.Services.AddSingleton<IAuthorService, AuthorService>();
