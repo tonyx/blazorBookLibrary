@@ -3,6 +3,7 @@
 > This document serves as a general architectural reference for any solution built on F#, Sharpino (event sourcing), Blazor, and PostgreSQL. Use it as a blueprint when creating or extending features.
 >
 > All concrete code examples in this document are drawn from the **blazorBookLibrary** reference implementation. When starting from an empty repository, an agentic assistant should consult this repository for working examples of every pattern described here.
+> Note: the current state changed a little bit as the solution moved toward "slices" project structure. The architecture is still the same but organized differently.
 
 ## Reference Repository
 
