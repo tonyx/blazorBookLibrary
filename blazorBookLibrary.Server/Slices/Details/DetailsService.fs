@@ -82,7 +82,7 @@ type DetailsService
             return result
         }
 
-    member private this.MakeUserDetailsRefresher(context: UserContext, id: UserId, ?ct: CancellationToken) =
+    member private this.MakeUserDetailsRefresher(context: UserContext, id: UserId) =
         fun (ct: Option<CancellationToken>) ->
             taskResult {
                 let ct = ct |> Option.defaultValue CancellationToken.None
@@ -150,7 +150,7 @@ type DetailsService
         let detailsBuilder =
             fun (ct: Option<CancellationToken>) ->
                 let ct = ct |> Option.defaultValue CancellationToken.None
-                let refresher = this.MakeUserDetailsRefresher(context, userId, ct)
+                let refresher = this.MakeUserDetailsRefresher(context, userId)
 
                 taskResult {
                     let! userDetails = refresher (Some ct)
@@ -240,7 +240,7 @@ type DetailsService
                 |> List.traverseTaskResultM (fun loan -> this.GetLoanDetailsAsync(context, loan.LoanId, ct))
         }
 
-    member this.MakeReservationRefresher(context: UserContext, id: ReservationId, ?ct: CancellationToken) =
+    member this.MakeReservationRefresher(context: UserContext, id: ReservationId) =
         fun (ct: Option<CancellationToken>) ->
             taskResult {
                 let ct = ct |> Option.defaultValue CancellationToken.None
@@ -266,7 +266,7 @@ type DetailsService
         let detailsBuilder =
             fun (ct: Option<CancellationToken>) ->
                 let ct = ct |> Option.defaultValue CancellationToken.None
-                let refresher = this.MakeReservationRefresher(context, id, ct)
+                let refresher = this.MakeReservationRefresher(context, id)
                 this.MakeReservationDetailsBuilder(id, refresher, ct)
 
         let key = DetailsCacheKey.OfType typeof<RefreshableReservationDetails> id.Value

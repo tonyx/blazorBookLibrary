@@ -149,7 +149,7 @@ type ReservationService
             userTenantResolverService
         )
 
-    member private this.MakeReservationRefresher(context: UserContext, id: ReservationId, ?ct: CancellationToken) =
+    member private this.MakeReservationRefresher(context: UserContext, id: ReservationId) =
         fun (ct: Option<CancellationToken>) ->
             taskResult {
                 let ct = ct |> Option.defaultValue CancellationToken.None
@@ -315,7 +315,7 @@ type ReservationService
     member this.GetRefreshableReservationDetailsAsync(context: UserContext, id: ReservationId, ?ct: CancellationToken) =
         let detailsBuilder =
             fun (ct: Option<CancellationToken>) ->
-                this.MakeReservationRefresher(context, id, ct |> Option.defaultValue CancellationToken.None)
+                this.MakeReservationRefresher(context, id)
                 |> fun refresher -> this.MakeReservationDetailsBuilder(id, refresher)
 
         let key = DetailsCacheKey.OfType typeof<RefreshableReservationDetails> id.Value
