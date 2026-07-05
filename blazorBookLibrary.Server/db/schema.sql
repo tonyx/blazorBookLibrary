@@ -1,6 +1,6 @@
-\restrict Nhezd5Lxn5D4gYrdP059dXkuPKckFiM13qcKEBldEzI2w5zWM1wmmVeouhaoeef
+\restrict SQOd3MIAFcVnEmlXqI2T2lCJqVGXVRtnKEczuIvdsprmESAntA274sogi1Joqs1
 
--- Dumped from database version 16.13
+-- Dumped from database version 16.14
 -- Dumped by pg_dump version 17.9 (Homebrew)
 
 SET statement_timeout = 0;
@@ -20,6 +20,55 @@ SET row_security = off;
 --
 
 -- *not* creating schema, since initdb creates it
+
+
+--
+-- Name: check_last_event_id_opt_lock(text, uuid, integer); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.check_last_event_id_opt_lock(stream_name text, target_aggregate_id uuid, expected_last_event_id integer) RETURNS void
+    LANGUAGE plpgsql
+    AS $_$
+DECLARE
+    found_last_event_id integer;
+    query text;
+    full_stream_name text;
+BEGIN
+    full_stream_name := stream_name;
+    IF NOT full_stream_name LIKE 'events_%' THEN
+        IF full_stream_name LIKE '_%' THEN
+            full_stream_name := 'events' || full_stream_name;
+        ELSE
+            full_stream_name := 'events_' || full_stream_name;
+        END IF;
+    END IF;
+
+    -- If target_aggregate_id is null, try to resolve it from the expected_last_event_id
+    IF target_aggregate_id IS NULL THEN
+        query := format('SELECT aggregate_id FROM %I WHERE id = $1', full_stream_name);
+        EXECUTE query INTO target_aggregate_id USING expected_last_event_id;
+    END IF;
+
+    IF target_aggregate_id IS NULL THEN
+        IF expected_last_event_id > 0 THEN
+            RAISE EXCEPTION 'Optimistic locking check failed for stream %: expected event % not found to resolve aggregate', full_stream_name, expected_last_event_id;
+        END IF;
+    ELSE
+        query := format('SELECT id FROM %I WHERE aggregate_id = $1 ORDER BY id DESC LIMIT 1', full_stream_name);
+        EXECUTE query INTO found_last_event_id USING target_aggregate_id;
+
+        IF expected_last_event_id = 0 THEN
+            IF found_last_event_id IS NOT NULL THEN
+                RAISE EXCEPTION 'Optimistic locking check failed for stream %: expected no previous events, but found event %', full_stream_name, found_last_event_id;
+            END IF;
+        ELSIF expected_last_event_id > 0 THEN
+            IF found_last_event_id IS NULL OR found_last_event_id <> expected_last_event_id THEN
+                RAISE EXCEPTION 'Optimistic locking check failed for stream %: expected last event id %, but found %', full_stream_name, expected_last_event_id, found_last_event_id;
+            END IF;
+        END IF;
+    END IF;
+END;
+$_$;
 
 
 --
@@ -320,6 +369,36 @@ $$;
 
 
 --
+-- Name: insert_md_01_author_aggregate_event_and_return_id_opt_lock2(text, uuid, integer, text, integer, text[], integer[], uuid[]); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.insert_md_01_author_aggregate_event_and_return_id_opt_lock2(event_in text, aggregate_id uuid, distance_from_latest_snapshot integer, md text, last_event_id integer, extra_stream_names text[], extra_event_ids integer[], extra_aggregate_ids uuid[]) RETURNS integer
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+    inserted_id integer;
+    event_id integer;
+BEGIN
+    -- Perform the main optimistic locking check for the aggregate itself
+    PERFORM check_last_event_id_opt_lock('events_01_Author', aggregate_id, last_event_id);
+
+    -- Perform the checks for extra constraints
+    IF extra_stream_names IS NOT NULL THEN
+        FOR i IN 1..cardinality(extra_stream_names) LOOP
+            PERFORM check_last_event_id_opt_lock(extra_stream_names[i], extra_aggregate_ids[i], extra_event_ids[i]);
+        END LOOP;
+    END IF;
+
+    event_id := insert_md_01_Author_event_and_return_id(event_in, aggregate_id, distance_from_latest_snapshot, md);
+
+    INSERT INTO aggregate_events_01_Author(aggregate_id, event_id)
+    VALUES(aggregate_id, event_id) RETURNING id INTO inserted_id;
+    return event_id;
+END;
+$$;
+
+
+--
 -- Name: insert_md_01_author_event_and_return_id(text, uuid, integer, text); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -381,6 +460,36 @@ BEGIN
         IF found_last_event_id IS NULL OR found_last_event_id <> last_event_id THEN
             RAISE EXCEPTION 'Optimistic locking check failed: expected last event id %, but found %', last_event_id, found_last_event_id;
         END IF;
+    END IF;
+
+    event_id := insert_md_01_Book_event_and_return_id(event_in, aggregate_id, distance_from_latest_snapshot, md);
+
+    INSERT INTO aggregate_events_01_Book(aggregate_id, event_id)
+    VALUES(aggregate_id, event_id) RETURNING id INTO inserted_id;
+    return event_id;
+END;
+$$;
+
+
+--
+-- Name: insert_md_01_book_aggregate_event_and_return_id_opt_lock2(text, uuid, integer, text, integer, text[], integer[], uuid[]); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.insert_md_01_book_aggregate_event_and_return_id_opt_lock2(event_in text, aggregate_id uuid, distance_from_latest_snapshot integer, md text, last_event_id integer, extra_stream_names text[], extra_event_ids integer[], extra_aggregate_ids uuid[]) RETURNS integer
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+    inserted_id integer;
+    event_id integer;
+BEGIN
+    -- Perform the main optimistic locking check for the aggregate itself
+    PERFORM check_last_event_id_opt_lock('events_01_Book', aggregate_id, last_event_id);
+
+    -- Perform the checks for extra constraints
+    IF extra_stream_names IS NOT NULL THEN
+        FOR i IN 1..cardinality(extra_stream_names) LOOP
+            PERFORM check_last_event_id_opt_lock(extra_stream_names[i], extra_aggregate_ids[i], extra_event_ids[i]);
+        END LOOP;
     END IF;
 
     event_id := insert_md_01_Book_event_and_return_id(event_in, aggregate_id, distance_from_latest_snapshot, md);
@@ -466,6 +575,36 @@ $$;
 
 
 --
+-- Name: insert_md_01_distributionpoint_aggregate_event_and_return_id_op(text, uuid, integer, text, integer, text[], integer[], uuid[]); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.insert_md_01_distributionpoint_aggregate_event_and_return_id_op(event_in text, aggregate_id uuid, distance_from_latest_snapshot integer, md text, last_event_id integer, extra_stream_names text[], extra_event_ids integer[], extra_aggregate_ids uuid[]) RETURNS integer
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+    inserted_id integer;
+    event_id integer;
+BEGIN
+    -- Perform the main optimistic locking check for the aggregate itself
+    PERFORM check_last_event_id_opt_lock('events_01_DistributionPoint', aggregate_id, last_event_id);
+
+    -- Perform the checks for extra constraints
+    IF extra_stream_names IS NOT NULL THEN
+        FOR i IN 1..cardinality(extra_stream_names) LOOP
+            PERFORM check_last_event_id_opt_lock(extra_stream_names[i], extra_aggregate_ids[i], extra_event_ids[i]);
+        END LOOP;
+    END IF;
+
+    event_id := insert_md_01_DistributionPoint_event_and_return_id(event_in, aggregate_id, distance_from_latest_snapshot, md);
+
+    INSERT INTO aggregate_events_01_DistributionPoint(aggregate_id, event_id)
+    VALUES(aggregate_id, event_id) RETURNING id INTO inserted_id;
+    return event_id;
+END;
+$$;
+
+
+--
 -- Name: insert_md_01_distributionpoint_event_and_return_id(text, uuid, integer, text); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -527,6 +666,36 @@ BEGIN
         IF found_last_event_id IS NULL OR found_last_event_id <> last_event_id THEN
             RAISE EXCEPTION 'Optimistic locking check failed: expected last event id %, but found %', last_event_id, found_last_event_id;
         END IF;
+    END IF;
+
+    event_id := insert_md_01_Editor_event_and_return_id(event_in, aggregate_id, distance_from_latest_snapshot, md);
+
+    INSERT INTO aggregate_events_01_Editor(aggregate_id, event_id)
+    VALUES(aggregate_id, event_id) RETURNING id INTO inserted_id;
+    return event_id;
+END;
+$$;
+
+
+--
+-- Name: insert_md_01_editor_aggregate_event_and_return_id_opt_lock2(text, uuid, integer, text, integer, text[], integer[], uuid[]); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.insert_md_01_editor_aggregate_event_and_return_id_opt_lock2(event_in text, aggregate_id uuid, distance_from_latest_snapshot integer, md text, last_event_id integer, extra_stream_names text[], extra_event_ids integer[], extra_aggregate_ids uuid[]) RETURNS integer
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+    inserted_id integer;
+    event_id integer;
+BEGIN
+    -- Perform the main optimistic locking check for the aggregate itself
+    PERFORM check_last_event_id_opt_lock('events_01_Editor', aggregate_id, last_event_id);
+
+    -- Perform the checks for extra constraints
+    IF extra_stream_names IS NOT NULL THEN
+        FOR i IN 1..cardinality(extra_stream_names) LOOP
+            PERFORM check_last_event_id_opt_lock(extra_stream_names[i], extra_aggregate_ids[i], extra_event_ids[i]);
+        END LOOP;
     END IF;
 
     event_id := insert_md_01_Editor_event_and_return_id(event_in, aggregate_id, distance_from_latest_snapshot, md);
@@ -685,6 +854,36 @@ $$;
 
 
 --
+-- Name: insert_md_01_loan_aggregate_event_and_return_id_opt_lock2(text, uuid, integer, text, integer, text[], integer[], uuid[]); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.insert_md_01_loan_aggregate_event_and_return_id_opt_lock2(event_in text, aggregate_id uuid, distance_from_latest_snapshot integer, md text, last_event_id integer, extra_stream_names text[], extra_event_ids integer[], extra_aggregate_ids uuid[]) RETURNS integer
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+    inserted_id integer;
+    event_id integer;
+BEGIN
+    -- Perform the main optimistic locking check for the aggregate itself
+    PERFORM check_last_event_id_opt_lock('events_01_Loan', aggregate_id, last_event_id);
+
+    -- Perform the checks for extra constraints
+    IF extra_stream_names IS NOT NULL THEN
+        FOR i IN 1..cardinality(extra_stream_names) LOOP
+            PERFORM check_last_event_id_opt_lock(extra_stream_names[i], extra_aggregate_ids[i], extra_event_ids[i]);
+        END LOOP;
+    END IF;
+
+    event_id := insert_md_01_Loan_event_and_return_id(event_in, aggregate_id, distance_from_latest_snapshot, md);
+
+    INSERT INTO aggregate_events_01_Loan(aggregate_id, event_id)
+    VALUES(aggregate_id, event_id) RETURNING id INTO inserted_id;
+    return event_id;
+END;
+$$;
+
+
+--
 -- Name: insert_md_01_loan_event_and_return_id(text, uuid, integer, text); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -746,6 +945,36 @@ BEGIN
         IF found_last_event_id IS NULL OR found_last_event_id <> last_event_id THEN
             RAISE EXCEPTION 'Optimistic locking check failed: expected last event id %, but found %', last_event_id, found_last_event_id;
         END IF;
+    END IF;
+
+    event_id := insert_md_01_MailQueue_event_and_return_id(event_in, aggregate_id, distance_from_latest_snapshot, md);
+
+    INSERT INTO aggregate_events_01_MailQueue(aggregate_id, event_id)
+    VALUES(aggregate_id, event_id) RETURNING id INTO inserted_id;
+    return event_id;
+END;
+$$;
+
+
+--
+-- Name: insert_md_01_mailqueue_aggregate_event_and_return_id_opt_lock2(text, uuid, integer, text, integer, text[], integer[], uuid[]); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.insert_md_01_mailqueue_aggregate_event_and_return_id_opt_lock2(event_in text, aggregate_id uuid, distance_from_latest_snapshot integer, md text, last_event_id integer, extra_stream_names text[], extra_event_ids integer[], extra_aggregate_ids uuid[]) RETURNS integer
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+    inserted_id integer;
+    event_id integer;
+BEGIN
+    -- Perform the main optimistic locking check for the aggregate itself
+    PERFORM check_last_event_id_opt_lock('events_01_MailQueue', aggregate_id, last_event_id);
+
+    -- Perform the checks for extra constraints
+    IF extra_stream_names IS NOT NULL THEN
+        FOR i IN 1..cardinality(extra_stream_names) LOOP
+            PERFORM check_last_event_id_opt_lock(extra_stream_names[i], extra_aggregate_ids[i], extra_event_ids[i]);
+        END LOOP;
     END IF;
 
     event_id := insert_md_01_MailQueue_event_and_return_id(event_in, aggregate_id, distance_from_latest_snapshot, md);
@@ -831,6 +1060,36 @@ $$;
 
 
 --
+-- Name: insert_md_01_notification_aggregate_event_and_return_id_opt_loc(text, uuid, integer, text, integer, text[], integer[], uuid[]); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.insert_md_01_notification_aggregate_event_and_return_id_opt_loc(event_in text, aggregate_id uuid, distance_from_latest_snapshot integer, md text, last_event_id integer, extra_stream_names text[], extra_event_ids integer[], extra_aggregate_ids uuid[]) RETURNS integer
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+    inserted_id integer;
+    event_id integer;
+BEGIN
+    -- Perform the main optimistic locking check for the aggregate itself
+    PERFORM check_last_event_id_opt_lock('events_01_Notification', aggregate_id, last_event_id);
+
+    -- Perform the checks for extra constraints
+    IF extra_stream_names IS NOT NULL THEN
+        FOR i IN 1..cardinality(extra_stream_names) LOOP
+            PERFORM check_last_event_id_opt_lock(extra_stream_names[i], extra_aggregate_ids[i], extra_event_ids[i]);
+        END LOOP;
+    END IF;
+
+    event_id := insert_md_01_Notification_event_and_return_id(event_in, aggregate_id, distance_from_latest_snapshot, md);
+
+    INSERT INTO aggregate_events_01_Notification(aggregate_id, event_id)
+    VALUES(aggregate_id, event_id) RETURNING id INTO inserted_id;
+    return event_id;
+END;
+$$;
+
+
+--
 -- Name: insert_md_01_notification_event_and_return_id(text, uuid, integer, text); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -904,6 +1163,36 @@ $$;
 
 
 --
+-- Name: insert_md_01_reservation_aggregate_event_and_return_id_opt_lock(text, uuid, integer, text, integer, text[], integer[], uuid[]); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.insert_md_01_reservation_aggregate_event_and_return_id_opt_lock(event_in text, aggregate_id uuid, distance_from_latest_snapshot integer, md text, last_event_id integer, extra_stream_names text[], extra_event_ids integer[], extra_aggregate_ids uuid[]) RETURNS integer
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+    inserted_id integer;
+    event_id integer;
+BEGIN
+    -- Perform the main optimistic locking check for the aggregate itself
+    PERFORM check_last_event_id_opt_lock('events_01_Reservation', aggregate_id, last_event_id);
+
+    -- Perform the checks for extra constraints
+    IF extra_stream_names IS NOT NULL THEN
+        FOR i IN 1..cardinality(extra_stream_names) LOOP
+            PERFORM check_last_event_id_opt_lock(extra_stream_names[i], extra_aggregate_ids[i], extra_event_ids[i]);
+        END LOOP;
+    END IF;
+
+    event_id := insert_md_01_Reservation_event_and_return_id(event_in, aggregate_id, distance_from_latest_snapshot, md);
+
+    INSERT INTO aggregate_events_01_Reservation(aggregate_id, event_id)
+    VALUES(aggregate_id, event_id) RETURNING id INTO inserted_id;
+    return event_id;
+END;
+$$;
+
+
+--
 -- Name: insert_md_01_reservation_event_and_return_id(text, uuid, integer, text); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -965,6 +1254,36 @@ BEGIN
         IF found_last_event_id IS NULL OR found_last_event_id <> last_event_id THEN
             RAISE EXCEPTION 'Optimistic locking check failed: expected last event id %, but found %', last_event_id, found_last_event_id;
         END IF;
+    END IF;
+
+    event_id := insert_md_01_Review_event_and_return_id(event_in, aggregate_id, distance_from_latest_snapshot, md);
+
+    INSERT INTO aggregate_events_01_Review(aggregate_id, event_id)
+    VALUES(aggregate_id, event_id) RETURNING id INTO inserted_id;
+    return event_id;
+END;
+$$;
+
+
+--
+-- Name: insert_md_01_review_aggregate_event_and_return_id_opt_lock2(text, uuid, integer, text, integer, text[], integer[], uuid[]); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.insert_md_01_review_aggregate_event_and_return_id_opt_lock2(event_in text, aggregate_id uuid, distance_from_latest_snapshot integer, md text, last_event_id integer, extra_stream_names text[], extra_event_ids integer[], extra_aggregate_ids uuid[]) RETURNS integer
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+    inserted_id integer;
+    event_id integer;
+BEGIN
+    -- Perform the main optimistic locking check for the aggregate itself
+    PERFORM check_last_event_id_opt_lock('events_01_Review', aggregate_id, last_event_id);
+
+    -- Perform the checks for extra constraints
+    IF extra_stream_names IS NOT NULL THEN
+        FOR i IN 1..cardinality(extra_stream_names) LOOP
+            PERFORM check_last_event_id_opt_lock(extra_stream_names[i], extra_aggregate_ids[i], extra_event_ids[i]);
+        END LOOP;
     END IF;
 
     event_id := insert_md_01_Review_event_and_return_id(event_in, aggregate_id, distance_from_latest_snapshot, md);
@@ -1111,6 +1430,36 @@ BEGIN
         IF found_last_event_id IS NULL OR found_last_event_id <> last_event_id THEN
             RAISE EXCEPTION 'Optimistic locking check failed: expected last event id %, but found %', last_event_id, found_last_event_id;
         END IF;
+    END IF;
+
+    event_id := insert_md_01_Tenant_event_and_return_id(event_in, aggregate_id, distance_from_latest_snapshot, md);
+
+    INSERT INTO aggregate_events_01_Tenant(aggregate_id, event_id)
+    VALUES(aggregate_id, event_id) RETURNING id INTO inserted_id;
+    return event_id;
+END;
+$$;
+
+
+--
+-- Name: insert_md_01_tenant_aggregate_event_and_return_id_opt_lock2(text, uuid, integer, text, integer, text[], integer[], uuid[]); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.insert_md_01_tenant_aggregate_event_and_return_id_opt_lock2(event_in text, aggregate_id uuid, distance_from_latest_snapshot integer, md text, last_event_id integer, extra_stream_names text[], extra_event_ids integer[], extra_aggregate_ids uuid[]) RETURNS integer
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+    inserted_id integer;
+    event_id integer;
+BEGIN
+    -- Perform the main optimistic locking check for the aggregate itself
+    PERFORM check_last_event_id_opt_lock('events_01_Tenant', aggregate_id, last_event_id);
+
+    -- Perform the checks for extra constraints
+    IF extra_stream_names IS NOT NULL THEN
+        FOR i IN 1..cardinality(extra_stream_names) LOOP
+            PERFORM check_last_event_id_opt_lock(extra_stream_names[i], extra_aggregate_ids[i], extra_event_ids[i]);
+        END LOOP;
     END IF;
 
     event_id := insert_md_01_Tenant_event_and_return_id(event_in, aggregate_id, distance_from_latest_snapshot, md);
@@ -3512,7 +3861,7 @@ ALTER TABLE ONLY public.snapshots_01_user
 -- PostgreSQL database dump complete
 --
 
-\unrestrict Nhezd5Lxn5D4gYrdP059dXkuPKckFiM13qcKEBldEzI2w5zWM1wmmVeouhaoeef
+\unrestrict SQOd3MIAFcVnEmlXqI2T2lCJqVGXVRtnKEczuIvdsprmESAntA274sogi1Joqs1
 
 
 --
@@ -3547,4 +3896,15 @@ INSERT INTO public.schema_migrations (version) VALUES
     ('20260529124028'),
     ('20260529124244'),
     ('20260531083047'),
-    ('20260605065622');
+    ('20260605065622'),
+    ('20260703104700'),
+    ('20260703105128'),
+    ('20260703105300'),
+    ('20260703105522'),
+    ('20260703105644'),
+    ('20260703105855'),
+    ('20260703110311'),
+    ('20260703110414'),
+    ('20260703110802'),
+    ('20260703111107'),
+    ('20260703111559');

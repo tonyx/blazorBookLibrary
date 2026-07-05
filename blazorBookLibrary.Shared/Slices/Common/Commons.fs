@@ -675,7 +675,7 @@ type Role =
     | Manager
     | User
 
-    static member FromString(role: string) =
+    static member FromString (role: string) =
         match role.ToLowerInvariant() with
         | "admin" -> Admin
         | "manager" -> Manager

@@ -122,6 +122,7 @@ type DetailsService
                 let loansAndBooks = List.zip currentLoans loansedBooks
 
                 let! booksAndReviews = this.GetReviewsOfUserAsync(context, id, ct)
+
                 let! currentTenant = tenantViewerAsync (Some ct) user.CurrentTenant.Value |> TaskResult.map snd
 
                 let! distributionPoints =
@@ -400,7 +401,8 @@ type DetailsService
                                         context,
                                         reservation.ReservationId,
                                         ct
-                                    ))
+                                    )
+                                    )
 
                             let! approvedVisibleReviews = this.GetApprovedVisibleReviewsOfBookAsync(context, bookId, ct)
 
@@ -416,6 +418,7 @@ type DetailsService
                                         return distributionPoint |> Some
                                     }
 
+                            printf "XXX get reservations 400\n"
                             return
                                 { Authors = authors
                                   Book = book
