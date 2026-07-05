@@ -9,9 +9,9 @@
     <GenerateTestingPlatformEntryPoint>false</GenerateTestingPlatformEntryPoint>
   </PropertyGroup>
 
-  <!-- <ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="../../realsharpino/Sharpino/Sharpino.Lib/Sharpino.Lib.fsproj" />
-  </ItemGroup> -->
+  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="../blazorBookLibrary.Shared/blazorBookLibrary.Shared.fsproj" />
@@ -145,7 +145,7 @@
     <PackageReference Include="Microsoft.Extensions.Configuration" Version="10.0.9" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.0.9" />
 
-    <PackageReference Include="Sharpino" Version="6.1.1" />
+    <!-- <PackageReference Include="Sharpino" Version="6.1.1" /> -->
 
   </ItemGroup>
 
