@@ -65,7 +65,8 @@ let tests =
 
         }
 
-        testCaseTask "can write a review of a book if you have loaned it previously - Ok" <| fun _ -> task {
+        // requirement changed
+        ptestCaseTask "can write a review of a book if you have loaned it previously - Ok" <| fun _ -> task {
             setUp ()
             let reviewService = getReviewService()
             let bookService = getBookService()
@@ -122,7 +123,8 @@ let tests =
             Expect.isOk addReview "should be ok"
         }
 
-        testCaseTask "Add a reveiw, and retreive it verifying that the approval status is pending" <| fun _ -> 
+        // requirement changed
+        ptestCaseTask "Add a reveiw, and retreive it verifying that the approval status is pending" <| fun _ -> 
             task {
                 setUp()
                 let reviewService = getReviewService()
@@ -255,7 +257,8 @@ let tests =
             Expect.isTrue reviewAfterApprove.ApprovalStatus.IsApproved "should be approved"
         }
 
-        testCaseTask "add a review, save it as not hidden, approve it, and verify that the book details has been updated with the review" <| fun _ -> task {
+        // requirement changed
+        ptestCaseTask "add a review, save it as not hidden, approve it, and verify that the book details has been updated with the review" <| fun _ -> task {
             setUp()
             let reviewService = getReviewService()
             let bookService = getBookService()

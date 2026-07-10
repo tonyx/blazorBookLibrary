@@ -232,6 +232,7 @@ type LoanService
             let releaseLoanCommand = BookCommand.ReleaseLoan(loanId, dateTime)
             let releaseBookCommand = LoanCommand.Return dateTime
             let userReleaseLoanCommandr = UserCommand.ReleaseLoan(loanId)
+            printf "XXXX 100 running release lona async\n"
             let! result =
                 runThreeAggregateCommandsMdAsync<Book, BookEvent, Loan, LoanEvent, User, UserEvent, string>
                     book.Id
@@ -245,6 +246,7 @@ type LoanService
                     userReleaseLoanCommandr
                     (ct |> Some)
 
+            printf "XXXX 200 after running release lona async\n"
             let! _ =
                 notificationDispatcher.DispatchNotificationAsync(
                     context,

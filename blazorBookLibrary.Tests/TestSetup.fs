@@ -48,6 +48,7 @@ let connection = config.GetConnectionString("BookLibraryDbConnection")
 let pgEventStore: Sharpino.Storage.IEventStore<string> = PgEventStore connection
 
 let usersDbConnection = config.GetConnectionString("UsersDbConnection")
+printfn "TEST DB CONNECTIONS: BookLibraryDbConnection = %s, UsersDbConnection = %s" connection usersDbConnection
 
 let getDbContext () =
     let options =

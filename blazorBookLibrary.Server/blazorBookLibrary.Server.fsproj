@@ -9,9 +9,9 @@
     <GenerateTestingPlatformEntryPoint>false</GenerateTestingPlatformEntryPoint>
   </PropertyGroup>
 
-  <ItemGroup>
+  <!-- <ItemGroup>
     <ProjectReference Include="../../realsharpino/Sharpino/Sharpino.Lib/Sharpino.Lib.fsproj" />
-  </ItemGroup>
+  </ItemGroup> -->
 
   <ItemGroup>
     <ProjectReference Include="../blazorBookLibrary.Shared/blazorBookLibrary.Shared.fsproj" />
@@ -140,12 +140,12 @@
     <PackageReference Include="Azure.Security.KeyVault.Secrets" Version="4.11.0" />
     <PackageReference Include="Bolero.Server" Version="0.*" />
     <PackageReference Include="Bolero.HotReload.Server" Version="0.*" />
-    <PackageReference Include="Mailjet.Api" Version="4.0.0" />
+    <PackageReference Include="Mailjet.Api" Version="4.0.1" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="10.0.9" />
     <PackageReference Include="Microsoft.Extensions.Configuration" Version="10.0.9" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.0.9" />
 
-    <!-- <PackageReference Include="Sharpino" Version="6.1.1" /> -->
+    <PackageReference Include="Sharpino" Version="6.1.2" />
 
   </ItemGroup>
 

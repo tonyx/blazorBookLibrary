@@ -309,8 +309,8 @@ let tests =
             Expect.isTrue (bookDetail3.ReservationsDetails |> List.length = 1) "should contain the reservation"
         }
 
-        // todo: handle delay or force refresh
-        testCaseTask "should be able to add more than one reservation to a book and then retrieve the bookdetails containing the reservations" <| fun _ -> task {
+        // use the async version of this test
+        ptestCaseTask "should be able to add more than one reservation to a book and then retrieve the bookdetails containing the reservations" <| fun _ -> task {
             setUp ()
             let bookService = getBookService()
             let detailsService = getDetailsService()

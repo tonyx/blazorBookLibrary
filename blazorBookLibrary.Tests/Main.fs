@@ -8,4 +8,4 @@ let main argv =
             argv
         else
             Array.append [| "--sequenced" |] argv
-    Tests.runTestsInAssemblyWithCLIArgs [] argv
+    Tests.runTestsInAssemblyWithCLIArgs [ CLIArguments.Sequenced ] argv

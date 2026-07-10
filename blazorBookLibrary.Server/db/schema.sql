@@ -1,4 +1,4 @@
-\restrict SQOd3MIAFcVnEmlXqI2T2lCJqVGXVRtnKEczuIvdsprmESAntA274sogi1Joqs1
+\restrict 76hyr4NE6G1m1dkCklfCEakPU9zhsLvgzaozppMnv1zwcUmebh74vOfy5MJk6EI
 
 -- Dumped from database version 16.14
 -- Dumped by pg_dump version 17.9 (Homebrew)
@@ -483,7 +483,7 @@ DECLARE
     event_id integer;
 BEGIN
     -- Perform the main optimistic locking check for the aggregate itself
-    PERFORM check_last_event_id_opt_lock('events_01_Book', aggregate_id, last_event_id);
+    PERFORM check_last_event_id_opt_lock('events_01_book', aggregate_id, last_event_id);
 
     -- Perform the checks for extra constraints
     IF extra_stream_names IS NOT NULL THEN
@@ -586,7 +586,7 @@ DECLARE
     event_id integer;
 BEGIN
     -- Perform the main optimistic locking check for the aggregate itself
-    PERFORM check_last_event_id_opt_lock('events_01_DistributionPoint', aggregate_id, last_event_id);
+    PERFORM check_last_event_id_opt_lock('events_01_distributionpoint', aggregate_id, last_event_id);
 
     -- Perform the checks for extra constraints
     IF extra_stream_names IS NOT NULL THEN
@@ -689,7 +689,7 @@ DECLARE
     event_id integer;
 BEGIN
     -- Perform the main optimistic locking check for the aggregate itself
-    PERFORM check_last_event_id_opt_lock('events_01_Editor', aggregate_id, last_event_id);
+    PERFORM check_last_event_id_opt_lock('events_01_editor', aggregate_id, last_event_id);
 
     -- Perform the checks for extra constraints
     IF extra_stream_names IS NOT NULL THEN
@@ -865,7 +865,7 @@ DECLARE
     event_id integer;
 BEGIN
     -- Perform the main optimistic locking check for the aggregate itself
-    PERFORM check_last_event_id_opt_lock('events_01_Loan', aggregate_id, last_event_id);
+    PERFORM check_last_event_id_opt_lock('events_01_loan', aggregate_id, last_event_id);
 
     -- Perform the checks for extra constraints
     IF extra_stream_names IS NOT NULL THEN
@@ -968,7 +968,7 @@ DECLARE
     event_id integer;
 BEGIN
     -- Perform the main optimistic locking check for the aggregate itself
-    PERFORM check_last_event_id_opt_lock('events_01_MailQueue', aggregate_id, last_event_id);
+    PERFORM check_last_event_id_opt_lock('events_01_mailqueue', aggregate_id, last_event_id);
 
     -- Perform the checks for extra constraints
     IF extra_stream_names IS NOT NULL THEN
@@ -1071,7 +1071,7 @@ DECLARE
     event_id integer;
 BEGIN
     -- Perform the main optimistic locking check for the aggregate itself
-    PERFORM check_last_event_id_opt_lock('events_01_Notification', aggregate_id, last_event_id);
+    PERFORM check_last_event_id_opt_lock('events_01_notification', aggregate_id, last_event_id);
 
     -- Perform the checks for extra constraints
     IF extra_stream_names IS NOT NULL THEN
@@ -1174,7 +1174,7 @@ DECLARE
     event_id integer;
 BEGIN
     -- Perform the main optimistic locking check for the aggregate itself
-    PERFORM check_last_event_id_opt_lock('events_01_Reservation', aggregate_id, last_event_id);
+    PERFORM check_last_event_id_opt_lock('events_01_reservation', aggregate_id, last_event_id);
 
     -- Perform the checks for extra constraints
     IF extra_stream_names IS NOT NULL THEN
@@ -1277,7 +1277,7 @@ DECLARE
     event_id integer;
 BEGIN
     -- Perform the main optimistic locking check for the aggregate itself
-    PERFORM check_last_event_id_opt_lock('events_01_Review', aggregate_id, last_event_id);
+    PERFORM check_last_event_id_opt_lock('events_01_review', aggregate_id, last_event_id);
 
     -- Perform the checks for extra constraints
     IF extra_stream_names IS NOT NULL THEN
@@ -1453,7 +1453,7 @@ DECLARE
     event_id integer;
 BEGIN
     -- Perform the main optimistic locking check for the aggregate itself
-    PERFORM check_last_event_id_opt_lock('events_01_Tenant', aggregate_id, last_event_id);
+    PERFORM check_last_event_id_opt_lock('events_01_tenant', aggregate_id, last_event_id);
 
     -- Perform the checks for extra constraints
     IF extra_stream_names IS NOT NULL THEN
@@ -1533,6 +1533,36 @@ BEGIN
         IF found_last_event_id IS NULL OR found_last_event_id <> last_event_id THEN
             RAISE EXCEPTION 'Optimistic locking check failed: expected last event id %, but found %', last_event_id, found_last_event_id;
         END IF;
+    END IF;
+
+    event_id := insert_md_01_User_event_and_return_id(event_in, aggregate_id, distance_from_latest_snapshot, md);
+
+    INSERT INTO aggregate_events_01_User(aggregate_id, event_id)
+    VALUES(aggregate_id, event_id) RETURNING id INTO inserted_id;
+    return event_id;
+END;
+$$;
+
+
+--
+-- Name: insert_md_01_user_aggregate_event_and_return_id_opt_lock2(text, uuid, integer, text, integer, text[], integer[], uuid[]); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.insert_md_01_user_aggregate_event_and_return_id_opt_lock2(event_in text, aggregate_id uuid, distance_from_latest_snapshot integer, md text, last_event_id integer, extra_stream_names text[], extra_event_ids integer[], extra_aggregate_ids uuid[]) RETURNS integer
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+    inserted_id integer;
+    event_id integer;
+BEGIN
+    -- Perform the main optimistic locking check for the aggregate itself
+    PERFORM check_last_event_id_opt_lock('events_01_user', aggregate_id, last_event_id);
+
+    -- Perform the checks for extra constraints
+    IF extra_stream_names IS NOT NULL THEN
+        FOR i IN 1..cardinality(extra_stream_names) LOOP
+            PERFORM check_last_event_id_opt_lock(extra_stream_names[i], extra_aggregate_ids[i], extra_event_ids[i]);
+        END LOOP;
     END IF;
 
     event_id := insert_md_01_User_event_and_return_id(event_in, aggregate_id, distance_from_latest_snapshot, md);
@@ -3861,7 +3891,7 @@ ALTER TABLE ONLY public.snapshots_01_user
 -- PostgreSQL database dump complete
 --
 
-\unrestrict SQOd3MIAFcVnEmlXqI2T2lCJqVGXVRtnKEczuIvdsprmESAntA274sogi1Joqs1
+\unrestrict 76hyr4NE6G1m1dkCklfCEakPU9zhsLvgzaozppMnv1zwcUmebh74vOfy5MJk6EI
 
 
 --
@@ -3899,12 +3929,23 @@ INSERT INTO public.schema_migrations (version) VALUES
     ('20260605065622'),
     ('20260703104700'),
     ('20260703105128'),
+    ('20260703105129'),
     ('20260703105300'),
+    ('20260703105302'),
     ('20260703105522'),
+    ('20260703105523'),
     ('20260703105644'),
+    ('20260703105645'),
     ('20260703105855'),
+    ('20260703105856'),
     ('20260703110311'),
+    ('20260703110312'),
     ('20260703110414'),
+    ('20260703110415'),
     ('20260703110802'),
+    ('20260703110803'),
     ('20260703111107'),
-    ('20260703111559');
+    ('20260703111108'),
+    ('20260703111559'),
+    ('20260703111560'),
+    ('20260703111600');

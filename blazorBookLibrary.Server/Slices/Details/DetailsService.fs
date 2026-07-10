@@ -159,11 +159,15 @@ type DetailsService
                         { UserDetails = userDetails
                           Refresher = refresher }
                         :> RefreshableAsync<RefreshableUserDetails>,
-                        userId.Value
-                        :: (userDetails.CurrentLoans |> List.map (fun (x, _) -> x.LoanId.Value))
-                        @ (userDetails.FutureReservations |> List.map (fun (x, _) -> x.ReservationId.Value))
-                        @ (userDetails.FutureReservations |> List.map (fun (_, x) -> x.BookId.Value))
-                        @ (userDetails.CurrentLoans |> List.map (fun (_, x) -> x.BookId.Value))
+                        userId.Value::
+                        (userDetails.CurrentLoans |>> fun (x, _) -> x.LoanId.Value)
+                        @ [userDetails.CurrentTenant.Id]
+                        @ (userDetails.FutureReservations |>> fst |>> _.ReservationId.Value)
+                        @ (userDetails.FutureReservations |>> snd |>>  _.BookId.Value)
+                        @ (userDetails.CurrentLoans |>> snd |>> _.BookId.Value) 
+                        @ (userDetails.BooksAndReviews |>> snd |>> _.ReviewId.Value)
+                        @ (userDetails.BooksAndReviews |>> fst |>> _.BookId.Value)
+                        @ (userDetails.RefarenceOfDistributionPoints |>> _.DistributionPointId.Value)
                 }
 
         let key = DetailsCacheKey.OfType typeof<RefreshableUserDetails> userId.Value
@@ -335,7 +339,7 @@ type DetailsService
                         { AuthorDetails = authorDetails
                           Refresher = refresher }
                         :> RefreshableAsync<RefreshableAuthorDetails>,
-                        id.Value :: (authorDetails.Books |> List.map (fun book -> book.BookId.Value))
+                        id.Value :: (authorDetails.Books |>> _.BookId.Value)
                 }
 
         let key = DetailsCacheKey.OfType typeof<RefreshableAuthorDetails> id.Value
@@ -418,7 +422,6 @@ type DetailsService
                                         return distributionPoint |> Some
                                     }
 
-                            printf "XXX get reservations 400\n"
                             return
                                 { Authors = authors
                                   Book = book
@@ -440,9 +443,13 @@ type DetailsService
                                 [ bookDetails.CurrentLoan.Value.Loan.LoanId.Value ]
                             else
                                 [])
-                        @ (bookDetails.ReservationsDetails |> List.map _.Reservation.ReservationId.Value)
-                        @ (bookDetails.Authors |> List.map _.AuthorId.Value)
-                        @ (bookDetails.ApprovedVisibleReviews |> List.map _.Review.Id)
+                        @ (if bookDetails.DistributionPoint.IsSome then
+                                [ bookDetails.DistributionPoint.Value.DistributionPointId.Value ]
+                            else
+                                [])
+                        @ (bookDetails.ReservationsDetails |>>  _.Reservation.ReservationId.Value)
+                        @ (bookDetails.Authors |>> _.AuthorId.Value)
+                        @ (bookDetails.ApprovedVisibleReviews |>> _.Review.Id)
                 }
 
         let key = DetailsCacheKey.OfType typeof<RefreshableBookDetails> bookId.Value
@@ -582,11 +589,10 @@ type DetailsService
                           Refresher = refresher }
                         :> RefreshableAsync<RefreshableTenantDetails>,
                         [ id.Value; tenantDetails.Tenant.OwnerId.Value ]
-                        @ (tenantDetails.Patrons |> List.map (fun (patron, _) -> patron.Id))
-                        @ (tenantDetails.InvitedPatrons |> List.map (fun invitedPatron -> invitedPatron.Id))
-                        @ (tenantDetails.UnarchLoanDetails |> List.map (fun loan -> loan.Loan.Id))
-                        @ (tenantDetails.PendingReservations
-                           |> List.map (fun reservation -> reservation.Reservation.Id))
+                        @ (tenantDetails.Patrons |>> fst |>> _.Id) 
+                        @ (tenantDetails.InvitedPatrons |>> _.Id)
+                        @ (tenantDetails.UnarchLoanDetails |>> _.Loan.Id)
+                        @ (tenantDetails.PendingReservations |>> _.Reservation.Id)
                 }
 
         let key = DetailsCacheKey.OfType typeof<RefreshableTenantDetails> id.Value

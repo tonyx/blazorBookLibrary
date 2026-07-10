@@ -474,7 +474,6 @@ type ReservationService
 
         member this.GetReservationDetailsAsync(context: UserContext, id: ReservationId, ?ct: CancellationToken) =
             taskResult {
-                printfn "XXXXX GetReservationDetailsAsync 100 \n"
                 let ct = defaultArg ct CancellationToken.None
                 let! refreshableDetails = this.GetRefreshableReservationDetailsAsync(context, id, ct)
                 return refreshableDetails.ReservationDetails

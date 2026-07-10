@@ -527,7 +527,7 @@ type Book =
 
     member this.Id = this.BookId.Value
     static member SnapshotsInterval = 50
-    static member StorageName = "_Book"
+    static member StorageName = "_book"
     static member Version = "_01"
     member this.Serialize = (this, jsonOptions) |> JsonSerializer.Serialize
 
