@@ -71,9 +71,9 @@ else
                 <p class="text-muted lead mb-0">@L["ManageCatalogedAuthors"]</p>
             </div>
             
-            <button class="btn btn-sanctuary @(showAddSection ? "active" : "")" @onclick="() => showAddSection = !showAddSection">
-                <i class="bi @(showAddSection ? "bi-dash-lg" : "bi-plus-lg") me-2"></i>
-                @(showAddSection ? L["CloseEntryForm"] : L["NewAuthorRegistration"])
+            <button class="btn btn-sanctuary @(_showAddSection ? "active" : "")" @onclick="() => _showAddSection = !_showAddSection">
+                <i class="bi @(_showAddSection ? "bi-dash-lg" : "bi-plus-lg") me-2"></i>
+                @(_showAddSection ? L["CloseEntryForm"] : L["NewAuthorRegistration"])
             </button>
         </div>
     </div>
@@ -84,15 +84,15 @@ else
             <div class="row g-4 align-items-end">
                 <div class="col-md-5">
                     <label class="form-label small text-muted text-uppercase fw-bold mb-2">@L["AuthorName"]</label>
-                    <InputText class="form-control bg-white border-0 shadow-sm py-2" @bind-Value="searchName" placeholder="@L["SearchByName"]" />
+                    <InputText class="form-control bg-white border-0 shadow-sm py-2" @bind-Value="_searchName" placeholder="@L["SearchByName"]" />
                 </div>
                 <div class="col-md-5">
                     <label class="form-label small text-muted text-uppercase fw-bold mb-2">@L["IsniIdentifier"]</label>
-                    <InputText class="form-control bg-white border-0 shadow-sm py-2" @bind-Value="searchIsni" placeholder="@L["SearchByIsni"]" />
+                    <InputText class="form-control bg-white border-0 shadow-sm py-2" @bind-Value="_searchIsni" placeholder="@L["SearchByIsni"]" />
                 </div>
                 <div class="col-md-2">
-                    <button type="submit" class="btn btn-primary w-100 py-2 rounded-pill" disabled="@isSearching">
-                        @if (isSearching)
+                    <button type="submit" class="btn btn-primary w-100 py-2 rounded-pill" disabled="@_isSearching">
+                        @if (_isSearching)
                         {
                             <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
                         }
@@ -108,7 +108,7 @@ else
     </div>
 
     @* Add New Author Section *@
-    @if (showAddSection)
+    @if (_showAddSection)
     {
         <div class="mb-5 animate-slide-up">
             <div class="card-sanctuary p-5">
@@ -121,18 +121,18 @@ else
                     <div class="row g-4">
                         <div class="col-md-5">
                             <label class="form-label small text-muted text-uppercase fw-bold mb-2">@L["FullName"]</label>
-                            <InputText class="form-control bg-surface-low border-0 py-2 shadow-sm serif fw-bold" @bind-Value="newAuthorName" placeholder="e.g. Stephen King" />
+                            <InputText class="form-control bg-surface-low border-0 py-2 shadow-sm serif fw-bold" @bind-Value="_newAuthorName" placeholder="e.g. Stephen King" />
                         </div>
                         <div class="col-md-3">
                             <label class="form-label small text-muted text-uppercase fw-bold mb-2">@L["IsniIdentifier"] (@L["Optional"])</label>
-                            <InputText class="form-control bg-surface-low border-0 py-2 shadow-sm font-monospace" @bind-Value="newAuthorIsni" placeholder="0000 0001..." />
+                            <InputText class="form-control bg-surface-low border-0 py-2 shadow-sm font-monospace" @bind-Value="_newAuthorIsni" placeholder="0000 0001..." />
                         </div>
                         <div class="col-md-4">
                             <label class="form-label small text-muted text-uppercase fw-bold mb-2">@L["ProfileImage"] (@L["Optional"])</label>
                             <div class="input-group shadow-sm rounded-3 overflow-hidden">
-                                <InputText class="form-control bg-surface-low border-0 py-2" @bind-Value="newAuthorImageUrl" placeholder="https://..." />
-                                <button type="button" class="btn btn-white border-start" @onclick="LookupAuthorImage" disabled="@(string.IsNullOrWhiteSpace(newAuthorName) || isSearchingImage)" title="@L["WikipediaImageLookup"]">
-                                    @if (isSearchingImage) { <span class="spinner-border spinner-border-sm"></span> }
+                                <InputText class="form-control bg-surface-low border-0 py-2" @bind-Value="_newAuthorImageUrl" placeholder="https://..." />
+                                <button type="button" class="btn btn-white border-start" @onclick="LookupAuthorImage" disabled="@(string.IsNullOrWhiteSpace(_newAuthorName) || _isSearchingImage)" title="@L["WikipediaImageLookup"]">
+                                    @if (_isSearchingImage) { <span class="spinner-border spinner-border-sm"></span> }
                                     else { <i class="bi bi-wikipedia me-2"></i> @L["Lookup"] }
                                 </button>
                             </div>
@@ -141,9 +141,9 @@ else
                         <div class="col-md-8">
                             <label class="form-label small text-muted text-uppercase fw-bold mb-2">@L["Biography"] (@L["Optional"])</label>
                             <div class="input-group shadow-sm rounded-3 overflow-hidden">
-                                <InputTextArea class="form-control bg-surface-low border-0 py-2" @bind-Value="newAuthorBio" rows="3" placeholder="@L["AuthorBioPlaceholder"]" />
-                                <button type="button" class="btn btn-white border-start" @onclick="LookupAuthorBio" disabled="@(string.IsNullOrWhiteSpace(newAuthorName) || isSearchingBio)" title="@L["WikipediaBioLookup"]">
-                                    @if (isSearchingBio) { <span class="spinner-border spinner-border-sm"></span> }
+                                <InputTextArea class="form-control bg-surface-low border-0 py-2" @bind-Value="_newAuthorBio" rows="3" placeholder="@L["AuthorBioPlaceholder"]" />
+                                <button type="button" class="btn btn-white border-start" @onclick="LookupAuthorBio" disabled="@(string.IsNullOrWhiteSpace(_newAuthorName) || _isSearchingBio)" title="@L["WikipediaBioLookup"]">
+                                    @if (_isSearchingBio) { <span class="spinner-border spinner-border-sm"></span> }
                                     else { <i class="bi bi-wikipedia me-2"></i> @L["LookupBio"] }
                                 </button>
                             </div>
@@ -152,23 +152,23 @@ else
                         <div class="col-md-4">
                             <label class="form-label small text-muted text-uppercase fw-bold mb-2">@L["WikipediaLink"] (@L["Optional"])</label>
                             <div class="input-group shadow-sm rounded-3 overflow-hidden">
-                                <InputText class="form-control bg-surface-low border-0 py-2" @bind-Value="newAuthorWikipediaUrl" placeholder="https://it.wikipedia.org/wiki/..." />
-                                <button type="button" class="btn btn-white border-start" @onclick="LookupAuthorWikipediaUri" disabled="@(string.IsNullOrWhiteSpace(newAuthorName) || isSearchingUri)" title="@L["WikipediaUriLookup"]">
-                                    @if (isSearchingUri) { <span class="spinner-border spinner-border-sm"></span> }
+                                <InputText class="form-control bg-surface-low border-0 py-2" @bind-Value="_newAuthorWikipediaUrl" placeholder="https://it.wikipedia.org/wiki/..." />
+                                <button type="button" class="btn btn-white border-start" @onclick="LookupAuthorWikipediaUri" disabled="@(string.IsNullOrWhiteSpace(_newAuthorName) || _isSearchingUri)" title="@L["WikipediaUriLookup"]">
+                                    @if (_isSearchingUri) { <span class="spinner-border spinner-border-sm"></span> }
                                     else { <i class="bi bi-link-45deg me-2"></i> @L["Link"] }
                                 </button>
                             </div>
                         </div>
 
-                        @if (candidateBios.Any())
+                        @if (_candidateBios.Any())
                         {
                             <div class="col-12 mt-3 animate-slide-up">
                                 <div class="card bg-surface-low border shadow-sm p-3">
                                     <h6 class="text-serif mb-3">@L["SelectBestBioMatch"]</h6>
                                     <div class="list-group list-group-flush overflow-auto" style="max-height: 200px;">
-                                        @foreach (var bio in candidateBios)
+                                        @foreach (var bio in _candidateBios)
                                         {
-                                            <button type="button" class="list-group-item list-group-item-action py-3 small text-muted border-0 rounded-2 mb-1" @onclick="() => { newAuthorBio = bio; candidateBios.Clear(); }">
+                                            <button type="button" class="list-group-item list-group-item-action py-3 small text-muted border-0 rounded-2 mb-1" @onclick="() => { _newAuthorBio = bio; _candidateBios.Clear(); }">
                                                 <i class="bi bi-text-left me-2"></i> @(bio.Length > 200 ? bio.Substring(0, 200) + "..." : bio)
                                             </button>
                                         }
@@ -177,12 +177,12 @@ else
                             </div>
                         }
                         
-                        @if (!string.IsNullOrWhiteSpace(newAuthorImageUrl))
+                        @if (!string.IsNullOrWhiteSpace(_newAuthorImageUrl))
                         {
                             <div class="col-12 mt-3 animate-fade-in">
                                 <div class="p-3 bg-surface-low rounded-3 border d-flex align-items-center gap-4">
                                     <div class="position-relative" style="width: 100px; height: 100px; overflow: hidden; border-radius: 50%; border: 4px solid white; box-shadow: var(--shadow-sm);">
-                                        <img src="@newAuthorImageUrl" class="w-100 h-100" style="object-fit: cover;" alt="Preview" @onerror='() => newAuthorImageUrl = ""' />
+                                        <img src="@_newAuthorImageUrl" class="w-100 h-100" style="object-fit: cover;" alt="Preview" @onerror='() => _newAuthorImageUrl = ""' />
                                     </div>
                                     <div>
                                         <h6 class="text-serif mb-1">@L["VisualIdentityPreview"]</h6>
@@ -197,7 +197,7 @@ else
                                 <button type="submit" class="btn btn-sanctuary btn-lg flex-grow-1 py-3 shadow-sm shadow-hover">
                                     <i class="bi bi-person-check me-2"></i> @L["FinalizeAuthorRegistration"]
                                 </button>
-                                <button type="button" class="btn btn-outline-secondary btn-lg px-4" @onclick="() => showAddSection = false">
+                                <button type="button" class="btn btn-outline-secondary btn-lg px-4" @onclick="() => _showAddSection = false">
                                     @L["Discard"]
                                 </button>
                             </div>
@@ -209,25 +209,25 @@ else
     }
 
     @* Authors Ledger *@
-    @if (searchPerformed)
+    @if (_searchPerformed)
     {
         <div class="animate-fade-in">
             <div class="card-sanctuary p-0 overflow-hidden">
                 <div class="px-5 py-4 bg-surface-container d-flex justify-content-between align-items-center border-bottom">
                     <div class="d-flex align-items-center gap-3">
                         <h2 class="h4 text-serif mb-0">@L["AuthorLedger"]</h2>
-                        <span class="badge-sanctuary badge-neutral">@authors.Count @L["TotalRegistered"]</span>
+                        <span class="badge-sanctuary badge-neutral">@_authors.Count @L["TotalRegistered"]</span>
                     </div>
                 </div>
 
                 <div class="table-responsive">
-                    <QuickGrid Items="@FilteredAuthors" Pagination="@pagination" Class="editorial-ledger w-100 align-middle">
-                        <TemplateColumn Title="@L["AuthorName"]" SortBy="@sortName" Class="col-title text-serif fw-bold h5">
+                    <QuickGrid Items="@FilteredAuthors" Pagination="@_pagination" Class="editorial-ledger w-100 align-middle">
+                        <TemplateColumn Title="@L["AuthorName"]" SortBy="@_sortName" Class="col-title text-serif fw-bold h5">
                             <ColumnOptions>
                                 <div class="p-3 bg-surface-low rounded-3 border shadow-sm" style="min-width: 300px;">
                                     <div class="input-group input-group-sm">
                                         <span class="input-group-text bg-transparent border-end-0 text-muted"><i class="bi bi-filter"></i></span>
-                                        <input type="search" autofocus @bind="nameFilter" @bind:event="oninput" 
+                                        <input type="search" autofocus @bind="_nameFilter" @bind:event="oninput" 
                                                placeholder="@L["FilterRecords"]" 
                                                class="form-control border-start-0 ps-0" />
                                     </div>
@@ -280,7 +280,7 @@ else
                 </div>
                 
                 <div class="px-5 py-3 bg-surface-container border-top d-flex justify-content-center">
-                    <Paginator State="@pagination" />
+                    <Paginator State="@_pagination" />
                 </div>
             </div>
         </div>
@@ -311,7 +311,7 @@ else
 
             hubConnection.On("AuthorsChanged", async () =>
             {
-                if (searchPerformed)
+                if (_searchPerformed)
                 {
                     await LoadAuthors();
                     await InvokeAsync(StateHasChanged);
@@ -320,7 +320,7 @@ else
 
             hubConnection.On("AuthorCatalogChanged", async () =>
             {
-                if (searchPerformed)
+                if (_searchPerformed)
                 {
                     await LoadAuthors();
                     await InvokeAsync(StateHasChanged);
@@ -373,42 +373,42 @@ else
         }
     }
 
-    private bool showAddSection = false;
-    private List<Details.AuthorDetails> authors = new();
-    private PaginationState pagination = new() { ItemsPerPage = 12 };
-    private GridSort<Details.AuthorDetails> sortName = GridSort<Details.AuthorDetails>.ByAscending(a => a.Author.Name.Value);
+    private bool _showAddSection = false;
+    private List<Details.AuthorDetails> _authors = new();
+    private PaginationState _pagination = new() { ItemsPerPage = 12 };
+    private GridSort<Details.AuthorDetails> _sortName = GridSort<Details.AuthorDetails>.ByAscending(a => a.Author.Name.Value);
     
-    private string nameFilter = "";
-    private string isniFilter = "";
+    private string _nameFilter = "";
+    private string _isniFilter = "";
     
-    private string newAuthorName = "";
-    private string newAuthorIsni = "";
-    private string newAuthorImageUrl = "";
-    private string newAuthorBio = "";
-    private string newAuthorWikipediaUrl = "";
-    private bool isSearchingImage = false;
-    private bool isSearchingBio = false;
-    private bool isSearchingUri = false;
-    private List<string> candidateBios = new();
+    private string _newAuthorName = "";
+    private string _newAuthorIsni = "";
+    private string _newAuthorImageUrl = "";
+    private string _newAuthorBio = "";
+    private string _newAuthorWikipediaUrl = "";
+    private bool _isSearchingImage = false;
+    private bool _isSearchingBio = false;
+    private bool _isSearchingUri = false;
+    private List<string> _candidateBios = new();
 
     private string statusMessage = "";
 
-    private string searchName = "";
-    private string searchIsni = "";
-    private bool searchPerformed = false;
-    private bool isSearching = false;
+    private string _searchName = "";
+    private string _searchIsni = "";
+    private bool _searchPerformed = false;
+    private bool _isSearching = false;
 
     private async Task HandleSearch()
     {
-        isSearching = true;
-        searchPerformed = true;
+        _isSearching = true;
+        _searchPerformed = true;
         try
         {
             await LoadAuthors();
         }
         finally
         {
-            isSearching = false;
+            _isSearching = false;
         }
     }
 
@@ -416,26 +416,26 @@ else
     {
         FSharpResult<FSharpList<Author>, string> result;
 
-        bool hasName = !string.IsNullOrWhiteSpace(searchName);
-        bool hasIsni = !string.IsNullOrWhiteSpace(searchIsni);
+        bool hasName = !string.IsNullOrWhiteSpace(_searchName);
+        bool hasIsni = !string.IsNullOrWhiteSpace(_searchIsni);
 
         if (hasName && hasIsni)
         {
             var context = await GetContext();
-            var name = Name.New(searchName);
-            var isni = Isni.NewInvalid(searchIsni);
+            var name = Name.New(_searchName);
+            var isni = Isni.NewInvalid(_searchIsni);
             result = await AuthorService.SearchByIsniAndNameAsync(context, isni, name, FSharpOption<CancellationToken>.None);
         }
         else if (hasName)
         {
             var context = await GetContext();
-            var name = Name.New(searchName);
+            var name = Name.New(_searchName);
             result = await AuthorService.SearchByNameAsync(context, name, FSharpOption<CancellationToken>.None);
         }
         else if (hasIsni)
         {
             var context = await GetContext();
-            var isni = Isni.NewInvalid(searchIsni);
+            var isni = Isni.NewInvalid(_searchIsni);
             result = await AuthorService.SearchByIsniAsync(context, isni, FSharpOption<CancellationToken>.None); 
         }
         else
@@ -451,7 +451,7 @@ else
             var detailsResult = await DetailsService.GetAuthorsDetailsAsync(context, authorIds, FSharpOption<CancellationToken>.None);
             if (detailsResult.IsOk)
             {
-                authors = detailsResult.ResultValue.ToList();
+                _authors = detailsResult.ResultValue.ToList();
             }
             else
             {
@@ -465,22 +465,22 @@ else
     }
 
     private IQueryable<Details.AuthorDetails> FilteredAuthors => 
-        authors.AsQueryable()
-            .Where(a => a.Author.Name.Value.Contains(nameFilter, StringComparison.OrdinalIgnoreCase))
-            .Where(a => a.Author.Isni.Value.Contains(isniFilter, StringComparison.OrdinalIgnoreCase));
+        _authors.AsQueryable()
+            .Where(a => a.Author.Name.Value.Contains(_nameFilter, StringComparison.OrdinalIgnoreCase))
+            .Where(a => a.Author.Isni.Value.Contains(_isniFilter, StringComparison.OrdinalIgnoreCase));
 
     private async Task HandleAddAuthor()
     {
-        if (string.IsNullOrWhiteSpace(newAuthorName))
+        if (string.IsNullOrWhiteSpace(_newAuthorName))
         {
             await ShowStatus(L["AuthorNameRequired"], "warning");
             return;
         }
 
         FSharpOption<Isni> isniOpt = FSharpOption<Isni>.None;
-        if (!string.IsNullOrWhiteSpace(newAuthorIsni))
+        if (!string.IsNullOrWhiteSpace(_newAuthorIsni))
         {
-            var isniResult = Isni.New(newAuthorIsni);
+            var isniResult = Isni.New(_newAuthorIsni);
             if (isniResult.IsError)
             {
                 await ShowStatus(string.Format(L["InvalidIsniValue"], isniResult.ErrorValue), "error");
@@ -490,9 +490,9 @@ else
         }
 
         FSharpOption<Uri> imageUrlOpt = FSharpOption<Uri>.None;
-        if (!string.IsNullOrWhiteSpace(newAuthorImageUrl))
+        if (!string.IsNullOrWhiteSpace(_newAuthorImageUrl))
         {
-            if (Uri.TryCreate(newAuthorImageUrl, UriKind.Absolute, out var uri))
+            if (Uri.TryCreate(_newAuthorImageUrl, UriKind.Absolute, out var uri))
             {
                 imageUrlOpt = FSharpOption<Uri>.Some(uri);
             }
@@ -503,12 +503,12 @@ else
             }
         }
 
-        var name = Name.New(newAuthorName);
+        var name = Name.New(_newAuthorName);
 
         FSharpOption<Uri> wikipediaUriOpt = FSharpOption<Uri>.None;
-        if (!string.IsNullOrWhiteSpace(newAuthorWikipediaUrl))
+        if (!string.IsNullOrWhiteSpace(_newAuthorWikipediaUrl))
         {
-            if (Uri.TryCreate(newAuthorWikipediaUrl, UriKind.Absolute, out var uri))
+            if (Uri.TryCreate(_newAuthorWikipediaUrl, UriKind.Absolute, out var uri))
             {
                 wikipediaUriOpt = FSharpOption<Uri>.Some(uri);
             }
@@ -530,18 +530,18 @@ else
         }
         var tenantId = tryTenant.ResultValue;
 
-        var author = Author.NewWithOptionalIsniAndImageUrlAndBio(tenantId, name, isniOpt, imageUrlOpt, FSharpOption<string>.Some(newAuthorBio), wikipediaUriOpt);
+        var author = Author.NewWithOptionalIsniAndImageUrlAndBio(tenantId, name, isniOpt, imageUrlOpt, FSharpOption<string>.Some(_newAuthorBio), wikipediaUriOpt);
         var result = await AuthorService.AddAuthorAsync(context, author);
 
         if (tryTenant.IsOk)
         {
-            await ShowStatus(string.Format(L["AuthorAddedSuccessfully"], newAuthorName), "success");
-            newAuthorName = "";
-            newAuthorIsni = "";
-            newAuthorImageUrl = "";
-            newAuthorBio = "";
-            newAuthorWikipediaUrl = "";
-            candidateBios.Clear();
+            await ShowStatus(string.Format(L["AuthorAddedSuccessfully"], _newAuthorName), "success");
+            _newAuthorName = "";
+            _newAuthorIsni = "";
+            _newAuthorImageUrl = "";
+            _newAuthorBio = "";
+            _newAuthorWikipediaUrl = "";
+            _candidateBios.Clear();
             await LoadAuthors();
         }
         else
@@ -552,17 +552,17 @@ else
 
     private async Task LookupAuthorImage()
     {
-        if (string.IsNullOrWhiteSpace(newAuthorName)) return;
+        if (string.IsNullOrWhiteSpace(_newAuthorName)) return;
 
-        isSearchingImage = true;
+        _isSearchingImage = true;
         try
         {
             var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-            var userContext = blazorBookLibrary.Shared.ConverterUtils.fromClaimsPrincipal(authState.User);
-            var result = await AuthorsSearchService.LookupImageUrlByNameAndThumbSizeAsync(userContext, newAuthorName, FSharpOption<int>.Some(200));
+            var userContext = Shared.ConverterUtils.fromClaimsPrincipal(authState.User);
+            var result = await AuthorsSearchService.LookupImageUrlByNameAndThumbSizeAsync(userContext, _newAuthorName, FSharpOption<int>.Some(200));
             if (result.IsOk)
             {
-                newAuthorImageUrl = result.ResultValue;
+                _newAuthorImageUrl = result.ResultValue;
                 await ShowStatus(L["ImageFoundWikipedia"], "success");
             }
             else
@@ -576,25 +576,25 @@ else
         }
         finally
         {
-            isSearchingImage = false;
+            _isSearchingImage = false;
         }
     }
 
     private async Task LookupAuthorBio()
     {
-        if (string.IsNullOrWhiteSpace(newAuthorName)) return;
+        if (string.IsNullOrWhiteSpace(_newAuthorName)) return;
 
-        isSearchingBio = true;
+        _isSearchingBio = true;
         try
         {
             var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-            var userContext = blazorBookLibrary.Shared.ConverterUtils.fromClaimsPrincipal(authState.User);
+            var userContext = Shared.ConverterUtils.fromClaimsPrincipal(authState.User);
             var lang = ShortLang.New(System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName);
-            var result = await AuthorsSearchService.LookupBioByNameAsync(userContext, newAuthorName, FSharpOption<ShortLang>.Some(lang));
+            var result = await AuthorsSearchService.LookupBioByNameAsync(userContext, _newAuthorName, FSharpOption<ShortLang>.Some(lang));
             if (result.IsOk)
             {
-                candidateBios = result.ResultValue.ToList();
-                if (candidateBios.Any())
+                _candidateBios = result.ResultValue.ToList();
+                if (_candidateBios.Any())
                 {
                     await ShowStatus(L["BioFoundWikipedia"], "success");
                 }
@@ -614,23 +614,23 @@ else
         }
         finally
         {
-            isSearchingBio = false;
+            _isSearchingBio = false;
         }
     }
 
     private async Task LookupAuthorWikipediaUri()
     {
-        if (string.IsNullOrWhiteSpace(newAuthorName)) return;
+        if (string.IsNullOrWhiteSpace(_newAuthorName)) return;
 
-        isSearchingUri = true;
+        _isSearchingUri = true;
         try
         {
             var context = await GetContext();
             var lang = ShortLang.New(System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName);
-            var result = await AuthorsSearchService.LookupWikipediaUriByNameAsync(context, newAuthorName, lang);
+            var result = await AuthorsSearchService.LookupWikipediaUriByNameAsync(context, _newAuthorName, lang);
             if (result.IsOk)
             {
-                newAuthorWikipediaUrl = result.ResultValue;
+                _newAuthorWikipediaUrl = result.ResultValue;
                 await ShowStatus(L["WikipediaLinkFound"], "success");
             }
             else
@@ -644,7 +644,7 @@ else
         }
         finally
         {
-            isSearchingUri = false;
+            _isSearchingUri = false;
         }
     }
 

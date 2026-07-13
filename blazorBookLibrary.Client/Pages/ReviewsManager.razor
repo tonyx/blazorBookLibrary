@@ -1,22 +1,12 @@
 @page "/reviews-manager"
 @using Microsoft.AspNetCore.Authorization
-@using Microsoft.AspNetCore.Components.QuickGrid
-@using BookLibrary.Shared.Services
-@using BookLibrary.Domain
-@using BookLibrary.Shared
-@using System.Globalization
 @using static BookLibrary.Shared.Details
-@using blazorBookLibrary.Shared.Resources
-@using Microsoft.Extensions.Localization
-@using Microsoft.FSharp.Collections
-@using static BookLibrary.Shared.Commons
-@using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.AspNetCore.SignalR.Client
 
 @attribute [Authorize]
 @inject IUserTenantResolverService UserTenantResolverService
 @inject ITenantService TenantService
-@inject blazorBookLibrary.Client.Services.TenantStateService TenantState
+@inject Services.TenantStateService TenantState
 @inject IReviewService ReviewService
 @inject IDetailsService DetailsService
 @inject NavigationManager NavigationManager

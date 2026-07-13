@@ -5,9 +5,8 @@ open System
 module Details =
     open BookLibrary.Domain
     open Commons
-    open System.Threading.Tasks
 
-    let random = System.Random()
+    let random = Random()
 
     type UserDetails =
         { User: User
@@ -39,7 +38,7 @@ module Details =
             if now > this.Reservation.TimeSlot.End then
                 Error "Reservation time slot has expired"
             else
-                let loan = Loan.NewFromReservation (this.Reservation) now
+                let loan = Loan.NewFromReservation this.Reservation now
 
                 if (now > this.Reservation.TimeSlot.Start) then
                     loan |> Ok
@@ -74,9 +73,9 @@ module Details =
                  else
                      [])
                 @ (this.ReservationsDetails
-                   |> List.map (fun reservationDetails -> reservationDetails.Reservation.TimeSlot))
+                   |> List.map _.Reservation.TimeSlot)
 
-            if (currentTimeSlots.IsEmpty) then
+            if currentTimeSlots.IsEmpty then
                 TimeSlot.New
                     (now.AddHours(1.0))
                     (now.AddHours(1.0) + TimeSpan.FromDays(float timeSlotLoanDurationInDays))
@@ -84,7 +83,7 @@ module Details =
                 let maximumTimeSlot = currentTimeSlots |> List.maxBy (fun timeSlot -> timeSlot.End)
 
                 TimeSlot.New
-                    (maximumTimeSlot.End)
+                    maximumTimeSlot.End
                     (maximumTimeSlot.End + TimeSpan.FromDays(float timeSlotLoanDurationInDays))
 
         member this.ApprovedVisibleReviewsInRandomOrder() =
@@ -93,8 +92,8 @@ module Details =
 
             for i in n - 1 .. -1 .. 1 do
                 let j = random.Next(i + 1)
-                let temp = reviews.[i]
-                reviews.[i] <- reviews.[j]
+                let temp = reviews[i]
+                reviews.[i] <- reviews[j]
                 reviews.[j] <- temp
 
             reviews |> Array.toList

@@ -23,9 +23,9 @@ public class PersistentAuthenticationStateProvider : AuthenticationStateProvider
         }
 
         List<Claim> claims = [
-            new Claim(ClaimTypes.NameIdentifier, userInfo.UserId),
-            new Claim(ClaimTypes.Name, userInfo.UserName ?? userInfo.Email),
-            new Claim(ClaimTypes.Email, userInfo.Email) ];
+            new(ClaimTypes.NameIdentifier, userInfo.UserId),
+            new(ClaimTypes.Name, userInfo.UserName ?? userInfo.Email),
+            new(ClaimTypes.Email, userInfo.Email) ];
 
         if (userInfo.Roles != null)
         {

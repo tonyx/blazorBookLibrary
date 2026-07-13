@@ -104,7 +104,7 @@
     .type-generic { background-color: #6b7280; color: white; }
 </style>
 
-@if (isPageLoading)
+@if (_isPageLoading)
 {
     <div class="sanctuary-container py-5 text-center">
         <div class="spinner-border text-primary" role="status">
@@ -113,7 +113,7 @@
         <p class="mt-2 text-muted">@L["RetrievingArchivalRecords"]...</p>
     </div>
 }
-else if (!isAuthorized)
+else if (!_isAuthorized)
 {
     <div class="sanctuary-container py-5">
         <div class="card-sanctuary p-5 text-center shadow-lg border-0 rounded-4" style="max-width: 600px; margin: 0 auto; background: #fff; border: 1px solid rgba(0,0,0,0.05); border-radius: 1.25rem;">
@@ -152,16 +152,16 @@ else
         </div>
     </div>
  
-    @if (!string.IsNullOrEmpty(statusMessage))
+    @if (!string.IsNullOrEmpty(_statusMessage))
     {
-        <div class="alert @statusClass alert-dismissible fade show mb-4 shadow-sm" role="alert">
-            <i class="bi @(statusClass.Contains("danger") ? "bi-exclamation-triangle-fill" : "bi-info-circle-fill") me-2"></i>
-            @statusMessage
-            <button type="button" class="btn-close" @onclick='() => statusMessage = ""' aria-label="Close"></button>
+        <div class="alert @_statusClass alert-dismissible fade show mb-4 shadow-sm" role="alert">
+            <i class="bi @(_statusClass.Contains("danger") ? "bi-exclamation-triangle-fill" : "bi-info-circle-fill") me-2"></i>
+            @_statusMessage
+            <button type="button" class="btn-close" @onclick='() => _statusMessage = ""' aria-label="Close"></button>
         </div>
     }
  
-    @if (isLoading)
+    @if (_isLoading)
     {
         <div class="d-flex justify-content-center align-items-center" style="min-height: 400px;">
             <div class="spinner-grow text-primary" role="status">
@@ -169,17 +169,17 @@ else
             </div>
         </div>
     }
-    else if (bookDetails != null)
+    else if (_bookDetails != null)
     {
         <div class="row g-5">
             <!-- Left Column: Visual & Archival Controls -->
             <div class="col-lg-4">
                 <div class="card-sanctuary floating text-center mb-4">
                     <div class="book-cover-wrap mb-4 bg-surface-low shadow-sm" style="height: 450px; border-radius: 4px; overflow: hidden; display: flex; align-items: center; justify-content: center; position: relative;">
-                        @if (FSharpOption<Uri>.get_IsSome(bookDetails.Book.ImageUrl))
+                        @if (FSharpOption<Uri>.get_IsSome(_bookDetails.Book.ImageUrl))
                         {
-                            <img src="@bookDetails.Book.ImageUrl.Value.ToString()" 
-                                 alt="@bookDetails.Book.Title.Value Cover" 
+                            <img src="@_bookDetails.Book.ImageUrl.Value.ToString()" 
+                                 alt="@_bookDetails.Book.Title.Value Cover" 
                                  class="w-100 h-100" 
                                  style="object-fit: cover;" />
                         }
@@ -188,7 +188,7 @@ else
                             <div class="text-center text-muted opacity-25 p-4 d-flex flex-column align-items-center">
                                 <i class="bi bi-journal-text" style="font-size: 5rem;"></i>
                                 <span class="d-block mt-3 serif">@L["NoCoverAvailable"]</span>
-                                @if (bookDetails.Book.Editable)
+                                @if (_bookDetails.Book.Editable)
                                 {
                                     <button class="btn btn-link btn-sm text-decoration-none mt-2 text-serif" @onclick:stopPropagation @onclick="StartEditingImageUrl">
                                         + @L["AddCoverImage"]
@@ -197,7 +197,7 @@ else
                             </div>
                         }
 
-                        @if (bookDetails.Book.Editable)
+                        @if (_bookDetails.Book.Editable)
                         {
                             <div class="image-edit-badge position-absolute" @onclick="StartEditingImageUrl" @onclick:stopPropagation title="@L["ChangeImage"]">
                                 <i class="bi bi-camera-fill"></i>
@@ -205,7 +205,7 @@ else
                         }
                     </div>
 
-                    @if (bookDetails.Book.Editable && isEditingImageUrl)
+                    @if (_bookDetails.Book.Editable && isEditingImageUrl)
                     {
                         <div class="mt-4 p-4 bg-surface-low rounded-xl text-start animate-fade-in shadow-sm border border-dashed border-primary-subtle">
                             <label class="form-label small text-muted text-uppercase fw-bold mb-3 d-flex justify-content-between align-items-center">
@@ -246,7 +246,7 @@ else
                                     <i class="bi bi-check2-circle me-2"></i>@L["FinalizeCoverUpdate"]
                                 </button>
                                 <button class="btn btn-outline-secondary" @onclick="() => isEditingImageUrl = false">@L["Cancel"]</button>
-                                @if (FSharpOption<Uri>.get_IsSome(bookDetails.Book.ImageUrl))
+                                @if (FSharpOption<Uri>.get_IsSome(_bookDetails.Book.ImageUrl))
                                 {
                                     <button class="btn btn-outline-danger" @onclick="RemoveImageUrl" title="@L["DiscardCover"]">
                                         <i class="bi bi-trash"></i>
@@ -297,8 +297,8 @@ else
                             else
                             {
                                 <div class="d-flex align-items-center gap-3">
-                                    <h2 class="serif mb-0" style="color: var(--primary); font-weight: 800;">@bookDetails.Book.Title.Value</h2>
-                                    @if (bookDetails.Book.Editable)
+                                    <h2 class="serif mb-0" style="color: var(--primary); font-weight: 800;">@_bookDetails.Book.Title.Value</h2>
+                                    @if (_bookDetails.Book.Editable)
                                     {
                                         <button class="btn btn-link p-0 text-muted" @onclick="StartEdit"><i class="bi bi-pencil-square"></i></button>
                                     }
@@ -326,8 +326,8 @@ else
                             else
                             {
                                 <div class="d-flex align-items-center gap-3">
-                                    <span class="badge-sanctuary badge-neutral font-monospace p-2">@bookDetails.Book.Isbn.Value</span>
-                                    @if (bookDetails.Book.Editable)
+                                    <span class="badge-sanctuary badge-neutral font-monospace p-2">@_bookDetails.Book.Isbn.Value</span>
+                                    @if (_bookDetails.Book.Editable)
                                     {
                                         <button class="btn btn-link p-0 text-muted" @onclick="StartEditIsbn"><i class="bi bi-pencil-square"></i></button>
                                     }
@@ -343,7 +343,7 @@ else
                                     <select class="form-select border-primary" @bind="editedAvailability">
                                         @foreach (var avail in Availability.AllCases())
                                         {
-                                            <option value="@avail.ToString()" selected="@(avail.ToString() == bookDetails.Book.Availability.ToString())">
+                                            <option value="@avail.ToString()" selected="@(avail.ToString() == _bookDetails.Book.Availability.ToString())">
                                                 @GetAvailabilityLocalName(avail)
                                             </option>
                                         }
@@ -355,11 +355,11 @@ else
                             else
                             {
                                 <div class="d-flex align-items-center gap-3">
-                                    <span class="badge-sanctuary @(bookDetails.Book.Availability.IsCirculating ? "badge-available" : "badge-neutral") p-2">
-                                        <i class="bi @(bookDetails.Book.Availability.IsCirculating ? "bi-journal-check" : "bi-journal-lock") me-2"></i>
-                                        @GetAvailabilityLocalName(bookDetails.Book.Availability)
+                                    <span class="badge-sanctuary @(_bookDetails.Book.Availability.IsCirculating ? "badge-available" : "badge-neutral") p-2">
+                                        <i class="bi @(_bookDetails.Book.Availability.IsCirculating ? "bi-journal-check" : "bi-journal-lock") me-2"></i>
+                                        @GetAvailabilityLocalName(_bookDetails.Book.Availability)
                                     </span>
-                                    @if (bookDetails.Book.Editable)
+                                    @if (_bookDetails.Book.Editable)
                                     {
                                         <button class="btn btn-link p-0 text-muted" @onclick="StartEditAvailability"><i class="bi bi-pencil-square"></i></button>
                                     }
@@ -371,9 +371,9 @@ else
                         <div class="col-md-6 border-end" style="border-color: var(--surface-container-low) !important;">
                             <label class="form-label small text-muted text-uppercase fw-bold mb-2">@L["DistributionPoint"]</label>
                             
-                            @if (bookDetails.DistributionPoint != null && FSharpOption<DistributionPoint>.get_IsSome(bookDetails.DistributionPoint))
+                            @if (_bookDetails.DistributionPoint != null && FSharpOption<DistributionPoint>.get_IsSome(_bookDetails.DistributionPoint))
                             {
-                                var dp = bookDetails.DistributionPoint.Value;
+                                var dp = _bookDetails.DistributionPoint.Value;
                                 <div class="d-flex align-items-center gap-3">
                                     <span class="badge-sanctuary badge-neutral p-2">
                                         <i class="bi bi-geo-alt-fill me-2 opacity-50"></i>
@@ -419,12 +419,12 @@ else
                         <div class="col-md-6 border-end" style="border-color: var(--surface-container-low) !important;">
                             <label class="form-label small text-muted text-uppercase fw-bold mb-3">@L["CatalogedAuthors"]</label>
                             <div class="d-flex flex-wrap gap-2 mb-3">
-                                @foreach (var author in bookDetails.Authors)
+                                @foreach (var author in _bookDetails.Authors)
                                 {
                                     <span class="badge-sanctuary badge-neutral p-2 d-flex align-items-center">
                                         <i class="bi bi-journal-richtext me-2 opacity-50"></i>
                                         <a href="/author-details/@author.AuthorId.Value" class="text-reset text-decoration-none fw-bold">@author.Name.Value</a>
-                                        @if (bookDetails.Book.Editable)
+                                        @if (_bookDetails.Book.Editable)
                                         {
                                             <span class="ms-2 ps-2 border-start" style="cursor: pointer;" @onclick="() => RemoveAuthorFromBook(author)"><i class="bi bi-x text-danger"></i></span>
                                         }
@@ -432,7 +432,7 @@ else
                                 }
                             </div>
                             
-                            @if (bookDetails.Book.Editable)
+                            @if (_bookDetails.Book.Editable)
                             {
                                 <div class="position-relative">
                                     <div class="input-group input-group-sm rounded bg-surface-low border p-1 shadow-sm">
@@ -440,15 +440,15 @@ else
                                         <input type="text" 
                                                class="form-control border-0 bg-transparent py-2" 
                                                placeholder="@L["AddAuthorToRecord"]" 
-                                               value="@authorSearchInput" 
+                                               value="@_authorSearchInput" 
                                                @oninput="HandleAuthorSearchInput"
-                                               @onfocus="() => { if(authorSearchResults.Any()) showAuthorSearchResults = true; }" />
+                                               @onfocus="() => { if(_authorSearchResults.Any()) _showAuthorSearchResults = true; }" />
                                     </div>
                                     
-                                    @if (showAuthorSearchResults)
+                                    @if (_showAuthorSearchResults)
                                     {
                                         <div class="list-group position-absolute w-100 shadow mt-1 border" style="z-index: 1100; max-height: 200px; overflow-y: auto; border-radius: 8px;">
-                                            @foreach (var author in authorSearchResults)
+                                            @foreach (var author in _authorSearchResults)
                                             {
                                                 <button type="button" class="list-group-item list-group-item-action text-start p-3 small border-0" @onclick="() => SelectAuthorForAdd(author)">
                                                     <div class="fw-bold">@author.Name.Value</div>
@@ -464,17 +464,17 @@ else
                             <label class="form-label small text-muted text-uppercase fw-bold mb-3">@L["EditorialTaxonomy"]</label>
                             <div class="d-flex flex-wrap gap-2 mb-3">
                                 <!-- Main -->
-                                <span class="badge-sanctuary badge-neutral p-2 d-flex align-items-center @((bookDetails?.Book.Editable ?? false) ? "clickable" : "")" @onclick="StartEditCategory">
+                                <span class="badge-sanctuary badge-neutral p-2 d-flex align-items-center @((_bookDetails?.Book.Editable ?? false) ? "clickable" : "")" @onclick="StartEditCategory">
                                     <i class="bi bi-bookmark-fill me-2 opacity-50"></i>
-                                    @bookDetails!.Book.MainCategory.Value()
-                                    @if (bookDetails.Book.Editable) { <i class="bi bi-pencil-fill ms-2 ps-2 border-start x-small"></i> }
+                                    @_bookDetails!.Book.MainCategory.Value()
+                                    @if (_bookDetails.Book.Editable) { <i class="bi bi-pencil-fill ms-2 ps-2 border-start x-small"></i> }
                                 </span>
                                 <!-- Additions -->
-                                @foreach (var cat in bookDetails.Book.AdditionalCategories)
+                                @foreach (var cat in _bookDetails.Book.AdditionalCategories)
                                 {
                                     <span class="badge-sanctuary badge-neutral p-2 d-flex align-items-center">
                                         @cat.Value()
-                                        @if (bookDetails.Book.Editable)
+                                        @if (_bookDetails.Book.Editable)
                                         {
                                             <span class="ms-2 ps-2 border-start" style="cursor: pointer;" @onclick="() => RemoveAdditionalCategory(cat)"><i class="bi bi-dash text-danger"></i></span>
                                         }
@@ -482,7 +482,7 @@ else
                                 }
                             </div>
                             
-                            @if (bookDetails.Book.Editable)
+                            @if (_bookDetails.Book.Editable)
                             {
                                 <div class="position-relative d-inline-block">
                                     <button class="btn btn-sm btn-white border rounded-pill px-3" @onclick="() => showAddDropdown = !showAddDropdown">
@@ -495,7 +495,7 @@ else
                                             <div class="row g-1">
                                                 @foreach (var cat in Category.AllCases())
                                                 {
-                                                    if (cat != bookDetails.Book.MainCategory && !bookDetails.Book.AdditionalCategories.Contains(cat))
+                                                    if (cat != _bookDetails.Book.MainCategory && !_bookDetails.Book.AdditionalCategories.Contains(cat))
                                                     {
                                                         <div class="col-6">
                                                             <div class="dropdown-item py-1 px-2 small rounded text-truncate border mb-1" style="cursor: pointer;" @onclick="() => AddAdditionalCategoryWrapper(cat)">
@@ -513,11 +513,11 @@ else
                             @* Archival Tags Section *@
                             <label class="form-label small text-muted text-uppercase fw-bold mb-3 mt-4 d-block">@L["ArchivalTags"]</label>
                             <div class="d-flex flex-wrap gap-2 mb-3">
-                                @foreach (var tag in bookDetails.Book.Tags)
+                                @foreach (var tag in _bookDetails.Book.Tags)
                                 {
                                     <div class="tag-chip @GetTagColorClass(GetTagTypeName(tag)) d-inline-flex align-items-center animate-fade-in shadow-sm">
                                         <span class="me-2 small">@tag.TagName</span>
-                                        @if (bookDetails.Book.Editable)
+                                        @if (_bookDetails.Book.Editable)
                                         {
                                             <button type="button" class="btn-close btn-close-white small" style="font-size: 0.5rem" 
                                                     @onclick="() => RemoveTagFromBook(tag)"></button>
@@ -526,7 +526,7 @@ else
                                 }
                             </div>
 
-                            @if (bookDetails.Book.Editable)
+                            @if (_bookDetails.Book.Editable)
                             {
                                 <div class="position-relative d-inline-block">
                                     <button class="btn btn-sm btn-white border rounded-pill px-3" @onclick="() => showAddTagDropdown = !showAddTagDropdown">
@@ -539,7 +539,7 @@ else
                                             <div class="row g-1 overflow-auto" style="max-height: 300px;">
                                                 @foreach (var tag in allAvailableTags)
                                                 {
-                                                    if (!bookDetails.Book.Tags.Contains(tag))
+                                                    if (!_bookDetails.Book.Tags.Contains(tag))
                                                     {
                                                         <div class="col-12">
                                                             <div class="dropdown-item py-1 px-2 small rounded text-truncate border mb-1 d-flex justify-content-between align-items-center" style="cursor: pointer;" @onclick="() => AddTagWrapper(tag)">
@@ -549,7 +549,7 @@ else
                                                         </div>
                                                     }
                                                 }
-                                                @if (!allAvailableTags.Any(t => !bookDetails.Book.Tags.Contains(t)))
+                                                @if (!allAvailableTags.Any(t => !_bookDetails.Book.Tags.Contains(t)))
                                                 {
                                                     <div class="col-12 text-center text-muted py-2 small">@L["NoTagsAvailable"]</div>
                                                 }
@@ -567,14 +567,14 @@ else
                     <div class="d-flex justify-content-between align-items-baseline mb-4 border-bottom pb-3" style="border-color: var(--outline-variant) !important;">
                         <h5 class="serif mb-0">@L["NarrativeAbstract"]</h5>
                         <div class="d-flex gap-2">
-                            @if (bookDetails.Book.Editable && !isEditingDescription)
+                            @if (_bookDetails.Book.Editable && !_isEditingDescription)
                             {
-                                @if (previousDescription != null)
+                                @if (_previousDescription != null)
                                 {
                                     <button class="btn btn-sm btn-outline-secondary" @onclick="UndoDescriptionChange"><i class="bi bi-arrow-counterclockwise me-1"></i> @L["Undo"]</button>
                                 }
-                                <button class="btn btn-sm btn-outline-primary" @onclick="GenerateAIDescription" disabled="@isGeneratingDescription">
-                                    @if (isGeneratingDescription) { <span class="spinner-border spinner-border-sm me-1"></span> }
+                                <button class="btn btn-sm btn-outline-primary" @onclick="GenerateAIDescription" disabled="@_isGeneratingDescription">
+                                    @if (_isGeneratingDescription) { <span class="spinner-border spinner-border-sm me-1"></span> }
                                     else { <i class="bi bi-magic me-1"></i> }
                                     @L["AutoGenerate"]
                                 </button>
@@ -583,23 +583,23 @@ else
                         </div>
                     </div>
 
-                    @if (isEditingDescription)
+                    @if (_isEditingDescription)
                     {
                         <div class="p-4 bg-surface-low rounded-xl">
-                            <textarea class="form-control border-0 serif bg-transparent mb-3" @bind="editedDescription" rows="10" placeholder="@L["WriteDescription"]"></textarea>
+                            <textarea class="form-control border-0 serif bg-transparent mb-3" @bind="_editedDescription" rows="10" placeholder="@L["WriteDescription"]"></textarea>
                             <div class="d-flex gap-3 align-items-center">
                                 <button class="btn btn-primary px-4" @onclick="UpdateDescription">@L["Save"]</button>
                                 <button class="btn btn-white border px-4" @onclick="CancelEditDescription">@L["Cancel"]</button>
                                 
                                 <div class="ms-auto d-flex gap-2">
-                                    @if (previousDescription != null)
+                                    @if (_previousDescription != null)
                                     {
                                         <button class="btn btn-outline-secondary" @onclick="UndoDescriptionChange">
                                             <i class="bi bi-arrow-counterclockwise me-2"></i> @L["Undo"]
                                         </button>
                                     }
-                                    <button class="btn btn-outline-primary" @onclick="GenerateAIDescription" disabled="@isGeneratingDescription">
-                                        @if (isGeneratingDescription) { <span class="spinner-border spinner-border-sm me-2"></span> }
+                                    <button class="btn btn-outline-primary" @onclick="GenerateAIDescription" disabled="@_isGeneratingDescription">
+                                        @if (_isGeneratingDescription) { <span class="spinner-border spinner-border-sm me-2"></span> }
                                         else { <i class="bi bi-magic me-2"></i> }
                                         @L["GenerateWithAI"]
                                     </button>
@@ -610,10 +610,10 @@ else
                     else
                     {
                         <div class="serif italic text-muted lh-lg" style="font-size: 1.1rem; white-space: pre-wrap;">
-                            @(FSharpOption<string>.get_IsSome(bookDetails.Book.Description) ? bookDetails.Book.Description.Value : L["NoDescriptionProvided"])
+                            @(FSharpOption<string>.get_IsSome(_bookDetails.Book.Description) ? _bookDetails.Book.Description.Value : L["NoDescriptionProvided"])
                         </div>
 
-                        @if (FSharpOption<string>.get_IsSome(bookDetails.Book.Description) && FSharpOption<EmbeddingDataId>.get_IsNone(bookDetails.Book.OptionalEmbedding) && bookDetails.Book.Editable)
+                        @if (FSharpOption<string>.get_IsSome(_bookDetails.Book.Description) && FSharpOption<EmbeddingDataId>.get_IsNone(_bookDetails.Book.OptionalEmbedding) && _bookDetails.Book.Editable)
                         {
                             <div class="mt-4 p-3 bg-surface-low rounded-xl border border-warning-subtle animate-fade-in shadow-sm d-flex align-items-center gap-3">
                                 <div class="p-2 bg-warning-subtle rounded-circle text-warning">
@@ -623,8 +623,8 @@ else
                                     <h6 class="serif mb-1 small fw-bold text-warning-emphasis">@L["AIVectorDataMissing"]</h6>
                                     <p class="small text-muted mb-0 serif italic">@L["NoVectorDataNote"]</p>
                                 </div>
-                                <button class="btn btn-sm btn-primary px-3 rounded-pill" @onclick="GenerateEmbedding" disabled="@isGeneratingEmbedding">
-                                    @if (isGeneratingEmbedding)
+                                <button class="btn btn-sm btn-primary px-3 rounded-pill" @onclick="GenerateEmbedding" disabled="@_isGeneratingEmbedding">
+                                    @if (_isGeneratingEmbedding)
                                     {
                                         <span class="spinner-border spinner-border-sm me-2"></span>
                                         <span>@L["Wait"]...</span>
@@ -638,7 +638,7 @@ else
                             </div>
                         }
 
-                        @if (FSharpOption<EmbeddingDataId>.get_IsSome(bookDetails.Book.OptionalEmbedding))
+                        @if (FSharpOption<EmbeddingDataId>.get_IsSome(_bookDetails.Book.OptionalEmbedding))
                         {
                             <div class="mt-4 p-4 bg-surface-low rounded-xl border border-primary-subtle shadow-sm animate-fade-in">
                                 <div class="d-flex justify-content-between align-items-center mb-1">
@@ -649,48 +649,48 @@ else
                                         <h6 class="serif mb-0 fw-bold">@L["SemanticSanityCheck"]</h6>
                                     </div>
                                     <div class="d-flex gap-2">
-                                        <button class="btn btn-sm btn-outline-danger px-3" @onclick="RemoveEmbedding" disabled="@isRemovingEmbedding">
-                                            @if (isRemovingEmbedding) { <span class="spinner-border spinner-border-sm me-1"></span> }
+                                        <button class="btn btn-sm btn-outline-danger px-3" @onclick="RemoveEmbedding" disabled="@_isRemovingEmbedding">
+                                            @if (_isRemovingEmbedding) { <span class="spinner-border spinner-border-sm me-1"></span> }
                                             else { <i class="bi bi-trash me-1"></i> }
                                             @L["RemoveEmbedding"]
                                         </button>
-                                        <button class="btn btn-sm btn-outline-primary px-3" @onclick="() => showSanityCheckForm = !showSanityCheckForm">
-                                            <i class="bi @(showSanityCheckForm ? "bi-chevron-up" : "bi-chevron-down") me-1"></i>
-                                            @(showSanityCheckForm ? L["Hide"] : L["PerformSanityCheck"])
+                                        <button class="btn btn-sm btn-outline-primary px-3" @onclick="() => _showSanityCheckForm = !_showSanityCheckForm">
+                                            <i class="bi @(_showSanityCheckForm ? "bi-chevron-up" : "bi-chevron-down") me-1"></i>
+                                            @(_showSanityCheckForm ? L["Hide"] : L["PerformSanityCheck"])
                                         </button>
                                     </div>
                                 </div>
 
-                                @if (showSanityCheckForm)
+                                @if (_showSanityCheckForm)
                                 {
                                     <div class="sanity-check-form animate-fade-in mt-3">
                                         <p class="small text-muted mb-3 italic">@L["VerifyAIUnderstandingNote"]</p>
                                         
                                         <div class="mb-3">
                                             <label class="form-label x-small text-uppercase fw-bold text-muted">@L["TestQueryDescription"]</label>
-                                            <textarea class="form-control serif bg-white border shadow-sm" @bind="sanityCheckQuery" rows="3" placeholder="@L["SemanticSearchPlaceholder"]"></textarea>
+                                            <textarea class="form-control serif bg-white border shadow-sm" @bind="_sanityCheckQuery" rows="3" placeholder="@L["SemanticSearchPlaceholder"]"></textarea>
                                         </div>
 
                                         <div class="d-flex align-items-end gap-3 mb-4">
                                             <div style="width: 100px;">
                                                 <label class="form-label x-small text-uppercase fw-bold text-muted">@L["MaxResults"]</label>
-                                                <input type="number" class="form-control" @bind="sanityCheckLimit" min="1" max="10" />
+                                                <input type="number" class="form-control" @bind="_sanityCheckLimit" min="1" max="10" />
                                             </div>
-                                            <button class="btn btn-primary px-4 shadow-sm" @onclick="PerformSanityCheck" disabled="@(string.IsNullOrWhiteSpace(sanityCheckQuery) || isPerformingSanityCheck)">
-                                                @if (isPerformingSanityCheck) { <span class="spinner-border spinner-border-sm me-2"></span> }
+                                            <button class="btn btn-primary px-4 shadow-sm" @onclick="PerformSanityCheck" disabled="@(string.IsNullOrWhiteSpace(_sanityCheckQuery) || _isPerformingSanityCheck)">
+                                                @if (_isPerformingSanityCheck) { <span class="spinner-border spinner-border-sm me-2"></span> }
                                                 <i class="bi bi-search me-1"></i> @L["CheckSemanticAccuracy"]
                                             </button>
                                         </div>
 
-                                        @if (sanityCheckResults != null)
+                                        @if (_sanityCheckResults != null)
                                         {
                                             <div class="results-area p-3 bg-white rounded border animate-fade-in shadow-sm">
                                                 <h6 class="serif border-bottom pb-2 mb-3">Semantic Results</h6>
                                                 
                                                 <div class="d-flex align-items-center gap-3 mb-4">
                                                     @{
-                                                        var matchesPrimary = sanityCheckResults.Any() && sanityCheckResults.First().Id.Value == bookDetails.Book.BookId.Value;
-                                                        var inResults = sanityCheckResults.Any(r => r.Id.Value == bookDetails.Book.BookId.Value);
+                                                        var matchesPrimary = _sanityCheckResults.Any() && _sanityCheckResults.First().Id.Value == _bookDetails.Book.BookId.Value;
+                                                        var inResults = _sanityCheckResults.Any(r => r.Id.Value == _bookDetails.Book.BookId.Value);
                                                     }
                                                     <div class="badge-sanctuary @(matchesPrimary ? "badge-available" : (inResults ? "badge-neutral" : "badge-borrowed")) p-3 d-flex align-items-center gap-3 flex-grow-1 border">
                                                         <i class="bi @(matchesPrimary ? "bi-check-circle-fill" : (inResults ? "bi-info-circle-fill" : "bi-exclamation-triangle-fill")) fs-4"></i>
@@ -702,13 +702,13 @@ else
                                                 </div>
 
                                                 <div class="list-group list-group-flush border-top">
-                                                    @foreach (var res in sanityCheckResults)
+                                                    @foreach (var res in _sanityCheckResults)
                                                     {
                                                         <div class="d-flex align-items-stretch border rounded mb-2 transition-all bg-surface-low hover-bg-surface-lowest shadow-sm overflow-hidden">
                                                             <a href="/book-edit/@res.Id.Value" class="flex-grow-1 text-decoration-none text-reset p-3 d-flex flex-column gap-1">
-                                                                <div class="serif @(res.Id.Value == bookDetails.Book.BookId.Value ? "fw-bold text-primary" : "")">
+                                                                <div class="serif @(res.Id.Value == _bookDetails.Book.BookId.Value ? "fw-bold text-primary" : "")">
                                                                     @res.Title
-                                                                    @if (res.Id.Value == bookDetails.Book.BookId.Value) { <span class="ms-2 badge bg-primary-subtle text-primary small">@L["CurrentBook"]</span> }
+                                                                    @if (res.Id.Value == _bookDetails.Book.BookId.Value) { <span class="ms-2 badge bg-primary-subtle text-primary small">@L["CurrentBook"]</span> }
                                                                 </div>
                                                                 <div class="small text-muted d-flex align-items-center gap-2">
                                                                     <span><i class="bi bi-bullseye me-1"></i> Match: @((res.Score * 100).ToString("F1"))%</span>
@@ -768,9 +768,9 @@ else
                     <div class="row g-4">
                         <div class="col-md-6 border-end" style="border-color: var(--surface-container-low) !important;">
                             <label class="form-label small text-muted text-uppercase fw-bold mb-3">@L["CurrentLoanStatus"]</label>
-                            @if (FSharpOption<BookLibrary.Shared.Details.LoanDetails>.get_IsSome(bookDetails.CurrentLoan))
+                            @if (FSharpOption<BookLibrary.Shared.Details.LoanDetails>.get_IsSome(_bookDetails.CurrentLoan))
                             {
-                                var loan = bookDetails.CurrentLoan.Value;
+                                var loan = _bookDetails.CurrentLoan.Value;
                                 <div class="p-4 bg-surface-low rounded-xl border border-warning-subtle">
                                     <div class="d-flex align-items-center gap-3 mb-3">
                                         <i class="bi bi-journal-minus fs-3 text-warning"></i>
@@ -785,7 +785,7 @@ else
                                     </div>
                                 </div>
                             }
-                            else if (bookDetails.Book.Available)
+                            else if (_bookDetails.Book.Available)
                             {
                                 <div class="p-4 bg-surface-low rounded-xl border border-success-subtle d-flex align-items-center gap-3">
                                     <i class="bi bi-journal-check fs-3 text-success"></i>
@@ -809,7 +809,7 @@ else
 
                         <div class="col-md-6">
                             <label class="form-label small text-muted text-uppercase fw-bold mb-3">@L["ScheduledReservations"]</label>
-                            @if (bookDetails.ReservationsDetails.Any())
+                            @if (_bookDetails.ReservationsDetails.Any())
                             {
                                 <div class="editorial-ledger">
                                     <table class="table table-borderless mb-0">
@@ -821,7 +821,7 @@ else
                                         </thead>
                                         <tbody>
                                             @{
-                                                var pendingRes = bookDetails.PendingReservationsDetails.ToList();
+                                                var pendingRes = _bookDetails.PendingReservationsDetails.ToList();
                                             }
                                             @for (int i = 0; i < pendingRes.Count; i++)
                                             {
@@ -840,7 +840,7 @@ else
                                                                     <input type="text" 
                                                                            class="form-control" 
                                                                            placeholder="Reservation Code" 
-                                                                           @bind="reservationCodeInput" />
+                                                                           @bind="_reservationCodeInput" />
                                                                     <button class="btn btn-primary" @onclick="() => ConvertToLoan(res)">
                                                                         <i class="bi bi-arrow-repeat me-1"></i>
                                                                         Convert to Loan
@@ -867,7 +867,7 @@ else
             </div>
         </div>
 
-        @if (bookDetails.Book.Editable)
+        @if (_bookDetails.Book.Editable)
         {
             <!-- Archival Removal -->
             <div class="mt-5 pt-5 border-top" style="border-color: var(--outline-variant) !important; border-style: dashed !important;">
@@ -877,7 +877,7 @@ else
                             <h5 class="serif text-danger mb-1">@L["DeaccessionItem"]</h5>
                             <p class="text-muted small mb-0 serif">@L["PermanentlyRemoveFromArchivalRecord"]</p>
                         </div>
-                        <button class="btn btn-outline-danger px-4 py-2 serif" @onclick="DeleteBook" disabled="@(!bookDetails.Book.Editable)">
+                        <button class="btn btn-outline-danger px-4 py-2 serif" @onclick="DeleteBook" disabled="@(!_bookDetails.Book.Editable)">
                             <i class="bi bi-trash me-2"></i>@L["PurgeRecord"]
                         </button>
                     </div>
@@ -890,45 +890,45 @@ else
 
 
 @code {
-    private bool isAuthorized = false;
-    private bool isPageLoading = true;
+    private bool _isAuthorized = false;
+    private bool _isPageLoading = true;
     private UserContext? _cachedContext;
     private async Task<UserContext> GetContext()
     {
         if (_cachedContext != null) return _cachedContext;
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-        _cachedContext = blazorBookLibrary.Shared.ConverterUtils.fromClaimsPrincipal(authState.User);
+        _cachedContext = Shared.ConverterUtils.fromClaimsPrincipal(authState.User);
         return _cachedContext;
     }
 
     [Parameter]
     public string BookIdStr { get; set; } = "";
 
-    private bool isLoading = true;
-    private Details.BookDetails? bookDetails;
-    private string statusMessage = "";
-    private string statusClass = "alert-info";
-    private string reservationCodeInput = "";
+    private bool _isLoading = true;
+    private Details.BookDetails? _bookDetails;
+    private string _statusMessage = "";
+    private string _statusClass = "alert-info";
+    private string _reservationCodeInput = "";
 
-    private string authorSearchInput = "";
-    private List<Author> authorSearchResults = new();
-    private HashSet<BookId> loadingSanityCheckResults = new();
+    private string _authorSearchInput = "";
+    private List<Author> _authorSearchResults = new();
+    private HashSet<BookId> _loadingSanityCheckResults = new();
     private static readonly SemaphoreSlim explanationSemaphore = new(1, 1);
-    private bool showAuthorSearchResults = false;
+    private bool _showAuthorSearchResults = false;
     private Author? selectedAuthorForAdd = null;
-    private bool isLoadingAuthors = false;
-    private bool isGeneratingEmbedding = false;
-    private bool isRemovingEmbedding = false;
+    private bool _isLoadingAuthors = false;
+    private bool _isGeneratingEmbedding = false;
+    private bool _isRemovingEmbedding = false;
 
-    private bool showSanityCheckForm = false;
-    private string sanityCheckQuery = "";
-    private int sanityCheckLimit = 3;
-    private bool isPerformingSanityCheck = false;
-    private bool isEditingDescription = false;
-    private string editedDescription = "";
-    private bool isGeneratingDescription = false;
-    private string? previousDescription = null;
-    private List<SanityCheckResult>? sanityCheckResults = null;
+    private bool _showSanityCheckForm = false;
+    private string _sanityCheckQuery = "";
+    private int _sanityCheckLimit = 3;
+    private bool _isPerformingSanityCheck = false;
+    private bool _isEditingDescription = false;
+    private string _editedDescription = "";
+    private bool _isGeneratingDescription = false;
+    private string? _previousDescription = null;
+    private List<SanityCheckResult>? _sanityCheckResults = null;
     private bool enableAIExplanations = false;
 
     public class SanityCheckResult
@@ -958,13 +958,13 @@ else
 
     private bool isBookIsbnEmpty()
     {
-        return bookDetails?.Book.Isbn.IsNoneIsbn ?? true;
+        return _bookDetails?.Book.Isbn.IsNoneIsbn ?? true;
     }
 
     private bool isBookIsbnValid()
     {
-        if (bookDetails == null) return false;
-        var isbn = bookDetails.Book.Isbn;
+        if (_bookDetails == null) return false;
+        var isbn = _bookDetails.Book.Isbn;
         return isbn.IsValidIsbn || (!isbn.IsNoneIsbn && acceptInvalidIsbn);
     }
 
@@ -972,42 +972,42 @@ else
     {
         isEditingImageUrl = true;
         coverPreviewUrl = null;
-        if (bookDetails == null) return;
-        editedImageUrl = FSharpOption<Uri>.get_IsSome(bookDetails.Book.ImageUrl) 
-            ? bookDetails.Book.ImageUrl.Value.ToString() 
+        if (_bookDetails == null) return;
+        editedImageUrl = FSharpOption<Uri>.get_IsSome(_bookDetails.Book.ImageUrl) 
+            ? _bookDetails.Book.ImageUrl.Value.ToString() 
             : "";
     }
 
     private async Task HandleAuthorSearchInput(ChangeEventArgs e)
     {
-        authorSearchInput = e.Value?.ToString() ?? "";
-        if (authorSearchInput.Length >= 2)
+        _authorSearchInput = e.Value?.ToString() ?? "";
+        if (_authorSearchInput.Length >= 2)
         {
-            isLoadingAuthors = true;
+            _isLoadingAuthors = true;
             try
             {
                 var context = await GetContext();
-                var result = await AuthorService.SearchByNameAsync(context, Name.New(authorSearchInput), FSharpOption<CancellationToken>.None);
+                var result = await AuthorService.SearchByNameAsync(context, Name.New(_authorSearchInput), FSharpOption<CancellationToken>.None);
                 if (result.IsOk)
                 {
-                    authorSearchResults = result.ResultValue.ToList();
-                    showAuthorSearchResults = authorSearchResults.Any();
+                    _authorSearchResults = result.ResultValue.ToList();
+                    _showAuthorSearchResults = _authorSearchResults.Any();
                 }
                 else
                 {
-                    authorSearchResults.Clear();
-                    showAuthorSearchResults = false;
+                    _authorSearchResults.Clear();
+                    _showAuthorSearchResults = false;
                 }
             }
             finally
             {
-                isLoadingAuthors = false;
+                _isLoadingAuthors = false;
             }
         }
         else
         {
-            authorSearchResults.Clear();
-            showAuthorSearchResults = false;
+            _authorSearchResults.Clear();
+            _showAuthorSearchResults = false;
             selectedAuthorForAdd = null;
         }
     }
@@ -1015,27 +1015,27 @@ else
     private async Task SelectAuthorForAdd(Author author)
     {
         selectedAuthorForAdd = author;
-        authorSearchInput = author.Name.Value;
-        showAuthorSearchResults = false;
+        _authorSearchInput = author.Name.Value;
+        _showAuthorSearchResults = false;
         await AddAuthorToBook();
     }
 
     private async Task AddAuthorToBook()
     {
-        if (selectedAuthorForAdd == null || bookDetails == null) return;
+        if (selectedAuthorForAdd == null || _bookDetails == null) return;
         
         try
         {
             var authorId = selectedAuthorForAdd.AuthorId;
             var context = await GetContext();
-            var result = await BookService.AddAuthorToBookAsync(context, authorId, bookDetails.Book.BookId, FSharpOption<CancellationToken>.None);
+            var result = await BookService.AddAuthorToBookAsync(context, authorId, _bookDetails.Book.BookId, FSharpOption<CancellationToken>.None);
             if (result.IsOk)
             {
                 var addedName = selectedAuthorForAdd.Name.Value;
                 
                 await WaitForCacheUpdateAsync(d => d.Authors.Any(a => a.AuthorId.Value == authorId.Value));
                 
-                authorSearchInput = "";
+                _authorSearchInput = "";
                 selectedAuthorForAdd = null;
                 await ShowStatus($"{L["Author"]} '{addedName}' {L["HasBeenAdded"]}.", "alert-success");
             }
@@ -1052,7 +1052,7 @@ else
 
     private async Task RemoveAuthorFromBook(Author author)
     {
-        if (bookDetails == null) return;
+        if (_bookDetails == null) return;
 
         bool confirmed = await JSRuntime.InvokeAsync<bool>("confirm", $"{L["ConfirmRemoveAuthor"]} '{author.Name.Value}'?");
         if (!confirmed) return;
@@ -1060,7 +1060,7 @@ else
         try
         {
             var context = await GetContext();
-            var result = await BookService.RemoveAuthorFromBookAsync(context, author.AuthorId, bookDetails.Book.BookId, FSharpOption<CancellationToken>.None);
+            var result = await BookService.RemoveAuthorFromBookAsync(context, author.AuthorId, _bookDetails.Book.BookId, FSharpOption<CancellationToken>.None);
             if (result.IsOk)
             {
                 await WaitForCacheUpdateAsync(d => !d.Authors.Any(a => a.AuthorId.Value == author.AuthorId.Value));
@@ -1086,7 +1086,7 @@ else
     private string editedAvailability = "";
     private bool showAddTagDropdown = false;
     private List<Tag> allAvailableTags = new();
-    private bool isBookSealed => bookDetails != null && bookDetails.Book.Sealed.IsSealed(DateTime.UtcNow);
+    private bool isBookSealed => _bookDetails != null && _bookDetails.Book.Sealed.IsSealed(DateTime.UtcNow);
 
     private async Task AddAdditionalCategoryWrapper(Category category)
     {
@@ -1096,12 +1096,12 @@ else
 
     private async Task AddAdditionalCategory(Category category)
     {
-        if (bookDetails == null) return;
+        if (_bookDetails == null) return;
         
         try 
         {
             var context = await GetContext();
-            var result = await BookService.AddAdditionalCategoryAsync(context, category, bookDetails.Book.BookId, FSharpOption<CancellationToken>.None);
+            var result = await BookService.AddAdditionalCategoryAsync(context, category, _bookDetails.Book.BookId, FSharpOption<CancellationToken>.None);
             if (result.IsOk)
             {
                 await WaitForCacheUpdateAsync(d => d.Book.AdditionalCategories.Contains(category));
@@ -1120,12 +1120,12 @@ else
 
     private async Task RemoveAdditionalCategory(Category category)
     {
-        if (bookDetails == null) return;
+        if (_bookDetails == null) return;
         
         try 
         {
             var context = await GetContext();
-            var result = await BookService.RemoveAdditionalCategoryAsync(context, category, bookDetails.Book.BookId, FSharpOption<CancellationToken>.None);
+            var result = await BookService.RemoveAdditionalCategoryAsync(context, category, _bookDetails.Book.BookId, FSharpOption<CancellationToken>.None);
             if (result.IsOk)
             {
                 await WaitForCacheUpdateAsync(d => !d.Book.AdditionalCategories.Contains(category));
@@ -1150,11 +1150,11 @@ else
 
     private async Task AddTagToBook(Tag tag)
     {
-        if (bookDetails == null) return;
+        if (_bookDetails == null) return;
         try
         {
             var context = await GetContext();
-            var result = await BookService.AddTagToBookAsync(context, tag, bookDetails.Book.BookId, FSharpOption<CancellationToken>.None);
+            var result = await BookService.AddTagToBookAsync(context, tag, _bookDetails.Book.BookId, FSharpOption<CancellationToken>.None);
             if (result.IsOk)
             {
                 await WaitForCacheUpdateAsync(d => d.Book.Tags.Contains(tag));
@@ -1173,11 +1173,11 @@ else
 
     private async Task RemoveTagFromBook(Tag tag)
     {
-        if (bookDetails == null) return;
+        if (_bookDetails == null) return;
         try
         {
             var context = await GetContext();
-            var result = await BookService.RemoveTagFromBookAsync(context, tag, bookDetails.Book.BookId, FSharpOption<CancellationToken>.None);
+            var result = await BookService.RemoveTagFromBookAsync(context, tag, _bookDetails.Book.BookId, FSharpOption<CancellationToken>.None);
             if (result.IsOk)
             {
                 await WaitForCacheUpdateAsync(d => !d.Book.Tags.Contains(tag));
@@ -1219,10 +1219,10 @@ else
 
     private async Task StartEdit()
     {
-        if (bookDetails?.Book.Editable ?? false)
+        if (_bookDetails?.Book.Editable ?? false)
         {
             isEditingTitle = true;
-            editedTitle = bookDetails!.Book.Title.Value;
+            editedTitle = _bookDetails!.Book.Title.Value;
         }
         else if (isBookSealed)
         {
@@ -1232,12 +1232,12 @@ else
 
     private async Task ToggleSeal()
     {
-        if (bookDetails == null) return;
+        if (_bookDetails == null) return;
         
         if (isBookSealed)
         {
-            var hasLoans = FSharpOption<BookLibrary.Shared.Details.LoanDetails>.get_IsSome(bookDetails.CurrentLoan);
-            var hasReservations = bookDetails.ReservationsDetails.Any();
+            var hasLoans = FSharpOption<BookLibrary.Shared.Details.LoanDetails>.get_IsSome(_bookDetails.CurrentLoan);
+            var hasReservations = _bookDetails.ReservationsDetails.Any();
             
             if (hasLoans || hasReservations)
             {
@@ -1248,8 +1248,8 @@ else
 
         var context = await GetContext();
         var result = isBookSealed 
-            ? await BookService.UnsealAsync(context, bookDetails.Book.BookId, FSharpOption<CancellationToken>.None)
-            : await BookService.SealAsync(context, bookDetails.Book.BookId, FSharpOption<CancellationToken>.None);
+            ? await BookService.UnsealAsync(context, _bookDetails.Book.BookId, FSharpOption<CancellationToken>.None)
+            : await BookService.SealAsync(context, _bookDetails.Book.BookId, FSharpOption<CancellationToken>.None);
             
         if (result.IsOk)
         {
@@ -1270,10 +1270,10 @@ else
 
     private async Task StartEditCategory()
     {
-        if (bookDetails?.Book.Editable ?? false)
+        if (_bookDetails?.Book.Editable ?? false)
         {
             isEditingCategory = true;
-            editedCategory = bookDetails!.Book.MainCategory.Value();
+            editedCategory = _bookDetails!.Book.MainCategory.Value();
         }
         else if (isBookSealed)
         {
@@ -1283,7 +1283,7 @@ else
 
     private async Task UpdateCategory()
     {
-        if (bookDetails == null || string.IsNullOrWhiteSpace(editedCategory) || editedCategory == bookDetails.Book.MainCategory.Value())
+        if (_bookDetails == null || string.IsNullOrWhiteSpace(editedCategory) || editedCategory == _bookDetails.Book.MainCategory.Value())
         {
             isEditingCategory = false;
             return;
@@ -1293,7 +1293,7 @@ else
         {
             var context = await GetContext();
             var category = Category.FromString(editedCategory);
-            var result = await BookService.ChangeMainCategoryAsync(context, category, bookDetails.Book.BookId, FSharpOption<CancellationToken>.None);
+            var result = await BookService.ChangeMainCategoryAsync(context, category, _bookDetails.Book.BookId, FSharpOption<CancellationToken>.None);
             if (result.IsOk)
             {
                 await WaitForCacheUpdateAsync(d => d.Book.MainCategory.Value() == editedCategory);
@@ -1313,10 +1313,10 @@ else
 
     private async Task StartEditAvailability()
     {
-        if (bookDetails?.Book.Editable ?? false)
+        if (_bookDetails?.Book.Editable ?? false)
         {
             isEditingAvailability = true;
-            editedAvailability = bookDetails!.Book.Availability.ToString();
+            editedAvailability = _bookDetails!.Book.Availability.ToString();
         }
         else if (isBookSealed)
         {
@@ -1326,7 +1326,7 @@ else
 
     private async Task UpdateAvailability()
     {
-        if (bookDetails == null || string.IsNullOrWhiteSpace(editedAvailability) || editedAvailability == bookDetails.Book.Availability.ToString())
+        if (_bookDetails == null || string.IsNullOrWhiteSpace(editedAvailability) || editedAvailability == _bookDetails.Book.Availability.ToString())
         {
             isEditingAvailability = false;
             return;
@@ -1336,7 +1336,7 @@ else
         {
             var context = await GetContext();
             var availability = Availability.FromString(editedAvailability);
-            var result = await BookService.SetAvailabilityAsync(context, availability, bookDetails.Book.BookId, FSharpOption<CancellationToken>.None);
+            var result = await BookService.SetAvailabilityAsync(context, availability, _bookDetails.Book.BookId, FSharpOption<CancellationToken>.None);
             if (result.IsOk)
             {
                 await WaitForCacheUpdateAsync(d => d.Book.Availability.ToString() == editedAvailability);
@@ -1375,16 +1375,16 @@ else
 
     private async Task DeleteBook()
     {
-        if (bookDetails == null) return;
+        if (_bookDetails == null) return;
         
-        bool confirmed = await JSRuntime.InvokeAsync<bool>("confirm", $"{L["ConfirmPermanentlyDeleteBook"]} '{bookDetails.Book.Title.Value}'?");
+        bool confirmed = await JSRuntime.InvokeAsync<bool>("confirm", $"{L["ConfirmPermanentlyDeleteBook"]} '{_bookDetails.Book.Title.Value}'?");
         if (!confirmed) return;
         
         try 
         {
             var context = await GetContext();
             // The service now handles the 3-phase removal (Vector DB cleanup, association removal, and book deletion)
-            var result = await BookService.RemoveBookAsync(context, bookDetails.Book.BookId, FSharpOption<CancellationToken>.None);
+            var result = await BookService.RemoveBookAsync(context, _bookDetails.Book.BookId, FSharpOption<CancellationToken>.None);
             if (result.IsOk)
             {
                 NavigationManager.NavigateTo("/books-manager");
@@ -1402,7 +1402,7 @@ else
 
     private async Task UpdateTitle()
     {
-        if (bookDetails == null || string.IsNullOrWhiteSpace(editedTitle) || editedTitle == bookDetails.Book.Title.Value)
+        if (_bookDetails == null || string.IsNullOrWhiteSpace(editedTitle) || editedTitle == _bookDetails.Book.Title.Value)
         {
             isEditingTitle = false;
             return;
@@ -1412,7 +1412,7 @@ else
         {
             var context = await GetContext();
             var title = Title.New(editedTitle);
-            var result = await BookService.UpdateTitleAsync(context, title, bookDetails.Book.BookId, FSharpOption<CancellationToken>.None);
+            var result = await BookService.UpdateTitleAsync(context, title, _bookDetails.Book.BookId, FSharpOption<CancellationToken>.None);
             
             if (result.IsOk)
             {
@@ -1434,7 +1434,7 @@ else
 
     private async Task UpdateImageUrl()
     {
-        if (bookDetails == null) return;
+        if (_bookDetails == null) return;
         
         try 
         {
@@ -1447,7 +1447,7 @@ else
             if (Uri.TryCreate(editedImageUrl, UriKind.Absolute, out var uri))
             {
                 var context = await GetContext();
-                var result = await BookService.SetImageUrlAsync(context, bookDetails.Book.BookId, uri);
+                var result = await BookService.SetImageUrlAsync(context, _bookDetails.Book.BookId, uri);
                 if (result.IsOk)
                 {
                     await ShowStatus(L["ImageUrlUpdated"], "alert-success");
@@ -1472,7 +1472,7 @@ else
 
     private async Task RemoveImageUrl()
     {
-        if (bookDetails == null) return;
+        if (_bookDetails == null) return;
         
         bool confirm = await JSRuntime.InvokeAsync<bool>("confirm", L["ConfirmRemoveBookImage"]);
         if (!confirm) return;
@@ -1480,7 +1480,7 @@ else
         try
         {
             var context = await GetContext();
-            var result = await BookService.RemoveImageUrlAsync(context, bookDetails.Book.BookId);
+            var result = await BookService.RemoveImageUrlAsync(context, _bookDetails.Book.BookId);
             if (result.IsOk)
             {
                 await ShowStatus(L["ImageCoverRemoved"], "alert-info");
@@ -1500,7 +1500,7 @@ else
 
     private async Task LookupCover()
     {
-        if (bookDetails == null) return;
+        if (_bookDetails == null) return;
 
         isLookingUpCover = true;
         StateHasChanged();
@@ -1524,13 +1524,13 @@ else
                 else if (coverSizeLookup == "Large") size = ThumbRoughSize.Large;
 
                 var context = await GetContext();
-                result = await GoogleBooksService.LookupCoverImageByIsbnWithOpenApiAndThenGoogleAsync(context, bookDetails.Book.Isbn, FSharpOption<ThumbRoughSize>.Some(size));
+                result = await GoogleBooksService.LookupCoverImageByIsbnWithOpenApiAndThenGoogleAsync(context, _bookDetails.Book.Isbn, FSharpOption<ThumbRoughSize>.Some(size));
             }
             else
             {
                 searchMode = "Title/Author";
-                var title = bookDetails.Book.Title.Value;
-                var firstAuthor = bookDetails.Authors.FirstOrDefault();
+                var title = _bookDetails.Book.Title.Value;
+                var firstAuthor = _bookDetails.Authors.FirstOrDefault();
                 var authorName = firstAuthor != null ? FSharpOption<string>.Some(firstAuthor.Name.Value) : FSharpOption<string>.None;
                 
                 var context = await GetContext();
@@ -1563,11 +1563,11 @@ else
 
     private async Task StartEditDescription()
     {
-        if (bookDetails?.Book.Editable ?? false)
+        if (_bookDetails?.Book.Editable ?? false)
         {
-            isEditingDescription = true;
-            editedDescription = FSharpOption<string>.get_IsSome(bookDetails.Book.Description) 
-                ? bookDetails.Book.Description.Value 
+            _isEditingDescription = true;
+            _editedDescription = FSharpOption<string>.get_IsSome(_bookDetails.Book.Description) 
+                ? _bookDetails.Book.Description.Value 
                 : "";
         }
         else if (isBookSealed)
@@ -1578,32 +1578,32 @@ else
 
     private void CancelEditDescription()
     {
-        isEditingDescription = false;
-        previousDescription = null;
+        _isEditingDescription = false;
+        _previousDescription = null;
     }
 
     private async Task UpdateDescription()
     {
-        if (bookDetails == null) return;
+        if (_bookDetails == null) return;
         
         try 
         {
             FSharpResult<Microsoft.FSharp.Core.Unit, string> result;
             
-            if (string.IsNullOrWhiteSpace(editedDescription))
+            if (string.IsNullOrWhiteSpace(_editedDescription))
             {
                 var context = await GetContext();
-                result = await BookService.RemoveDescriptionAsync(context, bookDetails.Book.BookId, FSharpOption<System.Threading.CancellationToken>.None);
+                result = await BookService.RemoveDescriptionAsync(context, _bookDetails.Book.BookId, FSharpOption<System.Threading.CancellationToken>.None);
                 if (result.IsOk) await ShowStatus(L["DescriptionRemoved"], "alert-success");
             }
             else
             {
                 var context = await GetContext();
-                result = await BookService.UpdateDescriptionAsync(context, editedDescription, bookDetails.Book.BookId, FSharpOption<System.Threading.CancellationToken>.None);
+                result = await BookService.UpdateDescriptionAsync(context, _editedDescription, _bookDetails.Book.BookId, FSharpOption<System.Threading.CancellationToken>.None);
                 if (result.IsOk) 
                 {
                     await ShowStatus(L["DescriptionUpdated"], "alert-success");
-                    if (FSharpOption<EmbeddingDataId>.get_IsSome(bookDetails.Book.OptionalEmbedding))
+                    if (FSharpOption<EmbeddingDataId>.get_IsSome(_bookDetails.Book.OptionalEmbedding))
                     {
                         await ShowStatus(L["UpdateEmbeddingAdvice"], "alert-warning");
                     }
@@ -1612,16 +1612,16 @@ else
             
             if (result.IsOk)
             {
-                if (string.IsNullOrWhiteSpace(editedDescription))
+                if (string.IsNullOrWhiteSpace(_editedDescription))
                 {
                     await WaitForCacheUpdateAsync(d => FSharpOption<string>.get_IsNone(d.Book.Description));
                 }
                 else
                 {
-                    await WaitForCacheUpdateAsync(d => FSharpOption<string>.get_IsSome(d.Book.Description) && d.Book.Description.Value == editedDescription);
+                    await WaitForCacheUpdateAsync(d => FSharpOption<string>.get_IsSome(d.Book.Description) && d.Book.Description.Value == _editedDescription);
                 }
-                isEditingDescription = false;
-                previousDescription = null;
+                _isEditingDescription = false;
+                _previousDescription = null;
             }
             else
             {
@@ -1636,15 +1636,15 @@ else
 
     private async Task GenerateEmbedding()
     {
-        if (bookDetails == null || FSharpOption<string>.get_IsNone(bookDetails.Book.Description)) return;
+        if (_bookDetails == null || FSharpOption<string>.get_IsNone(_bookDetails.Book.Description)) return;
         
-        isGeneratingEmbedding = true;
+        _isGeneratingEmbedding = true;
         try
         {
-            var text = bookDetails.Book.Description.Value;
+            var text = _bookDetails.Book.Description.Value;
             var context = await GetContext();
 
-            var embedResult = await EmbeddingOrchestrationService.CreateEmbeddingForBookAsync(context, bookDetails.Book.BookId);  //, FSharpOption<System.Threading.CancellationToken>.None);
+            var embedResult = await EmbeddingOrchestrationService.CreateEmbeddingForBookAsync(context, _bookDetails.Book.BookId);  //, FSharpOption<System.Threading.CancellationToken>.None);
             
             if (!embedResult.IsOk)
             {
@@ -1689,27 +1689,27 @@ else
         }
         finally
         {
-            isGeneratingEmbedding = false;
+            _isGeneratingEmbedding = false;
         }
     }
 
     private async Task PerformSanityCheck()
     {
-        if (string.IsNullOrWhiteSpace(sanityCheckQuery) || bookDetails == null) return;
+        if (string.IsNullOrWhiteSpace(_sanityCheckQuery) || _bookDetails == null) return;
         
-        isPerformingSanityCheck = true;
-        sanityCheckResults = null;
+        _isPerformingSanityCheck = true;
+        _sanityCheckResults = null;
         try
         {
             var context = await GetContext();
-            var embeddingResult = await TextEmbeddingService.GetEmbeddingAsync(context, sanityCheckQuery);
+            var embeddingResult = await TextEmbeddingService.GetEmbeddingAsync(context, _sanityCheckQuery);
             if (!embeddingResult.IsOk)
             {
                 await ShowStatus($"Query embedding failed: {embeddingResult.ErrorValue}", "alert-danger");
                 return;
             }
 
-            var searchResult = await VectorDbService.SearchSimilarEmbeddingsWithScoreAsync(embeddingResult.ResultValue, _currentTenant, sanityCheckLimit);
+            var searchResult = await VectorDbService.SearchSimilarEmbeddingsWithScoreAsync(embeddingResult.ResultValue, _currentTenant, _sanityCheckLimit);
             if (!searchResult.IsOk)
             {
                 await ShowStatus($"Semantic search failed: {searchResult.ErrorValue}", "alert-danger");
@@ -1732,7 +1732,7 @@ else
                     results.Add(new SanityCheckResult { Id = bookId, Title = "Unknown Title", Score = score, Explanation = null, IsLoadingExplanation = false });
                 }
             }
-            sanityCheckResults = results;
+            _sanityCheckResults = results;
         }
         catch (Exception ex)
         {
@@ -1740,7 +1740,7 @@ else
         }
         finally
         {
-            isPerformingSanityCheck = false;
+            _isPerformingSanityCheck = false;
         }
     }
 
@@ -1765,7 +1765,7 @@ else
                 var desc = FSharpOption<string>.get_IsSome(book.Description) ? book.Description.Value : "";
                 var bookText = $"{book.Title.Value}. {desc}";
                 context = await GetContext();
-                var explanationResult = await TextEmbeddingService.GetMatchExplanationAsync(context, sanityCheckQuery, bookText);
+                var explanationResult = await TextEmbeddingService.GetMatchExplanationAsync(context, _sanityCheckQuery, bookText);
                 if (explanationResult.IsOk)
                 {
                     res.Explanation = explanationResult.ResultValue;
@@ -1806,10 +1806,10 @@ else
 
     private async Task StartEditIsbn()
     {
-        if (bookDetails?.Book.Editable ?? false)
+        if (_bookDetails?.Book.Editable ?? false)
         {
             isEditingIsbn = true;
-            editedIsbn = bookDetails.Book.Isbn.Value;
+            editedIsbn = _bookDetails.Book.Isbn.Value;
             acceptInvalidIsbn = false;
         }
         else if (isBookSealed)
@@ -1825,7 +1825,7 @@ else
 
     private async Task UpdateIsbn()
     {
-        if (bookDetails == null) return;
+        if (_bookDetails == null) return;
         if (string.IsNullOrWhiteSpace(editedIsbn))
         {
             await ShowStatus(L["IsbnCannotBeEmpty"], "alert-warning");
@@ -1852,7 +1852,7 @@ else
             }
 
             var context = await GetContext();
-            var result = await BookService.UpdateIsbnAsync(context, isbn, bookDetails.Book.BookId, FSharpOption<CancellationToken>.None);
+            var result = await BookService.UpdateIsbnAsync(context, isbn, _bookDetails.Book.BookId, FSharpOption<CancellationToken>.None);
             if (result.IsOk)
             {
                 await WaitForCacheUpdateAsync(d => d.Book.Isbn.Value == isbn.Value);
@@ -1872,7 +1872,7 @@ else
 
     private async Task WaitForCacheUpdateAsync(Func<Details.BookDetails, bool> condition)
     {
-        if (bookDetails == null) return;
+        if (_bookDetails == null) return;
 
         int retries = 20;
         while (retries > 0)
@@ -1880,13 +1880,13 @@ else
             await Task.Delay(100);
             var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
             var context = blazorBookLibrary.Shared.ConverterUtils.fromClaimsPrincipal(authState.User);
-            var freshDetailsResult = await DetailsService.GetBookDetailsAsync(context, bookDetails.Book.BookId, FSharpOption<CancellationToken>.None);
+            var freshDetailsResult = await DetailsService.GetBookDetailsAsync(context, _bookDetails.Book.BookId, FSharpOption<CancellationToken>.None);
             if (freshDetailsResult.IsOk)
             {
                 var freshDetails = freshDetailsResult.ResultValue;
                 if (condition(freshDetails))
                 {
-                    bookDetails = freshDetails;
+                    _bookDetails = freshDetails;
                     StateHasChanged();
                     return;
                 }
@@ -1900,7 +1900,7 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        isPageLoading = true;
+        _isPageLoading = true;
         try
         {
             var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
@@ -1925,7 +1925,7 @@ else
 
                 if (isAdmin || isOwner)
                 {
-                    isAuthorized = true;
+                    _isAuthorized = true;
 
                     enableAIExplanations = Configuration.GetValue<bool>("BooksLibrary:EnableAIExtendedExplanations");
                     await LoadBookDetails();
@@ -1970,14 +1970,14 @@ else
         }
         finally
         {
-            isPageLoading = false;
+            _isPageLoading = false;
         }
     }
 
     private async Task LoadBookDetails()
     {
-        isLoading = true;
-        statusMessage = "";
+        _isLoading = true;
+        _statusMessage = "";
 
         try
         {
@@ -1990,14 +1990,14 @@ else
 
                 if (result.IsOk)
                 {
-                    bookDetails = result.ResultValue;
-                    if (bookDetails.PendingReservationsDetails.Any())
+                    _bookDetails = result.ResultValue;
+                    if (_bookDetails.PendingReservationsDetails.Any())
                     {
-                        var firstRes = bookDetails.PendingReservationsDetails.First();
+                        var firstRes = _bookDetails.PendingReservationsDetails.First();
                         var preFill = Configuration.GetValue<bool>("BooksLibrary:PreFillReservationCode");
                         if (preFill)
                         {
-                            reservationCodeInput = firstRes.Reservation.ReservationCode.Value;
+                            _reservationCodeInput = firstRes.Reservation.ReservationCode.Value;
                         }
                     }
                 }
@@ -2017,13 +2017,13 @@ else
         }
         finally
         {
-            isLoading = false;
+            _isLoading = false;
         }
     }
 
     private async Task ConvertToLoan(Details.ReservationDetails resDetails)
     {
-        if (string.IsNullOrWhiteSpace(reservationCodeInput))
+        if (string.IsNullOrWhiteSpace(_reservationCodeInput))
         {
             await ShowStatus("Please enter a reservation code.", "alert-warning");
             return;
@@ -2032,7 +2032,7 @@ else
         try
         {
             @* var resCode = ReservationCode.ReservationCode(reservationCodeInput); *@
-            var resCode = ReservationCode.ReservationCode.NewReservationCode(reservationCodeInput);
+            var resCode = ReservationCode.ReservationCode.NewReservationCode(_reservationCodeInput);
             var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
             var context = blazorBookLibrary.Shared.ConverterUtils.fromClaimsPrincipal(authState.User);
             var result = await LoanService.TransformReservationIntoLoanAsync(
@@ -2046,7 +2046,7 @@ else
             {
                 await ShowStatus("Reservation successfully converted to loan.", "alert-success");
                 await WaitForCacheUpdateAsync(d => !d.PendingReservationsDetails.Any(r => r.Reservation.ReservationId.Value == resDetails.Reservation.ReservationId.Value));
-                reservationCodeInput = "";
+                _reservationCodeInput = "";
             }
             else
             {
@@ -2061,8 +2061,8 @@ else
 
     private async Task ShowStatus(string message, string cssClass)
     {
-        statusMessage = message;
-        statusClass = cssClass;
+        _statusMessage = message;
+        _statusClass = cssClass;
         StateHasChanged();
 
         try
@@ -2082,19 +2082,19 @@ else
 
     private async Task RemoveEmbedding()
     {
-        if (bookDetails == null || FSharpOption<EmbeddingDataId>.get_IsNone(bookDetails.Book.OptionalEmbedding)) return;
+        if (_bookDetails == null || FSharpOption<EmbeddingDataId>.get_IsNone(_bookDetails.Book.OptionalEmbedding)) return;
 
         bool confirm = await JSRuntime.InvokeAsync<bool>("confirm", L["ConfirmRemoveEmbedding"]);
         if (!confirm) return;
 
-        isRemovingEmbedding = true;
-        var embeddingId = bookDetails.Book.OptionalEmbedding.Value;
+        _isRemovingEmbedding = true;
+        var embeddingId = _bookDetails.Book.OptionalEmbedding.Value;
 
         try
         {
             var context = await GetContext();
             // 1. Remove from Book object via BookService
-            var bookResult = await BookService.RemoveEmbeddingAsync(context, bookDetails.Book.BookId);
+            var bookResult = await BookService.RemoveEmbeddingAsync(context, _bookDetails.Book.BookId);
             if (!bookResult.IsOk)
             {
                 await ShowStatus(string.Format(L["ErrorRemovingEmbedding"], bookResult.ErrorValue), "alert-danger");
@@ -2108,7 +2108,7 @@ else
                 // Inform user and restore the reference in the Book object for consistency
                 await ShowStatus(L["VectorDbRemovalFailed"], "alert-warning");
                 context = await GetContext();
-                var restoreResult = await BookService.EmbedDescriptionAsync(context, bookDetails.Book.BookId, embeddingId);
+                var restoreResult = await BookService.EmbedDescriptionAsync(context, _bookDetails.Book.BookId, embeddingId);
                 if (!restoreResult.IsOk)
                 {
                     await ShowStatus(string.Format(L["ErrorRestoringEmbedding"], restoreResult.ErrorValue), "alert-danger");
@@ -2127,21 +2127,21 @@ else
         }
         finally
         {
-            isRemovingEmbedding = false;
+            _isRemovingEmbedding = false;
         }
     }
 
     private async Task GenerateAIDescription()
     {
-        if (bookDetails == null) return;
+        if (_bookDetails == null) return;
         
-        isGeneratingDescription = true;
+        _isGeneratingDescription = true;
         StateHasChanged();
         try
         {
-            var title = bookDetails.Book.Title.Value;
-            var authors = bookDetails.Authors.Select(a => a.Name.Value).ToList();
-            var isbn = bookDetails.Book.Isbn.Value;
+            var title = _bookDetails.Book.Title.Value;
+            var authors = _bookDetails.Authors.Select(a => a.Name.Value).ToList();
+            var isbn = _bookDetails.Book.Isbn.Value;
             
             var authorsFSharp = Microsoft.FSharp.Collections.ListModule.OfSeq(authors);
             var partialData = PartialBookDataMatch.NewAll(isbn, title, authorsFSharp);
@@ -2151,10 +2151,10 @@ else
             if (result.IsOk)
             {
                 // Capture current state for undo
-                previousDescription = isEditingDescription ? editedDescription : (FSharpOption<string>.get_IsSome(bookDetails.Book.Description) ? bookDetails.Book.Description.Value : "");
+                _previousDescription = _isEditingDescription ? _editedDescription : (FSharpOption<string>.get_IsSome(_bookDetails.Book.Description) ? _bookDetails.Book.Description.Value : "");
                 
-                isEditingDescription = true;
-                editedDescription = result.ResultValue;
+                _isEditingDescription = true;
+                _editedDescription = result.ResultValue;
                 await ShowStatus(L["DescriptionGenerated"], "alert-success");
             }
             else
@@ -2168,31 +2168,31 @@ else
         }
         finally
         {
-            isGeneratingDescription = false;
+            _isGeneratingDescription = false;
             StateHasChanged();
         }
     }
 
     private void UndoDescriptionChange()
     {
-        if (previousDescription != null)
+        if (_previousDescription != null)
         {
-            editedDescription = previousDescription;
-            previousDescription = null;
-            isEditingDescription = true;
+            _editedDescription = _previousDescription;
+            _previousDescription = null;
+            _isEditingDescription = true;
         }
     }
 
     private async Task SetDistributionPoint()
     {
-        if (string.IsNullOrEmpty(selectedDistributionPointIdToSet) || bookDetails == null || currentUserId == null) return;
+        if (string.IsNullOrEmpty(selectedDistributionPointIdToSet) || _bookDetails == null || currentUserId == null) return;
         
         isUpdatingDP = true;
         try
         {
             var context = await GetContext();
             var dpId = DistributionPointId.NewDistributionPointId(new Guid(selectedDistributionPointIdToSet));
-            var result = await BookService.SetDistributionPointAsync(context, dpId, bookDetails.Book.BookId, currentUserId, FSharpOption<CancellationToken>.None);
+            var result = await BookService.SetDistributionPointAsync(context, dpId, _bookDetails.Book.BookId, currentUserId, FSharpOption<CancellationToken>.None);
             if (result.IsOk)
             {
                 await ShowStatus(L["DistributionPointSetSuccess"], "alert-success");
@@ -2216,9 +2216,9 @@ else
 
     private async Task UnsetDistributionPoint()
     {
-        if (bookDetails == null || FSharpOption<DistributionPoint>.get_IsNone(bookDetails.DistributionPoint) || currentUserId == null) return;
+        if (_bookDetails == null || FSharpOption<DistributionPoint>.get_IsNone(_bookDetails.DistributionPoint) || currentUserId == null) return;
         
-        var dp = bookDetails.DistributionPoint.Value;
+        var dp = _bookDetails.DistributionPoint.Value;
         bool confirm = await JSRuntime.InvokeAsync<bool>("confirm", string.Format(L["ConfirmUnsetDP"], dp.Name.Value));
         if (!confirm) return;
 
@@ -2226,7 +2226,7 @@ else
         try
         {
             var context = await GetContext();
-            var result = await BookService.UnSetDistributionPointAsync(context, dp.DistributionPointId, bookDetails.Book.BookId, currentUserId, FSharpOption<CancellationToken>.None);
+            var result = await BookService.UnSetDistributionPointAsync(context, dp.DistributionPointId, _bookDetails.Book.BookId, currentUserId, FSharpOption<CancellationToken>.None);
             if (result.IsOk)
             {
                 await ShowStatus(L["DistributionPointUnsetSuccess"], "alert-success");

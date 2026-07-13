@@ -1,9 +1,5 @@
 @page "/control-panel"
 @using Microsoft.AspNetCore.Authorization
-@using BookLibrary.Shared.Services
-@using blazorBookLibrary.Shared.Resources
-@using Microsoft.Extensions.Localization
-@using BookLibrary.Domain
 @using static BookLibrary.Shared.Commons
 @using Microsoft.AspNetCore.SignalR.Client
 @attribute [Authorize(Roles = "Admin")]
@@ -11,7 +7,7 @@
 @inject IDistributionPointService DistributionPointService
 @inject IBookService BookService
 @inject ITenantService TenantService
-@inject blazorBookLibrary.Client.Services.TenantStateService TenantState
+@inject Services.TenantStateService TenantState
 @inject AuthenticationStateProvider AuthStateProvider
 @inject IStringLocalizer<SharedResources> L
 @inject ILogger<ControlPanel> Logger
@@ -51,8 +47,8 @@
                 </div>
                 <p class="text-muted small flex-grow-1">@L["PurgeVectorsDescription"]</p>
                 <div class="d-flex gap-2 mt-4">
-                    <button class="btn btn-sanctuary flex-grow-1 py-3" @onclick="PurgeVectors" disabled="@(isProcessing && !isPurging)">
-                        @if (isPurging)
+                    <button class="btn btn-sanctuary flex-grow-1 py-3" @onclick="PurgeVectors" disabled="@(IsProcessing && !_isPurging)">
+                        @if (_isPurging)
                         {
                             <span class="spinner-border spinner-border-sm me-2"></span>
                         }
@@ -62,7 +58,7 @@
                         }
                         @L["PurgeVectors"]
                     </button>
-                    @if (isPurging)
+                    @if (_isPurging)
                     {
                         <button class="btn btn-outline-danger px-4 animate-fade-in" @onclick="CancelOperation" title="@L["Cancel"]">
                             <i class="bi bi-x-lg"></i>
@@ -83,8 +79,8 @@
                 </div>
                 <p class="text-muted small flex-grow-1">@L["AdjustBookStatesDescription"]</p>
                 <div class="d-flex gap-2 mt-4">
-                    <button class="btn btn-outline-sanctuary flex-grow-1 py-3" @onclick="AdjustBookStates" disabled="@(isProcessing && !isAdjusting)">
-                        @if (isAdjusting)
+                    <button class="btn btn-outline-sanctuary flex-grow-1 py-3" @onclick="AdjustBookStates" disabled="@(IsProcessing && !_isAdjusting)">
+                        @if (_isAdjusting)
                         {
                             <span class="spinner-border spinner-border-sm me-2"></span>
                         }
@@ -94,7 +90,7 @@
                         }
                         @L["AdjustBookStates"]
                     </button>
-                    @if (isAdjusting)
+                    @if (_isAdjusting)
                     {
                         <button class="btn btn-outline-danger px-4 animate-fade-in" @onclick="CancelOperation" title="@L["Cancel"]">
                             <i class="bi bi-x-lg"></i>
@@ -117,8 +113,8 @@
                 </div>
                 <p class="text-muted small flex-grow-1">@L["CleanDuplicatedVectorsDescription"]</p>
                 <div class="d-flex gap-2 mt-4">
-                    <button class="btn btn-outline-info flex-grow-1 py-3" @onclick="CleanDuplicatedVectors" disabled="@(isProcessing && !isCleaning)">
-                        @if (isCleaning)
+                    <button class="btn btn-outline-info flex-grow-1 py-3" @onclick="CleanDuplicatedVectors" disabled="@(IsProcessing && !_isCleaning)">
+                        @if (_isCleaning)
                         {
                             <span class="spinner-border spinner-border-sm me-2"></span>
                         }
@@ -128,7 +124,7 @@
                         }
                         @L["CleanDuplicatedVectors"]
                     </button>
-                    @if (isCleaning)
+                    @if (_isCleaning)
                     {
                         <button class="btn btn-outline-danger px-4 animate-fade-in" @onclick="CancelOperation" title="@L["Cancel"]">
                             <i class="bi bi-x-lg"></i>
@@ -180,8 +176,8 @@
                         <button class="btn btn-outline-danger py-3 px-3" 
                                 @onclick="DetachAllBooks" 
                                 title="@L["DetachAllBooks"]"
-                                disabled="@(isProcessing || string.IsNullOrEmpty(selectedDpId))">
-                            @if (isDetaching)
+                                disabled="@(IsProcessing || string.IsNullOrEmpty(selectedDpId))">
+                            @if (_isDetaching)
                             {
                                 <span class="spinner-border spinner-border-sm"></span>
                             }
@@ -193,8 +189,8 @@
                         
                         <button class="btn btn-sanctuary flex-grow-1 py-3" 
                                 @onclick="SwitchAllBooks" 
-                                disabled="@(isProcessing || string.IsNullOrEmpty(selectedDpId) || string.IsNullOrEmpty(selectedTargetDpId) || selectedDpId == selectedTargetDpId)">
-                            @if (isSwitching)
+                                disabled="@(IsProcessing || string.IsNullOrEmpty(selectedDpId) || string.IsNullOrEmpty(selectedTargetDpId) || selectedDpId == selectedTargetDpId)">
+                            @if (_isSwitching)
                             {
                                 <span class="spinner-border spinner-border-sm me-2"></span>
                             }
@@ -299,12 +295,12 @@
 </div>
 
 @code {
-    private bool isPurging = false;
-    private bool isAdjusting = false;
-    private bool isCleaning = false;
-    private bool isDetaching = false;
-    private bool isSwitching = false;
-    private bool isProcessing => isPurging || isAdjusting || isCleaning || isDetaching || isSwitching;
+    private bool _isPurging = false;
+    private bool _isAdjusting = false;
+    private bool _isCleaning = false;
+    private bool _isDetaching = false;
+    private bool _isSwitching = false;
+    private bool IsProcessing => _isPurging || _isAdjusting || _isCleaning || _isDetaching || _isSwitching;
     private CancellationTokenSource? cts;
 
     private List<Tag> allTags = new();
@@ -346,7 +342,7 @@
     private async Task LoadDistributionPoints()
     {
         var authState = await AuthStateProvider.GetAuthenticationStateAsync();
-        var userContext = blazorBookLibrary.Shared.ConverterUtils.fromClaimsPrincipal(authState.User);
+        var userContext = Shared.ConverterUtils.fromClaimsPrincipal(authState.User);
         var result = await DistributionPointService.GetAllDistributionPointsAsync(userContext);
         if (result.IsOk)
         {
@@ -473,7 +469,7 @@
 
     private async Task PurgeVectors()
     {
-        isPurging = true;
+        _isPurging = true;
         cts = new CancellationTokenSource();
         try
         {
@@ -508,7 +504,7 @@
         }
         finally
         {
-            isPurging = false;
+            _isPurging = false;
             cts.Dispose();
             cts = null;
         }
@@ -516,7 +512,7 @@
 
     private async Task AdjustBookStates()
     {
-        isAdjusting = true;
+        _isAdjusting = true;
         cts = new CancellationTokenSource();
         try
         {
@@ -551,7 +547,7 @@
         }
         finally
         {
-            isAdjusting = false;
+            _isAdjusting = false;
             cts.Dispose();
             cts = null;
         }
@@ -559,7 +555,7 @@
 
     private async Task CleanDuplicatedVectors()
     {
-        isCleaning = true;
+        _isCleaning = true;
         cts = new CancellationTokenSource();
         try
         {
@@ -594,7 +590,7 @@
         }
         finally
         {
-            isCleaning = false;
+            _isCleaning = false;
             cts.Dispose();
             cts = null;
         }
@@ -607,7 +603,7 @@
         bool confirmed = await JSRuntime.InvokeAsync<bool>("confirm", L["ConfirmDetachAllBooks"].Value);
         if (!confirmed) return;
 
-        isDetaching = true;
+        _isDetaching = true;
         try
         {
             var authState = await AuthStateProvider.GetAuthenticationStateAsync();
@@ -632,7 +628,7 @@
         }
         finally
         {
-            isDetaching = false;
+            _isDetaching = false;
         }
     }
 
@@ -648,7 +644,7 @@
         bool confirmed = await JSRuntime.InvokeAsync<bool>("confirm", string.Format(L["ConfirmSwitchAllBooks"].Value, sourceDp.Name.Value, targetDp.Name.Value));
         if (!confirmed) return;
 
-        isSwitching = true;
+        _isSwitching = true;
         try
         {
             var authState = await AuthStateProvider.GetAuthenticationStateAsync();
@@ -677,7 +673,7 @@
         }
         finally
         {
-            isSwitching = false;
+            _isSwitching = false;
         }
     }
 

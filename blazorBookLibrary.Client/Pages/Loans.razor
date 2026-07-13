@@ -1,21 +1,13 @@
 @page "/loans"
 @using Microsoft.AspNetCore.Authorization
-@using Microsoft.AspNetCore.Components.QuickGrid
-@using BookLibrary.Shared.Services
-@using BookLibrary.Domain
-@using BookLibrary.Shared
 @using System.Globalization
 @using static BookLibrary.Shared.Details
-@using blazorBookLibrary.Shared.Resources
-@using Microsoft.Extensions.Localization
-@using Microsoft.FSharp.Collections
-@using static BookLibrary.Shared.Commons
 @using Microsoft.AspNetCore.SignalR.Client
 
 @attribute [Authorize]
 @inject IUserTenantResolverService UserTenantResolverService
 @inject ITenantService TenantService
-@inject blazorBookLibrary.Client.Services.TenantStateService TenantState
+@inject Services.TenantStateService TenantState
 @inject ILoanService LoanService
 @inject IDetailsService DetailsService
 @inject IJSRuntime JSRuntime
@@ -28,7 +20,7 @@
 
 <PageTitle>@L["LoansManagement"] — @L["BiblioNet"]</PageTitle>
 
-@if (isPageLoading)
+@if (_isPageLoading)
 {
     <div class="sanctuary-container py-5 text-center">
         <div class="spinner-border text-primary" role="status">
@@ -37,7 +29,7 @@
         <p class="mt-2 text-muted">@L["RetrievingArchivalRecords"]...</p>
     </div>
 }
-else if (!isAuthorized)
+else if (!_isAuthorized)
 {
     <div class="sanctuary-container py-5">
         <div class="card-sanctuary p-5 text-center shadow-lg border-0 rounded-4" style="max-width: 600px; margin: 0 auto; background: #fff; border: 1px solid rgba(0,0,0,0.05); border-radius: 1.25rem;">
@@ -86,7 +78,7 @@ else
             <div class="col-md-6">
                 <div class="input-group">
                     <span class="input-group-text bg-transparent border-end-0 text-muted"><i class="bi bi-search"></i></span>
-                    <input type="search" class="form-control border-start-0" @bind="bookFilter" @bind:event="oninput" placeholder="@L["FilterByBookTitle"]" />
+                    <input type="search" class="form-control border-start-0" @bind="_bookFilter" @bind:event="oninput" placeholder="@L["FilterByBookTitle"]" />
                 </div>
             </div>
             <div class="col-md-6">
@@ -101,9 +93,9 @@ else
     @* Loans Ledger *@
     <div class="card-sanctuary p-0 overflow-hidden animate-fade-in">
         <div class="table-responsive">
-            <QuickGrid Items="@FilteredLoans" Pagination="@pagination" Class="editorial-ledger w-100 align-middle">
+            <QuickGrid Items="@FilteredLoans" Pagination="@_pagination" Class="editorial-ledger w-100 align-middle">
                 
-                <TemplateColumn Title="@L["Book"]" SortBy="@sortTitle">
+                <TemplateColumn Title="@L["Book"]" SortBy="@_sortTitle">
                     <div class="d-flex align-items-center gap-3 py-2">
                         @if (context.Book.ImageUrl != null && Microsoft.FSharp.Core.FSharpOption<Uri>.get_IsSome(context.Book.ImageUrl))
                         {
@@ -122,7 +114,7 @@ else
                     </div>
                 </TemplateColumn>
 
-                <TemplateColumn Title="@L["Patron"]" SortBy="@sortPatron">
+                <TemplateColumn Title="@L["Patron"]" SortBy="@_sortPatron">
                     <div class="d-flex align-items-center gap-2">
                         <i class="bi bi-person-circle text-muted"></i>
                         <span>@context.UserDetails.AppUser.Email</span>
@@ -131,7 +123,7 @@ else
 
                 <PropertyColumn Property="@(ld => ld.Loan.TimeSlot.Start.ToLocalTime())" Title="@L["LoanedAt"]" Format="yyyy-MM-dd HH:mm" Sortable="true" />
                 
-                <TemplateColumn Title="@L["DueDate"]" SortBy="@sortDueDate">
+                <TemplateColumn Title="@L["DueDate"]" SortBy="@_sortDueDate">
                     @{
                         var isOverdue = context.Loan.IsOverdue(DateTime.UtcNow);
                     }
@@ -154,7 +146,7 @@ else
         </div>
         <div class="px-4 py-3 bg-surface-container border-top d-flex justify-content-between align-items-center">
             <div class="small text-muted serif italic">@L["Showing"] @FilteredLoans.Count() @L["Records"]</div>
-            <Paginator State="@pagination" />
+            <Paginator State="@_pagination" />
         </div>
     </div>
 </div>
@@ -198,21 +190,21 @@ else
 </style>
 
 @code {
-    private bool isAuthorized = false;
-    private bool isPageLoading = true;
-    private List<LoanDetails> loanDetailsList = new();
-    private string bookFilter = "";
+    private bool _isAuthorized = false;
+    private bool _isPageLoading = true;
+    private List<LoanDetails> _loanDetailsList = new();
+    private string _bookFilter = "";
     private string patronFilter = "";
-    private PaginationState pagination = new() { ItemsPerPage = 10 };
+    private PaginationState _pagination = new() { ItemsPerPage = 10 };
 
-    private GridSort<LoanDetails> sortTitle = GridSort<LoanDetails>.ByAscending(ld => ld.Book.Title.Value);
-    private GridSort<LoanDetails> sortPatron = GridSort<LoanDetails>.ByAscending(ld => ld.UserDetails.AppUser.Email);
-    private GridSort<LoanDetails> sortDueDate = GridSort<LoanDetails>.ByAscending(ld => ld.Loan.TimeSlot.End);
+    private GridSort<LoanDetails> _sortTitle = GridSort<LoanDetails>.ByAscending(ld => ld.Book.Title.Value);
+    private GridSort<LoanDetails> _sortPatron = GridSort<LoanDetails>.ByAscending(ld => ld.UserDetails.AppUser.Email);
+    private GridSort<LoanDetails> _sortDueDate = GridSort<LoanDetails>.ByAscending(ld => ld.Loan.TimeSlot.End);
 
     private IQueryable<LoanDetails> FilteredLoans => 
-        loanDetailsList.AsQueryable()
+        _loanDetailsList.AsQueryable()
             .Where(ld => ld.Loan.InProgress && 
-                         (string.IsNullOrEmpty(bookFilter) || ld.Book.Title.Value.Contains(bookFilter, StringComparison.OrdinalIgnoreCase)) &&
+                         (string.IsNullOrEmpty(_bookFilter) || ld.Book.Title.Value.Contains(_bookFilter, StringComparison.OrdinalIgnoreCase)) &&
                          (string.IsNullOrEmpty(patronFilter) || (ld.UserDetails.AppUser.Email != null && ld.UserDetails.AppUser.Email.Contains(patronFilter, StringComparison.OrdinalIgnoreCase))))
             .OrderByDescending(ld => ld.Loan.TimeSlot.Start);
 
@@ -239,7 +231,7 @@ else
 
             hubConnection.On<Guid>("BookCatalogChanged", async (bookId) =>
             {
-                if (loanDetailsList != null && loanDetailsList.Any(l => l.Book.BookId.Value == bookId))
+                if (_loanDetailsList != null && _loanDetailsList.Any(l => l.Book.BookId.Value == bookId))
                 {
                     await LoadLoans();
                     await InvokeAsync(StateHasChanged);
@@ -248,7 +240,7 @@ else
 
             hubConnection.On<Guid>("LoanListChanged", async (loanId) =>
             {
-                if (loanDetailsList != null && loanDetailsList.Any(l => l.Loan.LoanId.Value == loanId))
+                if (_loanDetailsList != null && _loanDetailsList.Any(l => l.Loan.LoanId.Value == loanId))
                 {
                     await LoadLoans();
                     await InvokeAsync(StateHasChanged);
@@ -262,7 +254,7 @@ else
             Logger.LogWarning(ex, "Could not start SignalR hub connection in Loans. Expected during prerendering.");
         }
 
-        isPageLoading = true;
+        _isPageLoading = true;
         try
         {
             var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
@@ -299,7 +291,7 @@ else
 
                 if (isAdmin || isOwner)
                 {
-                    isAuthorized = true;
+                    _isAuthorized = true;
                     await LoadLoans();
                 }
             }
@@ -310,7 +302,7 @@ else
         }
         finally
         {
-            isPageLoading = false;
+            _isPageLoading = false;
         }
     }
 
@@ -321,7 +313,7 @@ else
         var result = await DetailsService.GetAllLoansDetailsAsync(context);
         if (result.IsOk)
         {
-            loanDetailsList = result.ResultValue.ToList();
+            _loanDetailsList = result.ResultValue.ToList();
         }
         else
         {
@@ -336,7 +328,7 @@ else
         if (confirmed)
         {
             var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-            var context = blazorBookLibrary.Shared.ConverterUtils.fromClaimsPrincipal(authState.User);
+            var context = Shared.ConverterUtils.fromClaimsPrincipal(authState.User);
             var result = await LoanService.ReleaseLoanAsync(context, loanDetails.Loan.LoanId, DateTime.UtcNow);
             if (result.IsOk)
             {

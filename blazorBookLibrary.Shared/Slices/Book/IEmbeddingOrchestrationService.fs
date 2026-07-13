@@ -1,10 +1,8 @@
 namespace BookLibrary.Shared.Services
 
 open System.Threading
-open System.Threading.Tasks
 open System.Runtime.InteropServices
 open FsToolkit.ErrorHandling
-open BookLibrary.Domain
 open BookLibrary.Shared.Commons
 
 type IEmbeddingOrchestrationService = 

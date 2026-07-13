@@ -23,7 +23,7 @@ module ConverterUtils =
             
             let guid = 
                 match Guid.TryParse(userIdValue) with
-                | (true, g) -> g
+                | true, g -> g
                 | _ -> Guid.Empty
             
             let roles = 

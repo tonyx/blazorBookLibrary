@@ -52,9 +52,9 @@ type EmbeddingData =
             let mutable magB = 0.0f
 
             for i in 0 .. a.Length - 1 do
-                dot <- dot + (a.[i] * b.[i])
-                magA <- magA + (a.[i] * a.[i])
-                magB <- magB + (b.[i] * b.[i])
+                dot <- dot + (a[i] * b[i])
+                magA <- magA + (a[i] * a[i])
+                magB <- magB + (b[i] * b[i])
 
             float (dot / (sqrt (magA) * sqrt (magB))) |> Ok
         else

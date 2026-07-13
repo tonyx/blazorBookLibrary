@@ -1,16 +1,7 @@
 @page "/edit-review/{reviewIdGuid:guid}"
 @using Microsoft.AspNetCore.Authorization
-@using BookLibrary.Shared.Services
-@using BookLibrary.Domain
-@using BookLibrary.Shared
-@using System.Globalization
 @using static BookLibrary.Shared.Details
-@using blazorBookLibrary.Shared.Security
-@using blazorBookLibrary.Shared.Resources
-@using Microsoft.Extensions.Localization
-@using Microsoft.FSharp.Collections
 @using static BookLibrary.Shared.Commons
-@using Microsoft.AspNetCore.Components.Routing
 
 @attribute [Authorize]
 @inject IReviewService ReviewService
@@ -31,7 +22,7 @@
                 OnBeforeInternalNavigation="ConfirmInternalNavigation" />
 
 <div class="sanctuary-container py-5">
-    @if (isLoading)
+    @if (_isLoading)
     {
         <div class="d-flex justify-content-center py-5">
             <div class="spinner-border text-primary" role="status">
@@ -39,7 +30,7 @@
             </div>
         </div>
     }
-    else if (reviewDetails == null)
+    else if (_reviewDetails == null)
     {
         <div class="alert alert-warning animate-fade-in">@L["ReviewNotFound"]</div>
     }
@@ -50,12 +41,12 @@
                 <nav aria-label="breadcrumb">
                     <ol class="breadcrumb">
                         <li class="breadcrumb-item"><a href="/" class="text-decoration-none text-muted">@L["Home"]</a></li>
-                        <li class="breadcrumb-item"><a href="/book-view/@reviewDetails.Book.BookId.Value" class="text-decoration-none text-muted">@reviewDetails.Book.Title.Value</a></li>
+                        <li class="breadcrumb-item"><a href="/book-view/@_reviewDetails.Book.BookId.Value" class="text-decoration-none text-muted">@_reviewDetails.Book.Title.Value</a></li>
                         <li class="breadcrumb-item active text-serif" aria-current="page">@L["EditReview"]</li>
                     </ol>
                 </nav>
                 <h1 class="display-5 text-serif mb-2">@L["EditReview"]</h1>
-                <p class="text-muted italic">@reviewDetails.Book.Title.Value</p>
+                <p class="text-muted italic">@_reviewDetails.Book.Title.Value</p>
             </div>
 
             <div class="row g-5">
@@ -64,12 +55,12 @@
                         <div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom">
                             <h3 class="h5 text-serif mb-0">@L["Content"]</h3>
                             <div class="d-flex align-items-center gap-3">
-                                @if (reviewDetails.Review.Hidden)
+                                @if (_reviewDetails.Review.Hidden)
                                 {
                                     <span class="badge-sanctuary badge-neutral px-2 py-1 small">
                                         <i class="bi bi-eye-slash me-1"></i> @L["Hidden"]
                                     </span>
-                                    <button class="btn btn-sm btn-outline-success shadow-sm" @onclick="ShowReview" disabled="@isSubmitting">
+                                    <button class="btn btn-sm btn-outline-success shadow-sm" @onclick="ShowReview" disabled="@_isSubmitting">
                                         <i class="bi bi-eye me-1"></i> @L["Show"]
                                     </button>
                                 }
@@ -78,7 +69,7 @@
                                     <span class="badge-sanctuary badge-success px-2 py-1 small">
                                         <i class="bi bi-eye me-1"></i> @L["Visible"]
                                     </span>
-                                    <button class="btn btn-sm btn-outline-neutral shadow-sm" @onclick="HideReview" disabled="@isSubmitting">
+                                    <button class="btn btn-sm btn-outline-neutral shadow-sm" @onclick="HideReview" disabled="@_isSubmitting">
                                         <i class="bi bi-eye-slash me-1"></i> @L["Hide"]
                                     </button>
                                 }
@@ -86,7 +77,7 @@
                         </div>
 
                         <div class="mb-4">
-                            @if (!reviewDetails.Review.Hidden)
+                            @if (!_reviewDetails.Review.Hidden)
                             {
                                 <div class="alert alert-info small mb-3 animate-fade-in">
                                     <i class="bi bi-info-circle me-2"></i> @L["CannotEditVisibleReview"]
@@ -96,24 +87,24 @@
                             <textarea id="reviewComment" 
                                       class="form-control review-textarea" 
                                       rows="10" 
-                                      @bind="editedComment" 
+                                      @bind="_editedComment" 
                                       @bind:event="oninput"
                                       placeholder="@L["ReviewPlaceholder"]"
-                                      disabled="@(!reviewDetails.Review.Hidden || isSubmitting)"></textarea>
+                                      disabled="@(!_reviewDetails.Review.Hidden || _isSubmitting)"></textarea>
                         </div>
 
-                        @if (!string.IsNullOrEmpty(errorMessage))
+                        @if (!string.IsNullOrEmpty(_errorMessage))
                         {
-                            <div class="alert alert-danger mb-4">@errorMessage</div>
+                            <div class="alert alert-danger mb-4">@_errorMessage</div>
                         }
 
                         <div class="d-flex flex-wrap gap-3 mt-5">
                             <button class="btn btn-primary px-4 py-2 shadow-sm" 
                                     @onclick="SaveReview" 
-                                    disabled="@(!hasUnsavedChanges || isSubmitting || !reviewDetails.Review.Hidden)">
+                                    disabled="@(!hasUnsavedChanges || _isSubmitting || !_reviewDetails.Review.Hidden)">
                                 <i class="bi bi-save-fill me-2"></i> @L["SaveChanges"]
                             </button>
-                            <button class="btn btn-link text-muted ms-auto" @onclick="GoBack" disabled="@isSubmitting">@L["Cancel"]</button>
+                            <button class="btn btn-link text-muted ms-auto" @onclick="GoBack" disabled="@_isSubmitting">@L["Cancel"]</button>
                         </div>
                     </div>
                 </div>
@@ -125,7 +116,7 @@
                         <div class="mb-4">
                             <label class="small text-muted text-uppercase fw-bold letter-spacing-1 d-block mb-1">@L["Status"]</label>
                             @{
-                                var status = reviewDetails.Review.ApprovalStatus;
+                                var status = _reviewDetails.Review.ApprovalStatus;
                                 var badgeClass = status.IsApproved ? "badge-success" : (status.IsRejected ? "badge-danger" : "badge-warning");
                                 var statusLabel = status.IsApproved ? L["Approved"] : (status.IsRejected ? L["Rejected"] : L["Pending"]);
                             }
@@ -134,12 +125,12 @@
 
                         <div class="mb-4">
                             <label class="small text-muted text-uppercase fw-bold letter-spacing-1 d-block mb-1">@L["LastUpdated"]</label>
-                            <div class="small">@reviewDetails.Review.Date.ToLocalTime().ToString("f")</div>
+                            <div class="small">@_reviewDetails.Review.Date.ToLocalTime().ToString("f")</div>
                         </div>
 
                         <div class="p-3 bg-surface-container rounded-lg small italic text-muted">
                             <i class="bi bi-lightbulb me-2"></i>
-                            @(reviewDetails.Review.Hidden ? L["HiddenStatusInfo"] : L["VisibleStatusInfo"])
+                            @(_reviewDetails.Review.Hidden ? L["HiddenStatusInfo"] : L["VisibleStatusInfo"])
                         </div>
                     </div>
                 </div>
@@ -180,15 +171,15 @@
 @code {
     [Parameter] public Guid reviewIdGuid { get; set; }
     
-    private ReviewDetails? reviewDetails;
-    private string editedComment = "";
-    private string originalComment = "";
-    private bool isLoading = true;
-    private bool isSubmitting = false;
-    private string errorMessage = "";
-    private UserId? currentUserId;
+    private ReviewDetails? _reviewDetails;
+    private string _editedComment = "";
+    private string _originalComment = "";
+    private bool _isLoading = true;
+    private bool _isSubmitting = false;
+    private string _errorMessage = "";
+    private UserId? _currentUserId;
 
-    private bool hasUnsavedChanges => editedComment != originalComment;
+    private bool hasUnsavedChanges => _editedComment != _originalComment;
 
     protected override async Task OnInitializedAsync()
     {
@@ -199,7 +190,7 @@
     {
         try 
         {
-            isLoading = true;
+            _isLoading = true;
             var reviewSystemEnabled = Configuration.GetValue<bool>("BooksLibrary:ReviewSytemEnabled", true);
             if (!reviewSystemEnabled)
             {
@@ -222,7 +213,7 @@
                 return;
             }
 
-            currentUserId = UserId.NewUserId(userGuid);
+            _currentUserId = UserId.NewUserId(userGuid);
             var reviewId = ReviewId.NewReviewId(reviewIdGuid);
             var context = blazorBookLibrary.Shared.ConverterUtils.fromClaimsPrincipal(user);
 
@@ -237,58 +228,58 @@
                     return;
                 }
 
-                reviewDetails = details;
-                originalComment = details.Review.Comment;
-                editedComment = details.Review.Comment;
+                _reviewDetails = details;
+                _originalComment = details.Review.Comment;
+                _editedComment = details.Review.Comment;
             }
             else
             {
                 Logger.LogError("Error loading review details for ReviewId {ReviewId}: {Error}", reviewIdGuid, result.ErrorValue);
-                errorMessage = L["ErrorOccurred"].Value;
+                _errorMessage = L["ErrorOccurred"].Value;
             }
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Exception while loading review details for ReviewId {ReviewId}", reviewIdGuid);
-            errorMessage = L["ErrorOccurred"].Value;
+            _errorMessage = L["ErrorOccurred"].Value;
         }
         finally
         {
-            isLoading = false;
+            _isLoading = false;
         }
     }
 
     private async Task SaveReview()
     {
-        if (reviewDetails == null) return;
-        isSubmitting = true;
-        errorMessage = "";
+        if (_reviewDetails == null) return;
+        _isSubmitting = true;
+        _errorMessage = "";
 
         try
         {
             var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-            var context = blazorBookLibrary.Shared.ConverterUtils.fromClaimsPrincipal(authState.User);
-            var result = await ReviewService.EditReviewAsync(context, reviewDetails.Review.ReviewId, editedComment, CancellationToken.None);
+            var context = Shared.ConverterUtils.fromClaimsPrincipal(authState.User);
+            var result = await ReviewService.EditReviewAsync(context, _reviewDetails.Review.ReviewId, _editedComment, CancellationToken.None);
             if (result.IsOk)
             {
-                originalComment = editedComment;
+                _originalComment = _editedComment;
                 await JSRuntime.InvokeVoidAsync("showToast", L["ReviewSavedSuccessfully"].Value, "success");
                 await LoadReview();
             }
             else
             {
-                Logger.LogError("Error saving review for ReviewId {ReviewId}: {Error}", reviewDetails.Review.ReviewId.Value, result.ErrorValue);
-                errorMessage = L["ErrorOccurred"].Value;
+                Logger.LogError("Error saving review for ReviewId {ReviewId}: {Error}", _reviewDetails.Review.ReviewId.Value, result.ErrorValue);
+                _errorMessage = L["ErrorOccurred"].Value;
             }
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Exception while saving review for ReviewId {ReviewId}", reviewDetails.Review.ReviewId.Value);
-            errorMessage = L["ErrorOccurred"].Value;
+            Logger.LogError(ex, "Exception while saving review for ReviewId {ReviewId}", _reviewDetails.Review.ReviewId.Value);
+            _errorMessage = L["ErrorOccurred"].Value;
         }
         finally
         {
-            isSubmitting = false;
+            _isSubmitting = false;
         }
     }
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -313,10 +304,10 @@
 
     private async Task HideReview()
     {
-        if (reviewDetails == null) return;
+        if (_reviewDetails == null) return;
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-        var context = blazorBookLibrary.Shared.ConverterUtils.fromClaimsPrincipal(authState.User);
-        var result = await ReviewService.HideAsync(context, reviewDetails.Review.ReviewId, CancellationToken.None);
+        var context = Shared.ConverterUtils.fromClaimsPrincipal(authState.User);
+        var result = await ReviewService.HideAsync(context, _reviewDetails.Review.ReviewId, CancellationToken.None);
         if (result.IsOk)
         {
             await LoadReview();
@@ -325,10 +316,10 @@
 
     private async Task ShowReview()
     {
-        if (reviewDetails == null) return;
+        if (_reviewDetails == null) return;
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-        var context = blazorBookLibrary.Shared.ConverterUtils.fromClaimsPrincipal(authState.User);
-        var result = await ReviewService.ShowAsync(context, reviewDetails.Review.ReviewId, CancellationToken.None);
+        var context = Shared.ConverterUtils.fromClaimsPrincipal(authState.User);
+        var result = await ReviewService.ShowAsync(context, _reviewDetails.Review.ReviewId, CancellationToken.None);
         if (result.IsOk)
         {
             await LoadReview();
@@ -349,9 +340,9 @@
 
     private void GoBack()
     {
-        if (reviewDetails != null)
+        if (_reviewDetails != null)
         {
-            NavigationManager.NavigateTo($"/book-view/{reviewDetails.Book.BookId.Value}");
+            NavigationManager.NavigateTo($"/book-view/{_reviewDetails.Book.BookId.Value}");
         }
         else
         {

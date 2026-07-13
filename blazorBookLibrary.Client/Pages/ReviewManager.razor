@@ -222,7 +222,7 @@
     {
         var reviewId = ReviewId.NewReviewId(reviewIdGuid);
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-        var context = blazorBookLibrary.Shared.ConverterUtils.fromClaimsPrincipal(authState.User);
+        var context = Shared.ConverterUtils.fromClaimsPrincipal(authState.User);
         var result = await DetailsService.GetReviewDetailsAsync(context, reviewId);
         if (result.IsOk)
         {
@@ -239,7 +239,7 @@
     {
         if (details == null) return;
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-        var context = blazorBookLibrary.Shared.ConverterUtils.fromClaimsPrincipal(authState.User);
+        var context = Shared.ConverterUtils.fromClaimsPrincipal(authState.User);
         var result = await ReviewService.ApproveAsync(context, details.Review.ReviewId, CancellationToken.None);
         if (result.IsOk)
         {

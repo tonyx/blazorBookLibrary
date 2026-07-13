@@ -1,19 +1,13 @@
 
 @page "/author-details/{AuthorIdStr}"
 @using Microsoft.AspNetCore.Authorization
-@using Microsoft.AspNetCore.Components.QuickGrid
-@using BookLibrary.Shared.Services
-@using Microsoft.Extensions.Localization
-@using blazorBookLibrary.Shared.Resources
-@using BookLibrary.Domain
 @using static BookLibrary.Shared.Commons
-@using BookLibrary.Shared
 @using Microsoft.FSharp.Core
 
 @attribute [Authorize]
 @inject IUserTenantResolverService UserTenantResolverService
 @inject ITenantService TenantService
-@inject blazorBookLibrary.Client.Services.TenantStateService TenantState
+@inject Services.TenantStateService TenantState
 @inject IAuthorService AuthorService
 @inject IAuthorsSearchService AuthorsSearchService
 @inject NavigationManager NavigationManager
@@ -72,7 +66,7 @@ else
         </a>
     </div>
 
-    @if (isLoading)
+    @if (_isLoading)
     {
         <div class="d-flex justify-content-center align-items-center" style="min-height: 400px;">
             <div class="spinner-grow text-primary" role="status">
@@ -80,25 +74,25 @@ else
             </div>
         </div>
     }
-    else if (authorDetails != null)
+    else if (_authorDetails != null)
     {
         <div class="row g-5">
             <!-- Left Column: Portrait & Stats -->
             <div class="col-lg-4">
                 <div class="card-sanctuary floating text-center mb-4">
                     <div class="profile-image-wrap mb-4 bg-surface-low rounded-circle mx-auto position-relative" style="width: 200px; height: 200px; overflow: hidden; border: 8px solid var(--surface-container-lowest);">
-                        @if (authorDetails.Author.ImageUri != null && FSharpOption<Uri>.get_IsSome(authorDetails.Author.ImageUri))
+                        @if (_authorDetails.Author.ImageUri != null && FSharpOption<Uri>.get_IsSome(_authorDetails.Author.ImageUri))
                         {
-                            <img src="@authorDetails.Author.ImageUri.Value.ToString()" 
+                            <img src="@_authorDetails.Author.ImageUri.Value.ToString()" 
                                  class="w-100 h-100" 
                                  style="object-fit: cover;" 
-                                 alt="@authorDetails.Author.Name.Value Profile" />
+                                 alt="@_authorDetails.Author.Name.Value Profile" />
                         }
                         else
                         {
                             <div class="w-100 h-100 d-flex flex-column align-items-center justify-content-center text-muted opacity-25">
                                 <i class="bi bi-person-fill" style="font-size: 6rem;"></i>
-                                @if (authorDetails.Author.Editable)
+                                @if (_authorDetails.Author.Editable)
                                 {
                                     <button class="btn btn-link btn-sm text-decoration-none mt-n4 text-serif" @onclick:stopPropagation @onclick="StartEditImageUrl">
                                         + @L["AddPortrait"]
@@ -107,7 +101,7 @@ else
                             </div>
                         }
 
-                        @if (authorDetails.Author.Editable)
+                        @if (_authorDetails.Author.Editable)
                         {
                             <div class="image-edit-badge position-absolute" @onclick="StartEditImageUrl" @onclick:stopPropagation title="@L["ChangeProfileImage"]">
                                 <i class="bi bi-camera-fill"></i>
@@ -118,10 +112,10 @@ else
                     <div class="d-flex flex-column gap-3">
                         <div class="d-flex justify-content-center flex-wrap gap-2">
                              <span class="badge-sanctuary badge-neutral">
-                                <i class="bi bi-journals me-2"></i> @authorDetails.Books.Length @L["RegisteredTitles"]
+                                <i class="bi bi-journals me-2"></i> @_authorDetails.Books.Length @L["RegisteredTitles"]
                             </span>
                             
-                            @if (authorDetails.UnSealable)
+                            @if (_authorDetails.UnSealable)
                             {
                                 <div class="badge-sanctuary @(isAuthorSealed ? "badge-borrowed" : "badge-available") d-flex align-items-center py-1">
                                     <i class="bi @(isAuthorSealed ? "bi-lock-fill" : "bi-unlock-fill") me-2"></i>
@@ -139,7 +133,7 @@ else
                         </div>
                     </div>
 
-                    @if (authorDetails.Books.Length == 0 && authorDetails.Author.Editable)
+                    @if (_authorDetails.Books.Length == 0 && _authorDetails.Author.Editable)
                     {
                         <div class="mt-5 p-4 bg-surface-low rounded-xl text-start">
                             <h6 class="serif text-danger mb-2">@L["DangerZone"]</h6>
@@ -161,10 +155,10 @@ else
                     <div class="row g-4">
                         <div class="col-md-6">
                             <label class="form-label small text-muted text-uppercase fw-bold mb-2">@L["AuthorFullName"]</label>
-                            @if (isEditingName)
+                            @if (_isEditingName)
                             {
                                 <div class="input-group input-group-sm mb-2" @onclick:stopPropagation>
-                                    <input type="text" class="form-control bg-surface-low border-0 serif fw-bold" @bind="editedName" @onkeyup="HandleKeyUp" autofocus />
+                                    <input type="text" class="form-control bg-surface-low border-0 serif fw-bold" @bind="_editedName" @onkeyup="HandleKeyUp" autofocus />
                                     <button class="btn btn-primary" @onclick="UpdateName">@L["Confirm"]</button>
                                     <button class="btn btn-outline-secondary" @onclick="CancelEditName"><i class="bi bi-x-lg"></i></button>
                                 </div>
@@ -172,8 +166,8 @@ else
                             else
                             {
                                 <div class="d-flex align-items-center gap-3">
-                                    <p class="serif h4 mb-0" style="color: var(--primary); font-weight: 700;">@authorDetails.Author.Name.Value</p>
-                                    @if (authorDetails.Author.Editable)
+                                    <p class="serif h4 mb-0" style="color: var(--primary); font-weight: 700;">@_authorDetails.Author.Name.Value</p>
+                                    @if (_authorDetails.Author.Editable)
                                     {
                                         <button class="btn btn-link p-0 text-muted" @onclick="StartEditName" @onclick:stopPropagation><i class="bi bi-pencil-square"></i></button>
                                     }
@@ -183,16 +177,16 @@ else
                         
                         <div class="col-md-6">
                             <label class="form-label small text-muted text-uppercase fw-bold mb-2">@L["IsniNumber"]</label>
-                            @if (isEditingIsni)
+                            @if (_isEditingIsni)
                             {
                                 <div class="edit-isni-container" @onclick:stopPropagation>
                                     <div class="input-group input-group-sm mb-2">
-                                        <input type="text" class="form-control font-monospace py-2" @bind="editedIsni" placeholder="0000 0001 2140 1961" />
+                                        <input type="text" class="form-control font-monospace py-2" @bind="_editedIsni" placeholder="0000 0001 2140 1961" />
                                         <button class="btn btn-primary px-3" @onclick="UpdateIsni">@L["Confirm"]</button>
                                         <button class="btn btn-outline-secondary" @onclick="CancelEditIsni"><i class="bi bi-x-lg"></i></button>
                                     </div>
                                     <div class="form-check form-switch small">
-                                        <input class="form-check-input" type="checkbox" id="invalidIsniSwitch" @bind="acceptInvalidIsni" />
+                                        <input class="form-check-input" type="checkbox" id="invalidIsniSwitch" @bind="_acceptInvalidIsni" />
                                         <label class="form-check-label text-muted" for="invalidIsniSwitch">@L["AcceptInvalidIsni"]</label>
                                     </div>
                                 </div>
@@ -200,15 +194,15 @@ else
                             else
                             {
                                 <div class="d-flex align-items-center gap-3">
-                                    @if (string.IsNullOrEmpty(authorDetails.Author.Isni.Value))
+                                    @if (string.IsNullOrEmpty(_authorDetails.Author.Isni.Value))
                                     {
                                         <span class="text-muted small fst-italic">@L["NoneNotSet"]</span>
                                     }
                                     else
                                     {
-                                        <span class="badge-sanctuary badge-neutral font-monospace">@authorDetails.Author.Isni.Value</span>
+                                        <span class="badge-sanctuary badge-neutral font-monospace">@_authorDetails.Author.Isni.Value</span>
                                     }
-                                    @if (authorDetails.Author.Editable)
+                                    @if (_authorDetails.Author.Editable)
                                     {
                                         <button class="btn btn-link p-0 text-muted" @onclick="StartEditIsni" @onclick:stopPropagation><i class="bi bi-pencil-square"></i></button>
                                     }
@@ -216,40 +210,40 @@ else
                             }
                         </div>
 
-                        @if (isEditingImageUrl)
+                        @if (_isEditingImageUrl)
                         {
                             <div class="col-12 mt-4 animate-fade-in" @onclick:stopPropagation>
                                 <div class="p-4 bg-surface-low rounded-xl border border-dashed border-primary-subtle shadow-sm">
                                     <label class="form-label small text-muted text-uppercase fw-bold mb-3 d-flex justify-content-between align-items-center">
                                         <span>@L["ModifyAuthorPortrait"]</span>
-                                        @if (isLookingUpImage) { <span class="spinner-border spinner-border-sm text-primary"></span> }
+                                        @if (_isLookingUpImage) { <span class="spinner-border spinner-border-sm text-primary"></span> }
                                     </label>
                                     
                                     <div class="input-group shadow-sm rounded-3 overflow-hidden mb-4 border">
                                         <input type="text" class="form-control border-0 py-2 serif" 
                                                placeholder="@L["EnterPortraitUrlPlaceholder"]" 
-                                               @bind="editedImageUrl" />
-                                        <button class="btn btn-white border-start" type="button" @onclick="LookupImage" disabled="@isLookingUpImage">
+                                               @bind="_editedImageUrl" />
+                                        <button class="btn btn-white border-start" type="button" @onclick="LookupImage" disabled="@_isLookingUpImage">
                                             <i class="bi bi-magic me-2 text-primary"></i>@L["DiscoverPortrait"]
                                         </button>
                                     </div>
 
-                                    @if (!string.IsNullOrWhiteSpace(editedImageUrl))
+                                    @if (!string.IsNullOrWhiteSpace(_editedImageUrl))
                                     {
                                         <div class="mb-4 text-center animate-fade-in">
                                             <p class="small text-muted mb-2 italic">@L["PortraitPreview"]</p>
                                             <div class="preview-circle bg-surface-container mx-auto rounded-circle overflow-hidden shadow-sm border border-4 border-white" style="width: 120px; height: 120px;">
-                                                <img src="@editedImageUrl" class="w-100 h-100" style="object-fit: cover;" @onerror="HandlePreviewError" />
+                                                <img src="@_editedImageUrl" class="w-100 h-100" style="object-fit: cover;" @onerror="HandlePreviewError" />
                                             </div>
                                         </div>
                                     }
 
                                     <div class="d-flex gap-2 mt-2">
-                                        <button class="btn btn-primary flex-grow-1" @onclick="UpdateImageUrl" disabled="@(string.IsNullOrWhiteSpace(editedImageUrl))">
+                                        <button class="btn btn-primary flex-grow-1" @onclick="UpdateImageUrl" disabled="@(string.IsNullOrWhiteSpace(_editedImageUrl))">
                                             <i class="bi bi-check2-circle me-2"></i>@L["FinalizePortraitUpdate"]
                                         </button>
                                         <button class="btn btn-outline-secondary" @onclick="CancelEditImageUrl">@L["Discard"]</button>
-                                        @if (authorDetails.Author.ImageUri != null && FSharpOption<Uri>.get_IsSome(authorDetails.Author.ImageUri))
+                                        @if (_authorDetails.Author.ImageUri != null && FSharpOption<Uri>.get_IsSome(_authorDetails.Author.ImageUri))
                                         {
                                             <button class="btn btn-outline-danger" @onclick="RemoveImageUrl" title="@L["DiscardPortrait"]">
                                                 <i class="bi bi-trash"></i>
@@ -262,21 +256,21 @@ else
 
                         <div class="col-12 mt-4">
                             <label class="form-label small text-muted text-uppercase fw-bold mb-2">@L["Biography"]</label>
-                            @if (isEditingBio)
+                            @if (_isEditingBio)
                             {
                                 <div class="p-4 bg-surface-low rounded-xl border shadow-sm" @onclick:stopPropagation>
                                     <div class="input-group shadow-sm rounded-3 overflow-hidden mb-3">
-                                        <textarea class="form-control border-0 py-2 serif" rows="4" @bind="editedBio"></textarea>
-                                        <button class="btn btn-white border-start" type="button" @onclick="LookupBio" disabled="@isSearchingBio">
+                                        <textarea class="form-control border-0 py-2 serif" rows="4" @bind="_editedBio"></textarea>
+                                        <button class="btn btn-white border-start" type="button" @onclick="LookupBio" disabled="@_isSearchingBio">
                                             <i class="bi bi-wikipedia me-2 text-primary"></i>@L["Lookup"]
                                         </button>
                                     </div>
-                                    @if (candidateBios.Any())
+                                    @if (_candidateBios.Any())
                                     {
                                         <div class="list-group list-group-flush mb-3 border rounded overflow-auto" style="max-height: 150px;">
-                                            @foreach (var bio in candidateBios)
+                                            @foreach (var bio in _candidateBios)
                                             {
-                                                <button type="button" class="list-group-item list-group-item-action py-2 small" @onclick="() => { editedBio = bio; candidateBios.Clear(); }">
+                                                <button type="button" class="list-group-item list-group-item-action py-2 small" @onclick="() => { _editedBio = bio; _candidateBios.Clear(); }">
                                                     @bio.Substring(0, Math.Min(bio.Length, 100))...
                                                 </button>
                                             }
@@ -284,7 +278,7 @@ else
                                     }
                                     <div class="d-flex gap-2">
                                         <button class="btn btn-primary flex-grow-1" @onclick="UpdateBio">@L["Confirm"]</button>
-                                        <button class="btn btn-outline-secondary" @onclick="() => isEditingBio = false">@L["Discard"]</button>
+                                        <button class="btn btn-outline-secondary" @onclick="() => _isEditingBio = false">@L["Discard"]</button>
                                     </div>
                                 </div>
                             }
@@ -292,9 +286,9 @@ else
                             {
                                 <div class="d-flex align-items-start gap-3 p-3 bg-surface-low rounded-xl">
                                     <p class="mb-0 text-muted serif italic" style="font-size: 0.95rem; line-height: 1.6;">
-                                        @(string.IsNullOrWhiteSpace(authorDetails.Author.Bio) ? L["NoBiographyRegistered"] : authorDetails.Author.Bio)
+                                        @(string.IsNullOrWhiteSpace(_authorDetails.Author.Bio) ? L["NoBiographyRegistered"] : _authorDetails.Author.Bio)
                                     </p>
-                                    @if (authorDetails.Author.Editable)
+                                    @if (_authorDetails.Author.Editable)
                                     {
                                         <button class="btn btn-link p-0 text-muted" @onclick="StartEditBio" @onclick:stopPropagation><i class="bi bi-pencil-square"></i></button>
                                     }
@@ -304,31 +298,31 @@ else
 
                         <div class="col-12 mt-3">
                             <label class="form-label small text-muted text-uppercase fw-bold mb-2">@L["WikipediaLink"]</label>
-                            @if (isEditingWikipediaUri)
+                            @if (_isEditingWikipediaUri)
                             {
                                 <div class="input-group input-group-sm" @onclick:stopPropagation>
-                                    <input type="text" class="form-control bg-surface-low border-0" @bind="editedWikipediaUri" placeholder="https://it.wikipedia.org/wiki/..." />
-                                    <button class="btn btn-white border-start" type="button" @onclick="LookupWikipediaUri" disabled="@isSearchingUri">
+                                    <input type="text" class="form-control bg-surface-low border-0" @bind="_editedWikipediaUri" placeholder="https://it.wikipedia.org/wiki/..." />
+                                    <button class="btn btn-white border-start" type="button" @onclick="LookupWikipediaUri" disabled="@_isSearchingUri">
                                         <i class="bi bi-link-45deg text-primary"></i>
                                     </button>
                                     <button class="btn btn-primary" @onclick="UpdateWikipediaUri">@L["Confirm"]</button>
-                                    <button class="btn btn-outline-secondary" @onclick="() => isEditingWikipediaUri = false"><i class="bi bi-x-lg"></i></button>
+                                    <button class="btn btn-outline-secondary" @onclick="() => _isEditingWikipediaUri = false"><i class="bi bi-x-lg"></i></button>
                                 </div>
                             }
                             else
                             {
                                 <div class="d-flex align-items-center gap-3">
-                                    @if (authorDetails.Author.WikipediaUri == null || FSharpOption<Uri>.get_IsNone(authorDetails.Author.WikipediaUri))
+                                    @if (_authorDetails.Author.WikipediaUri == null || FSharpOption<Uri>.get_IsNone(_authorDetails.Author.WikipediaUri))
                                     {
                                         <span class="text-muted small fst-italic">@L["NoneNotSet"]</span>
                                     }
                                     else
                                     {
-                                        <a href="@authorDetails.Author.WikipediaUri.Value.ToString()" target="_blank" class="text-primary text-decoration-none small d-flex align-items-center">
-                                            <i class="bi bi-wikipedia me-2"></i> @authorDetails.Author.WikipediaUri.Value.ToString()
+                                        <a href="@_authorDetails.Author.WikipediaUri.Value.ToString()" target="_blank" class="text-primary text-decoration-none small d-flex align-items-center">
+                                            <i class="bi bi-wikipedia me-2"></i> @_authorDetails.Author.WikipediaUri.Value.ToString()
                                         </a>
                                     }
-                                    @if (authorDetails.Author.Editable)
+                                    @if (_authorDetails.Author.Editable)
                                     {
                                         <button class="btn btn-link p-0 text-muted" @onclick="StartEditWikipediaUri" @onclick:stopPropagation><i class="bi bi-pencil-square"></i></button>
                                     }
@@ -342,13 +336,13 @@ else
                 <div class="card-sanctuary p-0 overflow-hidden">
                     <div class="px-5 pt-5 pb-4 d-flex justify-content-between align-items-end">
                         <h5 class="serif display-6 mb-0">@L["WorksPublished"]</h5>
-                        <div class="badge-sanctuary badge-neutral">@authorDetails.Books.Length @L["BooksInLibrary"]</div>
+                        <div class="badge-sanctuary badge-neutral">@_authorDetails.Books.Length @L["BooksInLibrary"]</div>
                     </div>
 
                     <div class="px-5 pb-5">
                         <div class="table-responsive">
-                            <QuickGrid Items="@authorDetails.Books.AsQueryable()" Pagination="@bookPagination" Class="table table-editorial align-middle mb-0">
-                                <TemplateColumn Title="@L["Title"]" SortBy="@sortTitle" Class="col-title serif fw-bold">
+                            <QuickGrid Items="@_authorDetails.Books.AsQueryable()" Pagination="@_bookPagination" Class="table table-editorial align-middle mb-0">
+                                <TemplateColumn Title="@L["Title"]" SortBy="@_sortTitle" Class="col-title serif fw-bold">
                                     <a href="/book-view/@context.Id" class="text-decoration-none text-reset d-flex align-items-center gap-3 py-2">
                                         <div class="bg-surface-low rounded p-2" style="width: 40px; height: 55px; display: flex; align-items: center; justify-content: center;">
                                             @if (FSharpOption<Uri>.get_IsSome(context.ImageUrl))
@@ -384,15 +378,15 @@ else
                         </div>
                         
                         <div class="mt-4 d-flex justify-content-between align-items-center">
-                            <div class="small text-muted serif italic">@L["Showing"] @Math.Min(bookPagination.ItemsPerPage, authorDetails.Books.Length) @L["Of"] @authorDetails.Books.Length @L["CatalogedTitles"]</div>
-                            <Paginator State="@bookPagination" />
+                            <div class="small text-muted serif italic">@L["Showing"] @Math.Min(_bookPagination.ItemsPerPage, _authorDetails.Books.Length) @L["Of"] @_authorDetails.Books.Length @L["CatalogedTitles"]</div>
+                            <Paginator State="@_bookPagination" />
                         </div>
                     </div>
                 </div>
             </div>
         </div>
     }
-    else if (!isLoading && authorDetails == null)
+    else if (!_isLoading && _authorDetails == null)
     {
         <div class="card-sanctuary text-center p-5">
             <i class="bi bi-exclamation-triangle display-4 text-warning mb-3"></i>
@@ -413,121 +407,121 @@ else
     private async Task<UserContext> GetContext()
     {
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-        return blazorBookLibrary.Shared.ConverterUtils.fromClaimsPrincipal(authState.User);
+        return Shared.ConverterUtils.fromClaimsPrincipal(authState.User);
     }
 
-    private bool isLoading = true;
-    private Details.AuthorDetails? authorDetails;
-    private PaginationState bookPagination = new() { ItemsPerPage = 10 };
-    private GridSort<Book> sortTitle = GridSort<Book>.ByAscending(b => b.Title.Value);
+    private bool _isLoading = true;
+    private Details.AuthorDetails? _authorDetails;
+    private PaginationState _bookPagination = new() { ItemsPerPage = 10 };
+    private GridSort<Book> _sortTitle = GridSort<Book>.ByAscending(b => b.Title.Value);
     
-    private string statusMessage = "";
-    private string statusClass = "alert-info";
+    private string _statusMessage = "";
+    private string _statusClass = "alert-info";
 
-    private bool isEditingName = false;
-    private string editedName = "";
+    private bool _isEditingName = false;
+    private string _editedName = "";
     
-    private bool isEditingIsni = false;
-    private string editedIsni = "";
-    private bool acceptInvalidIsni = false;
+    private bool _isEditingIsni = false;
+    private string _editedIsni = "";
+    private bool _acceptInvalidIsni = false;
 
-    private bool isEditingImageUrl = false;
-    private string editedImageUrl = "";
-    private bool isLookingUpImage = false;
+    private bool _isEditingImageUrl = false;
+    private string _editedImageUrl = "";
+    private bool _isLookingUpImage = false;
 
-    private bool isEditingBio = false;
-    private string editedBio = "";
-    private bool isSearchingBio = false;
-    private List<string> candidateBios = new();
+    private bool _isEditingBio = false;
+    private string _editedBio = "";
+    private bool _isSearchingBio = false;
+    private List<string> _candidateBios = new();
 
-    private bool isEditingWikipediaUri = false;
-    private string editedWikipediaUri = "";
-    private bool isSearchingUri = false;
+    private bool _isEditingWikipediaUri = false;
+    private string _editedWikipediaUri = "";
+    private bool _isSearchingUri = false;
 
     private async Task LookupImage()
     {
-        if (authorDetails == null) return;
+        if (_authorDetails == null) return;
         
-        isLookingUpImage = true;
-        statusMessage = "Looking up author image...";
-        statusClass = "alert-info";
+        _isLookingUpImage = true;
+        _statusMessage = "Looking up author image...";
+        _statusClass = "alert-info";
         StateHasChanged();
 
         try
         {
             var context = await this.GetContext();
-            var result = await AuthorsSearchService.LookupImageUrlByNameAndThumbSizeAsync(context, authorDetails.Author.Name.Value, FSharpOption<int>.None);
+            var result = await AuthorsSearchService.LookupImageUrlByNameAndThumbSizeAsync(context, _authorDetails.Author.Name.Value, FSharpOption<int>.None);
             if (result.IsOk)
             {
-                editedImageUrl = result.ResultValue;
+                _editedImageUrl = result.ResultValue;
                 await ShowStatus("Image URL found. Please click 'Apply' to save.", "alert-info");
             }
             else
             {
-                Logger.LogError("Error looking up author image for {Name}: {Error}", authorDetails.Author.Name.Value, result.ErrorValue);
+                Logger.LogError("Error looking up author image for {Name}: {Error}", _authorDetails.Author.Name.Value, result.ErrorValue);
                 await ShowStatus(L["ErrorOccurred"].Value, "alert-warning");
             }
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Exception while looking up author image for {Name}", authorDetails.Author.Name.Value);
+            Logger.LogError(ex, "Exception while looking up author image for {Name}", _authorDetails.Author.Name.Value);
             await ShowStatus(L["ErrorOccurred"].Value, "alert-danger");
         }
         finally
         {
-            isLookingUpImage = false;
+            _isLookingUpImage = false;
         }
     }
 
-    private bool isAuthorSealed => authorDetails != null && authorDetails.Author.Sealed.IsSealed(DateTime.UtcNow);
+    private bool isAuthorSealed => _authorDetails != null && _authorDetails.Author.Sealed.IsSealed(DateTime.UtcNow);
 
     private void StartEditImageUrl()
     {
-        if (authorDetails != null && authorDetails.Author.Editable)
+        if (_authorDetails != null && _authorDetails.Author.Editable)
         {
             CancelAllEdits();
-            isEditingImageUrl = true;
-            editedImageUrl = authorDetails.Author.ImageUri != null && FSharpOption<Uri>.get_IsSome(authorDetails.Author.ImageUri) 
-                ? authorDetails.Author.ImageUri.Value.ToString() 
+            _isEditingImageUrl = true;
+            _editedImageUrl = _authorDetails.Author.ImageUri != null && FSharpOption<Uri>.get_IsSome(_authorDetails.Author.ImageUri) 
+                ? _authorDetails.Author.ImageUri.Value.ToString() 
                 : "";
         }
     }
 
     private void CancelEditImageUrl()
     {
-        isEditingImageUrl = false;
+        _isEditingImageUrl = false;
     }
 
     private void CancelAllEdits()
     {
-        isEditingName = false;
-        isEditingIsni = false;
-        isEditingImageUrl = false;
-        isEditingBio = false;
-        isEditingWikipediaUri = false;
+        _isEditingName = false;
+        _isEditingIsni = false;
+        _isEditingImageUrl = false;
+        _isEditingBio = false;
+        _isEditingWikipediaUri = false;
     }
 
     private async Task UpdateImageUrl()
     {
-        if (authorDetails == null) return;
+        if (_authorDetails == null) return;
         
-        if (string.IsNullOrWhiteSpace(editedImageUrl))
+        if (string.IsNullOrWhiteSpace(_editedImageUrl))
         {
             await RemoveImageUrl();
             return;
         }
 
-        if (!Uri.TryCreate(editedImageUrl, UriKind.Absolute, out var newUri))
+        if (!Uri.TryCreate(_editedImageUrl, UriKind.Absolute, out var newUri))
         {
-            Logger.LogWarning("Invalid image URL format entered: {Url}", editedImageUrl);
+            Logger.LogWarning("Invalid image URL format entered: {Url}", _editedImageUrl);
             await ShowStatus(L["ErrorOccurred"].Value, "alert-danger");
             return;
         }
 
         try
         {
-            statusMessage = "Validating image link...";
-            statusClass = "alert-info";
+            _statusMessage = "Validating image link...";
+            _statusClass = "alert-info";
             StateHasChanged();
 
             // Perform broken link check
@@ -545,11 +539,11 @@ else
             }
 
             var context = await GetContext();
-            var result = await AuthorService.UpdateImageUrlAsync(context, authorDetails.Author.AuthorId, newUri);
+            var result = await AuthorService.UpdateImageUrlAsync(context, _authorDetails.Author.AuthorId, newUri);
             if (result.IsOk)
             {
                 await LoadAuthorDetails();
-                isEditingImageUrl = false;
+                _isEditingImageUrl = false;
                 await ShowStatus(L["ImageUrlUpdated"], "alert-success");
             }
             else
@@ -567,16 +561,16 @@ else
 
     private async Task RemoveImageUrl()
     {
-        if (authorDetails == null) return;
+        if (_authorDetails == null) return;
 
         try
         {
             var context = await GetContext();
-            var result = await AuthorService.RemoveImageUrlAsync(context, authorDetails.Author.AuthorId);
+            var result = await AuthorService.RemoveImageUrlAsync(context, _authorDetails.Author.AuthorId);
             if (result.IsOk)
             {
                 await LoadAuthorDetails();
-                isEditingImageUrl = false;
+                _isEditingImageUrl = false;
                 await ShowStatus(L["ImageCoverRemoved"], "alert-success");
             }
             else
@@ -594,10 +588,10 @@ else
 
     private async Task StartEditName()
     {
-        if (authorDetails != null && authorDetails.Author.Editable)
+        if (_authorDetails != null && _authorDetails.Author.Editable)
         {
-            isEditingName = true;
-            editedName = authorDetails.Author.Name.Value;
+            _isEditingName = true;
+            _editedName = _authorDetails.Author.Name.Value;
         }
         else if (isAuthorSealed)
         {
@@ -607,48 +601,48 @@ else
 
     private void CancelEditName()
     {
-        isEditingName = false;
+        _isEditingName = false;
     }
 
     private async Task UpdateName()
     {
-        if (authorDetails == null || string.IsNullOrWhiteSpace(editedName) || editedName == authorDetails.Author.Name.Value)
+        if (_authorDetails == null || string.IsNullOrWhiteSpace(_editedName) || _editedName == _authorDetails.Author.Name.Value)
         {
-            isEditingName = false;
+            _isEditingName = false;
             return;
         }
 
         try
         {
             var context = await GetContext();
-            var newName = Name.New(editedName);
-            var result = await AuthorService.RenameAsync(context, authorDetails.Author.AuthorId, newName);
+            var newName = Name.New(_editedName);
+            var result = await AuthorService.RenameAsync(context, _authorDetails.Author.AuthorId, newName);
             if (result.IsOk)
             {
                 await LoadAuthorDetails();
-                isEditingName = false;
+                _isEditingName = false;
                 await ShowStatus(L["AuthorNameUpdated"], "alert-success");
             }
             else
             {
-                Logger.LogError("Error updating author name to {NewName}: {Error}", editedName, result.ErrorValue);
+                Logger.LogError("Error updating author name to {NewName}: {Error}", _editedName, result.ErrorValue);
                 await ShowStatus(L["ErrorOccurred"].Value, "alert-danger");
             }
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Exception while updating author name to {NewName}", editedName);
+            Logger.LogError(ex, "Exception while updating author name to {NewName}", _editedName);
             await ShowStatus(L["ErrorOccurred"].Value, "alert-danger");
         }
     }
 
     private async Task StartEditIsni()
     {
-        if (authorDetails != null && authorDetails.Author.Editable)
+        if (_authorDetails != null && _authorDetails.Author.Editable)
         {
-            isEditingIsni = true;
-            editedIsni = authorDetails.Author.Isni.Value;
-            acceptInvalidIsni = authorDetails.Author.Isni.IsInvalidIsni;
+            _isEditingIsni = true;
+            _editedIsni = _authorDetails.Author.Isni.Value;
+            _acceptInvalidIsni = _authorDetails.Author.Isni.IsInvalidIsni;
         }
         else if (isAuthorSealed)
         {
@@ -658,28 +652,28 @@ else
 
     private void CancelEditIsni()
     {
-        isEditingIsni = false;
+        _isEditingIsni = false;
     }
 
     private async Task UpdateIsni()
     {
-        if (authorDetails == null) return;
+        if (_authorDetails == null) return;
 
         Isni newIsni;
-        if (string.IsNullOrWhiteSpace(editedIsni))
+        if (string.IsNullOrWhiteSpace(_editedIsni))
         {
             newIsni = Isni.NewEmpty();
         }
         else
         {
-            var result = Isni.New(editedIsni);
+            var result = Isni.New(_editedIsni);
             if (result.IsOk)
             {
                 newIsni = result.ResultValue;
             }
-            else if (acceptInvalidIsni)
+            else if (_acceptInvalidIsni)
             {
-                newIsni = Isni.NewInvalid(editedIsni);
+                newIsni = Isni.NewInvalid(_editedIsni);
             }
             else
             {
@@ -692,11 +686,11 @@ else
         try
         {
             var context = await GetContext();
-            var result = await AuthorService.UpdateIsniAsync(context, authorDetails.Author.AuthorId, newIsni);
+            var result = await AuthorService.UpdateIsniAsync(context, _authorDetails.Author.AuthorId, newIsni);
             if (result.IsOk)
             {
                 await LoadAuthorDetails();
-                isEditingIsni = false;
+                _isEditingIsni = false;
                 await ShowStatus(L["IsniUpdated"], "alert-success");
             }
             else
@@ -727,42 +721,42 @@ else
 
     private async Task DeleteAuthor()
     {
-        if (authorDetails == null) return;
+        if (_authorDetails == null) return;
         
-        bool confirmed = await JSRuntime.InvokeAsync<bool>("confirm", string.Format(L["ConfirmPermanentlyDeleteAuthor"], authorDetails.Author.Name.Value));
+        bool confirmed = await JSRuntime.InvokeAsync<bool>("confirm", string.Format(L["ConfirmPermanentlyDeleteAuthor"], _authorDetails.Author.Name.Value));
         if (!confirmed) return;
         
         try 
         {
             var context = await GetContext();
-            var result = await AuthorService.RemoveAsync(context, authorDetails.Author.AuthorId);
+            var result = await AuthorService.RemoveAsync(context, _authorDetails.Author.AuthorId);
             if (result.IsOk)
             {
                 NavigationManager.NavigateTo("/books-manager");
             }
             else
             {
-                Logger.LogError("Error deleting author {AuthorId}: {Error}", authorDetails.Author.AuthorId.Value, result.ErrorValue);
+                Logger.LogError("Error deleting author {AuthorId}: {Error}", _authorDetails.Author.AuthorId.Value, result.ErrorValue);
                 await ShowStatus(L["ErrorOccurred"].Value, "alert-danger");
             }
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Exception while deleting author {AuthorId}", authorDetails.Author.AuthorId.Value);
+            Logger.LogError(ex, "Exception while deleting author {AuthorId}", _authorDetails.Author.AuthorId.Value);
             await ShowStatus(L["ErrorOccurred"].Value, "alert-danger");
         }
     }
 
     private async Task ToggleSeal()
     {
-        if (authorDetails == null) return;
+        if (_authorDetails == null) return;
         
         try
         {
             var context = await GetContext();
             var result = isAuthorSealed 
-                ? await AuthorService.UnsealAsync(context, authorDetails.Author.AuthorId)
-                : await AuthorService.SealAsync(context, authorDetails.Author.AuthorId);
+                ? await AuthorService.UnsealAsync(context, _authorDetails.Author.AuthorId)
+                : await AuthorService.SealAsync(context, _authorDetails.Author.AuthorId);
                 
             if (result.IsOk)
             {
@@ -771,171 +765,171 @@ else
             }
             else
             {
-                Logger.LogError("Error toggling seal state for author {AuthorId}: {Error}", authorDetails.Author.AuthorId.Value, result.ErrorValue);
+                Logger.LogError("Error toggling seal state for author {AuthorId}: {Error}", _authorDetails.Author.AuthorId.Value, result.ErrorValue);
                 await ShowStatus(L["ErrorOccurred"].Value, "alert-danger");
             }
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Exception while toggling seal state for author {AuthorId}", authorDetails.Author.AuthorId.Value);
+            Logger.LogError(ex, "Exception while toggling seal state for author {AuthorId}", _authorDetails.Author.AuthorId.Value);
             await ShowStatus(L["ErrorOccurred"].Value, "alert-danger");
         }
     }
 
     private void StartEditBio()
     {
-        if (authorDetails != null && authorDetails.Author.Editable)
+        if (_authorDetails != null && _authorDetails.Author.Editable)
         {
             CancelAllEdits();
-            isEditingBio = true;
-            editedBio = authorDetails.Author.Bio;
+            _isEditingBio = true;
+            _editedBio = _authorDetails.Author.Bio;
         }
     }
 
     private async Task UpdateBio()
     {
-        if (authorDetails == null) return;
+        if (_authorDetails == null) return;
         try
         {
             var context = await GetContext();
-            var result = await AuthorService.UpdateBioAsync(context, authorDetails.Author.AuthorId, editedBio);
+            var result = await AuthorService.UpdateBioAsync(context, _authorDetails.Author.AuthorId, _editedBio);
             if (result.IsOk)
             {
                 await LoadAuthorDetails();
-                isEditingBio = false;
+                _isEditingBio = false;
                 await ShowStatus(L["BioUpdatedSuccessfully"], "alert-success");
             }
             else
             {
-                Logger.LogError("Error updating biography for author {AuthorId}: {Error}", authorDetails.Author.AuthorId.Value, result.ErrorValue);
+                Logger.LogError("Error updating biography for author {AuthorId}: {Error}", _authorDetails.Author.AuthorId.Value, result.ErrorValue);
                 await ShowStatus(L["ErrorOccurred"].Value, "alert-danger");
             }
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Exception while updating biography for author {AuthorId}", authorDetails.Author.AuthorId.Value);
+            Logger.LogError(ex, "Exception while updating biography for author {AuthorId}", _authorDetails.Author.AuthorId.Value);
             await ShowStatus(L["ErrorOccurred"].Value, "alert-danger");
         }
     }
 
     private async Task LookupBio()
     {
-        if (authorDetails == null) return;
-        isSearchingBio = true;
+        if (_authorDetails == null) return;
+        _isSearchingBio = true;
         try
         {
             var context = await this.GetContext();
             var lang = ShortLang.New(System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName);
-            var result = await AuthorsSearchService.LookupBioByNameAsync(context, authorDetails.Author.Name.Value, FSharpOption<ShortLang>.Some(lang));
+            var result = await AuthorsSearchService.LookupBioByNameAsync(context, _authorDetails.Author.Name.Value, FSharpOption<ShortLang>.Some(lang));
             if (result.IsOk)
             {
-                candidateBios = result.ResultValue.ToList();
+                _candidateBios = result.ResultValue.ToList();
                 await ShowStatus(L["BioFoundWikipedia"], "alert-success");
             }
             else
             {
-                Logger.LogError("Error looking up bio for {Name}: {Error}", authorDetails.Author.Name.Value, result.ErrorValue);
+                Logger.LogError("Error looking up bio for {Name}: {Error}", _authorDetails.Author.Name.Value, result.ErrorValue);
                 await ShowStatus(L["ErrorOccurred"].Value, "alert-warning");
             }
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Exception while looking up bio for {Name}", authorDetails.Author.Name.Value);
+            Logger.LogError(ex, "Exception while looking up bio for {Name}", _authorDetails.Author.Name.Value);
             await ShowStatus(L["ErrorOccurred"].Value, "alert-danger");
         }
         finally
         {
-            isSearchingBio = false;
+            _isSearchingBio = false;
         }
     }
 
     private void StartEditWikipediaUri()
     {
-        if (authorDetails != null && authorDetails.Author.Editable)
+        if (_authorDetails != null && _authorDetails.Author.Editable)
         {
             CancelAllEdits();
-            isEditingWikipediaUri = true;
-            editedWikipediaUri = authorDetails.Author.WikipediaUri != null && FSharpOption<Uri>.get_IsSome(authorDetails.Author.WikipediaUri)
-                ? authorDetails.Author.WikipediaUri.Value.ToString()
+            _isEditingWikipediaUri = true;
+            _editedWikipediaUri = _authorDetails.Author.WikipediaUri != null && FSharpOption<Uri>.get_IsSome(_authorDetails.Author.WikipediaUri)
+                ? _authorDetails.Author.WikipediaUri.Value.ToString()
                 : "";
         }
     }
 
     private async Task UpdateWikipediaUri()
     {
-        if (authorDetails == null) return;
-        if (string.IsNullOrWhiteSpace(editedWikipediaUri))
+        if (_authorDetails == null) return;
+        if (string.IsNullOrWhiteSpace(_editedWikipediaUri))
         {
             // Optional: handle removal
-            isEditingWikipediaUri = false;
+            _isEditingWikipediaUri = false;
             return;
         }
 
-        if (Uri.TryCreate(editedWikipediaUri, UriKind.Absolute, out var uri))
+        if (Uri.TryCreate(_editedWikipediaUri, UriKind.Absolute, out var uri))
         {
             try
             {
                 var context = await GetContext();
-                var result = await AuthorService.UpdateWikipediaUriAsync(context, authorDetails.Author.AuthorId, uri);
+                var result = await AuthorService.UpdateWikipediaUriAsync(context, _authorDetails.Author.AuthorId, uri);
                 if (result.IsOk)
                 {
                     await LoadAuthorDetails();
-                    isEditingWikipediaUri = false;
+                    _isEditingWikipediaUri = false;
                     await ShowStatus(L["WikipediaLinkUpdated"], "alert-success");
                 }
                 else
                 {
-                    Logger.LogError("Error updating Wikipedia URI for author {AuthorId}: {Error}", authorDetails.Author.AuthorId.Value, result.ErrorValue);
+                    Logger.LogError("Error updating Wikipedia URI for author {AuthorId}: {Error}", _authorDetails.Author.AuthorId.Value, result.ErrorValue);
                     await ShowStatus(L["ErrorOccurred"].Value, "alert-danger");
                 }
             }
             catch (Exception ex)
             {
-                Logger.LogError(ex, "Exception while updating Wikipedia URI for author {AuthorId}", authorDetails.Author.AuthorId.Value);
+                Logger.LogError(ex, "Exception while updating Wikipedia URI for author {AuthorId}", _authorDetails.Author.AuthorId.Value);
                 await ShowStatus(L["ErrorOccurred"].Value, "alert-danger");
             }
         }
         else
         {
-            Logger.LogWarning("Invalid URL format entered: {Url}", editedWikipediaUri);
+            Logger.LogWarning("Invalid URL format entered: {Url}", _editedWikipediaUri);
             await ShowStatus(L["ErrorOccurred"].Value, "alert-danger");
         }
     }
 
     private async Task LookupWikipediaUri()
     {
-        if (authorDetails == null) return;
-        isSearchingUri = true;
+        if (_authorDetails == null) return;
+        _isSearchingUri = true;
         try
         {
             var context = await GetContext();
             var lang = ShortLang.New(System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName);
-            var result = await AuthorsSearchService.LookupWikipediaUriByNameAsync(context, authorDetails.Author.Name.Value, lang);
+            var result = await AuthorsSearchService.LookupWikipediaUriByNameAsync(context, _authorDetails.Author.Name.Value, lang);
             if (result.IsOk)
             {
-                editedWikipediaUri = result.ResultValue;
+                _editedWikipediaUri = result.ResultValue;
                 await ShowStatus(L["WikipediaLinkFound"], "alert-success");
             }
             else
             {
-                Logger.LogError("Error looking up Wikipedia URI for {Name}: {Error}", authorDetails.Author.Name.Value, result.ErrorValue);
+                Logger.LogError("Error looking up Wikipedia URI for {Name}: {Error}", _authorDetails.Author.Name.Value, result.ErrorValue);
                 await ShowStatus(L["ErrorOccurred"].Value, "alert-warning");
             }
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Exception while looking up Wikipedia URI for {Name}", authorDetails.Author.Name.Value);
+            Logger.LogError(ex, "Exception while looking up Wikipedia URI for {Name}", _authorDetails.Author.Name.Value);
             await ShowStatus(L["ErrorOccurred"].Value, "alert-danger");
         }
         finally
         {
-            isSearchingUri = false;
+            _isSearchingUri = false;
         }
     }
 
     private async Task ShowStatus(string message, string cssClass)
     {
-        statusMessage = message;
+        _statusMessage = message;
 
         string type = "info";
         if (cssClass.Contains("success")) type = "success";
@@ -989,7 +983,7 @@ else
 
     private async Task LoadAuthorDetails()
     {
-        isLoading = true;
+        _isLoading = true;
         try
         {
             if (Guid.TryParse(AuthorIdStr, out var guid))
@@ -1000,7 +994,7 @@ else
 
                 if (result.IsOk)
                 {
-                    authorDetails = result.ResultValue;
+                    _authorDetails = result.ResultValue;
                 }
             }
         }
@@ -1010,7 +1004,7 @@ else
         }
         finally
         {
-            isLoading = false;
+            _isLoading = false;
         }
     }
 

@@ -1,18 +1,10 @@
 @page "/"
 @page "/book-search"
 @page "/books-browser"
-@using Microsoft.AspNetCore.Components.QuickGrid
-@using BookLibrary.Shared.Services
 @using Microsoft.Extensions.Configuration
-@using BookLibrary.Shared
-@using BookLibrary.Domain
 @using static BookLibrary.Shared.Commons
-@using blazorBookLibrary.Shared.Security
 @using Microsoft.FSharp.Core
-@using Microsoft.FSharp.Collections
-@using static  BookLibrary.Shared.SearchCriteria
 @using System.Threading
-@using static BookLibrary.Shared.Details
 @using Microsoft.AspNetCore.SignalR.Client
 @inject IBotScoreService BotScoreService
 @inject IBookService BookService
@@ -82,7 +74,7 @@
                 </div>
 
                 <div class="table-responsive">
-                    <QuickGrid Items="@FilteredBooks" Pagination="@bookPagination" Class="editorial-ledger w-100 align-middle">
+                    <QuickGrid Items="@FilteredBooks" Pagination="@_bookPagination" Class="editorial-ledger w-100 align-middle">
                         @if (showImagePreview)
                         {
                             <TemplateColumn Title="@L["VisualRef"]" Class="col-preview ps-5">
@@ -102,7 +94,7 @@
                             </TemplateColumn>
                         }
 
-                        <TemplateColumn Title="@L["Title"]" SortBy="@sortTitle" Class="col-title text-serif fw-bold h5">
+                        <TemplateColumn Title="@L["Title"]" SortBy="@_sortTitle" Class="col-title text-serif fw-bold h5">
                             <ColumnOptions>
                                 <div class="p-3 bg-surface-low rounded-3 border shadow-sm" style="min-width: 300px;">
                                     <div class="input-group input-group-sm">
@@ -134,7 +126,7 @@
 
                         @if (foundBooks.Any(b => FSharpOption<double>.get_IsSome(b.Score)))
                         {
-                            <TemplateColumn Title="@L["Match"]" SortBy="@sortScore" Class="col-score text-center">
+                            <TemplateColumn Title="@L["Match"]" SortBy="@_sortScore" Class="col-score text-center">
                                 @{
                                     var isTop = topBookId != null && context.Book.BookId.Equals(topBookId);
                                     var color = isTop ? topMatchColor : "bg-secondary opacity-50";
@@ -150,11 +142,11 @@
 
                         <PropertyColumn Property="@(b => b.Book.Year.Value)" Title="@L["Year"]" Sortable="true" Class="col-year text-muted small px-3" />
                         
-                        <TemplateColumn Title="@L["Taxonomy"]" sortBy="@sortTaxonomy" Class="col-category small">
+                        <TemplateColumn Title="@L["Taxonomy"]" sortBy="@_sortTaxonomy" Class="col-category small">
                             <span class="badge-sanctuary badge-neutral">@context.Book.MainCategory.Value()</span>
                         </TemplateColumn>
 
-                        <TemplateColumn Title="@L["ArchivalStatus"]" SortBy=@sortAvailability Align="Align.End" Class="col-available pe-5">
+                        <TemplateColumn Title="@L["ArchivalStatus"]" SortBy=@_sortAvailability Align="Align.End" Class="col-available pe-5">
                             @if (context.Book.AvailabilityStatus == BookLibrary.Shared.Commons.AvailabilityStatus.Available)
                             {
                                 <span class="text-success small fw-bold"><i class="bi bi-check-circle-fill me-2" style="font-size: 0.5rem;"></i>@L["Available"]</span>
@@ -182,7 +174,7 @@
                 
                 <div class="px-5 py-3 bg-surface-container border-top d-flex justify-content-between align-items-center">
                     <div class="small text-muted serif italic">@L["Showing"] @FilteredBooks.Count() @L["Records"]</div>
-                    <Paginator State="@bookPagination" />
+                    <Paginator State="@_bookPagination" />
                 </div>
             </div>
             
@@ -208,11 +200,11 @@
 
     private bool showImagePreview = true;
     private bool searchBooksPerformed = false;
-    private PaginationState bookPagination = new() { ItemsPerPage = 12 };
-    private GridSort<BookSearchResult> sortTitle = GridSort<BookSearchResult>.ByAscending(b => b.Book.Title.Value);
-    private GridSort<BookSearchResult> sortAvailability = GridSort<BookSearchResult>.ByAscending(b => b.Book.ImmediatelyAvailable);    
-    private GridSort<BookSearchResult> sortTaxonomy = GridSort<BookSearchResult>.ByAscending(b => b.Book.MainCategory.Value());
-    private GridSort<BookSearchResult> sortScore = GridSort<BookSearchResult>.ByDescending(b => FSharpOption<double>.get_IsSome(b.Score) ? b.Score.Value : 0f);
+    private PaginationState _bookPagination = new() { ItemsPerPage = 12 };
+    private GridSort<BookSearchResult> _sortTitle = GridSort<BookSearchResult>.ByAscending(b => b.Book.Title.Value);
+    private GridSort<BookSearchResult> _sortAvailability = GridSort<BookSearchResult>.ByAscending(b => b.Book.ImmediatelyAvailable);    
+    private GridSort<BookSearchResult> _sortTaxonomy = GridSort<BookSearchResult>.ByAscending(b => b.Book.MainCategory.Value());
+    private GridSort<BookSearchResult> _sortScore = GridSort<BookSearchResult>.ByDescending(b => FSharpOption<double>.get_IsSome(b.Score) ? b.Score.Value : 0f);
     private bool enableAIExplanations = false;
 
     private string statusMessage = "";
@@ -389,7 +381,7 @@
     private async Task<UserContext> GetUserContextAsync()
     {
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-        return blazorBookLibrary.Shared.ConverterUtils.fromClaimsPrincipal(authState.User);
+        return Shared.ConverterUtils.fromClaimsPrincipal(authState.User);
     }
 
     private HubConnection? hubConnection;

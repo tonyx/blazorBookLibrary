@@ -5,7 +5,6 @@ open System
 open System.Runtime.InteropServices
 open System.Threading
 open System.Threading.Tasks
-open BookLibrary.Domain
 open BookLibrary.Shared.Commons
 
 type ImportProgress = 

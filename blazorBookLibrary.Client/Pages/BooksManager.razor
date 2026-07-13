@@ -1,18 +1,10 @@
 @page "/books-manager"
 @using Microsoft.AspNetCore.Authorization
-@using Microsoft.Extensions.Localization
-@using blazorBookLibrary.Shared.Resources
-@using BookLibrary.Domain
-@using blazorBookLibrary.Client.Components.Shared
 @using Microsoft.FSharp.Core
 @using Microsoft.FSharp.Collections
 @using System.Threading
 @using BlazorBarcodeScanner.ZXing.JS
 @using static BookLibrary.Shared.Commons
-@using BookLibrary.Shared
-@using blazorBookLibrary.Shared
-@using Microsoft.AspNetCore.Components.QuickGrid
-@using BookLibrary.Shared.Services
 @using Microsoft.AspNetCore.SignalR.Client
 @attribute [Authorize]
 @inject IBookService BookService
@@ -30,7 +22,7 @@
 @inject IConfiguration Configuration
 @inject ITextEmbeddingService TextEmbeddingService
 @inject IVectorDbService VectorDbService
-@inject blazorBookLibrary.Client.Services.TenantStateService TenantState
+@inject Services.TenantStateService TenantState
 @inject IEmbeddingOrchestrationService EmbeddingOrchestrationService
 @inject NavigationManager NavigationManager
 @rendermode InteractiveAuto
@@ -322,7 +314,7 @@ else
                                 <label class="form-label small text-muted text-uppercase fw-bold mb-2">@L["PrimaryTitle"]</label>
                                 <div class="input-group input-group-lg shadow-sm rounded-3 overflow-hidden border">
                                     <InputText class="form-control border-0 serif fw-bold bg-surface-low" 
-                                               @bind-Value="newBookTitle" 
+                                               @bind-Value="_newBookTitle" 
                                                placeholder="@L["EnterTitleToSearchPlaceholder"]" />
                                     <button type="button" class="btn btn-white border-start px-4" 
                                             @onclick="PerformGoogleLookup" disabled="@isAutofilling">
@@ -361,7 +353,7 @@ else
                                 <label class="form-label small text-muted text-uppercase fw-bold mb-2">@L["IsbnIdentifier"]</label>
                                 <div class="input-group shadow-sm rounded-3 overflow-hidden border">
                                     <InputText @ref="isbnInput" class="form-control border-0 font-monospace" 
-                                               @bind-Value="newBookIsbn" 
+                                               @bind-Value="_newBookIsbn" 
                                                placeholder="@L["IsbnExamplePlaceholder"]" />
                                     <button type="button" class="btn btn-white border-start" @onclick="ToggleScanner" title="@L["BarCodeScan"]">
                                         <i class="bi bi-upc-scan text-primary"></i>
@@ -463,12 +455,12 @@ else
                                         </div>
                                     </div>
                                     <div class="form-check form-switch mb-0">
-                                        <input class="form-check-input ms-0" type="checkbox" id="showSecondPartSwitch" @bind="showSecondPart" style="width: 2.5rem; height: 1.25rem; cursor: pointer;">
+                                        <input class="form-check-input ms-0" type="checkbox" id="showSecondPartSwitch" @bind="_showSecondPart" style="width: 2.5rem; height: 1.25rem; cursor: pointer;">
                                     </div>
                                 </div>
                             </div>
 
-                            @if (showSecondPart)
+                            @if (_showSecondPart)
                             {
                                 @* Publication Year *@
                                 <div class="col-md-5 animate-fade-in">
@@ -484,7 +476,7 @@ else
                                         <InputText class="form-control border-0 serif" 
                                                    @bind-Value="newBookImageUrl" 
                                                    placeholder="@L["PasteImageUrl"]" />
-                                        <button type="button" class="btn btn-white border-start d-flex align-items-center gap-2" @onclick="LookupCover" disabled="@(isLookingUpCover || (string.IsNullOrWhiteSpace(newBookTitle) && !IsNewBookIsbnValid))">
+                                        <button type="button" class="btn btn-white border-start d-flex align-items-center gap-2" @onclick="LookupCover" disabled="@(isLookingUpCover || (string.IsNullOrWhiteSpace(_newBookTitle) && !IsNewBookIsbnValid))">
                                             @if (isLookingUpCover) { <span class="spinner-border spinner-border-sm text-primary"></span> }
                                             <select class="form-select form-select-sm border-0 bg-transparent py-0" @bind="coverSizeLookup" style="width: auto;" @onclick:stopPropagation>
                                                 <option value="Small">S</option>
@@ -811,7 +803,7 @@ else
 
 @code {
     [CascadingParameter]
-    private Task<AuthenticationState> authenticationStateTask { get; set; } = default!;
+    private Task<AuthenticationState> AuthenticationStateTask { get; set; } = default!;
 
     [SupplyParameterFromQuery(Name = "dp")]
     public string? DpId { get; set; }
@@ -824,7 +816,7 @@ else
     {
         if (_cachedUserContext == null)
         {
-            var authState = await authenticationStateTask;
+            var authState = await AuthenticationStateTask;
             _cachedUserContext = TenantState.GetUserContext(authState.User);
         }
         return _cachedUserContext;
@@ -923,16 +915,16 @@ else
                 _showAddSection = value;
                 if (_showAddSection)
                 {
-                    shouldFocusIsbn = true;
+                    _shouldFocusIsbn = true;
                 }
             }
         }
     }
-    private bool shouldFocusIsbn = false;
-    private bool showSecondPart = false;
+    private bool _shouldFocusIsbn = false;
+    private bool _showSecondPart = false;
     private Microsoft.AspNetCore.Components.Forms.InputText? isbnInput;
-    private string newBookTitle = "";
-    private string newBookIsbn = "";
+    private string _newBookTitle = "";
+    private string _newBookIsbn = "";
     private string _newBookDescription = "";
     private string newBookDescription
     {
@@ -1021,14 +1013,14 @@ else
 
                 if (match.IsValidIsbn)
                 {
-                    newBookIsbn = match.ValidIsbn.Value;
-                    await ShowStatus(string.Format(L["IsbnIdentified"], newBookIsbn), "success");
+                    _newBookIsbn = match.ValidIsbn.Value;
+                    await ShowStatus(string.Format(L["IsbnIdentified"], _newBookIsbn), "success");
                     showCoverScanner = false;
                 }
                 else if (match.IsValidTitle)
                 {
-                    newBookTitle = match.ValidTitle.Value;
-                    await ShowStatus(string.Format(L["TitleIdentified"], newBookTitle), "info");
+                    _newBookTitle = match.ValidTitle.Value;
+                    await ShowStatus(string.Format(L["TitleIdentified"], _newBookTitle), "info");
                     showCoverScanner = false;
                 }
                 else
@@ -1060,7 +1052,7 @@ else
         
         if (Isbn.IsValid(scannedText))
         {
-            newBookIsbn = scannedText;
+            _newBookIsbn = scannedText;
             showScanner = false;
             await JSRuntime.InvokeVoidAsync("playScanSound");
             StateHasChanged();
@@ -1104,8 +1096,8 @@ else
     {
         get 
         {
-            if (string.IsNullOrWhiteSpace(newBookIsbn)) return false;
-            return allowInvalidIsbn || Isbn.IsValid(newBookIsbn);
+            if (string.IsNullOrWhiteSpace(_newBookIsbn)) return false;
+            return allowInvalidIsbn || Isbn.IsValid(_newBookIsbn);
         }
     }
 
@@ -1171,7 +1163,7 @@ else
         isPageLoading = true;
         try
         {
-            var authState = await authenticationStateTask;
+            var authState = await AuthenticationStateTask;
             var claimsPrincipal = authState.User;
             if (claimsPrincipal != null && claimsPrincipal.Identity?.IsAuthenticated == true)
             {
@@ -1321,7 +1313,7 @@ else
             return;
         }
 
-        if (string.IsNullOrWhiteSpace(newBookTitle))
+        if (string.IsNullOrWhiteSpace(_newBookTitle))
         {
             await ShowStatus(L["TitleIsRequired"], "warning");
             return;
@@ -1334,17 +1326,17 @@ else
         }
 
         Isbn isbn;
-        if (string.IsNullOrWhiteSpace(newBookIsbn))
+        if (string.IsNullOrWhiteSpace(_newBookIsbn))
         {
             isbn = Isbn.EmptyIsbn;
         }
         else if (allowInvalidIsbn)
         {
-            isbn = Isbn.NewInvalid(newBookIsbn);
+            isbn = Isbn.NewInvalid(_newBookIsbn);
         }
         else
         {
-            var isbnResult = Isbn.New(newBookIsbn);
+            var isbnResult = Isbn.New(_newBookIsbn);
             if (isbnResult.IsError)
             {
                 await ShowStatus(L["InvalidIsniValue", isbnResult.ErrorValue], "error");
@@ -1353,7 +1345,7 @@ else
             isbn = isbnResult.ResultValue;
         }
 
-        var title = Title.New(newBookTitle);
+        var title = Title.New(_newBookTitle);
         var year = Year.New(newBookYear.Value);
         var authorIds = selectedAuthors.Select(a => a.AuthorId).ToList();
 
@@ -1428,7 +1420,7 @@ else
         var result = await BookService.AddBookAsync(context, book);
         if (result.IsOk)
         {
-            await ShowStatus(string.Format(L["BookCreatedSuccessfully"], newBookTitle), "success");
+            await ShowStatus(string.Format(L["BookCreatedSuccessfully"], _newBookTitle), "success");
             
             // Perform automatic embedding if requested
             if (generateEmbeddingAfterAdd && !string.IsNullOrWhiteSpace(newBookDescription))
@@ -1487,8 +1479,8 @@ else
 
     private void ResetForm()
     {
-        newBookTitle = "";
-        newBookIsbn = "";
+        _newBookTitle = "";
+        _newBookIsbn = "";
         newBookDescription = "";
         newBookImageUrl = "";
         newBookYear = DateTime.Now.Year;
@@ -1503,7 +1495,7 @@ else
         previousDescriptionBuffer = null;
         descriptionGenerationCount = 0;
         isGeneratingDescription = false;
-        showSecondPart = false;
+        _showSecondPart = false;
         selectedDistributionPointId = Guid.Empty;
         bookTags.Clear();
     }
@@ -1570,7 +1562,7 @@ else
 
     private async Task PerformGoogleLookup()
     {
-        if (string.IsNullOrWhiteSpace(newBookTitle))
+        if (string.IsNullOrWhiteSpace(_newBookTitle))
         {
             await ShowStatus(L["EnterTitleToSearch"], "warning");
             return;
@@ -1580,7 +1572,7 @@ else
         try
         {
             var context = await GetUserContextAsync();
-            var results = await GoogleBooksService.LookupMultipleByTitleAsync(context, newBookTitle, CancellationToken.None);
+            var results = await GoogleBooksService.LookupMultipleByTitleAsync(context, _newBookTitle, CancellationToken.None);
             if (results.IsOk)
             {
                 lookupResults = results.ResultValue.ToList();
@@ -1608,11 +1600,11 @@ else
     {
         if (selectedLookupIndex < 0 || selectedLookupIndex >= lookupResults.Count) return;
         
-        showSecondPart = true;
+        _showSecondPart = true;
         var book = lookupResults[selectedLookupIndex];
-        newBookTitle = book.Title;
+        _newBookTitle = book.Title;
         if (FSharpOption<int>.get_IsSome(book.Year)) newBookYear = book.Year.Value;
-        if (FSharpOption<string>.get_IsSome(book.Isbn)) newBookIsbn = book.Isbn.Value;
+        if (FSharpOption<string>.get_IsSome(book.Isbn)) _newBookIsbn = book.Isbn.Value;
         if (FSharpOption<string>.get_IsSome(book.Description)) newBookDescription = book.Description.Value;
         
         // Search and link authors
@@ -1631,12 +1623,12 @@ else
         try
         {
             var context = await GetUserContextAsync();
-            var result = await GoogleBooksService.LookupByIsbnAsync(context, Isbn.StripExtraChars(newBookIsbn), CancellationToken.None);
+            var result = await GoogleBooksService.LookupByIsbnAsync(context, Isbn.StripExtraChars(_newBookIsbn), CancellationToken.None);
             if (result.IsOk && FSharpOption<GoogleBookMetadata>.get_IsSome(result.ResultValue))
             {
-                showSecondPart = true;
+                _showSecondPart = true;
                 var book = result.ResultValue.Value;
-                newBookTitle = book.Title;
+                _newBookTitle = book.Title;
                 if (FSharpOption<int>.get_IsSome(book.Year)) newBookYear = book.Year.Value;
                 if (FSharpOption<string>.get_IsSome(book.Description)) newBookDescription = book.Description.Value;
                 
@@ -1755,16 +1747,16 @@ else
                 if (coverSizeLookup == "Small") size = ThumbRoughSize.Small;
                 else if (coverSizeLookup == "Large") size = ThumbRoughSize.Large;
                 Isbn isbn;
-                var res = Isbn.New(newBookIsbn);
+                var res = Isbn.New(_newBookIsbn);
                 if (res.IsOk) isbn = res.ResultValue;
-                else isbn = Isbn.NewInvalid(newBookIsbn);
+                else isbn = Isbn.NewInvalid(_newBookIsbn);
 
                 result = await GoogleBooksService.LookupCoverImageByIsbnWithOpenApiAndThenGoogleAsync(context, isbn, FSharpOption<ThumbRoughSize>.Some(size), CancellationToken.None);
             }
             else
             {
                 searchMode = "Title/Author";
-                var title = newBookTitle;
+                var title = _newBookTitle;
                 var firstAuthor = selectedAuthors.FirstOrDefault();
                 var authorName = firstAuthor != null ? FSharpOption<string>.Some(firstAuthor.Name.Value) : FSharpOption<string>.None;
                 
@@ -1835,12 +1827,12 @@ else
         var authors = selectedAuthors.Select(a => a.Name.Value).ToList();
         var fsAuthors = ListModule.OfSeq(authors);
         
-        if (!string.IsNullOrWhiteSpace(newBookIsbn) && !string.IsNullOrWhiteSpace(newBookTitle))
-            bookData = PartialBookDataMatch.NewAll(newBookIsbn, newBookTitle, fsAuthors);
-        else if (!string.IsNullOrWhiteSpace(newBookIsbn))
-            bookData = PartialBookDataMatch.NewAuthorAndIsbn(newBookIsbn, fsAuthors);
-        else if (!string.IsNullOrWhiteSpace(newBookTitle))
-            bookData = PartialBookDataMatch.NewTitleAndAuthor(newBookTitle, fsAuthors);
+        if (!string.IsNullOrWhiteSpace(_newBookIsbn) && !string.IsNullOrWhiteSpace(_newBookTitle))
+            bookData = PartialBookDataMatch.NewAll(_newBookIsbn, _newBookTitle, fsAuthors);
+        else if (!string.IsNullOrWhiteSpace(_newBookIsbn))
+            bookData = PartialBookDataMatch.NewAuthorAndIsbn(_newBookIsbn, fsAuthors);
+        else if (!string.IsNullOrWhiteSpace(_newBookTitle))
+            bookData = PartialBookDataMatch.NewTitleAndAuthor(_newBookTitle, fsAuthors);
 
         if (bookData == null)
         {

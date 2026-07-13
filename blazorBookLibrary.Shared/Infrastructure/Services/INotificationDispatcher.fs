@@ -3,7 +3,6 @@ namespace blazorBookLibrary.Shared.Infrastructure.Services
 open System.Threading
 open System.Threading.Tasks
 open BookLibrary.Shared.Commons
-open BookLibrary.Domain
 
 type INotificationDispatcher =
     abstract member DispatchNotificationAsync : 

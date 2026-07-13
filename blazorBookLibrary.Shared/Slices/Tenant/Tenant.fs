@@ -14,7 +14,7 @@ type PatronRole =
 type Tenant001 =
     { OwnerId: UserId
       TenantId: TenantId
-      InvitedPatrons: List<(UserId * PatronInvitationCode)>
+      InvitedPatrons: List<UserId * PatronInvitationCode>
       Patrons: List<UserId * PatronRole>
       Name: TenantName
       Address: string
@@ -287,7 +287,7 @@ and Tenant =
 
             do!
                 this.Patrons
-                |> List.find (fun (u, r) -> u = user)
+                |> List.find (fun (u, _) -> u = user)
                 |> fun (_, r) -> r.IsSuspended
                 |> Result.ofBool "Must be suspended before removal"
 
@@ -357,7 +357,7 @@ and Tenant =
             |> Ok
         | _ -> Error "Tenant is already activated"
 
-    member this.ScheduleForDeletion(date: System.DateTime) =
+    member this.ScheduleForDeletion(date: DateTime) =
         match this.TenantState with
         | Deactivated ->
             { this with

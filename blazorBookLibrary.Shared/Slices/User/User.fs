@@ -1,11 +1,7 @@
 namespace BookLibrary.Domain
 
 open System.Text.Json
-open FsToolkit.ErrorHandling
-open Sharpino
 open BookLibrary.Shared.Commons
-open System
-open System.Globalization
 
 type User =
     { UserId: UserId
@@ -27,9 +23,7 @@ type User =
 
     member this.SetCodiceFiscale(fiscalCode: FiscalCode) =
         { this with
-            AppUserInfo =
-                { this.AppUserInfo with
-                    CodiceFiscale = fiscalCode.Value } }
+            User.AppUserInfo.CodiceFiscale = fiscalCode.Value }
         |> Ok
 
     member this.GetCodiceFiscale() =
@@ -40,9 +34,7 @@ type User =
 
     member this.SetPhoneNumber(phoneNumber: PhoneNumber) =
         { this with
-            AppUserInfo =
-                { this.AppUserInfo with
-                    PhoneNumber = phoneNumber.Value } }
+            User.AppUserInfo.PhoneNumber = phoneNumber.Value }
         |> Ok
 
     member this.GetPhoneNumber() =
@@ -53,28 +45,22 @@ type User =
 
     member this.SetIsIdentifiedPhysically() =
         { this with
-            AppUserInfo =
-                { this.AppUserInfo with
-                    IsIdentifiedPhysically = true } }
+            User.AppUserInfo.IsIdentifiedPhysically = true }
         |> Ok
 
     member this.UnsetIdentifiedPhysically() =
         { this with
-            AppUserInfo =
-                { this.AppUserInfo with
-                    IsIdentifiedPhysically = false } }
+            User.AppUserInfo.IsIdentifiedPhysically = false }
         |> Ok
 
     member this.SetNome(nome: string) =
         { this with
-            AppUserInfo = { this.AppUserInfo with Nome = nome } }
+            User.AppUserInfo.Nome = nome }
         |> Ok
 
     member this.SetCognome(cognome: string) =
         { this with
-            AppUserInfo =
-                { this.AppUserInfo with
-                    Cognome = cognome } }
+            User.AppUserInfo.Cognome = cognome }
         |> Ok
 
     member this.GetAppUserInfo() = this.AppUserInfo

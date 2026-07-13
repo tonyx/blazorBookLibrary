@@ -2,11 +2,7 @@
 @implements IAsyncDisposable
 @using System.Globalization
 @using System.Threading
-@using BookLibrary.Shared.Services
-@using BookLibrary.Domain
-@using BookLibrary.Shared
 @using static BookLibrary.Shared.Commons
-@using blazorBookLibrary.Shared.Security
 @using blazorBookLibrary.Shared
 @using Microsoft.FSharp.Core
 @using Microsoft.AspNetCore.SignalR.Client
@@ -20,7 +16,6 @@
 @inject IDetailsService DetailsService
 @inject IReviewService ReviewService
 @inject IUserTenantResolverService UserTenantResolverService
-@inject ILogger<AuthorsManager> Logger
 @inject NavigationManager NavManager
 @inject IJSRuntime JSRuntime
 @using Microsoft.Extensions.Localization

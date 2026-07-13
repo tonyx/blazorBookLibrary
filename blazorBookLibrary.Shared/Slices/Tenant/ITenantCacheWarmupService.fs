@@ -2,7 +2,6 @@ namespace BookLibrary.Shared.Services
 
 open System.Threading
 open System.Threading.Tasks
-open System
 open BookLibrary.Shared.Commons
 
 type ITenantCacheWarmupService =

@@ -1,7 +1,6 @@
 
 namespace BookLibrary.Domain
 open System.Text.Json
-open FsToolkit.ErrorHandling
 open BookLibrary.Shared.Commons
 open System
 

@@ -1,21 +1,15 @@
 @page "/books-manager/import"
 @using Microsoft.AspNetCore.Authorization
-@using Microsoft.Extensions.Localization
-@using blazorBookLibrary.Shared.Resources
-@using BookLibrary.Domain
-@using blazorBookLibrary.Client.Components.Shared
 @using Microsoft.FSharp.Core
-@using Microsoft.FSharp.Collections
 @using System.Threading
 @using static BookLibrary.Shared.Commons
-@using BookLibrary.Shared
 @using blazorBookLibrary.Shared
 @rendermode InteractiveServer
 @attribute [Authorize]
 
 @inject IDataExportService DataExportService
 @inject IStringLocalizer<SharedResources> L
-@inject blazorBookLibrary.Client.Services.TenantStateService TenantState
+@inject Services.TenantStateService TenantState
 @inject NavigationManager NavigationManager
 @inject IJSRuntime JSRuntime
 
