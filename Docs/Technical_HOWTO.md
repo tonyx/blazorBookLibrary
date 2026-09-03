@@ -54,9 +54,10 @@ In distributed or multi-node environments, state synchronization is critical.
 
 ### 2.3 Future Multi-Node Evolution
 The system is designed with a future transition to a multi-node, client-heavy architecture in mind:
-*   **WebAssembly Client**: Moving towards a Blazor WebAssembly frontend.
-*   **REST API Layer**: Interactions will be handled via REST API client wrappers.
-*   **Service Wrappers**: The existing service implementations would be substituted with API-based implementations to maintain the same interface while calling remote endpoints.
+*   **WebAssembly Client**: Moving towards a Blazor WebAssembly frontend. (Done: InteractiveAuto  )
+*   **REST API Layer**: Interactions will be handled via REST API client wrappers. (Done)
+
+*   **Service Wrappers**: The existing service implementations would be substituted with API-based implementations to maintain the same interface while calling remote endpoints. (Done)
 
 ---
 *Note: Ensure that the `.env` file in the server directory is never committed to source control if it contains production credentials.*
