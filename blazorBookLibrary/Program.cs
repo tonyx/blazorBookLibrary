@@ -1,13 +1,8 @@
 using Microsoft.AspNetCore.Components.Authorization;
-using Microsoft.AspNetCore.Localization;
-using System.Globalization;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.Extensions.DependencyInjection;
-using System.Linq;
 using Microsoft.AspNetCore.SignalR;
 
 using Microsoft.EntityFrameworkCore;
-using blazorBookLibrary.Client.Pages;
 using blazorBookLibrary.Components;
 using blazorBookLibrary.Components.Account;
 using blazorBookLibrary.Data;
@@ -15,8 +10,6 @@ using BookLibrary.Shared.Services;
 using BookLibrary.Services;
 using blazorBookLibrary.Shared.Infrastructure.Services;
 using blazorBookLibrary.Shared.Security;
-using BookLibrary.Domain;
-using BookLibrary.Utils;
 
 using static BookLibrary.Shared.Commons; 
 using static BookLibrary.CleanServices.CleanUpServices;
@@ -25,8 +18,6 @@ using BookLibrary.Server.SeedServices;
 
 using blazorBookLibrary.Security;
 using blazorBookLibrary.Infrastructure.Services;
-using BookLibrary.CleanServices;
-using BookLibrary.Services;
 using BookLibrary.Server.CleanServices;
 using Microsoft.FSharp.Core;
 
@@ -126,7 +117,7 @@ builder.Services.AddSingleton<IDistributionPointService, DistributionPointServic
 
 builder.Services.AddSingleton<IAdminServices, AdminService>();
 builder.Services.AddSingleton<ITenantService, TenantService>();
-builder.Services.AddSingleton<BookLibrary.Shared.Services.ITenantCacheWarmupService, blazorBookLibrary.Infrastructure.Services.TenantCacheWarmupService>();
+builder.Services.AddSingleton<ITenantCacheWarmupService, TenantCacheWarmupService>();
 builder.Services.AddSingleton<INotificationService, NotificationService>();
 
 builder.Services.AddTransient<CleanUpService>();

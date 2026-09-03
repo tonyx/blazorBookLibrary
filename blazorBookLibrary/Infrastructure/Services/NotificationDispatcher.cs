@@ -1,13 +1,6 @@
-using System;
-using System.Threading;
-using System.Threading.Tasks;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.FSharp.Core;
 using BookLibrary.Shared.Services;
 using BookLibrary.Domain;
-using BookLibrary.Shared;
 using static BookLibrary.Shared.Commons;
 using blazorBookLibrary.Shared.Infrastructure.Services;
 

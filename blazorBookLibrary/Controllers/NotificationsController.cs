@@ -3,12 +3,6 @@ using BookLibrary.Shared.Services;
 using BookLibrary.Shared;
 using BookLibrary.Services;
 using Microsoft.FSharp.Core;
-using System;
-using System.Linq;
-using System.Threading;
-using System.Security.Claims;
-using blazorBookLibrary.Shared;
-using Microsoft.AspNetCore.Http;
 
 namespace blazorBookLibrary.Controllers;
 

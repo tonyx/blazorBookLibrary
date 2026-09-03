@@ -1,6 +1,8 @@
 
 # Biblionet: Book Archiving and Sharing System 📚✨
 
+Info: some content, including documents and code, can be generated or assisted by A.I.
+
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 
 A premium, high-fidelity archival management system built with **Blazor**, **F# (Domain-driven logic)**, and **Vanilla CSS (The Sanctuary Sanctuary)**. 

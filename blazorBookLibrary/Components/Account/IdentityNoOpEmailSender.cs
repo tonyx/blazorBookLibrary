@@ -27,9 +27,9 @@ internal sealed class IdentityNoOpEmailSender : IEmailSender<ApplicationUser>
         _nameFrom = configuration["BooksLibrary:FromName"] ?? "Biblio Net";
         _logger = logger;
 
-        var agreementFilePath = Path.Combine(Directory.GetCurrentDirectory(), "agreement.txt");
-        var agreementContent =  File.ReadAllText(agreementFilePath);
-        _agreementText = agreementContent;
+        // var agreementFilePath = Path.Combine(Directory.GetCurrentDirectory(), "agreement.txt");
+        // var agreementContent =  File.ReadAllText(agreementFilePath);
+        _agreementText = "agreement";
     }
 
     private async Task<string> LoadAgreementText(CultureInfo culture)

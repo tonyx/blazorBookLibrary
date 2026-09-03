@@ -1,10 +1,5 @@
 @page "/user-edit/{UserIdStr}"
 @using Microsoft.AspNetCore.Authorization
-@using BookLibrary.Shared.Services
-@using BookLibrary.Domain
-@using BookLibrary.Shared
-@using blazorBookLibrary.Shared.Resources
-@using static BookLibrary.Shared.Commons
 @using Microsoft.FSharp.Core
 @using static BookLibrary.Shared.Details
 @using Microsoft.AspNetCore.Identity
@@ -301,8 +296,8 @@
             if (Guid.TryParse(UserIdStr, out var guid))
             {
                 var sharpinoUserId = UserId.NewUserId(guid);
-                var context = blazorBookLibrary.Shared.ConverterUtils.fromClaimsPrincipal(authState.User);
-                var result = await DetailsService.GetUserDetailsAsync(context, sharpinoUserId, FSharpOption<System.Threading.CancellationToken>.None);
+                var context = Shared.ConverterUtils.fromClaimsPrincipal(authState.User);
+                var result = await DetailsService.GetUserDetailsAsync(context, sharpinoUserId, FSharpOption<CancellationToken>.None);
 
                 if (result.IsOk)
                 {

@@ -57,16 +57,15 @@ public sealed class PersistingRevalidatingAuthenticationStateProvider : Revalida
         {
             return false;
         }
-        else if (!userManager.SupportsUserSecurityStamp)
+
+        if (!userManager.SupportsUserSecurityStamp)
         {
             return true;
         }
-        else
-        {
-            var principalStamp = principal.FindFirstValue(_options.Value.ClaimsIdentity.SecurityStampClaimType);
-            var userStamp = await userManager.GetSecurityStampAsync(user);
-            return principalStamp == userStamp;
-        }
+
+        var principalStamp = principal.FindFirstValue(_options.Value.ClaimsIdentity.SecurityStampClaimType);
+        var userStamp = await userManager.GetSecurityStampAsync(user);
+        return principalStamp == userStamp;
     }
 
     private void OnAuthenticationStateChanged(Task<AuthenticationState> authenticationStateTask)
