@@ -82,3 +82,8 @@ type IBookService =
     
     abstract member LoanedByUserAtLeastOnceAsync : context:UserContext * bookId: BookId * userId:UserId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<bool, string>>
 
+    abstract member AddPaperAsync: context:UserContext * bookId: BookId * paper: Paper * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<unit, string>>
+    abstract member AddPapersAsync: context:UserContext * bookId: BookId * papers: List<Paper> * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<unit, string>>
+    abstract member RemovePaperAsync: context:UserContext * bookId: BookId * paperId: PaperId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<unit, string>>
+    
+

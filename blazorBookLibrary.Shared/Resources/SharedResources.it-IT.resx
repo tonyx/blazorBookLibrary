@@ -976,4 +976,27 @@
   <data name="SampleQuestion1" xml:space="preserve"><value>Cerco libri che esplorino il lato oscuro della natura umana</value></data>
   <data name="SampleQuestion2" xml:space="preserve"><value>Tra tutte le possibilità, qual è il testo eticamente più controverso?</value></data>
   <data name="SampleQuestion3" xml:space="preserve"><value>Confronta il conflitto centrale e il ritmo di questi libri</value></data>
+  <data name="CollectedPapers" xml:space="preserve"><value>Articoli e Saggi Raccolti</value></data>
+  <data name="Paper" xml:space="preserve"><value>Articolo / Saggio</value></data>
+  <data name="Papers" xml:space="preserve"><value>Articoli / Saggi</value></data>
+  <data name="DrillDownPapers" xml:space="preserve"><value>Mostra Articoli</value></data>
+  <data name="HidePapers" xml:space="preserve"><value>Nascondi Articoli</value></data>
+  <data name="AddPaper" xml:space="preserve"><value>Aggiungi Articolo</value></data>
+  <data name="DefinePaperForBook" xml:space="preserve"><value>Definisci un articolo o saggio da includere in questo volume.</value></data>
+  <data name="PaperTitle" xml:space="preserve"><value>Titolo Articolo</value></data>
+  <data name="PaperTitlePlaceholder" xml:space="preserve"><value>Inserisci il titolo dell'articolo...</value></data>
+  <data name="PaperDescription" xml:space="preserve"><value>Descrizione Articolo (Opzionale)</value></data>
+  <data name="PaperDescriptionPlaceholder" xml:space="preserve"><value>Inserisci abstract o descrizione opzionale...</value></data>
+  <data name="PaperAuthors" xml:space="preserve"><value>Autori</value></data>
+  <data name="PaperCategories" xml:space="preserve"><value>Categorie</value></data>
+  <data name="PaperTags" xml:space="preserve"><value>Tag</value></data>
+  <data name="AddPaperAuthorPlaceholder" xml:space="preserve"><value>Cerca autore nel database locale...</value></data>
+
+  <data name="NoPapersInBook" xml:space="preserve"><value>Questo volume al momento non contiene articoli catalogati.</value></data>
+  <data name="RemovePaper" xml:space="preserve"><value>Rimuovi Articolo</value></data>
+  <data name="ConfirmRemovePaper" xml:space="preserve"><value>Sei sicuro di voler rimuovere l'articolo '{0}'?</value></data>
+  <data name="PaperAddedSuccessfully" xml:space="preserve"><value>L'articolo '{0}' è stato aggiunto con successo a questo volume.</value></data>
+  <data name="PaperRemovedSuccessfully" xml:space="preserve"><value>L'articolo è stato rimosso da questo volume.</value></data>
+  <data name="ErrorAddingPaper" xml:space="preserve"><value>Errore durante l'aggiunta dell'articolo: {0}</value></data>
+  <data name="ErrorRemovingPaper" xml:space="preserve"><value>Errore durante la rimozione dell'articolo: {0}</value></data>
 </root>

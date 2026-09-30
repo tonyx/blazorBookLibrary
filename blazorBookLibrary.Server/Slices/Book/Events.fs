@@ -39,6 +39,10 @@ type BookEvent =
     | AdditionalCategoryRemoved of Category * DateTime
     | AdditionalCategoriesReplaced of List<Category> * DateTime
 
+    | PaperAdded of Paper 
+    | PapersAdded of List<Paper>
+    | PaperRemoved of PaperId
+
     | BulkUpdated of BulkBookEdit * DateTime
 
     | DistributionPointSet of DistributionPointId * UserId * DateTime
@@ -139,7 +143,13 @@ type BookEvent =
             | ImageUrlRemoved dateTime ->
                 book.RemoveImageUrl dateTime
             | AvailabilitySet (availability, dateTime) ->
-                book.SetAvailability availability dateTime
+                book.SetAvailability availability dateTime            
+            | PaperAdded paper  -> 
+                book.AddPaper paper
+            | PapersAdded papers  ->
+                book.AddPapers papers
+            | PaperRemoved paperId  ->
+                book.RemovePaper paperId
 
     static member Deserialize (x: string): Result<BookEvent, string> =
         try

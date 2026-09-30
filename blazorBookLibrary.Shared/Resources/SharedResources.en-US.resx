@@ -1031,4 +1031,27 @@
   <data name="SampleQuestion1" xml:space="preserve"><value>I am looking for books exploring the darker sides of human nature</value></data>
   <data name="SampleQuestion2" xml:space="preserve"><value>Among all these possibilities, which is the most ethically controversial text?</value></data>
   <data name="SampleQuestion3" xml:space="preserve"><value>Compare the central conflict and pacing of these books</value></data>
+  <data name="CollectedPapers" xml:space="preserve"><value>Collected Papers</value></data>
+  <data name="Paper" xml:space="preserve"><value>Paper</value></data>
+  <data name="Papers" xml:space="preserve"><value>Papers</value></data>
+  <data name="DrillDownPapers" xml:space="preserve"><value>Drill Down Papers</value></data>
+  <data name="HidePapers" xml:space="preserve"><value>Hide Papers</value></data>
+  <data name="AddPaper" xml:space="preserve"><value>Add Paper</value></data>
+  <data name="DefinePaperForBook" xml:space="preserve"><value>Define a paper to be included in this volume.</value></data>
+  <data name="PaperTitle" xml:space="preserve"><value>Paper Title</value></data>
+  <data name="PaperTitlePlaceholder" xml:space="preserve"><value>Enter paper title...</value></data>
+  <data name="PaperDescription" xml:space="preserve"><value>Paper Description (Optional)</value></data>
+  <data name="PaperDescriptionPlaceholder" xml:space="preserve"><value>Enter optional abstract or description...</value></data>
+  <data name="PaperAuthors" xml:space="preserve"><value>Authors</value></data>
+  <data name="PaperCategories" xml:space="preserve"><value>Categories</value></data>
+  <data name="PaperTags" xml:space="preserve"><value>Tags</value></data>
+  <data name="AddPaperAuthorPlaceholder" xml:space="preserve"><value>Search author in database...</value></data>
+
+  <data name="NoPapersInBook" xml:space="preserve"><value>This volume currently has no papers cataloged.</value></data>
+  <data name="RemovePaper" xml:space="preserve"><value>Remove Paper</value></data>
+  <data name="ConfirmRemovePaper" xml:space="preserve"><value>Are you sure you want to remove the paper '{0}'?</value></data>
+  <data name="PaperAddedSuccessfully" xml:space="preserve"><value>Paper '{0}' has been successfully added to this book.</value></data>
+  <data name="PaperRemovedSuccessfully" xml:space="preserve"><value>Paper has been removed from this book.</value></data>
+  <data name="ErrorAddingPaper" xml:space="preserve"><value>Error adding paper: {0}</value></data>
+  <data name="ErrorRemovingPaper" xml:space="preserve"><value>Error removing paper: {0}</value></data>
 </root>

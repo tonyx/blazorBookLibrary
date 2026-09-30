@@ -1031,6 +1031,73 @@ let tests =
             Expect.equal freshBook2.SbnCode None "controller should unset sbn code"
         }
 
+        testCaseTask "BooksController AddPaperAsync, AddPapersAsync and RemovePaperAsync - Ok" <| fun _ -> task {
+            setUp ()
+            let bookService = getBookService()
+            let book = Book.New TenantId.Default (Title.New "Book for Controller Papers") [] [] [] None Category.Other [] (Year.New 2024) (Isbn.NewEmpty()) None
+            let! addRes = (bookService :> IBookService).AddBookAsync(adminContext, book)
+            Expect.isOk addRes "should add book ok"
+
+            let controller = BookLibrary.Controllers.BooksController(bookService, null)
+            let httpContext = Microsoft.AspNetCore.Http.DefaultHttpContext()
+            let identity = System.Security.Claims.ClaimsIdentity([
+                System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.NameIdentifier, adminId.Value.ToString())
+                System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.Role, "admin")
+            ], "TestAuth")
+            httpContext.User <- System.Security.Claims.ClaimsPrincipal(identity)
+            controller.ControllerContext <- Microsoft.AspNetCore.Mvc.ControllerContext(HttpContext = httpContext)
+
+            let paper1 = {
+                PaperId = PaperId.New()
+                Title = Title.New "Paper One"
+                Description = Some "Description 1"
+                OptionalEmbedding = None
+                Authors = []
+                Categories = []
+                Tags = []
+            }
+            let! addPaperAction = controller.AddPaperAsync(book.BookId.Value, paper1)
+            Expect.isTrue (addPaperAction :? Microsoft.AspNetCore.Mvc.OkResult) "AddPaperAsync should return Ok"
+
+            let! bookWithPaper1 = (bookService :> IBookService).GetBookAsync(adminContext, book.BookId)
+            let book1 = bookWithPaper1 |> Result.get
+            Expect.equal book1.Papers.Length 1 "should have 1 paper"
+            Expect.equal book1.Papers.[0].PaperId paper1.PaperId "paper id should match"
+
+            let paper2 = {
+                PaperId = PaperId.New()
+                Title = Title.New "Paper Two"
+                Description = Some "Description 2"
+                OptionalEmbedding = None
+                Authors = []
+                Categories = []
+                Tags = []
+            }
+            let paper3 = {
+                PaperId = PaperId.New()
+                Title = Title.New "Paper Three"
+                Description = Some "Description 3"
+                OptionalEmbedding = None
+                Authors = []
+                Categories = []
+                Tags = []
+            }
+            let! addPapersAction = controller.AddPapersAsync(book.BookId.Value, System.Collections.Generic.List [paper2; paper3])
+            Expect.isTrue (addPapersAction :? Microsoft.AspNetCore.Mvc.OkResult) "AddPapersAsync should return Ok"
+
+            let! bookWithPapers = (bookService :> IBookService).GetBookAsync(adminContext, book.BookId)
+            let book2 = bookWithPapers |> Result.get
+            Expect.equal book2.Papers.Length 3 "should have 3 papers"
+
+            let! removePaperAction = controller.RemovePaperAsync(book.BookId.Value, paper2.PaperId.Value)
+            Expect.isTrue (removePaperAction :? Microsoft.AspNetCore.Mvc.OkResult) "RemovePaperAsync should return Ok"
+
+            let! bookAfterRemoval = (bookService :> IBookService).GetBookAsync(adminContext, book.BookId)
+            let book3 = bookAfterRemoval |> Result.get
+            Expect.equal book3.Papers.Length 2 "should have 2 papers remaining"
+            Expect.isFalse (book3.Papers |> List.exists (fun p -> p.PaperId = paper2.PaperId)) "removed paper should not exist"
+        }
+
         testCaseTask "AddBookAsync with SbnCode persists SbnCode correctly upon creation" <| fun _ -> task {
             setUp ()
             let bookService = getBookService()

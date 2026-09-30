@@ -1390,6 +1390,64 @@ type BookService
                 return not loans.IsEmpty
             }
 
+    member this.AddPaperAsync (context: UserContext, bookId: BookId, paper: Paper, ?ct: CancellationToken) = 
+        taskResult
+            {
+                let ct = defaultArg ct CancellationToken.None
+                do!
+                    checkIsGlobalAdminOrTenantManagerOrPublicTenant context ct
+                let! book = 
+                    bookViewerAsync (ct |> Some) bookId.Value |> TaskResult.map snd
+                let addPaper = BookCommand.AddPaper paper
+                let! result =
+                    runAggregateCommandMdAsync<Book, BookEvent, string>
+                        bookId.Value
+                        eventStore
+                        messageSenders
+                        ""
+                        addPaper
+                        (ct |> Some)
+                return result
+            }
+    member this.AddPapersAsync (context: UserContext, bookId: BookId, papers: List<Paper>, ?ct: CancellationToken) = 
+        taskResult
+            {
+                let ct = defaultArg ct CancellationToken.None
+                do!
+                    checkIsGlobalAdminOrTenantManagerOrPublicTenant context ct
+                let! book = 
+                    bookViewerAsync (ct |> Some) bookId.Value |> TaskResult.map snd
+                let addPapersCommand = BookCommand.AddPapers papers
+                let! result =
+                    runAggregateCommandMdAsync<Book, BookEvent, string>
+                        bookId.Value
+                        eventStore
+                        messageSenders
+                        ""
+                        addPapersCommand
+                        (ct |> Some)
+                return result
+            }
+    member this.RemovePaperAsync (context: UserContext, bookId: BookId, paperId: PaperId, ?ct: CancellationToken) = 
+        taskResult
+            {
+                let ct = defaultArg ct CancellationToken.None
+                do!
+                    checkIsGlobalAdminOrTenantManagerOrPublicTenant context ct
+                let! book = 
+                    bookViewerAsync (ct |> Some) bookId.Value |> TaskResult.map snd
+                let removePaperCommand = BookCommand.RemovePaper paperId
+                let! result =
+                    runAggregateCommandMdAsync<Book, BookEvent, string>
+                        bookId.Value
+                        eventStore
+                        messageSenders
+                        ""
+                        removePaperCommand
+                        (ct |> Some)
+                return result
+            }
+
     interface IBookService with                
         member this.AddAuthorToBookAsync(context: UserContext, authorId: AuthorId, bookId: BookId, ?ct: CancellationToken ) =
             let ct = defaultArg ct CancellationToken.None
@@ -1580,3 +1638,13 @@ type BookService
         member this.UpdateSbnCodeAsync(context: UserContext, sbnCode: SbnCode, bookId: BookId, ct: CancellationToken option): Task<Result<unit,string>> = 
             let ct = defaultArg ct CancellationToken.None
             this.UpdateIsbnCodeAsync(context, bookId, sbnCode, ct)
+
+        member this.AddPaperAsync(context: UserContext, bookId: BookId, paper: Paper, ct: CancellationToken option): Task<Result<unit,string>> = 
+            let ct = defaultArg ct CancellationToken.None
+            this.AddPaperAsync(context, bookId, paper, ct)
+        member this.AddPapersAsync(context: UserContext, bookId: BookId, papers: List<Paper>, ct: CancellationToken option): Task<Result<unit,string>> = 
+            let ct = defaultArg ct CancellationToken.None
+            this.AddPapersAsync(context, bookId, papers, ct)
+        member this.RemovePaperAsync(context: UserContext, bookId: BookId, paperId: PaperId, ct: CancellationToken option): Task<Result<unit,string>> = 
+            let ct = defaultArg ct CancellationToken.None
+            this.RemovePaperAsync(context, bookId, paperId, ct)

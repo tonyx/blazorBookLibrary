@@ -373,6 +373,7 @@ type DataExportService
                                                 { TenantId = tenantId
                                                   BookId = BookId.New()
                                                   Title = Title.New metadata.Title
+                                                  Papers = []
                                                   ImageUrl = imageUrl
                                                   Description = description
                                                   OptionalEmbedding = None

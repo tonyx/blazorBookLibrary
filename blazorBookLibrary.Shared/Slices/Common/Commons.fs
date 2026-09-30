@@ -200,10 +200,15 @@ type PatronInvitationCode =
         match this with
         | PatronInvitationCode v -> v
 
+type PaperId =
+    | PaperId of Guid
+    static member New() = PaperId(Guid.NewGuid()) 
+    member this.Value =
+        match this with
+        | PaperId v -> v 
 
 type BookId =
     | BookId of Guid
-
     static member New() = BookId(Guid.NewGuid())
 
     member this.Value =

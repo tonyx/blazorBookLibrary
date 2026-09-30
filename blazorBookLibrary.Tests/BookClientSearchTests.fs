@@ -245,4 +245,44 @@ module BookClientSearchTests =
                     Expect.contains titles "The Hobbit" "Contains book3"
                 | Error err -> failwithf "Failed: %s" err
             }
+
+            testCaseTask "BookClientService AddPaperAsync, AddPapersAsync and RemovePaperAsync sends correct requests" <| fun _ -> task {
+                let mutable lastMethod = HttpMethod.Get
+                let mutable lastUri = ""
+                let handler = new FakeHttpMessageHandler(fun req ->
+                    lastMethod <- req.Method
+                    lastUri <- req.RequestUri.ToString()
+                    new HttpResponseMessage(HttpStatusCode.OK)
+                )
+                let httpClient = new HttpClient(handler)
+                httpClient.BaseAddress <- Uri("http://localhost/")
+                let clientService = BookClientService(httpClient)
+
+                let bookId = BookId.New()
+                let paperId = PaperId.New()
+                let paper = {
+                    PaperId = paperId
+                    Title = Title.New "Test Paper"
+                    Description = None
+                    OptionalEmbedding = None
+                    Authors = []
+                    Categories = []
+                    Tags = []
+                }
+
+                let! addRes = clientService.AddPaperAsync(UserContext.Anonymous, bookId, paper, None)
+                Expect.isOk addRes "AddPaperAsync should succeed"
+                Expect.equal lastMethod HttpMethod.Post "AddPaperAsync should send POST"
+                Expect.equal lastUri (sprintf "http://localhost/api/Books/%s/paper" (bookId.Value.ToString())) "AddPaperAsync URI should match"
+
+                let! addPapersRes = clientService.AddPapersAsync(UserContext.Anonymous, bookId, [paper], None)
+                Expect.isOk addPapersRes "AddPapersAsync should succeed"
+                Expect.equal lastMethod HttpMethod.Post "AddPapersAsync should send POST"
+                Expect.equal lastUri (sprintf "http://localhost/api/Books/%s/papers" (bookId.Value.ToString())) "AddPapersAsync URI should match"
+
+                let! removeRes = clientService.RemovePaperAsync(UserContext.Anonymous, bookId, paperId, None)
+                Expect.isOk removeRes "RemovePaperAsync should succeed"
+                Expect.equal lastMethod HttpMethod.Delete "RemovePaperAsync should send DELETE"
+                Expect.equal lastUri (sprintf "http://localhost/api/Books/%s/papers/%s" (bookId.Value.ToString()) (paperId.Value.ToString())) "RemovePaperAsync URI should match"
+            }
         ]

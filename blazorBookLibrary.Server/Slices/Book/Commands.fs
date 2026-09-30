@@ -53,6 +53,10 @@ type BookCommand =
     | RemoveImageUrl of DateTime
     | SetAvailability of Availability * DateTime
 
+    | AddPaper of Paper 
+    | AddPapers of List<Paper>
+    | RemovePaper of PaperId
+
     interface AggregateCommand<Book, BookEvent> with
         member this.Execute (book: Book) =
             match this with
@@ -181,5 +185,14 @@ type BookCommand =
                 book.SetAvailability availability dateTime
                 |> Result.map (fun b -> (b, [AvailabilitySet(availability, dateTime)]))
 
+            | AddPaper paper ->
+                book.AddPaper paper
+                |> Result.map (fun b -> (b, [PaperAdded(paper)]))
+            | AddPapers papers ->
+                book.AddPapers papers
+                |> Result.map (fun b -> (b, [PapersAdded(papers)]))
+            | RemovePaper paperId ->
+                book.RemovePaper paperId
+                |> Result.map (fun b -> (b, [PaperRemoved(paperId)]))
 
         member this.Undoer = None

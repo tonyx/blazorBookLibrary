@@ -833,6 +833,298 @@ else
                     }
                 </div>
 
+                <!-- Collected Papers Section -->
+                <div class="card-sanctuary p-5 mt-4">
+                    <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-3" style="border-color: var(--outline-variant) !important;">
+                        <div class="d-flex align-items-center gap-2">
+                            <h5 class="serif mb-0">@L["CollectedPapers"]</h5>
+                            <span class="badge bg-secondary-subtle text-secondary rounded-pill px-3 py-1 small">
+                                @(_bookDetails.Book.Papers.Length) @(_bookDetails.Book.Papers.Length == 1 ? L["Paper"] : L["Papers"])
+                            </span>
+                        </div>
+                        <div class="d-flex gap-2">
+                            @if (_bookDetails.Book.Papers.Any())
+                            {
+                                <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3 shadow-sm" @onclick="TogglePapersDrillDown">
+                                    <i class="bi @(_isPapersDrillDownOpen ? "bi-chevron-up" : "bi-layers-half") me-1"></i>
+                                    @(_isPapersDrillDownOpen ? L["HidePapers"] : L["DrillDownPapers"])
+                                </button>
+                            }
+                            @if (_bookDetails.Book.Editable && !_isAddingPaper)
+                            {
+                                <button type="button" class="btn btn-sm btn-primary rounded-pill px-3 shadow-sm" @onclick="OpenAddPaperSection">
+                                    <i class="bi bi-plus-lg me-1"></i> @L["AddPaper"]
+                                </button>
+                            }
+                        </div>
+                    </div>
+
+                    @* Add Paper Form Section *@
+                    @if (_isAddingPaper)
+                    {
+                        <div class="p-4 bg-surface-low rounded-xl border border-primary-subtle shadow-sm mb-4 animate-fade-in">
+                            <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
+                                <h6 class="serif mb-0 fw-bold text-primary">
+                                    <i class="bi bi-file-earmark-plus me-2"></i>@L["AddPaper"]
+                                </h6>
+                                <button type="button" class="btn-close small" @onclick="CancelAddPaper" aria-label="Close"></button>
+                            </div>
+                            <p class="small text-muted mb-3 serif italic">@L["DefinePaperForBook"]</p>
+
+                            <!-- Title Input -->
+                            <div class="mb-3">
+                                <label class="form-label x-small text-uppercase fw-bold text-muted">@L["PaperTitle"] *</label>
+                                <input type="text" class="form-control serif bg-white shadow-sm" placeholder="@L["PaperTitlePlaceholder"]" @bind="_newPaperTitle" />
+                            </div>
+
+                            <!-- Description Input -->
+                            <div class="mb-3">
+                                <label class="form-label x-small text-uppercase fw-bold text-muted">@L["PaperDescription"]</label>
+                                <textarea class="form-control serif bg-white shadow-sm" rows="3" placeholder="@L["PaperDescriptionPlaceholder"]" @bind="_newPaperDescription"></textarea>
+                            </div>
+
+                            <!-- Authors Search & Selection -->
+                            <div class="mb-3">
+                                <label class="form-label x-small text-uppercase fw-bold text-muted">@L["PaperAuthors"]</label>
+                                
+                                @if (_newPaperSelectedAuthors.Any())
+                                {
+                                    <div class="d-flex flex-wrap gap-2 mb-2">
+                                        @foreach (var author in _newPaperSelectedAuthors)
+                                        {
+                                            <span class="badge-sanctuary badge-neutral p-2 d-flex align-items-center shadow-sm">
+                                                <i class="bi bi-person-fill me-1 opacity-75"></i>
+                                                @author.Name.Value
+                                                <span class="ms-2 ps-2 border-start" style="cursor: pointer;" @onclick="() => RemovePaperAuthor(author)">
+                                                    <i class="bi bi-x text-danger fw-bold"></i>
+                                                </span>
+                                            </span>
+                                        }
+                                    </div>
+                                }
+
+                                @if (_bookDetails.Authors.Any(a => !_newPaperSelectedAuthors.Any(sa => sa.AuthorId.Value == a.AuthorId.Value)))
+                                {
+                                    <div class="d-flex flex-wrap align-items-center gap-1 mb-2">
+                                        <span class="x-small text-muted me-1">From book:</span>
+                                        @foreach (var bookAuthor in _bookDetails.Authors.Where(a => !_newPaperSelectedAuthors.Any(sa => sa.AuthorId.Value == a.AuthorId.Value)))
+                                        {
+                                            <button type="button" class="btn btn-xs btn-outline-secondary rounded-pill py-0 px-2 small" style="font-size: 0.75rem;" @onclick="() => AddAuthorToPaper(bookAuthor)">
+                                                <i class="bi bi-plus"></i> @bookAuthor.Name.Value
+                                            </button>
+                                        }
+                                    </div>
+                                }
+
+                                <div class="position-relative">
+                                    <div class="input-group input-group-sm rounded bg-surface-lowest border p-1 shadow-sm">
+                                        <span class="input-group-text bg-transparent border-0"><i class="bi bi-search"></i></span>
+                                        <input type="text" 
+                                               class="form-control border-0 bg-transparent py-1" 
+                                               placeholder="@L["AddPaperAuthorPlaceholder"]" 
+                                               value="@_paperAuthorSearchInput" 
+                                               @oninput="HandlePaperAuthorSearchInput" 
+                                               @onfocus="() => { if (_paperAuthorSearchResults.Any()) _showPaperAuthorSearchResults = true; }" />
+                                        @if (_isLoadingPaperAuthors)
+                                        {
+                                            <span class="input-group-text bg-transparent border-0">
+                                                <span class="spinner-border spinner-border-sm text-primary"></span>
+                                            </span>
+                                        }
+                                    </div>
+                                    @if (_showPaperAuthorSearchResults && _paperAuthorSearchResults.Any())
+                                    {
+                                        <div class="list-group position-absolute w-100 shadow mt-1 border" style="z-index: 1100; max-height: 180px; overflow-y: auto; border-radius: 8px;">
+                                            @foreach (var author in _paperAuthorSearchResults)
+                                            {
+                                                <button type="button" class="list-group-item list-group-item-action text-start p-2 small border-0 d-flex justify-content-between align-items-center" @onclick="() => AddAuthorToPaper(author)">
+                                                    <div class="fw-bold">@author.Name.Value</div>
+                                                    <i class="bi bi-plus-circle text-primary"></i>
+                                                </button>
+                                            }
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+
+                            <!-- Categories Selection -->
+                            <div class="mb-3">
+                                <label class="form-label x-small text-uppercase fw-bold text-muted">@L["PaperCategories"]</label>
+                                <div class="d-flex flex-wrap gap-2 mb-2">
+                                    @foreach (var cat in _newPaperSelectedCategories)
+                                    {
+                                        <span class="badge-sanctuary badge-neutral p-2 d-flex align-items-center shadow-sm">
+                                            <i class="bi bi-bookmark-fill me-1 opacity-50"></i>
+                                            @cat.Value()
+                                            <span class="ms-2 ps-2 border-start" style="cursor: pointer;" @onclick="() => _newPaperSelectedCategories.Remove(cat)">
+                                                <i class="bi bi-dash text-danger fw-bold"></i>
+                                            </span>
+                                        </span>
+                                    }
+                                </div>
+                                <div class="position-relative d-inline-block">
+                                    <button type="button" class="btn btn-sm btn-white border rounded-pill px-3 shadow-sm" @onclick="() => _showPaperAddCategoryDropdown = !_showPaperAddCategoryDropdown">
+                                        <i class="bi bi-plus-lg me-1"></i> @L["AddAdditionalCategory"]
+                                    </button>
+                                    @if (_showPaperAddCategoryDropdown)
+                                    {
+                                        <div class="position-absolute shadow-lg border rounded-lg bg-white p-3 mt-1" style="z-index: 1050; min-width: 250px; left: 0;">
+                                            <div class="small fw-bold mb-2 border-bottom pb-1">@L["SelectCategory"]</div>
+                                            <div class="row g-1" style="max-height: 200px; overflow-y: auto;">
+                                                @foreach (var cat in Category.AllCases())
+                                                {
+                                                    if (!_newPaperSelectedCategories.Contains(cat))
+                                                    {
+                                                        <div class="col-6">
+                                                            <div class="dropdown-item py-1 px-2 small rounded text-truncate border mb-1" style="cursor: pointer;" @onclick="() => { _newPaperSelectedCategories.Add(cat); _showPaperAddCategoryDropdown = false; }">
+                                                                @cat.Value()
+                                                            </div>
+                                                        </div>
+                                                    }
+                                                }
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+
+                            <!-- Tags Selection -->
+                            <div class="mb-4">
+                                <label class="form-label x-small text-uppercase fw-bold text-muted">@L["PaperTags"]</label>
+                                <div class="d-flex flex-wrap gap-2 mb-2">
+                                    @foreach (var tag in _newPaperSelectedTags)
+                                    {
+                                        <div class="tag-chip @GetTagColorClass(GetTagTypeName(tag)) d-inline-flex align-items-center shadow-sm">
+                                            <span class="me-2 small">@tag.TagName</span>
+                                            <button type="button" class="btn-close btn-close-white small" style="font-size: 0.5rem" @onclick="() => _newPaperSelectedTags.Remove(tag)"></button>
+                                        </div>
+                                    }
+                                </div>
+                                <div class="position-relative d-inline-block">
+                                    <button type="button" class="btn btn-sm btn-white border rounded-pill px-3 shadow-sm" @onclick="() => _showPaperAddTagDropdown = !_showPaperAddTagDropdown">
+                                        <i class="bi bi-plus-lg me-1"></i> @L["AddArchivalTag"]
+                                    </button>
+                                    @if (_showPaperAddTagDropdown)
+                                    {
+                                        <div class="position-absolute shadow-lg border rounded-lg bg-white p-3 mt-1" style="z-index: 1050; min-width: 280px; left: 0;">
+                                            <div class="small fw-bold mb-2 border-bottom pb-1">@L["SelectTagToAdd"]</div>
+                                            <div class="row g-1 overflow-auto" style="max-height: 220px;">
+                                                @foreach (var tag in allAvailableTags)
+                                                {
+                                                    if (!_newPaperSelectedTags.Contains(tag))
+                                                    {
+                                                        <div class="col-12">
+                                                            <div class="dropdown-item py-1 px-2 small rounded text-truncate border mb-1 d-flex justify-content-between align-items-center" style="cursor: pointer;" @onclick="() => { _newPaperSelectedTags.Add(tag); _showPaperAddTagDropdown = false; }">
+                                                                <span>@tag.TagName</span>
+                                                                <span class="badge @GetTagColorClass(GetTagTypeName(tag)) x-small opacity-75">@GetTagTypeName(tag)</span>
+                                                            </div>
+                                                        </div>
+                                                    }
+                                                }
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+
+                            <!-- Action Buttons -->
+                            <div class="d-flex gap-2">
+                                <button type="button" class="btn btn-primary px-4 shadow-sm" @onclick="SavePaper" disabled="@(string.IsNullOrWhiteSpace(_newPaperTitle) || _isSavingPaper)">
+                                    @if (_isSavingPaper)
+                                    {
+                                        <span class="spinner-border spinner-border-sm me-2"></span>
+                                    }
+                                    <i class="bi bi-check-lg me-1"></i>@L["Save"]
+                                </button>
+                                <button type="button" class="btn btn-white border px-4" @onclick="CancelAddPaper">
+                                    @L["Cancel"]
+                                </button>
+                            </div>
+                        </div>
+                    }
+
+                    @* Papers List / Drill Down View *@
+                    @if (_isPapersDrillDownOpen)
+                    {
+                        @if (!_bookDetails.Book.Papers.Any())
+                        {
+                            <div class="p-4 bg-surface-low rounded-xl text-center border dashed">
+                                <p class="text-muted fst-italic small mb-0 serif">@L["NoPapersInBook"]</p>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="d-flex flex-column gap-3 animate-fade-in">
+                                @for (int i = 0; i < _bookDetails.Book.Papers.Length; i++)
+                                {
+                                    var paper = _bookDetails.Book.Papers[i];
+                                    var paperIndex = i + 1;
+                                    <div class="p-4 bg-surface-low rounded-xl border border-light shadow-sm transition-all hover-shadow">
+                                        <div class="d-flex justify-content-between align-items-start mb-2">
+                                            <div class="d-flex align-items-baseline gap-2">
+                                                <span class="badge bg-primary-subtle text-primary rounded-pill px-2 py-1 small fw-bold">#@paperIndex</span>
+                                                <h6 class="serif mb-0 fw-bold fs-5 text-dark">@paper.Title.Value</h6>
+                                            </div>
+                                            @if (_bookDetails.Book.Editable)
+                                            {
+                                                <button type="button" class="btn btn-sm btn-outline-danger rounded-pill px-3 shadow-sm d-flex align-items-center gap-1" title="@L["RemovePaper"]" @onclick="() => RemovePaper(paper)">
+                                                    <i class="bi bi-trash"></i>
+                                                    <span class="small">@L["RemovePaper"]</span>
+                                                </button>
+                                            }
+                                        </div>
+
+                                        @if (FSharpOption<string>.get_IsSome(paper.Description) && !string.IsNullOrWhiteSpace(paper.Description.Value))
+                                        {
+                                            <p class="serif italic text-muted small mb-3 lh-base" style="white-space: pre-wrap;">
+                                                @paper.Description.Value
+                                            </p>
+                                        }
+
+                                        @if (paper.Authors.Any())
+                                        {
+                                            <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                                                <span class="x-small text-muted text-uppercase fw-bold me-1"><i class="bi bi-people me-1"></i>@L["Authors"]:</span>
+                                                @foreach (var authorId in paper.Authors)
+                                                {
+                                                    <a href="/author-details/@authorId.Value" class="badge-sanctuary badge-neutral text-decoration-none p-1 px-2 small">
+                                                        <i class="bi bi-person me-1"></i>@GetPaperAuthorName(authorId)
+                                                    </a>
+                                                }
+                                            </div>
+                                        }
+
+                                        <div class="d-flex flex-wrap align-items-center gap-2 mt-2 pt-2 border-top border-light">
+                                            @if (paper.Categories.Any())
+                                            {
+                                                <div class="d-flex flex-wrap gap-1 align-items-center me-3">
+                                                    <span class="x-small text-muted text-uppercase fw-bold me-1">@L["Categories"]:</span>
+                                                    @foreach (var cat in paper.Categories)
+                                                    {
+                                                        <span class="badge-sanctuary bg-surface-container text-muted small" style="font-size: 0.75rem;">@cat.Value()</span>
+                                                    }
+                                                </div>
+                                            }
+                                            @if (paper.Tags.Any())
+                                            {
+                                                <div class="d-flex flex-wrap gap-1 align-items-center">
+                                                    <span class="x-small text-muted text-uppercase fw-bold me-1">@L["Tags"]:</span>
+                                                    @foreach (var tag in paper.Tags)
+                                                    {
+                                                        <span class="tag-chip @GetTagColorClass(GetTagTypeName(tag)) py-1 px-2 small" style="font-size: 0.75rem;">
+                                                            @tag.TagName
+                                                        </span>
+                                                    }
+                                                </div>
+                                            }
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        }
+                    }
+                </div>
+
             </div> <!-- End lg-8 -->
         </div> <!-- End row g-5 -->
 
@@ -1037,6 +1329,23 @@ else
     private string editedSbn = "";
     private bool acceptInvalidSbn = false;
     private bool isUpdatingSbn = false;
+
+    // Papers State
+    private bool _isPapersDrillDownOpen = true;
+    private bool _isAddingPaper = false;
+    private bool _isSavingPaper = false;
+    private string _newPaperTitle = "";
+    private string _newPaperDescription = "";
+    private List<Author> _newPaperSelectedAuthors = new();
+    private List<Category> _newPaperSelectedCategories = new();
+    private List<Tag> _newPaperSelectedTags = new();
+    private string _paperAuthorSearchInput = "";
+    private List<Author> _paperAuthorSearchResults = new();
+    private bool _showPaperAuthorSearchResults = false;
+    private bool _isLoadingPaperAuthors = false;
+    private bool _showPaperAddCategoryDropdown = false;
+    private bool _showPaperAddTagDropdown = false;
+    private Dictionary<Guid, Author> _resolvedPaperAuthors = new();
 
     private bool isBookIsbnEmpty()
     {
@@ -1297,6 +1606,199 @@ else
             "Generic" => "type-generic",
             _ => "type-generic"
         };
+    }
+
+    private void TogglePapersDrillDown()
+    {
+        _isPapersDrillDownOpen = !_isPapersDrillDownOpen;
+    }
+
+    private void OpenAddPaperSection()
+    {
+        _newPaperTitle = "";
+        _newPaperDescription = "";
+        _newPaperSelectedAuthors.Clear();
+        _newPaperSelectedCategories.Clear();
+        _newPaperSelectedTags.Clear();
+        _paperAuthorSearchInput = "";
+        _paperAuthorSearchResults.Clear();
+        _showPaperAuthorSearchResults = false;
+        _showPaperAddCategoryDropdown = false;
+        _showPaperAddTagDropdown = false;
+        _isAddingPaper = true;
+        _isPapersDrillDownOpen = true;
+    }
+
+    private void CancelAddPaper()
+    {
+        _isAddingPaper = false;
+        _paperAuthorSearchResults.Clear();
+        _showPaperAuthorSearchResults = false;
+        _showPaperAddCategoryDropdown = false;
+        _showPaperAddTagDropdown = false;
+    }
+
+    private async Task HandlePaperAuthorSearchInput(ChangeEventArgs e)
+    {
+        _paperAuthorSearchInput = e.Value?.ToString() ?? "";
+        if (_paperAuthorSearchInput.Length >= 2)
+        {
+            _isLoadingPaperAuthors = true;
+            try
+            {
+                var context = await GetContext();
+                var result = await AuthorService.SearchByNameAsync(context, Name.New(_paperAuthorSearchInput), FSharpOption<CancellationToken>.None);
+                if (result.IsOk)
+                {
+                    _paperAuthorSearchResults = result.ResultValue
+                        .Where(a => !_newPaperSelectedAuthors.Any(sa => sa.AuthorId.Value == a.AuthorId.Value))
+                        .ToList();
+                    _showPaperAuthorSearchResults = _paperAuthorSearchResults.Any();
+                }
+                else
+                {
+                    _paperAuthorSearchResults.Clear();
+                    _showPaperAuthorSearchResults = false;
+                }
+            }
+            finally
+            {
+                _isLoadingPaperAuthors = false;
+            }
+        }
+        else
+        {
+            _paperAuthorSearchResults.Clear();
+            _showPaperAuthorSearchResults = false;
+        }
+    }
+
+    private void AddAuthorToPaper(Author author)
+    {
+        if (!_newPaperSelectedAuthors.Any(a => a.AuthorId.Value == author.AuthorId.Value))
+        {
+            _newPaperSelectedAuthors.Add(author);
+            _resolvedPaperAuthors[author.AuthorId.Value] = author;
+        }
+        _paperAuthorSearchInput = "";
+        _paperAuthorSearchResults.Clear();
+        _showPaperAuthorSearchResults = false;
+    }
+
+    private void RemovePaperAuthor(Author author)
+    {
+        _newPaperSelectedAuthors.RemoveAll(a => a.AuthorId.Value == author.AuthorId.Value);
+    }
+
+    private async Task SavePaper()
+    {
+        if (_bookDetails == null || string.IsNullOrWhiteSpace(_newPaperTitle)) return;
+        _isSavingPaper = true;
+        try
+        {
+            var context = await GetContext();
+            var paperTitle = Title.New(_newPaperTitle.Trim());
+            var descOpt = string.IsNullOrWhiteSpace(_newPaperDescription)
+                ? FSharpOption<string>.None
+                : FSharpOption<string>.Some(_newPaperDescription.Trim());
+            var authorsList = Microsoft.FSharp.Collections.ListModule.OfSeq(
+                _newPaperSelectedAuthors.Select(a => a.AuthorId)
+            );
+            var categoriesList = Microsoft.FSharp.Collections.ListModule.OfSeq(_newPaperSelectedCategories);
+            var tagsList = Microsoft.FSharp.Collections.ListModule.OfSeq(_newPaperSelectedTags);
+
+            var paper = Paper.New(paperTitle, descOpt, authorsList, categoriesList, tagsList);
+            var result = await BookService.AddPaperAsync(context, _bookDetails.Book.BookId, paper, FSharpOption<CancellationToken>.None);
+            if (result.IsOk)
+            {
+                await WaitForCacheUpdateAsync(d => d.Book.Papers.Any(p => p.PaperId.Value == paper.PaperId.Value));
+                _isAddingPaper = false;
+                await ShowStatus(string.Format(L["PaperAddedSuccessfully"], paperTitle.Value), "alert-success");
+            }
+            else
+            {
+                await ShowStatus(string.Format(L["ErrorAddingPaper"], result.ErrorValue), "alert-danger");
+            }
+        }
+        catch (Exception ex)
+        {
+            await ShowStatus(string.Format(L["ErrorAddingPaper"], ex.Message), "alert-danger");
+        }
+        finally
+        {
+            _isSavingPaper = false;
+        }
+    }
+
+    private async Task RemovePaper(Paper paper)
+    {
+        if (_bookDetails == null) return;
+        if (isBookSealed)
+        {
+            await ShowStatus(L["BookSealedCannotEdit"], "alert-warning");
+            return;
+        }
+
+        bool confirmed = await JSRuntime.InvokeAsync<bool>("confirm", string.Format(L["ConfirmRemovePaper"], paper.Title.Value));
+        if (!confirmed) return;
+
+        try
+        {
+            var context = await GetContext();
+            var result = await BookService.RemovePaperAsync(context, _bookDetails.Book.BookId, paper.PaperId, FSharpOption<CancellationToken>.None);
+            if (result.IsOk)
+            {
+                await WaitForCacheUpdateAsync(d => !d.Book.Papers.Any(p => p.PaperId.Value == paper.PaperId.Value));
+                await ShowStatus(L["PaperRemovedSuccessfully"].Value, "alert-success");
+            }
+            else
+            {
+                await ShowStatus(string.Format(L["ErrorRemovingPaper"], result.ErrorValue), "alert-danger");
+            }
+        }
+        catch (Exception ex)
+        {
+            await ShowStatus(string.Format(L["ErrorRemovingPaper"], ex.Message), "alert-danger");
+        }
+    }
+
+    private async Task EnsurePaperAuthorsResolved(IEnumerable<Paper> papers)
+    {
+        try
+        {
+            var context = await GetContext();
+            var missingAuthorIds = papers
+                .SelectMany(p => p.Authors)
+                .Where(a => !_resolvedPaperAuthors.ContainsKey(a.Value))
+                .Distinct()
+                .ToList();
+
+            if (missingAuthorIds.Any())
+            {
+                var fsList = Microsoft.FSharp.Collections.ListModule.OfSeq(missingAuthorIds);
+                var authorsRes = await AuthorService.GetAuthorsAsync(context, fsList, FSharpOption<CancellationToken>.None);
+                if (authorsRes.IsOk)
+                {
+                    foreach (var author in authorsRes.ResultValue)
+                    {
+                        _resolvedPaperAuthors[author.AuthorId.Value] = author;
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error resolving paper authors");
+        }
+    }
+
+    private string GetPaperAuthorName(AuthorId authorId)
+    {
+        if (_resolvedPaperAuthors.TryGetValue(authorId.Value, out var author))
+        {
+            return author.Name.Value;
+        }
+        return authorId.Value.ToString();
     }
 
     private async Task StartEdit()
@@ -2113,6 +2615,14 @@ else
                 if (condition(freshDetails))
                 {
                     _bookDetails = freshDetails;
+                    foreach (var author in _bookDetails.Authors)
+                    {
+                        _resolvedPaperAuthors[author.AuthorId.Value] = author;
+                    }
+                    if (_bookDetails.Book.Papers.Any())
+                    {
+                        await EnsurePaperAuthorsResolved(_bookDetails.Book.Papers);
+                    }
                     StateHasChanged();
                     return;
                 }
@@ -2217,6 +2727,14 @@ else
                 if (result.IsOk)
                 {
                     _bookDetails = result.ResultValue;
+                    foreach (var author in _bookDetails.Authors)
+                    {
+                        _resolvedPaperAuthors[author.AuthorId.Value] = author;
+                    }
+                    if (_bookDetails.Book.Papers.Any())
+                    {
+                        await EnsurePaperAuthorsResolved(_bookDetails.Book.Papers);
+                    }
                     if (_bookDetails.PendingReservationsDetails.Any())
                     {
                         var firstRes = _bookDetails.PendingReservationsDetails.First();

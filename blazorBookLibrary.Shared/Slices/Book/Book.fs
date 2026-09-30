@@ -48,56 +48,81 @@ type BulkBookEdit =
             this.SetRemoveTagsIfCondition (tags, switch) =
                 if switch then { this with RemoveTagsEdit = Some tags} else this
 
-// type Book001 =
-//     { TenantId: TenantId
-//       BookId: BookId
-//       Title: Title
-//       ImageUrl: Option<Uri>
-//       Description: Option<string>
-//       OptionalEmbedding: Option<EmbeddingDataId>
-//       Availability: Availability
-//       DistributionPoint: Option<DistributionPointId>
+type Paper =
+    { 
+        PaperId: PaperId
+        Title: Title
+        Description: Option<string>
+        OptionalEmbedding: Option<EmbeddingDataId>
+        Authors: List<AuthorId>
+        Categories: List<Category>
+        Tags: List<Tag>
+    }
+    static member New(title: Title, description: Option<string>, authors: List<AuthorId>, categories: List<Category>, tags: List<Tag>) =
+        {
+            PaperId = PaperId.New()
+            Title = title
+            Description = description
+            OptionalEmbedding = None
+            Authors = authors
+            Categories = categories
+            Tags = tags
+        }
 
-//       Authors: List<AuthorId>
-//       Translators: List<AuthorId>
-//       Languages: List<CultureInfo>
-//       CurrentLoan: Option<LoanId>
-//       Editor: Option<EditorId>
-//       MainCategory: Category
-//       AdditionalCategories: List<Category>
-//       Tags: List<Tag>
-//       Year: Year
-//       Isbn: Isbn
-//       Sealed: Sealed }
-//     with
-//         member this.Upcast(): Book =
-//             {
-//                 TenantId = this.TenantId
-//                 BookId = this.BookId
-//                 Title = this.Title
-//                 ImageUrl = this.ImageUrl
-//                 Description = this.Description
-//                 OptionalEmbedding = this.OptionalEmbedding
-//                 Availability = this.Availability
-//                 DistributionPoint = this.DistributionPoint
-//                 Authors = this.Authors
-//                 Translators = this.Translators
-//                 Languages = this.Languages
-//                 CurrentLoan = this.CurrentLoan
-//                 Editor = this.Editor
-//                 MainCategory = this.MainCategory
-//                 AdditionalCategories = this.AdditionalCategories
-//                 Tags = this.Tags
-//                 Year = this.Year
-//                 Isbn = this.Isbn
-//                 SbnCode = None
-//                 Sealed = this.Sealed
-//             }
-
-type Book =
+type Book001 =
     { TenantId: TenantId
       BookId: BookId
       Title: Title
+      ImageUrl: Option<Uri>
+      Description: Option<string>
+      OptionalEmbedding: Option<EmbeddingDataId>
+      Availability: Availability
+      DistributionPoint: Option<DistributionPointId>
+
+      Authors: List<AuthorId>
+      Translators: List<AuthorId>
+      Languages: List<CultureInfo>
+      CurrentLoan: Option<LoanId>
+      Editor: Option<EditorId>
+      MainCategory: Category
+      AdditionalCategories: List<Category>
+      Tags: List<Tag>
+      Year: Year
+      Isbn: Isbn
+      SbnCode: Option<SbnCode>
+      Sealed: Sealed }
+
+    with
+        member this.Upcast(): Book =
+            {
+                TenantId = this.TenantId
+                BookId = this.BookId
+                Title = this.Title
+                Papers = []
+                ImageUrl = this.ImageUrl
+                Description = this.Description
+                OptionalEmbedding = this.OptionalEmbedding
+                Availability = this.Availability
+                DistributionPoint = this.DistributionPoint
+                Authors = this.Authors
+                Translators = this.Translators
+                Languages = this.Languages
+                CurrentLoan = this.CurrentLoan
+                Editor = this.Editor
+                MainCategory = this.MainCategory
+                AdditionalCategories = this.AdditionalCategories
+                Tags = this.Tags
+                Year = this.Year
+                Isbn = this.Isbn
+                SbnCode = None
+                Sealed = this.Sealed
+            }
+
+and Book =
+    { TenantId: TenantId
+      BookId: BookId
+      Title: Title
+      Papers: List<Paper>
       ImageUrl: Option<Uri>
       Description: Option<string>
       OptionalEmbedding: Option<EmbeddingDataId>
@@ -133,6 +158,7 @@ type Book =
         { TenantId = tenantId
           BookId = BookId.New()
           Title = title
+          Papers = []
           Description = None
           OptionalEmbedding = None
           ImageUrl = imageUrl
@@ -307,6 +333,27 @@ type Book =
             return
                 { this with
                     Authors = this.Authors @ additionalAuthors |> List.distinct }
+        }
+
+    member this.AddPaper (paper: Paper)  =
+        result {
+            return
+                { this with
+                    Papers = this.Papers @ [ paper ] }
+        }
+
+    member this.RemovePaper (paperId: PaperId)  =
+        result {
+            return
+                { this with
+                    Papers = this.Papers |> List.filter (fun x -> x.PaperId <> paperId) }
+        }
+
+    member this.AddPapers (papers: List<Paper>)  =
+        result {
+            return
+                { this with
+                    Papers = this.Papers @ papers |> List.distinct }
         }
 
     member this.AddAuthor (author: AuthorId) (dateTime: DateTime) =
@@ -603,11 +650,10 @@ type Book =
         try
             JsonSerializer.Deserialize<Book>(data, jsonOptions) |> Ok
         with ex ->
-            Error $"error deserializing {data}\n{ex.Message}"
-            // try
-            //     let book001 = JsonSerializer.Deserialize<Book001>(data, jsonOptions)
-            //     Ok (book001.Upcast())
-            // with ex2 ->
-            //     Error $"error deserializing {data}\n
-            //         ex1: {ex.Message}
-            //         ex2: {ex2.Message}"
+            try
+                let book001 = JsonSerializer.Deserialize<Book001>(data, jsonOptions)
+                Ok (book001.Upcast())
+            with ex2 ->
+                Error $"error deserializing {data}\n
+                    ex1: {ex.Message}
+                    ex2: {ex2.Message}"

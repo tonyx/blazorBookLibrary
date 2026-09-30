@@ -401,4 +401,25 @@ public class BookClientService : IBookService
         return await ServiceClientHelper.HandleUnitResponse(response);
     }
 
+    public async Task<FSharpResult<Unit, string>> AddPaperAsync(Commons.UserContext context, Commons.BookId bookId, Paper paper, FSharpOption<CancellationToken> ct)
+    {
+        var request = ServiceClientHelper.CreateRequest(HttpMethod.Post, $"api/Books/{bookId.Value}/paper", context, paper);
+        var response = await _httpClient.SendAsync(request, ServiceClientHelper.GetValue(ct, CancellationToken.None));
+        return await ServiceClientHelper.HandleUnitResponse(response);
+    }
+
+    public async Task<FSharpResult<Unit, string>> AddPapersAsync(Commons.UserContext context, Commons.BookId bookId, FSharpList<Paper> papers, FSharpOption<CancellationToken> ct)
+    {
+        var request = ServiceClientHelper.CreateRequest(HttpMethod.Post, $"api/Books/{bookId.Value}/papers", context, Enumerable.ToList(papers));
+        var response = await _httpClient.SendAsync(request, ServiceClientHelper.GetValue(ct, CancellationToken.None));
+        return await ServiceClientHelper.HandleUnitResponse(response);
+    }
+
+    public async Task<FSharpResult<Unit, string>> RemovePaperAsync(Commons.UserContext context, Commons.BookId bookId, Commons.PaperId paperId, FSharpOption<CancellationToken> ct)
+    {
+        var request = ServiceClientHelper.CreateRequest(HttpMethod.Delete, $"api/Books/{bookId.Value}/papers/{paperId.Value}", context);
+        var response = await _httpClient.SendAsync(request, ServiceClientHelper.GetValue(ct, CancellationToken.None));
+        return await ServiceClientHelper.HandleUnitResponse(response);
+    }
+
 }

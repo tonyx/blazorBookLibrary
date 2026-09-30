@@ -367,6 +367,49 @@ type BooksController(bookService: IBookService, hubContext: Microsoft.AspNetCore
             | Error msg -> return this.BadRequest(msg) :> IActionResult
         }
 
+    [<HttpPost("{id}/paper")>]
+    member this.AddPaperAsync(id: Guid, [<FromBody>] paper: Paper) =
+        task {
+            let context = UserContextMapper.mapFromRequest this.Request
+            let! result = bookService.AddPaperAsync(context, BookId id, paper)
+            match result with
+            | Ok _ -> return this.Ok() :> IActionResult
+            | Error msg -> return this.BadRequest(msg) :> IActionResult
+        }
+
+    [<HttpPost("{id}/papers")>]
+    member this.AddPapersAsync(id: Guid, [<FromBody>] papers: List<Paper>) =
+        task {
+            let context = UserContextMapper.mapFromRequest this.Request
+            let fsPapers = List.ofSeq papers
+            let! result = bookService.AddPapersAsync(context, BookId id, fsPapers)
+            match result with
+            | Ok _ -> return this.Ok() :> IActionResult
+            | Error msg -> return this.BadRequest(msg) :> IActionResult
+        }
+
+    [<HttpDelete("{id}/papers/{paperId}")>]
+    member this.RemovePaperAsync(id: Guid, paperId: Guid) =
+        task {
+            let context = UserContextMapper.mapFromRequest this.Request
+            let! result = bookService.RemovePaperAsync(context, BookId id, PaperId paperId)
+            match result with
+            | Ok _ -> return this.Ok() :> IActionResult
+            | Error msg -> return this.BadRequest(msg) :> IActionResult
+        }
+
+    [<NonAction>]
+    member this.AddPaper(id: Guid, paper: Paper) =
+        this.AddPaperAsync(id, paper)
+
+    [<NonAction>]
+    member this.AddPapers(id: Guid, papers: List<Paper>) =
+        this.AddPapersAsync(id, papers)
+
+    [<NonAction>]
+    member this.RemovePaper(id: Guid, paperId: Guid) =
+        this.RemovePaperAsync(id, paperId)
+
     [<HttpGet("{id}/loaned-at-least-once/{userId}")>]
     member this.LoanedByUserAtLeastOnce(id: Guid, userId: Guid) =
         task {

@@ -4,10 +4,13 @@
 @using System.Threading
 @using static BookLibrary.Shared.Commons
 @using blazorBookLibrary.Shared
+@using BookLibrary.Domain
+@using BookLibrary.Shared.Services
 @using Microsoft.FSharp.Core
 @using Microsoft.AspNetCore.SignalR.Client
 
 @inject IBookService BookService
+@inject IAuthorService AuthorService
 @inject IUserService UserService
 @inject ILogger<BookView> Logger
 @inject IReservationService ReservationService
@@ -318,6 +321,86 @@
                             </div>
                         </div>
 
+                        @if (bookDetails.Book.Papers.Any())
+                        {
+                            <div class="col-12 mt-5 pt-4 border-top" style="border-color: var(--outline-variant) !important;">
+                                <div class="d-flex justify-content-between align-items-center mb-4">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <h3 class="h4 text-serif mb-0">@L["CollectedPapers"]</h3>
+                                        <span class="badge bg-secondary-subtle text-secondary rounded-pill px-3 py-1 small">
+                                            @(bookDetails.Book.Papers.Length) @(bookDetails.Book.Papers.Length == 1 ? L["Paper"] : L["Papers"])
+                                        </span>
+                                    </div>
+                                    <button class="btn btn-sm btn-outline-primary shadow-sm rounded-pill px-3" @onclick="TogglePapersDrillDown">
+                                        <i class="bi @(isPapersDrillDownOpen ? "bi-chevron-up" : "bi-layers-half") me-1"></i>
+                                        @(isPapersDrillDownOpen ? L["HidePapers"] : L["DrillDownPapers"])
+                                    </button>
+                                </div>
+
+                                @if (isPapersDrillDownOpen)
+                                {
+                                    <div class="d-flex flex-column gap-3 animate-fade-in">
+                                        @for (int i = 0; i < bookDetails.Book.Papers.Length; i++)
+                                        {
+                                            var paper = bookDetails.Book.Papers[i];
+                                            var paperIndex = i + 1;
+                                            <div class="p-4 bg-surface-low rounded-xl border border-neutral shadow-sm">
+                                                <div class="d-flex align-items-baseline gap-2 mb-2">
+                                                    <span class="badge bg-primary-subtle text-primary rounded-pill px-2 py-1 small fw-bold">#@paperIndex</span>
+                                                    <h5 class="serif mb-0 fw-bold">@paper.Title.Value</h5>
+                                                </div>
+
+                                                @if (FSharpOption<string>.get_IsSome(paper.Description) && !string.IsNullOrWhiteSpace(paper.Description.Value))
+                                                {
+                                                    <p class="serif italic text-muted small mb-3 lh-base" style="white-space: pre-wrap;">
+                                                        @paper.Description.Value
+                                                    </p>
+                                                }
+
+                                                @if (paper.Authors.Any())
+                                                {
+                                                    <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                                                        <span class="x-small text-muted text-uppercase fw-bold me-1"><i class="bi bi-people me-1"></i>@L["Authors"]:</span>
+                                                        @foreach (var authorId in paper.Authors)
+                                                        {
+                                                            <a href="/author-view/@authorId.Value" class="badge-sanctuary badge-neutral text-decoration-none p-1 px-2 small">
+                                                                <i class="bi bi-person me-1"></i>@GetPaperAuthorName(authorId)
+                                                            </a>
+                                                        }
+                                                    </div>
+                                                }
+
+                                                <div class="d-flex flex-wrap align-items-center gap-2 mt-2 pt-2 border-top border-light">
+                                                    @if (paper.Categories.Any())
+                                                    {
+                                                        <div class="d-flex flex-wrap gap-1 align-items-center me-3">
+                                                            <span class="x-small text-muted text-uppercase fw-bold me-1">@L["Categories"]:</span>
+                                                            @foreach (var cat in paper.Categories)
+                                                            {
+                                                                <span class="badge-sanctuary bg-surface-container text-muted small" style="font-size: 0.75rem;">@cat.Value()</span>
+                                                            }
+                                                        </div>
+                                                    }
+                                                    @if (paper.Tags.Any())
+                                                    {
+                                                        <div class="d-flex flex-wrap gap-1 align-items-center">
+                                                            <span class="x-small text-muted text-uppercase fw-bold me-1">@L["Tags"]:</span>
+                                                            @foreach (var tag in paper.Tags)
+                                                            {
+                                                                <span class="tag-chip @GetTagColorClass(GetTagTypeName(tag)) py-1 px-2 small" style="font-size: 0.75rem;">
+                                                                    @tag.TagName
+                                                                </span>
+                                                            }
+                                                        </div>
+                                                    }
+                                                </div>
+                                            </div>
+                                        }
+                                    </div>
+                                }
+                            </div>
+                        }
+
                         @if (shuffledReviews != null && shuffledReviews.Any())
                         {
                             <div class="mt-5 pt-4 border-top" style="border-color: var(--outline-variant) !important;">
@@ -391,6 +474,8 @@
     public string BookIdStr { get; set; } = "";
 
     private bool isLoading = true;
+    private bool isPapersDrillDownOpen = false;
+    private Dictionary<Guid, Author> _resolvedPaperAuthors = new();
     private bool showReviews = false;
     private int currentReviewIndex = 0;
     private bool isReviewSystemEnabled = true;
@@ -646,6 +731,14 @@
                 {
                     bookDetails = result.ResultValue;
                     shuffledReviews = bookDetails.ApprovedVisibleReviewsInRandomOrder().ToList();
+                    foreach (var author in bookDetails.Authors)
+                    {
+                        _resolvedPaperAuthors[author.AuthorId.Value] = author;
+                    }
+                    if (bookDetails.Book.Papers.Any())
+                    {
+                        await EnsurePaperAuthorsResolved(bookDetails.Book.Papers);
+                    }
                 }
                 else
                 {
@@ -821,5 +914,50 @@
             "Generic" => "type-generic",
             _ => "type-generic"
         };
+    }
+
+    private void TogglePapersDrillDown()
+    {
+        isPapersDrillDownOpen = !isPapersDrillDownOpen;
+    }
+
+    private async Task EnsurePaperAuthorsResolved(IEnumerable<Paper> papers)
+    {
+        try
+        {
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var context = TenantState.GetUserContext(authState.User);
+            var missingAuthorIds = papers
+                .SelectMany(p => p.Authors)
+                .Where(a => !_resolvedPaperAuthors.ContainsKey(a.Value))
+                .Distinct()
+                .ToList();
+
+            if (missingAuthorIds.Any())
+            {
+                var fsList = Microsoft.FSharp.Collections.ListModule.OfSeq(missingAuthorIds);
+                var authorsRes = await AuthorService.GetAuthorsAsync(context, fsList, FSharpOption<CancellationToken>.None);
+                if (authorsRes.IsOk)
+                {
+                    foreach (var author in authorsRes.ResultValue)
+                    {
+                        _resolvedPaperAuthors[author.AuthorId.Value] = author;
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error resolving paper authors");
+        }
+    }
+
+    private string GetPaperAuthorName(AuthorId authorId)
+    {
+        if (_resolvedPaperAuthors.TryGetValue(authorId.Value, out var author))
+        {
+            return author.Name.Value;
+        }
+        return authorId.Value.ToString();
     }
 }
