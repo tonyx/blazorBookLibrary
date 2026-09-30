@@ -111,6 +111,22 @@
                             <InputText class="form-control bg-surface-lowest border-0 rounded-lg shadow-sm py-2 py-md-3" @bind-Value="searchBookIsbn" placeholder="@L["PartialIsbnPlaceholder"]" />
                         </div>
 
+                        <div class="mb-3 mb-md-4">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <label class="form-label small text-muted text-uppercase fw-bold mb-0">@L["SbnIdentifier"]</label>
+                                <select class="form-select form-select-sm bg-surface-lowest border-0 shadow-xs py-0 px-2 text-muted" style="width: auto; font-size: 0.75rem;" @bind="sbnSearchMode">
+                                    <option value="contains">@L["Contains"]</option>
+                                    <option value="exact">@L["Exact"]</option>
+                                    <option value="hasSbn">@L["HasSbnCode"]</option>
+                                    <option value="missingSbn">@L["MissingSbnCode"]</option>
+                                </select>
+                            </div>
+                            @if (sbnSearchMode != "hasSbn" && sbnSearchMode != "missingSbn")
+                            {
+                                <InputText class="form-control bg-surface-lowest border-0 rounded-lg shadow-sm py-2 py-md-3 font-monospace" @bind-Value="searchBookSbnCode" placeholder="@L["PartialSbnPlaceholder"]" />
+                            }
+                        </div>
+
                         <div>
                             <label class="form-label small text-muted text-uppercase fw-bold mb-2">@L["RefineByCategory"]</label>
                             <div class="d-flex gap-2">
@@ -298,6 +314,7 @@
         {
             int count = 0;
             if (!string.IsNullOrWhiteSpace(searchBookIsbn)) count++;
+            if (sbnSearchMode == "hasSbn" || sbnSearchMode == "missingSbn" || !string.IsNullOrWhiteSpace(searchBookSbnCode)) count++;
             if (searchCategoriesCriteria != null && searchCategoriesCriteria.Any()) count++;
             if (searchTagsCriteria != null && searchTagsCriteria.Any()) count++;
             if (searchAuthorsCriteria != null && searchAuthorsCriteria.Any()) count++;
@@ -312,6 +329,8 @@
 
     private string searchBookTitle = "";
     private string searchBookIsbn = "";
+    private string searchBookSbnCode = "";
+    private string sbnSearchMode = "contains"; // contains, exact, hasSbn, missingSbn
     private int? searchBookYear = null;
     private int? searchBookYearTo = null;
     private string yearSearchMode = "exact"; // exact, after, before, between
@@ -399,6 +418,7 @@
     private bool AreOtherFiltersActive => 
         !string.IsNullOrWhiteSpace(searchBookTitle) || 
         !string.IsNullOrWhiteSpace(searchBookIsbn) || 
+        (sbnSearchMode == "hasSbn" || sbnSearchMode == "missingSbn" || !string.IsNullOrWhiteSpace(searchBookSbnCode)) ||
         searchBookYear.HasValue || 
         searchAuthorsCriteria.Any() || 
         searchCategoriesCriteria.Any() ||
@@ -407,6 +427,7 @@
         searchBookAvailability != "All";
 
     private bool IsIsbnSearchActive => !string.IsNullOrWhiteSpace(searchBookIsbn);
+    private bool IsSbnSearchActive => sbnSearchMode == "hasSbn" || sbnSearchMode == "missingSbn" || !string.IsNullOrWhiteSpace(searchBookSbnCode);
 
     private FSharpList<Category> allCategories = Category.AllCases();
 
@@ -415,34 +436,45 @@
     {
         get 
         {
-            return book => {
-                bool availabilityMatch = true;
-                if (!string.IsNullOrEmpty(searchBookAvailability) && searchBookAvailability != "All")
-                {
-                    if (searchBookAvailability == "ImmediatelyAvailable")
-                        availabilityMatch = book.ImmediatelyAvailable;
-                    else
-                        availabilityMatch = 
-                            (searchBookAvailability == "Circulating" && book.Availability.IsCirculating) || 
-                            (searchBookAvailability == "ReferenceOnly" && book.Availability.IsReferenceOnly) ||
-                            (searchBookAvailability == "Unspecified" && book.Availability.IsUnspecified);
-                }
+            var criteriaList = new List<BookSearchCriteria>();
 
-                bool tagsMatch = true;
-                if (searchTagsCriteria.Any())
-                {
-                    tagsMatch = searchTagsCriteria.Any(t => book.Tags.Contains(t));
-                }
+            if (!string.IsNullOrEmpty(searchBookAvailability) && searchBookAvailability != "All")
+            {
+                criteriaList.Add(SearchCriteria.searchByAvailability(searchBookAvailability));
+            }
 
-                bool dpMatch = true;
-                if (searchDistributionPointsCriteria.Any())
-                {
-                    dpMatch = FSharpOption<DistributionPointId>.get_IsSome(book.DistributionPoint) && 
-                              searchDistributionPointsCriteria.Any(dp => dp.DistributionPointId.Equals(book.DistributionPoint.Value));
-                }
+            if (searchTagsCriteria.Any())
+            {
+                criteriaList.Add(SearchCriteria.searchByTags(searchTagsCriteria));
+            }
 
-                return availabilityMatch && tagsMatch && dpMatch;
-            };
+            if (searchDistributionPointsCriteria.Any())
+            {
+                var dpIds = searchDistributionPointsCriteria.Select(dp => dp.DistributionPointId);
+                criteriaList.Add(SearchCriteria.searchByDistributionPoints(dpIds));
+            }
+
+            if (sbnSearchMode == "hasSbn")
+            {
+                criteriaList.Add(SearchCriteria.searchHasSbnCode);
+            }
+            else if (sbnSearchMode == "missingSbn")
+            {
+                criteriaList.Add(SearchCriteria.searchMissingSbnCode);
+            }
+            else if (!string.IsNullOrWhiteSpace(searchBookSbnCode))
+            {
+                if (sbnSearchMode == "exact")
+                {
+                    criteriaList.Add(SearchCriteria.searchByExactSbnCode(searchBookSbnCode));
+                }
+                else
+                {
+                    criteriaList.Add(SearchCriteria.searchBySbnCode(searchBookSbnCode));
+                }
+            }
+
+            return SearchCriteria.composeAll(criteriaList);
         }
     }
 

@@ -18,6 +18,8 @@ type BookEvent =
     | EditorUpdated of EditorId * DateTime
     | YearUpdated of Year * DateTime
     | IsbnUpdated of Isbn * DateTime
+    | SbnCodeUpdated of SbnCode
+    | SbnCodeUnset 
     | AuthorAdded of AuthorId * DateTime
     | AuthorsAdded of list<AuthorId> * DateTime
     | AuthorRemoved of AuthorId * DateTime
@@ -74,6 +76,10 @@ type BookEvent =
                 book.UpdateYear year dateTime
             | IsbnUpdated (isbn, dateTime) ->
                 book.UpdateIsbn isbn dateTime
+            | SbnCodeUpdated sbnCode ->
+                book.UpdateSbnCode sbnCode
+            | SbnCodeUnset ->
+                book.UnsetSbnCode()
             | AuthorAdded (authorId, dateTime) ->
                 book.AddAuthor authorId dateTime
             | AuthorsAdded (additionalAuthors, dateTime) ->

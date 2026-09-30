@@ -17,6 +17,8 @@ type BookCommand =
     | UpdateEditor of EditorId * DateTime
     | UpdateYear of Year * DateTime
     | UpdateIsbn of Isbn * DateTime
+    | UpdateSbnCode of SbnCode
+    | UnsetSbnCode
     | AddAuthor of AuthorId * DateTime
     | AddAuthors of List<AuthorId> * DateTime
     | RemoveAuthor of AuthorId * DateTime
@@ -84,6 +86,12 @@ type BookCommand =
             | UpdateIsbn (isbn, dateTime) ->
                 book.UpdateIsbn isbn dateTime
                 |> Result.map (fun b -> (b, [IsbnUpdated(isbn, dateTime)]))
+            | UpdateSbnCode sbnCode ->
+                book.UpdateSbnCode sbnCode
+                |> Result.map (fun b -> (b, [SbnCodeUpdated(sbnCode)]))
+            | UnsetSbnCode ->
+                book.UnsetSbnCode()
+                |> Result.map (fun b -> (b, [SbnCodeUnset]))
             | AddAuthor (authorId, dateTime) ->
                 book.AddAuthor authorId dateTime
                 |> Result.map (fun b -> (b, [AuthorAdded(authorId, dateTime)]))

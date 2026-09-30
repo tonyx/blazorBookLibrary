@@ -71,6 +71,9 @@ type EmbeddingData =
 
 let random = System.Random()
 
+
+    
+
 type DistributionPointId =
     | DistributionPointId of Guid
 
@@ -462,6 +465,8 @@ type FiscalCode =
         | EmptyFiscalCode -> true
         | _ -> false
 
+
+
 type Isbn =
     | Isbn of string
     | InvalidIsbn of string
@@ -537,6 +542,36 @@ type Isbn =
         match this with
         | EmptyIsbn -> true
         | _ -> false
+
+
+type SbnCode =
+    | ValidSbn of string
+    | InvalidSbn of string
+
+    static member IsValid(s: string) =
+        if System.String.IsNullOrWhiteSpace(s) then
+            false
+        else
+            let regex = System.Text.RegularExpressions.Regex(@"^(?:IT[\\/]ICCU[\\/])?([A-Z0-9]{3})[\\/]?([0-9]{7}|[A-Z][0-9]{6})$", System.Text.RegularExpressions.RegexOptions.IgnoreCase)
+            regex.IsMatch(s.Trim())
+
+    static member NewValid (s:string) = 
+        if SbnCode.IsValid(s) then Ok (ValidSbn(s.Trim()))
+        else Error "Invalid SbnCode"
+
+    static member NewInvalid (s:string) = InvalidSbn(if System.String.IsNullOrWhiteSpace(s) then "" else s.Trim())
+    
+    member this.Value =
+        match this with
+        | ValidSbn v -> v
+        | InvalidSbn v -> v
+
+    static member New(s: string) =
+        if SbnCode.IsValid(s) then
+            Ok(ValidSbn(s.Trim()))
+        else
+            Error "Invalid SbnCode"
+
 
 type ThumbRoughSize =
     | Small

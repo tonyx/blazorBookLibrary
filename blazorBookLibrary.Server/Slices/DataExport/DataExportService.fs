@@ -369,7 +369,7 @@ type DataExportService
                                                     }
                                                 | _ -> Task.FromResult(None)
 
-                                            let book =
+                                            let book: Book =
                                                 { TenantId = tenantId
                                                   BookId = BookId.New()
                                                   Title = Title.New metadata.Title
@@ -388,6 +388,7 @@ type DataExportService
                                                   Tags = []
                                                   Year = year
                                                   Isbn = isbn
+                                                  SbnCode = None
                                                   Sealed = Sealed.New(DateTime.UtcNow) }
 
                                             let! finalBook =

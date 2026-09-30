@@ -51,6 +51,9 @@ type IBookService =
     abstract member ForceBulkRemoveEmbeddingsAsync : context:UserContext * bookIds: List<BookId> * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<unit, string>>
 
     abstract member UpdateIsbnAsync: context:UserContext * isbn: Isbn * bookId: BookId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<unit, string>>
+    abstract member UnsetSbnCodeAsync: context:UserContext * bookId: BookId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<unit, string>>
+    abstract member UpdateSbnCodeAsync: context:UserContext * sbnCode: SbnCode * bookId: BookId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<unit, string>>
+
 
     abstract member UnsealAsync : context:UserContext * bookId: BookId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<unit, string>>
     abstract member SealAsync : context:UserContext * bookId: BookId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<unit, string>>

@@ -1,6 +1,7 @@
 module BookServiceTests
 
 open System
+open System.Text.Json
 open TestSetup
 open Expecto
 open BookLibrary.Domain
@@ -975,7 +976,133 @@ let tests =
             Expect.isTrue (book2After.Tags |> List.contains (BookTag "bulk-edited-tag")) "book 2 should contain the bulk edited tag"
             Expect.isTrue (book2After.AdditionalCategories |> List.contains Category.Fantasy) "book 2 should contain Category.Fantasy"
         }
-            
+
+        testCaseTask "UpdateSbnCodeAsync and UnsetSbnCodeAsync on BookService - Ok" <| fun _ -> task {
+            setUp ()
+            let bookService = getBookService()
+            let book = Book.New TenantId.Default (Title.New "Book with SBN") [] [] [] None Category.Other [] (Year.New 2024) (Isbn.NewEmpty()) None
+            let! addRes = (bookService :> IBookService).AddBookAsync(adminContext, book)
+            Expect.isOk addRes "should add book ok"
+
+            let sbn = SbnCode.NewValid "CFI0001234" |> Result.get
+            let! updateRes = (bookService :> IBookService).UpdateSbnCodeAsync(adminContext, sbn, book.BookId)
+            Expect.isOk updateRes "should update sbn code ok"
+
+            let! freshBookResult = (bookService :> IBookService).GetBookAsync(adminContext, book.BookId)
+            let freshBook = freshBookResult |> Result.get
+            Expect.equal freshBook.SbnCode (Some sbn) "sbn code should be updated"
+
+            let! unsetRes = (bookService :> IBookService).UnsetSbnCodeAsync(adminContext, book.BookId)
+            Expect.isOk unsetRes "should unset sbn code ok"
+
+            let! freshBookResult2 = (bookService :> IBookService).GetBookAsync(adminContext, book.BookId)
+            let freshBook2 = freshBookResult2 |> Result.get
+            Expect.equal freshBook2.SbnCode None "sbn code should be unset"
+        }
+
+        testCaseTask "BooksController UpdateSbnCodeAsync and UnsetSbnCodeAsync - Ok" <| fun _ -> task {
+            setUp ()
+            let bookService = getBookService()
+            let book = Book.New TenantId.Default (Title.New "Book for Controller SBN") [] [] [] None Category.Other [] (Year.New 2024) (Isbn.NewEmpty()) None
+            let! addRes = (bookService :> IBookService).AddBookAsync(adminContext, book)
+            Expect.isOk addRes "should add book ok"
+
+            let controller = BookLibrary.Controllers.BooksController(bookService, null)
+            let httpContext = Microsoft.AspNetCore.Http.DefaultHttpContext()
+            let identity = System.Security.Claims.ClaimsIdentity([
+                System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.NameIdentifier, adminId.Value.ToString())
+                System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.Role, "admin")
+            ], "TestAuth")
+            httpContext.User <- System.Security.Claims.ClaimsPrincipal(identity)
+            controller.ControllerContext <- Microsoft.AspNetCore.Mvc.ControllerContext(HttpContext = httpContext)
+
+            let! updateAction = controller.UpdateSbnCodeAsync(book.BookId.Value, "CFI0001234")
+            Expect.isTrue (updateAction :? Microsoft.AspNetCore.Mvc.OkResult) "UpdateSbnCodeAsync should return Ok"
+
+            let! freshBookResult = (bookService :> IBookService).GetBookAsync(adminContext, book.BookId)
+            let freshBook = freshBookResult |> Result.get
+            Expect.equal freshBook.SbnCode (Some (ValidSbn "CFI0001234")) "controller should update sbn code"
+
+            let! unsetAction = controller.UnsetSbnCodeAsync(book.BookId.Value)
+            Expect.isTrue (unsetAction :? Microsoft.AspNetCore.Mvc.OkResult) "UnsetSbnCodeAsync should return Ok"
+
+            let! freshBookResult2 = (bookService :> IBookService).GetBookAsync(adminContext, book.BookId)
+            let freshBook2 = freshBookResult2 |> Result.get
+            Expect.equal freshBook2.SbnCode None "controller should unset sbn code"
+        }
+
+        testCaseTask "AddBookAsync with SbnCode persists SbnCode correctly upon creation" <| fun _ -> task {
+            setUp ()
+            let bookService = getBookService()
+            let sbn = SbnCode.NewValid "CFI0001234" |> Result.get
+            let book = 
+                Book.New TenantId.Default (Title.New "Book Created With SBN") [] [] [] None Category.Other [] (Year.New 2024) (Isbn.NewEmpty()) None
+                |> fun b -> b.UpdateSbnCode sbn |> Result.get
+            let! addRes = (bookService :> IBookService).AddBookAsync(adminContext, book)
+            Expect.isOk addRes "should add book with sbn ok"
+
+            let! freshBookResult = (bookService :> IBookService).GetBookAsync(adminContext, book.BookId)
+            let freshBook = freshBookResult |> Result.get
+            Expect.equal freshBook.SbnCode (Some sbn) "sbn code should be persisted upon book creation"
+        }
+
+        testCaseTask "AddBookAsync with invalid SbnCode flagged persists InvalidSbn correctly upon creation" <| fun _ -> task {
+            setUp ()
+            let bookService = getBookService()
+            let sbn = SbnCode.NewInvalid "INVALID_123"
+            let book = 
+                Book.New TenantId.Default (Title.New "Book Created With Invalid SBN") [] [] [] None Category.Other [] (Year.New 2024) (Isbn.NewEmpty()) None
+                |> fun b -> b.UpdateSbnCode sbn |> Result.get
+            let! addRes = (bookService :> IBookService).AddBookAsync(adminContext, book)
+            Expect.isOk addRes "should add book with invalid sbn ok"
+
+            let! freshBookResult = (bookService :> IBookService).GetBookAsync(adminContext, book.BookId)
+            let freshBook = freshBookResult |> Result.get
+            Expect.equal freshBook.SbnCode (Some sbn) "invalid sbn code should be persisted upon book creation"
+        }
+
+        testCase "deserialize book object and upcast" <| fun _ ->
+            let json = """{"TenantId":"5a982f45-1c3a-4f7d-9a54-794ed7696f23","BookId":"3b895229-70ab-4c8e-bf4e-7e41df63a37d","Title":"The Return of the King","ImageUrl":"https://ia801601.us.archive.org/view_archive.php?archive=/25/items/m_covers_0014/m_covers_0014_62.zip\u0026file=0014624056-M.jpg","Description":"The concluding volume of The Lord of the Rings, detailing the final battles against Sauron\u0027s forces and the fate of Middle-earth.","OptionalEmbedding":null,"Availability":{"Case":"Circulating"},"DistributionPoint":null,"Authors":["e3a52abf-64b8-4e11-a3db-c337e20303df"],"Translators":[],"Languages":[],"CurrentLoan":null,"Editor":null,"MainCategory":{"Case":"Other"},"AdditionalCategories":[],"Tags":[],"Year":1955,"Isbn":{"Case":"Isbn","Fields":["9780547928234"]},"Sealed":{"DateTime":"2026-07-14T10:21:02.644649Z","Sealed":false}}"""
+            let deserialized = Book.Deserialize json
+            Expect.isOk deserialized (sprintf "Should deserialize and upcast successfully: %A" deserialized)
+            let book = deserialized |> Result.get
+            Expect.equal book.Title (Title.New "The Return of the King") "Title should match"
+            Expect.equal book.Year (Year.New 1955) "Year should match"
+            Expect.equal book.OptionalEmbedding None "OptionalEmbedding should be None"
+            Expect.equal book.SbnCode None "SbnCode should be None after upcast"
+
+        testCase "SbnCode.IsValid validates standard, backslash, slash, and ancient SBN codes" <| fun _ ->
+            let validCodes = [
+                @"IT\ICCU\LI3\0004083"
+                "IT/ICCU/LI3/0004083"
+                @"IT\ICCU\CFI\0001234"
+                "IT/ICCU/CFI/0001234"
+                "CFI0001234"
+                "LI30004083"
+                @"LI3\0004083"
+                "LI3/0004083"
+                @"it\iccu\li3\0004083"
+                "it/iccu/li3/0004083"
+                @"IT\ICCU\UFI\E003456"
+                "UFIE003456"
+            ]
+            for code in validCodes do
+                Expect.isTrue (SbnCode.IsValid code) (sprintf "%s should be valid" code)
+                Expect.isOk (SbnCode.NewValid code) (sprintf "%s should create NewValid" code)
+
+            let invalidCodes = [
+                null
+                ""
+                "   "
+                "INVALID"
+                "12345"
+                @"IT\ICCU\12\123"
+                @"IT\ICCU\LI3\000408"
+                @"IT\ICCU\LI3\00040830"
+            ]
+            for code in invalidCodes do
+                Expect.isFalse (SbnCode.IsValid code) (sprintf "%A should be invalid" code)
+                Expect.isError (SbnCode.NewValid code) (sprintf "%A should fail NewValid" code)
     ]
 
     |> testSequenced

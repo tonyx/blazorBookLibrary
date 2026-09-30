@@ -48,8 +48,7 @@ type BulkBookEdit =
             this.SetRemoveTagsIfCondition (tags, switch) =
                 if switch then { this with RemoveTagsEdit = Some tags} else this
 
-
-type Book =
+type Book001 =
     { TenantId: TenantId
       BookId: BookId
       Title: Title
@@ -69,6 +68,53 @@ type Book =
       Tags: List<Tag>
       Year: Year
       Isbn: Isbn
+      Sealed: Sealed }
+    with
+        member this.Upcast(): Book =
+            {
+                TenantId = this.TenantId
+                BookId = this.BookId
+                Title = this.Title
+                ImageUrl = this.ImageUrl
+                Description = this.Description
+                OptionalEmbedding = this.OptionalEmbedding
+                Availability = this.Availability
+                DistributionPoint = this.DistributionPoint
+                Authors = this.Authors
+                Translators = this.Translators
+                Languages = this.Languages
+                CurrentLoan = this.CurrentLoan
+                Editor = this.Editor
+                MainCategory = this.MainCategory
+                AdditionalCategories = this.AdditionalCategories
+                Tags = this.Tags
+                Year = this.Year
+                Isbn = this.Isbn
+                SbnCode = None
+                Sealed = this.Sealed
+            }
+
+and Book =
+    { TenantId: TenantId
+      BookId: BookId
+      Title: Title
+      ImageUrl: Option<Uri>
+      Description: Option<string>
+      OptionalEmbedding: Option<EmbeddingDataId>
+      Availability: Availability
+      DistributionPoint: Option<DistributionPointId>
+
+      Authors: List<AuthorId>
+      Translators: List<AuthorId>
+      Languages: List<CultureInfo>
+      CurrentLoan: Option<LoanId>
+      Editor: Option<EditorId>
+      MainCategory: Category
+      AdditionalCategories: List<Category>
+      Tags: List<Tag>
+      Year: Year
+      Isbn: Isbn
+      SbnCode: Option<SbnCode>
       Sealed: Sealed }
 
     static member New
@@ -102,6 +148,7 @@ type Book =
           Tags = []
           Year = year
           Isbn = isbn
+          SbnCode = None
           Sealed = Sealed.New(DateTime.UtcNow) }
 
     static member NewWithAvailability
@@ -434,6 +481,27 @@ type Book =
             do! this.Sealed.IsSealed(dateTime) |> not |> Result.ofBool "Book is sealed"
             return { this with Isbn = isbn }
         }
+
+    member this.UnsetSbnCode () : Result<Book, string> =
+        result
+            {
+                return
+                    {
+                        this with SbnCode = None
+                    }
+
+            }
+
+    member this.UpdateSbnCode (sbnCode: SbnCode) : Result<Book, string> =
+        result
+            {
+                
+                return
+                    {
+                        this with SbnCode = Some sbnCode
+                    }
+            }
+
     member this.BulkUpdate (bulkBookEdit: BulkBookEdit) (dateTime: DateTime) =
         result {
             let adjustAddTags =
@@ -535,4 +603,10 @@ type Book =
         try
             JsonSerializer.Deserialize<Book>(data, jsonOptions) |> Ok
         with ex ->
-            Error ex.Message
+            try
+                let book001 = JsonSerializer.Deserialize<Book001>(data, jsonOptions)
+                Ok (book001.Upcast())
+            with ex2 ->
+                Error $"error deserializing {data}\n
+                    ex1: {ex.Message}
+                    ex2: {ex2.Message}"

@@ -947,4 +947,20 @@
   <data name="ReservationNotificationPreferenceDescription" xml:space="preserve"><value>Scegli come notificare gli utenti quando i libri prenotati diventano disponibili.</value></data>
   <data name="LoanNotificationPreference" xml:space="preserve"><value>Preferenza notifiche prestiti</value></data>
   <data name="LoanNotificationPreferenceDescription" xml:space="preserve"><value>Scegli come notificare gli utenti riguardo i loro prestiti attivi.</value></data>
+  <data name="SbnIdentifier" xml:space="preserve"><value>Identificatore SBN</value></data>
+  <data name="AcceptInvalidSbn" xml:space="preserve"><value>Accetta SBN non valido</value></data>
+  <data name="SbnTooltipHelp" xml:space="preserve"><value>Questo codice si riferisce a un identificatore univoco del catalogo ufficiale S.D.N. utilizzato nel sistema italiano.</value></data>
+  <data name="InvalidSbnCodeFormat" xml:space="preserve"><value>Formato codice SBN non valido. È possibile correggerlo oppure contrassegnarlo come non valido per procedere comunque.</value></data>
+  <data name="PartialSbnPlaceholder" xml:space="preserve"><value>SBN parziale (es. CFI0001234)...</value></data>
+  <data name="RefineResultsByTitleOrSbnPlaceholder" xml:space="preserve"><value>Affina i risultati per titolo o SBN...</value></data>
+  <data name="Contains" xml:space="preserve"><value>Contiene</value></data>
+  <data name="HasSbnCode" xml:space="preserve"><value>Con SBN</value></data>
+  <data name="MissingSbnCode" xml:space="preserve"><value>Senza SBN</value></data>
+  <data name="SbnCodeUpdated" xml:space="preserve"><value>Codice SBN aggiornato con successo.</value></data>
+  <data name="SbnCodeUnset" xml:space="preserve"><value>Codice SBN rimosso con successo.</value></data>
+  <data name="ErrorUpdatingSbn" xml:space="preserve"><value>Impossibile aggiornare il codice SBN: {0}</value></data>
+  <data name="ErrorUnsettingSbn" xml:space="preserve"><value>Impossibile rimuovere il codice SBN: {0}</value></data>
+  <data name="BookSealedCannotEditSbn" xml:space="preserve"><value>Questo libro è sigillato. Rimuovi il sigillo per modificare il codice SBN.</value></data>
+  <data name="ISBN" xml:space="preserve"><value>ISBN</value></data>
+  <data name="SBN" xml:space="preserve"><value>SBN</value></data>
 </root>

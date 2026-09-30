@@ -1002,4 +1002,20 @@
   <data name="ReservationNotificationPreferenceDescription" xml:space="preserve"><value>Choose how patrons are notified when their reserved books become available.</value></data>
   <data name="LoanNotificationPreference" xml:space="preserve"><value>Loan Notification Preference</value></data>
   <data name="LoanNotificationPreferenceDescription" xml:space="preserve"><value>Choose how patrons are notified regarding their active loans.</value></data>
+  <data name="SbnIdentifier" xml:space="preserve"><value>SBN Identifier</value></data>
+  <data name="AcceptInvalidSbn" xml:space="preserve"><value>Accept invalid SBN</value></data>
+  <data name="SbnTooltipHelp" xml:space="preserve"><value>This code is related to a unique S.D.N. official catalogue identifier that may be used in Italy system.</value></data>
+  <data name="InvalidSbnCodeFormat" xml:space="preserve"><value>Invalid SBN Code format. You can correct it or flag it as invalid to proceed anyway.</value></data>
+  <data name="PartialSbnPlaceholder" xml:space="preserve"><value>Partial SBN (e.g. CFI0001234)...</value></data>
+  <data name="RefineResultsByTitleOrSbnPlaceholder" xml:space="preserve"><value>Refine results by title or SBN...</value></data>
+  <data name="Contains" xml:space="preserve"><value>Contains</value></data>
+  <data name="HasSbnCode" xml:space="preserve"><value>Has SBN</value></data>
+  <data name="MissingSbnCode" xml:space="preserve"><value>Without SBN</value></data>
+  <data name="SbnCodeUpdated" xml:space="preserve"><value>SBN updated successfully.</value></data>
+  <data name="SbnCodeUnset" xml:space="preserve"><value>SBN removed successfully.</value></data>
+  <data name="ErrorUpdatingSbn" xml:space="preserve"><value>Failed to update SBN: {0}</value></data>
+  <data name="ErrorUnsettingSbn" xml:space="preserve"><value>Failed to remove SBN: {0}</value></data>
+  <data name="BookSealedCannotEditSbn" xml:space="preserve"><value>This book is currently sealed. Please unseal it to edit the SBN.</value></data>
+  <data name="ISBN" xml:space="preserve"><value>ISBN</value></data>
+  <data name="SBN" xml:space="preserve"><value>SBN</value></data>
 </root>

@@ -347,6 +347,18 @@ public class BookClientService : IBookService
         return await ServiceClientHelper.HandleUnitResponse(response);
     }
 
+    public async Task<FSharpResult<Unit, string>> UnsetSbnCodeAsync(Commons.UserContext context, Commons.BookId bookId, FSharpOption<CancellationToken> ct)
+    {
+        var response = await _httpClient.DeleteAsync($"api/Books/{bookId.Value}/sbn", ServiceClientHelper.GetValue(ct, CancellationToken.None));
+        return await ServiceClientHelper.HandleUnitResponse(response);
+    }
+
+    public async Task<FSharpResult<Unit, string>> UpdateSbnCodeAsync(Commons.UserContext context, Commons.SbnCode sbnCode, Commons.BookId bookId, FSharpOption<CancellationToken> ct)
+    {
+        var response = await _httpClient.PostAsJsonAsync($"api/Books/{bookId.Value}/sbn", sbnCode.Value, ServiceClientHelper.JsonOptions, ServiceClientHelper.GetValue(ct, CancellationToken.None));
+        return await ServiceClientHelper.HandleUnitResponse(response);
+    }
+
     public async Task<FSharpResult<Unit, string>> UnsealAsync(Commons.UserContext context, Commons.BookId bookId, FSharpOption<CancellationToken> ct)
     {
         var response = await _httpClient.PostAsync($"api/Books/{bookId.Value}/unseal", null, ServiceClientHelper.GetValue(ct, CancellationToken.None));

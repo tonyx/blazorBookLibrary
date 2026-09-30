@@ -180,15 +180,23 @@ else
                                         <div class="input-group input-group-sm">
                                             <span class="input-group-text bg-transparent border-end-0 text-muted"><i class="bi bi-filter"></i></span>
                                             <input type="search" autofocus @bind="titleRefinementFilter" @bind:event="oninput" 
-                                                   placeholder="@L["RefineResultsByTitlePlaceholder"]" 
+                                                   placeholder="@L["RefineResultsByTitleOrSbnPlaceholder"]" 
                                                    class="form-control border-start-0 ps-0" />
                                         </div>
                                     </div>
                                 </ColumnOptions>
                                 <ChildContent>
-                                    <a href="/book-edit/@context.Book.Id" class="text-decoration-none text-reset transition-hover py-2 d-block">
-                                        @context.Book.Title.Value
-                                    </a>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <a href="/book-edit/@context.Book.Id" class="text-decoration-none text-reset transition-hover py-2">
+                                            @context.Book.Title.Value
+                                        </a>
+                                        @if (FSharpOption<SbnCode>.get_IsSome(context.Book.SbnCode))
+                                        {
+                                            <span class="badge bg-light text-muted border font-monospace small" title="@L["SbnIdentifier"]">
+                                                SBN: @context.Book.SbnCode.Value.Value
+                                            </span>
+                                        }
+                                    </div>
                                 </ChildContent>
                             </TemplateColumn>
 
@@ -375,6 +383,50 @@ else
                                 <div class="form-check form-switch mt-2 small">
                                     <InputCheckbox class="form-check-input" @bind-Value="allowInvalidIsbn" id="invalidIsbnSwitch" />
                                     <label class="form-check-label text-muted" for="invalidIsbnSwitch">@L["AcceptInvalidIsbn"]</label>
+                                </div>
+                            </div>
+
+                            @* SBN Code (Optional) *@
+                            <div class="col-md-5">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <label class="form-label small text-muted text-uppercase fw-bold mb-0 d-flex align-items-center gap-1">
+                                        @L["SbnIdentifier"]
+                                        <span class="badge bg-light text-secondary border fw-normal text-lowercase" style="font-size: 0.7rem;">@L["Optional"]</span>
+                                    </label>
+                                    <span class="text-muted" 
+                                          style="cursor: help;" 
+                                          title="@L["SbnTooltipHelp"]"
+                                          data-bs-toggle="tooltip" 
+                                          data-bs-placement="top"
+                                          data-bs-title="@L["SbnTooltipHelp"]">
+                                        <i class="bi bi-question-circle text-primary"></i>
+                                    </span>
+                                </div>
+                                <div class="input-group shadow-sm rounded-3 overflow-hidden border">
+                                    <InputText class="form-control border-0 font-monospace" 
+                                               @bind-Value="_newBookSbnCode" 
+                                               placeholder="e.g. CFI0001234 or IT/ICCU/..." />
+                                    @if (!string.IsNullOrWhiteSpace(_newBookSbnCode))
+                                    {
+                                        <span class="input-group-text bg-white border-0">
+                                            @if (SbnCode.IsValid(_newBookSbnCode.Trim()))
+                                            {
+                                                <i class="bi bi-check-circle-fill text-success" title="Valid SBN format"></i>
+                                            }
+                                            else if (allowInvalidSbn)
+                                            {
+                                                <i class="bi bi-exclamation-triangle-fill text-warning" title="Invalid SBN format (accepted)"></i>
+                                            }
+                                            else
+                                            {
+                                                <i class="bi bi-x-circle-fill text-danger" title="Invalid SBN format"></i>
+                                            }
+                                        </span>
+                                    }
+                                </div>
+                                <div class="form-check form-switch mt-2 small">
+                                    <InputCheckbox class="form-check-input" @bind-Value="allowInvalidSbn" id="invalidSbnSwitch" />
+                                    <label class="form-check-label text-muted" for="invalidSbnSwitch">@L["AcceptInvalidSbn"]</label>
                                 </div>
                             </div>
 
@@ -925,6 +977,7 @@ else
     private Microsoft.AspNetCore.Components.Forms.InputText? isbnInput;
     private string _newBookTitle = "";
     private string _newBookIsbn = "";
+    private string _newBookSbnCode = "";
     private string _newBookDescription = "";
     private string newBookDescription
     {
@@ -939,6 +992,7 @@ else
         }
     }
     private bool allowInvalidIsbn = false;
+    private bool allowInvalidSbn = false;
     private bool isLookingUpMetadata = false;
     private int? newBookYear = DateTime.Now.Year;
     private List<Author> selectedAuthors = new();
@@ -1101,12 +1155,22 @@ else
         }
     }
 
+    private bool IsNewBookSbnCodeValid
+    {
+        get
+        {
+            if (string.IsNullOrWhiteSpace(_newBookSbnCode)) return true;
+            return allowInvalidSbn || SbnCode.IsValid(_newBookSbnCode.Trim());
+        }
+    }
+
     private List<BookSearchResult> foundBooks = new();
     private string titleRefinementFilter = "";
     private IQueryable<BookSearchResult> FilteredBooks => 
         foundBooks.AsQueryable()
             .Where(b => string.IsNullOrEmpty(titleRefinementFilter) || 
-                        b.Book.Title.Value.Contains(titleRefinementFilter, StringComparison.OrdinalIgnoreCase));
+                        b.Book.Title.Value.Contains(titleRefinementFilter, StringComparison.OrdinalIgnoreCase) ||
+                        (FSharpOption<SbnCode>.get_IsSome(b.Book.SbnCode) && b.Book.SbnCode.Value.Value.Contains(titleRefinementFilter, StringComparison.OrdinalIgnoreCase)));
 
     private bool searchBooksPerformed = false;
     private PaginationState bookPagination = new() { ItemsPerPage = 10 };
@@ -1345,6 +1409,29 @@ else
             isbn = isbnResult.ResultValue;
         }
 
+        FSharpOption<SbnCode> sbnCodeOption = FSharpOption<SbnCode>.None;
+        if (!string.IsNullOrWhiteSpace(_newBookSbnCode))
+        {
+            var trimmedSbn = _newBookSbnCode.Trim();
+            if (SbnCode.IsValid(trimmedSbn))
+            {
+                var sbnRes = SbnCode.NewValid(trimmedSbn);
+                if (sbnRes.IsOk)
+                {
+                    sbnCodeOption = FSharpOption<SbnCode>.Some(sbnRes.ResultValue);
+                }
+            }
+            else if (allowInvalidSbn)
+            {
+                sbnCodeOption = FSharpOption<SbnCode>.Some(SbnCode.NewInvalid(trimmedSbn));
+            }
+            else
+            {
+                await ShowStatus(L["InvalidSbnCodeFormat"] ?? "Invalid SBN Code format. You can correct it or flag it as invalid to proceed anyway.", "error");
+                return;
+            }
+        }
+
         var title = Title.New(_newBookTitle);
         var year = Year.New(newBookYear.Value);
         var authorIds = selectedAuthors.Select(a => a.AuthorId).ToList();
@@ -1406,6 +1493,15 @@ else
                 resolvedImageUrl,
                 availability
             );
+        }
+
+        if (FSharpOption<SbnCode>.get_IsSome(sbnCodeOption))
+        {
+            var updateSbnResult = book.UpdateSbnCode(sbnCodeOption.Value);
+            if (updateSbnResult.IsOk)
+            {
+                book = updateSbnResult.ResultValue;
+            }
         }
 
         if (!string.IsNullOrWhiteSpace(newBookDescription))
@@ -1481,6 +1577,9 @@ else
     {
         _newBookTitle = "";
         _newBookIsbn = "";
+        allowInvalidIsbn = false;
+        _newBookSbnCode = "";
+        allowInvalidSbn = false;
         newBookDescription = "";
         newBookImageUrl = "";
         newBookYear = DateTime.Now.Year;

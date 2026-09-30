@@ -306,7 +306,7 @@ else
                             }
                         </div>
 
-                        <!-- ISBN & Availability Grid -->
+                        <!-- ISBN & SBN Grid -->
                         <div class="col-md-6 border-end" style="border-color: var(--surface-container-low) !important;">
                             <label class="form-label small text-muted text-uppercase fw-bold mb-2">Identifier (ISBN-13)</label>
                             @if (isEditingIsbn)
@@ -335,7 +335,84 @@ else
                             }
                         </div>
 
+                        <!-- SBN Code -->
                         <div class="col-md-6">
+                            <div class="d-flex align-items-center justify-content-between mb-2">
+                                <label class="form-label small text-muted text-uppercase fw-bold mb-0">@L["SbnIdentifier"]</label>
+                                <span class="badge bg-light text-muted border" 
+                                      data-bs-toggle="tooltip" 
+                                      data-bs-placement="top"
+                                      title="@L["SbnTooltipHelp"]">
+                                    <i class="bi bi-question-circle text-primary"></i>
+                                </span>
+                            </div>
+                            @if (isEditingSbn)
+                            {
+                                <div class="p-3 bg-surface-low rounded border">
+                                    <div class="input-group mb-2">
+                                        <input type="text" class="form-control small py-2 font-monospace" @bind="editedSbn" @bind:event="oninput" @onkeyup="HandleSbnKeyUp" placeholder="@L["PartialSbnPlaceholder"]" autofocus />
+                                        @if (!string.IsNullOrWhiteSpace(editedSbn))
+                                        {
+                                            <span class="input-group-text bg-white border">
+                                                @if (SbnCode.IsValid(editedSbn.Trim()))
+                                                {
+                                                    <i class="bi bi-check-circle-fill text-success" title="Valid SBN format"></i>
+                                                }
+                                                else if (acceptInvalidSbn)
+                                                {
+                                                    <i class="bi bi-exclamation-triangle-fill text-warning" title="Invalid SBN format (accepted)"></i>
+                                                }
+                                                else
+                                                {
+                                                    <i class="bi bi-x-circle-fill text-danger" title="Invalid SBN format"></i>
+                                                }
+                                            </span>
+                                        }
+                                        <button class="btn btn-primary btn-sm" @onclick="UpdateSbn" disabled="@isUpdatingSbn"><i class="bi bi-check-lg"></i></button>
+                                        <button class="btn btn-white border-start" @onclick="CancelEditSbn" disabled="@isUpdatingSbn"><i class="bi bi-x-lg"></i></button>
+                                    </div>
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div class="form-check form-switch small mb-0">
+                                            <input class="form-check-input" type="checkbox" id="invalidSbnSwitch" @bind="acceptInvalidSbn" />
+                                            <label class="form-check-label x-small text-muted" for="invalidSbnSwitch">@L["AcceptInvalidSbn"]</label>
+                                        </div>
+                                        @if (FSharpOption<SbnCode>.get_IsSome(_bookDetails.Book.SbnCode))
+                                        {
+                                            <button type="button" class="btn btn-link btn-sm text-danger p-0 x-small text-decoration-none" @onclick="UnsetSbn" disabled="@isUpdatingSbn" title="@L["Unset"]">
+                                                <i class="bi bi-trash me-1"></i>@L["Unset"]
+                                            </button>
+                                        }
+                                    </div>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="d-flex align-items-center gap-3">
+                                    @if (FSharpOption<SbnCode>.get_IsSome(_bookDetails.Book.SbnCode))
+                                    {
+                                        var sbn = _bookDetails.Book.SbnCode.Value;
+                                        <span class="badge-sanctuary badge-neutral font-monospace p-2 d-inline-flex align-items-center gap-2">
+                                            @sbn.Value
+                                            @if (sbn.IsInvalidSbn)
+                                            {
+                                                <span class="badge bg-warning text-dark x-small py-0 px-1" title="Marked as invalid format">invalid</span>
+                                            }
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted small italic">@L["MissingSbnCode"]</span>
+                                    }
+                                    @if (_bookDetails.Book.Editable)
+                                    {
+                                        <button class="btn btn-link p-0 text-muted" @onclick="StartEditSbn"><i class="bi bi-pencil-square"></i></button>
+                                    }
+                                </div>
+                            }
+                        </div>
+
+                        <!-- Availability & Distribution Point Grid -->
+                        <div class="col-md-6 border-end" style="border-color: var(--surface-container-low) !important;">
                             <label class="form-label small text-muted text-uppercase fw-bold mb-2">@L["ArchivalAvailability"]</label>
                              @if (isEditingAvailability)
                             {
@@ -368,7 +445,7 @@ else
                         </div>
 
                         <!-- Distribution Point -->
-                        <div class="col-md-6 border-end" style="border-color: var(--surface-container-low) !important;">
+                        <div class="col-md-6">
                             <label class="form-label small text-muted text-uppercase fw-bold mb-2">@L["DistributionPoint"]</label>
                             
                             @if (_bookDetails.DistributionPoint != null && FSharpOption<DistributionPoint>.get_IsSome(_bookDetails.DistributionPoint))
@@ -955,6 +1032,11 @@ else
     private bool isEditingIsbn = false;
     private string editedIsbn = "";
     private bool acceptInvalidIsbn = false;
+
+    private bool isEditingSbn = false;
+    private string editedSbn = "";
+    private bool acceptInvalidSbn = false;
+    private bool isUpdatingSbn = false;
 
     private bool isBookIsbnEmpty()
     {
@@ -1867,6 +1949,150 @@ else
         catch (Exception ex)
         {
             await ShowStatus(string.Format(L["ErrorUpdatingIsbnGeneric"], ex.Message), "alert-danger");
+        }
+    }
+
+    private async Task StartEditSbn()
+    {
+        if (_bookDetails?.Book.Editable ?? false)
+        {
+            isEditingSbn = true;
+            editedSbn = FSharpOption<SbnCode>.get_IsSome(_bookDetails.Book.SbnCode)
+                ? _bookDetails.Book.SbnCode.Value.Value
+                : "";
+            acceptInvalidSbn = false;
+        }
+        else if (isBookSealed)
+        {
+            await ShowStatus(L["BookSealedCannotEditSbn"], "alert-warning");
+        }
+    }
+
+    private void CancelEditSbn()
+    {
+        isEditingSbn = false;
+        editedSbn = "";
+        acceptInvalidSbn = false;
+    }
+
+    private async Task HandleSbnKeyUp(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await UpdateSbn();
+        }
+        else if (e.Key == "Escape")
+        {
+            CancelEditSbn();
+        }
+    }
+
+    private async Task UpdateSbn()
+    {
+        if (_bookDetails == null) return;
+
+        if (string.IsNullOrWhiteSpace(editedSbn))
+        {
+            if (FSharpOption<SbnCode>.get_IsSome(_bookDetails.Book.SbnCode))
+            {
+                await UnsetSbn();
+            }
+            else
+            {
+                isEditingSbn = false;
+            }
+            return;
+        }
+
+        var trimmedSbn = editedSbn.Trim();
+        SbnCode sbn;
+
+        if (SbnCode.IsValid(trimmedSbn))
+        {
+            var validResult = SbnCode.NewValid(trimmedSbn);
+            if (validResult.IsOk)
+            {
+                sbn = validResult.ResultValue;
+            }
+            else if (acceptInvalidSbn)
+            {
+                sbn = SbnCode.NewInvalid(trimmedSbn);
+            }
+            else
+            {
+                await ShowStatus(L["InvalidSbnCodeFormat"], "alert-warning");
+                return;
+            }
+        }
+        else if (acceptInvalidSbn)
+        {
+            sbn = SbnCode.NewInvalid(trimmedSbn);
+        }
+        else
+        {
+            await ShowStatus(L["InvalidSbnCodeFormat"], "alert-warning");
+            return;
+        }
+
+        isUpdatingSbn = true;
+        try
+        {
+            var context = await GetContext();
+            var result = await BookService.UpdateSbnCodeAsync(context, sbn, _bookDetails.Book.BookId, FSharpOption<CancellationToken>.None);
+            if (result.IsOk)
+            {
+                await WaitForCacheUpdateAsync(d => FSharpOption<SbnCode>.get_IsSome(d.Book.SbnCode) && d.Book.SbnCode.Value.Value == sbn.Value);
+                isEditingSbn = false;
+                await ShowStatus(L["SbnCodeUpdated"], "alert-success");
+            }
+            else
+            {
+                await ShowStatus(string.Format(L["ErrorUpdatingSbn"], result.ErrorValue), "alert-danger");
+            }
+        }
+        catch (Exception ex)
+        {
+            await ShowStatus(string.Format(L["ErrorUpdatingSbn"], ex.Message), "alert-danger");
+        }
+        finally
+        {
+            isUpdatingSbn = false;
+        }
+    }
+
+    private async Task UnsetSbn()
+    {
+        if (_bookDetails == null) return;
+        if (FSharpOption<SbnCode>.get_IsNone(_bookDetails.Book.SbnCode))
+        {
+            isEditingSbn = false;
+            return;
+        }
+
+        isUpdatingSbn = true;
+        try
+        {
+            var context = await GetContext();
+            var result = await BookService.UnsetSbnCodeAsync(context, _bookDetails.Book.BookId, FSharpOption<CancellationToken>.None);
+            if (result.IsOk)
+            {
+                await WaitForCacheUpdateAsync(d => FSharpOption<SbnCode>.get_IsNone(d.Book.SbnCode));
+                isEditingSbn = false;
+                editedSbn = "";
+                await ShowStatus(L["SbnCodeUnset"], "alert-success");
+            }
+            else
+            {
+                await ShowStatus(string.Format(L["ErrorUnsettingSbn"], result.ErrorValue), "alert-danger");
+            }
+        }
+        catch (Exception ex)
+        {
+            await ShowStatus(string.Format(L["ErrorUnsettingSbn"], ex.Message), "alert-danger");
+        }
+        finally
+        {
+            isUpdatingSbn = false;
         }
     }
 

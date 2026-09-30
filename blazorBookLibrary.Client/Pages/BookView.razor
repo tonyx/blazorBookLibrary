@@ -269,7 +269,19 @@
                                 <h5 class="serif mb-4">@L["Metadata"]</h5>
                                 <dl class="details-list mb-0">
                                     <dt>@L["ISBN"]</dt>
-                                    <dd>@bookDetails.Book.Isbn.Value</dd>
+                                    <dd class="font-monospace">@bookDetails.Book.Isbn.Value</dd>
+
+                                    @if (FSharpOption<SbnCode>.get_IsSome(bookDetails.Book.SbnCode))
+                                    {
+                                        <dt>@L["SBN"]</dt>
+                                        <dd>
+                                            <span class="font-monospace">@bookDetails.Book.SbnCode.Value.Value</span>
+                                            @if (bookDetails.Book.SbnCode.Value.IsInvalidSbn)
+                                            {
+                                                <span class="badge bg-warning text-dark x-small ms-1 py-0 px-1" title="Marked as invalid format">invalid</span>
+                                            }
+                                        </dd>
+                                    }
 
                                     <dt>@L["PublicationYear"]</dt>
                                     <dd>@bookDetails.Book.Year.Value</dd>

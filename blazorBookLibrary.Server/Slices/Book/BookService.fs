@@ -408,7 +408,35 @@ type BookService
                 return result
             }
 
-    member this.RemoveImageUrlAsync (context: UserContext, bookId: BookId, ?ct: CancellationToken) = 
+    member this.UnsetSbnCodeAsync (context: UserContext, bookId: BookId, ?ct: CancellationToken) = 
+        taskResult
+            {
+                let! tenantId = userTenantResolverService.GetTenantForUserAsync(context)
+                let ct = defaultArg ct CancellationToken.None
+                let! book = 
+                    bookViewerAsync (Some ct) bookId.Value |> TaskResult.map snd
+                let dateTime = System.DateTime.UtcNow
+                let bookUnsetSbnCodeCommand = 
+                    BookCommand.UnsetSbnCode 
+
+                do! 
+                    tenantId = book.TenantId
+                    |> Result.ofBool "Book tenant id not matching"
+                do!
+                    checkIsGlobalAdminOrTenantManager context ct
+                
+                let! result = 
+                    runAggregateCommandMdAsync<Book, BookEvent, string>
+                        book.Id
+                        eventStore
+                        messageSenders
+                        ""
+                        bookUnsetSbnCodeCommand
+                        (Some ct)
+                return result
+            }
+            
+        member this.RemoveImageUrlAsync (context: UserContext, bookId: BookId, ?ct: CancellationToken) = 
         taskResult
             {
                 let! tenantId = userTenantResolverService.GetTenantForUserAsync(context)
@@ -438,6 +466,38 @@ type BookService
                         (Some ct)
                 return result
             }
+
+    member this.UpdateIsbnCodeAsync (context: UserContext, bookId: BookId, sbnCode: SbnCode, ?ct: CancellationToken) = 
+        taskResult
+            {
+                let! tenantId = userTenantResolverService.GetTenantForUserAsync(context)
+                let ct = defaultArg ct CancellationToken.None
+                let! book = 
+                    bookViewerAsync (Some ct) bookId.Value |> TaskResult.map snd
+                let dateTime = System.DateTime.UtcNow
+                let bookUpdateSbnCodeCommand = 
+                    BookCommand.UpdateSbnCode sbnCode
+                do! 
+                    tenantId = book.TenantId
+                    |> Result.ofBool "Book tenant id not matching"
+                do!
+                    checkIsGlobalAdminOrTenantManager context ct
+                let! result = 
+                    runAggregateCommandMdAsync<Book, BookEvent, string>
+                        book.Id
+                        eventStore
+                        messageSenders
+                        ""
+                        bookUpdateSbnCodeCommand
+                        (Some ct)
+                return result
+            }
+
+    member this.UpdateSbnCodeAsync (context: UserContext, sbnCode: SbnCode, bookId: BookId, ?ct: CancellationToken) = 
+        this.UpdateIsbnCodeAsync(context, bookId, sbnCode, ?ct = ct)
+
+    member this.UpdateSbnCodeAsync (context: UserContext, bookId: BookId, sbnCode: SbnCode, ?ct: CancellationToken) = 
+        this.UpdateIsbnCodeAsync(context, bookId, sbnCode, ?ct = ct)
 
     member this.SetImageUrlAsync (context: UserContext, bookId: BookId, imageUrl: Uri, ?ct: CancellationToken) = 
         taskResult
@@ -1513,4 +1573,10 @@ type BookService
             this.UnsetAllBookRelatedToDPAsync(context, distributionPointId, userId, ct)
         member this.MoveFromDpToAnotherDPAsync(context, fromPoint, toPoint, userId, ?ct) = 
             let ct = defaultArg ct CancellationToken.None
-            this.MoveFromDpToAnotherDPAsync(context, fromPoint, toPoint, userId, ct)
+            this.MoveFromDpToAnotherDPAsync(context, fromPoint, toPoint, userId, ct)        
+        member this.UnsetSbnCodeAsync(context: UserContext, bookId: BookId, ct: CancellationToken option): Task<Result<unit,string>> = 
+            let ct = defaultArg ct CancellationToken.None
+            this.UnsetSbnCodeAsync(context, bookId, ct)
+        member this.UpdateSbnCodeAsync(context: UserContext, sbnCode: SbnCode, bookId: BookId, ct: CancellationToken option): Task<Result<unit,string>> = 
+            let ct = defaultArg ct CancellationToken.None
+            this.UpdateIsbnCodeAsync(context, bookId, sbnCode, ct)

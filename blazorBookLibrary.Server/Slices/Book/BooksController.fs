@@ -314,6 +314,39 @@ type BooksController(bookService: IBookService, hubContext: Microsoft.AspNetCore
             | Error msg -> return this.BadRequest(msg) :> IActionResult
         }
 
+    [<HttpPost("{id}/sbn")>]
+    member this.UpdateSbnCodeAsync(id: Guid, [<FromBody>] sbnCode: string) =
+        task {
+            let context = UserContextMapper.mapFromRequest this.Request
+            let sbn =
+                if not (String.IsNullOrEmpty sbnCode) && SbnCode.IsValid sbnCode then
+                    ValidSbn sbnCode
+                else
+                    InvalidSbn sbnCode
+            let! result = bookService.UpdateSbnCodeAsync(context, sbn, BookId id)
+            match result with
+            | Ok _ -> return this.Ok() :> IActionResult
+            | Error msg -> return this.BadRequest(msg) :> IActionResult
+        }
+
+    [<HttpDelete("{id}/sbn")>]
+    member this.UnsetSbnCodeAsync(id: Guid) =
+        task {
+            let context = UserContextMapper.mapFromRequest this.Request
+            let! result = bookService.UnsetSbnCodeAsync(context, BookId id)
+            match result with
+            | Ok _ -> return this.Ok() :> IActionResult
+            | Error msg -> return this.BadRequest(msg) :> IActionResult
+        }
+
+    [<NonAction>]
+    member this.UpdateSbnCode(id: Guid, sbnCode: string) =
+        this.UpdateSbnCodeAsync(id, sbnCode)
+
+    [<NonAction>]
+    member this.UnsetSbnCode(id: Guid) =
+        this.UnsetSbnCodeAsync(id)
+
     [<HttpPost("{id}/unseal")>]
     member this.Unseal(id: Guid) =
         task {
