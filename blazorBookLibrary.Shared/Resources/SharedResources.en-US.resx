@@ -1015,7 +1015,20 @@
   <data name="SbnCodeUnset" xml:space="preserve"><value>SBN removed successfully.</value></data>
   <data name="ErrorUpdatingSbn" xml:space="preserve"><value>Failed to update SBN: {0}</value></data>
   <data name="ErrorUnsettingSbn" xml:space="preserve"><value>Failed to remove SBN: {0}</value></data>
-  <data name="BookSealedCannotEditSbn" xml:space="preserve"><value>This book is currently sealed. Please unseal it to edit the SBN.</value></data>
-  <data name="ISBN" xml:space="preserve"><value>ISBN</value></data>
-  <data name="SBN" xml:space="preserve"><value>SBN</value></data>
+  <data name="AILibrarian" xml:space="preserve"><value>AI Librarian</value></data>
+  <data name="AILibrarianSubtitle" xml:space="preserve"><value>Conversational discovery powered by semantic catalog grounding</value></data>
+  <data name="AskLibrarianPlaceholder" xml:space="preserve"><value>Ask anything about books, themes, or recommendations...</value></data>
+  <data name="StrictCatalogMode" xml:space="preserve"><value>Catalog Only</value></data>
+  <data name="BroadKnowledgeMode" xml:space="preserve"><value>Include General Knowledge</value></data>
+  <data name="SearchAnew" xml:space="preserve"><value>Search Anew</value></data>
+  <data name="SearchAnewTooltip" xml:space="preserve"><value>When active, the next question performs a fresh semantic search instead of continuing on existing books</value></data>
+  <data name="ActiveCatalogContext" xml:space="preserve"><value>Catalog Books in Context</value></data>
+  <data name="ClearChat" xml:space="preserve"><value>Clear Chat</value></data>
+  <data name="NoBooksInContext" xml:space="preserve"><value>No catalog books currently in context. Start by asking a question!</value></data>
+  <data name="AILibrarianWelcome" xml:space="preserve"><value>Welcome! I am your AI Librarian. I can explore the library catalog, compare titles, identify underlying themes, and guide your reading journey. How can I help you today?</value></data>
+  <data name="AskQuestion" xml:space="preserve"><value>Send</value></data>
+  <data name="Thinking" xml:space="preserve"><value>Consulting the archives...</value></data>
+  <data name="SampleQuestion1" xml:space="preserve"><value>I am looking for books exploring the darker sides of human nature</value></data>
+  <data name="SampleQuestion2" xml:space="preserve"><value>Among all these possibilities, which is the most ethically controversial text?</value></data>
+  <data name="SampleQuestion3" xml:space="preserve"><value>Compare the central conflict and pacing of these books</value></data>
 </root>

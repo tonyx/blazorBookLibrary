@@ -1,0 +1,609 @@
+@page "/ai-librarian"
+@using System.Web
+@using System.Text.RegularExpressions
+@using System.Threading
+@using Microsoft.FSharp.Collections
+@using Microsoft.FSharp.Core
+@using static BookLibrary.Shared.Commons
+@using BookLibrary.Domain
+@using BookLibrary.Shared
+@using BookLibrary.Shared.Services
+@using blazorBookLibrary.Shared.Resources
+@inject ILibrarianChatService LibrarianChatService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IStringLocalizer<SharedResources> L
+@inject IJSRuntime JSRuntime
+@inject NavigationManager NavManager
+@rendermode InteractiveAuto
+
+<PageTitle>@L["AILibrarian"] — @L["BiblioNet"]</PageTitle>
+
+<div class="sanctuary-container py-4">
+
+    <!-- Header Section -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4 pb-3 border-bottom" style="border-color: var(--outline-variant) !important;">
+        <div>
+            <div class="d-flex align-items-center gap-2 mb-1">
+                <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-1 rounded-pill fw-semibold">
+                    <i class="bi bi-stars me-1"></i> RAG AI Discovery
+                </span>
+                @if (_contextBooks.Count > 0)
+                {
+                    <span class="badge bg-secondary-subtle text-secondary px-3 py-1 rounded-pill">
+                        <i class="bi bi-collection me-1"></i> @_contextBooks.Count @L["ActiveCatalogContext"]
+                    </span>
+                }
+            </div>
+            <h1 class="display-6 serif fw-bold mb-1" style="color: var(--primary);">@L["AILibrarian"]</h1>
+            <p class="text-muted small mb-0">@L["AILibrarianSubtitle"]</p>
+        </div>
+
+        <!-- Mode & Scope Toolbar -->
+        <div class="d-flex flex-wrap align-items-center gap-2">
+            <div class="btn-group p-1 bg-surface-low rounded-pill border shadow-xs" role="group">
+                <button type="button" 
+                        class="btn btn-sm rounded-pill px-3 @(!_includeGeneralKnowledge ? "btn-primary shadow-xs" : "btn-light text-muted border-0 bg-transparent")"
+                        @onclick="() => SetMode(false)">
+                    <i class="bi bi-journal-bookmark-fill me-1"></i> @L["StrictCatalogMode"]
+                </button>
+                <button type="button" 
+                        class="btn btn-sm rounded-pill px-3 @(_includeGeneralKnowledge ? "btn-primary shadow-xs" : "btn-light text-muted border-0 bg-transparent")"
+                        @onclick="() => SetMode(true)">
+                    <i class="bi bi-globe2 me-1"></i> @L["BroadKnowledgeMode"]
+                </button>
+            </div>
+
+            @if (_contextBooks.Count > 0)
+            {
+                <button class="btn btn-sm btn-outline-secondary rounded-pill px-3 d-flex align-items-center gap-1 @(_forceNewSearch ? "active btn-secondary text-white" : "")"
+                        @onclick="ToggleForceNewSearch"
+                        title="@L["SearchAnewTooltip"]">
+                    <i class="bi bi-arrow-repeat"></i>
+                    <span>@L["SearchAnew"]</span>
+                </button>
+
+                <button class="btn btn-sm btn-outline-danger rounded-pill px-3 d-flex align-items-center gap-1"
+                        @onclick="ClearConversation"
+                        title="@L["ClearChat"]">
+                    <i class="bi bi-trash3"></i>
+                    <span class="d-none d-sm-inline">@L["ClearChat"]</span>
+                </button>
+            }
+        </div>
+    </div>
+
+    <!-- Main Workspace: Split View -->
+    <div class="row g-4">
+        
+        <!-- Conversation Column -->
+        <div class="@(_contextBooks.Count > 0 ? "col-lg-7 col-xl-8" : "col-12")">
+            <div class="card-sanctuary bg-surface-low border-0 p-3 p-md-4 d-flex flex-column" style="min-height: 650px; height: calc(100vh - 260px);">
+                
+                <!-- Chat Message Stream -->
+                <div class="flex-grow-1 overflow-y-auto pe-2 mb-3 chat-stream-container" id="chatStream">
+                    
+                    @if (_messages.Count == 0)
+                    {
+                        <div class="text-center py-5 animate-fade-in">
+                            <div class="d-inline-flex p-4 rounded-circle bg-surface-container mb-3 shadow-xs">
+                                <i class="bi bi-stars text-primary" style="font-size: 2.5rem;"></i>
+                            </div>
+                            <h4 class="serif fw-bold mb-2">@L["AILibrarian"]</h4>
+                            <p class="text-muted mx-auto mb-4" style="max-width: 520px; font-size: 0.95rem;">
+                                @L["AILibrarianWelcome"]
+                            </p>
+
+                            <!-- Suggested Questions -->
+                            <div class="d-flex flex-column align-items-center gap-2 max-w-md mx-auto" style="max-width: 580px;">
+                                <button class="btn btn-light bg-surface border text-start w-100 py-2 px-3 rounded-xl small shadow-xs transition-hover"
+                                        @onclick='() => SubmitSampleQuery(L["SampleQuestion1"].Value)'>
+                                    <i class="bi bi-chat-left-quote me-2 text-primary"></i> "@L["SampleQuestion1"]"
+                                </button>
+                                <button class="btn btn-light bg-surface border text-start w-100 py-2 px-3 rounded-xl small shadow-xs transition-hover"
+                                        @onclick='() => SubmitSampleQuery(L["SampleQuestion2"].Value)'>
+                                    <i class="bi bi-chat-left-quote me-2 text-primary"></i> "@L["SampleQuestion2"]"
+                                </button>
+                                <button class="btn btn-light bg-surface border text-start w-100 py-2 px-3 rounded-xl small shadow-xs transition-hover"
+                                        @onclick='() => SubmitSampleQuery(L["SampleQuestion3"].Value)'>
+                                    <i class="bi bi-chat-left-quote me-2 text-primary"></i> "@L["SampleQuestion3"]"
+                                </button>
+                            </div>
+                        </div>
+                    }
+
+                    @foreach (var msg in _messages)
+                    {
+                        <div class="d-flex @(msg.Role == "user" ? "justify-content-end" : "justify-content-start") mb-4 animate-fade-in">
+                            @if (msg.Role != "user")
+                            {
+                                <div class="me-2 d-none d-sm-flex align-items-start mt-1">
+                                    <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center shadow-xs" style="width: 32px; height: 32px; font-size: 0.85rem;">
+                                        <i class="bi bi-stars"></i>
+                                    </div>
+                                </div>
+                            }
+
+                            <div class="card p-3 border-0 @(msg.Role == "user" ? "bg-primary text-white" : "bg-surface shadow-xs")" 
+                                 style="max-width: 85%; border-radius: var(--radius-lg); @(msg.Role == "user" ? "border-bottom-right-radius: 4px;" : "border-bottom-left-radius: 4px;")">
+                                
+                                <div class="d-flex align-items-center justify-content-between mb-1 gap-2">
+                                    <span class="x-small fw-bold @(msg.Role == "user" ? "text-white-50" : "text-muted")">
+                                        @(msg.Role == "user" ? "You" : L["AILibrarian"])
+                                    </span>
+                                    <span class="x-small @(msg.Role == "user" ? "text-white-50" : "text-muted opacity-75")">
+                                        @msg.Timestamp.ToString("HH:mm")
+                                    </span>
+                                </div>
+
+                                <div class="message-body @(msg.Role == "user" ? "text-white" : "")" style="font-size: 0.95rem; line-height: 1.6;">
+                                    @if (msg.Role == "user")
+                                    {
+                                        <div class="user-text">@msg.Content</div>
+                                    }
+                                    else
+                                    {
+                                        <div class="markdown-content">
+                                            @((MarkupString)RenderMarkdownToHtml(msg.Content))
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    }
+
+                    @if (_isThinking)
+                    {
+                        <div class="d-flex justify-content-start mb-4 animate-fade-in">
+                            <div class="me-2 d-none d-sm-flex align-items-start mt-1">
+                                <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center shadow-xs" style="width: 32px; height: 32px; font-size: 0.85rem;">
+                                    <i class="bi bi-stars"></i>
+                                </div>
+                            </div>
+                            <div class="card p-3 border-0 bg-surface shadow-xs rounded-xl" style="border-bottom-left-radius: 4px;">
+                                <div class="d-flex align-items-center gap-2 text-muted small">
+                                    <span class="spinner-border spinner-border-sm text-primary" role="status" aria-hidden="true"></span>
+                                    <span class="serif italic">@L["Thinking"]</span>
+                                </div>
+                            </div>
+                        </div>
+                    }
+
+                    @if (!string.IsNullOrWhiteSpace(_errorMessage))
+                    {
+                        <div class="alert alert-danger rounded-xl small py-2 px-3 mb-3 animate-fade-in" role="alert">
+                            <i class="bi bi-exclamation-triangle-fill me-2"></i> @_errorMessage
+                        </div>
+                    }
+                </div>
+
+                <!-- Input Console -->
+                <div class="pt-2 border-top" style="border-color: var(--outline-variant) !important;">
+                    @if (_contextBooks.Count > 0 && !_forceNewSearch)
+                    {
+                        <div class="d-flex align-items-center justify-content-between px-2 mb-2">
+                            <span class="x-small text-muted italic">
+                                <i class="bi bi-link-45deg text-primary me-1"></i> Multi-turn reasoning on @_contextBooks.Count active books
+                            </span>
+                            <button type="button" class="btn btn-link p-0 x-small text-decoration-none" @onclick="ToggleForceNewSearch">
+                                Switch to fresh search
+                            </button>
+                        </div>
+                    }
+
+                    <div class="input-group bg-surface rounded-xl shadow-sm border overflow-hidden p-1">
+                        <textarea class="form-control border-0 bg-transparent shadow-none px-3 py-2" 
+                                  rows="2"
+                                  placeholder="@L["AskLibrarianPlaceholder"]"
+                                  @bind="_userInput"
+                                  @bind:event="oninput"
+                                  @onkeydown="HandleKeyDown"
+                                  disabled="@_isThinking"></textarea>
+
+                        <button class="btn-sanctuary-primary align-self-end m-1 px-3 py-2" 
+                                type="button" 
+                                @onclick="SendMessage" 
+                                disabled="@(_isThinking || string.IsNullOrWhiteSpace(_userInput))">
+                            @if (_isThinking)
+                            {
+                                <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                            }
+                            else
+                            {
+                                <i class="bi bi-send-fill"></i>
+                            }
+                            <span class="d-none d-sm-inline ms-1">@L["AskQuestion"]</span>
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Catalog Context Shelf (Right Column) -->
+        @if (_contextBooks.Count > 0)
+        {
+            <div class="col-lg-5 col-xl-4 animate-fade-in">
+                <div class="card-sanctuary bg-surface-low border-0 p-3 p-md-4 d-flex flex-column" style="min-height: 650px; height: calc(100vh - 260px);">
+                    
+                    <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom" style="border-color: var(--outline-variant) !important;">
+                        <div>
+                            <h5 class="serif fw-bold mb-0">@L["ActiveCatalogContext"]</h5>
+                            <span class="x-small text-muted">@_contextBooks.Count grounded items retrieved</span>
+                        </div>
+                        <span class="badge bg-primary-subtle text-primary rounded-pill px-2 py-1 x-small fw-semibold">
+                            <i class="bi bi-database me-1"></i> pgvector
+                        </span>
+                    </div>
+
+                    <div class="flex-grow-1 overflow-y-auto pe-1 books-shelf-container">
+                        <div class="d-flex flex-column gap-3">
+                            @foreach (var res in _contextBooks)
+                            {
+                                var book = res.Book;
+                                <div class="card bg-surface border-0 rounded-xl p-3 shadow-xs transition-hover" id="book-card-@book.Id">
+                                    <div class="d-flex gap-3">
+                                        <!-- Thumbnail -->
+                                        <a href="/book-view/@book.Id" class="flex-shrink-0 text-decoration-none">
+                                            <div class="bg-surface-low rounded p-1 shadow-2xs d-flex align-items-center justify-content-center overflow-hidden" 
+                                                 style="width: 52px; height: 74px;">
+                                                @if (book.ImageUrl != null && FSharpOption<Uri>.get_IsSome(book.ImageUrl))
+                                                {
+                                                    <img src="@book.ImageUrl.Value.ToString()" alt="@book.Title.Value" style="max-width: 100%; max-height: 100%; object-fit: cover;" />
+                                                }
+                                                else
+                                                {
+                                                    <i class="bi bi-book-half text-muted opacity-50" style="font-size: 1.5rem;"></i>
+                                                }
+                                            </div>
+                                        </a>
+
+                                        <!-- Book Info -->
+                                        <div class="flex-grow-1 min-w-0">
+                                            <a href="/book-view/@book.Id" class="text-decoration-none text-reset">
+                                                <h6 class="serif fw-bold mb-1 text-truncate" title="@book.Title.Value">
+                                                    @book.Title.Value
+                                                </h6>
+                                            </a>
+
+                                            <div class="d-flex flex-wrap align-items-center gap-1 mb-2">
+                                                <span class="badge bg-surface-low text-secondary border border-subtle x-small rounded-pill">
+                                                    @book.Year.Value
+                                                </span>
+                                                <span class="badge bg-surface-low text-muted border border-subtle x-small rounded-pill">
+                                                    @book.MainCategory.Value()
+                                                </span>
+                                                @if (FSharpOption<double>.get_IsSome(res.Score))
+                                                {
+                                                    <span class="badge bg-success-subtle text-success border border-success-subtle x-small rounded-pill" title="Similarity Score">
+                                                        @((res.Score.Value * 100).ToString("F0"))% match
+                                                    </span>
+                                                }
+                                            </div>
+
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <div class="x-small">
+                                                    @if (book.AvailabilityStatus == AvailabilityStatus.Available)
+                                                    {
+                                                        <span class="text-success fw-bold"><i class="bi bi-check-circle-fill me-1"></i>@L["Available"]</span>
+                                                    }
+                                                    else if (book.AvailabilityStatus == AvailabilityStatus.Reserved)
+                                                    {
+                                                        <span class="text-warning fw-bold"><i class="bi bi-clock-fill me-1"></i>@L["Reserved"]</span>
+                                                    }
+                                                    else if (book.AvailabilityStatus == AvailabilityStatus.Consultable)
+                                                    {
+                                                        <span class="text-info fw-bold"><i class="bi bi-eye-fill me-1"></i>@L["Consultable"]</span>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span class="text-danger fw-bold"><i class="bi bi-x-circle-fill me-1"></i>@L["NotAvailable"]</span>
+                                                    }
+                                                </div>
+
+                                                <a href="/book-view/@book.Id" class="btn btn-sm btn-link p-0 text-primary text-decoration-none x-small fw-semibold">
+                                                    @L["BookDetails"] <i class="bi bi-chevron-right"></i>
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    @if (FSharpOption<string>.get_IsSome(book.Description) && !string.IsNullOrWhiteSpace(book.Description.Value))
+                                    {
+                                        <p class="x-small text-muted mt-2 mb-0 text-truncate-2 italic" style="line-height: 1.4;">
+                                            @book.Description.Value
+                                        </p>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        }
+
+    </div>
+
+</div>
+
+<style>
+    .chat-stream-container::-webkit-scrollbar,
+    .books-shelf-container::-webkit-scrollbar {
+        width: 6px;
+    }
+    .chat-stream-container::-webkit-scrollbar-thumb,
+    .books-shelf-container::-webkit-scrollbar-thumb {
+        background: rgba(0, 0, 0, 0.1);
+        border-radius: 4px;
+    }
+    .text-truncate-2 {
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+    .rounded-xl {
+        border-radius: var(--radius-lg, 1rem) !important;
+    }
+    .shadow-xs {
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    }
+    .shadow-2xs {
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+    }
+    .transition-hover {
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .transition-hover:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08) !important;
+    }
+    .markdown-content p:last-child {
+        margin-bottom: 0;
+    }
+    .markdown-content h4, .markdown-content h5, .markdown-content h6 {
+        font-family: var(--font-serif);
+        font-weight: 700;
+        margin-top: 0.8rem;
+        margin-bottom: 0.4rem;
+    }
+    .markdown-content ul, .markdown-content ol {
+        padding-left: 1.25rem;
+        margin-bottom: 0.5rem;
+    }
+    .markdown-content li {
+        margin-bottom: 0.25rem;
+    }
+    .book-citation-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        padding: 0.15rem 0.6rem;
+        border-radius: 9999px;
+        background-color: var(--primary-container, #e0eaff);
+        color: var(--on-primary-container, #002d6b);
+        border: 1px solid rgba(0, 85, 201, 0.2);
+        font-weight: 600;
+        font-size: 0.82rem;
+        text-decoration: none;
+        transition: all 0.2s ease;
+        margin: 0 0.15rem;
+        vertical-align: middle;
+    }
+    .book-citation-chip:hover {
+        background-color: var(--secondary, #0055c9);
+        color: white;
+        text-decoration: none;
+        transform: translateY(-1px);
+        box-shadow: 0 2px 6px rgba(0, 85, 201, 0.25);
+    }
+</style>
+
+@code {
+    private List<LibrarianChatMessage> _messages = new();
+    private List<BookSearchResult> _contextBooks = new();
+    private List<BookId> _scopeBookIds = new();
+    private bool _includeGeneralKnowledge = false;
+    private bool _forceNewSearch = false;
+    private string _userInput = "";
+    private bool _isThinking = false;
+    private string? _errorMessage;
+
+    private async Task<UserContext> GetUserContextAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        return Shared.ConverterUtils.fromClaimsPrincipal(authState.User);
+    }
+
+    private void SetMode(bool includeGeneral)
+    {
+        _includeGeneralKnowledge = includeGeneral;
+    }
+
+    private void ToggleForceNewSearch()
+    {
+        _forceNewSearch = !_forceNewSearch;
+    }
+
+    private void ClearConversation()
+    {
+        _messages.Clear();
+        _contextBooks.Clear();
+        _scopeBookIds.Clear();
+        _forceNewSearch = false;
+        _errorMessage = null;
+    }
+
+    private async Task SubmitSampleQuery(string sampleText)
+    {
+        _userInput = sampleText;
+        await SendMessage();
+    }
+
+    private async Task HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !e.ShiftKey)
+        {
+            await SendMessage();
+        }
+    }
+
+    private async Task SendMessage()
+    {
+        var text = _userInput.Trim();
+        if (string.IsNullOrWhiteSpace(text) || _isThinking) return;
+
+        _errorMessage = null;
+        _isThinking = true;
+        _userInput = "";
+
+        // Add user message to local history
+        var userMsg = new LibrarianChatMessage
+        {
+            Role = "user",
+            Content = text,
+            Timestamp = DateTime.Now
+        };
+        _messages.Add(userMsg);
+        StateHasChanged();
+
+        try
+        {
+            var userContext = await GetUserContextAsync();
+
+            FSharpOption<FSharpList<BookId>> scopeIdsOption =
+                (!_forceNewSearch && _scopeBookIds.Count > 0)
+                    ? FSharpOption<FSharpList<BookId>>.Some(ListModule.OfSeq(_scopeBookIds))
+                    : FSharpOption<FSharpList<BookId>>.None;
+
+            var request = new LibrarianChatRequest
+            {
+                Message = text,
+                ConversationHistory = ListModule.OfSeq(_messages.Take(_messages.Count - 1)),
+                IncludeGeneralKnowledge = _includeGeneralKnowledge,
+                ScopeBookIds = scopeIdsOption,
+                ForceNewSearch = _forceNewSearch
+            };
+
+            var result = await LibrarianChatService.ChatAsync(
+                userContext, 
+                request, 
+                FSharpOption<CancellationToken>.None);
+
+            if (result.IsOk)
+            {
+                var response = result.ResultValue;
+                
+                var assistantMsg = new LibrarianChatMessage
+                {
+                    Role = "assistant",
+                    Content = response.AnswerMarkdown,
+                    Timestamp = DateTime.Now
+                };
+                _messages.Add(assistantMsg);
+
+                // Update context books & scope IDs
+                if (response.ReferencedBooks != null && response.ReferencedBooks.Length > 0)
+                {
+                    _contextBooks = response.ReferencedBooks.ToList();
+                }
+                
+                if (response.ScopeBookIds != null && response.ScopeBookIds.Length > 0)
+                {
+                    _scopeBookIds = response.ScopeBookIds.ToList();
+                }
+
+                // Reset force search flag once search has completed
+                _forceNewSearch = false;
+            }
+            else
+            {
+                _errorMessage = result.ErrorValue;
+            }
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = ex.Message;
+        }
+        finally
+        {
+            _isThinking = false;
+            StateHasChanged();
+            await ScrollToBottom();
+        }
+    }
+
+    private async Task ScrollToBottom()
+    {
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("eval", "var el = document.getElementById('chatStream'); if (el) el.scrollTop = el.scrollHeight;");
+        }
+        catch
+        {
+            // Ignore JS scroll error during disposal/prerender
+        }
+    }
+
+    private string RenderMarkdownToHtml(string rawMarkdown)
+    {
+        if (string.IsNullOrEmpty(rawMarkdown)) return "";
+
+        // First HTML-encode the string to protect against XSS
+        var encoded = HttpUtility.HtmlEncode(rawMarkdown);
+
+        // Transform book citation links: [Title](book://<guid>) -> styled badge
+        var citationRegex = new Regex(@"\[(.*?)\]\(book:\/\/([a-zA-Z0-9\-]+)\)", RegexOptions.Compiled);
+        encoded = citationRegex.Replace(encoded, match =>
+        {
+            var title = match.Groups[1].Value;
+            var guid = match.Groups[2].Value;
+            return $"<a href=\"/book-view/{guid}\" class=\"book-citation-chip\"><i class=\"bi bi-book-half\"></i> {title}</a>";
+        });
+
+        // Transform regular links: [Text](http...) -> external link
+        var externalLinkRegex = new Regex(@"\[(.*?)\]\((https?:\/\/[^\s\)]+)\)", RegexOptions.Compiled);
+        encoded = externalLinkRegex.Replace(encoded, match =>
+        {
+            var text = match.Groups[1].Value;
+            var url = match.Groups[2].Value;
+            return $"<a href=\"{url}\" target=\"_blank\" rel=\"noopener noreferrer\" class=\"text-primary text-decoration-underline\">{text}</a>";
+        });
+
+        // Headers
+        encoded = Regex.Replace(encoded, @"^### (.*?)$", "<h6 class=\"serif fw-bold mt-3 mb-1 text-primary\">$1</h6>", RegexOptions.Multiline);
+        encoded = Regex.Replace(encoded, @"^## (.*?)$", "<h5 class=\"serif fw-bold mt-3 mb-2 text-primary\">$1</h5>", RegexOptions.Multiline);
+        encoded = Regex.Replace(encoded, @"^# (.*?)$", "<h4 class=\"serif fw-bold mt-4 mb-2 text-primary\">$1</h4>", RegexOptions.Multiline);
+
+        // Bold and Italic
+        encoded = Regex.Replace(encoded, @"\*\*(.*?)\*\*", "<strong>$1</strong>");
+        encoded = Regex.Replace(encoded, @"\*(.*?)\*", "<em>$1</em>");
+
+        // Bullet lists
+        encoded = Regex.Replace(encoded, @"^[\*\-] (.*?)$", "<li class=\"mb-1\">$1</li>", RegexOptions.Multiline);
+        encoded = Regex.Replace(encoded, @"((<li class=""mb-1"">.*?<\/li>\s*)+)", "<ul class=\"mb-2 ps-3\">$1</ul>");
+
+        // Paragraph line breaks
+        encoded = encoded.Replace("\r\n", "\n").Replace("\r", "\n");
+        var paragraphs = encoded.Split(new[] { "\n\n" }, StringSplitOptions.None);
+        var finalSb = new System.Text.StringBuilder();
+
+        foreach (var p in paragraphs)
+        {
+            var trimmed = p.Trim();
+            if (string.IsNullOrWhiteSpace(trimmed)) continue;
+
+            if (trimmed.StartsWith("<h") || trimmed.StartsWith("<ul") || trimmed.StartsWith("<ol") || trimmed.StartsWith("<div"))
+            {
+                finalSb.AppendLine(trimmed);
+            }
+            else
+            {
+                var withBreaks = trimmed.Replace("\n", "<br />");
+                finalSb.AppendLine($"<p class=\"mb-2\">{withBreaks}</p>");
+            }
+        }
+
+        return finalSb.ToString();
+    }
+}

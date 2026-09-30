@@ -48,53 +48,53 @@ type BulkBookEdit =
             this.SetRemoveTagsIfCondition (tags, switch) =
                 if switch then { this with RemoveTagsEdit = Some tags} else this
 
-type Book001 =
-    { TenantId: TenantId
-      BookId: BookId
-      Title: Title
-      ImageUrl: Option<Uri>
-      Description: Option<string>
-      OptionalEmbedding: Option<EmbeddingDataId>
-      Availability: Availability
-      DistributionPoint: Option<DistributionPointId>
+// type Book001 =
+//     { TenantId: TenantId
+//       BookId: BookId
+//       Title: Title
+//       ImageUrl: Option<Uri>
+//       Description: Option<string>
+//       OptionalEmbedding: Option<EmbeddingDataId>
+//       Availability: Availability
+//       DistributionPoint: Option<DistributionPointId>
 
-      Authors: List<AuthorId>
-      Translators: List<AuthorId>
-      Languages: List<CultureInfo>
-      CurrentLoan: Option<LoanId>
-      Editor: Option<EditorId>
-      MainCategory: Category
-      AdditionalCategories: List<Category>
-      Tags: List<Tag>
-      Year: Year
-      Isbn: Isbn
-      Sealed: Sealed }
-    with
-        member this.Upcast(): Book =
-            {
-                TenantId = this.TenantId
-                BookId = this.BookId
-                Title = this.Title
-                ImageUrl = this.ImageUrl
-                Description = this.Description
-                OptionalEmbedding = this.OptionalEmbedding
-                Availability = this.Availability
-                DistributionPoint = this.DistributionPoint
-                Authors = this.Authors
-                Translators = this.Translators
-                Languages = this.Languages
-                CurrentLoan = this.CurrentLoan
-                Editor = this.Editor
-                MainCategory = this.MainCategory
-                AdditionalCategories = this.AdditionalCategories
-                Tags = this.Tags
-                Year = this.Year
-                Isbn = this.Isbn
-                SbnCode = None
-                Sealed = this.Sealed
-            }
+//       Authors: List<AuthorId>
+//       Translators: List<AuthorId>
+//       Languages: List<CultureInfo>
+//       CurrentLoan: Option<LoanId>
+//       Editor: Option<EditorId>
+//       MainCategory: Category
+//       AdditionalCategories: List<Category>
+//       Tags: List<Tag>
+//       Year: Year
+//       Isbn: Isbn
+//       Sealed: Sealed }
+//     with
+//         member this.Upcast(): Book =
+//             {
+//                 TenantId = this.TenantId
+//                 BookId = this.BookId
+//                 Title = this.Title
+//                 ImageUrl = this.ImageUrl
+//                 Description = this.Description
+//                 OptionalEmbedding = this.OptionalEmbedding
+//                 Availability = this.Availability
+//                 DistributionPoint = this.DistributionPoint
+//                 Authors = this.Authors
+//                 Translators = this.Translators
+//                 Languages = this.Languages
+//                 CurrentLoan = this.CurrentLoan
+//                 Editor = this.Editor
+//                 MainCategory = this.MainCategory
+//                 AdditionalCategories = this.AdditionalCategories
+//                 Tags = this.Tags
+//                 Year = this.Year
+//                 Isbn = this.Isbn
+//                 SbnCode = None
+//                 Sealed = this.Sealed
+//             }
 
-and Book =
+type Book =
     { TenantId: TenantId
       BookId: BookId
       Title: Title
@@ -603,10 +603,11 @@ and Book =
         try
             JsonSerializer.Deserialize<Book>(data, jsonOptions) |> Ok
         with ex ->
-            try
-                let book001 = JsonSerializer.Deserialize<Book001>(data, jsonOptions)
-                Ok (book001.Upcast())
-            with ex2 ->
-                Error $"error deserializing {data}\n
-                    ex1: {ex.Message}
-                    ex2: {ex2.Message}"
+            Error $"error deserializing {data}\n{ex.Message}"
+            // try
+            //     let book001 = JsonSerializer.Deserialize<Book001>(data, jsonOptions)
+            //     Ok (book001.Upcast())
+            // with ex2 ->
+            //     Error $"error deserializing {data}\n
+            //         ex1: {ex.Message}
+            //         ex2: {ex2.Message}"

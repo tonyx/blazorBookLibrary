@@ -112,6 +112,7 @@
 
     <Compile Include="Slices/Notification/NotificationService.fs" />
     <Compile Include="Slices/Book/EmbeddingOrchestrationService.fs" />
+    <Compile Include="Slices/Book/LibrarianChatService.fs" />
 
     <Compile Include="Slices/Author/AuthorsSearchController.fs" />
     <Compile Include="Slices/Book/BooksController.fs" />
@@ -129,6 +130,7 @@
     <Compile Include="Slices/AIAssistant/AIAssistantController.fs" />
     <Compile Include="Slices/Book/TextEmbeddingController.fs" />
     <Compile Include="Slices/Book/EmbeddingOrchestrationController.fs" />
+    <Compile Include="Slices/Book/LibrarianChatController.fs" />
     <Compile Include="Slices/Tenant/TenantController.fs" />
     <Compile Include="Slices/Notification/NotificationsController.fs" />
     <Compile Include="Slices/Notification/InAppMessagesRetrieverController.fs" />

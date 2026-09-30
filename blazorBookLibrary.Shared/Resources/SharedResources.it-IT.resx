@@ -960,7 +960,20 @@
   <data name="SbnCodeUnset" xml:space="preserve"><value>Codice SBN rimosso con successo.</value></data>
   <data name="ErrorUpdatingSbn" xml:space="preserve"><value>Impossibile aggiornare il codice SBN: {0}</value></data>
   <data name="ErrorUnsettingSbn" xml:space="preserve"><value>Impossibile rimuovere il codice SBN: {0}</value></data>
-  <data name="BookSealedCannotEditSbn" xml:space="preserve"><value>Questo libro è sigillato. Rimuovi il sigillo per modificare il codice SBN.</value></data>
-  <data name="ISBN" xml:space="preserve"><value>ISBN</value></data>
-  <data name="SBN" xml:space="preserve"><value>SBN</value></data>
+  <data name="AILibrarian" xml:space="preserve"><value>Bibliotecario IA</value></data>
+  <data name="AILibrarianSubtitle" xml:space="preserve"><value>Scoperta conversazionale basata sull'ancoraggio semantico al catalogo</value></data>
+  <data name="AskLibrarianPlaceholder" xml:space="preserve"><value>Chiedi qualsiasi cosa su libri, temi o consigli di lettura...</value></data>
+  <data name="StrictCatalogMode" xml:space="preserve"><value>Solo Catalogo</value></data>
+  <data name="BroadKnowledgeMode" xml:space="preserve"><value>Includi Conoscenza Generale</value></data>
+  <data name="SearchAnew" xml:space="preserve"><value>Cerca da Capo</value></data>
+  <data name="SearchAnewTooltip" xml:space="preserve"><value>Se attivo, la prossima domanda esegue una nuova ricerca semantica invece di continuare sui libri correnti</value></data>
+  <data name="ActiveCatalogContext" xml:space="preserve"><value>Libri nel Contesto Attivo</value></data>
+  <data name="ClearChat" xml:space="preserve"><value>Pulisci Chat</value></data>
+  <data name="NoBooksInContext" xml:space="preserve"><value>Nessun libro del catalogo attualmente nel contesto. Inizia ponendo una domanda!</value></data>
+  <data name="AILibrarianWelcome" xml:space="preserve"><value>Benvenuto! Sono il tuo Bibliotecario IA. Posso esplorare il catalogo della biblioteca, confrontare i titoli, individuare temi profondi e guidarti nella lettura. Come posso aiutarti oggi?</value></data>
+  <data name="AskQuestion" xml:space="preserve"><value>Invia</value></data>
+  <data name="Thinking" xml:space="preserve"><value>Consultazione degli archivi in corso...</value></data>
+  <data name="SampleQuestion1" xml:space="preserve"><value>Cerco libri che esplorino il lato oscuro della natura umana</value></data>
+  <data name="SampleQuestion2" xml:space="preserve"><value>Tra tutte le possibilità, qual è il testo eticamente più controverso?</value></data>
+  <data name="SampleQuestion3" xml:space="preserve"><value>Confronta il conflitto centrale e il ritmo di questi libri</value></data>
 </root>

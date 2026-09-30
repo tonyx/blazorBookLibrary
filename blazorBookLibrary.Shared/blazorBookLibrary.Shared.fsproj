@@ -48,6 +48,7 @@
     <Compile Include="Slices/Details/IDetailsService.fs" />
     <Compile Include="Slices/DataExport/IDataExportService.fs" />
     <Compile Include="Slices/Book/ITextEmbeddingService.fs" />
+    <Compile Include="Slices/Book/ILibrarianChatService.fs" />
     <Compile Include="Slices/Admin/IAdminService.fs" />
     <Compile Include="Slices/DistributionPoint/IDistributionPointService.fs" />
     <Compile Include="Slices/Tenant/ITenantService.fs" />

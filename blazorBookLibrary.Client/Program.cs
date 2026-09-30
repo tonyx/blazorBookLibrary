@@ -34,6 +34,7 @@ public class Program
         builder.Services.AddScoped<IBooksMetadataSearchService, GoogleBooksClientService>();
         builder.Services.AddScoped<IDataExportService, DataExportClientService>();
         builder.Services.AddScoped<ITextEmbeddingService, TextEmbeddingClientService>();
+        builder.Services.AddScoped<ILibrarianChatService, LibrarianChatClientService>();
         builder.Services.AddScoped<IEmbeddingOrchestrationService, EmbeddingOrchestrationClientService>();
         builder.Services.AddScoped<IDetailsService, DetailsClientService>();
         builder.Services.AddScoped<IBotScoreService, BotScoreClientService>();

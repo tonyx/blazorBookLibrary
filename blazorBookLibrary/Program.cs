@@ -105,6 +105,7 @@ builder.Services.AddSingleton<IBookService, BookService>();
 builder.Services.AddSingleton<IReviewService, ReviewService>();
 builder.Services.AddSingleton<IBooksMetadataSearchService, GoogleBooksService>();
 builder.Services.AddSingleton<ITextEmbeddingService, TextEmbeddingService>();
+builder.Services.AddSingleton<ILibrarianChatService, LibrarianChatService>();
 
 builder.Services.AddSingleton<IEmbeddingOrchestrationService, EmbeddingOrchestrationService>();
 
