@@ -80,14 +80,13 @@ type NotificationService
                 | UserContext.Authenticated (uId, _) -> Ok uId
                 | _ -> Error "Access denied: unauthenticated"
 
-            let! tenantId = userTenantResolverService.GetTenantForUserAsync(context, ct |> Option.defaultValue CancellationToken.None)
-            let! (_, tenant) = tenantViewerAsync ct tenantId.Value
-
-            do! 
-                match context, tenant with
-                | UserContext.Authenticated (uId, _), _  when uId = notification.UserId || context.IsInRole Role.Admin -> Ok()
-                | _, t when t.IsManager userId -> Ok ()
-                | _ -> Error "Access denied: cannot modify another user's notifications"
+            if userId = notification.UserId || context.IsInRole Role.Admin then
+                ()
+            else
+                let! tenantId = userTenantResolverService.GetTenantForUserAsync(context, ct |> Option.defaultValue CancellationToken.None)
+                let! (_, tenant) = tenantViewerAsync ct tenantId.Value
+                if not (tenant.IsManager userId) then
+                    return! Error "Access denied: cannot modify another user's notifications"
 
             let command = NotificationCommand.MarkAsRead
             let! _ = 
@@ -117,13 +116,13 @@ type NotificationService
                 match context with
                 | UserContext.Authenticated (uId, _) -> Ok uId
                 | _ -> Error "Access denied: cannot create notification for unauthenticated user"
-            let! tenantId = userTenantResolverService.GetTenantForUserAsync(context, ct |> Option.defaultValue CancellationToken.None)
-            let! (_, tenant) = tenantViewerAsync ct tenantId.Value
-            do!
-                match context, tenant with
-                | UserContext.Authenticated (uId, _), _ when uId = notification.UserId || context.IsInRole Role.Admin -> Ok()
-                | _, t when t.IsManager userId -> Ok ()
-                | _ -> Error "Access denied: unauthorized to create this notification"
+            if userId = notification.UserId || context.IsInRole Role.Admin then
+                ()
+            else
+                let! tenantId = userTenantResolverService.GetTenantForUserAsync(context, ct |> Option.defaultValue CancellationToken.None)
+                let! (_, tenant) = tenantViewerAsync ct tenantId.Value
+                if not (tenant.IsManager userId) then
+                    return! Error "Access denied: unauthorized to create this notification"
 
             let! _ = 
                 runInitAsync<Notification, NotificationEvent, string>
