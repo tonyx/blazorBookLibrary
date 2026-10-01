@@ -52,4 +52,11 @@ public class AIAssistantClientService : ITextEmbeddingService
         var response = await _httpClient.PostAsJsonAsync("api/AIAssistant/recognize-papers-text", new { text }, ServiceClientHelper.JsonOptions, ServiceClientHelper.GetValue(ct, CancellationToken.None));
         return await ServiceClientHelper.HandleResponse<Microsoft.FSharp.Collections.FSharpList<RecognizedPaperCandidate>>(response);
     }
+
+    public async Task<FSharpResult<string, string>> ExtractTextFromImageAsync(Commons.UserContext context, string base64Image, string mimeType, FSharpOption<CancellationToken> ct)
+    {
+        var response = await _httpClient.PostAsJsonAsync("api/AIAssistant/extract-text-from-image", new { base64Image, mimeType }, ServiceClientHelper.JsonOptions, ServiceClientHelper.GetValue(ct, CancellationToken.None));
+        return await ServiceClientHelper.HandleResponse<string>(response);
+    }
 }
+

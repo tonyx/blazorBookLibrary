@@ -73,3 +73,14 @@ type TextEmbeddingController(textEmbeddingService: ITextEmbeddingService) =
             | Ok papers -> return this.Ok(papers) :> IActionResult
             | Error msg -> return this.BadRequest(msg) :> IActionResult
         }
+
+    [<HttpPost("extract-text-from-image")>]
+    member this.ExtractTextFromImage([<FromBody>] request: {| base64Image: string; mimeType: string |}) =
+        task {
+            let context = UserContextMapper.mapFromClaimsPrincipal this.User
+            let! result = textEmbeddingService.ExtractTextFromImageAsync(context, request.base64Image, request.mimeType)
+            match result with
+            | Ok text -> return this.Ok(text) :> IActionResult
+            | Error msg -> return this.BadRequest(msg) :> IActionResult
+        }
+

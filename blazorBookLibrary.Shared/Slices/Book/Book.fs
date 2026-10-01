@@ -356,6 +356,18 @@ and Book =
                     Papers = this.Papers @ papers |> List.distinct }
         }
 
+    member this.SetPaperDescriptionAndEmbedding (paperId: PaperId, description: string option, embeddingId: EmbeddingDataId option) =
+        result {
+            return
+                { this with
+                    Papers =
+                        this.Papers
+                        |> List.map (fun p ->
+                            if p.PaperId = paperId then
+                                { p with Description = description; OptionalEmbedding = embeddingId }
+                            else p) }
+        }
+
     member this.AddAuthor (author: AuthorId) (dateTime: DateTime) =
         result {
             do!

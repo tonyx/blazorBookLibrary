@@ -145,10 +145,11 @@ type BookService
                     checkIsGlobalAdminOrTenantManager context ct
 
                 // 3-Phase removal for consistency
+                // Phase 1: Remove all embeddings for this book from Vector database (book abstract and papers)
+                let! _ = vectorDbService.RemoveEmbeddingsByBookIdAsync(book.TenantId, bookId, ct)
+
                 match book.OptionalEmbedding with
                 | Some embeddingId ->
-                    // Phase 1: Remove from Vector database
-                    let! _ = vectorDbService.RemoveEmbeddingAsync(embeddingId, ct)
                     // Phase 2: Remove association from Book (event)
                     let! _ = this.RemoveEmbeddingAsync(context, bookId, ct)
                     ()
@@ -641,8 +642,9 @@ type BookService
             {
                 let! tenantId = userTenantResolverService.GetTenantForUserAsync(context)
                 let ct = defaultArg ct CancellationToken.None
+                let distinctIds = bookIds |> List.distinct
                 let! books = 
-                    bookIds 
+                    distinctIds 
                     |> List.traverseTaskResultM (fun id -> bookViewerAsync (Some ct) id.Value |> TaskResult.map snd)
 
                 do! 
@@ -1436,6 +1438,16 @@ type BookService
                     checkIsGlobalAdminOrTenantManagerOrPublicTenant context ct
                 let! book = 
                     bookViewerAsync (ct |> Some) bookId.Value |> TaskResult.map snd
+                
+                // If the paper has an embedding, remove it and re-link sibling intra-book embeddings
+                let paperOpt = book.Papers |> List.tryFind (fun p -> p.PaperId = paperId)
+                match paperOpt with
+                | Some p when p.OptionalEmbedding.IsSome ->
+                    let! _ = vectorDbService.RemoveEmbeddingAsync(p.OptionalEmbedding.Value, ct)
+                    let! _ = vectorDbService.LinkIntraBookEmbeddingsAsync(book.TenantId, bookId, ct)
+                    ()
+                | _ -> ()
+
                 let removePaperCommand = BookCommand.RemovePaper paperId
                 let! result =
                     runAggregateCommandMdAsync<Book, BookEvent, string>
@@ -1444,6 +1456,27 @@ type BookService
                         messageSenders
                         ""
                         removePaperCommand
+                        (ct |> Some)
+                return result
+            }
+
+    member this.SetPaperDescriptionAndEmbeddingAsync (context: UserContext, bookId: BookId, paperId: PaperId, description: Option<string>, embeddingId: Option<EmbeddingDataId>, ?ct: CancellationToken) =
+        taskResult
+            {
+                let ct = defaultArg ct CancellationToken.None
+                do!
+                    checkIsGlobalAdminOrTenantManagerOrPublicTenant context ct
+                let! book = 
+                    bookViewerAsync (ct |> Some) bookId.Value |> TaskResult.map snd
+                let dateTime = System.DateTime.UtcNow
+                let cmd = BookCommand.SetPaperDescriptionAndEmbedding (paperId, description, embeddingId, dateTime)
+                let! result =
+                    runAggregateCommandMdAsync<Book, BookEvent, string>
+                        bookId.Value
+                        eventStore
+                        messageSenders
+                        ""
+                        cmd
                         (ct |> Some)
                 return result
             }
@@ -1648,3 +1681,6 @@ type BookService
         member this.RemovePaperAsync(context: UserContext, bookId: BookId, paperId: PaperId, ct: CancellationToken option): Task<Result<unit,string>> = 
             let ct = defaultArg ct CancellationToken.None
             this.RemovePaperAsync(context, bookId, paperId, ct)
+        member this.SetPaperDescriptionAndEmbeddingAsync(context: UserContext, bookId: BookId, paperId: PaperId, description: Option<string>, embeddingId: Option<EmbeddingDataId>, ct: CancellationToken option): Task<Result<unit,string>> =
+            let ct = defaultArg ct CancellationToken.None
+            this.SetPaperDescriptionAndEmbeddingAsync(context, bookId, paperId, description, embeddingId, ct)

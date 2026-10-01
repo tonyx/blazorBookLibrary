@@ -843,12 +843,27 @@ else
                                 @(_bookDetails.Book.Papers.Length) @(_bookDetails.Book.Papers.Length == 1 ? L["Paper"] : L["Papers"])
                             </span>
                         </div>
-                        <div class="d-flex gap-2">
+                        <div class="d-flex gap-2 flex-wrap">
                             @if (_bookDetails.Book.Papers.Any())
                             {
                                 <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3 shadow-sm" @onclick="TogglePapersDrillDown">
                                     <i class="bi @(_isPapersDrillDownOpen ? "bi-chevron-up" : "bi-layers-half") me-1"></i>
                                     @(_isPapersDrillDownOpen ? L["HidePapers"] : L["DrillDownPapers"])
+                                </button>
+                            }
+                            @if (_bookDetails.Book.Editable && _bookDetails.Book.Papers.Any(p => FSharpOption<EmbeddingDataId>.get_IsSome(p.OptionalEmbedding)))
+                            {
+                                <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3 shadow-sm d-flex align-items-center gap-1" @onclick="LinkSiblingEmbeddingsAsync" disabled="@_isLinkingSiblings" title="Link and sync related sibling embeddings for all articles in this book">
+                                    @if (_isLinkingSiblings)
+                                    {
+                                        <span class="spinner-border spinner-border-sm me-1"></span>
+                                        <span>Linking...</span>
+                                    }
+                                    else
+                                    {
+                                        <i class="bi bi-diagram-3 me-1"></i>
+                                        <span>Link Sibling Embeddings</span>
+                                    }
                                 </button>
                             }
                             @if (_bookDetails.Book.Editable && !_isAddingPaper && !_isScanningPapers)
@@ -862,6 +877,7 @@ else
                             }
                         </div>
                     </div>
+
 
                     @* Add Paper Form Section *@
                     @if (_isAddingPaper)
@@ -1403,17 +1419,41 @@ else
                                     var paper = _bookDetails.Book.Papers[i];
                                     var paperIndex = i + 1;
                                     <div class="p-4 bg-surface-low rounded-xl border border-light shadow-sm transition-all hover-shadow">
-                                        <div class="d-flex justify-content-between align-items-start mb-2">
-                                            <div class="d-flex align-items-baseline gap-2">
+                                        <div class="d-flex justify-content-between align-items-start mb-2 flex-wrap gap-2">
+                                            <div class="d-flex align-items-center gap-2 flex-wrap">
                                                 <span class="badge bg-primary-subtle text-primary rounded-pill px-2 py-1 small fw-bold">#@paperIndex</span>
                                                 <h6 class="serif mb-0 fw-bold fs-5 text-dark">@paper.Title.Value</h6>
+                                                @if (FSharpOption<EmbeddingDataId>.get_IsSome(paper.OptionalEmbedding))
+                                                {
+                                                    <span class="badge bg-success-subtle text-success rounded-pill px-2 py-1 small fw-semibold d-inline-flex align-items-center gap-1" title="Semantic vector embedding is active for this paper">
+                                                        <i class="bi bi-cpu-fill"></i> Embedded
+                                                    </span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-light text-muted rounded-pill px-2 py-1 small border d-inline-flex align-items-center gap-1">
+                                                        <i class="bi bi-cpu"></i> No Embedding
+                                                    </span>
+                                                }
                                             </div>
                                             @if (_bookDetails.Book.Editable)
                                             {
-                                                <button type="button" class="btn btn-sm btn-outline-danger rounded-pill px-3 shadow-sm d-flex align-items-center gap-1" title="@L["RemovePaper"]" @onclick="() => RemovePaper(paper)">
-                                                    <i class="bi bi-trash"></i>
-                                                    <span class="small">@L["RemovePaper"]</span>
-                                                </button>
+                                                <div class="d-flex align-items-center gap-2">
+                                                    <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3 shadow-sm d-flex align-items-center gap-1" @onclick="() => OpenPaperEmbeddingModal(paper)">
+                                                        <i class="bi bi-stars"></i>
+                                                        <span class="small">@(FSharpOption<EmbeddingDataId>.get_IsSome(paper.OptionalEmbedding) ? "Update Embedding" : "Embed Content")</span>
+                                                    </button>
+                                                    @if (FSharpOption<EmbeddingDataId>.get_IsSome(paper.OptionalEmbedding))
+                                                    {
+                                                        <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-2 shadow-sm" title="Remove Embedding" @onclick="() => RemovePaperEmbedding(paper)">
+                                                            <i class="bi bi-x-circle"></i>
+                                                        </button>
+                                                    }
+                                                    <button type="button" class="btn btn-sm btn-outline-danger rounded-pill px-3 shadow-sm d-flex align-items-center gap-1" title="@L["RemovePaper"]" @onclick="() => RemovePaper(paper)">
+                                                        <i class="bi bi-trash"></i>
+                                                        <span class="small">@L["RemovePaper"]</span>
+                                                    </button>
+                                                </div>
                                             }
                                         </div>
 
@@ -1597,8 +1637,166 @@ else
             </div>
         }
     }
+
+    @* Modal for Paper Embedding & Multi-Stage OCR Capture *@
+    @if (_isPaperEmbeddingModalOpen && _selectedPaperForEmbedding != null)
+    {
+        <div class="modal-backdrop fade show"></div>
+        <div class="modal fade show d-block" tabindex="-1" role="dialog" style="background-color: rgba(0, 0, 0, 0.55); backdrop-filter: blur(4px);">
+            <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+                <div class="modal-content border-0 shadow-lg bg-surface-lowest rounded-4 overflow-hidden">
+                    <div class="modal-header border-bottom p-4 pb-3 bg-light-subtle d-flex justify-content-between align-items-start">
+                        <div>
+                            <div class="d-flex align-items-center gap-2 mb-1">
+                                <span class="badge bg-primary text-white rounded-pill px-2 py-1 small">AI Embedding</span>
+                                @if (FSharpOption<EmbeddingDataId>.get_IsSome(_selectedPaperForEmbedding.OptionalEmbedding))
+                                {
+                                    <span class="badge bg-success-subtle text-success rounded-pill px-2 py-1 small">Currently Embedded</span>
+                                }
+                            </div>
+                            <h5 class="modal-title serif fw-bold text-dark mb-0">
+                                <i class="bi bi-file-earmark-text me-2 text-primary"></i>@_selectedPaperForEmbedding.Title.Value
+                            </h5>
+                            <span class="x-small text-muted serif italic">Scan article pages or paste text to generate vector embedding</span>
+                        </div>
+                        <button type="button" class="btn-close" @onclick="ClosePaperEmbeddingModal" aria-label="Close" disabled="@(_isSavingPaperEmbedding || _isOcrExtracting)"></button>
+                    </div>
+
+                    <div class="modal-body p-4">
+                        <!-- Navigation Tabs: Camera, Upload, Text Buffer -->
+                        <ul class="nav nav-pills mb-3 border-bottom pb-2">
+                            <li class="nav-item">
+                                <button type="button" class="nav-link rounded-pill py-1 px-3 small @(_paperEmbedActiveTab == 0 ? "active" : "")" @onclick="() => _paperEmbedActiveTab = 0">
+                                    <i class="bi bi-camera me-1"></i>Camera OCR
+                                </button>
+                            </li>
+                            <li class="nav-item ms-2">
+                                <button type="button" class="nav-link rounded-pill py-1 px-3 small @(_paperEmbedActiveTab == 1 ? "active" : "")" @onclick="() => _paperEmbedActiveTab = 1">
+                                    <i class="bi bi-file-earmark-image me-1"></i>Upload Page Image
+                                </button>
+                            </li>
+                            <li class="nav-item ms-2">
+                                <button type="button" class="nav-link rounded-pill py-1 px-3 small position-relative @(_paperEmbedActiveTab == 2 ? "active" : "")" @onclick="() => _paperEmbedActiveTab = 2">
+                                    <i class="bi bi-textarea-t me-1"></i>Text Buffer
+                                    @if (!string.IsNullOrWhiteSpace(_paperEmbeddingText))
+                                    {
+                                        <span class="badge bg-primary rounded-pill ms-1" style="font-size: 0.65rem;">@_paperEmbeddingText.Length chars</span>
+                                    }
+                                </button>
+                            </li>
+                        </ul>
+
+                        @* Tab 0: Camera / Smartphone capture *@
+                        @if (_paperEmbedActiveTab == 0)
+                        {
+                            <div class="p-3 bg-light rounded-3 border text-center mb-3">
+                                <p class="small text-muted mb-3">
+                                    Capture article pages with your smartphone camera or webcam. Each scan will be OCR-transcribed and appended to your text buffer.
+                                </p>
+                                <div class="d-flex justify-content-center gap-2 flex-wrap">
+                                    <label class="btn btn-primary rounded-pill px-4 shadow-sm cursor-pointer mb-0">
+                                        <i class="bi bi-camera-fill me-2"></i>Snap Page with Camera
+                                        <InputFile OnChange="HandlePaperOcrImageUpload" accept="image/*" capture="environment" style="display: none;" />
+                                    </label>
+                                    <button type="button" class="btn btn-outline-secondary rounded-pill px-4 shadow-sm" @onclick="ToggleLiveCameraForPaper">
+                                        <i class="bi bi-camera-video me-2"></i>@(_isLiveCameraActiveForPaper ? "Close Live Camera" : "Live Camera Preview")
+                                    </button>
+                                </div>
+
+                                @if (_isLiveCameraActiveForPaper)
+                                {
+                                    <div id="paper-embed-camera-wrapper" class="scanner-preview-wrapper rounded-3 overflow-hidden position-relative bg-black mt-3 mx-auto shadow-sm" style="max-width: 600px; min-height: 280px;">
+                                        <BarcodeReader 
+                                            OnBarcodeReceived="(args) => { }" 
+                                            Title=""
+                                            StartCameraAutomatically="true"
+                                            ShowStart="false"
+                                            ShowReset="false"
+                                            ShowVideoDeviceList="true"
+                                        />
+                                        <div class="d-flex justify-content-center position-absolute bottom-0 w-100 p-3" style="z-index: 10;">
+                                            <button type="button" class="btn btn-primary rounded-pill px-4 shadow-lg" @onclick="CapturePaperLiveCameraFrame" disabled="@_isOcrExtracting">
+                                                <i class="bi bi-camera-fill me-2"></i> Capture Frame & OCR
+                                            </button>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        }
+
+                        @* Tab 1: Upload Page Image *@
+                        @if (_paperEmbedActiveTab == 1)
+                        {
+                            <div class="p-3 bg-light rounded-3 border mb-3">
+                                <label class="form-label x-small text-uppercase fw-bold text-muted">Upload Article / Page Image (JPG, PNG, WEBP)</label>
+                                <InputFile OnChange="HandlePaperOcrImageUpload" accept="image/*" class="form-control form-control-sm mb-2" />
+                                <span class="x-small text-muted">Upload an image file to transcribe and append its text to the buffer.</span>
+                            </div>
+                        }
+
+                        @* OCR Extraction Spinner *@
+                        @if (_isOcrExtracting)
+                        {
+                            <div class="p-4 text-center bg-white rounded-3 border shadow-xs mb-3 animate-fade-in">
+                                <div class="spinner-border text-primary me-2" role="status"></div>
+                                <span class="text-primary fw-bold serif">Transcribing page with AI OCR...</span>
+                                <p class="x-small text-muted mt-2 mb-0">Extracting and preserving full text from the scanned image...</p>
+                            </div>
+                        }
+
+                        <!-- Text Buffer Display & Editing -->
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <label class="form-label x-small text-uppercase fw-bold text-muted mb-0">
+                                    Text to Embed @(_scannedPagesCount > 0 ? $"({_scannedPagesCount} page{(_scannedPagesCount > 1 ? "s" : "")} scanned)" : "")
+                                </label>
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="x-small text-muted">@_paperEmbeddingText.Length characters</span>
+                                    @if (!string.IsNullOrWhiteSpace(_paperEmbeddingText))
+                                    {
+                                        <button type="button" class="btn btn-link btn-sm p-0 text-danger text-decoration-none x-small" @onclick="() => { _paperEmbeddingText = string.Empty; _scannedPagesCount = 0; }">
+                                            Clear Buffer
+                                        </button>
+                                    }
+                                </div>
+                            </div>
+                            <textarea class="form-control serif bg-white shadow-xs small" rows="8" placeholder="Scanned pages will be appended here. You can also paste an abstract or article text directly, or edit the transcribed text..." @bind="_paperEmbeddingText"></textarea>
+                        </div>
+
+                        <!-- Checkbox for storing description -->
+                        <div class="form-check form-switch mb-3">
+                            <input class="form-check-input" type="checkbox" id="storeDescriptionSwitch" @bind="_storeDescriptionInPaper" />
+                            <label class="form-check-label small" for="storeDescriptionSwitch">
+                                <strong>Save text as Paper Description</strong>
+                                <span class="d-block text-muted x-small">When enabled, updates the paper's visible description in the book archive with this text. The vector embedding is always stored in the vector database.</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="modal-footer border-top p-3 bg-light-subtle d-flex justify-content-between">
+                        <button type="button" class="btn btn-outline-secondary rounded-pill px-4" @onclick="ClosePaperEmbeddingModal" disabled="@(_isSavingPaperEmbedding || _isOcrExtracting)">
+                            Cancel
+                        </button>
+                        <button type="button" class="btn btn-primary rounded-pill px-4 shadow-sm d-flex align-items-center gap-2" @onclick="SavePaperEmbeddingAsync" disabled="@(string.IsNullOrWhiteSpace(_paperEmbeddingText) || _isSavingPaperEmbedding || _isOcrExtracting)">
+                            @if (_isSavingPaperEmbedding)
+                            {
+                                <span class="spinner-border spinner-border-sm"></span>
+                                <span>Generating Vector & Saving...</span>
+                            }
+                            else
+                            {
+                                <i class="bi bi-stars"></i>
+                                <span>@(FSharpOption<EmbeddingDataId>.get_IsSome(_selectedPaperForEmbedding.OptionalEmbedding) ? "Update Embedding" : "Create Embedding")</span>
+                            }
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
 </div>
 }
+
 
 
 @code {
@@ -1702,6 +1900,19 @@ else
     private bool _isImportingStagedPapers = false;
     private List<StagedScannedPaper> _stagedPapers = new();
     private bool _batchAutoAddAllNewAuthors = true;
+
+    // Paper Embedding & Multi-Stage OCR State
+    private Paper? _selectedPaperForEmbedding = null;
+    private bool _isPaperEmbeddingModalOpen = false;
+    private string _paperEmbeddingText = "";
+    private bool _storeDescriptionInPaper = true;
+    private int _paperEmbedActiveTab = 0; // 0 = Phone/Webcam, 1 = Upload Image, 2 = Text Buffer
+    private bool _isLiveCameraActiveForPaper = false;
+    private bool _isOcrExtracting = false;
+    private bool _isSavingPaperEmbedding = false;
+    private int _scannedPagesCount = 0;
+    private bool _isLinkingSiblings = false;
+
 
     private bool isBookIsbnEmpty()
     {
@@ -2657,10 +2868,13 @@ else
             }
 
             var results = new List<SanityCheckResult>();
+            var seenBookIds = new HashSet<Guid>();
             foreach (var item in searchResult.ResultValue)
             {
                 var bookId = item.Item2;
+                if (!seenBookIds.Add(bookId.Value)) continue;
                 var score = item.Item3;
+
                 // Fetch title for each book
                 var details = await DetailsService.GetBookDetailsAsync(context, bookId, FSharpOption<CancellationToken>.None);
                 if (details.IsOk)
@@ -3848,5 +4062,234 @@ Indice degli Autori ........................................................ pag
         public List<Category> Categories { get; set; } = new();
         public List<Tag> Tags { get; set; } = new();
     }
+
+    private void OpenPaperEmbeddingModal(Paper paper)
+    {
+        _selectedPaperForEmbedding = paper;
+        _paperEmbeddingText = FSharpOption<string>.get_IsSome(paper.Description) ? paper.Description.Value : "";
+        _storeDescriptionInPaper = true;
+        _paperEmbedActiveTab = string.IsNullOrWhiteSpace(_paperEmbeddingText) ? 0 : 2;
+        _scannedPagesCount = 0;
+        _isLiveCameraActiveForPaper = false;
+        _isOcrExtracting = false;
+        _isSavingPaperEmbedding = false;
+        _isPaperEmbeddingModalOpen = true;
+    }
+
+    private void ClosePaperEmbeddingModal()
+    {
+        if (_isSavingPaperEmbedding || _isOcrExtracting) return;
+        _isPaperEmbeddingModalOpen = false;
+        _selectedPaperForEmbedding = null;
+        _isLiveCameraActiveForPaper = false;
+    }
+
+    private void ToggleLiveCameraForPaper()
+    {
+        _isLiveCameraActiveForPaper = !_isLiveCameraActiveForPaper;
+    }
+
+    private async Task HandlePaperOcrImageUpload(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+        if (file == null) return;
+
+        try
+        {
+            _isOcrExtracting = true;
+            StateHasChanged();
+
+            using var stream = file.OpenReadStream(maxAllowedSize: 15 * 1024 * 1024);
+            using var ms = new MemoryStream();
+            await stream.CopyToAsync(ms);
+            var bytes = ms.ToArray();
+            var base64 = Convert.ToBase64String(bytes);
+            var mimeType = string.IsNullOrWhiteSpace(file.ContentType) ? "image/jpeg" : file.ContentType;
+
+            await RunPaperOcrExtraction(base64, mimeType);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error uploading paper image for OCR");
+            await ShowStatus($"Error uploading image: {ex.Message}", "alert-danger");
+        }
+        finally
+        {
+            _isOcrExtracting = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task CapturePaperLiveCameraFrame()
+    {
+        _isOcrExtracting = true;
+        StateHasChanged();
+        try
+        {
+            await Task.Delay(200);
+            var base64Data = await JSRuntime.InvokeAsync<string>("captureVideoFrame", "#paper-embed-camera-wrapper video");
+            if (string.IsNullOrEmpty(base64Data))
+            {
+                await ShowStatus("Failed to capture image frame from camera.", "alert-warning");
+                _isOcrExtracting = false;
+                return;
+            }
+
+            var parts = base64Data.Split(',');
+            var base64 = parts.Length > 1 ? parts[1] : parts[0];
+            var mimeType = "image/jpeg";
+            _isLiveCameraActiveForPaper = false;
+
+            await RunPaperOcrExtraction(base64, mimeType);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error capturing frame from camera for OCR");
+            await ShowStatus($"Camera capture failed: {ex.Message}", "alert-danger");
+        }
+        finally
+        {
+            _isOcrExtracting = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task RunPaperOcrExtraction(string base64Image, string mimeType)
+    {
+        var context = await GetContext();
+        var result = await TextEmbeddingService.ExtractTextFromImageAsync(context, base64Image, mimeType, FSharpOption<CancellationToken>.None);
+        if (result.IsOk)
+        {
+            var text = result.ResultValue?.Trim() ?? "";
+            if (!string.IsNullOrWhiteSpace(text))
+            {
+                _scannedPagesCount++;
+                if (string.IsNullOrWhiteSpace(_paperEmbeddingText))
+                {
+                    _paperEmbeddingText = text;
+                }
+                else
+                {
+                    _paperEmbeddingText = $"{_paperEmbeddingText}\n\n--- Page {_scannedPagesCount + 1} ---\n\n{text}";
+                }
+                _paperEmbedActiveTab = 2;
+                await ShowStatus($"Page {_scannedPagesCount} OCR transcribed and appended!", "alert-success");
+            }
+            else
+            {
+                await ShowStatus("No text recognized in the scanned image.", "alert-warning");
+            }
+        }
+        else
+        {
+            await ShowStatus($"OCR extraction error: {result.ErrorValue}", "alert-danger");
+        }
+    }
+
+    private async Task SavePaperEmbeddingAsync()
+    {
+        if (_selectedPaperForEmbedding == null || string.IsNullOrWhiteSpace(_paperEmbeddingText)) return;
+
+        _isSavingPaperEmbedding = true;
+        StateHasChanged();
+
+        try
+        {
+            var context = await GetContext();
+            var targetPaperId = _selectedPaperForEmbedding.PaperId;
+            var result = await EmbeddingOrchestrationService.CreateEmbeddingForPaperAsync(
+                context,
+                _bookDetails!.Book.BookId,
+                targetPaperId,
+                _paperEmbeddingText,
+                FSharpOption<bool>.Some(_storeDescriptionInPaper),
+                FSharpOption<CancellationToken>.None);
+
+            if (result.IsOk)
+            {
+                await WaitForCacheUpdateAsync(d => d.Book.Papers.Any(p => p.PaperId.Value == targetPaperId.Value && FSharpOption<EmbeddingDataId>.get_IsSome(p.OptionalEmbedding)));
+                await ShowStatus("Embedding generated and saved for article!", "alert-success");
+                _isPaperEmbeddingModalOpen = false;
+                _selectedPaperForEmbedding = null;
+            }
+            else
+            {
+                await ShowStatus($"Failed to generate embedding: {result.ErrorValue}", "alert-danger");
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error creating embedding for paper");
+            await ShowStatus($"Error creating embedding: {ex.Message}", "alert-danger");
+        }
+        finally
+        {
+            _isSavingPaperEmbedding = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task RemovePaperEmbedding(Paper paper)
+    {
+        if (_bookDetails == null) return;
+        bool confirmed = await JSRuntime.InvokeAsync<bool>("confirm", $"Remove embedding for '{paper.Title.Value}'?");
+        if (!confirmed) return;
+
+        try
+        {
+            var context = await GetContext();
+            var result = await EmbeddingOrchestrationService.RemoveEmbeddingForPaperAsync(
+                context,
+                _bookDetails.Book.BookId,
+                paper.PaperId,
+                FSharpOption<CancellationToken>.None);
+
+            if (result.IsOk)
+            {
+                await WaitForCacheUpdateAsync(d => d.Book.Papers.Any(p => p.PaperId.Value == paper.PaperId.Value && FSharpOption<EmbeddingDataId>.get_IsNone(p.OptionalEmbedding)));
+                await ShowStatus("Embedding removed from article.", "alert-success");
+            }
+            else
+            {
+                await ShowStatus($"Error removing embedding: {result.ErrorValue}", "alert-danger");
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error removing paper embedding");
+            await ShowStatus($"Error removing embedding: {ex.Message}", "alert-danger");
+        }
+    }
+
+    private async Task LinkSiblingEmbeddingsAsync()
+    {
+        if (_bookDetails == null) return;
+        _isLinkingSiblings = true;
+        StateHasChanged();
+
+        try
+        {
+            var result = await VectorDbService.LinkIntraBookEmbeddingsAsync(_bookDetails.Book.TenantId, _bookDetails.Book.BookId, FSharpOption<CancellationToken>.None);
+            if (result.IsOk)
+            {
+                await ShowStatus("All sibling embeddings for this book have been successfully cross-linked!", "alert-success");
+            }
+            else
+            {
+                await ShowStatus($"Failed to link sibling embeddings: {result.ErrorValue}", "alert-danger");
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error linking sibling embeddings");
+            await ShowStatus($"Error linking sibling embeddings: {ex.Message}", "alert-danger");
+        }
+        finally
+        {
+            _isLinkingSiblings = false;
+            StateHasChanged();
+        }
+    }
 }
+
 

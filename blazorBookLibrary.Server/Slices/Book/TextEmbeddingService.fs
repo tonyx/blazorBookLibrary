@@ -580,3 +580,56 @@ type TextEmbeddingService
                     else
                         return TableOfContentsParser.parseText text
             }
+
+        member this.ExtractTextFromImageAsync
+            (
+                context: UserContext,
+                base64Image: string,
+                mimeType: string,
+                [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken
+            ) =
+            let ct = defaultArg ct CancellationToken.None
+
+            taskResult {
+                do! checkIsGlobalAdminOrTenantManager context ct
+
+                try
+                    let modelName = "gemini-2.5-flash-lite"
+                    let url = $"https://generativelanguage.googleapis.com/v1beta/models/{modelName}:generateContent?key={apiKey}"
+                    let prompt =
+                        "Transcribe the text from this image faithfully and completely, preserving paragraphs, headings, and formatting. Do not add conversational remarks or commentary. Output only the transcribed text."
+
+                    let requestBody =
+                        {| contents =
+                            [| {| parts =
+                                   [| box {| text = prompt |}
+                                      box
+                                          {| inline_data =
+                                              {| mime_type = mimeType
+                                                 data = base64Image |} |} |] |} |] |}
+
+                    let jsonRequest = JsonSerializer.Serialize(requestBody)
+                    use content = new StringContent(jsonRequest, Encoding.UTF8, "application/json")
+                    let! response = httpClient.PostAsync(url, content, ct)
+
+                    if not response.IsSuccessStatusCode then
+                        let! errorMsg = response.Content.ReadAsStringAsync(ct)
+                        return! Error $"Google API error: {response.StatusCode} - {errorMsg}"
+                    else
+                        let! jsonResponse = response.Content.ReadAsStringAsync(ct)
+                        let options = JsonSerializerOptions(jsonOptions, PropertyNameCaseInsensitive = true)
+                        let genResult = JsonSerializer.Deserialize<GoogleGenerateResponse>(jsonResponse, options)
+
+                        if Object.ReferenceEquals(genResult, null)
+                           || isNull genResult.candidates
+                           || genResult.candidates.Length = 0
+                           || Object.ReferenceEquals(genResult.candidates.[0].content, null)
+                           || Object.ReferenceEquals(genResult.candidates.[0].content.parts, null)
+                           || genResult.candidates.[0].content.parts.Length = 0 then
+                            return! Error "Failed to extract text from image with Gemini."
+                        else
+                            return genResult.candidates.[0].content.parts.[0].text.Trim()
+                with ex ->
+                    return! Error ex.Message
+            }
+

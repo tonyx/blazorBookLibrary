@@ -54,3 +54,34 @@ type AIAssistantController(textEmbeddingService: ITextEmbeddingService) =
             | Ok matchResult -> return this.Ok(matchResult) :> IActionResult
             | Error msg -> return this.BadRequest(msg) :> IActionResult
         }
+
+    [<HttpPost("recognize-papers-image")>]
+    member this.RecognizePapersImage([<FromBody>] request: {| base64Image: string; mimeType: string |}) =
+        task {
+            let context = UserContextMapper.mapFromClaimsPrincipal this.User
+            let! result = textEmbeddingService.RecognizePapersFromImageAsync(context, request.base64Image, request.mimeType)
+            match result with
+            | Ok papers -> return this.Ok(papers) :> IActionResult
+            | Error msg -> return this.BadRequest(msg) :> IActionResult
+        }
+
+    [<HttpPost("recognize-papers-text")>]
+    member this.RecognizePapersText([<FromBody>] request: {| text: string |}) =
+        task {
+            let context = UserContextMapper.mapFromClaimsPrincipal this.User
+            let! result = textEmbeddingService.RecognizePapersFromTextAsync(context, request.text)
+            match result with
+            | Ok papers -> return this.Ok(papers) :> IActionResult
+            | Error msg -> return this.BadRequest(msg) :> IActionResult
+        }
+
+    [<HttpPost("extract-text-from-image")>]
+    member this.ExtractTextFromImage([<FromBody>] request: {| base64Image: string; mimeType: string |}) =
+        task {
+            let context = UserContextMapper.mapFromClaimsPrincipal this.User
+            let! result = textEmbeddingService.ExtractTextFromImageAsync(context, request.base64Image, request.mimeType)
+            match result with
+            | Ok text -> return this.Ok(text) :> IActionResult
+            | Error msg -> return this.BadRequest(msg) :> IActionResult
+        }
+

@@ -422,4 +422,15 @@ public class BookClientService : IBookService
         return await ServiceClientHelper.HandleUnitResponse(response);
     }
 
+    public async Task<FSharpResult<Unit, string>> SetPaperDescriptionAndEmbeddingAsync(Commons.UserContext context, Commons.BookId bookId, Commons.PaperId paperId, FSharpOption<string> description, FSharpOption<Commons.EmbeddingDataId> embeddingId, FSharpOption<CancellationToken> ct)
+    {
+        var requestBody = new
+        {
+            description = description != null && FSharpOption<string>.get_IsSome(description) ? description.Value : null,
+            embeddingId = embeddingId != null && FSharpOption<Commons.EmbeddingDataId>.get_IsSome(embeddingId) ? (Guid?)embeddingId.Value.Value : null
+        };
+        var request = ServiceClientHelper.CreateRequest(HttpMethod.Put, $"api/Books/{bookId.Value}/papers/{paperId.Value}/description-and-embedding", context, requestBody);
+        var response = await _httpClient.SendAsync(request, ServiceClientHelper.GetValue(ct, CancellationToken.None));
+        return await ServiceClientHelper.HandleUnitResponse(response);
+    }
 }

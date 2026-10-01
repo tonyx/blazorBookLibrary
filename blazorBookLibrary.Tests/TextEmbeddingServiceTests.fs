@@ -257,6 +257,69 @@ Indice degli Autori ........................................................ pag
             Expect.equal keynote.Authors ["R. K. Schneider"] "Keynote author"
             Expect.equal keynote.PageNumber (Some "pag. 83") "Keynote page"
         }
+
+        testCaseTask "store and read paper embedding - Ok" <| fun _ -> task {
+            let textEmbeddingService = getTextEmbeddingService()
+            let vectorDbService = getVectorDbService()
+            let bookText = "General relativity and astrophysics compendium."
+            let paperText = "Gravitational waves detection using laser interferometry."
+            
+            let! bookEmbRes = textEmbeddingService.GetEmbeddingAsync(adminContext, bookText)
+            let! paperEmbRes = textEmbeddingService.GetEmbeddingAsync(adminContext, paperText)
+            
+            match bookEmbRes, paperEmbRes with
+            | Ok bookEmb, Ok paperEmb ->
+                let bookId = BookId.New()
+                let paperId = PaperId.New()
+                let bookEmbId = EmbeddingDataId.New()
+                let paperEmbId = EmbeddingDataId.New()
+
+                // 1. Store book-level embedding
+                let! storeBookRes = vectorDbService.StoreEmbeddingAsync(bookEmbId, TenantId.Default, bookId, bookEmb)
+                Expect.isOk storeBookRes "store book embedding should succeed"
+
+                // 2. Store paper-level embedding with the SAME bookId
+                let! storePaperRes = vectorDbService.StorePaperEmbeddingAsync(paperEmbId, TenantId.Default, bookId, paperId, paperEmb)
+                Expect.isOk storePaperRes "store paper embedding with same bookId should succeed"
+
+                // 3. Read book embedding with details
+                let! readBookRes = vectorDbService.ReadEmbeddingWithDetailsAsync bookEmbId
+                match readBookRes with
+                | Error e -> failwithf "read book embedding failed: %s" e
+                | Ok (_, rBookId, rPaperId) ->
+                    Expect.equal rBookId bookId "book id should match"
+                    Expect.isNone rPaperId "paper id should be None for book-level embedding"
+
+                // 4. Read paper embedding with details
+                let! readPaperRes = vectorDbService.ReadEmbeddingWithDetailsAsync paperEmbId
+                match readPaperRes with
+                | Error e -> failwithf "read paper embedding failed: %s" e
+                | Ok (_, rBookId, rPaperId) ->
+                    Expect.equal rBookId bookId "book id should match"
+                    Expect.equal rPaperId (Some paperId) "paper id should match"
+
+                // 5. Search detailed should return item types and paper ids
+                let! searchRes = vectorDbService.SearchSimilarDetailedAsync(paperEmb, TenantId.Default, 5)
+                match searchRes with
+                | Error e -> failwithf "search detailed failed: %s" e
+                | Ok results ->
+                    let list = results |> Seq.toList
+                    let paperMatch = list |> List.tryFind (fun r -> r.Id = paperEmbId)
+                    Expect.isSome paperMatch "paper embedding should be found in search"
+                    Expect.equal paperMatch.Value.PaperId (Some paperId) "paper id should match in search result"
+                    Expect.equal paperMatch.Value.ItemType "paper" "item type should be 'paper'"
+
+                // 6. RemoveEmbeddingsByBookIdAsync should wipe both book and paper embeddings
+                let! removeRes = vectorDbService.RemoveEmbeddingsByBookIdAsync(TenantId.Default, bookId)
+                Expect.isOk removeRes "remove by book id should succeed"
+
+                let! readBookAfter = vectorDbService.ReadEmbeddingAsync bookEmbId
+                Expect.isError readBookAfter "book embedding should be removed"
+
+                let! readPaperAfter = vectorDbService.ReadEmbeddingAsync paperEmbId
+                Expect.isError readPaperAfter "paper embedding should be removed"
+            | _ -> failwith "Failed to generate embeddings for test"
+        }
     ]
     |> testSequenced
 

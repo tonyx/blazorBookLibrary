@@ -85,5 +85,6 @@ type IBookService =
     abstract member AddPaperAsync: context:UserContext * bookId: BookId * paper: Paper * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<unit, string>>
     abstract member AddPapersAsync: context:UserContext * bookId: BookId * papers: List<Paper> * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<unit, string>>
     abstract member RemovePaperAsync: context:UserContext * bookId: BookId * paperId: PaperId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<unit, string>>
+    abstract member SetPaperDescriptionAndEmbeddingAsync: context:UserContext * bookId: BookId * paperId: PaperId * description: Option<string> * embeddingId: Option<EmbeddingDataId> * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<unit, string>>
     
 

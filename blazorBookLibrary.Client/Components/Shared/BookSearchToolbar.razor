@@ -683,8 +683,13 @@
                 }
                 targetResults = vectorResult.ResultValue.Select(r => (r.Item2, r.Item3));
 
-                var targetResultsList = targetResults.ToList();
-                var bookIdList = targetResultsList.Select(r => r.Item1).ToList();
+                var targetResultsList = targetResults
+                    .GroupBy(r => r.Item1)
+                    .Select(g => (BookId: g.Key, Score: g.Max(x => x.Item2)))
+                    .OrderByDescending(x => x.Score)
+                    .ToList();
+
+                var bookIdList = targetResultsList.Select(r => r.BookId).Distinct().ToList();
                 if (!bookIdList.Any())
                 {
                     await OnSearchResultsFound.InvokeAsync(new List<BookSearchResult>());
@@ -695,16 +700,17 @@
                 var booksResult = await BookService.GetBooksAsync(userContext, ListModule.OfSeq(bookIdList));
                 if (booksResult.IsOk)
                 {
-                    var booksDict = booksResult.ResultValue.ToDictionary(b => b.BookId, b => b);
+                    var booksDict = booksResult.ResultValue
+                        .GroupBy(b => b.BookId)
+                        .ToDictionary(g => g.Key, g => g.First());
                     var sortedResults = new List<BookSearchResult>();
                     
                     for (int i = 0; i < targetResultsList.Count; i++)
                     {
                         var r = targetResultsList[i];
-                        if (booksDict.ContainsKey(r.Item1))
+                        if (booksDict.TryGetValue(r.BookId, out var book))
                         {
-                            var book = booksDict[r.Item1];
-                            sortedResults.Add(new BookSearchResult(book, FSharpOption<double>.Some(r.Item2), FSharpOption<string>.None));
+                            sortedResults.Add(new BookSearchResult(book, FSharpOption<double>.Some(r.Score), FSharpOption<string>.None));
                         }
                     }
                     await OnSearchResultsFound.InvokeAsync(sortedResults);

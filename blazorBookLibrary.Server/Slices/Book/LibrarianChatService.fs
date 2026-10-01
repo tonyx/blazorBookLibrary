@@ -106,36 +106,53 @@ type LibrarianChatService
                         | None -> true
                         | Some ids -> ids.IsEmpty)
 
-                let! (booksWithScore: BookSearchResult list) =
+                let! (booksWithScore: BookSearchResult list, matchedPaperIdsMap: System.Collections.Generic.IDictionary<BookId, Set<PaperId>>) =
                     taskResult {
                         if shouldPerformNewSearch then
                             let! tenantId = userTenantResolverService.GetTenantForUserAsync(context, ct)
                             let! embeddingResult = textEmbeddingService.GetEmbeddingAsync(context, request.Message, ct)
-                            let! vectorResults = vectorDbService.SearchSimilarEmbeddingsWithScoreAsync(embeddingResult, tenantId, 10, ?ct = Some ct)
-                            let vectorList = vectorResults |> Seq.toList
-                            let bookIds = vectorList |> List.map (fun (_, bId, _) -> bId)
+                            let! detailedResults = vectorDbService.SearchSimilarDetailedAsync(embeddingResult, tenantId, 15, ?ct = Some ct)
+                            let detailedList = detailedResults |> Seq.toList
+                            let bookIds = detailedList |> List.map (fun r -> r.BookId) |> List.distinct
 
                             if bookIds.IsEmpty then
-                                return []
+                                return [], dict []
                             else
                                 let! books = bookService.GetBooksAsync(context, bookIds, ct)
-                                let booksDict = books |> List.map (fun b -> b.BookId, b) |> dict
-                                return
-                                    vectorList
-                                    |> List.choose (fun (_, bId, score) ->
+                                let booksDict = books |> List.distinctBy (fun b -> b.BookId) |> List.map (fun b -> b.BookId, b) |> dict
+
+                                let bestScorePerBook =
+                                    detailedList
+                                    |> List.groupBy (fun r -> r.BookId)
+                                    |> List.map (fun (bId, group) -> bId, (group |> List.map (fun r -> r.Score) |> List.max))
+                                    |> dict
+
+                                let matchedPaperIds =
+                                    detailedList
+                                    |> List.choose (fun r -> r.PaperId |> Option.map (fun pid -> r.BookId, pid))
+                                    |> List.groupBy fst
+                                    |> List.map (fun (bId, pairs) -> bId, pairs |> List.map snd |> Set.ofList)
+                                    |> dict
+
+                                let results =
+                                    bookIds
+                                    |> List.choose (fun bId ->
                                         if booksDict.ContainsKey(bId) then
                                             Some {
                                                 Book = booksDict.[bId]
-                                                Score = Some score
+                                                Score = if bestScorePerBook.ContainsKey(bId) then Some bestScorePerBook.[bId] else None
                                                 Explanation = None
                                             }
                                         else
                                             None
                                     )
+                                    |> List.sortByDescending (fun r -> r.Score |> Option.defaultValue 0.0)
+
+                                return results, matchedPaperIds
                         else
                             let existingIds = request.ScopeBookIds.Value
                             let! books = bookService.GetBooksAsync(context, existingIds, ct)
-                            return
+                            let results =
                                 books
                                 |> List.map (fun b ->
                                     {
@@ -144,12 +161,15 @@ type LibrarianChatService
                                         Explanation = None
                                     }
                                 )
+                            return results, dict []
                     }
 
-                // Step 2: Enrich with author names for high quality prompt context
+                // Step 2: Enrich with author names (both book authors and paper authors) for high quality prompt context
                 let allAuthorIds =
                     booksWithScore
-                    |> List.collect (fun res -> res.Book.Authors)
+                    |> List.collect (fun res ->
+                        res.Book.Authors @ (res.Book.Papers |> List.collect (fun p -> p.Authors))
+                    )
                     |> List.distinct
 
                 let! (authorsMap: System.Collections.Generic.IDictionary<AuthorId, string>) =
@@ -196,6 +216,28 @@ type LibrarianChatService
                         booksContextSb.AppendLine($"Availability: {availability}") |> ignore
                         booksContextSb.AppendLine($"Synopsis: {desc}") |> ignore
 
+                        if not (List.isEmpty b.Papers) then
+                            booksContextSb.AppendLine("Collected Articles & Papers in this volume:") |> ignore
+                            let matchedPids =
+                                if matchedPaperIdsMap.ContainsKey(b.BookId) then
+                                    matchedPaperIdsMap.[b.BookId]
+                                else
+                                    Set.empty
+
+                            for p in b.Papers do
+                                let isMatch = matchedPids.Contains(p.PaperId)
+                                let matchTag = if isMatch then " [DIRECT RELEVANCE MATCH]" else ""
+                                let pAuthors =
+                                    p.Authors
+                                    |> List.choose (fun aId -> if authorsMap.ContainsKey(aId) then Some authorsMap.[aId] else None)
+                                    |> String.concat ", "
+                                let pAuthorStr = if String.IsNullOrWhiteSpace pAuthors then "" else $" by {pAuthors}"
+                                let pDesc =
+                                    match p.Description with
+                                    | Some d when not (String.IsNullOrWhiteSpace d) -> $"\n    Abstract: {d}"
+                                    | _ -> ""
+                                booksContextSb.AppendLine($"  * \"{p.Title.Value}\"{pAuthorStr}{matchTag}{pDesc}") |> ignore
+
                 // Step 4: System Prompt with Mode Flag instructions
                 let generalKnowledgeInstruction =
                     if request.IncludeGeneralKnowledge then
@@ -219,12 +261,14 @@ Your mission is to help patrons discover literature, analyze themes, compare boo
 
 CRITICAL CITATION RULES:
 1. Whenever referring to a book from the catalog context, always link to it using this exact syntax: [Title](book://<book-guid>) where <book-guid> is the Book ID provided in the context.
-2. If asked comparative questions (e.g., "which is the most ethically controversial?", "which is easiest for a beginner?", "compare the writing styles"), carefully evaluate the themes and descriptions of the provided books and give a clear, reasoned answer with comparative depth.
-3. Respond in the same language as the user's message (e.g. if asked in Italian, respond in Italian; if English, respond in English).
-4. Use clean Markdown formatting with clear sections, bullet points, or bold text for readability.
+2. Many volumes in the catalog contain collected articles, essays, or conference papers. When an article or paper within a book matches the patron's request or question (especially items marked [DIRECT RELEVANCE MATCH]), explicitly name the specific article, cite its authors if available, and indicate that it is published within [Title](book://<book-guid>).
+3. If asked comparative questions (e.g., "which is the most ethically controversial?", "which is easiest for a beginner?", "compare the writing styles"), carefully evaluate the themes and descriptions of the provided books and give a clear, reasoned answer with comparative depth.
+4. Respond in the same language as the user's message (e.g. if asked in Italian, respond in Italian; if English, respond in English).
+5. Use clean Markdown formatting with clear sections, bullet points, or bold text for readability.
 
 {booksContextSb.ToString()}
 """
+
 
                 // Step 5: Format conversation history
                 let conversationTurns =

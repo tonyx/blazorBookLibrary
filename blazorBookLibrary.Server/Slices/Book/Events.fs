@@ -42,6 +42,7 @@ type BookEvent =
     | PaperAdded of Paper 
     | PapersAdded of List<Paper>
     | PaperRemoved of PaperId
+    | PaperDescriptionAndEmbeddingSet of PaperId * string option * EmbeddingDataId option * DateTime
 
     | BulkUpdated of BulkBookEdit * DateTime
 
@@ -150,6 +151,8 @@ type BookEvent =
                 book.AddPapers papers
             | PaperRemoved paperId  ->
                 book.RemovePaper paperId
+            | PaperDescriptionAndEmbeddingSet (paperId, description, embeddingId, _) ->
+                book.SetPaperDescriptionAndEmbedding (paperId, description, embeddingId)
 
     static member Deserialize (x: string): Result<BookEvent, string> =
         try

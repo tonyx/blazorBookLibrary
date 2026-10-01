@@ -28,5 +28,19 @@ public class EmbeddingOrchestrationClientService : IEmbeddingOrchestrationServic
         var response = await _httpClient.PostAsJsonAsync("api/EmbeddingOrchestration/create-embeddings-if-missing", rawIds, ServiceClientHelper.JsonOptions, ServiceClientHelper.GetValue(ct, CancellationToken.None));
         return await ServiceClientHelper.HandleUnitResponse(response);
     }
+
+    public async Task<FSharpResult<Unit, string>> CreateEmbeddingForPaperAsync(Commons.UserContext context, Commons.BookId bookId, Commons.PaperId paperId, string text, FSharpOption<bool> storeDescription, FSharpOption<CancellationToken> ct)
+    {
+        bool? storeDesc = storeDescription != null && FSharpOption<bool>.get_IsSome(storeDescription) ? storeDescription.Value : (bool?)null;
+        var response = await _httpClient.PostAsJsonAsync("api/EmbeddingOrchestration/create-paper-embedding", new { bookId = bookId.Value, paperId = paperId.Value, text, storeDescription = storeDesc }, ServiceClientHelper.JsonOptions, ServiceClientHelper.GetValue(ct, CancellationToken.None));
+        return await ServiceClientHelper.HandleUnitResponse(response);
+    }
+
+    public async Task<FSharpResult<Unit, string>> RemoveEmbeddingForPaperAsync(Commons.UserContext context, Commons.BookId bookId, Commons.PaperId paperId, FSharpOption<CancellationToken> ct)
+    {
+        var response = await _httpClient.PostAsJsonAsync("api/EmbeddingOrchestration/remove-paper-embedding", new { bookId = bookId.Value, paperId = paperId.Value }, ServiceClientHelper.JsonOptions, ServiceClientHelper.GetValue(ct, CancellationToken.None));
+        return await ServiceClientHelper.HandleUnitResponse(response);
+    }
 }
+
 

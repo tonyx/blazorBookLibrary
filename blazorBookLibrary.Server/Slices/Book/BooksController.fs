@@ -398,6 +398,17 @@ type BooksController(bookService: IBookService, hubContext: Microsoft.AspNetCore
             | Error msg -> return this.BadRequest(msg) :> IActionResult
         }
 
+    [<HttpPut("{id}/papers/{paperId}/description-and-embedding")>]
+    member this.SetPaperDescriptionAndEmbeddingAsync(id: Guid, paperId: Guid, [<FromBody>] request: {| description: string option; embeddingId: Guid option |}) =
+        task {
+            let context = UserContextMapper.mapFromRequest this.Request
+            let embeddingIdOpt = request.embeddingId |> Option.map EmbeddingDataId
+            let! result = bookService.SetPaperDescriptionAndEmbeddingAsync(context, BookId id, PaperId paperId, request.description, embeddingIdOpt)
+            match result with
+            | Ok _ -> return this.Ok() :> IActionResult
+            | Error msg -> return this.BadRequest(msg) :> IActionResult
+        }
+
     [<NonAction>]
     member this.AddPaper(id: Guid, paper: Paper) =
         this.AddPaperAsync(id, paper)

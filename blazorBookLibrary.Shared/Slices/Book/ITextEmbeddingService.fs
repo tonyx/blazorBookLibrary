@@ -66,3 +66,4 @@ type ITextEmbeddingService =
     abstract member GetBookDescriptionAsync: context: UserContext * bookData: PartialBookDataMatch * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<string,string>>
     abstract member RecognizePapersFromImageAsync: context: UserContext * base64Image: string * mimeType: string * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<List<RecognizedPaperCandidate>, string>>
     abstract member RecognizePapersFromTextAsync: context: UserContext * text: string * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<List<RecognizedPaperCandidate>, string>>
+    abstract member ExtractTextFromImageAsync: context: UserContext * base64Image: string * mimeType: string * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<string, string>>

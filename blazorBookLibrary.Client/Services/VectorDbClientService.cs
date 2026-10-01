@@ -153,6 +153,99 @@ public class VectorDbClientService : IVectorDbService
         return FSharpResult<IEnumerable<Tuple<EmbeddingData, BookId, double>>, string>.NewError(result.ErrorValue);
     }
 
+    public async Task<FSharpResult<Unit, string>> StorePaperEmbeddingAsync(EmbeddingDataId id, TenantId tenantId, BookId bookId, PaperId paperId, EmbeddingData embedding, FSharpOption<CancellationToken> ct)
+    {
+        var request = new
+        {
+            id = id.Value,
+            tenantId = tenantId.Value,
+            bookId = bookId.Value,
+            paperId = (Guid?)paperId.Value,
+            model = embedding.Model,
+            vector = embedding.Vector,
+            itemType = "paper"
+        };
+        var response = await _httpClient.PostAsJsonAsync("api/VectorDb/store", request, ServiceClientHelper.JsonOptions, ServiceClientHelper.GetValue(ct, CancellationToken.None));
+        return await ServiceClientHelper.HandleUnitResponse(response);
+    }
+
+    private record EmbeddingWithDetailsResponse(string model, float[] vector, Guid bookId, Guid? paperId);
+
+    public async Task<FSharpResult<Tuple<EmbeddingData, BookId, FSharpOption<PaperId>>, string>> ReadEmbeddingWithDetailsAsync(EmbeddingDataId id, FSharpOption<CancellationToken> ct)
+    {
+        var response = await _httpClient.GetAsync($"api/VectorDb/read/{id.Value}", ServiceClientHelper.GetValue(ct, CancellationToken.None));
+        var result = await ServiceClientHelper.HandleResponse<EmbeddingWithDetailsResponse>(response);
+        if (result.IsOk)
+        {
+            var data = result.ResultValue;
+            var embedding = new EmbeddingData(data.model, data.vector);
+            var paperIdOpt = data.paperId.HasValue 
+                ? FSharpOption<PaperId>.Some(PaperId.NewPaperId(data.paperId.Value)) 
+                : FSharpOption<PaperId>.None;
+            return FSharpResult<Tuple<EmbeddingData, BookId, FSharpOption<PaperId>>, string>.NewOk(
+                Tuple.Create(embedding, BookId.NewBookId(data.bookId), paperIdOpt));
+        }
+        return FSharpResult<Tuple<EmbeddingData, BookId, FSharpOption<PaperId>>, string>.NewError(result.ErrorValue);
+    }
+
+    public async Task<FSharpResult<Unit, string>> RemoveEmbeddingsByBookIdAsync(TenantId tenantId, BookId bookId, FSharpOption<CancellationToken> ct)
+    {
+        var response = await _httpClient.DeleteAsync($"api/VectorDb/remove-by-book/{bookId.Value}?tenantId={tenantId.Value}", ServiceClientHelper.GetValue(ct, CancellationToken.None));
+        return await ServiceClientHelper.HandleUnitResponse(response);
+    }
+
+    private record DetailedSearchResultResponse(Guid id, string model, float[] vector, Guid bookId, Guid? paperId, double score, string itemType);
+
+    public async Task<FSharpResult<IEnumerable<VectorDbSearchResult>, string>> SearchSimilarDetailedAsync(EmbeddingData embedding, TenantId tenantId, int limit, FSharpOption<double> threshold, FSharpOption<CancellationToken> ct)
+    {
+        var request = new
+        {
+            vector = embedding.Vector,
+            model = embedding.Model,
+            tenantId = tenantId.Value,
+            limit = limit,
+            threshold = threshold != null && FSharpOption<double>.get_IsSome(threshold) ? (double?)threshold.Value : null
+        };
+        var response = await _httpClient.PostAsJsonAsync("api/VectorDb/search-detailed", request, ServiceClientHelper.JsonOptions, ServiceClientHelper.GetValue(ct, CancellationToken.None));
+        var result = await ServiceClientHelper.HandleResponse<List<DetailedSearchResultResponse>>(response);
+        if (result.IsOk)
+        {
+            var list = result.ResultValue.Select(d => new VectorDbSearchResult(
+                EmbeddingDataId.NewEmbeddingDataId(d.id),
+                new EmbeddingData(d.model, d.vector),
+                BookId.NewBookId(d.bookId),
+                d.paperId.HasValue ? FSharpOption<PaperId>.Some(PaperId.NewPaperId(d.paperId.Value)) : FSharpOption<PaperId>.None,
+                d.score,
+                d.itemType ?? "book"
+            ));
+            return FSharpResult<IEnumerable<VectorDbSearchResult>, string>.NewOk(list);
+        }
+        return FSharpResult<IEnumerable<VectorDbSearchResult>, string>.NewError(result.ErrorValue);
+    }
+
+    private record IdBookIdPaperIdResponse(Guid id, Guid bookId, Guid paperId);
+
+    public async Task<FSharpResult<IEnumerable<Tuple<EmbeddingDataId, BookId, PaperId>>, string>> ReadAllPaperEmbeddingIdsAsync(TenantId tenantId, FSharpOption<CancellationToken> ct)
+    {
+        var response = await _httpClient.GetAsync($"api/VectorDb/all-paper-ids?tenantId={tenantId.Value}", ServiceClientHelper.GetValue(ct, CancellationToken.None));
+        var result = await ServiceClientHelper.HandleResponse<List<IdBookIdPaperIdResponse>>(response);
+        if (result.IsOk)
+        {
+            var list = result.ResultValue.Select(d => Tuple.Create(
+                EmbeddingDataId.NewEmbeddingDataId(d.id), 
+                BookId.NewBookId(d.bookId),
+                PaperId.NewPaperId(d.paperId)));
+            return FSharpResult<IEnumerable<Tuple<EmbeddingDataId, BookId, PaperId>>, string>.NewOk(list);
+        }
+        return FSharpResult<IEnumerable<Tuple<EmbeddingDataId, BookId, PaperId>>, string>.NewError(result.ErrorValue);
+    }
+
+    public async Task<FSharpResult<Unit, string>> LinkIntraBookEmbeddingsAsync(TenantId tenantId, BookId bookId, FSharpOption<CancellationToken> ct)
+    {
+        var response = await _httpClient.PostAsync($"api/VectorDb/link-intra-book/{bookId.Value}?tenantId={tenantId.Value}", null, ServiceClientHelper.GetValue(ct, CancellationToken.None));
+        return await ServiceClientHelper.HandleUnitResponse(response);
+    }
+
     public async Task<FSharpResult<IEnumerable<Tuple<EmbeddingDataId, BookId>>, string>> ReadAllEmbeddingIdsWithBookIdsAsync(TenantId tenantId, FSharpOption<CancellationToken> ct)
     {
         var response = await _httpClient.GetAsync($"api/VectorDb/all-ids?tenantId={tenantId.Value}", ServiceClientHelper.GetValue(ct, CancellationToken.None));

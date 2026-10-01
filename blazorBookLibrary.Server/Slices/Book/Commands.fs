@@ -56,6 +56,7 @@ type BookCommand =
     | AddPaper of Paper 
     | AddPapers of List<Paper>
     | RemovePaper of PaperId
+    | SetPaperDescriptionAndEmbedding of PaperId * string option * EmbeddingDataId option * DateTime
 
     interface AggregateCommand<Book, BookEvent> with
         member this.Execute (book: Book) =
@@ -194,5 +195,8 @@ type BookCommand =
             | RemovePaper paperId ->
                 book.RemovePaper paperId
                 |> Result.map (fun b -> (b, [PaperRemoved(paperId)]))
+            | SetPaperDescriptionAndEmbedding (paperId, description, embeddingId, dateTime) ->
+                book.SetPaperDescriptionAndEmbedding (paperId, description, embeddingId)
+                |> Result.map (fun b -> (b, [PaperDescriptionAndEmbeddingSet(paperId, description, embeddingId, dateTime)]))
 
         member this.Undoer = None
