@@ -145,6 +145,7 @@
     <PackageReference Include="Mailjet.Api" Version="4.0.1" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="10.0.12" />
     <PackageReference Include="Microsoft.Extensions.Configuration" Version="10.0.12" />
+
     <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.0.12" />
 
     <PackageReference Include="Sharpino" Version="6.2.6" />
