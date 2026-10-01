@@ -23,12 +23,104 @@ open System.Net.Http
 open System.Text
 open System.Text.Json
 open System.Text.Json.Serialization
+open System.Text.RegularExpressions
 
 [<CLIMutable>]
 type GoogleEmbeddingValues = { values: float32[] }
 
 [<CLIMutable>]
 type GoogleEmbeddingResponse = { embedding: GoogleEmbeddingValues }
+
+[<CLIMutable>]
+type GeminiCandidateJson =
+    {
+        title: string option
+        authors: string list option
+        pageNumber: string option
+        section: string option
+        description: string option
+    }
+
+module TableOfContentsParser =
+    let private pagePattern = Regex(@"(?:[\.\…\-_]{2,}|\s{3,})\s*(?:pag\.?|p\.?|pp\.?|page)?\s*(\d+)\s*$", RegexOptions.IgnoreCase)
+    let private sectionPattern = Regex(@"^(?:SESSIONE|SESSION|PARTE|PART|SEZIONE|SECTION|CAPITOLO|CHAPTER)\b", RegexOptions.IgnoreCase)
+    let private isDocHeader (line: string) =
+        let trimmed = line.Trim().ToUpperInvariant()
+        trimmed = "SOMMARIO" || trimmed = "INDICE" || trimmed = "TABLE OF CONTENTS" || trimmed = "INDEX" || trimmed = "CONTENTS"
+
+    let private splitAuthors (text: string) : List<string> =
+        if String.IsNullOrWhiteSpace text then []
+        else
+            let cleaned = Regex.Replace(text, @"\s+(?:e|and|&)\s+", ", ", RegexOptions.IgnoreCase)
+            cleaned.Split([|','|], StringSplitOptions.RemoveEmptyEntries)
+            |> Array.map (fun a -> a.Trim())
+            |> Array.filter (fun a -> not (String.IsNullOrWhiteSpace a))
+            |> Array.toList
+
+    let parseText (text: string) : List<RecognizedPaperCandidate> =
+        if String.IsNullOrWhiteSpace text then []
+        else
+            let lines = 
+                text.Replace("\r\n", "\n").Replace("\r", "\n").Split('\n')
+                |> Array.map (fun l -> l.Trim())
+            
+            let mutable currentSection = None
+            let mutable currentBlockLines = []
+            let candidates = ResizeArray<RecognizedPaperCandidate>()
+
+            for line in lines do
+                if String.IsNullOrWhiteSpace line then
+                    ()
+                elif isDocHeader line then
+                    ()
+                elif sectionPattern.IsMatch line || (line.Length > 3 && line = line.ToUpperInvariant() && not (pagePattern.IsMatch line)) then
+                    currentSection <- Some line
+                elif pagePattern.IsMatch line then
+                    let m = pagePattern.Match line
+                    let pageNum = m.Groups.[1].Value
+                    let preText = line.Substring(0, m.Index).Trim()
+                    
+                    let title, authors =
+                        if currentBlockLines.IsEmpty then
+                            if preText.Contains(" — ") then
+                                let parts = preText.Split([|" — "|], StringSplitOptions.None)
+                                parts.[0].Trim(), splitAuthors parts.[1]
+                            elif preText.Contains(" - ") then
+                                let parts = preText.Split([|" - "|], StringSplitOptions.None)
+                                parts.[0].Trim(), splitAuthors parts.[1]
+                            elif preText.Contains(" / ") then
+                                let parts = preText.Split([|" / "|], StringSplitOptions.None)
+                                parts.[0].Trim(), splitAuthors parts.[1]
+                            else
+                                preText, []
+                        else
+                            let blockTitle = String.concat " " (List.rev currentBlockLines)
+                            let hasInitialsOrComma = Regex.IsMatch(preText, @"[A-Z]\.\s*[A-Z]") || preText.Contains(",") || preText.Contains(" e ") || preText.Contains(" and ")
+                            if hasInitialsOrComma || preText.Length < 40 then
+                                blockTitle, splitAuthors preText
+                            else
+                                (blockTitle + " " + preText).Trim(), []
+
+                    let desc =
+                        match currentSection with
+                        | Some s when not (String.IsNullOrWhiteSpace pageNum) -> Some $"{s} (pag. {pageNum})"
+                        | Some s -> Some s
+                        | None when not (String.IsNullOrWhiteSpace pageNum) -> Some $"pag. {pageNum}"
+                        | None -> None
+
+                    candidates.Add({
+                        Title = title
+                        Authors = authors
+                        PageNumber = if String.IsNullOrWhiteSpace pageNum then None else Some $"pag. {pageNum}"
+                        Section = currentSection
+                        Description = desc
+                    })
+                    currentBlockLines <- []
+                else
+                    currentBlockLines <- line :: currentBlockLines
+
+            candidates |> Seq.toList
+
 
 
 type TextEmbeddingService
@@ -45,9 +137,12 @@ type TextEmbeddingService
     ) =
     let checkIsGlobalAdminOrTenantManager (context: UserContext) (ct: CancellationToken) =
         taskResult {
-            let! tenantId = userTenantResolverService.GetTenantForUserAsync(context, ct)
-            let! tenant = tenantViewerAsync (ct |> Some) tenantId.Value |> TaskResult.map snd
-            return! Security.checkIsGlobalAdminOrTenantManager tenant context
+            if context.IsInRole Role.Admin then
+                return ()
+            else
+                let! tenantId = userTenantResolverService.GetTenantForUserAsync(context, ct)
+                let! tenant = tenantViewerAsync (ct |> Some) tenantId.Value |> TaskResult.map snd
+                return! Security.checkIsGlobalAdminOrTenantManager tenant context
         }
 
     new
@@ -351,4 +446,137 @@ type TextEmbeddingService
                                         $"Failed to parse Gemini JSON response: {ex.Message}. Response was: {textResponse}"
                 with ex ->
                     return! Error ex.Message
+            }
+
+        member this.RecognizePapersFromImageAsync
+            (
+                context: UserContext,
+                base64Image: string,
+                mimeType: string,
+                [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken
+            ) =
+            let ct = defaultArg ct CancellationToken.None
+
+            taskResult {
+                do! checkIsGlobalAdminOrTenantManager context ct
+
+                try
+                    let modelName = "gemini-2.5-flash-lite"
+                    let url = $"https://generativelanguage.googleapis.com/v1beta/models/{modelName}:generateContent?key={apiKey}"
+                    let prompt =
+                        "Extract all articles, papers, or chapters from this scanned table of contents / sommario / index image. For each item return a JSON object with: 'title' (full title of the paper/article, clean of page numbers or author names), 'authors' (array of author full names as strings, or empty array if none), 'pageNumber' (the page string e.g. 'pag. 15', or null), 'section' (the session or chapter heading under which it appears, or null), 'description' (any relevant contextual note or session info e.g. 'SESSIONE I (pag. 15)', or null). Return a JSON array of these objects only."
+
+                    let requestBody =
+                        {| contents =
+                            [| {| parts =
+                                   [| box {| text = prompt |}
+                                      box
+                                          {| inline_data =
+                                              {| mime_type = mimeType
+                                                 data = base64Image |} |} |] |} |]
+                           generationConfig = {| response_mime_type = "application/json" |} |}
+
+                    let jsonRequest = JsonSerializer.Serialize(requestBody)
+                    use content = new StringContent(jsonRequest, Encoding.UTF8, "application/json")
+                    let! response = httpClient.PostAsync(url, content, ct)
+
+                    if not response.IsSuccessStatusCode then
+                        let! errorMsg = response.Content.ReadAsStringAsync(ct)
+                        return! Error $"Google API error: {response.StatusCode} - {errorMsg}"
+                    else
+                        let! jsonResponse = response.Content.ReadAsStringAsync(ct)
+                        let options = JsonSerializerOptions(jsonOptions, PropertyNameCaseInsensitive = true)
+                        let genResult = JsonSerializer.Deserialize<GoogleGenerateResponse>(jsonResponse, options)
+
+                        if Object.ReferenceEquals(genResult, null)
+                           || isNull genResult.candidates
+                           || genResult.candidates.Length = 0
+                           || Object.ReferenceEquals(genResult.candidates.[0].content, null)
+                           || Object.ReferenceEquals(genResult.candidates.[0].content.parts, null)
+                           || genResult.candidates.[0].content.parts.Length = 0 then
+                            return! Error "Failed to get a valid response from Gemini."
+                        else
+                            let textPart = genResult.candidates.[0].content.parts.[0].text
+                            let rawCandidates = JsonSerializer.Deserialize<GeminiCandidateJson list>(textPart, options)
+                            let results =
+                                rawCandidates
+                                |> List.map (fun c ->
+                                    {
+                                        Title = c.title |> Option.defaultValue ""
+                                        Authors = c.authors |> Option.defaultValue []
+                                        PageNumber = c.pageNumber
+                                        Section = c.section
+                                        Description = c.description
+                                    })
+                                |> List.filter (fun c -> not (String.IsNullOrWhiteSpace c.Title))
+                            return results
+                with ex ->
+                    return! Error ex.Message
+            }
+
+        member this.RecognizePapersFromTextAsync
+            (
+                context: UserContext,
+                text: string,
+                [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken
+            ) =
+            let ct = defaultArg ct CancellationToken.None
+
+            taskResult {
+                do! checkIsGlobalAdminOrTenantManager context ct
+
+                if String.IsNullOrWhiteSpace text then
+                    return []
+                else
+                    let canUseGemini = not (String.IsNullOrWhiteSpace apiKey) && not (apiKey.StartsWith "dummy")
+                    if canUseGemini then
+                        try
+                            let modelName = "gemini-2.5-flash-lite"
+                            let url = $"https://generativelanguage.googleapis.com/v1beta/models/{modelName}:generateContent?key={apiKey}"
+                            let prompt =
+                                "Extract all articles, papers, or chapters from this table of contents / sommario / index text. For each item return a JSON object with: 'title' (full title of the paper/article, clean of page numbers or author names), 'authors' (array of author full names as strings, or empty array if none), 'pageNumber' (the page string e.g. 'pag. 15', or null), 'section' (the session or chapter heading under which it appears, or null), 'description' (any relevant contextual note or session info e.g. 'SESSIONE I (pag. 15)', or null). Return a JSON array of these objects only."
+
+                            let requestBody =
+                                {| contents = [| {| parts = [| box {| text = $"{prompt}\n\n{text}" |} |] |} |]
+                                   generationConfig = {| response_mime_type = "application/json" |} |}
+
+                            let jsonRequest = JsonSerializer.Serialize(requestBody)
+                            use content = new StringContent(jsonRequest, Encoding.UTF8, "application/json")
+                            let! response = httpClient.PostAsync(url, content, ct)
+                            if response.IsSuccessStatusCode then
+                                let! jsonResponse = response.Content.ReadAsStringAsync(ct)
+                                let options = JsonSerializerOptions(jsonOptions, PropertyNameCaseInsensitive = true)
+                                let genResult = JsonSerializer.Deserialize<GoogleGenerateResponse>(jsonResponse, options)
+                                if not (Object.ReferenceEquals(genResult, null))
+                                   && not (isNull genResult.candidates)
+                                   && genResult.candidates.Length > 0
+                                   && not (Object.ReferenceEquals(genResult.candidates.[0].content, null))
+                                   && not (Object.ReferenceEquals(genResult.candidates.[0].content.parts, null))
+                                   && genResult.candidates.[0].content.parts.Length > 0 then
+                                    let textPart = genResult.candidates.[0].content.parts.[0].text
+                                    let rawCandidates = JsonSerializer.Deserialize<GeminiCandidateJson list>(textPart, options)
+
+                                    let results =
+                                        rawCandidates
+                                        |> List.map (fun c ->
+                                            {
+                                                Title = c.title |> Option.defaultValue ""
+                                                Authors = c.authors |> Option.defaultValue []
+                                                PageNumber = c.pageNumber
+                                                Section = c.section
+                                                Description = c.description
+                                            })
+                                        |> List.filter (fun c -> not (String.IsNullOrWhiteSpace c.Title))
+                                    if not (List.isEmpty results) then
+                                        return results
+                                    else
+                                        return TableOfContentsParser.parseText text
+                                else
+                                    return TableOfContentsParser.parseText text
+                            else
+                                return TableOfContentsParser.parseText text
+                        with _ ->
+                            return TableOfContentsParser.parseText text
+                    else
+                        return TableOfContentsParser.parseText text
             }

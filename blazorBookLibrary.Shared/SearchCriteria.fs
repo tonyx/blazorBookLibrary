@@ -41,12 +41,101 @@ module SearchCriteria =
         | "Unspecified" -> searchUnspecifiedAvailability
         | _ -> searchAllBooks
 
-    let searchByTags (tags: seq<Tag>) =
+    let searchByTitleWithPapers (title: string) (includePapers: bool) =
+        if String.IsNullOrWhiteSpace(title) then
+            searchAllBooks
+        else
+            let cleanTerm = title.Trim()
+            BookSearchCriteria(fun book ->
+                let bookMatch = 
+                    not (String.IsNullOrWhiteSpace(book.Title.Value)) && 
+                    book.Title.Value.Contains(cleanTerm, StringComparison.OrdinalIgnoreCase)
+                let papers = if isNull (box book.Papers) then [] else book.Papers
+                let papersMatch =
+                    includePapers &&
+                    (papers |> List.exists (fun p ->
+                        not (String.IsNullOrWhiteSpace(p.Title.Value)) &&
+                        p.Title.Value.Contains(cleanTerm, StringComparison.OrdinalIgnoreCase)))
+                bookMatch || papersMatch)
+
+    let searchByTitle (title: string) = searchByTitleWithPapers title false
+
+    let searchByAuthorWithPapers (authorId: AuthorId) (includePapers: bool) =
+        BookSearchCriteria(fun book ->
+            let bookMatch = book.Authors |> List.contains authorId
+            let papers = if isNull (box book.Papers) then [] else book.Papers
+            let papersMatch = 
+                includePapers && 
+                (papers |> List.exists (fun p -> 
+                    let pAuthors = if isNull (box p.Authors) then [] else p.Authors
+                    pAuthors |> List.contains authorId))
+            bookMatch || papersMatch)
+
+    let searchByAuthor (authorId: AuthorId) = searchByAuthorWithPapers authorId false
+
+    let searchByAuthorsWithPapers (authors: seq<AuthorId>) (includePapers: bool) =
+        let authorList = authors |> Seq.toList
+        if List.isEmpty authorList then
+            searchAllBooks
+        else
+            BookSearchCriteria(fun book ->
+                let bookMatch = authorList |> List.exists (fun a -> book.Authors |> List.contains a)
+                let papers = if isNull (box book.Papers) then [] else book.Papers
+                let papersMatch = 
+                    includePapers && 
+                    (papers |> List.exists (fun p -> 
+                        let pAuthors = if isNull (box p.Authors) then [] else p.Authors
+                        authorList |> List.exists (fun a -> pAuthors |> List.contains a)))
+                bookMatch || papersMatch)
+
+    let searchByAuthors (authors: seq<AuthorId>) = searchByAuthorsWithPapers authors false
+
+    let searchByCategoryWithPapers (category: Category) (includePapers: bool) =
+        BookSearchCriteria(fun book ->
+            let bookMatch = book.MainCategory = category || (book.AdditionalCategories |> List.contains category)
+            let papers = if isNull (box book.Papers) then [] else book.Papers
+            let papersMatch = 
+                includePapers && 
+                (papers |> List.exists (fun p -> 
+                    let pCats = if isNull (box p.Categories) then [] else p.Categories
+                    pCats |> List.contains category))
+            bookMatch || papersMatch)
+
+    let searchByCategory (category: Category) = searchByCategoryWithPapers category false
+
+    let searchByCategoriesWithPapers (categories: seq<Category>) (includePapers: bool) =
+        let catList = categories |> Seq.toList
+        if List.isEmpty catList then
+            searchAllBooks
+        else
+            BookSearchCriteria(fun book ->
+                let bookMatch = catList |> List.exists (fun c -> book.MainCategory = c || (book.AdditionalCategories |> List.contains c))
+                let papers = if isNull (box book.Papers) then [] else book.Papers
+                let papersMatch = 
+                    includePapers && 
+                    (papers |> List.exists (fun p -> 
+                        let pCats = if isNull (box p.Categories) then [] else p.Categories
+                        catList |> List.exists (fun c -> pCats |> List.contains c)))
+                bookMatch || papersMatch)
+
+    let searchByCategories (categories: seq<Category>) = searchByCategoriesWithPapers categories false
+
+    let searchByTagsWithPapers (tags: seq<Tag>) (includePapers: bool) =
         let tagList = tags |> Seq.toList
         if List.isEmpty tagList then
             searchAllBooks
         else
-            BookSearchCriteria(fun book -> tagList |> List.exists (fun t -> book.Tags |> List.contains t))
+            BookSearchCriteria(fun book ->
+                let bookMatch = tagList |> List.exists (fun t -> book.Tags |> List.contains t)
+                let papers = if isNull (box book.Papers) then [] else book.Papers
+                let papersMatch = 
+                    includePapers && 
+                    (papers |> List.exists (fun p -> 
+                        let pTags = if isNull (box p.Tags) then [] else p.Tags
+                        tagList |> List.exists (fun t -> pTags |> List.contains t)))
+                bookMatch || papersMatch)
+
+    let searchByTags (tags: seq<Tag>) = searchByTagsWithPapers tags false
 
     let searchByDistributionPoints (distributionPointIds: seq<DistributionPointId>) =
         let dpList = distributionPointIds |> Seq.toList

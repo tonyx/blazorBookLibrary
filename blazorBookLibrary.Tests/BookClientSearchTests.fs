@@ -285,4 +285,152 @@ module BookClientSearchTests =
                 Expect.equal lastMethod HttpMethod.Delete "RemovePaperAsync should send DELETE"
                 Expect.equal lastUri (sprintf "http://localhost/api/Books/%s/papers/%s" (bookId.Value.ToString()) (paperId.Value.ToString())) "RemovePaperAsync URI should match"
             }
+
+            testCase "SearchCriteria.searchByTitle with and without papers" <| fun _ ->
+                let paper = {
+                    PaperId = PaperId.New()
+                    Title = Title.New "Quantum Computation and Information"
+                    Description = None
+                    OptionalEmbedding = None
+                    Authors = []
+                    Categories = [ Category.Science ]
+                    Tags = [ Tag.BookTag "Physics" ]
+                }
+                let bookWithPaper = { book1 with Papers = [ paper ] }
+                let bookWithoutPaper = { book1 with Papers = [] }
+
+                // Query for paper's title "Quantum"
+                let criteriaWithoutPapers = SearchCriteria.searchByTitle "Quantum"
+                let criteriaWithPapers = SearchCriteria.searchByTitleWithPapers "Quantum" true
+
+                Expect.isFalse (criteriaWithoutPapers.Invoke bookWithPaper) "searchByTitle should not match paper when includePapers is false"
+                Expect.isTrue (criteriaWithPapers.Invoke bookWithPaper) "searchByTitleWithPapers should match paper when includePapers is true"
+                Expect.isFalse (criteriaWithPapers.Invoke bookWithoutPaper) "searchByTitleWithPapers should not match book without matching paper or title"
+
+                // Query for book's title "Action"
+                let actionCriteriaWithoutPapers = SearchCriteria.searchByTitle "Action"
+                let actionCriteriaWithPapers = SearchCriteria.searchByTitleWithPapers "Action" true
+                Expect.isTrue (actionCriteriaWithoutPapers.Invoke bookWithPaper) "Should match book title when includePapers is false"
+                Expect.isTrue (actionCriteriaWithPapers.Invoke bookWithPaper) "Should match book title when includePapers is true"
+
+            testCase "SearchCriteria.searchByAuthor and searchByAuthors with and without papers" <| fun _ ->
+                let paperAuthorId = AuthorId (Guid.NewGuid())
+                let paper = {
+                    PaperId = PaperId.New()
+                    Title = Title.New "Monads in F#"
+                    Description = None
+                    OptionalEmbedding = None
+                    Authors = [ paperAuthorId ]
+                    Categories = []
+                    Tags = []
+                }
+                let bookWithPaper = { book1 with Authors = []; Papers = [ paper ] }
+
+                let authorCriteriaWithout = SearchCriteria.searchByAuthor paperAuthorId
+                let authorCriteriaWith = SearchCriteria.searchByAuthorWithPapers paperAuthorId true
+
+                Expect.isFalse (authorCriteriaWithout.Invoke bookWithPaper) "Should not match paper author when includePapers is false"
+                Expect.isTrue (authorCriteriaWith.Invoke bookWithPaper) "Should match paper author when includePapers is true"
+
+                let authorsCriteriaWithout = SearchCriteria.searchByAuthors [ paperAuthorId ]
+                let authorsCriteriaWith = SearchCriteria.searchByAuthorsWithPapers [ paperAuthorId ] true
+
+                Expect.isFalse (authorsCriteriaWithout.Invoke bookWithPaper) "searchByAuthors should not match paper author when includePapers is false"
+                Expect.isTrue (authorsCriteriaWith.Invoke bookWithPaper) "searchByAuthorsWithPapers should match paper author when includePapers is true"
+
+            testCase "SearchCriteria.searchByCategory and searchByCategories with and without papers" <| fun _ ->
+                let paper = {
+                    PaperId = PaperId.New()
+                    Title = Title.New "Ethics of AI"
+                    Description = None
+                    OptionalEmbedding = None
+                    Authors = []
+                    Categories = [ Category.Philosophy ]
+                    Tags = []
+                }
+                // book3 has MainCategory = Other, AdditionalCategories = []
+                let bookWithPaper = { book3 with Papers = [ paper ] }
+
+                let catWithout = SearchCriteria.searchByCategory Category.Philosophy
+                let catWith = SearchCriteria.searchByCategoryWithPapers Category.Philosophy true
+
+                Expect.isFalse (catWithout.Invoke bookWithPaper) "Should not match paper category when includePapers is false"
+                Expect.isTrue (catWith.Invoke bookWithPaper) "Should match paper category when includePapers is true"
+
+                let catsWithout = SearchCriteria.searchByCategories [ Category.Philosophy ]
+                let catsWith = SearchCriteria.searchByCategoriesWithPapers [ Category.Philosophy ] true
+
+                Expect.isFalse (catsWithout.Invoke bookWithPaper) "searchByCategories should not match paper category when includePapers is false"
+                Expect.isTrue (catsWith.Invoke bookWithPaper) "searchByCategoriesWithPapers should match paper category when includePapers is true"
+
+            testCase "SearchCriteria.searchByTags with and without papers" <| fun _ ->
+                let aiTag = Tag.BookTag "ArtificialIntelligence"
+                let paper = {
+                    PaperId = PaperId.New()
+                    Title = Title.New "Deep Learning"
+                    Description = None
+                    OptionalEmbedding = None
+                    Authors = []
+                    Categories = []
+                    Tags = [ aiTag ]
+                }
+                let bookWithPaper = { book3 with Tags = []; Papers = [ paper ] }
+
+                let tagWithout = SearchCriteria.searchByTags [ aiTag ]
+                let tagWith = SearchCriteria.searchByTagsWithPapers [ aiTag ] true
+
+                Expect.isFalse (tagWithout.Invoke bookWithPaper) "Should not match paper tag when includePapers is false"
+                Expect.isTrue (tagWith.Invoke bookWithPaper) "Should match paper tag when includePapers is true"
+
+            testCaseTask "GetAllAsync returns books containing matching papers when criteria includes papers" <| fun _ -> task {
+                let paperAuthorId = AuthorId (Guid.NewGuid())
+                let paperTag = Tag.BookTag "Robotics"
+                let paper = {
+                    PaperId = PaperId.New()
+                    Title = Title.New "Advanced Autonomous Robotics"
+                    Description = Some "Robotics paper description"
+                    OptionalEmbedding = None
+                    Authors = [ paperAuthorId ]
+                    Categories = [ Category.Science ]
+                    Tags = [ paperTag ]
+                }
+                let bookWithMatchingPaper = {
+                    book3 with
+                        Title = Title.New "Collected Works Volume 1"
+                        Authors = []
+                        MainCategory = Category.Other
+                        AdditionalCategories = []
+                        Tags = []
+                        Papers = [ paper ]
+                }
+                let bookRegular = {
+                    book1 with
+                        Papers = []
+                }
+
+                let httpClient = createMockClient [ bookWithMatchingPaper; bookRegular ]
+                let clientService = BookClientService(httpClient)
+
+                // Search by title "Robotics" with papers
+                let titleCriteria = SearchCriteria.searchByTitleWithPapers "Robotics" true
+                let! titleRes = clientService.GetAllAsync(UserContext.Anonymous, Some titleCriteria, None)
+                match titleRes with
+                | Ok books ->
+                    Expect.equal books.Length 1 "Only bookWithMatchingPaper should match title Robotics"
+                    Expect.equal books.Head.Title.Value "Collected Works Volume 1" "Matched book title is Collected Works Volume 1"
+                | Error err -> failwithf "Failed: %s" err
+
+                // Search by category Science and author with papers
+                let composedCriteria = SearchCriteria.composeAll [
+                    SearchCriteria.searchByCategoriesWithPapers [ Category.Science ] true
+                    SearchCriteria.searchByAuthorWithPapers paperAuthorId true
+                    SearchCriteria.searchByTagsWithPapers [ paperTag ] true
+                ]
+                let! composedRes = clientService.GetAllAsync(UserContext.Anonymous, Some composedCriteria, None)
+                match composedRes with
+                | Ok books ->
+                    Expect.equal books.Length 1 "Composed criteria should match the book via its paper"
+                    Expect.equal books.Head.BookId bookWithMatchingPaper.BookId "Matched book ID corresponds to bookWithMatchingPaper"
+                | Error err -> failwithf "Failed: %s" err
+            }
         ]

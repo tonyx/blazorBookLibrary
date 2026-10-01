@@ -47,7 +47,8 @@ howto.txt
 TestResult.xml
 nunit-agent.log
 app.zip
-publish/**/*
+publish/
+**/publish/
 
 # Build log of MSBuild
 *.log

@@ -27,7 +27,7 @@
             @if (searchMode == "Simple" || searchMode == "Advanced")
             {
                 <!-- The Entryway: Main Title Search -->
-                <div class="mb-4 mb-md-5 d-flex align-items-stretch">
+                <div class="mb-2 d-flex align-items-stretch">
                     <InputText class="search-entryway flex-grow-1" @bind-Value="searchBookTitle" placeholder="@L["SearchByTitlePlaceholder"]" style="border-top-right-radius: 0; border-bottom-right-radius: 0; border-right: none;" />
                     <button type="submit" class="btn-sanctuary-primary d-flex align-items-center justify-content-center px-3 px-md-4" 
                             disabled="@_isLoading" style="border-top-left-radius: 0; border-bottom-left-radius: 0; white-space: nowrap;">
@@ -41,6 +41,14 @@
                         }
                         <span class="d-none d-md-inline ms-2">@L["Search"]</span>
                     </button>
+                </div>
+                <div class="d-flex align-items-center mb-4 mb-md-5 ms-1">
+                    <div class="form-check form-check-inline mb-0">
+                        <input class="form-check-input" type="checkbox" id="includePapersInTitleSearch" @bind="includePapersInTitleSearch" />
+                        <label class="form-check-label x-small text-muted" for="includePapersInTitleSearch">
+                            <i class="bi bi-file-earmark-text me-1"></i>@L["IncludePapersInTitleSearch"]
+                        </label>
+                    </div>
                 </div>
             }
 
@@ -128,7 +136,15 @@
                         </div>
 
                         <div>
-                            <label class="form-label small text-muted text-uppercase fw-bold mb-2">@L["RefineByCategory"]</label>
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <label class="form-label small text-muted text-uppercase fw-bold mb-0">@L["RefineByCategory"]</label>
+                                <div class="form-check form-check-inline mb-0">
+                                    <input class="form-check-input" type="checkbox" id="includePapersInCategories" @bind="includePapersInCategoriesSearch" />
+                                    <label class="form-check-label x-small text-muted" for="includePapersInCategories">
+                                        <i class="bi bi-file-earmark-text me-1"></i>@L["IncludePapers"]
+                                    </label>
+                                </div>
+                            </div>
                             <div class="d-flex gap-2">
                                 <select class="form-select bg-surface-lowest border-0 rounded-lg shadow-sm py-2 py-md-3" @bind="selectedCategoryForFilter">
                                     <option value="">@L["SelectCategoryPlaceholder"]</option>
@@ -154,7 +170,15 @@
                         </div>
 
                         <div class="mt-4">
-                            <label class="form-label small text-muted text-uppercase fw-bold mb-2">@L["FilterByTags"]</label>
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <label class="form-label small text-muted text-uppercase fw-bold mb-0">@L["FilterByTags"]</label>
+                                <div class="form-check form-check-inline mb-0">
+                                    <input class="form-check-input" type="checkbox" id="includePapersInTags" @bind="includePapersInTagsSearch" />
+                                    <label class="form-check-label x-small text-muted" for="includePapersInTags">
+                                        <i class="bi bi-file-earmark-text me-1"></i>@L["IncludePapers"]
+                                    </label>
+                                </div>
+                            </div>
                             <div class="d-flex gap-2">
                                 <select class="form-select bg-surface-lowest border-0 rounded-lg shadow-sm py-2" @bind="selectedTagNameForFilter">
                                     <option value="">@L["SelectTagPlaceholder"]</option>
@@ -185,7 +209,15 @@
 
                     <!-- Column 2: Authors -->
                     <div class="col-lg-4">
-                        <h6 class="serif mb-3 mb-md-4 pb-2 border-bottom" style="border-color: var(--outline-variant) !important;">@L["Authorship"]</h6>
+                        <div class="d-flex justify-content-between align-items-center mb-3 mb-md-4 pb-2 border-bottom" style="border-color: var(--outline-variant) !important;">
+                            <h6 class="serif mb-0">@L["Authorship"]</h6>
+                            <div class="form-check form-check-inline mb-0">
+                                <input class="form-check-input" type="checkbox" id="includePapersInAuthors" @bind="includePapersInAuthorsSearch" />
+                                <label class="form-check-label x-small text-muted" for="includePapersInAuthors">
+                                    <i class="bi bi-file-earmark-text me-1"></i>@L["IncludePapers"]
+                                </label>
+                            </div>
+                        </div>
                         
                         <div class="position-relative">
                             <label class="form-label small text-muted text-uppercase fw-bold mb-2">@L["SearchAuthorNamePlaceholder"]</label>
@@ -327,6 +359,11 @@
 
     private bool _isLoading = false;
 
+    private bool includePapersInTitleSearch = false;
+    private bool includePapersInAuthorsSearch = false;
+    private bool includePapersInCategoriesSearch = false;
+    private bool includePapersInTagsSearch = false;
+
     private string searchBookTitle = "";
     private string searchBookIsbn = "";
     private string searchBookSbnCode = "";
@@ -438,6 +475,27 @@
         {
             var criteriaList = new List<BookSearchCriteria>();
 
+            bool anyPaperInclusion = includePapersInTitleSearch || includePapersInAuthorsSearch || includePapersInCategoriesSearch;
+
+            if (anyPaperInclusion)
+            {
+                if (!string.IsNullOrWhiteSpace(searchBookTitle))
+                {
+                    criteriaList.Add(SearchCriteria.searchByTitleWithPapers(searchBookTitle, includePapersInTitleSearch));
+                }
+
+                if (searchAuthorsCriteria.Any())
+                {
+                    var authorIds = searchAuthorsCriteria.Select(a => a.AuthorId);
+                    criteriaList.Add(SearchCriteria.searchByAuthorsWithPapers(authorIds, includePapersInAuthorsSearch));
+                }
+
+                if (searchCategoriesCriteria.Any())
+                {
+                    criteriaList.Add(SearchCriteria.searchByCategoriesWithPapers(searchCategoriesCriteria, includePapersInCategoriesSearch));
+                }
+            }
+
             if (!string.IsNullOrEmpty(searchBookAvailability) && searchBookAvailability != "All")
             {
                 criteriaList.Add(SearchCriteria.searchByAvailability(searchBookAvailability));
@@ -445,7 +503,7 @@
 
             if (searchTagsCriteria.Any())
             {
-                criteriaList.Add(SearchCriteria.searchByTags(searchTagsCriteria));
+                criteriaList.Add(SearchCriteria.searchByTagsWithPapers(searchTagsCriteria, includePapersInTagsSearch));
             }
 
             if (searchDistributionPointsCriteria.Any())
@@ -691,6 +749,40 @@
         bool hasBetweenYear = yearSearchMode == "between" && searchBookYear.HasValue && searchBookYearTo.HasValue;
 
         var userContext = await GetUserContextAsync();
+
+        YearSearch GetYearSearch() {
+            var year = searchBookYear ?? 0;
+            var yearTo = searchBookYearTo ?? 0;
+            return yearSearchMode switch
+            {
+                "after" => YearSearch.NewAfter(year),
+                "before" => YearSearch.NewBefore(year),
+                "between" => YearSearch.NewRange(year, yearTo),
+                _ => YearSearch.NewExact(year)
+            };
+        }
+        
+        bool hasEffectiveYear = hasYear || hasBetweenYear;
+
+        bool anyPaperInclusion = includePapersInTitleSearch || includePapersInAuthorsSearch || includePapersInCategoriesSearch;
+
+        if (anyPaperInclusion)
+        {
+            if (hasIsbn)
+            {
+                var isbn = Isbn.NewInvalid(searchBookIsbn);
+                return await BookService.SearchByIsbnAsync(userContext, isbn, searchCriteria, CancellationToken.None);
+            }
+            else if (hasEffectiveYear)
+            {
+                return await BookService.SearchByYearAsync(userContext, GetYearSearch(), searchCriteria, CancellationToken.None);
+            }
+            else
+            {
+                return await BookService.GetAllAsync(userContext, searchCriteria, CancellationToken.None);
+            }
+        }
+
         if (hasIsbn)
         {
             var isbn = Isbn.NewInvalid(searchBookIsbn);
@@ -705,19 +797,6 @@
         }
         else 
         {
-            YearSearch GetYearSearch() {
-                var year = searchBookYear ?? 0;
-                var yearTo = searchBookYearTo ?? 0;
-                return yearSearchMode switch
-                {
-                    "after" => YearSearch.NewAfter(year),
-                    "before" => YearSearch.NewBefore(year),
-                    "between" => YearSearch.NewRange(year, yearTo),
-                    _ => YearSearch.NewExact(year)
-                };
-            }
-            
-            bool hasEffectiveYear = hasYear || hasBetweenYear;
             
             if (searchCategoriesCriteria.Any())
             {

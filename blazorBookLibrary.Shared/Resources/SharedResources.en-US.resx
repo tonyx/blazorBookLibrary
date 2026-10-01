@@ -1054,4 +1054,25 @@
   <data name="PaperRemovedSuccessfully" xml:space="preserve"><value>Paper has been removed from this book.</value></data>
   <data name="ErrorAddingPaper" xml:space="preserve"><value>Error adding paper: {0}</value></data>
   <data name="ErrorRemovingPaper" xml:space="preserve"><value>Error removing paper: {0}</value></data>
+  <data name="IncludePapers" xml:space="preserve"><value>Include papers</value></data>
+  <data name="IncludePapersInTitleSearch" xml:space="preserve"><value>Include papers in title search</value></data>
+  <data name="ScanPapers" xml:space="preserve"><value>Scan / Capture Papers</value></data>
+  <data name="ScanPapersSubtitle" xml:space="preserve"><value>Capture table of contents or index using camera, scanned image, or OCR text</value></data>
+  <data name="CaptureWithSmartphone" xml:space="preserve"><value>Smartphone Camera</value></data>
+  <data name="TakePhotoWithSmartphone" xml:space="preserve"><value>Take Photo</value></data>
+  <data name="UploadScannedImage" xml:space="preserve"><value>Upload Image</value></data>
+  <data name="PasteTableOfContentsText" xml:space="preserve"><value>Paste Text / OCR</value></data>
+  <data name="RecognizingPapers" xml:space="preserve"><value>Analyzing table of contents...</value></data>
+  <data name="RecognizedPapersTitle" xml:space="preserve"><value>Recognized Papers &amp; Articles</value></data>
+  <data name="AutoAddMissingAuthors" xml:space="preserve"><value>Automatically add missing authors to library</value></data>
+  <data name="ConfirmAssociateFoundAuthors" xml:space="preserve"><value>Associate existing authors</value></data>
+  <data name="ImportSelectedPapers" xml:space="preserve"><value>Import Selected Papers</value></data>
+  <data name="ImportingPapers" xml:space="preserve"><value>Importing papers and adding authors...</value></data>
+  <data name="PapersImportedSuccessfully" xml:space="preserve"><value>Successfully imported {0} papers ({1} new authors added to library).</value></data>
+  <data name="AuthorFoundInLibrary" xml:space="preserve"><value>Existing author found in library</value></data>
+  <data name="AuthorNotInLibrary" xml:space="preserve"><value>New author (not in library)</value></data>
+  <data name="ApplyCategoryToSelected" xml:space="preserve"><value>Apply Category to Selected</value></data>
+  <data name="ApplyTagToSelected" xml:space="preserve"><value>Apply Tag to Selected</value></data>
+  <data name="LoadSampleSommario" xml:space="preserve"><value>Load Sample Sommario</value></data>
 </root>
+

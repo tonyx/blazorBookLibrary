@@ -192,5 +192,71 @@ let tests =
             | Error e -> 
                 failwithf "Should have failed with cancellation error but failed with: %s" e
         }
+        testCaseTask "RecognizePapersFromTextAsync parses SOMMARIO correctly" <| fun _ -> task {
+            let (textEmbeddingService: ITextEmbeddingService) = getTextEmbeddingService()
+            let sampleSommario = """SOMMARIO
+
+Prefazione dei Curatori ..................................................... pag. 7
+
+SESSIONE I — DIAGNOSTICA DEI MATERIALI LAPIDEI E CERAMICI
+
+Caratterizzazione mineralogica e petrografica delle malte
+storiche del Duomo di Modena
+G. Barbieri, F. Trevisan, E. Zannoni ....................................... pag. 15
+
+Nuovi metodi non distruttivi per l'analisi in situ di patine biologiche
+su superfici marmoree
+A. R. Moretti, C. Fontana .................................................. pag. 31
+
+L'impiego della spettroscopia Raman portatile nello studio
+delle ceramiche a vetrina piombifera dell'area adriatica
+M. Ferri, S. D’Amico, L. Paternò ........................................... pag. 47
+
+SESSIONE II — DATAZIONE E NUOVE TECNOLOGIE APPLICATE
+
+Aggiornamenti sulla cronologia assoluta del sito perilacustre
+di Lucone di Polpenazze mediante C14 ad alta precisione
+G. L. Baiesi, H. Martin .................................................... pag. 65
+
+Keynote Lecture: Sfide attuali della fotogrammetria digitale 
+e AI nel rilievo dei complessi ipogei
+R. K. Schneider ............................................................ pag. 83
+
+Ricostruzione tridimensionale e virtual unrolling di rotoli papiracei
+carbonizzati da Ercolano
+E. V. Casadei, D. Grossi, N. Bellini, F. M. Rossi .......................... pag. 99
+
+Tavola Rotonda: Standard catalografici e interoperabilità dei dati ..... pag. 121
+Indice degli Autori ........................................................ pag. 129"""
+
+            let! res = textEmbeddingService.RecognizePapersFromTextAsync(adminContext, sampleSommario)
+            Expect.isOk res "RecognizePapersFromTextAsync should succeed"
+            let papers = res |> Result.get
+            Expect.isGreaterThanOrEqual papers.Length 8 "Should have parsed at least 8 papers/sections"
+            
+            // Verify first item
+            let first = papers.[0]
+            Expect.equal first.Title "Prefazione dei Curatori" "First paper title"
+            Expect.equal first.PageNumber (Some "pag. 7") "First paper page"
+            Expect.isEmpty first.Authors "First paper authors should be empty"
+
+            // Verify a paper with multiple authors
+            let modenaPaper = papers |> List.find (fun p -> p.Title.Contains("Duomo di Modena"))
+            Expect.equal modenaPaper.Authors ["G. Barbieri"; "F. Trevisan"; "E. Zannoni"] "Modena paper authors"
+            Expect.equal modenaPaper.PageNumber (Some "pag. 15") "Modena paper page"
+            Expect.equal modenaPaper.Section (Some "SESSIONE I — DIAGNOSTICA DEI MATERIALI LAPIDEI E CERAMICI") "Modena paper section"
+
+            // Verify second session paper
+            let c14Paper = papers |> List.find (fun p -> p.Title.Contains("Lucone di Polpenazze"))
+            Expect.equal c14Paper.Authors ["G. L. Baiesi"; "H. Martin"] "C14 paper authors"
+            Expect.equal c14Paper.PageNumber (Some "pag. 65") "C14 paper page"
+            Expect.equal c14Paper.Section (Some "SESSIONE II — DATAZIONE E NUOVE TECNOLOGIE APPLICATE") "C14 paper section"
+
+            // Verify Keynote single author
+            let keynote = papers |> List.find (fun p -> p.Title.Contains("Keynote Lecture"))
+            Expect.equal keynote.Authors ["R. K. Schneider"] "Keynote author"
+            Expect.equal keynote.PageNumber (Some "pag. 83") "Keynote page"
+        }
     ]
     |> testSequenced
+

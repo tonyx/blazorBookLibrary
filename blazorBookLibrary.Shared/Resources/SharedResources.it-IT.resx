@@ -999,4 +999,25 @@
   <data name="PaperRemovedSuccessfully" xml:space="preserve"><value>L'articolo è stato rimosso da questo volume.</value></data>
   <data name="ErrorAddingPaper" xml:space="preserve"><value>Errore durante l'aggiunta dell'articolo: {0}</value></data>
   <data name="ErrorRemovingPaper" xml:space="preserve"><value>Errore durante la rimozione dell'articolo: {0}</value></data>
+  <data name="IncludePapers" xml:space="preserve"><value>Includi articoli</value></data>
+  <data name="IncludePapersInTitleSearch" xml:space="preserve"><value>Includi articoli nella ricerca titolo</value></data>
+  <data name="ScanPapers" xml:space="preserve"><value>Scansiona / Acquisisci Articoli</value></data>
+  <data name="ScanPapersSubtitle" xml:space="preserve"><value>Acquisisci il sommario o indice tramite fotocamera smartphone, immagine scansionata o testo OCR</value></data>
+  <data name="CaptureWithSmartphone" xml:space="preserve"><value>Fotocamera Smartphone</value></data>
+  <data name="TakePhotoWithSmartphone" xml:space="preserve"><value>Scatta Foto</value></data>
+  <data name="UploadScannedImage" xml:space="preserve"><value>Carica Immagine</value></data>
+  <data name="PasteTableOfContentsText" xml:space="preserve"><value>Incolla Testo / OCR</value></data>
+  <data name="RecognizingPapers" xml:space="preserve"><value>Riconoscimento sommario e articoli in corso...</value></data>
+  <data name="RecognizedPapersTitle" xml:space="preserve"><value>Articoli e Saggi Riconosciuti</value></data>
+  <data name="AutoAddMissingAuthors" xml:space="preserve"><value>Aggiungi automaticamente gli autori mancanti alla biblioteca</value></data>
+  <data name="ConfirmAssociateFoundAuthors" xml:space="preserve"><value>Associa autori esistenti trovati</value></data>
+  <data name="ImportSelectedPapers" xml:space="preserve"><value>Importa Articoli Selezionati</value></data>
+  <data name="ImportingPapers" xml:space="preserve"><value>Importazione articoli e creazione autori in corso...</value></data>
+  <data name="PapersImportedSuccessfully" xml:space="preserve"><value>{0} articoli importati con successo ({1} nuovi autori registrati nella biblioteca).</value></data>
+  <data name="AuthorFoundInLibrary" xml:space="preserve"><value>Autore trovato nel catalogo</value></data>
+  <data name="AuthorNotInLibrary" xml:space="preserve"><value>Nuovo autore (non a catalogo)</value></data>
+  <data name="ApplyCategoryToSelected" xml:space="preserve"><value>Applica Categoria ai Selezionati</value></data>
+  <data name="ApplyTagToSelected" xml:space="preserve"><value>Applica Tag ai Selezionati</value></data>
+  <data name="LoadSampleSommario" xml:space="preserve"><value>Carica Sommario di Esempio</value></data>
 </root>
+

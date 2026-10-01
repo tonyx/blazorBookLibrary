@@ -49,8 +49,20 @@ type PartialBookDataMatch =
         else
             None
 
+[<CLIMutable>]
+type RecognizedPaperCandidate =
+    {
+        Title: string
+        Authors: List<string>
+        PageNumber: Option<string>
+        Section: Option<string>
+        Description: Option<string>
+    }
+
 type ITextEmbeddingService = 
     abstract member GetEmbeddingAsync: context: UserContext * text: string * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<EmbeddingData,string>>
     abstract member GetMatchExplanationAsync: context: UserContext * query: string * itemText: string * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<string,string>>
     abstract member GetPartialBookMatchByCoverImage: context: UserContext * base64Image: string * mimeType: string * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<PartialBookDataMatch, string>>
     abstract member GetBookDescriptionAsync: context: UserContext * bookData: PartialBookDataMatch * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<string,string>>
+    abstract member RecognizePapersFromImageAsync: context: UserContext * base64Image: string * mimeType: string * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<List<RecognizedPaperCandidate>, string>>
+    abstract member RecognizePapersFromTextAsync: context: UserContext * text: string * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<List<RecognizedPaperCandidate>, string>>

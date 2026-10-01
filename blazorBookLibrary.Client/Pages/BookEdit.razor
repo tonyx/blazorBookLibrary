@@ -8,6 +8,7 @@
 @using Microsoft.FSharp.Core
 @using System.Linq
 @using System.Globalization
+@using BlazorBarcodeScanner.ZXing.JS
 
 @attribute [Authorize]
 @inject IUserTenantResolverService UserTenantResolverService
@@ -850,8 +851,11 @@ else
                                     @(_isPapersDrillDownOpen ? L["HidePapers"] : L["DrillDownPapers"])
                                 </button>
                             }
-                            @if (_bookDetails.Book.Editable && !_isAddingPaper)
+                            @if (_bookDetails.Book.Editable && !_isAddingPaper && !_isScanningPapers)
                             {
+                                <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3 shadow-sm" @onclick="OpenScanPapersSection">
+                                    <i class="bi bi-camera me-1"></i> @L["ScanPapers"]
+                                </button>
                                 <button type="button" class="btn btn-sm btn-primary rounded-pill px-3 shadow-sm" @onclick="OpenAddPaperSection">
                                     <i class="bi bi-plus-lg me-1"></i> @L["AddPaper"]
                                 </button>
@@ -1040,6 +1044,345 @@ else
                                     @L["Cancel"]
                                 </button>
                             </div>
+                        </div>
+                    }
+
+                    @* Scan / Capture Papers Section *@
+                    @if (_isScanningPapers)
+                    {
+                        <div class="p-4 bg-surface-low rounded-xl border border-primary-subtle shadow-sm mb-4 animate-fade-in">
+                            <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
+                                <div>
+                                    <h6 class="serif mb-0 fw-bold text-primary">
+                                        <i class="bi bi-camera-fill me-2"></i>@L["ScanPapers"]
+                                    </h6>
+                                    <span class="x-small text-muted serif italic">@L["ScanPapersSubtitle"]</span>
+                                </div>
+                                <button type="button" class="btn-close small" @onclick="CancelScanPapers" aria-label="Close"></button>
+                            </div>
+
+                            <!-- Mode Selection Tabs -->
+                            <ul class="nav nav-pills mb-3 border-bottom pb-2">
+                                <li class="nav-item">
+                                    <button type="button" class="nav-link rounded-pill py-1 px-3 small @(_scanActiveTab == 0 ? "active" : "")" @onclick="() => _scanActiveTab = 0">
+                                        <i class="bi bi-phone me-1"></i>@L["CaptureWithSmartphone"]
+                                    </button>
+                                </li>
+                                <li class="nav-item ms-2">
+                                    <button type="button" class="nav-link rounded-pill py-1 px-3 small @(_scanActiveTab == 1 ? "active" : "")" @onclick="() => _scanActiveTab = 1">
+                                        <i class="bi bi-file-earmark-image me-1"></i>@L["UploadScannedImage"]
+                                    </button>
+                                </li>
+                                <li class="nav-item ms-2">
+                                    <button type="button" class="nav-link rounded-pill py-1 px-3 small @(_scanActiveTab == 2 ? "active" : "")" @onclick="() => _scanActiveTab = 2">
+                                        <i class="bi bi-textarea-t me-1"></i>@L["PasteTableOfContentsText"]
+                                    </button>
+                                </li>
+                            </ul>
+
+                            @* Tab 0: Smartphone / Camera *@
+                            @if (_scanActiveTab == 0)
+                            {
+                                <div class="mb-3 p-3 bg-white rounded-3 border text-center">
+                                    <p class="small text-muted mb-3">
+                                        Take a photo of the table of contents using your smartphone or desktop webcam.
+                                    </p>
+                                    <div class="d-flex justify-content-center gap-3 flex-wrap">
+                                        <label class="btn btn-primary rounded-pill px-4 shadow-sm cursor-pointer mb-0">
+                                            <i class="bi bi-camera-fill me-2"></i>@L["TakePhotoWithSmartphone"]
+                                            <InputFile OnChange="HandleScanImageFile" accept="image/*" capture="environment" style="display: none;" />
+                                        </label>
+                                        <button type="button" class="btn btn-outline-secondary rounded-pill px-4 shadow-sm" @onclick="ToggleLiveCamera">
+                                            <i class="bi bi-camera-video me-2"></i>@(_isLiveCameraActive ? "Close Live Camera" : "Live Camera Preview")
+                                        </button>
+                                    </div>
+
+                                    @if (_isLiveCameraActive)
+                                    {
+                                        <div id="papers-scanner-wrapper" class="scanner-preview-wrapper rounded-3 overflow-hidden position-relative bg-black mt-3 mx-auto shadow-sm" style="max-width: 600px; min-height: 280px;">
+                                            <BarcodeReader 
+                                                OnBarcodeReceived="(args) => { }" 
+                                                Title=""
+                                                StartCameraAutomatically="true"
+                                                ShowStart="false"
+                                                ShowReset="false"
+                                                ShowVideoDeviceList="true"
+                                            />
+                                            <div class="d-flex justify-content-center position-absolute bottom-0 w-100 p-3" style="z-index: 10;">
+                                                <button type="button" class="btn btn-primary rounded-pill px-4 shadow-lg" @onclick="CaptureLiveCameraFrame" disabled="@_isAnalyzingPapers">
+                                                    <i class="bi bi-camera-fill me-2"></i> @L["TakePhotoWithSmartphone"]
+                                                </button>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            }
+
+                            @* Tab 1: Upload Image File *@
+                            @if (_scanActiveTab == 1)
+                            {
+                                <div class="mb-3 p-3 bg-white rounded-3 border">
+                                    <label class="form-label x-small text-uppercase fw-bold text-muted">Select image file (JPG, PNG, WEBP)</label>
+                                    <InputFile OnChange="HandleScanImageFile" accept="image/*" class="form-control form-control-sm mb-2" />
+                                    @if (!string.IsNullOrEmpty(_scannedImagePreview))
+                                    {
+                                        <div class="d-flex align-items-center gap-3 mt-2">
+                                            <img src="@_scannedImagePreview" alt="Scanned Preview" class="rounded border shadow-xs" style="max-height: 120px; max-width: 200px; object-fit: contain;" />
+                                            <button type="button" class="btn btn-sm btn-primary rounded-pill px-3 shadow-sm" @onclick="AnalyzePapersImage" disabled="@_isAnalyzingPapers">
+                                                <i class="bi bi-stars me-1"></i> Analyze Image
+                                            </button>
+                                        </div>
+                                    }
+                                </div>
+                            }
+
+                            @* Tab 2: Paste Text / OCR *@
+                            @if (_scanActiveTab == 2)
+                            {
+                                <div class="mb-3 p-3 bg-white rounded-3 border">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <label class="form-label x-small text-uppercase fw-bold text-muted mb-0">Paste Table of Contents / SOMMARIO Text</label>
+                                        <button type="button" class="btn btn-link btn-sm p-0 text-decoration-none x-small text-serif" @onclick="LoadSampleSommarioText">
+                                            <i class="bi bi-magic me-1"></i>@L["LoadSampleSommario"]
+                                        </button>
+                                    </div>
+                                    <textarea class="form-control serif bg-white shadow-xs small mb-2" rows="6" placeholder="Paste table of contents text (SOMMARIO, papers with authors and page numbers)..." @bind="_scanInputText"></textarea>
+                                    <div class="d-flex justify-content-end gap-2">
+                                        <button type="button" class="btn btn-sm btn-primary rounded-pill px-4 shadow-sm" @onclick="AnalyzePapersText" disabled="@(string.IsNullOrWhiteSpace(_scanInputText) || _isAnalyzingPapers)">
+                                            <i class="bi bi-stars me-1"></i> Analyze Text
+                                        </button>
+                                    </div>
+                                </div>
+                            }
+
+                            @* Analysis Loading Spinner *@
+                            @if (_isAnalyzingPapers)
+                            {
+                                <div class="p-4 text-center bg-white rounded-3 border my-3">
+                                    <div class="spinner-border text-primary me-2" role="status"></div>
+                                    <span class="text-muted fw-bold serif">@L["RecognizingPapers"]</span>
+                                    <p class="small text-muted mt-2 mb-0">Extracting papers, articles, authors, and page references with AI recognition...</p>
+                                </div>
+                            }
+
+                            @* Staged Recognized Papers List *@
+                            @if (_stagedPapers.Any() && !_isAnalyzingPapers)
+                            {
+                                <div class="mt-4 pt-3 border-top">
+                                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+                                        <div>
+                                            <h6 class="serif mb-0 fw-bold text-dark">
+                                                <i class="bi bi-check2-circle text-success me-2"></i>@L["RecognizedPapersTitle"]
+                                                <span class="badge bg-primary-subtle text-primary rounded-pill ms-2 small">
+                                                    @_stagedPapers.Count(p => p.IsSelected) / @_stagedPapers.Count Selected
+                                                </span>
+                                            </h6>
+                                            <span class="x-small text-muted">@GetStagedAuthorsSummary()</span>
+                                        </div>
+
+                                        <!-- Batch controls -->
+                                        <div class="d-flex flex-wrap align-items-center gap-2">
+                                            <button type="button" class="btn btn-xs btn-outline-secondary rounded-pill px-2 py-1 small" @onclick="ToggleSelectAllStaged">
+                                                @(_stagedPapers.All(p => p.IsSelected) ? "Deselect All" : "Select All")
+                                            </button>
+
+                                            <!-- Batch Category Dropdown -->
+                                            <div class="dropdown d-inline-block">
+                                                <button type="button" class="btn btn-xs btn-outline-secondary rounded-pill px-2 py-1 small dropdown-toggle" data-bs-toggle="dropdown">
+                                                    <i class="bi bi-bookmark-plus me-1"></i>@L["ApplyCategoryToSelected"]
+                                                </button>
+                                                <ul class="dropdown-menu dropdown-menu-end shadow-sm" style="max-height: 200px; overflow-y: auto;">
+                                                    @foreach (var cat in Category.AllCases())
+                                                    {
+                                                        <li><button type="button" class="dropdown-item small" @onclick="() => ApplyCategoryToAllSelected(cat)">@cat.Value()</button></li>
+                                                    }
+                                                </ul>
+                                            </div>
+
+                                            <!-- Batch Tag Dropdown -->
+                                            <div class="dropdown d-inline-block">
+                                                <button type="button" class="btn btn-xs btn-outline-secondary rounded-pill px-2 py-1 small dropdown-toggle" data-bs-toggle="dropdown">
+                                                    <i class="bi bi-tag me-1"></i>@L["ApplyTagToSelected"]
+                                                </button>
+                                                <ul class="dropdown-menu dropdown-menu-end shadow-sm" style="max-height: 200px; overflow-y: auto;">
+                                                    @foreach (var tag in allAvailableTags)
+                                                    {
+                                                        <li><button type="button" class="dropdown-item small" @onclick="() => ApplyTagToAllSelected(tag)">@tag.TagName</button></li>
+                                                    }
+                                                </ul>
+                                            </div>
+
+                                            <!-- Global Auto-Add Authors Switch -->
+                                            <div class="form-check form-switch mb-0 ms-2 small">
+                                                <input class="form-check-input" type="checkbox" id="autoAddAuthorsSwitch" checked="@_batchAutoAddAllNewAuthors" @onchange="ToggleAutoAddAllAuthors" />
+                                                <label class="form-check-label x-small text-muted" for="autoAddAuthorsSwitch">Auto-add missing authors</label>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Cards for each staged paper -->
+                                    <div class="d-flex flex-column gap-3 mb-4">
+                                        @for (int i = 0; i < _stagedPapers.Count; i++)
+                                        {
+                                            var index = i;
+                                            var staged = _stagedPapers[index];
+                                            <div class="card p-3 shadow-xs border @(staged.IsSelected ? "border-primary-subtle bg-white" : "border-light opacity-60 bg-light") rounded-3 transition-all">
+                                                <div class="row g-2 align-items-start">
+                                                    <!-- Checkbox & Index -->
+                                                    <div class="col-auto pt-1">
+                                                        <input type="checkbox" class="form-check-input" @bind="staged.IsSelected" />
+                                                        <span class="x-small text-muted ms-1">#@(index + 1)</span>
+                                                    </div>
+
+                                                    <!-- Main details -->
+                                                    <div class="col">
+                                                        <!-- Title & Page -->
+                                                        <div class="d-flex gap-2 mb-2">
+                                                            <div class="flex-grow-1">
+                                                                <input type="text" class="form-control form-control-sm serif fw-bold bg-light-subtle" placeholder="Paper title" @bind="staged.Title" />
+                                                            </div>
+                                                            <div style="width: 110px;">
+                                                                <input type="text" class="form-control form-control-sm text-end small" placeholder="Page" @bind="staged.PageNumber" />
+                                                            </div>
+                                                            <button type="button" class="btn btn-link text-danger p-0 ms-1" title="Remove" @onclick="() => _stagedPapers.RemoveAt(index)">
+                                                                <i class="bi bi-trash"></i>
+                                                            </button>
+                                                        </div>
+
+                                                        <!-- Section / Notes -->
+                                                        <div class="mb-2">
+                                                            <input type="text" class="form-control form-control-sm text-muted small fst-italic" placeholder="Section / Note / Session header" @bind="staged.Section" />
+                                                        </div>
+
+                                                        <!-- Authors -->
+                                                        <div class="mb-2 p-2 bg-surface-low rounded border">
+                                                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                                                <span class="x-small text-uppercase fw-bold text-muted">
+                                                                    <i class="bi bi-people-fill me-1"></i>@L["PaperAuthors"] (@staged.Authors.Count)
+                                                                </span>
+                                                                <button type="button" class="btn btn-link btn-xs p-0 text-decoration-none x-small" @onclick="() => PromptAddAuthorToStaged(staged)">
+                                                                    + Add Author
+                                                                </button>
+                                                            </div>
+
+                                                            @if (!staged.Authors.Any())
+                                                            {
+                                                                <span class="x-small text-muted fst-italic">No authors detected (anonymous, round table, or editor preface)</span>
+                                                            }
+                                                            else
+                                                            {
+                                                                <div class="d-flex flex-wrap gap-2">
+                                                                    @foreach (var author in staged.Authors)
+                                                                    {
+                                                                        if (author.MatchedAuthor != null)
+                                                                        {
+                                                                            <div class="badge bg-success-subtle text-success-emphasis border border-success-subtle p-2 rounded-pill d-inline-flex align-items-center gap-1 small">
+                                                                                <i class="bi bi-check-circle-fill text-success" title="@L["AuthorFoundInLibrary"]"></i>
+                                                                                <span class="fw-semibold">@author.ScannedName</span>
+                                                                                <div class="form-check form-check-inline m-0 ps-2 ms-1 border-start border-success-subtle">
+                                                                                    <input type="checkbox" class="form-check-input" id="@($"assoc_{staged.Id}_{author.ScannedName}")" @bind="author.ConfirmAssociate" title="Associate with catalog author" />
+                                                                                    <label class="form-check-label x-small" for="@($"assoc_{staged.Id}_{author.ScannedName}")">Matched</label>
+                                                                                </div>
+                                                                                <button type="button" class="btn-close ms-1 small" style="font-size: 0.5rem;" @onclick="() => staged.Authors.Remove(author)"></button>
+                                                                            </div>
+                                                                        }
+                                                                        else
+                                                                        {
+                                                                            <div class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle p-2 rounded-pill d-inline-flex align-items-center gap-1 small">
+                                                                                <i class="bi bi-person-plus-fill text-warning" title="@L["AuthorNotInLibrary"]"></i>
+                                                                                <span class="fw-semibold">@author.ScannedName</span>
+                                                                                <div class="form-check form-check-inline m-0 ps-2 ms-1 border-start border-warning-subtle">
+                                                                                    <input type="checkbox" class="form-check-input" id="@($"new_{staged.Id}_{author.ScannedName}")" @bind="author.AutoAddNewAuthor" title="Add as new author to library" />
+                                                                                    <label class="form-check-label x-small" for="@($"new_{staged.Id}_{author.ScannedName}")">Add to library</label>
+                                                                                </div>
+                                                                                <button type="button" class="btn-close ms-1 small" style="font-size: 0.5rem;" @onclick="() => staged.Authors.Remove(author)"></button>
+                                                                            </div>
+                                                                        }
+                                                                    }
+                                                                </div>
+                                                            }
+                                                        </div>
+
+                                                        <!-- Categories and Tags Bar -->
+                                                        <div class="d-flex flex-wrap align-items-center gap-3 pt-1">
+                                                            <!-- Categories -->
+                                                            <div class="d-flex align-items-center flex-wrap gap-1">
+                                                                <span class="x-small text-muted me-1"><i class="bi bi-bookmark me-1"></i>Categories:</span>
+                                                                @foreach (var cat in staged.Categories)
+                                                                {
+                                                                    <span class="badge bg-secondary-subtle text-secondary rounded-pill py-1 px-2 x-small d-inline-flex align-items-center">
+                                                                        @cat.Value()
+                                                                        <span class="ms-1 cursor-pointer fw-bold" @onclick="() => staged.Categories.Remove(cat)">&times;</span>
+                                                                    </span>
+                                                                }
+                                                                <div class="dropdown d-inline-block">
+                                                                    <button type="button" class="btn btn-xs btn-outline-secondary rounded-pill py-0 px-2 x-small dropdown-toggle" data-bs-toggle="dropdown">
+                                                                        + Category
+                                                                    </button>
+                                                                    <ul class="dropdown-menu shadow-sm" style="max-height: 180px; overflow-y: auto;">
+                                                                        @foreach (var cat in Category.AllCases())
+                                                                        {
+                                                                            if (!staged.Categories.Contains(cat))
+                                                                            {
+                                                                                <li><button type="button" class="dropdown-item x-small" @onclick="() => staged.Categories.Add(cat)">@cat.Value()</button></li>
+                                                                            }
+                                                                        }
+                                                                    </ul>
+                                                                </div>
+                                                            </div>
+
+                                                            <!-- Tags -->
+                                                            <div class="d-flex align-items-center flex-wrap gap-1">
+                                                                <span class="x-small text-muted me-1"><i class="bi bi-tag me-1"></i>Tags:</span>
+                                                                @foreach (var tag in staged.Tags)
+                                                                {
+                                                                    <span class="badge @GetTagColorClass(GetTagTypeName(tag)) rounded-pill py-1 px-2 x-small d-inline-flex align-items-center">
+                                                                        @tag.TagName
+                                                                        <span class="ms-1 cursor-pointer fw-bold" @onclick="() => staged.Tags.Remove(tag)">&times;</span>
+                                                                    </span>
+                                                                }
+                                                                <div class="dropdown d-inline-block">
+                                                                    <button type="button" class="btn btn-xs btn-outline-secondary rounded-pill py-0 px-2 x-small dropdown-toggle" data-bs-toggle="dropdown">
+                                                                        + Tag
+                                                                    </button>
+                                                                    <ul class="dropdown-menu shadow-sm" style="max-height: 180px; overflow-y: auto;">
+                                                                        @foreach (var tag in allAvailableTags)
+                                                                        {
+                                                                            if (!staged.Tags.Contains(tag))
+                                                                            {
+                                                                                <li><button type="button" class="dropdown-item x-small" @onclick="() => staged.Tags.Add(tag)">@tag.TagName</button></li>
+                                                                            }
+                                                                        }
+                                                                    </ul>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        }
+                                    </div>
+
+                                    <!-- Final Import Buttons -->
+                                    <div class="d-flex gap-2">
+                                        <button type="button" class="btn btn-primary rounded-pill px-4 shadow-sm" @onclick="ImportStagedPapers" disabled="@(!_stagedPapers.Any(p => p.IsSelected) || _isImportingStagedPapers)">
+                                            @if (_isImportingStagedPapers)
+                                            {
+                                                <span class="spinner-border spinner-border-sm me-2"></span>
+                                                @L["ImportingPapers"]
+                                            }
+                                            else
+                                            {
+                                                <i class="bi bi-check2-all me-1"></i>
+                                                <span>@L["ImportSelectedPapers"] (@_stagedPapers.Count(p => p.IsSelected))</span>
+                                            }
+                                        </button>
+                                        <button type="button" class="btn btn-white border rounded-pill px-4" @onclick="CancelScanPapers" disabled="@_isImportingStagedPapers">
+                                            @L["Cancel"]
+                                        </button>
+                                    </div>
+                                </div>
+                            }
                         </div>
                     }
 
@@ -1346,6 +1689,19 @@ else
     private bool _showPaperAddCategoryDropdown = false;
     private bool _showPaperAddTagDropdown = false;
     private Dictionary<Guid, Author> _resolvedPaperAuthors = new();
+
+    // Papers Scanning & Recognition State
+    private bool _isScanningPapers = false;
+    private int _scanActiveTab = 2; // 0 = Phone/Webcam, 1 = Upload Image, 2 = Paste Text / OCR
+    private bool _isLiveCameraActive = false;
+    private string _scanInputText = "";
+    private string? _scannedImagePreview = null;
+    private string? _scannedImageBase64 = null;
+    private string _scannedImageMimeType = "image/jpeg";
+    private bool _isAnalyzingPapers = false;
+    private bool _isImportingStagedPapers = false;
+    private List<StagedScannedPaper> _stagedPapers = new();
+    private bool _batchAutoAddAllNewAuthors = true;
 
     private bool isBookIsbnEmpty()
     {
@@ -2990,4 +3346,521 @@ else
             isUpdatingDP = false;
         }
     }
+
+    // ==========================================
+    // Papers Scanning & AI Recognition Methods
+    // ==========================================
+
+    private void OpenScanPapersSection()
+    {
+        _isScanningPapers = true;
+        _isAddingPaper = false;
+        _isLiveCameraActive = false;
+        _stagedPapers.Clear();
+    }
+
+    private void CancelScanPapers()
+    {
+        _isScanningPapers = false;
+        _isLiveCameraActive = false;
+        _stagedPapers.Clear();
+        _scannedImagePreview = null;
+        _scannedImageBase64 = null;
+    }
+
+    private void ToggleLiveCamera()
+    {
+        _isLiveCameraActive = !_isLiveCameraActive;
+    }
+
+    private void LoadSampleSommarioText()
+    {
+        _scanInputText = @"SOMMARIO
+
+Prefazione dei Curatori ..................................................... pag. 7
+
+SESSIONE I — DIAGNOSTICA DEI MATERIALI LAPIDEI E CERAMICI
+
+Caratterizzazione mineralogica e petrografica delle malte
+storiche del Duomo di Modena
+G. Barbieri, F. Trevisan, E. Zannoni ....................................... pag. 15
+
+Nuovi metodi non distruttivi per l'analisi in situ di patine biologiche
+su superfici marmoree
+A. R. Moretti, C. Fontana .................................................. pag. 31
+
+L'impiego della spettroscopia Raman portatile nello studio
+delle ceramiche a vetrina piombifera dell'area adriatica
+M. Ferri, S. D’Amico, L. Paternò ........................................... pag. 47
+
+SESSIONE II — DATAZIONE E NUOVE TECNOLOGIE APPLICATE
+
+Aggiornamenti sulla cronologia assoluta del sito perilacustre
+di Lucone di Polpenazze mediante C14 ad alta precisione
+G. L. Baiesi, H. Martin .................................................... pag. 65
+
+Keynote Lecture: Sfide attuali della fotogrammetria digitale 
+e AI nel rilievo dei complessi ipogei
+R. K. Schneider ............................................................ pag. 83
+
+Ricostruzione tridimensionale e virtual unrolling di rotoli papiracei
+carbonizzati da Ercolano
+E. V. Casadei, D. Grossi, N. Bellini, F. M. Rossi .......................... pag. 99
+
+Tavola Rotonda: Standard catalografici e interoperabilità dei dati ..... pag. 121
+Indice degli Autori ........................................................ pag. 129";
+    }
+
+    private async Task HandleScanImageFile(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+        if (file == null) return;
+
+        try
+        {
+            using var stream = file.OpenReadStream(maxAllowedSize: 15 * 1024 * 1024);
+            using var ms = new MemoryStream();
+            await stream.CopyToAsync(ms);
+            var bytes = ms.ToArray();
+            _scannedImageBase64 = Convert.ToBase64String(bytes);
+            _scannedImageMimeType = string.IsNullOrWhiteSpace(file.ContentType) ? "image/jpeg" : file.ContentType;
+            _scannedImagePreview = $"data:{_scannedImageMimeType};base64,{_scannedImageBase64}";
+            StateHasChanged();
+
+            await AnalyzePapersImage();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error reading uploaded or captured image");
+            await ShowStatus($"Error reading image: {ex.Message}", "alert-danger");
+        }
+    }
+
+    private async Task CaptureLiveCameraFrame()
+    {
+        _isAnalyzingPapers = true;
+        StateHasChanged();
+        try
+        {
+            await Task.Delay(200);
+            var base64Data = await JSRuntime.InvokeAsync<string>("captureVideoFrame", "#papers-scanner-wrapper video");
+            if (string.IsNullOrEmpty(base64Data))
+            {
+                await ShowStatus("Failed to capture image frame from camera.", "alert-warning");
+                _isAnalyzingPapers = false;
+                return;
+            }
+
+            var parts = base64Data.Split(',');
+            _scannedImageBase64 = parts.Length > 1 ? parts[1] : parts[0];
+            _scannedImageMimeType = "image/jpeg";
+            _scannedImagePreview = base64Data;
+            _isLiveCameraActive = false;
+
+            await AnalyzePapersImage();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error capturing frame from camera");
+            await ShowStatus($"Camera capture failed: {ex.Message}", "alert-danger");
+            _isAnalyzingPapers = false;
+        }
+    }
+
+    private async Task AnalyzePapersImage()
+    {
+        if (string.IsNullOrEmpty(_scannedImageBase64)) return;
+        _isAnalyzingPapers = true;
+        StateHasChanged();
+
+        try
+        {
+            var context = await GetContext();
+            var result = await TextEmbeddingService.RecognizePapersFromImageAsync(
+                context,
+                _scannedImageBase64,
+                _scannedImageMimeType,
+                FSharpOption<CancellationToken>.None);
+
+            if (result.IsOk)
+            {
+                var candidates = result.ResultValue;
+                if (!candidates.Any())
+                {
+                    await ShowStatus("No papers or articles recognized in the image.", "alert-warning");
+                }
+                else
+                {
+                    await PopulateStagedPapersFromCandidates(candidates);
+                    await ShowStatus($"Recognized {candidates.Length} paper(s) from image.", "alert-success");
+                }
+            }
+            else
+            {
+                await ShowStatus($"Recognition failed: {result.ErrorValue}", "alert-danger");
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error during image paper recognition");
+            await ShowStatus($"Error during recognition: {ex.Message}", "alert-danger");
+        }
+        finally
+        {
+            _isAnalyzingPapers = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task AnalyzePapersText()
+    {
+        if (string.IsNullOrWhiteSpace(_scanInputText)) return;
+        _isAnalyzingPapers = true;
+        StateHasChanged();
+
+        try
+        {
+            var context = await GetContext();
+            var result = await TextEmbeddingService.RecognizePapersFromTextAsync(
+                context,
+                _scanInputText,
+                FSharpOption<CancellationToken>.None);
+
+            if (result.IsOk)
+            {
+                var candidates = result.ResultValue;
+                if (!candidates.Any())
+                {
+                    await ShowStatus("No papers or articles recognized in the text.", "alert-warning");
+                }
+                else
+                {
+                    await PopulateStagedPapersFromCandidates(candidates);
+                    await ShowStatus($"Recognized {candidates.Length} paper(s) from table of contents.", "alert-success");
+                }
+            }
+            else
+            {
+                await ShowStatus($"Recognition failed: {result.ErrorValue}", "alert-danger");
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error during text paper recognition");
+            await ShowStatus($"Error during recognition: {ex.Message}", "alert-danger");
+        }
+        finally
+        {
+            _isAnalyzingPapers = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task PopulateStagedPapersFromCandidates(IEnumerable<RecognizedPaperCandidate> candidates)
+    {
+        var context = await GetContext();
+        _stagedPapers.Clear();
+
+        foreach (var cand in candidates)
+        {
+            var staged = new StagedScannedPaper
+            {
+                Title = cand.Title ?? "",
+                PageNumber = FSharpOption<string>.get_IsSome(cand.PageNumber) ? cand.PageNumber.Value : "",
+                Section = FSharpOption<string>.get_IsSome(cand.Section) ? cand.Section.Value : "",
+                Description = FSharpOption<string>.get_IsSome(cand.Description) ? cand.Description.Value : "",
+                IsSelected = true
+            };
+
+            if (_bookDetails?.Book.MainCategory != null)
+            {
+                staged.Categories.Add(_bookDetails.Book.MainCategory);
+            }
+
+            foreach (var authorName in cand.Authors)
+            {
+                if (string.IsNullOrWhiteSpace(authorName)) continue;
+                var cleanName = authorName.Trim();
+
+                Author? matchedAuthor = null;
+                try
+                {
+                    var searchRes = await AuthorService.SearchByNameAsync(context, Name.New(cleanName), FSharpOption<CancellationToken>.None);
+                    if (searchRes.IsOk && searchRes.ResultValue.Any())
+                    {
+                        matchedAuthor = searchRes.ResultValue.FirstOrDefault(a => a.Name.Value.Equals(cleanName, StringComparison.OrdinalIgnoreCase))
+                            ?? searchRes.ResultValue.First();
+                    }
+                    else if (cleanName.Contains(' '))
+                    {
+                        var surname = cleanName.Split(' ', StringSplitOptions.RemoveEmptyEntries).Last();
+                        if (surname.Length > 2)
+                        {
+                            var surnameRes = await AuthorService.SearchByNameAsync(context, Name.New(surname), FSharpOption<CancellationToken>.None);
+                            if (surnameRes.IsOk && surnameRes.ResultValue.Any())
+                            {
+                                matchedAuthor = surnameRes.ResultValue.FirstOrDefault(a => a.Name.Value.Contains(surname, StringComparison.OrdinalIgnoreCase))
+                                    ?? surnameRes.ResultValue.First();
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogWarning(ex, "Error searching for author '{Name}'", cleanName);
+                }
+
+                var stagedAuthor = new StagedScannedAuthor
+                {
+                    ScannedName = cleanName,
+                    MatchedAuthor = matchedAuthor,
+                    ConfirmAssociate = matchedAuthor != null,
+                    AutoAddNewAuthor = matchedAuthor == null ? _batchAutoAddAllNewAuthors : false
+                };
+                staged.Authors.Add(stagedAuthor);
+            }
+
+            _stagedPapers.Add(staged);
+        }
+    }
+
+    private async Task PromptAddAuthorToStaged(StagedScannedPaper staged)
+    {
+        var name = await JSRuntime.InvokeAsync<string>("prompt", L["AddPaperAuthorPlaceholder"].Value);
+        if (!string.IsNullOrWhiteSpace(name))
+        {
+            var cleanName = name.Trim();
+            var context = await GetContext();
+            Author? matched = null;
+            try
+            {
+                var searchRes = await AuthorService.SearchByNameAsync(context, Name.New(cleanName), FSharpOption<CancellationToken>.None);
+                if (searchRes.IsOk && searchRes.ResultValue.Any())
+                {
+                    matched = searchRes.ResultValue.FirstOrDefault(a => a.Name.Value.Equals(cleanName, StringComparison.OrdinalIgnoreCase)) 
+                        ?? searchRes.ResultValue.First();
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogWarning(ex, "Error searching for author '{Name}'", cleanName);
+            }
+
+            staged.Authors.Add(new StagedScannedAuthor
+            {
+                ScannedName = cleanName,
+                MatchedAuthor = matched,
+                ConfirmAssociate = matched != null,
+                AutoAddNewAuthor = matched == null
+            });
+            StateHasChanged();
+        }
+    }
+
+    private void ToggleSelectAllStaged()
+    {
+        bool allSelected = _stagedPapers.All(p => p.IsSelected);
+        foreach (var p in _stagedPapers)
+        {
+            p.IsSelected = !allSelected;
+        }
+    }
+
+    private void ApplyCategoryToAllSelected(Category category)
+    {
+        foreach (var p in _stagedPapers.Where(p => p.IsSelected))
+        {
+            if (!p.Categories.Contains(category))
+            {
+                p.Categories.Add(category);
+            }
+        }
+    }
+
+    private void ApplyTagToAllSelected(Tag tag)
+    {
+        foreach (var p in _stagedPapers.Where(p => p.IsSelected))
+        {
+            if (!p.Tags.Contains(tag))
+            {
+                p.Tags.Add(tag);
+            }
+        }
+    }
+
+    private void ToggleAutoAddAllAuthors(ChangeEventArgs e)
+    {
+        _batchAutoAddAllNewAuthors = (bool)(e.Value ?? true);
+        foreach (var paper in _stagedPapers)
+        {
+            foreach (var author in paper.Authors)
+            {
+                if (author.MatchedAuthor == null)
+                {
+                    author.AutoAddNewAuthor = _batchAutoAddAllNewAuthors;
+                }
+            }
+        }
+    }
+
+    private string GetStagedAuthorsSummary()
+    {
+        var allAuthors = _stagedPapers.SelectMany(p => p.Authors).ToList();
+        var matched = allAuthors.Count(a => a.MatchedAuthor != null);
+        var unmatched = allAuthors.Count(a => a.MatchedAuthor == null);
+        return $"{matched} matched in catalog, {unmatched} new";
+    }
+
+    private async Task ImportStagedPapers()
+    {
+        if (_bookDetails == null) return;
+        var selectedPapers = _stagedPapers.Where(p => p.IsSelected).ToList();
+        if (!selectedPapers.Any()) return;
+
+        _isImportingStagedPapers = true;
+        try
+        {
+            var context = await GetContext();
+            var tryTenant = await UserTenantResolverService.GetTenantForUserAsync(context);
+            var tenantId = tryTenant.IsOk ? tryTenant.ResultValue : _currentTenant;
+
+            var authorNameToIdMap = new Dictionary<string, AuthorId>(StringComparer.OrdinalIgnoreCase);
+
+            // 1. Confirm matched authors
+            foreach (var paper in selectedPapers)
+            {
+                foreach (var author in paper.Authors)
+                {
+                    if (author.MatchedAuthor != null && author.ConfirmAssociate)
+                    {
+                        authorNameToIdMap[author.ScannedName] = author.MatchedAuthor.AuthorId;
+                    }
+                }
+            }
+
+            // 2. Add missing authors to catalog if opted in
+            int newAuthorsCount = 0;
+            foreach (var paper in selectedPapers)
+            {
+                foreach (var author in paper.Authors)
+                {
+                    if (author.MatchedAuthor == null && author.AutoAddNewAuthor && !authorNameToIdMap.ContainsKey(author.ScannedName))
+                    {
+                        var newAuthor = Author.NewWithoutIsni(tenantId, Name.New(author.ScannedName.Trim()));
+                        var addRes = await AuthorService.AddAuthorAsync(context, newAuthor, FSharpOption<CancellationToken>.None);
+                        if (addRes.IsOk)
+                        {
+                            authorNameToIdMap[author.ScannedName] = newAuthor.AuthorId;
+                            _resolvedPaperAuthors[newAuthor.AuthorId.Value] = newAuthor;
+                            newAuthorsCount++;
+                        }
+                        else
+                        {
+                            Logger.LogWarning("Failed to add author {Name}: {Error}", author.ScannedName, addRes.ErrorValue);
+                        }
+                    }
+                }
+            }
+
+            // 3. Create Paper domain entities
+            var papersToImport = new List<Paper>();
+            foreach (var staged in selectedPapers)
+            {
+                var authorIds = new List<AuthorId>();
+                foreach (var a in staged.Authors)
+                {
+                    if (authorNameToIdMap.TryGetValue(a.ScannedName, out var authorId))
+                    {
+                        authorIds.Add(authorId);
+                    }
+                }
+
+                var descParts = new List<string>();
+                if (!string.IsNullOrWhiteSpace(staged.Section))
+                {
+                    descParts.Add($"[{staged.Section.Trim()}]");
+                }
+                if (!string.IsNullOrWhiteSpace(staged.PageNumber))
+                {
+                    var pageStr = staged.PageNumber.Trim();
+                    if (!pageStr.StartsWith("pag", StringComparison.OrdinalIgnoreCase) && !pageStr.StartsWith("p.", StringComparison.OrdinalIgnoreCase))
+                    {
+                        pageStr = $"pag. {pageStr}";
+                    }
+                    descParts.Add(pageStr);
+                }
+                if (!string.IsNullOrWhiteSpace(staged.Description))
+                {
+                    descParts.Add(staged.Description.Trim());
+                }
+
+                var finalDesc = descParts.Any() ? FSharpOption<string>.Some(string.Join(" — ", descParts)) : FSharpOption<string>.None;
+                var authorsFsList = Microsoft.FSharp.Collections.ListModule.OfSeq(authorIds.Distinct());
+                var categoriesFsList = Microsoft.FSharp.Collections.ListModule.OfSeq(staged.Categories);
+                var tagsFsList = Microsoft.FSharp.Collections.ListModule.OfSeq(staged.Tags);
+
+                var paper = Paper.New(
+                    Title.New(staged.Title.Trim()),
+                    finalDesc,
+                    authorsFsList,
+                    categoriesFsList,
+                    tagsFsList
+                );
+                papersToImport.Add(paper);
+            }
+
+            // 4. Batch persist to book
+            var fsPapersList = Microsoft.FSharp.Collections.ListModule.OfSeq(papersToImport);
+            var result = await BookService.AddPapersAsync(context, _bookDetails.Book.BookId, fsPapersList, FSharpOption<CancellationToken>.None);
+
+            if (result.IsOk)
+            {
+                var firstPaperId = papersToImport.First().PaperId.Value;
+                await WaitForCacheUpdateAsync(d => d.Book.Papers.Any(p => p.PaperId.Value == firstPaperId));
+                await EnsurePaperAuthorsResolved(_bookDetails.Book.Papers);
+
+                _isScanningPapers = false;
+                _stagedPapers.Clear();
+                _isPapersDrillDownOpen = true;
+                await ShowStatus(string.Format(L["PapersImportedSuccessfully"], papersToImport.Count, newAuthorsCount), "alert-success");
+            }
+            else
+            {
+                await ShowStatus(string.Format(L["ErrorAddingPaper"], result.ErrorValue), "alert-danger");
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error importing scanned papers");
+            await ShowStatus(string.Format(L["ErrorAddingPaper"], ex.Message), "alert-danger");
+        }
+        finally
+        {
+            _isImportingStagedPapers = false;
+            StateHasChanged();
+        }
+    }
+
+    public class StagedScannedAuthor
+    {
+        public string ScannedName { get; set; } = "";
+        public Author? MatchedAuthor { get; set; }
+        public List<Author> PossibleMatches { get; set; } = new();
+        public bool AutoAddNewAuthor { get; set; } = true;
+        public bool ConfirmAssociate { get; set; } = true;
+    }
+
+    public class StagedScannedPaper
+    {
+        public Guid Id { get; set; } = Guid.NewGuid();
+        public bool IsSelected { get; set; } = true;
+        public string Title { get; set; } = "";
+        public string PageNumber { get; set; } = "";
+        public string Section { get; set; } = "";
+        public string Description { get; set; } = "";
+        public List<StagedScannedAuthor> Authors { get; set; } = new();
+        public List<Category> Categories { get; set; } = new();
+        public List<Tag> Tags { get; set; } = new();
+    }
 }
+

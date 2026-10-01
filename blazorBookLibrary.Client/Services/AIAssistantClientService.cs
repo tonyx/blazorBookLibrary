@@ -40,4 +40,16 @@ public class AIAssistantClientService : ITextEmbeddingService
         var response = await _httpClient.PostAsJsonAsync("api/AIAssistant/identify-from-cover", new { base64Image, mimeType }, ServiceClientHelper.JsonOptions, ServiceClientHelper.GetValue(ct, CancellationToken.None));
         return await ServiceClientHelper.HandleResponse<PartialBookDataMatch>(response);
     }
+
+    public async Task<FSharpResult<Microsoft.FSharp.Collections.FSharpList<RecognizedPaperCandidate>, string>> RecognizePapersFromImageAsync(Commons.UserContext context, string base64Image, string mimeType, FSharpOption<CancellationToken> ct)
+    {
+        var response = await _httpClient.PostAsJsonAsync("api/AIAssistant/recognize-papers-image", new { base64Image, mimeType }, ServiceClientHelper.JsonOptions, ServiceClientHelper.GetValue(ct, CancellationToken.None));
+        return await ServiceClientHelper.HandleResponse<Microsoft.FSharp.Collections.FSharpList<RecognizedPaperCandidate>>(response);
+    }
+
+    public async Task<FSharpResult<Microsoft.FSharp.Collections.FSharpList<RecognizedPaperCandidate>, string>> RecognizePapersFromTextAsync(Commons.UserContext context, string text, FSharpOption<CancellationToken> ct)
+    {
+        var response = await _httpClient.PostAsJsonAsync("api/AIAssistant/recognize-papers-text", new { text }, ServiceClientHelper.JsonOptions, ServiceClientHelper.GetValue(ct, CancellationToken.None));
+        return await ServiceClientHelper.HandleResponse<Microsoft.FSharp.Collections.FSharpList<RecognizedPaperCandidate>>(response);
+    }
 }
