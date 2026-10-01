@@ -636,6 +636,7 @@
                 newTenant = new();
                 showCreateForm = false;
                 await LoadTenants();
+                await HandleSelectTenant(tenant);
             }
             else
             {

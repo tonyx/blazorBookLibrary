@@ -79,5 +79,87 @@ namespace blazorBookLibrary.Client.Services
             catch { /* Prerendering */ }
             return null;
         }
+
+        public bool HasManagementAccess(ClaimsPrincipal? principal, Tenant? tenant = null)
+        {
+            if (principal == null || principal.Identity?.IsAuthenticated != true)
+            {
+                return false;
+            }
+
+            if (principal.IsInRole("Admin"))
+            {
+                return true;
+            }
+
+            var targetTenant = tenant ?? CurrentTenant;
+            if (targetTenant == null)
+            {
+                return false;
+            }
+
+            var userIdClaim = principal.FindFirst(c => c.Type == ClaimTypes.NameIdentifier) ?? principal.FindFirst("sub");
+            if (userIdClaim != null && Guid.TryParse(userIdClaim.Value, out var guid))
+            {
+                var userId = Commons.UserId.NewUserId(guid);
+                return guid.Equals(targetTenant.OwnerId.Value) 
+                    || targetTenant.IsOwner(userId) 
+                    || targetTenant.IsManager(userId);
+            }
+
+            var userContext = ConverterUtils.fromClaimsPrincipal(principal);
+            if (userContext.UserId != null && Microsoft.FSharp.Core.FSharpOption<Commons.UserId>.get_IsSome(userContext.UserId))
+            {
+                var userId = userContext.UserId.Value;
+                return targetTenant.IsOwner(userId) || targetTenant.IsManager(userId);
+            }
+
+            return false;
+        }
+
+        public async Task<bool> CheckManagementAccessAsync(
+            ClaimsPrincipal? principal,
+            ITenantService tenantService,
+            IUserTenantResolverService resolverService,
+            Tenant? tenant = null)
+        {
+            if (principal == null || principal.Identity?.IsAuthenticated != true)
+            {
+                return false;
+            }
+
+            if (principal.IsInRole("Admin"))
+            {
+                return true;
+            }
+
+            var targetTenant = tenant ?? CurrentTenant;
+            if (targetTenant == null)
+            {
+                try
+                {
+                    var userContext = GetUserContext(principal);
+                    var tenantResult = await resolverService.GetTenantForUserAsync(userContext, Microsoft.FSharp.Core.FSharpOption<System.Threading.CancellationToken>.None);
+                    if (tenantResult.IsOk)
+                    {
+                        var tenantInfoResult = await tenantService.GetTenantAsync(userContext, tenantResult.ResultValue, System.Threading.CancellationToken.None);
+                        if (tenantInfoResult.IsOk)
+                        {
+                            targetTenant = tenantInfoResult.ResultValue;
+                            if (CurrentTenant == null)
+                            {
+                                CurrentTenant = targetTenant;
+                            }
+                        }
+                    }
+                }
+                catch
+                {
+                    // Silent fallback
+                }
+            }
+
+            return HasManagementAccess(principal, targetTenant);
+        }
     }
 }

@@ -261,16 +261,26 @@ else
             var claimsPrincipal = authState.User;
             if (claimsPrincipal != null && claimsPrincipal.Identity?.IsAuthenticated == true)
             {
-                var userContext = TenantState.GetUserContext(claimsPrincipal);
-                var isAdmin = claimsPrincipal.IsInRole("Admin");
-                bool isOwner = false;
+                var hasAccess = await TenantState.CheckManagementAccessAsync(claimsPrincipal, TenantService, UserTenantResolverService);
 
-                var tenantResult = await UserTenantResolverService.GetTenantForUserAsync(userContext);
-                if (tenantResult.IsOk)
+                if (hasAccess)
                 {
-                    var tenantId = tenantResult.ResultValue;
-                    activeTenantId = tenantId.Value;
-                    if (hubConnection != null && hubConnection.State == HubConnectionState.Connected)
+                    _isAuthorized = true;
+                    if (TenantState.CurrentTenant != null)
+                    {
+                        activeTenantId = TenantState.CurrentTenant.TenantId.Value;
+                    }
+                    else
+                    {
+                        var userContext = TenantState.GetUserContext(claimsPrincipal);
+                        var tenantResult = await UserTenantResolverService.GetTenantForUserAsync(userContext);
+                        if (tenantResult.IsOk)
+                        {
+                            activeTenantId = tenantResult.ResultValue.Value;
+                        }
+                    }
+
+                    if (activeTenantId.HasValue && hubConnection != null && hubConnection.State == HubConnectionState.Connected)
                     {
                         try
                         {
@@ -281,17 +291,6 @@ else
                             Logger.LogWarning(ex, "Failed to join tenant group in Loans");
                         }
                     }
-                    var tenantInfoResult = await TenantService.GetTenantAsync(userContext, tenantId);
-                    if (tenantInfoResult.IsOk)
-                    {
-                        var tenant = tenantInfoResult.ResultValue;
-                        isOwner = userContext.UserId.Value.Value.Equals(tenant.OwnerId.Value);
-                    }
-                }
-
-                if (isAdmin || isOwner)
-                {
-                    _isAuthorized = true;
                     await LoadLoans();
                 }
             }

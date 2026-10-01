@@ -185,36 +185,17 @@
 
     private async Task CheckOwnershipAsync()
     {
-        isOwnerOrAdmin = false;
         try
         {
             var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-            var claimsPrincipal = authState.User;
-            if (claimsPrincipal != null && claimsPrincipal.Identity?.IsAuthenticated == true)
-            {
-                if (claimsPrincipal.IsInRole("Admin"))
-                {
-                    isOwnerOrAdmin = true;
-                    return;
-                }
-
-                var userContext = TenantState.GetUserContext(claimsPrincipal);
-                var tenantResult = await UserTenantResolverService.GetTenantForUserAsync(userContext);
-                if (tenantResult.IsOk)
-                {
-                    var tenantId = tenantResult.ResultValue;
-                    var tenantInfoResult = await TenantService.GetTenantAsync(userContext, tenantId);
-                    if (tenantInfoResult.IsOk)
-                    {
-                        var tenant = tenantInfoResult.ResultValue;
-                        isOwnerOrAdmin = userContext.UserId.Value.Value.Equals(tenant.OwnerId.Value);
-                    }
-                }
-            }
+            isOwnerOrAdmin = await TenantState.CheckManagementAccessAsync(
+                authState.User,
+                TenantService,
+                UserTenantResolverService);
         }
         catch
         {
-            // Silent error
+            isOwnerOrAdmin = false;
         }
     }
 

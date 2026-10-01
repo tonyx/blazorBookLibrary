@@ -948,23 +948,9 @@ else
             var claimsPrincipal = authState.User;
             if (claimsPrincipal != null && claimsPrincipal.Identity?.IsAuthenticated == true)
             {
-                var userContext = TenantState.GetUserContext(claimsPrincipal);
-                var isAdmin = claimsPrincipal.IsInRole("Admin");
-                bool isOwner = false;
+                var hasAccess = await TenantState.CheckManagementAccessAsync(claimsPrincipal, TenantService, UserTenantResolverService);
 
-                var tenantResult = await UserTenantResolverService.GetTenantForUserAsync(userContext);
-                if (tenantResult.IsOk)
-                {
-                    var tenantId = tenantResult.ResultValue;
-                    var tenantInfoResult = await TenantService.GetTenantAsync(userContext, tenantId);
-                    if (tenantInfoResult.IsOk)
-                    {
-                        var tenant = tenantInfoResult.ResultValue;
-                        isOwner = userContext.UserId.Value.Value.Equals(tenant.OwnerId.Value);
-                    }
-                }
-
-                if (isAdmin || isOwner)
+                if (hasAccess)
                 {
                     isAuthorized = true;
                     await LoadAuthorDetails();

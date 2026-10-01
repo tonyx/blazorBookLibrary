@@ -12,7 +12,7 @@
 @using static BookLibrary.Shared.Commons
 @using Microsoft.AspNetCore.SignalR.Client
 
-@attribute [Authorize(Roles = "Admin, Manager")]
+@attribute [Authorize]
 @inject IReviewService ReviewService
 @inject IDetailsService DetailsService
 @inject IJSRuntime JSRuntime
@@ -20,6 +20,9 @@
 @inject ILogger<ReviewManager> Logger
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject NavigationManager NavigationManager
+@inject blazorBookLibrary.Client.Services.TenantStateService TenantState
+@inject ITenantService TenantService
+@inject IUserTenantResolverService UserTenantResolverService
 @rendermode InteractiveAuto
 @implements IAsyncDisposable
 
@@ -166,6 +169,14 @@
 
     protected override async Task OnInitializedAsync()
     {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var hasAccess = await TenantState.CheckManagementAccessAsync(authState.User, TenantService, UserTenantResolverService);
+        if (!hasAccess)
+        {
+            NavigationManager.NavigateTo("/reviews-manager");
+            return;
+        }
+
         try
         {
             hubConnection = new HubConnectionBuilder()
