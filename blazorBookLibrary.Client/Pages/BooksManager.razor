@@ -1524,33 +1524,14 @@ else
         try
         {
             var context = await GetUserContextAsync();
-            var embeddingResult = await TextEmbeddingService.GetEmbeddingAsync(context, description);
-            if (embeddingResult.IsOk)
+            var embedResult = await EmbeddingOrchestrationService.CreateEmbeddingForBookAsync(context, bookId, FSharpOption<CancellationToken>.None);
+            if (embedResult.IsOk)
             {
-                context = await GetUserContextAsync();
-                var embeddingId = EmbeddingDataId.New();
-                var storeResult = await VectorDbService.StoreEmbeddingAsync(embeddingId, _currentTenant, bookId, embeddingResult.ResultValue, CancellationToken.None);
-                
-                if (storeResult.IsOk)
-                {
-                    var embedResult = await BookService.EmbedDescriptionAsync(context, bookId, embeddingId, CancellationToken.None);
-                    if (embedResult.IsOk)
-                    {
-                        await ShowStatus(L["EmbeddingGeneratedSuccessfully"].Value, "success");
-                    }
-                    else
-                    {
-                        await ShowStatus($"{L["EmbeddingLinkFailed"]}: {embedResult.ErrorValue}", "warning");
-                    }
-                }
-                else
-                {
-                    await ShowStatus($"{L["EmbeddingStorageFailed"]}: {storeResult.ErrorValue}", "warning");
-                }
+                await ShowStatus(L["EmbeddingGeneratedSuccessfully"].Value, "success");
             }
             else
             {
-                await ShowStatus($"{L["EmbeddingGenerationFailed"]}: {embeddingResult.ErrorValue}", "warning");
+                await ShowStatus($"{L["EmbeddingLinkFailed"]}: {embedResult.ErrorValue}", "warning");
             }
         }
         catch (Exception ex)

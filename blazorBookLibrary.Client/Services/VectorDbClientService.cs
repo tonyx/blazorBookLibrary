@@ -28,8 +28,10 @@ public class VectorDbClientService : IVectorDbService
             id = id.Value,
             tenantId = tenantId.Value,
             bookId = bookId.Value,
+            paperId = (Guid?)null,
             model = embedding.Model,
-            vector = embedding.Vector
+            vector = embedding.Vector,
+            itemType = "book"
         };
         var response = await _httpClient.PostAsJsonAsync("api/VectorDb/store", request, ServiceClientHelper.JsonOptions, ServiceClientHelper.GetValue(ct, CancellationToken.None));
         return await ServiceClientHelper.HandleUnitResponse(response);

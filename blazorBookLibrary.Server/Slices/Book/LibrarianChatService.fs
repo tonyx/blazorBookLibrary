@@ -30,7 +30,7 @@ type LibrarianChatService
     let callGemini (systemInstruction: string) (conversationTurns: (string * string) list) (userPrompt: string) (ct: CancellationToken) =
         task {
             try
-                let modelName = "gemini-2.5-flash-lite"
+                let modelName = "gemini-3.5-flash-lite"
                 let url = $"https://generativelanguage.googleapis.com/v1beta/models/{modelName}:generateContent?key={apiKey}"
 
                 let systemPart = {| parts = [| {| text = systemInstruction |} |] |}

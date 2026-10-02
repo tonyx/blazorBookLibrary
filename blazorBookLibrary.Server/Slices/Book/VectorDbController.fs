@@ -8,6 +8,18 @@ open System.Threading.Tasks
 open System
 open System.Collections.Generic
 
+[<CLIMutable>]
+type StoreEmbeddingRequest =
+    {
+        id: Guid
+        tenantId: Guid
+        bookId: Guid
+        paperId: Nullable<Guid>
+        model: string
+        vector: float32[]
+        itemType: string
+    }
+
 [<ApiController>]
 [<Route("api/[controller]")>]
 [<Produces("application/json")>]
@@ -15,11 +27,11 @@ type VectorDbController(vectorDbService: IVectorDbService) =
     inherit ControllerBase()
 
     [<HttpPost("store")>]
-    member this.StoreEmbedding([<FromBody>] request: {| id: Guid; tenantId: Guid; bookId: Guid; paperId: Nullable<Guid>; model: string; vector: float32[]; itemType: string |}) =
+    member this.StoreEmbedding([<FromBody>] request: StoreEmbeddingRequest) =
         task {
             let embedding = { Model = request.model; Vector = request.vector }
             let paperIdOpt = if request.paperId.HasValue then Some (PaperId request.paperId.Value) else None
-            let itemTypeOpt = if isNull request.itemType then None else Some request.itemType
+            let itemTypeOpt = if String.IsNullOrWhiteSpace request.itemType then None else Some request.itemType
             let! result = 
                 match paperIdOpt with
                 | Some paperId ->

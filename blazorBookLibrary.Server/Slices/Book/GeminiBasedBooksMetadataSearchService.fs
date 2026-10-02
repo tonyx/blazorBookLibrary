@@ -110,7 +110,7 @@ type GeminiBasedBooksMetadataSearchService
     let callGemini (prompt: string) (responseMimeType: string option) (ct: CancellationToken) =
         task {
             try
-                let modelName = "gemini-2.5-flash-lite"
+                let modelName = "gemini-3.5-flash-lite"
                 let url = $"https://generativelanguage.googleapis.com/v1beta/models/{modelName}:generateContent?key={apiKey}"
 
                 let requestBody =

@@ -11,6 +11,7 @@
   "usersDbSecretname": "booksLibraryUsersDb",
   "booksLibraryDbSecretname": "booksLibraryDb",
   "vectorDbSecretName": "VectorDb",
+  "SemaphorseSlimLimit": 10,
 
   "syncUsersOnStartup": false,
 
