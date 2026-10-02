@@ -12,7 +12,8 @@ Benvenuti nel manuale utente di **Blazor Book Library**. Questa guida ti aiuter�
     - [Contesto Attivo e Cambio di Circuito](#contesto-attivo-e-cambio-di-circuito)
 3. [Funzionalità Principali per Tutti gli Utenti](#funzionalità-principali-per-tutti-gli-utenti)
     - [Ricerca e Scoperta](#ricerca-e-scoperta)
-    - [Visualizzazione Dettagli Libro](#visualizzazione-dettagli-libro)
+    - [Bibliotecario IA (Assistente Virtuale Basato su RAG)](#bibliotecario-ia)
+    - [Visualizzazione Dettagli Libro e Articoli](#visualizzazione-dettagli-libro)
 4. [Privilegi dei Patron e Circolazione](#privilegi-dei-patron-e-circolazione)
     - [Accettare un Invito a un Circuito](#accettare-un-invito-a-un-circuito)
     - [Prestiti e Restituzioni (Regole di Circolazione)](#prestiti-e-restituzioni-regole-di-circolazione)
@@ -23,7 +24,8 @@ Benvenuti nel manuale utente di **Blazor Book Library**. Questa guida ti aiuter�
     - [Elenco Patron e Delega dei Ruoli](#elenco-patron-e-delega-dei-ruoli)
     - [Gestione dei Punti di Distribuzione e Custodia](#gestione-dei-punti-di-distribuzione-e-custodia)
     - [Gestione del Catalogo](#gestione-del-catalogo)
-    - [Arricchimento tramite IA ed Embedding](#arricchimento-tramite-ia-ed-embedding)
+    - [Libri con Più Articoli e Indicizzazione ("Papers")](#libri-con-piu-articoli)
+    - [Arricchimento tramite IA ed Embedding Vettoriali](#arricchimento-tramite-ia-ed-embedding)
     - [Importazione ed Esportazione Archivio](#importazione-ed-esportazione-archivio)
 6. [Amministrazione del Sistema](#amministrazione-del-sistema)
     - [Gestione Utenti](#gestione-utenti)
@@ -71,16 +73,26 @@ Per servire diverse comunità e collezionisti di libri, il sistema funziona seco
 ### Ricerca e Scoperta
 La pagina **Ricerca Biblioteca** è progettata per interrogare il catalogo del tenant attivo:
 - **Ricerca per Titolo**: Inserisci qualsiasi parte del titolo di un libro.
-- **Ricerca per ISBN**: Trova un libro specifico tramite il suo codice ISBN a 10 o 13 cifre.
+- **Ricerca per ISBN e Codice SBN**: Trova un libro specifico tramite il suo codice ISBN a 10 o 13 cifre oppure tramite il codice del Servizio Bibliotecario Nazionale (S.B.N.).
 - **Filtri Avanzati**: Filtra per uno o più autori, generi/categorie, intervalli di pubblicazione o mostra solo i libri immediatamente disponibili.
 - **Scoperta Semantica IA**:
     - Inserisci query in linguaggio naturale (es. "una storia distopica sulla perdita di memoria e il controllo totalitario") per recuperare libri con argomenti semanticamente correlati, anche se non condividono le parole chiave esatte.
+    - Le ricerche valutano sia le descrizioni complessive dei volumi sia i singoli articoli o paper inclusi nei volumi collettivi.
     - Limita il numero di risultati restituiti per affinare le liste di scoperta.
 
+<a name="bibliotecario-ia"></a>
+### Bibliotecario IA (Assistente Virtuale Basato su RAG)
+Accessibile dal menu di navigazione principale (**Bibliotecario IA**), questo assistente conversazionale funge da consulente letterario e di ricerca digitale:
+- **Architettura RAG (Retrieval-Augmented Generation)**: L'assistente sfrutta embedding vettoriali avanzati per ricercare e recuperare i libri e i singoli paper/articoli rilevanti dalla collezione del tuo tenant attivo, fornendo questo contesto mirato direttamente al modello **Google Gemini (Gemini 3.5 Flash)**.
+- **Interviste Interattive sulla Conoscenza**: I lettori possono intervistare il Bibliotecario IA su qualsiasi argomento, concetto, tesi o evento storico presente nel catalogo della biblioteca.
+- **Risposte Radicate e Citazioni Puntuali**: Quando risponde a partire dal catalogo, il bibliotecario fornisce link cliccabili diretti ai libri (`[Titolo](book://<book-id>)`) e cita esplicitamente i singoli paper o articoli pertinenti, evidenziando le corrispondenze dirette e attribuendoli ai rispettivi autori.
+- **Modalità Conoscenza Letteraria Generale ed Extra-Catalogo**: Per impostazione predefinita, il bibliotecario ancora rigorosamente le proprie risposte al catalogo effettivo della biblioteca. Attivando l'opzione **"Includi Conoscenza Generale"** (o richiedendo informazioni esterne), l'assistente attinge alla vasta conoscenza incorporata o esplorabile dal modello Gemini 3.5 Flash stesso, suggerendo opere esterne o approfondendo temi storici/filosofici più ampi, contrassegnando chiaramente le opere non attualmente presenti nella biblioteca.
+
 <a name="visualizzazione-dettagli-libro"></a>
-### Visualizzazione Dettagli Libro
+### Visualizzazione Dettagli Libro e Articoli
 Cliccando su un libro si apre la pagina **Visualizza Libro**:
 - **Panoramica**: Visualizza immagini di copertina, riassunti e categorie.
+- **Articoli e Paper Raccolti**: Per volumi contenenti più contributi (antologie, atti di convegni, riviste), esplora l'elenco completo dei singoli paper con i rispettivi autori e abstract.
 - **Posizione e Custodia**: Verifica quale **Punto di Distribuzione** fisico contiene attualmente il libro.
 - **Stato Disponibilità**: Vedi a colpo d'occhio se il libro è sullo scaffale, in prestito (con data di restituzione prevista) o contrassegnato solo per consultazione.
 
@@ -100,7 +112,7 @@ Se un amico, un familiare o un leader di una comunità ti invita nel suo tenant 
 <a name="prestiti-e-restituzioni-regole-di-circolazione"></a>
 ### Prestiti e Restituzioni (Regole di Circolazione)
 - **Prestito**: Vai alla pagina dei dettagli di un libro disponibile e clicca su **"Prendi in prestito"**. Puoi selezionare un **Punto di Distribuzione** fisico per coordinare il ritiro.
-- **Restituzioni (Vincolo Stretto)**: Per preservare la tracciabilità dell'inventario fisico, **i libri devono essere restituiti all'esatto Punto di Distribuzione fisico** da cui sono stati borrowed o registrati.
+- **Restituzioni (Vincolo Stretto)**: Per preservare la tracciabilità dell'inventario fisico, **i libri devono essere restituiti all'esatto Punto di Distribuzione fisico** da cui sono stati presi in prestito o registrati.
 - **Self-Service vs. Approvazione del Custode**:
   - In un tenant **Gestito da Custodi**, un referente designato (Utente di Riferimento) deve controllare fisicamente e approvare il ritiro o la restituzione nel sistema.
   - In un tenant **Self-Service (Basato sulla Fiducia)**, i patron confermano direttamente i loro ritiri e restituzioni digitali, affidandosi interamente alla fiducia reciproca e all'onestà.
@@ -148,11 +160,21 @@ I manager e i proprietari utilizzano il registro **Gestione Libri**:
 - **Aggiungi Nuovo Libro**: Inserisci i dettagli manualmente o scansiona il codice a barre di un libro fisico utilizzando la fotocamera del tuo dispositivo per recuperare i metadati da Google Books.
 - **Riconoscimento Copertina IA**: Se un codice a barre è danneggiato o assente, clicca sull'icona della fotocamera, scatta una foto nitida della copertina e lascia che la nostra visione IA identifichi titolo, autori e metadati.
 - **Registro Autori**: Gestisci i creatori, ricerca le biografie e importa i ritratti direttamente da Wikipedia. Puoi **"Sigillare"** i profili degli autori per bloccarli contro modifiche accidentali.
+- **Codici S.B.N. Italiani e Ambito di Interconnessione**: Il sistema consente di associare uno specifico identificativo nel formato ampiamente utilizzato dal **S.B.N. (Servizio Bibliotecario Nazionale)** italiano (es. *CFI0001234*) per fini di riferimento incrociato, coerenza catalografica e deduplica. Tuttavia, il sistema non fornisce un'interconnessione diretta o sincronizzazione in tempo reale con l'infrastruttura legacy dell'S.B.N., poiché i due sistemi perseguono finalità differenti: BiblioNet (*The Modern Archivist*) è un modello agile, snello e orientato all'intelligenza artificiale, concepito per circuiti di comunità indipendenti e per la ricerca semantica, mentre l'S.B.N. legacy funge da dorsale centralizzata per l'intero sistema bibliotecario nazionale italiano. Pertanto, ad eccezione dell'implementazione e validazione del formato del codice S.B.N. all'interno del catalogo per ricerca e cross-referencing, le interconnessioni dirette con il sistema legacy sono attualmente fuori dall'ambito della piattaforma.
+
+<a name="libri-con-piu-articoli"></a>
+### Libri con Più Articoli e Indicizzazione ("Papers")
+Molti volumi del catalogo—come atti di convegno, raccolte di saggi, antologie o riviste collettanee—racchiudono molteplici articoli o paper scritti da autori differenti. Il sistema offre strumenti dedicati per catalogare, scansionare e indicizzare ciascun contributo all'interno di qualsiasi libro:
+- **Scansione con Fotocamera dell'Indice / Sommario**: Invece di inserire manualmente ciascun articolo, i manager possono attivare la scansione con fotocamera dall'editor del libro per fotografare l'indice cartaceo o il sommario. Il modello di visione IA analizza automaticamente la pagina, individua i titoli degli articoli e i rispettivi autori, e li predispone per l'aggiunta con un solo clic.
+- **Inserimento Testuale e Manuale**: È anche possibile incollare il testo del sommario copiato o aggiungere manualmente i singoli paper specificando titolo e associandoli ad autori esistenti o nuovi.
+- **Embedding Vettoriali per Singolo Paper**: Per ogni articolo, i manager possono cliccare su **"Incorpora Contenuto"** (o "Aggiorna Embedding") per fornire un abstract riassuntivo o l'intero testo dell'articolo. È possibile digitare/incollare il testo o utilizzare la **Scansione OCR Multi-Pagina con Fotocamera** per fotografare e trascrivere in sequenza le pagine dell'articolo fisico.
+- **Raggiungibilità Semantica**: La generazione dell'embedding del paper memorizza un vettore dedicato nel database vettoriale (`item_type = "paper"`). Questo garantisce che il contenuto dettagliato, le tesi e la terminologia specifica di ogni singolo paper siano direttamente accessibili e interrogabili tramite ricerche semantiche e attraverso il sistema RAG del Bibliotecario IA.
+- **Collegamento degli Embedding Fratelli (Sibling)**: Con un solo clic, i manager possono sincronizzare e collegare reciprocamente tutti gli embedding dei paper appartenenti allo stesso volume, ottimizzando le correlazioni semantiche intra-libro.
 
 <a name="arricchimento-tramite-ia-ed-embedding"></a>
-### Arricchimento tramite IA ed Embedding
+### Arricchimento tramite IA ed Embedding Vettoriali
 - **Genera Descrizioni**: Clicca su **"Genera Descrizione"** per fare scrivere all'IA un riassunto completo basato sul titolo e sui metadati. È possibile annullare (Undo) la generazione se necessario.
-- **Embedding Vettoriali per Ricerca Semantica**: Per abilitare la ricerca semantica IA, clicca su **"Genera Embedding"** nella pagina di modifica di un libro. L'IA converte le descrizioni in vettori matematici.
+- **Embedding Vettoriali di Volume e di Paper**: Per abilitare la ricerca semantica IA per l'intero volume, clicca su **"Genera Embedding"** nella pagina di modifica del libro. L'IA converte le descrizioni in vettori matematici. Analogamente, i singoli paper possono essere incorporati semanticamente con abstract o testo integrale.
 - **Controllo di Integrità**: Verifica la precisione dei tuoi indici semantici digitando query in linguaggio naturale direttamente nel pannello di validazione per vedere dove si posiziona il libro.
 
 <a name="importazione-ed-esportazione-archivio"></a>
@@ -195,9 +217,9 @@ Un worker in background elabora le consegne delle notifiche in coda (es. inviti,
 | :--- | :--- |
 | **Email non ricevuta** | Controlla la cartella Spam. Se assente, il worker in background riproverà l'invio entro 10 minuti. |
 | **Impossibile vedere il catalogo invitato** | Assicurati di aver accettato il link di invito e che la tua area di lavoro attiva sia impostata sul nuovo tenant. |
-| **Scansione o acquisizione copertina fallita** | Assicurati che ci sia una buona illuminazione. Se continua a fallire, inserisci manualmente l'ISBN per l'autofill. |
+| **Scansione o acquisizione copertina fallita** | Assicurati che ci sia una buona illuminazione e un posizionamento piatto del volume. Se continua a fallire, inserisci manualmente l'ISBN per l'autofill. |
 | **Il record è bloccato** | Controlla se il libro o l'autore è "Sigillato". Un Proprietario, Manager o Admin deve sbloccarlo prima di poter applicare aggiornamenti. |
 | **Restituzione di circolazione bloccata** | I libri devono essere restituiti allo specifico Punto di Distribuzione presso cui sono registrati. Seleziona la destinazione corretta. |
 
 ---
-*Per i dettagli sull'architettura tecnica, consulta [Architecture.md](file:///Users/antoniolucca/github/blazorBookLibrary/Docs/Architecture.md).*
+*Per i dettagli sull'architettura tecnica, consulta [Architecture.md](https://github.com/tonyx/blazorBookLibrary/blob/main/Docs/Architecture.md)

@@ -12,7 +12,8 @@ Welcome to the **Blazor Book Library** manual. This guide will help you navigate
     - [Active Context & Circuit Switching](#active-context--circuit-switching)
 3. [Core Features for All Users](#core-features-for-all-users)
     - [Search & Discovery](#search--discovery)
-    - [Viewing Book Details](#viewing-book-details)
+    - [AI Librarian (RAG-Powered Virtual Assistant)](#ai-librarian)
+    - [Viewing Book Details & Articles](#viewing-book-details)
 4. [Patron Privileges & Circulation](#patron-privileges--circulation)
     - [Accepting a Circuit Invitation](#accepting-a-circuit-invitation)
     - [Loans & Returns (Circulation Rules)](#loans--returns-circulation-rules)
@@ -23,6 +24,7 @@ Welcome to the **Blazor Book Library** manual. This guide will help you navigate
     - [Patron Roster & Role Delegation](#patron-roster--role-delegation)
     - [Managing Distribution Points & Custody](#managing-distribution-points--custody)
     - [Catalog Management](#catalog-management)
+    - [Multi-Paper Books & Article Indexing ("Papers")](#multi-paper-books)
     - [AI-Powered Enrichment & Embeddings](#ai-powered-enrichment--embeddings)
     - [Archival Import & Export](#archival-import--export)
 6. [System Administration](#system-administration)
@@ -71,16 +73,26 @@ To serve different communities and book collectors, the system runs on a self-go
 ### Search & Discovery
 The **Library Search** page is designed to query the active tenant's catalog:
 - **Title Search**: Enter any part of a book title.
-- **ISBN Search**: Locate a book specifically by its 10 or 13-digit ISBN.
+- **ISBN & SBN Search**: Locate a book specifically by its 10 or 13-digit ISBN, or by its Italian National Library Service (S.B.N.) code.
 - **Advanced Filters**: Filter by one or more authors, genres/categories, publication timeline ranges, or show only immediately available items.
 - **AI Semantic Discovery**: 
     - Enter natural language queries (e.g., "a dystopian story about memory loss and totalitarian control") to fetch books with semantically related topics, even if they don't share exact keywords.
+    - Searches evaluate both overall book descriptions and individual paper/article contents embedded within collective volumes.
     - Limit the returned results count to refine your discovery lists.
+
+<a name="ai-librarian"></a>
+### AI Librarian (RAG-Powered Virtual Literary Assistant)
+Accessible from the main navigation menu (**AI Librarian**), this conversational assistant acts as your digital literary scholar:
+- **RAG Architecture (Retrieval-Augmented Generation)**: The assistant uses advanced vector embeddings to search and retrieve relevant books and specific articles/papers from your active tenant's collection, feeding this grounded context directly to **Google Gemini (Gemini 3.5 Flash)**.
+- **Interactive Knowledge Interviews**: Patrons can interview the AI Librarian about any topic, concept, thesis, or historical event represented in the library's catalog.
+- **In-Depth Grounding & Direct Citations**: When answering from the catalog, the librarian provides direct clickable links to books (`[Title](book://<book-id>)`) and explicitly cites matching internal papers, highlighting direct relevance matches and crediting their specific authors.
+- **Broad Literary & General Knowledge Mode**: By default, the librarian strictly grounds answers in your library's actual catalog. When the **"Include General Knowledge"** toggle is enabled (or when asking for external context), the assistant draws from the broad world knowledge built into and discoverable by the Gemini 3.5 Flash model itself—recommending external literature or explaining broader historical/philosophical themes while clearly labeling external works as not currently in the library.
 
 <a name="viewing-book-details"></a>
 ### Viewing Book Details
 Clicking a book opens the **Book View** page:
 - **Overview**: View cover images, abstracts, and categories.
+- **Collected Papers & Articles**: For volumes containing multiple contributions (such as anthologies, journals, or conference proceedings), explore the complete list of individual papers, their attributed authors, and summaries.
 - **Location & Custody**: Check which physical **Distribution Point** currently holds the book.
 - **Availability Status**: See if the book is on the shelf, on loan (with expected return date), or designated as reference-only.
 
@@ -148,11 +160,21 @@ Managers and Owners utilize the **Books Manager** ledger:
 - **Add New Book**: Enter details manually or scan a physical book's barcode using your device's camera to pull metadata from Google Books.
 - **AI Cover Recognition**: If a barcode is damaged or missing, click the camera icon, take a clear photo of the cover, and let our advanced AI vision model resolve the title, authors, and metadata.
 - **Author Registry**: Manage creators, lookup profile biographies, and import portraits directly from Wikipedia. You can **"Seal"** author profiles to freeze them against accidental modifications.
+- **Italian S.B.N. Identifiers & Scope**: The system supports associating a standardized identifier in the format widely used by the Italian **S.B.N. (Servizio Bibliotecario Nazionale)** (e.g., *CFI0001234*) to facilitate cross-referencing, archival consistency, and catalog deduplication. Note, however, that the platform does **not** provide direct interconnection or live synchronization with the legacy S.B.N. system. This is by design: BiblioNet (*The Modern Archivist*) is an agile, smart, and AI-oriented model designed for decentralized community circulation and semantic discovery, whereas the legacy S.B.N. serves as an institutional backbone for the entire Italian library network. Aside from implementing and validating the S.B.N. identifier format for search and cross-reference, direct legacy interconnections are out of scope for now.
+
+<a name="multi-paper-books"></a>
+### Multi-Paper Books & Article Indexing ("Papers")
+Many cataloged volumes—such as academic conference proceedings, essay collections, anthologies, and collective journals—contain multiple distinct papers or articles written by different authors. The system provides dedicated tools to catalog, scan, and index these contributions within any book:
+- **Camera Scan of Table of Contents / Index**: Instead of typing each contribution manually, managers can click the camera scan option in the book editor to capture a photo of the book's printed table of contents or index. The AI vision model automatically reads the page, detects article titles and their corresponding authors, and stages them for one-click addition.
+- **Text & Manual Entry**: You can also paste copied table-of-contents text or add individual articles manually, specifying the paper title and attributing it to existing or newly created authors.
+- **Individual Paper Vector Embeddings**: For each article, managers can click **"Embed Content"** to provide either a concise abstract or the entire article text. You can type/paste text directly or use the **Multi-Stage Camera OCR** to photograph and transcribe article pages sequentially.
+- **Semantic Reachability**: Storing the paper embedding generates a high-dimensional vector in the vector database (`item_type = "paper"`). This ensures the granular content, arguments, and domain terminology of each individual paper are directly reachable and queryable by semantic search queries and by the AI Librarian RAG system.
+- **Link Sibling Embeddings**: With one click, managers can synchronize and link all sibling paper embeddings within a book, optimizing intra-volume semantic relationships.
 
 <a name="ai-powered-enrichment--embeddings"></a>
 ### AI-Powered Enrichment & Embeddings
 - **Generate Abstracts**: Click **"Generate Description"** to let the AI write a comprehensive summary based on title metadata. You can "Undo" the generation if needed.
-- **Semantic Search Vector Embeddings**: To enable AI semantic search, click **"Generate Embedding"** on a book edit page. The AI converts descriptions into mathematical vectors.
+- **Volume & Paper Vector Embeddings**: To enable AI semantic search for the entire volume, click **"Generate Embedding"** on a book edit page. The AI converts descriptions into mathematical vectors. Individual papers inside the book can similarly be embedded with abstracts or full texts.
 - **Sanity Check**: Test the accuracy of your semantic indices by typing natural-language queries directly into the book validation panel to see where it ranks.
 
 <a name="archival-import--export"></a>
@@ -200,4 +222,4 @@ A dedicated background worker processes queued notification deliveries (e.g., in
 | **Circulation Return Blocked** | Books must be returned to the specific Distribution Point they are registered at. Select the correct return destination. |
 
 ---
-*For technical architecture details, see [Architecture.md](file:///Users/antoniolucca/github/blazorBookLibrary/Docs/Architecture.md).*
+*For technical architecture details, see [Architecture.md](https://github.com/tonyx/blazorBookLibrary/blob/main/Docs/Architecture.md)
