@@ -29,6 +29,13 @@
         <p class="mt-3">
             <a href="Account/Manage/DeletePersonalData" class="btn btn-danger">@L["Delete"]</a>
         </p>
+        <p class="mt-2 small text-muted">
+            <a href="privacy-info#ghosting-protocol" class="text-decoration-underline text-secondary">
+                <i class="bi bi-info-circle me-1"></i>@(System.Globalization.CultureInfo.CurrentCulture.TwoLetterISOLanguageName.Equals("it", StringComparison.OrdinalIgnoreCase) 
+                    ? "Scopri come funziona il Protocollo di Anonimizzazione Ghosting (GDPR)" 
+                    : "Learn how the Ghosting Anonymization Protocol works (GDPR)")
+            </a>
+        </p>
     </div>
 </div>
 

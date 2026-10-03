@@ -1,4 +1,4 @@
-﻿@using Microsoft.AspNetCore.Authentication
+@using Microsoft.AspNetCore.Authentication
 @using Microsoft.AspNetCore.Identity
 @using blazorBookLibrary.Data
 
@@ -20,12 +20,22 @@ else
         <div>
             <AntiforgeryToken />
             <input type="hidden" name="ReturnUrl" value="@ReturnUrl" />
-            <p>
+            <div class="d-flex flex-column gap-2">
                 @foreach (var provider in externalLogins)
                 {
-                    <button type="submit" class="btn btn-primary" name="provider" value="@provider.Name" title="Log in using your @provider.DisplayName account">@provider.DisplayName</button>
+                    <button type="submit" class="w-100 btn btn-outline-primary border-primary-subtle shadow-sm transition-hover" name="provider" value="@provider.Name" title="Log in using your @provider.DisplayName account">
+                        @if (provider.Name == "Google")
+                        {
+                            <i class="bi bi-google me-2 text-danger"></i>
+                        }
+                        else if (provider.Name == "Facebook")
+                        {
+                            <i class="bi bi-facebook me-2" style="color: #1877F2;"></i>
+                        }
+                        @provider.DisplayName
+                    </button>
                 }
-            </p>
+            </div>
         </div>
     </form>
 }

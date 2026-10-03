@@ -118,6 +118,11 @@
                 <span class="bi bi-shield-exclamation" aria-hidden="true"></span> @(System.Globalization.CultureInfo.CurrentCulture.TwoLetterISOLanguageName.Equals("it", StringComparison.OrdinalIgnoreCase) ? "Informazioni Beta" : "Beta Information")
             </NavLink>
         </div>
+        <div class="nav-item">
+            <NavLink class="nav-link sanctuary-nav-link" href="privacy-info">
+                <span class="bi bi-shield-check" aria-hidden="true"></span> @(System.Globalization.CultureInfo.CurrentCulture.TwoLetterISOLanguageName.Equals("it", StringComparison.OrdinalIgnoreCase) ? "Privacy & GDPR" : "Privacy Policy")
+            </NavLink>
+        </div>
 
         <div class="my-3 border-bottom opacity-10 mx-3"></div>
 
@@ -153,6 +158,12 @@
         </AuthorizeView>
 
         <div class="nav-menu-footer mt-auto pt-4 text-center">
+            <div class="mb-2">
+                <a href="privacy-info" class="nav-footer-email text-muted small text-decoration-none d-inline-flex align-items-center gap-1">
+                    <i class="bi bi-shield-lock"></i>
+                    <span>@(System.Globalization.CultureInfo.CurrentCulture.TwoLetterISOLanguageName.Equals("it", StringComparison.OrdinalIgnoreCase) ? "Privacy & GDPR" : "Privacy Policy")</span>
+                </a>
+            </div>
             <a href="mailto:info@biblionet.eu" class="nav-footer-email">
                 <i class="bi bi-envelope-at"></i>
                 <span>info@biblionet.eu</span>

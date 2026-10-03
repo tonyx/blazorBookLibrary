@@ -68,12 +68,17 @@
 
             </EditForm>
             
-            <form action="Account/PerformExternalLogin" method="post" class="mt-n1 mb-4" data-enhance="false">
+            <form action="Account/PerformExternalLogin" method="post" class="mt-n1 mb-4 d-flex flex-column gap-2" data-enhance="false">
                 <AntiforgeryToken />
                 <input type="hidden" name="ReturnUrl" value="@ReturnUrl" />
                 <button type="submit" class="w-100 btn btn-lg btn-outline-primary border-primary-subtle shadow-sm transition-hover" name="provider" value="Google" title="Log in using your Google account">
                     <i class="bi bi-google me-2 text-danger"></i> Log in using Google
                 </button>
+
+                <button type="submit" class="w-100 btn btn-lg btn-outline-primary border-primary-subtle shadow-sm transition-hover" name="provider" value="Facebook" title="Log in using your Facebook account">
+                    <i class="bi bi-facebook me-2" style="color: #1877F2;"></i> Log in using Facebook
+                </button>
+
             </form>
             
             <div class="mt-1 pt-2 border-top">
@@ -85,6 +90,11 @@
                 </p>
                 <p class="mb-0">
                     <a href="Account/ResendEmailConfirmation" class="text-secondary small">Resend email confirmation</a>
+                </p>
+                <p class="mb-0 mt-2">
+                    <a href="privacy-info" class="text-secondary small">
+                        <i class="bi bi-shield-check me-1"></i>Privacy Policy & GDPR
+                    </a>
                 </p>
             </div>
         </section>

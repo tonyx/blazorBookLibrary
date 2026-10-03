@@ -63,7 +63,16 @@ builder.Services.AddAuthentication(options =>
     {
         options.ClientId = builder.Configuration["Authentication:Google:ClientId"] ?? "PLACEHOLDER_GOOGLE_ID";
         options.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"] ?? "PLACEHOLDER_GOOGLE_SECRET";
-    }).AddIdentityCookies();
+    })
+    // To re-enable Facebook authentication when the Facebook app is ready, uncomment the block below:
+    
+    .AddFacebook(options =>
+    {
+        options.AppId = builder.Configuration["Authentication:Facebook:AppId"] ?? "PLACEHOLDER_FACEBOOK_APP_ID";
+        options.AppSecret = builder.Configuration["Authentication:Facebook:AppSecret"] ?? "PLACEHOLDER_FACEBOOK_APP_SECRET";
+    })
+    
+    .AddIdentityCookies();
 
 
 var usersDbConnection = "";

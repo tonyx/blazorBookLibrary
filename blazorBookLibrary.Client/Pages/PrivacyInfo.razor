@@ -1,0 +1,424 @@
+@page "/privacy-info"
+@page "/privacy"
+@page "/PrivacyInfo"
+@rendermode InteractiveAuto
+@using System.Globalization
+
+<PageTitle>@(IsItalian ? "Informativa sulla Privacy & GDPR — BiblioNet" : "Privacy Policy & GDPR — BiblioNet")</PageTitle>
+
+<div class="sanctuary-container py-5">
+    
+    @* Page Header *@
+    <div class="mb-5 text-center text-fade-in">
+        <div class="d-inline-flex align-items-center justify-content-center bg-primary-fixed text-primary rounded-circle mb-3 shadow-sm" style="width: 72px; height: 72px;">
+            <i class="bi bi-shield-check" style="font-size: 2.2rem;"></i>
+        </div>
+        <h1 class="display-4 text-serif mb-2 fw-bold">
+            @(IsItalian ? "Informativa sulla Privacy & GDPR" : "Privacy Policy & GDPR Information")
+        </h1>
+        <p class="text-muted lead mx-auto" style="max-width: 820px; font-family: var(--font-sans);">
+            @(IsItalian 
+                ? "Trasparenza, protezione dei dati personali e diritto all'oblio nel rispetto del Regolamento Generale sulla Protezione dei Dati dell'Unione Europea (GDPR, Regolamento UE 2016/679)." 
+                : "Transparency, personal data protection, and the right to erasure pursuant to the European Union General Data Protection Regulation (GDPR, Regulation EU 2016/679).")
+        </p>
+        <div class="d-flex justify-content-center gap-2 mt-2">
+            <span class="badge bg-surface-container text-secondary border px-3 py-2">
+                <i class="bi bi-calendar-event me-1"></i>
+                @(IsItalian ? "Ultimo aggiornamento: Ottobre 2026" : "Last updated: October 2026")
+            </span>
+            <span class="badge bg-success bg-opacity-10 text-success border border-success-subtle px-3 py-2">
+                <i class="bi bi-patch-check-fill me-1"></i>
+                @(IsItalian ? "Conforme GDPR UE 2016/679" : "Compliant with EU GDPR 2016/679")
+            </span>
+        </div>
+    </div>
+
+    @* Quick Navigation Bar *@
+    <div class="card-sanctuary mb-5 p-3 bg-surface-lowest shadow-sm rounded-3 text-fade-in animation-delay-1">
+        <div class="d-flex flex-wrap justify-content-center gap-2 align-items-center text-center">
+            <span class="small fw-bold text-muted text-uppercase me-2">
+                <i class="bi bi-list-ul me-1"></i>@(IsItalian ? "Sezioni:" : "Sections:")
+            </span>
+            <a href="privacy-info#controller" class="btn btn-sm btn-outline-secondary rounded-pill px-3">
+                @(IsItalian ? "Titolare" : "Controller")
+            </a>
+            <a href="privacy-info#data-collected" class="btn btn-sm btn-outline-secondary rounded-pill px-3">
+                @(IsItalian ? "Dati Raccolti" : "Data Collected")
+            </a>
+            <a href="privacy-info#ghosting-protocol" class="btn btn-sm btn-outline-primary rounded-pill px-3 fw-bold">
+                <i class="bi bi-incognito me-1"></i>@(IsItalian ? "Protocollo Ghosting" : "Ghosting Protocol")
+            </a>
+            <a href="privacy-info#user-rights" class="btn btn-sm btn-outline-secondary rounded-pill px-3">
+                @(IsItalian ? "Diritti dell'Utente" : "User Rights")
+            </a>
+            <a href="privacy-info#third-party" class="btn btn-sm btn-outline-secondary rounded-pill px-3">
+                @(IsItalian ? "Servizi Terzi & OAuth" : "Third Parties & OAuth")
+            </a>
+            <a href="privacy-info#cookies" class="btn btn-sm btn-outline-secondary rounded-pill px-3">
+                @(IsItalian ? "Cookie" : "Cookies")
+            </a>
+        </div>
+    </div>
+
+    @* Highlight Hero Card: Ghosting Protocol & Right to Erasure *@
+    <section id="ghosting-protocol" class="card-sanctuary mb-5 p-4 p-md-5 border border-primary-subtle shadow-sm bg-surface-low rounded-4 text-fade-in animation-delay-2">
+        <div class="d-flex align-items-start gap-4 flex-column flex-md-row">
+            <div class="bg-primary text-white p-3 rounded-circle d-flex align-items-center justify-content-center shadow" style="width: 60px; height: 60px; flex-shrink: 0;">
+                <i class="bi bi-incognito" style="font-size: 1.85rem; margin-right: 0;"></i>
+            </div>
+            <div class="flex-grow-1">
+                <div class="d-flex align-items-center gap-2 mb-2 flex-wrap">
+                    <h2 class="h3 fw-bold text-serif mb-0 text-primary">
+                        @(IsItalian ? "Protocollo di Anonimizzazione \"Ghosting\" (Art. 17 GDPR)" : "The \"Ghosting\" Anonymization Protocol (Art. 17 GDPR)")
+                    </h2>
+                    <span class="badge bg-primary-fixed text-primary px-2 py-1 small">
+                        @(IsItalian ? "Diritto all'Oblio Architetturale" : "Architectural Right to Erasure")
+                    </span>
+                </div>
+                <p class="text-muted lead" style="font-size: 1.05rem; line-height: 1.7;">
+                    @(IsItalian 
+                        ? "BiblioNet adotta una specifica architettura event-sourced con protocollo di \"Ghosting\" permanente. Quando richiedi la cancellazione del tuo account, il sistema non lascia frammenti identificabili né corrompe l'integrità del catalogo e dei prestiti storici:" 
+                        : "BiblioNet implements a specialized event-sourced architecture powered by an irreversible \"Ghosting\" protocol. When you request account deletion, the system clears every personal identifier while safeguarding the integrity of library catalogs and circulation history:")
+                </p>
+
+                <div class="row g-3 mt-2">
+                    <div class="col-md-4">
+                        <div class="p-3 bg-surface-lowest rounded-3 border h-100">
+                            <div class="d-flex align-items-center gap-2 mb-2 text-primary">
+                                <i class="bi bi-person-x-fill fs-5"></i>
+                                <h3 class="h6 fw-bold mb-0">@(IsItalian ? "1. Layer Identità" : "1. Identity Layer")</h3>
+                            </div>
+                            <p class="small text-muted mb-0">
+                                @(IsItalian 
+                                    ? "Nome, cognome, codice fiscale, numero di telefono e password vengono azzerati. Username ed email vengono sostituiti da un codice pseudonimizzato casuale (es. ghosted_8f3a91) e l'account viene bloccato permanentemente." 
+                                    : "First name, last name, fiscal code, phone number, and password hashes are permanently erased. Username and email are replaced with cryptographically random pseudonyms (e.g. ghosted_8f3a91), and the account is permanently locked.")
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="col-md-4">
+                        <div class="p-3 bg-surface-lowest rounded-3 border h-100">
+                            <div class="d-flex align-items-center gap-2 mb-2 text-primary">
+                                <i class="bi bi-eraser-fill fs-5"></i>
+                                <h3 class="h6 fw-bold mb-0">@(IsItalian ? "2. Voiding Eventi" : "2. Event Voiding")</h3>
+                            </div>
+                            <p class="small text-muted mb-0">
+                                @(IsItalian 
+                                    ? "Nel registro a eventi immutabile, il protocollo scansiona gli eventi personali (NomeSet, CognomeSet, CodiceFiscaleSet, PhoneNumberSet) e li sostituisce chirurgicamente con eventi neutri GdprGhosted." 
+                                    : "Within the immutable event store, the protocol scans personal domain events (NomeSet, CognomeSet, CodiceFiscaleSet, PhoneNumberSet) and surgically substitutes them with neutral GdprGhosted event markers.")
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="col-md-4">
+                        <div class="p-3 bg-surface-lowest rounded-3 border h-100">
+                            <div class="d-flex align-items-center gap-2 mb-2 text-primary">
+                                <i class="bi bi-journal-bookmark-fill fs-5"></i>
+                                <h3 class="h6 fw-bold mb-0">@(IsItalian ? "3. Storico Bibliotecario" : "3. Ledger Integrity")</h3>
+                            </div>
+                            <p class="small text-muted mb-0">
+                                @(IsItalian 
+                                    ? "I prestiti passati, le recensioni e le transazioni rimangono collegati all'identificativo anonimo, garantendo che le biblioteche non perdano statistiche o coerenza d'inventario." 
+                                    : "Past loans, reviews, and catalog transactions remain attached to the anonymous pseudonym, preserving historical library statistics and catalog coherence without revealing who you were.")
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-4 pt-2 d-flex flex-wrap gap-3 align-items-center">
+                    <a href="Account/Manage/DeletePersonalData" class="btn btn-outline-danger btn-sm px-3">
+                        <i class="bi bi-shield-x me-1"></i>
+                        @(IsItalian ? "Accedi al Portale Cancellazione Account" : "Access Account Deletion Portal")
+                    </a>
+                    <span class="small text-muted italic">
+                        <i class="bi bi-info-circle me-1"></i>
+                        @(IsItalian 
+                            ? "Operazione self-service immediata, irreversibile e certificata." 
+                            : "Immediate, irreversible, and certified self-service action.")
+                    </span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    @* Main Information Sections Grid *@
+    <div class="row g-4 mb-5 text-fade-in animation-delay-3">
+        
+        @* Card 1: Data Controller & Contacts *@
+        <div class="col-lg-6" id="controller">
+            <div class="card-sanctuary h-100 border border-light p-4">
+                <div class="d-flex align-items-center gap-3 mb-3">
+                    <div class="bg-primary bg-opacity-10 text-primary p-2 rounded-3 d-flex align-items-center justify-content-center" style="width: 44px; height: 44px;">
+                        <i class="bi bi-building-check fs-5"></i>
+                    </div>
+                    <div>
+                        <h2 class="h5 fw-bold text-serif mb-0">
+                            @(IsItalian ? "Titolare del Trattamento" : "Data Controller")
+                        </h2>
+                        <span class="small text-muted">@(IsItalian ? "Art. 13.1(a) GDPR" : "Art. 13.1(a) GDPR")</span>
+                    </div>
+                </div>
+                <p class="text-muted small" style="line-height: 1.7;">
+                    @(IsItalian 
+                        ? "Il Titolare del trattamento dei dati per la piattaforma BiblioNet è l'amministrazione del servizio BiblioNet. Per qualsiasi informazione, richiesta relativa all'esercizio dei diritti o chiarimento sulle politiche di gestione dati, puoi contattare il responsabile della protezione all'indirizzo dedicato:" 
+                        : "The Data Controller for the BiblioNet platform is the BiblioNet service administration. For any inquiries, requests to exercise your data subject rights, or clarifications regarding our data protection policies, contact our privacy desk directly at:")
+                </p>
+                <div class="p-3 bg-surface-low rounded-3 border d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="fw-bold small text-primary">BiblioNet Privacy Desk</div>
+                        <a href="mailto:info@biblionet.eu" class="text-decoration-none text-muted small">
+                            <i class="bi bi-envelope-at me-1"></i>info@biblionet.eu
+                        </a>
+                    </div>
+                    <a href="mailto:info@biblionet.eu" class="btn btn-sm btn-sanctuary-outline">
+                        <i class="bi bi-send me-1"></i>@(IsItalian ? "Scrivi" : "Email")
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        @* Card 2: Legal Bases *@
+        <div class="col-lg-6">
+            <div class="card-sanctuary h-100 border border-light p-4">
+                <div class="d-flex align-items-center gap-3 mb-3">
+                    <div class="bg-secondary bg-opacity-10 text-secondary p-2 rounded-3 d-flex align-items-center justify-content-center" style="width: 44px; height: 44px;">
+                        <i class="bi bi-journal-text fs-5"></i>
+                    </div>
+                    <div>
+                        <h2 class="h5 fw-bold text-serif mb-0">
+                            @(IsItalian ? "Basi Giuridiche del Trattamento" : "Legal Bases for Processing")
+                        </h2>
+                        <span class="small text-muted">@(IsItalian ? "Art. 6 GDPR" : "Art. 6 GDPR")</span>
+                    </div>
+                </div>
+                <ul class="text-muted small list-unstyled mb-0" style="line-height: 1.7;">
+                    <li class="mb-2">
+                        <i class="bi bi-check-circle-fill text-success me-2"></i>
+                        <strong>@(IsItalian ? "Esecuzione del Servizio (Art. 6.1.b):" : "Contractual Necessity (Art. 6.1.b):")</strong>
+                        @(IsItalian 
+                            ? "Gestione account, autenticazione, consultazione cataloghi, prestiti e prenotazioni di libri." 
+                            : "Account provisioning, authentication, catalog discovery, book reservations, and loan tracking.")
+                    </li>
+                    <li class="mb-2">
+                        <i class="bi bi-check-circle-fill text-success me-2"></i>
+                        <strong>@(IsItalian ? "Legittimo Interesse (Art. 6.1.f):" : "Legitimate Interests (Art. 6.1.f):")</strong>
+                        @(IsItalian 
+                            ? "Protezione antifrode, mitigazione bot con sfide matematiche, sicurezza dei dati e prevenzione abusi." 
+                            : "Infrastructure security, anti-bot challenge scoring, abuse prevention, and ledger integrity.")
+                    </li>
+                    <li>
+                        <i class="bi bi-check-circle-fill text-success me-2"></i>
+                        <strong>@(IsItalian ? "Adempimento di Obblighi Legali (Art. 6.1.c):" : "Legal Obligations (Art. 6.1.c):")</strong>
+                        @(IsItalian 
+                            ? "Conservazione obbligatoria dei registri tecnici nel rispetto delle disposizioni di legge applicabili." 
+                            : "Compliance with applicable statutory requirements and public authority directives.")
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        @* Card 3: Types of Data Collected *@
+        <div class="col-lg-6" id="data-collected">
+            <div class="card-sanctuary h-100 border border-light p-4">
+                <div class="d-flex align-items-center gap-3 mb-3">
+                    <div class="bg-info bg-opacity-10 text-info p-2 rounded-3 d-flex align-items-center justify-content-center" style="width: 44px; height: 44px;">
+                        <i class="bi bi-database-check fs-5"></i>
+                    </div>
+                    <div>
+                        <h2 class="h5 fw-bold text-serif mb-0">
+                            @(IsItalian ? "Tipologie di Dati Trattati" : "Categories of Data Processed")
+                        </h2>
+                        <span class="small text-muted">@(IsItalian ? "Minimizzazione dei dati (Art. 5.1.c)" : "Data Minimization (Art. 5.1.c)")</span>
+                    </div>
+                </div>
+                <div class="text-muted small" style="line-height: 1.7;">
+                    <p class="mb-2">
+                        <strong>@(IsItalian ? "Dati di Registrazione & Profilo:" : "Registration & Account Profile:")</strong><br />
+                        @(IsItalian 
+                            ? "Indirizzo email, username, credenziali crittografate (hash password o chiavi pubbliche WebAuthn/Passkey). Se associato a un polo bibliotecario fisico: nome, cognome e codice fiscale." 
+                            : "Email address, username, cryptographic credentials (salted password hashes or WebAuthn/Passkey public keys). If linked to a physical branch: optional name, surname, and fiscal code.")
+                    </p>
+                    <p class="mb-2">
+                        <strong>@(IsItalian ? "Attività di Circolazione:" : "Library & Circulation Activity:")</strong><br />
+                        @(IsItalian 
+                            ? "Cronologia prestiti, libri prenotati, recensioni scritte, preferiti e tenant bibliotecario selezionato." 
+                            : "Active and past book loans, reservations, submitted reviews, and selected library tenant context.")
+                    </p>
+                    <p class="mb-0">
+                        <strong>@(IsItalian ? "Dati Tecnici di Sicurezza:" : "Security & Diagnostic Telemetry:")</strong><br />
+                        @(IsItalian 
+                            ? "Indirizzo IP temporaneo nei log di sistema, punteggi di verifica umana (anti-bot challenge) e cookie di sessione protetti." 
+                            : "Temporary IP address in operational server logs, anti-bot challenge validation timestamps, and secure session cookies.")
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        @* Card 4: Third Parties, Social Sign-In & External APIs *@
+        <div class="col-lg-6" id="third-party">
+            <div class="card-sanctuary h-100 border border-light p-4">
+                <div class="d-flex align-items-center gap-3 mb-3">
+                    <div class="bg-warning bg-opacity-10 text-warning p-2 rounded-3 d-flex align-items-center justify-content-center" style="width: 44px; height: 44px;">
+                        <i class="bi bi-box-arrow-up-right fs-5"></i>
+                    </div>
+                    <div>
+                        <h2 class="h5 fw-bold text-serif mb-0">
+                            @(IsItalian ? "Autenticazione Terze Parti & Servizi Esterni" : "Third Parties & External Providers")
+                        </h2>
+                        <span class="small text-muted">Google OAuth & Facebook Login</span>
+                    </div>
+                </div>
+                <div class="text-muted small" style="line-height: 1.7;">
+                    <p class="mb-2">
+                        <strong>@(IsItalian ? "Accesso con Google e Facebook:" : "Social Authentication (Google & Facebook):")</strong><br />
+                        @(IsItalian 
+                            ? "Se scegli di effettuare l'accesso tramite Google o Facebook, riceviamo unicamente il tuo identificativo utente univoco e l'indirizzo email verificato. Non accediamo ai tuoi contatti, foto, feed o bacheche social, né pubblichiamo contenuti per tuo conto." 
+                            : "When choosing to log in with Google or Facebook, we only receive your verified email address and unique subject ID token. We do not access contacts, posts, friend lists, or publish on your behalf.")
+                    </p>
+                    <p class="mb-0">
+                        <strong>@(IsItalian ? "API di Metadati Bibliografici:" : "Bibliographic Metadata APIs:")</strong><br />
+                        @(IsItalian 
+                            ? "Le ricerche di copertine e schede libro (Google Books, Wikipedia, OpenLibrary) inviano unicamente codici ISBN o titoli d'opera. Nessun dato personale o identificativo dell'utente viene mai trasmesso a tali servizi terzi." 
+                            : "Queries for book covers and bibliographic data (Google Books, Wikipedia, OpenLibrary) transmit solely ISBN codes or book titles. Zero user identity or personal data is transmitted to these providers.")
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        @* Card 5: User Rights under GDPR *@
+        <div class="col-lg-6" id="user-rights">
+            <div class="card-sanctuary h-100 border border-light p-4">
+                <div class="d-flex align-items-center gap-3 mb-3">
+                    <div class="bg-success bg-opacity-10 text-success p-2 rounded-3 d-flex align-items-center justify-content-center" style="width: 44px; height: 44px;">
+                        <i class="bi bi-person-lines-fill fs-5"></i>
+                    </div>
+                    <div>
+                        <h2 class="h5 fw-bold text-serif mb-0">
+                            @(IsItalian ? "I Tuoi Diritti GDPR" : "Your Rights Under GDPR")
+                        </h2>
+                        <span class="small text-muted">@(IsItalian ? "Artt. 15-22 Regolamento UE 2016/679" : "Articles 15-22 EU Regulation 2016/679")</span>
+                    </div>
+                </div>
+                <div class="text-muted small" style="line-height: 1.7;">
+                    <div class="mb-2">
+                        <strong class="text-primary"><i class="bi bi-eye me-1"></i>@(IsItalian ? "Accesso & Portabilità (Artt. 15 e 20):" : "Access & Portability (Art. 15 & 20):")</strong>
+                        @(IsItalian 
+                            ? "Puoi scaricare istantaneamente tutti i tuoi dati personali e recensioni in formato strutturato (JSON/CSV) dal tuo pannello utente." 
+                            : "You can download all your personal profile records and reviews in a structured format (JSON/CSV) directly from your user panel.")
+                    </div>
+                    <div class="mb-2">
+                        <strong class="text-primary"><i class="bi bi-pencil me-1"></i>@(IsItalian ? "Rettifica (Art. 16):" : "Rectification (Art. 16):")</strong>
+                        @(IsItalian 
+                            ? "Puoi aggiornare le tue credenziali, password, passkey e informazioni personali in qualsiasi momento." 
+                            : "You can update credentials, passwords, passkeys, and contact metadata at any time.")
+                    </div>
+                    <div class="mb-2">
+                        <strong class="text-primary"><i class="bi bi-shield-x me-1"></i>@(IsItalian ? "Cancellazione / Oblio (Art. 17):" : "Erasure / Oblivion (Art. 17):")</strong>
+                        @(IsItalian 
+                            ? "Attivabile con un clic tramite il Protocollo Ghosting descritto sopra." 
+                            : "Accessible via one-click self-service using our Ghosting Protocol.")
+                    </div>
+                    <div>
+                        <strong class="text-primary"><i class="bi bi-shield-slash me-1"></i>@(IsItalian ? "Reclamo all'Autorità:" : "Supervisory Complaint:")</strong>
+                        @(IsItalian 
+                            ? "Hai il diritto di proporre reclamo all'Autorità Garante per la Protezione dei Dati Personali (www.garanteprivacy.it)." 
+                            : "You retain the right to lodge a complaint with your local EU Data Protection Authority.")
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        @* Card 6: Cookies & Storage *@
+        <div class="col-lg-6" id="cookies">
+            <div class="card-sanctuary h-100 border border-light p-4">
+                <div class="d-flex align-items-center gap-3 mb-3">
+                    <div class="bg-primary bg-opacity-10 text-primary p-2 rounded-3 d-flex align-items-center justify-content-center" style="width: 44px; height: 44px;">
+                        <i class="bi bi-cookie fs-5"></i>
+                    </div>
+                    <div>
+                        <h2 class="h5 fw-bold text-serif mb-0">
+                            @(IsItalian ? "Cookie & Tracciamento" : "Cookies & Storage Policy")
+                        </h2>
+                        <span class="small text-muted">@(IsItalian ? "Nessun Cookie Pubblicitario" : "No Advertising Trackers")</span>
+                    </div>
+                </div>
+                <p class="text-muted small" style="line-height: 1.7;">
+                    @(IsItalian 
+                        ? "BiblioNet impiega esclusivamente cookie tecnici strettamente necessari al funzionamento del sito e all'erogazione del servizio:" 
+                        : "BiblioNet uses strictly essential technical cookies required for proper application functionality and security:")
+                </p>
+                <ul class="text-muted small list-unstyled mb-0" style="line-height: 1.6;">
+                    <li class="mb-1"><i class="bi bi-check2 text-primary me-2"></i><strong>.AspNetCore.Identity.Application:</strong> @(IsItalian ? "Mantenimento della sessione di accesso sicura." : "Maintains authenticated user session state.")</li>
+                    <li class="mb-1"><i class="bi bi-check2 text-primary me-2"></i><strong>.AspNetCore.Antiforgery:</strong> @(IsItalian ? "Protezione contro attacchi Cross-Site Request Forgery (CSRF)." : "Prevents Cross-Site Request Forgery attacks.")</li>
+                    <li class="mb-1"><i class="bi bi-check2 text-primary me-2"></i><strong>Tenant / Culture Context:</strong> @(IsItalian ? "Memorizzazione del circuito bibliotecario e lingua selezionata." : "Stores active library tenant and UI culture preferences.")</li>
+                </ul>
+                <div class="mt-3 p-2 bg-success bg-opacity-10 text-success rounded-2 small d-flex align-items-center gap-2">
+                    <i class="bi bi-shield-check"></i>
+                    <span>@(IsItalian ? "Nessun cookie di profilazione o tracciamento commerciale di terze parti viene utilizzato." : "No commercial profiling trackers or third-party ad networks are used.")</span>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    @* Actions Footer *@
+    <div class="card-sanctuary p-4 text-center bg-surface-lowest border text-fade-in animation-delay-3">
+        <h3 class="h5 fw-bold text-serif mb-2">
+            @(IsItalian ? "Gestisci il tuo profilo e i tuoi dati personali" : "Manage Your Profile and Personal Data")
+        </h3>
+        <p class="text-muted small mx-auto mb-4" style="max-width: 600px;">
+            @(IsItalian 
+                ? "Hai pieno controllo sui tuoi dati. Puoi scaricare la tua cronologia, modificare le credenziali o eseguire l'anonimizzazione in qualsiasi istante." 
+                : "You hold complete control over your data. Download your history, update credentials, or initiate complete anonymization whenever you want.")
+        </p>
+        <div class="d-flex flex-wrap justify-content-center gap-3">
+            <a href="Account/Manage/PersonalData" class="btn btn-sanctuary-primary">
+                <i class="bi bi-shield-lock"></i>
+                @(IsItalian ? "Gestione Dati Personali" : "Personal Data Dashboard")
+            </a>
+            <a href="mailto:info@biblionet.eu" class="btn btn-sanctuary-outline">
+                <i class="bi bi-envelope-at"></i>
+                @(IsItalian ? "Contatta il DPO / Privacy Desk" : "Contact Privacy Desk")
+            </a>
+            <a href="" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i>
+                @(IsItalian ? "Ritorna al Catalogo" : "Return to Catalog")
+            </a>
+        </div>
+    </div>
+
+</div>
+
+@code {
+    private bool IsItalian => CultureInfo.CurrentCulture.TwoLetterISOLanguageName.Equals("it", StringComparison.OrdinalIgnoreCase);
+}
+
+<style>
+    .text-fade-in {
+        animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        opacity: 0;
+    }
+    
+    .animation-delay-1 {
+        animation-delay: 0.15s;
+    }
+    
+    .animation-delay-2 {
+        animation-delay: 0.25s;
+    }
+    
+    .animation-delay-3 {
+        animation-delay: 0.35s;
+    }
+
+    @@keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(16px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+</style>
