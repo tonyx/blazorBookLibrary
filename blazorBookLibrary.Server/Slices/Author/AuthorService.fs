@@ -409,6 +409,18 @@ type AuthorService
                 |> List.filter (fun a -> tenantId = a.TenantId)
         }
 
+    member this.AutocompleteAsync(context: UserContext, query: string, ?limit: int, ?ct: CancellationToken) =
+        let limit = defaultArg limit 8
+        let ct = defaultArg ct CancellationToken.None
+        taskResult {
+            if String.IsNullOrWhiteSpace query || query.Trim().Length < 2 then
+                return []
+            else
+                let! authors = this.GetAllAuthorsFilteredByName(context, Name.New(query.Trim()), ct)
+                return authors |> Seq.truncate limit |> List.ofSeq
+        }
+
+
     member this.GetAllAuthorsFilteredByIsni(context: UserContext, isni: Isni, ?ct: CancellationToken) =
         let ct = defaultArg ct CancellationToken.None
 
@@ -558,3 +570,8 @@ type AuthorService
         member this.SearchByIsniAndNameAsync(context, isni: Isni, name: Name, ?ct: CancellationToken) =
             let ct = defaultArg ct CancellationToken.None
             this.GetAllAuthorsFilteredByIsniAndName(context, isni, name, ct)
+
+        member this.AutocompleteAsync(context, query, ?limit, ?ct) =
+            let ct = defaultArg ct CancellationToken.None
+            this.AutocompleteAsync(context, query, ?limit = limit, ct = ct)
+

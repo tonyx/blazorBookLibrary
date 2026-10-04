@@ -243,3 +243,15 @@ type AuthorsController(authorService: IAuthorService, hubContext: Microsoft.AspN
             | Ok authors -> return this.Ok(authors) :> IActionResult
             | Error msg -> return this.BadRequest(msg) :> IActionResult
         }
+
+    [<HttpGet("autocomplete")>]
+    member this.Autocomplete([<FromQuery>] q: string, [<FromQuery>] limit: Nullable<int>) =
+        task {
+            let context = UserContextMapper.mapFromRequest this.Request
+            let limitOpt = if limit.HasValue then Some limit.Value else None
+            let! result = authorService.AutocompleteAsync(context, (if isNull q then "" else q), ?limit = limitOpt)
+            match result with
+            | Ok authors -> return this.Ok(authors) :> IActionResult
+            | Error msg -> return this.BadRequest(msg) :> IActionResult
+        }
+

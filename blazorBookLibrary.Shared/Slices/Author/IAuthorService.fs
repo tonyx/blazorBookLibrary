@@ -32,3 +32,5 @@ type IAuthorService =
     abstract member SearchByNameAsync: context: UserContext * name: Name * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<List<Author>, string>>
     abstract member SearchByIsniAsync: context: UserContext * strisni: Isni * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<List<Author>, string>>
     abstract member SearchByIsniAndNameAsync: context: UserContext * isni: Isni * name: Name * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<List<Author>, string>>
+    abstract member AutocompleteAsync: context: UserContext * query: string * [<Optional; DefaultParameterValue(null)>] ?limit: int * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<List<Author>, string>>
+

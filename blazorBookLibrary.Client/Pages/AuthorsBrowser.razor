@@ -30,18 +30,84 @@
     <div class="card-sanctuary mb-5 p-4 border-0 shadow-none bg-surface-low rounded-pill-sm">
         <div class="row g-3 align-items-center">
             <div class="col-md-9">
-                <div class="input-group input-group-lg">
-                    <span class="input-group-text bg-transparent border-end-0 text-muted ps-4">
-                        <i class="bi bi-search"></i>
-                    </span>
-                    <input type="text" 
-                           class="form-control border-start-0 py-3 ps-0 no-focus-ring bg-transparent" 
-                           placeholder="@L["SearchByName"]"
-                           @bind="searchTerm"
-                           @bind:event="oninput"
-                           @onkeyup="HandleKeyUp" />
+                <div class="position-relative">
+                    <div class="input-group input-group-lg">
+                        <span class="input-group-text bg-transparent border-end-0 text-muted ps-4">
+                            <i class="bi bi-search"></i>
+                        </span>
+                        <input type="text" 
+                               class="form-control border-start-0 py-3 ps-0 no-focus-ring bg-transparent" 
+                               placeholder="@L["SearchByName"]"
+                               value="@searchTerm"
+                               @oninput="HandleNameInput"
+                               @onkeydown="HandleKeyDown"
+                               @onfocus="HandleFocus"
+                               @onblur="HandleBlur"
+                               role="combobox"
+                               aria-autocomplete="list"
+                               aria-expanded="@(showAutocompleteDropdown ? "true" : "false")"
+                               aria-controls="author-autocomplete-dropdown" />
+                        @if (isLoadingAutocomplete)
+                        {
+                            <span class="input-group-text bg-transparent border-start-0 pe-4">
+                                <span class="spinner-border spinner-border-sm text-primary" role="status" style="width: 1rem; height: 1rem;"></span>
+                            </span>
+                        }
+                    </div>
+
+                    @if (showAutocompleteDropdown && autocompleteSuggestions.Any())
+                    {
+                        <div id="author-autocomplete-dropdown" 
+                             class="autocomplete-dropdown-panel shadow-lg border-0 bg-surface-lowest position-absolute start-0 end-0 mt-1" 
+                             role="listbox"
+                             style="z-index: 1050; border-radius: var(--radius-lg, 14px); overflow: hidden; border: 1px solid var(--outline-variant, #e0e0e0) !important;">
+                            <div class="py-1" style="max-height: 380px; overflow-y: auto;">
+                                @for (int i = 0; i < autocompleteSuggestions.Count; i++)
+                                {
+                                    var author = autocompleteSuggestions[i];
+                                    var isSelected = (i == activeSuggestionIndex);
+                                    <div class="autocomplete-item px-3 py-2 d-flex align-items-center justify-content-between @(isSelected ? "bg-surface-high text-primary" : "")"
+                                         role="option"
+                                         aria-selected="@(isSelected ? "true" : "false")"
+                                         id="@($"author-suggestion-{i}")"
+                                         style="cursor: pointer; transition: background-color 0.15s ease;"
+                                         @onmousedown="() => SelectSuggestion(author)">
+                                        <div class="d-flex align-items-center gap-3 overflow-hidden me-2">
+                                            <div class="bg-surface-low rounded-circle overflow-hidden shadow-sm flex-shrink-0 d-flex align-items-center justify-content-center" 
+                                                 style="width: 38px; height: 38px; border: 1px solid var(--outline-variant, #e0e0e0);">
+                                                @if (author.ImageUri != null && FSharpOption<Uri>.get_IsSome(author.ImageUri))
+                                                {
+                                                    <img src="@author.ImageUri.Value.ToString()" class="w-100 h-100" style="object-fit: cover;" alt="@author.Name.Value" />
+                                                }
+                                                else
+                                                {
+                                                    <i class="bi bi-person-fill text-muted opacity-50" style="font-size: 1.1rem;"></i>
+                                                }
+                                            </div>
+                                            <div class="text-truncate">
+                                                <div class="fw-bold text-truncate text-serif" style="font-size: 0.95rem;">@author.Name.Value</div>
+                                                @if (!string.IsNullOrWhiteSpace(author.Isni.Value))
+                                                {
+                                                    <div class="small text-muted font-monospace" style="font-size: 0.72rem; opacity: 0.8;">ISNI: @author.Isni.Value</div>
+                                                }
+                                            </div>
+                                        </div>
+                                        <div class="flex-shrink-0 text-end">
+                                            <a href="/author-view/@author.AuthorId.Value" 
+                                               class="btn btn-sm btn-link text-muted p-1 hover-primary"
+                                               title="@L["ViewDetails"]"
+                                               @onmousedown:stopPropagation="true">
+                                                <i class="bi bi-arrow-up-right-square fs-6"></i>
+                                            </a>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    }
                 </div>
             </div>
+
             <div class="col-md-3">
                 <button class="btn btn-primary w-100 py-2 rounded-pill" @onclick="PerformSearch" disabled="@isLoading">
                     @if (isLoading)
@@ -169,13 +235,156 @@
         return blazorBookLibrary.Shared.ConverterUtils.fromClaimsPrincipal(authState.User);
     }
 
-    private async Task HandleKeyUp(KeyboardEventArgs e)
+    private List<Author> autocompleteSuggestions = new();
+    private bool showAutocompleteDropdown = false;
+    private bool isLoadingAutocomplete = false;
+    private int activeSuggestionIndex = -1;
+    private CancellationTokenSource? _autocompleteCts;
+
+    private void CancelAutocompleteToken()
     {
-        if (e.Key == "Enter")
+        if (_autocompleteCts != null)
         {
-            await PerformSearch();
+            try
+            {
+                if (!_autocompleteCts.IsCancellationRequested)
+                {
+                    _autocompleteCts.Cancel();
+                }
+            }
+            catch (ObjectDisposedException) { }
+            catch (AggregateException) { }
+
+            try
+            {
+                _autocompleteCts.Dispose();
+            }
+            catch (ObjectDisposedException) { }
+
+            _autocompleteCts = null;
         }
     }
+
+    private async Task HandleNameInput(ChangeEventArgs e)
+    {
+        searchTerm = e.Value?.ToString() ?? "";
+        activeSuggestionIndex = -1;
+
+        CancelAutocompleteToken();
+
+        if (string.IsNullOrWhiteSpace(searchTerm) || searchTerm.Trim().Length < 2)
+        {
+            autocompleteSuggestions.Clear();
+            showAutocompleteDropdown = false;
+            isLoadingAutocomplete = false;
+            return;
+        }
+
+        var cts = new CancellationTokenSource();
+        _autocompleteCts = cts;
+        var token = cts.Token;
+
+        try
+        {
+            isLoadingAutocomplete = true;
+            await Task.Delay(250, token);
+
+            var context = await GetContext();
+            var result = await AuthorService.AutocompleteAsync(context, searchTerm.Trim(), FSharpOption<int>.Some(8), FSharpOption<CancellationToken>.Some(token));
+
+            if (!token.IsCancellationRequested)
+            {
+                if (result.IsOk)
+                {
+                    autocompleteSuggestions = result.ResultValue.ToList();
+                    showAutocompleteDropdown = autocompleteSuggestions.Any();
+                }
+                else
+                {
+                    autocompleteSuggestions.Clear();
+                    showAutocompleteDropdown = false;
+                }
+            }
+        }
+        catch (OperationCanceledException) { }
+        catch (Exception)
+        {
+            autocompleteSuggestions.Clear();
+            showAutocompleteDropdown = false;
+        }
+        finally
+        {
+            if (!token.IsCancellationRequested)
+            {
+                isLoadingAutocomplete = false;
+                StateHasChanged();
+            }
+        }
+    }
+
+    private async Task HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (!showAutocompleteDropdown || !autocompleteSuggestions.Any())
+        {
+            if (e.Key == "Enter")
+            {
+                await PerformSearch();
+            }
+            return;
+        }
+
+        if (e.Key == "ArrowDown")
+        {
+            activeSuggestionIndex = (activeSuggestionIndex + 1) % autocompleteSuggestions.Count;
+        }
+        else if (e.Key == "ArrowUp")
+        {
+            activeSuggestionIndex = activeSuggestionIndex <= 0 ? autocompleteSuggestions.Count - 1 : activeSuggestionIndex - 1;
+        }
+        else if (e.Key == "Enter")
+        {
+            if (activeSuggestionIndex >= 0 && activeSuggestionIndex < autocompleteSuggestions.Count)
+            {
+                var selected = autocompleteSuggestions[activeSuggestionIndex];
+                await SelectSuggestion(selected);
+            }
+            else
+            {
+                showAutocompleteDropdown = false;
+                await PerformSearch();
+            }
+        }
+        else if (e.Key == "Escape")
+        {
+            showAutocompleteDropdown = false;
+            activeSuggestionIndex = -1;
+        }
+    }
+
+    private async Task SelectSuggestion(Author author)
+    {
+        searchTerm = author.Name.Value;
+        showAutocompleteDropdown = false;
+        activeSuggestionIndex = -1;
+        await PerformSearch();
+    }
+
+    private void HandleFocus()
+    {
+        if (autocompleteSuggestions.Any() && !string.IsNullOrWhiteSpace(searchTerm) && searchTerm.Trim().Length >= 2)
+        {
+            showAutocompleteDropdown = true;
+        }
+    }
+
+    private async Task HandleBlur()
+    {
+        await Task.Delay(250);
+        showAutocompleteDropdown = false;
+        activeSuggestionIndex = -1;
+        StateHasChanged();
+    }
+
 
     private async Task PerformSearch()
     {
@@ -209,9 +418,11 @@
 
     public async ValueTask DisposeAsync()
     {
+        CancelAutocompleteToken();
         if (hubConnection is not null)
         {
             await hubConnection.DisposeAsync();
         }
     }
+
 }

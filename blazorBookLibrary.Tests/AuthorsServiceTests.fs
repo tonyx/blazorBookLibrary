@@ -249,6 +249,28 @@ let tests =
             Expect.isError removeResult "should be error as author has books"
         }
 
+        testCaseTask "autocomplete authors by prefix and substring - Ok" <| fun _ -> task {
+            setUp ()
+            let authorService = getAuthorService()
+            let a1 = Author.NewWithoutIsni TenantId.Default (Name.New "J.R.R. Tolkien")
+            let a2 = Author.NewWithoutIsni TenantId.Default (Name.New "Leo Tolstoy")
+            let a3 = Author.NewWithoutIsni TenantId.Default (Name.New "George Orwell")
+
+            let! _ = (authorService :> IAuthorService).AddAuthorsAsync(adminContext, [a1; a2; a3])
+
+            let! res = (authorService :> IAuthorService).AutocompleteAsync(UserContext.Anonymous, "Tol", Some 10, None)
+            Expect.isOk res "should be ok"
+            let results = res |> Result.get
+            Expect.equal results.Length 2 "should return Tolkien and Tolstoy"
+            Expect.isTrue (results |> List.exists (fun a -> a.AuthorId = a1.AuthorId)) "contains Tolkien"
+            Expect.isTrue (results |> List.exists (fun a -> a.AuthorId = a2.AuthorId)) "contains Tolstoy"
+
+            let! limitRes = (authorService :> IAuthorService).AutocompleteAsync(UserContext.Anonymous, "Tol", Some 1, None)
+            Expect.isOk limitRes "should be ok"
+            let limitResults = limitRes |> Result.get
+            Expect.equal limitResults.Length 1 "should respect max suggestions limit"
+        }
+
     ]
 
     |> testSequenced
