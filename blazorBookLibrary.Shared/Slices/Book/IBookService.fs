@@ -6,11 +6,14 @@ open System.Threading.Tasks
 
 open System.Runtime.InteropServices
 open BookLibrary.Domain
+open BookLibrary.Shared
 open BookLibrary.Shared.Commons
 
 type BookSearchCriteria = delegate of Book -> bool
 
 type IBookService =
+    abstract member AutocompleteAsync : context:UserContext * query: string * [<Optional; DefaultParameterValue(null)>] ?limit: int * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<List<AutocompleteSuggestion>, string>>
+
     abstract member AddBookAsync : context:UserContext * book: Book * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<unit, string>>
     abstract member AddBooksAsync : context:UserContext * books: List<Book> * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<unit, string>>
     abstract member AddAuthorToBookAsync : context:UserContext * authorId: AuthorId * bookId: BookId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<unit, string>>

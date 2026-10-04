@@ -705,6 +705,61 @@ type BookService
                 return booksWithId |> List.ofSeq |> List.map snd
             }
 
+    member this.AutocompleteAsync(context: UserContext, query: string, ?limit: int, ?ct: CancellationToken) =
+        let limit = defaultArg limit 8
+        let ct = defaultArg ct CancellationToken.None
+        taskResult {
+            if String.IsNullOrWhiteSpace query || query.Trim().Length < 2 then
+                return []
+            else
+                let! tenantId = userTenantResolverService.GetTenantForUserAsync(context, ct)
+                let trimmed = query.Trim()
+                let filter (book: Book) =
+                    book.TenantId = tenantId &&
+                    (
+                        (not (String.IsNullOrWhiteSpace book.Title.Value) && book.Title.Value.Contains(trimmed, StringComparison.OrdinalIgnoreCase)) ||
+                        (not (String.IsNullOrWhiteSpace book.Isbn.Value) && book.Isbn.Value.Contains(trimmed, StringComparison.OrdinalIgnoreCase)) ||
+                        (match book.SbnCode with Some sbn -> not (String.IsNullOrWhiteSpace sbn.Value) && sbn.Value.Contains(trimmed, StringComparison.OrdinalIgnoreCase) | None -> false)
+                    )
+                let! booksWithId = StateView.getAllFilteredAggregateStatesAsync<Book, BookEvent, string> filter eventStore (Some ct)
+                let matchedBooks = 
+                    booksWithId
+                    |> Seq.map snd
+                    |> Seq.truncate limit
+                    |> List.ofSeq
+
+                let! suggestions =
+                    task {
+                        let results = System.Collections.Generic.List<AutocompleteSuggestion>()
+                        for book in matchedBooks do
+                            let authorNames = System.Collections.Generic.List<string>()
+                            for authorId in book.Authors do
+                                let! authorRes = authorViewerAsync (Some ct) authorId.Value
+                                match authorRes with
+                                | Ok (_, author) -> authorNames.Add(author.Name.Value)
+                                | Error _ -> ()
+                            let authorsStr = String.Join(", ", authorNames)
+                            let imgUrl =
+                                match book.ImageUrl with
+                                | Some uri -> Some (uri.ToString())
+                                | None -> None
+                            let isbnStr = if String.IsNullOrWhiteSpace book.Isbn.Value then "" else book.Isbn.Value
+                            results.Add({
+                                BookId = book.BookId.Value
+                                Title = book.Title.Value
+                                Authors = authorsStr
+                                Year = Some book.Year.Value
+                                Isbn = isbnStr
+                                MainCategory = book.MainCategory.Value()
+                                ImageUrl = imgUrl
+                                AvailabilityStatus = book.AvailabilityStatus
+                            })
+                        return List.ofSeq results
+                    }
+                return suggestions
+        }
+
+
     member this.SearchBooksByYearAsync(context: UserContext, year: YearSearch, ?criteria: BookSearchCriteria, ?ct: CancellationToken) = 
         let criteria = defaultArg (criteria |> Option.bind Option.ofObj) SearchCriteria.searchAllBooks
         taskResult
@@ -1482,6 +1537,9 @@ type BookService
             }
 
     interface IBookService with                
+        member this.AutocompleteAsync(context: UserContext, query: string, ?limit: int, ?ct: CancellationToken) =
+            let ct = defaultArg ct CancellationToken.None
+            this.AutocompleteAsync(context, query, ?limit = limit, ct = ct)
         member this.AddAuthorToBookAsync(context: UserContext, authorId: AuthorId, bookId: BookId, ?ct: CancellationToken ) =
             let ct = defaultArg ct CancellationToken.None
             let dateTime = System.DateTime.Now

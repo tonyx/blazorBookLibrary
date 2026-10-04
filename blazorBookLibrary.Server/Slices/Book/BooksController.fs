@@ -42,6 +42,17 @@ type BooksController(bookService: IBookService, hubContext: Microsoft.AspNetCore
             | Error msg -> return this.BadRequest(msg) :> IActionResult
         }
 
+    [<HttpGet("autocomplete")>]
+    member this.Autocomplete([<FromQuery>] q: string, [<FromQuery>] limit: Nullable<int>) =
+        task {
+            let context = UserContextMapper.mapFromRequest this.Request
+            let limitOpt = if limit.HasValue then Some limit.Value else None
+            let! result = bookService.AutocompleteAsync(context, (if isNull q then "" else q), ?limit = limitOpt)
+            match result with
+            | Ok suggestions -> return this.Ok(suggestions) :> IActionResult
+            | Error msg -> return this.BadRequest(msg) :> IActionResult
+        }
+
     [<HttpPost>]
     member this.AddBook(book: Book) =
         task {

@@ -57,6 +57,31 @@ let tests =
             Expect.isTrue (bookDetail.ReservationsDetails |> List.exists (fun r -> r.Reservation.ReservationId = reservation.ReservationId)) "should contain the reservation"
         }
 
+        testCaseTask "AutocompleteAsync returns matching books with resolved authors - Ok" <| fun _ -> task {
+            setUp ()
+            let bookService = getBookService()
+            let authorService = getAuthorService()
+
+            let author = Author.NewWithoutIsni TenantId.Default (Name.New "Arthur Conan Doyle")
+            let! addAuthor = authorService.AddAuthorAsync(adminContext, author)
+            Expect.isOk addAuthor "should be ok"
+
+            let book1 = Book.New TenantId.Default (Title.New "A Study in Scarlet") [author.AuthorId] [] [] None Category.Other [] (Year.New 1887) (Isbn.NewInvalid "1234567890") None
+            let book2 = Book.New TenantId.Default (Title.New "The Sign of the Four") [author.AuthorId] [] [] None Category.Other [] (Year.New 1890) (Isbn.NewInvalid "9876543210") None
+            let! add1 = bookService.AddBookAsync(adminContext, book1)
+            let! add2 = bookService.AddBookAsync(adminContext, book2)
+            Expect.isOk add1 "should be ok"
+            Expect.isOk add2 "should be ok"
+
+            let! autocompleteResult = bookService.AutocompleteAsync(adminContext, "Scarlet")
+            Expect.isOk autocompleteResult "should be ok"
+            let suggestions = autocompleteResult |> Result.get
+            Expect.equal suggestions.Length 1 "should have 1 suggestion"
+            Expect.equal suggestions.Head.Title "A Study in Scarlet" "title should match"
+            Expect.equal suggestions.Head.Authors "Arthur Conan Doyle" "author name should be resolved"
+            Expect.equal suggestions.Head.BookId book1.BookId.Value "book id should match"
+        }
+
         testCaseTask "if a book has no reservations then you can loan it - Ok" <| fun _ -> task {
             setUp ()
             let bookService = getBookService()

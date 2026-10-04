@@ -433,4 +433,17 @@ public class BookClientService : IBookService
         var response = await _httpClient.SendAsync(request, ServiceClientHelper.GetValue(ct, CancellationToken.None));
         return await ServiceClientHelper.HandleUnitResponse(response);
     }
+
+    public async Task<FSharpResult<FSharpList<AutocompleteSuggestion>, string>> AutocompleteAsync(Commons.UserContext context, string query, FSharpOption<int> limit, FSharpOption<CancellationToken> ct)
+    {
+        var limitVal = limit != null && FSharpOption<int>.get_IsSome(limit) ? limit.Value : 8;
+        var cancellationToken = ServiceClientHelper.GetValue(ct, CancellationToken.None);
+        var request = ServiceClientHelper.CreateRequest(HttpMethod.Get, $"api/Books/autocomplete?q={Uri.EscapeDataString(query ?? "")}&limit={limitVal}", context);
+        var response = await _httpClient.SendAsync(request, cancellationToken);
+        var result = await ServiceClientHelper.HandleResponse<List<AutocompleteSuggestion>>(response);
+        return result.IsOk
+            ? FSharpResult<FSharpList<AutocompleteSuggestion>, string>.NewOk(ListModule.OfSeq(result.ResultValue))
+            : FSharpResult<FSharpList<AutocompleteSuggestion>, string>.NewError(result.ErrorValue);
+    }
 }
+

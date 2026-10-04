@@ -19,6 +19,7 @@
 @inject ILogger<BookSearchToolbar> Logger
 @inject AuthenticationStateProvider AuthStateProvider
 @inject IUserService UserService
+@implements IDisposable
 
 <div class="card-sanctuary bg-surface-lowest floating mb-3 p-0 overflow-hidden">
     <div class="px-3 px-md-5 pt-3 pt-md-4 pb-4">
@@ -26,21 +27,120 @@
         <EditForm Model="@this" OnValidSubmit="HandleBookSearch" FormName="SearchBookComponentForm">
             @if (searchMode == "Simple" || searchMode == "Advanced")
             {
-                <!-- The Entryway: Main Title Search -->
-                <div class="mb-2 d-flex align-items-stretch">
-                    <InputText class="search-entryway flex-grow-1" @bind-Value="searchBookTitle" placeholder="@L["SearchByTitlePlaceholder"]" style="border-top-right-radius: 0; border-bottom-right-radius: 0; border-right: none;" />
-                    <button type="submit" class="btn-sanctuary-primary d-flex align-items-center justify-content-center px-3 px-md-4" 
-                            disabled="@_isLoading" style="border-top-left-radius: 0; border-bottom-left-radius: 0; white-space: nowrap;">
-                        @if (_isLoading)
-                        {
-                            <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-                        }
-                        else
-                        {
-                            <i class="bi bi-search"></i>
-                        }
-                        <span class="d-none d-md-inline ms-2">@L["Search"]</span>
-                    </button>
+                <!-- The Entryway: Main Title Search with Autocomplete -->
+                <div class="position-relative mb-2">
+                    <div class="d-flex align-items-stretch">
+                        <div class="position-relative flex-grow-1">
+                            <input type="text" 
+                                   class="search-entryway w-100" 
+                                   value="@searchBookTitle" 
+                                   @oninput="HandleTitleInput" 
+                                   @onkeydown="HandleTitleKeyDown"
+                                   @onfocus="HandleTitleFocus"
+                                   @onblur="HandleTitleBlur"
+                                   placeholder="@L["SearchByTitlePlaceholder"]" 
+                                   role="combobox"
+                                   aria-autocomplete="list"
+                                   aria-expanded="@(showAutocompleteDropdown ? "true" : "false")"
+                                   aria-controls="title-autocomplete-dropdown"
+                                   style="border-top-right-radius: 0; border-bottom-right-radius: 0; border-right: none; padding-right: @(isLoadingAutocomplete ? "2.5rem" : "1.5rem");" />
+                            @if (isLoadingAutocomplete)
+                            {
+                                <div class="position-absolute top-50 translate-middle-y end-0 me-3 text-muted">
+                                    <span class="spinner-border spinner-border-sm text-primary" role="status" style="width: 1rem; height: 1rem;"></span>
+                                </div>
+                            }
+                        </div>
+                        <button type="submit" class="btn-sanctuary-primary d-flex align-items-center justify-content-center px-3 px-md-4" 
+                                disabled="@_isLoading" style="border-top-left-radius: 0; border-bottom-left-radius: 0; white-space: nowrap;">
+                            @if (_isLoading)
+                            {
+                                <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                            }
+                            else
+                            {
+                                <i class="bi bi-search"></i>
+                            }
+                            <span class="d-none d-md-inline ms-2">@L["Search"]</span>
+                        </button>
+                    </div>
+
+                    @if (showAutocompleteDropdown && autocompleteSuggestions.Any())
+                    {
+                        <div id="title-autocomplete-dropdown" 
+                             class="autocomplete-dropdown-panel shadow-lg border-0 bg-surface-lowest position-absolute start-0 end-0 mt-1" 
+                             role="listbox"
+                             style="z-index: 1050; border-radius: var(--radius-lg, 14px); overflow: hidden; border: 1px solid var(--outline-variant, #e0e0e0) !important;">
+                            <div class="py-1" style="max-height: 380px; overflow-y: auto;">
+                                @for (int i = 0; i < autocompleteSuggestions.Count; i++)
+                                {
+                                    var item = autocompleteSuggestions[i];
+                                    var isSelected = (i == activeSuggestionIndex);
+                                    <div class="autocomplete-item px-3 py-2 d-flex align-items-center justify-content-between @(isSelected ? "bg-surface-high text-primary" : "")"
+                                         role="option"
+                                         aria-selected="@(isSelected ? "true" : "false")"
+                                         id="@($"suggestion-item-{i}")"
+                                         style="cursor: pointer; transition: background-color 0.15s ease;"
+                                         @onmousedown="() => SelectSuggestion(item)">
+                                        <div class="d-flex align-items-center gap-3 overflow-hidden me-2">
+                                            <div class="flex-shrink-0 bg-surface-low rounded d-flex align-items-center justify-content-center overflow-hidden" 
+                                                 style="width: 36px; height: 50px;">
+                                                @if (item.ImageUrl != null && FSharpOption<string>.get_IsSome(item.ImageUrl) && !string.IsNullOrWhiteSpace(item.ImageUrl.Value))
+                                                {
+                                                    <img src="@item.ImageUrl.Value" alt="@item.Title" style="max-width: 100%; max-height: 100%; object-fit: cover;" />
+                                                }
+                                                else
+                                                {
+                                                    <i class="bi bi-journal-text text-muted opacity-50" style="font-size: 1.2rem;"></i>
+                                                }
+                                            </div>
+                                            <div class="text-truncate">
+                                                <div class="fw-bold text-truncate text-serif" style="font-size: 0.95rem;">@item.Title</div>
+                                                <div class="small text-muted text-truncate d-flex align-items-center gap-2">
+                                                    @if (!string.IsNullOrWhiteSpace(item.Authors))
+                                                    {
+                                                        <span><i class="bi bi-person me-1"></i>@item.Authors</span>
+                                                    }
+                                                    @if (item.Year != null && FSharpOption<int>.get_IsSome(item.Year))
+                                                    {
+                                                        <span class="opacity-75">(@item.Year.Value)</span>
+                                                    }
+                                                    @if (!string.IsNullOrWhiteSpace(item.MainCategory))
+                                                    {
+                                                        <span class="badge-sanctuary badge-neutral ms-1" style="font-size: 0.7rem; padding: 2px 6px;">@item.MainCategory</span>
+                                                    }
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="flex-shrink-0 text-end d-flex align-items-center gap-2">
+                                            @if (item.AvailabilityStatus == BookLibrary.Shared.Commons.AvailabilityStatus.Available)
+                                            {
+                                                <span class="badge bg-success-subtle text-success small rounded-pill px-2 py-1"><i class="bi bi-check-circle me-1"></i>@L["Available"]</span>
+                                            }
+                                            else if (item.AvailabilityStatus == BookLibrary.Shared.Commons.AvailabilityStatus.Reserved)
+                                            {
+                                                <span class="badge bg-warning-subtle text-warning small rounded-pill px-2 py-1"><i class="bi bi-clock-history me-1"></i>@L["Reserved"]</span>
+                                            }
+                                            else if (item.AvailabilityStatus == BookLibrary.Shared.Commons.AvailabilityStatus.NotAvailable)
+                                            {
+                                                <span class="badge bg-danger-subtle text-danger small rounded-pill px-2 py-1"><i class="bi bi-x-circle me-1"></i>@L["NotAvailable"]</span>
+                                            }
+                                            else if (item.AvailabilityStatus == BookLibrary.Shared.Commons.AvailabilityStatus.Consultable)
+                                            {
+                                                <span class="badge bg-info-subtle text-info small rounded-pill px-2 py-1"><i class="bi bi-eye me-1"></i>@L["Consultable"]</span>
+                                            }
+                                            <a href="/book-view/@item.BookId" 
+                                               class="btn btn-sm btn-link text-muted p-1 hover-primary"
+                                               title="@L["BookDetails"]"
+                                               @onmousedown:stopPropagation="true">
+                                                <i class="bi bi-arrow-up-right-square fs-6"></i>
+                                            </a>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    }
                 </div>
                 <div class="d-flex align-items-center mb-4 mb-md-5 ms-1">
                     <div class="form-check form-check-inline mb-0">
@@ -365,6 +465,11 @@
     private bool includePapersInTagsSearch = false;
 
     private string searchBookTitle = "";
+    private List<AutocompleteSuggestion> autocompleteSuggestions = new();
+    private bool showAutocompleteDropdown = false;
+    private bool isLoadingAutocomplete = false;
+    private int activeSuggestionIndex = -1;
+    private CancellationTokenSource? _autocompleteCts;
     private string searchBookIsbn = "";
     private string searchBookSbnCode = "";
     private string sbnSearchMode = "contains"; // contains, exact, hasSbn, missingSbn
@@ -889,5 +994,148 @@
         }
     }
 
+    private void CancelAutocompleteToken()
+    {
+        if (_autocompleteCts != null)
+        {
+            try
+            {
+                if (!_autocompleteCts.IsCancellationRequested)
+                {
+                    _autocompleteCts.Cancel();
+                }
+            }
+            catch (ObjectDisposedException) { }
+            catch (AggregateException) { }
+
+            try
+            {
+                _autocompleteCts.Dispose();
+            }
+            catch (ObjectDisposedException) { }
+
+            _autocompleteCts = null;
+        }
+    }
+
+    private async Task HandleTitleInput(ChangeEventArgs e)
+    {
+        searchBookTitle = e.Value?.ToString() ?? "";
+        activeSuggestionIndex = -1;
+
+        CancelAutocompleteToken();
+
+        if (string.IsNullOrWhiteSpace(searchBookTitle) || searchBookTitle.Trim().Length < 2)
+        {
+            autocompleteSuggestions.Clear();
+            showAutocompleteDropdown = false;
+            isLoadingAutocomplete = false;
+            return;
+        }
+
+        var cts = new CancellationTokenSource();
+        _autocompleteCts = cts;
+        var token = cts.Token;
+
+        try
+        {
+            isLoadingAutocomplete = true;
+            await Task.Delay(250, token);
+
+            var userContext = await GetUserContextAsync();
+            var result = await BookService.AutocompleteAsync(userContext, searchBookTitle.Trim(), FSharpOption<int>.Some(8), FSharpOption<CancellationToken>.Some(token));
+
+            if (!token.IsCancellationRequested)
+            {
+                if (result.IsOk)
+                {
+                    autocompleteSuggestions = result.ResultValue.ToList();
+                    showAutocompleteDropdown = autocompleteSuggestions.Any();
+                }
+                else
+                {
+                    autocompleteSuggestions.Clear();
+                    showAutocompleteDropdown = false;
+                }
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // Debounced or superseded
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Error during title autocompletion");
+        }
+        finally
+        {
+            if (!token.IsCancellationRequested)
+            {
+                isLoadingAutocomplete = false;
+                StateHasChanged();
+            }
+        }
+    }
+
+    private async Task HandleTitleKeyDown(KeyboardEventArgs e)
+    {
+        if (!showAutocompleteDropdown || !autocompleteSuggestions.Any())
+        {
+            return;
+        }
+
+        if (e.Key == "ArrowDown")
+        {
+            activeSuggestionIndex = (activeSuggestionIndex + 1) % autocompleteSuggestions.Count;
+        }
+        else if (e.Key == "ArrowUp")
+        {
+            activeSuggestionIndex = activeSuggestionIndex <= 0 ? autocompleteSuggestions.Count - 1 : activeSuggestionIndex - 1;
+        }
+        else if (e.Key == "Enter")
+        {
+            if (activeSuggestionIndex >= 0 && activeSuggestionIndex < autocompleteSuggestions.Count)
+            {
+                var selected = autocompleteSuggestions[activeSuggestionIndex];
+                await SelectSuggestion(selected);
+            }
+        }
+        else if (e.Key == "Escape")
+        {
+            showAutocompleteDropdown = false;
+            activeSuggestionIndex = -1;
+        }
+    }
+
+    private async Task SelectSuggestion(AutocompleteSuggestion suggestion)
+    {
+        searchBookTitle = suggestion.Title;
+        showAutocompleteDropdown = false;
+        activeSuggestionIndex = -1;
+        await HandleBookSearch();
+    }
+
+    private void HandleTitleFocus()
+    {
+        if (autocompleteSuggestions.Any() && !string.IsNullOrWhiteSpace(searchBookTitle) && searchBookTitle.Trim().Length >= 2)
+        {
+            showAutocompleteDropdown = true;
+        }
+    }
+
+    private async Task HandleTitleBlur()
+    {
+        await Task.Delay(250);
+        showAutocompleteDropdown = false;
+        activeSuggestionIndex = -1;
+        StateHasChanged();
+    }
+
+    public void Dispose()
+    {
+        CancelAutocompleteToken();
+    }
+
     public Task PerformSearch() => HandleBookSearch();
 }
+
