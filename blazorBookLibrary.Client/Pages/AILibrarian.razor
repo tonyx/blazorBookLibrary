@@ -2,6 +2,7 @@
 @using System.Web
 @using System.Text.RegularExpressions
 @using System.Threading
+@using System.Globalization
 @using Microsoft.FSharp.Collections
 @using Microsoft.FSharp.Core
 @using static BookLibrary.Shared.Commons
@@ -15,6 +16,7 @@
 @inject IJSRuntime JSRuntime
 @inject NavigationManager NavManager
 @rendermode InteractiveAuto
+@implements IAsyncDisposable
 
 <PageTitle>@L["AILibrarian"] — @L["BiblioNet"]</PageTitle>
 
@@ -52,6 +54,17 @@
                     <i class="bi bi-globe2 me-1"></i> @L["BroadKnowledgeMode"]
                 </button>
             </div>
+            
+            @if (_speechSynthSupported)
+            {
+                <button type="button" 
+                        class="btn btn-sm rounded-pill px-3 d-flex align-items-center gap-1 @(_autoSpeechEnabled ? "btn-primary shadow-xs" : "btn-outline-secondary")"
+                        @onclick="ToggleAutoSpeech"
+                        title="@L["AutoReadAloud"]">
+                    <i class="bi @(_autoSpeechEnabled ? "bi-volume-up-fill" : "bi-volume-mute")"></i>
+                    <span class="d-none d-sm-inline">@L["AutoReadAloud"]</span>
+                </button>
+            }
 
             @if (_contextBooks.Count > 0)
             {
@@ -130,9 +143,22 @@
                                     <span class="x-small fw-bold @(msg.Role == "user" ? "text-white-50" : "text-muted")">
                                         @(msg.Role == "user" ? "You" : L["AILibrarian"])
                                     </span>
-                                    <span class="x-small @(msg.Role == "user" ? "text-white-50" : "text-muted opacity-75")">
-                                        @msg.Timestamp.ToString("HH:mm")
-                                    </span>
+                                    <div class="d-flex align-items-center gap-2">
+                                        @if (msg.Role == "assistant" && _speechSynthSupported)
+                                        {
+                                            var currentIdx = _messages.IndexOf(msg);
+                                            var isSpeakingThis = (_currentlySpeakingIndex == currentIdx);
+                                            <button type="button" 
+                                                    class="btn btn-sm btn-link p-0 text-decoration-none speech-btn @(isSpeakingThis ? "text-danger" : "text-muted")"
+                                                    @onclick="() => ToggleSpeakMessage(currentIdx, msg.Content)"
+                                                    title="@(isSpeakingThis ? L["StopReading"] : L["ReadAloud"])">
+                                                <i class="bi @(isSpeakingThis ? "bi-stop-circle-fill animate-pulse" : "bi-volume-up")"></i>
+                                            </button>
+                                        }
+                                        <span class="x-small @(msg.Role == "user" ? "text-white-50" : "text-muted opacity-75")">
+                                            @msg.Timestamp.ToString("HH:mm")
+                                        </span>
+                                    </div>
                                 </div>
 
                                 <div class="message-body @(msg.Role == "user" ? "text-white" : "")" style="font-size: 0.95rem; line-height: 1.6;">
@@ -190,14 +216,46 @@
                         </div>
                     }
 
+                    @if (_isListening)
+                    {
+                        <div class="d-flex align-items-center justify-content-between px-3 py-1 mb-2 bg-danger-subtle text-danger rounded-pill x-small animate-fade-in border border-danger-subtle flex-wrap gap-2">
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="spinner-grow spinner-grow-sm text-danger" role="status" aria-hidden="true"></span>
+                                <span class="fw-semibold">@L["VoiceListening"]</span>
+                                <span class="badge bg-danger text-white rounded-pill px-2" style="font-size: 0.72rem;">@_speechLanguage</span>
+                            </div>
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="btn-group btn-group-sm bg-white rounded-pill border p-0 overflow-hidden" role="group">
+                                    <button type="button" class="btn btn-xs py-0 px-2 border-0 @(_speechLanguage == "it-IT" ? "btn-danger text-white fw-bold" : "btn-light text-muted")" style="font-size: 0.72rem;" @onclick='() => ChangeSpeechLanguage("it-IT")'>IT</button>
+                                    <button type="button" class="btn btn-xs py-0 px-2 border-0 @(_speechLanguage == "en-US" ? "btn-danger text-white fw-bold" : "btn-light text-muted")" style="font-size: 0.72rem;" @onclick='() => ChangeSpeechLanguage("en-US")'>EN</button>
+                                </div>
+                                <button type="button" class="btn btn-link btn-sm text-danger p-0 text-decoration-none fw-semibold ms-1" @onclick="StopListening">
+                                    <i class="bi bi-x-circle me-1"></i> @L["StopListening"]
+                                </button>
+                            </div>
+                        </div>
+                    }
+
                     <div class="input-group bg-surface rounded-xl shadow-sm border overflow-hidden p-1">
-                        <textarea class="form-control border-0 bg-transparent shadow-none px-3 py-2" 
+                        <textarea id="librarianChatInput"
+                                  class="form-control border-0 bg-transparent shadow-none px-3 py-2" 
                                   rows="2"
                                   placeholder="@L["AskLibrarianPlaceholder"]"
                                   @bind="_userInput"
                                   @bind:event="oninput"
                                   @onkeydown="HandleKeyDown"
                                   disabled="@_isThinking"></textarea>
+
+                        @if (_speechRecSupported)
+                        {
+                            <button class="btn @(_isListening ? "btn-danger" : "btn-light border") align-self-end m-1 px-3 py-2 rounded-xl transition-hover" 
+                                    type="button" 
+                                    @onclick="ToggleListening" 
+                                    disabled="@_isThinking"
+                                    title="@L["VoiceInput"]">
+                                <i class="bi @(_isListening ? "bi-mic-fill animate-pulse text-white" : "bi-mic text-primary")"></i>
+                            </button>
+                        }
 
                         <button class="btn-sanctuary-primary align-self-end m-1 px-3 py-2" 
                                 type="button" 
@@ -397,6 +455,23 @@
         transform: translateY(-1px);
         box-shadow: 0 2px 6px rgba(0, 85, 201, 0.25);
     }
+    @@keyframes pulse {
+        0% { transform: scale(1); opacity: 1; }
+        50% { transform: scale(1.18); opacity: 0.8; }
+        100% { transform: scale(1); opacity: 1; }
+    }
+    .animate-pulse {
+        animation: pulse 1.2s infinite ease-in-out;
+        display: inline-block;
+    }
+    .speech-btn {
+        transition: color 0.15s ease-in-out, transform 0.15s ease-in-out;
+        font-size: 0.95rem;
+    }
+    .speech-btn:hover {
+        transform: scale(1.15);
+        color: var(--primary) !important;
+    }
 </style>
 
 @code {
@@ -408,6 +483,32 @@
     private string _userInput = "";
     private bool _isThinking = false;
     private string? _errorMessage;
+
+    // Voice recognition & speech synthesis state
+    private DotNetObjectReference<AILibrarian>? _dotNetHelper;
+    private bool _speechRecSupported = false;
+    private bool _speechSynthSupported = false;
+    private bool _isListening = false;
+    private bool _autoSpeechEnabled = false;
+    private int _currentlySpeakingIndex = -1;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _dotNetHelper = DotNetObjectReference.Create(this);
+            try
+            {
+                _speechRecSupported = await JSRuntime.InvokeAsync<bool>("librarianSpeech.isRecognitionSupported");
+                _speechSynthSupported = await JSRuntime.InvokeAsync<bool>("librarianSpeech.isSynthesisSupported");
+                StateHasChanged();
+            }
+            catch
+            {
+                // Fallback in case JS environment doesn't allow immediate invoke
+            }
+        }
+    }
 
     private async Task<UserContext> GetUserContextAsync()
     {
@@ -425,8 +526,18 @@
         _forceNewSearch = !_forceNewSearch;
     }
 
-    private void ClearConversation()
+    private async Task ClearConversation()
     {
+        if (_currentlySpeakingIndex != -1)
+        {
+            await JSRuntime.InvokeVoidAsync("librarianSpeech.stopSpeaking", _dotNetHelper);
+            _currentlySpeakingIndex = -1;
+        }
+        if (_isListening)
+        {
+            await JSRuntime.InvokeVoidAsync("librarianSpeech.stopListening");
+            _isListening = false;
+        }
         _messages.Clear();
         _contextBooks.Clear();
         _scopeBookIds.Clear();
@@ -452,6 +563,17 @@
     {
         var text = _userInput.Trim();
         if (string.IsNullOrWhiteSpace(text) || _isThinking) return;
+
+        if (_isListening)
+        {
+            await JSRuntime.InvokeVoidAsync("librarianSpeech.stopListening");
+            _isListening = false;
+        }
+        if (_currentlySpeakingIndex != -1)
+        {
+            await JSRuntime.InvokeVoidAsync("librarianSpeech.stopSpeaking", _dotNetHelper);
+            _currentlySpeakingIndex = -1;
+        }
 
         _errorMessage = null;
         _isThinking = true;
@@ -515,6 +637,14 @@
 
                 // Reset force search flag once search has completed
                 _forceNewSearch = false;
+
+                // Auto-read aloud if enabled
+                if (_autoSpeechEnabled && _speechSynthSupported)
+                {
+                    var lastIndex = _messages.Count - 1;
+                    var culture = CultureInfo.CurrentUICulture.Name;
+                    _ = JSRuntime.InvokeVoidAsync("librarianSpeech.speak", _dotNetHelper, lastIndex, response.AnswerMarkdown, culture);
+                }
             }
             else
             {
@@ -606,4 +736,166 @@
 
         return finalSb.ToString();
     }
+
+    // Voice recognition & speech synthesis methods
+
+    private string _speechLanguage = "it-IT";
+
+    protected override void OnInitialized()
+    {
+        var current = CultureInfo.CurrentUICulture.Name;
+        _speechLanguage = current.StartsWith("it", StringComparison.OrdinalIgnoreCase) ? "it-IT" : "en-US";
+    }
+
+    private async Task ToggleListening()
+    {
+        if (_isListening)
+        {
+            await JSRuntime.InvokeVoidAsync("librarianSpeech.stopListening");
+            _isListening = false;
+        }
+        else
+        {
+            _errorMessage = null;
+            var started = await JSRuntime.InvokeAsync<bool>("librarianSpeech.startListening", _dotNetHelper, _speechLanguage);
+            _isListening = started;
+        }
+    }
+
+    private async Task ChangeSpeechLanguage(string lang)
+    {
+        _speechLanguage = lang;
+        if (_isListening)
+        {
+            await JSRuntime.InvokeVoidAsync("librarianSpeech.stopListening");
+            _errorMessage = null;
+            var started = await JSRuntime.InvokeAsync<bool>("librarianSpeech.startListening", _dotNetHelper, _speechLanguage);
+            _isListening = started;
+        }
+    }
+
+    private async Task StopListening()
+    {
+        await JSRuntime.InvokeVoidAsync("librarianSpeech.stopListening");
+        _isListening = false;
+    }
+
+    private void ToggleAutoSpeech()
+    {
+        _autoSpeechEnabled = !_autoSpeechEnabled;
+        if (!_autoSpeechEnabled && _currentlySpeakingIndex != -1)
+        {
+            _ = JSRuntime.InvokeVoidAsync("librarianSpeech.stopSpeaking", _dotNetHelper);
+            _currentlySpeakingIndex = -1;
+        }
+    }
+
+    private async Task ToggleSpeakMessage(int index, string markdownContent)
+    {
+        if (_currentlySpeakingIndex == index)
+        {
+            await JSRuntime.InvokeVoidAsync("librarianSpeech.stopSpeaking", _dotNetHelper);
+            _currentlySpeakingIndex = -1;
+        }
+        else
+        {
+            var culture = CultureInfo.CurrentUICulture.Name;
+            await JSRuntime.InvokeVoidAsync("librarianSpeech.speak", _dotNetHelper, index, markdownContent, culture);
+        }
+    }
+
+    [JSInvokable]
+    public async Task OnSpeechRecognized(string transcript, bool isFinal)
+    {
+        await InvokeAsync(() =>
+        {
+            if (!string.IsNullOrWhiteSpace(transcript))
+            {
+                _userInput = transcript;
+                StateHasChanged();
+            }
+        });
+    }
+
+    [JSInvokable]
+    public async Task OnSpeechCompleted(string finalTranscript)
+    {
+        await InvokeAsync(async () =>
+        {
+            _isListening = false;
+            if (!string.IsNullOrWhiteSpace(finalTranscript))
+            {
+                _userInput = finalTranscript.Trim();
+                _errorMessage = null;
+                StateHasChanged();
+                await SendMessage();
+            }
+            else
+            {
+                StateHasChanged();
+            }
+        });
+    }
+
+    [JSInvokable]
+    public async Task OnSpeechError(string error)
+    {
+        await InvokeAsync(() =>
+        {
+            _isListening = false;
+            if (!string.IsNullOrWhiteSpace(error))
+            {
+                _errorMessage = error;
+            }
+            StateHasChanged();
+        });
+    }
+
+    [JSInvokable]
+    public async Task OnSpeechEnd()
+    {
+        await InvokeAsync(() =>
+        {
+            _isListening = false;
+            StateHasChanged();
+        });
+    }
+
+    [JSInvokable]
+    public async Task OnSpeechSynthesisStatus(int messageIndex, bool isPlaying)
+    {
+        await InvokeAsync(() =>
+        {
+            if (isPlaying)
+            {
+                _currentlySpeakingIndex = messageIndex;
+            }
+            else if (_currentlySpeakingIndex == messageIndex || messageIndex == -1)
+            {
+                _currentlySpeakingIndex = -1;
+            }
+            StateHasChanged();
+        });
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            if (_isListening)
+            {
+                await JSRuntime.InvokeVoidAsync("librarianSpeech.stopListening");
+            }
+            if (_currentlySpeakingIndex != -1)
+            {
+                await JSRuntime.InvokeVoidAsync("librarianSpeech.stopSpeaking", _dotNetHelper);
+            }
+            _dotNetHelper?.Dispose();
+        }
+        catch
+        {
+            // Ignore JS errors during disposal
+        }
+    }
 }
+

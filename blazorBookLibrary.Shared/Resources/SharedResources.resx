@@ -61,6 +61,13 @@
   <data name="AILibrarian" xml:space="preserve"><value>AI Librarian</value></data>
   <data name="AILibrarianSubtitle" xml:space="preserve"><value>Conversational discovery powered by semantic catalog grounding</value></data>
   <data name="AILibrarianWelcome" xml:space="preserve"><value>Welcome! I am your AI Librarian. I can explore the library catalog, compare titles, identify underlying themes, and guide your reading journey. How can I help you today?</value></data>
+  <data name="VoiceInput" xml:space="preserve"><value>Voice Input</value></data>
+  <data name="VoiceListening" xml:space="preserve"><value>Listening... speak now</value></data>
+  <data name="VoiceNotSupported" xml:space="preserve"><value>Voice recognition is not supported in this browser.</value></data>
+  <data name="AutoReadAloud" xml:space="preserve"><value>Read Aloud</value></data>
+  <data name="ReadAloud" xml:space="preserve"><value>Listen to answer</value></data>
+  <data name="StopReading" xml:space="preserve"><value>Stop speaking</value></data>
+  <data name="StopListening" xml:space="preserve"><value>Cancel</value></data>
   <data name="AISearch" xml:space="preserve"><value>A.I. Search</value></data>
   <data name="AISemanticDiscovery" xml:space="preserve"><value>AI Semantic Discovery</value></data>
   <data name="AIVectorDataMissing" xml:space="preserve"><value>AI Vector Data Missing</value></data>

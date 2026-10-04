@@ -61,6 +61,13 @@
   <data name="AILibrarian" xml:space="preserve"><value>Bibliotecario IA</value></data>
   <data name="AILibrarianSubtitle" xml:space="preserve"><value>Scoperta conversazionale basata sull'ancoraggio semantico al catalogo</value></data>
   <data name="AILibrarianWelcome" xml:space="preserve"><value>Benvenuto! Sono il tuo Bibliotecario IA. Posso esplorare il catalogo della biblioteca, confrontare i titoli, individuare temi profondi e guidarti nella lettura. Come posso aiutarti oggi?</value></data>
+  <data name="VoiceInput" xml:space="preserve"><value>Input vocale</value></data>
+  <data name="VoiceListening" xml:space="preserve"><value>In ascolto... parla ora</value></data>
+  <data name="VoiceNotSupported" xml:space="preserve"><value>Il riconoscimento vocale non è supportato in questo browser.</value></data>
+  <data name="AutoReadAloud" xml:space="preserve"><value>Lettura vocale</value></data>
+  <data name="ReadAloud" xml:space="preserve"><value>Ascolta risposta</value></data>
+  <data name="StopReading" xml:space="preserve"><value>Ferma lettura</value></data>
+  <data name="StopListening" xml:space="preserve"><value>Annulla</value></data>
   <data name="AISearch" xml:space="preserve"><value>Ricerca A.I.</value></data>
   <data name="AISemanticDiscovery" xml:space="preserve"><value>Scoperta Semantica AI</value></data>
   <data name="AIVectorDataMissing" xml:space="preserve"><value>Dati Vettoriali AI Mancanti</value></data>
