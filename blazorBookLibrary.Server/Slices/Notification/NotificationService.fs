@@ -94,7 +94,7 @@ type NotificationService
                     notificationId.Value
                     eventStore
                     messageSenders
-                    ""
+                    context.Metadata
                     command
                     ct
             do! 

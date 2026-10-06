@@ -190,7 +190,7 @@ type ReservationService
                     reservationId.Value
                     eventStore
                     messageSenders
-                    ""
+                    context.Metadata
                     cancelReservationCommand
                     (ct |> Some)
         }
@@ -414,7 +414,7 @@ type ReservationService
                     id.Value
                     eventStore
                     messageSenders
-                    (context.ToString())
+                    context.Metadata
                     generatePinCommand
                     (Some ct)
 

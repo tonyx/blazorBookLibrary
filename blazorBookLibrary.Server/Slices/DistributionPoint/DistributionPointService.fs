@@ -228,7 +228,7 @@ type DistributionPointService
                     distributionPointId.Value
                     eventStore
                     messageSenders
-                    (context.ToString())
+                    context.Metadata
                     command
                     (Some ctValue)
                 |> TaskResult.ignore
@@ -247,7 +247,7 @@ type DistributionPointService
                     distributionPointId.Value
                     eventStore
                     messageSenders
-                    (context.ToString())
+                    context.Metadata
                     command
                     (Some ctValue)
                 |> TaskResult.ignore

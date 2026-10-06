@@ -432,15 +432,16 @@
     .markdown-content li {
         margin-bottom: 0.25rem;
     }
-    .book-citation-chip {
+    .book-citation-chip,
+    .book-citation-chip:visited {
         display: inline-flex;
         align-items: center;
-        gap: 0.25rem;
-        padding: 0.15rem 0.6rem;
+        gap: 0.35rem;
+        padding: 0.15rem 0.65rem;
         border-radius: 9999px;
-        background-color: var(--primary-container, #e0eaff);
-        color: var(--on-primary-container, #002d6b);
-        border: 1px solid rgba(0, 85, 201, 0.2);
+        background-color: var(--primary-container, #012d1d);
+        color: #ffffff;
+        border: 1px solid rgba(255, 255, 255, 0.2);
         font-weight: 600;
         font-size: 0.82rem;
         text-decoration: none;
@@ -448,12 +449,20 @@
         margin: 0 0.15rem;
         vertical-align: middle;
     }
+    .book-citation-chip i {
+        color: var(--primary-fixed, #c0edd4);
+        font-size: 0.85rem;
+    }
     .book-citation-chip:hover {
         background-color: var(--secondary, #0055c9);
-        color: white;
+        color: #ffffff !important;
+        border-color: rgba(0, 85, 201, 0.3);
         text-decoration: none;
         transform: translateY(-1px);
         box-shadow: 0 2px 6px rgba(0, 85, 201, 0.25);
+    }
+    .book-citation-chip:hover i {
+        color: #ffffff;
     }
     @@keyframes pulse {
         0% { transform: scale(1); opacity: 1; }
@@ -682,12 +691,15 @@
         // First HTML-encode the string to protect against XSS
         var encoded = HttpUtility.HtmlEncode(rawMarkdown);
 
-        // Transform book citation links: [Title](book://<guid>) -> styled badge
-        var citationRegex = new Regex(@"\[(.*?)\]\(book:\/\/([a-zA-Z0-9\-]+)\)", RegexOptions.Compiled);
+        // Transform book citation links:
+        // Handles: [Title](book://<guid>), [Title](book:<guid>), [Title](/book-view/<guid>), and bare GUIDs [Title](<guid>)
+        var citationRegex = new Regex(
+            @"\[([^\]]+)\]\(\s*(?:&lt;|<)?\s*(?:book:\/\/|book:|\/?book-view\/)?\s*(?:&lt;|<)?([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}|[0-9a-fA-F]{32})(?:&gt;|>)?\s*(?:&gt;|>)?\s*\)|\[([^\]]+)\]\(\s*(?:&lt;|<)?\s*(?:book:\/\/|book:|\/?book-view\/)\s*(?:&lt;|<)?([a-zA-Z0-9\-]+)(?:&gt;|>)?\s*(?:&gt;|>)?\s*\)",
+            RegexOptions.Compiled);
         encoded = citationRegex.Replace(encoded, match =>
         {
-            var title = match.Groups[1].Value;
-            var guid = match.Groups[2].Value;
+            var title = match.Groups[1].Success ? match.Groups[1].Value.Trim() : match.Groups[3].Value.Trim();
+            var guid = match.Groups[2].Success ? match.Groups[2].Value.Trim() : match.Groups[4].Value.Trim();
             return $"<a href=\"/book-view/{guid}\" class=\"book-citation-chip\"><i class=\"bi bi-book-half\"></i> {title}</a>";
         });
 

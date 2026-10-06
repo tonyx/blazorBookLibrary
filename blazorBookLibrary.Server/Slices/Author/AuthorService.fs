@@ -173,7 +173,7 @@ type AuthorService
                     authorId.Value
                     eventStore
                     messageSenders
-                    (context.ToString())
+                    context.Metadata
                     reamecommand
                     (Some ct)
 
@@ -195,7 +195,7 @@ type AuthorService
                     authorId.Value
                     eventStore
                     messageSenders
-                    (context.ToString())
+                    context.Metadata
                     updateIsniCommand
                     (Some ct)
 
@@ -217,7 +217,7 @@ type AuthorService
                     authorId.Value
                     eventStore
                     messageSenders
-                    (context.ToString())
+                    context.Metadata
                     updateBioCommand
                     (Some ct)
 
@@ -243,7 +243,7 @@ type AuthorService
                     authorId.Value
                     eventStore
                     messageSenders
-                    (context.ToString())
+                    context.Metadata
                     updateWikipediaUriCommand
                     (Some ct)
 
@@ -265,7 +265,7 @@ type AuthorService
                     authorId.Value
                     eventStore
                     messageSenders
-                    (context.ToString())
+                    context.Metadata
                     updateImageUrlCommand
                     (Some ct)
 
@@ -287,7 +287,7 @@ type AuthorService
                     authorId.Value
                     eventStore
                     messageSenders
-                    (context.ToString())
+                    context.Metadata
                     removeImageUrlCommand
                     (Some ct)
 
@@ -309,7 +309,7 @@ type AuthorService
                     authorId.Value
                     eventStore
                     messageSenders
-                    (context.ToString())
+                    context.Metadata
                     sealCommand
                     (Some ct)
 
@@ -331,7 +331,7 @@ type AuthorService
                     authorId.Value
                     eventStore
                     messageSenders
-                    (context.ToString())
+                    context.Metadata
                     unsealCommand
                     (Some ct)
 

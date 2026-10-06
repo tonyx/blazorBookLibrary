@@ -234,7 +234,7 @@ type ReviewService
                     commentId.Value
                     eventStore
                     messageSenders
-                    ""
+                    context.Metadata
                     (CommentCommand.Edit(editedComment, now))
                     (Some ct)
 
@@ -260,7 +260,7 @@ type ReviewService
                     commentId.Value
                     eventStore
                     messageSenders
-                    ""
+                    context.Metadata
                     (CommentCommand.Approve now)
                     (Some ct)
 
@@ -286,7 +286,7 @@ type ReviewService
                     commentId.Value
                     eventStore
                     messageSenders
-                    ""
+                    context.Metadata
                     (CommentCommand.Reject now)
                     (Some ct)
 
@@ -316,7 +316,7 @@ type ReviewService
                     commentId.Value
                     eventStore
                     messageSenders
-                    ""
+                    context.Metadata
                     (CommentCommand.Show now)
                     (Some ct)
 
@@ -346,7 +346,7 @@ type ReviewService
                     commentId.Value
                     eventStore
                     messageSenders
-                    ""
+                    context.Metadata
                     (CommentCommand.Hide now)
                     (Some ct)
 

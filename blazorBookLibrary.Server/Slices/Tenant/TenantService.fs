@@ -248,7 +248,7 @@ type TenantService
                     tenantId.Value
                     eventStore
                     messageSenders
-                    ""
+                    context.Metadata
                     command
                     ct
         }
@@ -265,7 +265,7 @@ type TenantService
                     tenantId.Value
                     eventStore
                     messageSenders
-                    ""
+                    context.Metadata
                     command
                     ct
         }
@@ -283,7 +283,7 @@ type TenantService
                     tenantId.Value
                     eventStore
                     messageSenders
-                    ""
+                    context.Metadata
                     command
                     ct
         }
@@ -300,7 +300,7 @@ type TenantService
                     tenantId.Value
                     eventStore
                     messageSenders
-                    ""
+                    context.Metadata
                     command
                     ct
         }
@@ -375,7 +375,7 @@ type TenantService
                     tenantId.Value
                     eventStore
                     messageSenders
-                    ""
+                    context.Metadata
                     command
                     ct
 
@@ -433,7 +433,7 @@ type TenantService
                         tenantId.Value
                         eventStore
                         messageSenders
-                        ""
+                        context.Metadata
                         command
                         ct
             else
@@ -454,7 +454,7 @@ type TenantService
                     tenantId.Value
                     eventStore
                     messageSenders
-                    ""
+                    context.Metadata
                     command
                     ct
         }
@@ -546,7 +546,7 @@ type TenantService
                     tenantId.Value
                     eventStore
                     messageSenders
-                    ""
+                    context.Metadata
                     command
                     ct
         }
@@ -563,7 +563,7 @@ type TenantService
                     tenantId.Value
                     eventStore
                     messageSenders
-                    ""
+                    context.Metadata
                     command
                     ct
         }
@@ -581,7 +581,7 @@ type TenantService
                     tenantId.Value
                     eventStore
                     messageSenders
-                    ""
+                    context.Metadata
                     command
                     ct
         }
@@ -598,7 +598,7 @@ type TenantService
                     tenantId.Value
                     eventStore
                     messageSenders
-                    ""
+                    context.Metadata
                     command
                     ct
         }
@@ -615,7 +615,7 @@ type TenantService
                     tenantId.Value
                     eventStore
                     messageSenders
-                    ""
+                    context.Metadata
                     command
                     ct
         }
@@ -634,7 +634,7 @@ type TenantService
                     tenantId.Value
                     eventStore
                     messageSenders
-                    ""
+                    context.Metadata
                     command
                     ct
         }
@@ -651,7 +651,7 @@ type TenantService
                     tenantId.Value
                     eventStore
                     messageSenders
-                    ""
+                    context.Metadata
                     command
                     ct
         }
@@ -675,7 +675,7 @@ type TenantService
                     tenantId.Value
                     eventStore
                     messageSenders
-                    ""
+                    context.Metadata
                     command
                     ct
         }
@@ -699,7 +699,7 @@ type TenantService
                     tenantId.Value
                     eventStore
                     messageSenders
-                    ""
+                    context.Metadata
                     command
                     ct
         }   
@@ -769,7 +769,7 @@ type TenantService
                     tenantId.Value
                     eventStore
                     messageSenders
-                    ""
+                    context.Metadata
                     command
                     ct
         }
@@ -790,7 +790,7 @@ type TenantService
                     tenantId.Value
                     eventStore
                     messageSenders
-                    ""
+                    context.Metadata
                     command
                     ct
 
@@ -831,7 +831,7 @@ type TenantService
                     tenantId.Value
                     eventStore
                     messageSenders
-                    ""
+                    context.Metadata
                     command
                     ct
 
@@ -865,7 +865,7 @@ type TenantService
                     tenantId.Value
                     eventStore
                     messageSenders
-                    ""
+                    context.Metadata
                     command
                     ct
 

@@ -733,6 +733,11 @@ type UserContext =
     | Authenticated of UserId: UserId * Roles: List<Role>
     | Anonymous
 
+    member this.Metadata =
+        match this with
+        | Authenticated (userId, _) -> sprintf "userId = %O" userId.Value
+        | Anonymous -> ""
+
     member this.IsInRole(role: Role) =
         match this with
         | Authenticated(_, roles) -> roles |> List.exists (fun r -> r = role)

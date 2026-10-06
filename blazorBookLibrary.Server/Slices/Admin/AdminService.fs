@@ -144,7 +144,7 @@ type AdminService
                     id.Value
                     eventStore
                     messageSender
-                    (context.ToString())
+                    context.Metadata
                     command
                     (Some ct)
                 |> TaskResult.ignore
@@ -163,7 +163,7 @@ type AdminService
                     id.Value
                     eventStore
                     messageSender
-                    (context.ToString())
+                    context.Metadata
                     command
                     (Some ct)
                 |> TaskResult.ignore
@@ -183,7 +183,7 @@ type AdminService
                     id.Value
                     eventStore
                     messageSender
-                    (context.ToString())
+                    context.Metadata
                     command
                     (Some ct)
                 |> TaskResult.ignore
@@ -202,7 +202,7 @@ type AdminService
                     id.Value
                     eventStore
                     messageSender
-                    (context.ToString())
+                    context.Metadata
                     command
                     (Some ct)
                 |> TaskResult.ignore

@@ -235,7 +235,7 @@ type UserService
                     userId.Value
                     eventStore
                     messageSenders
-                    (context.ToString())
+                    context.Metadata
                     command
                     (Some ct)
 
@@ -389,7 +389,7 @@ type UserService
                     userId.Value
                     eventStore
                     messageSenders
-                    (context.ToString())
+                    context.Metadata
                     setAppUserInfoCommand
                     (ct |> Some)
 
@@ -472,7 +472,7 @@ type UserService
                     userId.Value
                     eventStore
                     messageSenders
-                    (context.ToString())
+                    context.Metadata
                     setTenantCommand
                     (Some ct)
 

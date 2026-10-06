@@ -196,7 +196,7 @@ type BookService
                         bookId.Value
                         eventStore
                         messageSenders
-                        ""
+                        context.Metadata
                         bookAddAuthorCommand
                         (Some ct)
 
@@ -228,7 +228,7 @@ type BookService
                         book.Id
                         eventStore
                         messageSenders
-                        ""
+                        context.Metadata
                         bookUpdateTitleCommand
                         (Some ct)
                 return result
@@ -257,7 +257,7 @@ type BookService
                         book.Id
                         eventStore
                         messageSenders
-                        ""
+                        context.Metadata
                         bookUpdateDescriptionCommand
                         (Some ct)
                 return result
@@ -286,7 +286,7 @@ type BookService
                         book.Id
                         eventStore
                         messageSenders
-                        ""
+                        context.Metadata
                         bookRemoveDescriptionCommand
                         (Some ct)
                 return result
@@ -315,7 +315,7 @@ type BookService
                         book.Id
                         eventStore
                         messageSenders
-                        ""
+                        context.Metadata
                         bookEmbedDescriptionCommand
                         (Some ct)
                 return result
@@ -344,7 +344,7 @@ type BookService
                         book.Id
                         eventStore
                         messageSenders
-                        ""
+                        context.Metadata
                         bookRemoveEmbeddingCommand
                         (Some ct)
                 return result
@@ -374,7 +374,7 @@ type BookService
                             bookId.Value
                             eventStore
                             messageSenders
-                            ""
+                            context.Metadata
                             bookRemoveEmbeddingCommand
                             (Some ct)
                     )
@@ -403,7 +403,7 @@ type BookService
                         book.Id
                         eventStore
                         messageSenders
-                        ""
+                        context.Metadata
                         bookUpdateIsbnCommand
                         (Some ct)
                 return result
@@ -431,7 +431,7 @@ type BookService
                         book.Id
                         eventStore
                         messageSenders
-                        ""
+                        context.Metadata
                         bookUnsetSbnCodeCommand
                         (Some ct)
                 return result
@@ -462,7 +462,7 @@ type BookService
                         book.Id
                         eventStore
                         messageSenders
-                        ""
+                        context.Metadata
                         bookRemoveImageUrlCommand
                         (Some ct)
                 return result
@@ -524,7 +524,7 @@ type BookService
                         book.Id
                         eventStore
                         messageSenders
-                        ""
+                        context.Metadata
                         bookSetImageUrlCommand
                         (Some ct)
                 return result
@@ -553,7 +553,7 @@ type BookService
                         book.Id
                         eventStore
                         messageSenders
-                        ""
+                        context.Metadata
                         command
                         (Some ct)
             }
@@ -613,7 +613,7 @@ type BookService
                         bookId.Value
                         eventStore
                         messageSenders
-                        ""
+                        context.Metadata
                         bookRemoveAuthorCommand
                         (Some ct)
 
@@ -950,7 +950,7 @@ type BookService
                         bookId.Value
                         eventStore
                         messageSenders
-                        ""
+                        context.Metadata
                         command
                         (ct |> Some)
             }
@@ -974,7 +974,7 @@ type BookService
                         bookId.Value
                         eventStore
                         messageSenders
-                        ""
+                        context.Metadata
                         command
                         (ct |> Some)
             }
@@ -999,7 +999,7 @@ type BookService
                         bookId.Value
                         eventStore
                         messageSenders
-                        ""
+                        context.Metadata
                         command
                         (ct |> Some)
             }
@@ -1020,7 +1020,7 @@ type BookService
                         bookId.Value
                         eventStore
                         messageSenders
-                        ""
+                        context.Metadata
                         command
                         (ct |> Some)
             }
@@ -1041,7 +1041,7 @@ type BookService
                         bookId.Value
                         eventStore
                         messageSenders
-                        ""
+                        context.Metadata
                         command
                         (ct |> Some)
             }
@@ -1063,7 +1063,7 @@ type BookService
                         bookId.Value
                         eventStore
                         messageSenders
-                        ""
+                        context.Metadata
                         command
                         (ct |> Some)
             }
@@ -1084,7 +1084,7 @@ type BookService
                         bookId.Value
                         eventStore
                         messageSenders
-                        ""
+                        context.Metadata
                         command
                         (ct |> Some)
             }
@@ -1113,7 +1113,7 @@ type BookService
                         bookId.Value
                         eventStore
                         messageSenders
-                        ""
+                        context.Metadata
                         command
                         (ct |> Some)
             }
@@ -1140,7 +1140,7 @@ type BookService
                         bookId.Value
                         eventStore
                         messageSenders
-                        ""
+                        context.Metadata
                         command
                         (Some ct)
             }
@@ -1461,7 +1461,7 @@ type BookService
                         bookId.Value
                         eventStore
                         messageSenders
-                        ""
+                        context.Metadata
                         addPaper
                         (ct |> Some)
                 return result
@@ -1480,7 +1480,7 @@ type BookService
                         bookId.Value
                         eventStore
                         messageSenders
-                        ""
+                        context.Metadata
                         addPapersCommand
                         (ct |> Some)
                 return result
@@ -1509,7 +1509,7 @@ type BookService
                         bookId.Value
                         eventStore
                         messageSenders
-                        ""
+                        context.Metadata
                         removePaperCommand
                         (ct |> Some)
                 return result
@@ -1530,7 +1530,7 @@ type BookService
                         bookId.Value
                         eventStore
                         messageSenders
-                        ""
+                        context.Metadata
                         cmd
                         (ct |> Some)
                 return result

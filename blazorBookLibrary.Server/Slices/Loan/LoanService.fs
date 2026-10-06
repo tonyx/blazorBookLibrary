@@ -481,7 +481,7 @@ type LoanService
                     loan.Id
                     eventStore
                     messageSenders
-                    (context.ToString())
+                    context.Metadata
                     archiveCommand
                     (ct |> Some)
 
