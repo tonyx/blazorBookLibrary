@@ -3,7 +3,7 @@
 
 Info: some content, including documents and code, can be generated or assisted by A.I.
 
-[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-ffdd00?style=flat&logo=buy-me-a-coffee&logoColor=black)](https://buymeacoffee.com/Now7pmK92m)
 
 A premium, high-fidelity archival management system built with **Blazor**, **F# (Domain-driven logic)**, and **Vanilla CSS (The Sanctuary Sanctuary)**. 
@@ -14,9 +14,9 @@ Designed for private users and institutions, **Biblionet** provides a seamless i
 To standardize the archival registration process by bridging modern metadata discovery with traditional cataloging precision. We prioritize interactive, premium design and robust domain logic to ensure that every record in the archive is a masterpiece of information.
 
 ## 🏷 Archival License
-This work is released under the **GNU General Public License v3.0**. 
+This work is released under the **MIT License**. 
 
-By adopting the **GPL-3.0**, we ensure that **Biblionet** remains a free and open scholarly resource, guaranteeing users the freedom to share, modify, and improve the software as part of a collective digital heritage. 
+By adopting the **MIT License**, **Biblionet** provides a free, open, and permissive scholarly resource, granting users the freedom to use, copy, modify, merge, publish, distribute, and improve the software.
 
 See the [LICENSE](LICENSE) file for the full legal text.
 
