@@ -258,14 +258,14 @@ let tests =
 
             let! _ = (authorService :> IAuthorService).AddAuthorsAsync(adminContext, [a1; a2; a3])
 
-            let! res = (authorService :> IAuthorService).AutocompleteAsync(UserContext.Anonymous, "Tol", Some 10, None)
+            let! res = (authorService :> IAuthorService).AutocompleteAsync(UserContext.Anonymous, "Tol", ?limit = Some 10)
             Expect.isOk res "should be ok"
             let results = res |> Result.get
             Expect.equal results.Length 2 "should return Tolkien and Tolstoy"
             Expect.isTrue (results |> List.exists (fun a -> a.AuthorId = a1.AuthorId)) "contains Tolkien"
             Expect.isTrue (results |> List.exists (fun a -> a.AuthorId = a2.AuthorId)) "contains Tolstoy"
 
-            let! limitRes = (authorService :> IAuthorService).AutocompleteAsync(UserContext.Anonymous, "Tol", Some 1, None)
+            let! limitRes = (authorService :> IAuthorService).AutocompleteAsync(UserContext.Anonymous, "Tol", ?limit = Some 1)
             Expect.isOk limitRes "should be ok"
             let limitResults = limitRes |> Result.get
             Expect.equal limitResults.Length 1 "should respect max suggestions limit"

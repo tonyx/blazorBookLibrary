@@ -1165,5 +1165,14 @@
   <data name="YearIsRequired" xml:space="preserve"><value>Year is required.</value></data>
   <data name="YearSearchOption" xml:space="preserve"><value>Year Search Option</value></data>
   <data name="YearValue" xml:space="preserve"><value>Year value</value></data>
-  <data name="overActivity" xml:space="preserve"><value>You may have over activity, please try again later</value></data>
+  <data name="ConfirmBookRegistration" xml:space="preserve"><value>Confirm Book Registration</value></data>
+  <data name="ConfirmBookRegistrationPrompt" xml:space="preserve"><value>Are you sure you want to register this book into the catalog?</value></data>
+  <data name="DuplicateBookDetected" xml:space="preserve"><value>Duplicate Book Detected</value></data>
+  <data name="DuplicateBookDetectedWarning" xml:space="preserve"><value>A book with the same ISBN or the same title and authors already exists in the catalog. Please confirm if this duplication is intentional.</value></data>
+  <data name="ConfirmDuplicateAndRegister" xml:space="preserve"><value>Confirm Duplicate &amp; Register</value></data>
+  <data name="CheckingDuplicates" xml:space="preserve"><value>Checking catalog for duplicates...</value></data>
+  <data name="MatchesIsbn" xml:space="preserve"><value>Matches ISBN</value></data>
+  <data name="MatchesTitleAndAuthors" xml:space="preserve"><value>Matches Title &amp; Authors</value></data>
+  <data name="ExistingCatalogRecord" xml:space="preserve"><value>Existing Catalog Record</value></data>
+  <data name="NoAuthorsAssigned" xml:space="preserve"><value>No authors assigned</value></data>
 </root>

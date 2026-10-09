@@ -76,6 +76,7 @@ type GoogleBooksService
     let secretsReader = SecretsReader(configuration)
     let eventStore = PgEventStore(secretsReader.GetBookLibraryConnectionString())
     let geminiApiKey = configuration.GetValue<string>("GoogleVectorApiKey")
+    let geminiModel = GoogleGeminiHelpers.resolveGeminiModel configuration None
 
     let geminiService =
         GeminiBasedBooksMetadataSearchService(
@@ -85,7 +86,8 @@ type GoogleBooksService
             httpClient,
             tenantViewerAsync,
             userTenantResolverService,
-            geminiApiKey
+            geminiApiKey,
+            geminiModel
         )
 
     let runWithFallback (primaryCall: unit -> Task<Result<'T, string>>) (backupCall: unit -> Task<Result<'T, string>>) =

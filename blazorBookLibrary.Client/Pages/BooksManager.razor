@@ -850,6 +850,197 @@ else
             </div>
         </div>
     </div>
+
+    @* Modal 1: Confirmation before inserting book *@
+    @if (showConfirmAddModal)
+    {
+        <div class="modal-backdrop fade show"></div>
+        <div class="modal fade show d-block" tabindex="-1" role="dialog" style="background-color: rgba(0, 0, 0, 0.55); backdrop-filter: blur(4px);">
+            <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+                <div class="modal-content border-0 shadow-lg bg-surface-lowest rounded-4 overflow-hidden">
+                    <div class="modal-header border-bottom p-4 pb-3 bg-light-subtle d-flex justify-content-between align-items-center">
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="p-2 bg-primary-subtle text-primary rounded-3">
+                                <i class="bi bi-journal-plus fs-5"></i>
+                            </div>
+                            <h5 class="modal-title text-serif fw-bold text-dark mb-0">
+                                @L["ConfirmBookRegistration"]
+                            </h5>
+                        </div>
+                        <button type="button" class="btn-close" @onclick="() => showConfirmAddModal = false" disabled="@isCheckingDuplicates" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body p-4">
+                        <p class="text-muted mb-4 lead fs-6">
+                            @L["ConfirmBookRegistrationPrompt"]
+                        </p>
+
+                        <div class="card bg-surface-low border rounded-3 p-4 shadow-none mb-3">
+                            <div class="row g-3">
+                                <div class="col-12 border-bottom pb-2">
+                                    <span class="text-muted small text-uppercase fw-bold d-block">@L["Title"]</span>
+                                    <span class="fs-5 text-serif fw-bold text-dark">@_newBookTitle</span>
+                                </div>
+                                <div class="col-md-6">
+                                    <span class="text-muted small text-uppercase fw-bold d-block">@L["Authors"]</span>
+                                    <span class="fw-medium">
+                                        @if (selectedAuthors.Any())
+                                        {
+                                            @string.Join(", ", selectedAuthors.Select(a => a.Name.Value))
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted fst-italic">@L["NoAuthorsAssigned"]</span>
+                                        }
+                                    </span>
+                                </div>
+                                <div class="col-md-3">
+                                    <span class="text-muted small text-uppercase fw-bold d-block">@L["Year"]</span>
+                                    <span class="fw-medium font-monospace">@newBookYear</span>
+                                </div>
+                                <div class="col-md-3">
+                                    <span class="text-muted small text-uppercase fw-bold d-block">@L["IsbnIdentifier"]</span>
+                                    <span class="fw-medium font-monospace">
+                                        @(string.IsNullOrWhiteSpace(_newBookIsbn) ? "-" : _newBookIsbn)
+                                    </span>
+                                </div>
+                                @if (!string.IsNullOrWhiteSpace(_newBookSbnCode))
+                                {
+                                    <div class="col-md-6">
+                                        <span class="text-muted small text-uppercase fw-bold d-block">@L["SbnIdentifier"]</span>
+                                        <span class="fw-medium font-monospace">@_newBookSbnCode</span>
+                                    </div>
+                                }
+                                <div class="col-md-6">
+                                    <span class="text-muted small text-uppercase fw-bold d-block">@L["Availability"]</span>
+                                    <span class="badge bg-secondary-subtle text-secondary">@newBookAvailability</span>
+                                </div>
+                                @if (selectedDistributionPointId != Guid.Empty)
+                                {
+                                    var dpName = managedDistributionPoints.FirstOrDefault(d => d.DistributionPointId.Value == selectedDistributionPointId)?.Name.Value;
+                                    <div class="col-md-6">
+                                        <span class="text-muted small text-uppercase fw-bold d-block">@L["DistributionPoint"]</span>
+                                        <span class="fw-medium">@(dpName ?? selectedDistributionPointId.ToString())</span>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer border-top p-3 bg-light-subtle d-flex justify-content-end gap-2">
+                        <button type="button" class="btn btn-outline-secondary rounded-pill px-4" @onclick="() => showConfirmAddModal = false" disabled="@isCheckingDuplicates">
+                            @L["Cancel"]
+                        </button>
+                        <button type="button" class="btn btn-sanctuary rounded-pill px-4 shadow-sm" @onclick="ConfirmAddBookStepAsync" disabled="@isCheckingDuplicates">
+                            @if (isCheckingDuplicates)
+                            {
+                                <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                                <span>@L["CheckingDuplicates"]</span>
+                            }
+                            else
+                            {
+                                <i class="bi bi-check-circle me-2"></i>
+                                <span>@L["Confirm"]</span>
+                            }
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    @* Modal 2: Duplicate Warning Modal *@
+    @if (showDuplicateWarningModal)
+    {
+        <div class="modal-backdrop fade show"></div>
+        <div class="modal fade show d-block" tabindex="-1" role="dialog" style="background-color: rgba(0, 0, 0, 0.55); backdrop-filter: blur(4px);">
+            <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+                <div class="modal-content border-0 shadow-lg bg-surface-lowest rounded-4 overflow-hidden">
+                    <div class="modal-header border-bottom p-4 pb-3 bg-warning-subtle d-flex justify-content-between align-items-center">
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="p-2 bg-warning text-dark rounded-3">
+                                <i class="bi bi-exclamation-triangle-fill fs-5"></i>
+                            </div>
+                            <div>
+                                <h5 class="modal-title text-serif fw-bold text-dark mb-0">
+                                    @L["DuplicateBookDetected"]
+                                </h5>
+                                <span class="small text-muted">@detectedDuplicates.Count @L["Duplicates"]</span>
+                            </div>
+                        </div>
+                        <button type="button" class="btn-close" @onclick="() => showDuplicateWarningModal = false" disabled="@isSavingBook" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body p-4">
+                        <div class="alert alert-warning border-warning-subtle d-flex align-items-start gap-3 rounded-3 mb-4 shadow-sm">
+                            <i class="bi bi-exclamation-circle-fill fs-4 text-warning mt-1 flex-shrink-0"></i>
+                            <div>
+                                <h6 class="alert-heading fw-bold mb-1">@L["Warning"]</h6>
+                                <p class="mb-0 small">
+                                    @L["DuplicateBookDetectedWarning"]
+                                </p>
+                            </div>
+                        </div>
+
+                        <h6 class="small text-muted text-uppercase fw-bold mb-3">@L["ExistingCatalogRecord"]</h6>
+                        <div class="d-flex flex-column gap-3 mb-3" style="max-height: 280px; overflow-y: auto;">
+                            @foreach (var dup in detectedDuplicates)
+                            {
+                                <div class="card bg-surface-low border rounded-3 p-3 shadow-none">
+                                    <div class="d-flex justify-content-between align-items-start gap-3">
+                                        <div class="flex-grow-1">
+                                            <div class="d-flex align-items-center gap-2 flex-wrap mb-1">
+                                                <h6 class="text-serif fw-bold text-dark mb-0">@dup.Book.Title.Value</h6>
+                                                @if (dup.MatchesIsbn)
+                                                {
+                                                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle">
+                                                        <i class="bi bi-upc me-1"></i>@L["MatchesIsbn"] (@dup.Book.Isbn.Value)
+                                                    </span>
+                                                }
+                                                @if (dup.MatchesTitleAndAuthors)
+                                                {
+                                                    <span class="badge bg-warning-subtle text-dark border border-warning-subtle">
+                                                        <i class="bi bi-people me-1"></i>@L["MatchesTitleAndAuthors"]
+                                                    </span>
+                                                }
+                                            </div>
+                                            <div class="small text-muted mb-1">
+                                                <span class="me-3">
+                                                    <i class="bi bi-person me-1"></i>
+                                                    @(dup.AuthorNames.Any() ? string.Join(", ", dup.AuthorNames) : L["NoAuthorsAssigned"])
+                                                </span>
+                                                <span>
+                                                    <i class="bi bi-calendar me-1"></i>
+                                                    @dup.Book.Year.Value
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <a href="/book-edit/@dup.Book.Id" target="_blank" class="btn btn-sm btn-outline-secondary rounded-pill px-3 flex-shrink-0" title="@L["Edit"]">
+                                            <i class="bi bi-box-arrow-up-right me-1"></i>@L["View"]
+                                        </a>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                    <div class="modal-footer border-top p-3 bg-light-subtle d-flex justify-content-end gap-2">
+                        <button type="button" class="btn btn-outline-secondary rounded-pill px-4" @onclick="() => showDuplicateWarningModal = false" disabled="@isSavingBook">
+                            @L["Cancel"]
+                        </button>
+                        <button type="button" class="btn btn-warning rounded-pill px-4 shadow-sm fw-semibold" @onclick="ConfirmDuplicateAndProceedAsync" disabled="@isSavingBook">
+                            @if (isSavingBook)
+                            {
+                                <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                                <span>@L["Loading"]...</span>
+                            }
+                            else
+                            {
+                                <i class="bi bi-check2-circle me-2"></i>
+                                <span>@L["ConfirmDuplicateAndRegister"]</span>
+                            }
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
 </div>
 }
 
@@ -1015,6 +1206,21 @@ else
     private Guid selectedDistributionPointId = Guid.Empty;
     private UserId? currentUserId;
     private TenantId _currentTenant = TenantId.Default;
+
+    private bool showConfirmAddModal = false;
+    private bool showDuplicateWarningModal = false;
+    private bool isCheckingDuplicates = false;
+    private bool isSavingBook = false;
+
+    private class DuplicateMatchInfo
+    {
+        public Book Book { get; set; } = null!;
+        public bool MatchesIsbn { get; set; }
+        public bool MatchesTitleAndAuthors { get; set; }
+        public List<string> AuthorNames { get; set; } = new();
+    }
+
+    private List<DuplicateMatchInfo> detectedDuplicates = new();
 
 
 
@@ -1375,63 +1581,28 @@ else
             return;
         }
 
-        Isbn isbn;
-        if (string.IsNullOrWhiteSpace(_newBookIsbn))
+        if (!string.IsNullOrWhiteSpace(_newBookIsbn))
         {
-            isbn = Isbn.EmptyIsbn;
-        }
-        else if (allowInvalidIsbn)
-        {
-            isbn = Isbn.NewInvalid(_newBookIsbn);
-        }
-        else
-        {
-            var isbnResult = Isbn.New(_newBookIsbn);
-            if (isbnResult.IsError)
+            if (!allowInvalidIsbn)
             {
-                await ShowStatus(L["InvalidIsniValue", isbnResult.ErrorValue], "error");
-                return;
+                var isbnResult = Isbn.New(_newBookIsbn);
+                if (isbnResult.IsError)
+                {
+                    await ShowStatus(L["InvalidIsniValue", isbnResult.ErrorValue], "error");
+                    return;
+                }
             }
-            isbn = isbnResult.ResultValue;
         }
 
-        FSharpOption<SbnCode> sbnCodeOption = FSharpOption<SbnCode>.None;
         if (!string.IsNullOrWhiteSpace(_newBookSbnCode))
         {
             var trimmedSbn = _newBookSbnCode.Trim();
-            if (SbnCode.IsValid(trimmedSbn))
-            {
-                var sbnRes = SbnCode.NewValid(trimmedSbn);
-                if (sbnRes.IsOk)
-                {
-                    sbnCodeOption = FSharpOption<SbnCode>.Some(sbnRes.ResultValue);
-                }
-            }
-            else if (allowInvalidSbn)
-            {
-                sbnCodeOption = FSharpOption<SbnCode>.Some(SbnCode.NewInvalid(trimmedSbn));
-            }
-            else
+            if (!SbnCode.IsValid(trimmedSbn) && !allowInvalidSbn)
             {
                 await ShowStatus(L["InvalidSbnCodeFormat"] ?? "Invalid SBN Code format. You can correct it or flag it as invalid to proceed anyway.", "error");
                 return;
             }
         }
-
-        var title = Title.New(_newBookTitle);
-        var year = Year.New(newBookYear.Value);
-        var authorIds = selectedAuthors.Select(a => a.AuthorId).ToList();
-
-        FSharpOption<Uri> resolvedImageUrl = FSharpOption<Uri>.None;
-        if (!string.IsNullOrWhiteSpace(newBookImageUrl))
-        {
-            if (Uri.TryCreate(newBookImageUrl, UriKind.Absolute, out var uri))
-            {
-                resolvedImageUrl = FSharpOption<Uri>.Some(uri);
-            }
-        }
-
-        var availability = Availability.FromString(newBookAvailability);
 
         var tryTenant = await UserTenantResolverService.GetTenantForUserAsync(context);
         if (tryTenant.IsError) 
@@ -1440,82 +1611,299 @@ else
             Logger.LogError(tryTenant.ErrorValue);
             return;
         }
-        var tenantId = tryTenant.ResultValue;
 
-        Book book;
-        if (selectedDistributionPointId != Guid.Empty)
-        {
-            book = Book.NewWithAvailabilityAndDistributionPoint(
-                tenantId,
-                title, 
-                ListModule.OfSeq(authorIds),
-                ListModule.OfSeq(Enumerable.Empty<AuthorId>()),
-                ListModule.OfSeq(Enumerable.Empty<System.Globalization.CultureInfo>()),
-                FSharpOption<EditorId>.None,
-                mainCategory,
-                ListModule.OfSeq(additionalCategories),
-                ListModule.OfSeq(bookTags),
-                year,
-                isbn,
-                resolvedImageUrl,
-                availability,
-                DistributionPointId.NewDistributionPointId(selectedDistributionPointId)
-            );
-        }
-        else
-        {
-            book = Book.NewWithAvailability(
-                tenantId,
-                title, 
-                ListModule.OfSeq(authorIds),
-                ListModule.OfSeq(Enumerable.Empty<AuthorId>()),
-                ListModule.OfSeq(Enumerable.Empty<System.Globalization.CultureInfo>()),
-                FSharpOption<EditorId>.None,
-                mainCategory,
-                ListModule.OfSeq(additionalCategories),
-                ListModule.OfSeq(bookTags),
-                year,
-                isbn,
-                resolvedImageUrl,
-                availability
-            );
-        }
+        // Prompt initial confirmation dialog
+        showConfirmAddModal = true;
+    }
 
-        if (FSharpOption<SbnCode>.get_IsSome(sbnCodeOption))
+    private async Task ConfirmAddBookStepAsync()
+    {
+        if (isCheckingDuplicates) return;
+        isCheckingDuplicates = true;
+        StateHasChanged();
+
+        try
         {
-            var updateSbnResult = book.UpdateSbnCode(sbnCodeOption.Value);
-            if (updateSbnResult.IsOk)
+            var context = await GetUserContextAsync();
+            if (!context.IsAuthenticated)
             {
-                book = updateSbnResult.ResultValue;
+                await ShowStatus(L["AccessDenied"], "error");
+                showConfirmAddModal = false;
+                return;
+            }
+
+            var duplicateMatches = new Dictionary<Guid, DuplicateMatchInfo>();
+
+            // 1. Check ISBN duplication if ISBN was provided
+            if (!string.IsNullOrWhiteSpace(_newBookIsbn))
+            {
+                var cleanInputIsbn = Isbn.StripExtraChars(_newBookIsbn);
+                Isbn isbn;
+                if (allowInvalidIsbn)
+                {
+                    isbn = Isbn.NewInvalid(_newBookIsbn);
+                }
+                else
+                {
+                    var isbnResVal = Isbn.New(_newBookIsbn);
+                    isbn = isbnResVal.IsOk ? isbnResVal.ResultValue : Isbn.NewInvalid(_newBookIsbn);
+                }
+
+                var isbnSearchResult = await BookService.SearchByIsbnAsync(context, isbn);
+                if (isbnSearchResult.IsOk)
+                {
+                    foreach (var b in isbnSearchResult.ResultValue)
+                    {
+                        if (!string.IsNullOrWhiteSpace(b.Isbn.Value))
+                        {
+                            var cleanExistingIsbn = Isbn.StripExtraChars(b.Isbn.Value);
+                            if (string.Equals(cleanExistingIsbn, cleanInputIsbn, StringComparison.OrdinalIgnoreCase))
+                            {
+                                if (!duplicateMatches.TryGetValue(b.BookId.Value, out var match))
+                                {
+                                    match = new DuplicateMatchInfo { Book = b };
+                                    duplicateMatches[b.BookId.Value] = match;
+                                }
+                                match.MatchesIsbn = true;
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 2. Check Title and Authors duplication
+            var title = Title.New(_newBookTitle);
+            var titleSearchResult = await BookService.SearchByTitleAsync(context, title);
+            if (titleSearchResult.IsOk)
+            {
+                var currentAuthorIds = selectedAuthors.Select(a => a.AuthorId.Value).ToHashSet();
+                foreach (var b in titleSearchResult.ResultValue)
+                {
+                    if (string.Equals(b.Title.Value.Trim(), _newBookTitle.Trim(), StringComparison.OrdinalIgnoreCase))
+                    {
+                        var existingAuthorIds = b.Authors.Select(a => a.Value).ToHashSet();
+                        if (currentAuthorIds.SetEquals(existingAuthorIds))
+                        {
+                            if (!duplicateMatches.TryGetValue(b.BookId.Value, out var match))
+                            {
+                                match = new DuplicateMatchInfo { Book = b };
+                                duplicateMatches[b.BookId.Value] = match;
+                            }
+                            match.MatchesTitleAndAuthors = true;
+                        }
+                    }
+                }
+            }
+
+            if (duplicateMatches.Count > 0)
+            {
+                // Resolve author names for display
+                foreach (var match in duplicateMatches.Values)
+                {
+                    foreach (var authorId in match.Book.Authors)
+                    {
+                        var found = selectedAuthors.FirstOrDefault(a => a.AuthorId.Value == authorId.Value)
+                                    ?? foundAuthors.FirstOrDefault(a => a.AuthorId.Value == authorId.Value);
+                        if (found != null)
+                        {
+                            match.AuthorNames.Add(found.Name.Value);
+                        }
+                        else
+                        {
+                            var authorRes = await AuthorService.GetAuthorAsync(context, authorId);
+                            if (authorRes.IsOk)
+                            {
+                                match.AuthorNames.Add(authorRes.ResultValue.Name.Value);
+                            }
+                        }
+                    }
+                }
+
+                detectedDuplicates = duplicateMatches.Values.ToList();
+                showConfirmAddModal = false;
+                showDuplicateWarningModal = true;
+            }
+            else
+            {
+                showConfirmAddModal = false;
+                await ExecuteAddBookAsync();
             }
         }
-
-        if (!string.IsNullOrWhiteSpace(newBookDescription))
+        catch (Exception ex)
         {
-            var updateResult = book.UpdateDescription(newBookDescription, DateTime.UtcNow);
-            if (updateResult.IsOk)
+            Logger.LogError(ex, "Error while checking for duplicate books");
+            await ShowStatus((L["ErrorOccurred"] ?? "An error occurred") + ": " + ex.Message, "error");
+            showConfirmAddModal = false;
+        }
+        finally
+        {
+            isCheckingDuplicates = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task ConfirmDuplicateAndProceedAsync()
+    {
+        showDuplicateWarningModal = false;
+        await ExecuteAddBookAsync();
+    }
+
+    private async Task ExecuteAddBookAsync()
+    {
+        if (isSavingBook) return;
+        isSavingBook = true;
+        StateHasChanged();
+
+        try
+        {
+            var context = await GetUserContextAsync();
+            if (!context.IsAuthenticated)
             {
-                book = updateResult.ResultValue;
+                await ShowStatus(L["AccessDenied"], "error");
+                return;
+            }
+
+            Isbn isbn;
+            if (string.IsNullOrWhiteSpace(_newBookIsbn))
+            {
+                isbn = Isbn.EmptyIsbn;
+            }
+            else if (allowInvalidIsbn)
+            {
+                isbn = Isbn.NewInvalid(_newBookIsbn);
+            }
+            else
+            {
+                var isbnResult = Isbn.New(_newBookIsbn);
+                isbn = isbnResult.IsOk ? isbnResult.ResultValue : Isbn.NewInvalid(_newBookIsbn);
+            }
+
+            FSharpOption<SbnCode> sbnCodeOption = FSharpOption<SbnCode>.None;
+            if (!string.IsNullOrWhiteSpace(_newBookSbnCode))
+            {
+                var trimmedSbn = _newBookSbnCode.Trim();
+                if (SbnCode.IsValid(trimmedSbn))
+                {
+                    var sbnRes = SbnCode.NewValid(trimmedSbn);
+                    if (sbnRes.IsOk)
+                    {
+                        sbnCodeOption = FSharpOption<SbnCode>.Some(sbnRes.ResultValue);
+                    }
+                }
+                else if (allowInvalidSbn)
+                {
+                    sbnCodeOption = FSharpOption<SbnCode>.Some(SbnCode.NewInvalid(trimmedSbn));
+                }
+            }
+
+            var title = Title.New(_newBookTitle);
+            var year = Year.New(newBookYear.Value);
+            var authorIds = selectedAuthors.Select(a => a.AuthorId).ToList();
+
+            FSharpOption<Uri> resolvedImageUrl = FSharpOption<Uri>.None;
+            if (!string.IsNullOrWhiteSpace(newBookImageUrl))
+            {
+                if (Uri.TryCreate(newBookImageUrl, UriKind.Absolute, out var uri))
+                {
+                    resolvedImageUrl = FSharpOption<Uri>.Some(uri);
+                }
+            }
+
+            var availability = Availability.FromString(newBookAvailability);
+
+            var tryTenant = await UserTenantResolverService.GetTenantForUserAsync(context);
+            if (tryTenant.IsError) 
+            {
+                await ShowStatus("an error occurred", "error");
+                Logger.LogError(tryTenant.ErrorValue);
+                return;
+            }
+            var tenantId = tryTenant.ResultValue;
+
+            Book book;
+            if (selectedDistributionPointId != Guid.Empty)
+            {
+                book = Book.NewWithAvailabilityAndDistributionPoint(
+                    tenantId,
+                    title, 
+                    ListModule.OfSeq(authorIds),
+                    ListModule.OfSeq(Enumerable.Empty<AuthorId>()),
+                    ListModule.OfSeq(Enumerable.Empty<System.Globalization.CultureInfo>()),
+                    FSharpOption<EditorId>.None,
+                    mainCategory,
+                    ListModule.OfSeq(additionalCategories),
+                    ListModule.OfSeq(bookTags),
+                    year,
+                    isbn,
+                    resolvedImageUrl,
+                    availability,
+                    DistributionPointId.NewDistributionPointId(selectedDistributionPointId)
+                );
+            }
+            else
+            {
+                book = Book.NewWithAvailability(
+                    tenantId,
+                    title, 
+                    ListModule.OfSeq(authorIds),
+                    ListModule.OfSeq(Enumerable.Empty<AuthorId>()),
+                    ListModule.OfSeq(Enumerable.Empty<System.Globalization.CultureInfo>()),
+                    FSharpOption<EditorId>.None,
+                    mainCategory,
+                    ListModule.OfSeq(additionalCategories),
+                    ListModule.OfSeq(bookTags),
+                    year,
+                    isbn,
+                    resolvedImageUrl,
+                    availability
+                );
+            }
+
+            if (FSharpOption<SbnCode>.get_IsSome(sbnCodeOption))
+            {
+                var updateSbnResult = book.UpdateSbnCode(sbnCodeOption.Value);
+                if (updateSbnResult.IsOk)
+                {
+                    book = updateSbnResult.ResultValue;
+                }
+            }
+
+            if (!string.IsNullOrWhiteSpace(newBookDescription))
+            {
+                var updateResult = book.UpdateDescription(newBookDescription, DateTime.UtcNow);
+                if (updateResult.IsOk)
+                {
+                    book = updateResult.ResultValue;
+                }
+            }
+
+            var result = await BookService.AddBookAsync(context, book);
+            if (result.IsOk)
+            {
+                await ShowStatus(string.Format(L["BookCreatedSuccessfully"], _newBookTitle), "success");
+                
+                // Perform automatic embedding if requested
+                if (generateEmbeddingAfterAdd && !string.IsNullOrWhiteSpace(newBookDescription))
+                {
+                    await RunAutomaticEmbedding(book.BookId, newBookDescription);
+                }
+                
+                ResetForm();
+            }
+            else
+            {
+                await ShowStatus(string.Format(L["ErrorCreatingBook"], result.ErrorValue), "error");
             }
         }
-
-        var result = await BookService.AddBookAsync(context, book);
-        if (result.IsOk)
+        catch (Exception ex)
         {
-            await ShowStatus(string.Format(L["BookCreatedSuccessfully"], _newBookTitle), "success");
-            
-            // Perform automatic embedding if requested
-            if (generateEmbeddingAfterAdd && !string.IsNullOrWhiteSpace(newBookDescription))
-            {
-                await RunAutomaticEmbedding(book.BookId, newBookDescription);
-            }
-            
-            ResetForm();
-            // Refresh managers list if needed or redirect
+            Logger.LogError(ex, "Error while saving book");
+            await ShowStatus((L["ErrorOccurred"] ?? "An error occurred") + ": " + ex.Message, "error");
         }
-        else
+        finally
         {
-            await ShowStatus(string.Format(L["ErrorCreatingBook"], result.ErrorValue), "error");
+            isSavingBook = false;
+            StateHasChanged();
         }
     }
 
@@ -1564,6 +1952,11 @@ else
         _showSecondPart = false;
         selectedDistributionPointId = Guid.Empty;
         bookTags.Clear();
+        showConfirmAddModal = false;
+        showDuplicateWarningModal = false;
+        isCheckingDuplicates = false;
+        isSavingBook = false;
+        detectedDuplicates.Clear();
     }
 
     private async Task ShowStatus(string message, string cssClass)

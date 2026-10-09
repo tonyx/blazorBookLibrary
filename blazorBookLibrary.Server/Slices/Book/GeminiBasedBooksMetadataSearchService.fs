@@ -18,18 +18,87 @@ open BookLibrary.Utils
 open Sharpino.CommandHandler
 open FsToolkit.ErrorHandling
 open Sharpino.EventBroker
+open System.Text.Json.Serialization
 
-[<CLIMutable>]
-type GooglePart = { text: string }
+[<AllowNullLiteral>]
+type GooglePart() =
+    [<JsonPropertyName("text")>]
+    member val text: string = "" with get, set
 
-[<CLIMutable>]
-type GoogleContent = { parts: GooglePart[] }
+    [<JsonPropertyName("thought")>]
+    member val thought: Nullable<bool> = Nullable() with get, set
 
-[<CLIMutable>]
-type GoogleCandidate = { content: GoogleContent }
+[<AllowNullLiteral>]
+type GoogleContent() =
+    [<JsonPropertyName("parts")>]
+    member val parts: GooglePart[] = [||] with get, set
 
-[<CLIMutable>]
-type GoogleGenerateResponse = { candidates: GoogleCandidate[] }
+[<AllowNullLiteral>]
+type GoogleCandidate() =
+    [<JsonPropertyName("content")>]
+    member val content: GoogleContent = null with get, set
+
+[<AllowNullLiteral>]
+type GoogleGenerateResponse() =
+    [<JsonPropertyName("candidates")>]
+    member val candidates: GoogleCandidate[] = [||] with get, set
+
+module GoogleGeminiHelpers =
+    [<Literal>]
+    let DefaultGeminiModel = "gemini-3.6-flash"
+
+    let geminiJsonOptions =
+        let opt = System.Text.Json.JsonSerializerOptions(PropertyNameCaseInsensitive = true, AllowTrailingCommas = true)
+        opt.ReadCommentHandling <- System.Text.Json.JsonCommentHandling.Skip
+        opt
+
+    let resolveGeminiModel (configuration: IConfiguration) (overrideModel: string option) : string =
+        match overrideModel with
+        | Some m when not (String.IsNullOrWhiteSpace m) -> m
+        | _ ->
+            if isNull (box configuration) then
+                DefaultGeminiModel
+            else
+                let configured = configuration.GetValue<string>("GoogleGeminiModel")
+                if not (String.IsNullOrWhiteSpace configured) then configured else DefaultGeminiModel
+
+    let cleanJsonCodeBlock (rawJsonText: string) : string =
+        if String.IsNullOrWhiteSpace rawJsonText then ""
+        else
+            rawJsonText.Trim()
+                .Replace("```json", "")
+                .Replace("```JSON", "")
+                .Replace("```", "")
+                .Trim()
+
+    let extractTextFromCandidate (response: GoogleGenerateResponse) : Result<string, string> =
+        if isNull (box response) || isNull (box response.candidates) || response.candidates.Length = 0 then
+            Error "Failed to receive a valid response from Gemini."
+        else
+            let candidate = response.candidates.[0]
+            if isNull (box candidate) || isNull (box candidate.content) || isNull (box candidate.content.parts) || candidate.content.parts.Length = 0 then
+                Error "Failed to receive valid content parts from Gemini."
+            else
+                let textParts =
+                    candidate.content.parts
+                    |> Array.filter (fun p ->
+                        not (isNull (box p))
+                        && not (p.thought.HasValue && p.thought.Value)
+                        && not (String.IsNullOrWhiteSpace p.text))
+                    |> Array.map (fun p -> p.text)
+
+                let combinedText =
+                    if textParts.Length > 0 then
+                        String.concat "" textParts
+                    else
+                        candidate.content.parts
+                        |> Array.choose (fun p -> if isNull (box p) || String.IsNullOrWhiteSpace p.text then None else Some p.text)
+                        |> String.concat ""
+
+                if String.IsNullOrWhiteSpace combinedText then
+                    Error "Empty text content returned from Gemini."
+                else
+                    Ok (combinedText.Trim())
 
 [<CLIMutable>]
 type GeminiBookMetadataResponse =
@@ -48,8 +117,11 @@ type GeminiBasedBooksMetadataSearchService
         httpClient: HttpClient,
         tenantViewerAsync: AggregateViewerAsync2<Tenant>,
         userTenantResolverService: IUserTenantResolverService,
-        apiKey: string
+        apiKey: string,
+        ?model: string
     ) =
+
+    let modelName = defaultArg model GoogleGeminiHelpers.DefaultGeminiModel
 
     let calculateIsbn13CheckDigit (digits: string) =
         let sum =
@@ -110,16 +182,19 @@ type GeminiBasedBooksMetadataSearchService
     let callGemini (prompt: string) (responseMimeType: string option) (ct: CancellationToken) =
         task {
             try
-                let modelName = "gemini-3.5-flash-lite"
                 let url = $"https://generativelanguage.googleapis.com/v1beta/models/{modelName}:generateContent?key={apiKey}"
 
                 let requestBody =
                     match responseMimeType with
                     | Some mimeType ->
                         box {| contents = [| {| parts = [| {| text = prompt |} |] |} |]
-                               generationConfig = {| response_mime_type = mimeType |} |}
+                               generationConfig =
+                                   {| response_mime_type = mimeType
+                                      thinkingConfig = {| thinkingLevel = "MINIMAL" |} |} |}
                     | None ->
-                        box {| contents = [| {| parts = [| {| text = prompt |} |] |} |] |}
+                        box {| contents = [| {| parts = [| {| text = prompt |} |] |} |]
+                               generationConfig =
+                                   {| thinkingConfig = {| thinkingLevel = "MINIMAL" |} |} |}
 
                 let jsonRequest = System.Text.Json.JsonSerializer.Serialize(requestBody)
                 use content = new StringContent(jsonRequest, System.Text.Encoding.UTF8, "application/json")
@@ -131,20 +206,8 @@ type GeminiBasedBooksMetadataSearchService
                     return Error $"Google API error: {response.StatusCode} - {errorMsg}"
                 else
                     let! jsonResponse = response.Content.ReadAsStringAsync(ct)
-                    let options = System.Text.Json.JsonSerializerOptions(jsonOptions, PropertyNameCaseInsensitive = true)
-                    let result = System.Text.Json.JsonSerializer.Deserialize<GoogleGenerateResponse>(jsonResponse, options)
-
-                    if
-                        Object.ReferenceEquals(result, null)
-                        || Object.ReferenceEquals(result.candidates, null)
-                        || result.candidates.Length = 0
-                        || Object.ReferenceEquals(result.candidates.[0].content, null)
-                        || Object.ReferenceEquals(result.candidates.[0].content.parts, null)
-                        || result.candidates.[0].content.parts.Length = 0
-                    then
-                        return Error "Failed to get a valid response from Gemini."
-                    else
-                        return Ok result.candidates.[0].content.parts.[0].text
+                    let result = System.Text.Json.JsonSerializer.Deserialize<GoogleGenerateResponse>(jsonResponse, GoogleGeminiHelpers.geminiJsonOptions)
+                    return GoogleGeminiHelpers.extractTextFromCandidate result
             with ex ->
                 return Error ex.Message
         }
@@ -158,6 +221,7 @@ type GeminiBasedBooksMetadataSearchService
             userTenantResolverService: IUserTenantResolverService
         ) =
         let apiKey = configuration.GetValue<string>("GoogleVectorApiKey")
+        let model = GoogleGeminiHelpers.resolveGeminiModel configuration None
 
         let eventStore =
             PgStorage.PgEventStore(secretsReader.GetBookLibraryConnectionString())
@@ -165,14 +229,15 @@ type GeminiBasedBooksMetadataSearchService
         let tenantViewer =
             getAggregateStorageFreshStateViewerAsync<Tenant, TenantEvent, string> eventStore
 
-        new GeminiBasedBooksMetadataSearchService(
+        GeminiBasedBooksMetadataSearchService(
             eventStore,
             messageSenders,
             secretsReader,
             httpClient,
             tenantViewer,
             userTenantResolverService,
-            apiKey
+            apiKey,
+            model
         )
 
     interface IBooksMetadataSearchService with
@@ -189,8 +254,9 @@ type GeminiBasedBooksMetadataSearchService
                         $"Find the metadata for the book with ISBN: {isbn}. Use your internal knowledge to retrieve highly accurate information. You MUST ensure the 'isbn' returned is a mathematically valid 13-digit or 10-digit ISBN number. Format the response as a single JSON object with the following keys: 'title' (string), 'authors' (array of strings), 'categories' (array of strings), 'year' (integer, or null if unknown), 'isbn' (string), and 'description' (string, a brief summary of the book, or null if unknown)."
                     let! responseResult = callGemini prompt (Some "application/json") ct
                     match responseResult with
-                    | Ok jsonStr ->
+                    | Ok rawJsonStr ->
                         try
+                            let jsonStr = GoogleGeminiHelpers.cleanJsonCodeBlock rawJsonStr
                             let options = System.Text.Json.JsonSerializerOptions(jsonOptions, PropertyNameCaseInsensitive = true)
                             let res = System.Text.Json.JsonSerializer.Deserialize<GeminiBookMetadataResponse>(jsonStr, options)
                             let correctedIsbn = if not (String.IsNullOrWhiteSpace res.isbn) then tryCorrectIsbn res.isbn else isbn
@@ -199,7 +265,7 @@ type GeminiBasedBooksMetadataSearchService
                             let metadataWithActualIsbn = { metadata with Isbn = Some correctedIsbn }
                             return Ok (Some metadataWithActualIsbn)
                         with ex ->
-                            return Error $"Failed to parse Gemini metadata: {ex.Message}. Response was: {jsonStr}"
+                            return Error $"Failed to parse Gemini metadata: {ex.Message}. Response was: {rawJsonStr}"
                     | Error err ->
                         return Error err
             }
@@ -217,8 +283,9 @@ type GeminiBasedBooksMetadataSearchService
                         $"Find the metadata for the book with title: {title}. Use your internal knowledge to retrieve highly accurate information. You MUST identify the correct ISBN-13 for this book and make sure the returned 'isbn' is mathematically valid. Format the response as a single JSON object with the following keys: 'title' (string), 'authors' (array of strings), 'categories' (array of strings), 'year' (integer, or null if unknown), 'isbn' (string), and 'description' (string, a brief summary of the book, or null if unknown)."
                     let! responseResult = callGemini prompt (Some "application/json") ct
                     match responseResult with
-                    | Ok jsonStr ->
+                    | Ok rawJsonStr ->
                         try
+                            let jsonStr = GoogleGeminiHelpers.cleanJsonCodeBlock rawJsonStr
                             let options = System.Text.Json.JsonSerializerOptions(jsonOptions, PropertyNameCaseInsensitive = true)
                             let res = System.Text.Json.JsonSerializer.Deserialize<GeminiBookMetadataResponse>(jsonStr, options)
                             let correctedIsbn = if not (String.IsNullOrWhiteSpace res.isbn) then tryCorrectIsbn res.isbn else ""
@@ -226,7 +293,7 @@ type GeminiBasedBooksMetadataSearchService
                             let metadata = toGoogleBookMetadata correctedRes
                             return Ok (Some metadata)
                         with ex ->
-                            return Error $"Failed to parse Gemini metadata: {ex.Message}. Response was: {jsonStr}"
+                            return Error $"Failed to parse Gemini metadata: {ex.Message}. Response was: {rawJsonStr}"
                     | Error err ->
                         return Error err
             }
@@ -244,8 +311,9 @@ type GeminiBasedBooksMetadataSearchService
                         $"Find metadata for up to 3 books that match or are highly relevant to the search title: {title}. You MUST identify the correct ISBN-13 for each book and ensure it is mathematically valid. Format the response as a JSON array of objects, where each object has the keys: 'title' (string), 'authors' (array of strings), 'categories' (array of strings), 'year' (integer, or null if unknown), 'isbn' (string, or null if unknown), and 'description' (string, or null if unknown)."
                     let! responseResult = callGemini prompt (Some "application/json") ct
                     match responseResult with
-                    | Ok jsonStr ->
+                    | Ok rawJsonStr ->
                         try
+                            let jsonStr = GoogleGeminiHelpers.cleanJsonCodeBlock rawJsonStr
                             let options = System.Text.Json.JsonSerializerOptions(jsonOptions, PropertyNameCaseInsensitive = true)
                             let resArray = System.Text.Json.JsonSerializer.Deserialize<GeminiBookMetadataResponse[]>(jsonStr, options)
                             let results =
@@ -256,7 +324,7 @@ type GeminiBasedBooksMetadataSearchService
                                 |> Array.toList
                             return Ok results
                         with ex ->
-                            return Error $"Failed to parse Gemini metadata list: {ex.Message}. Response was: {jsonStr}"
+                            return Error $"Failed to parse Gemini metadata list: {ex.Message}. Response was: {rawJsonStr}"
                     | Error err ->
                         return Error err
             }
@@ -330,11 +398,12 @@ type GeminiBasedBooksMetadataSearchService
             task {
                 let authorPart = match author with Some a when not (String.IsNullOrWhiteSpace a) -> $" by {a}" | _ -> ""
                 let prompt =
-                    $"Find the most likely, accurate ISBN-13 for the book with title: '{title}'{authorPart}. Use your internal database to find the real ISBN-13. Format the response as a JSON object with a single key 'isbn' (string)."
+                    $"Find the most likely, accurate ISBN-13 for the book with title: '{title}'{authorPart}. Use your internal database to find the real ISBN-13. Format the response as a single JSON object with a single key 'isbn' (string)."
                 let! responseResult = callGemini prompt (Some "application/json") ct
                 match responseResult with
-                | Ok jsonStr ->
+                | Ok rawJsonStr ->
                     try
+                        let jsonStr = GoogleGeminiHelpers.cleanJsonCodeBlock rawJsonStr
                         let options = System.Text.Json.JsonSerializerOptions(jsonOptions, PropertyNameCaseInsensitive = true)
                         let res = System.Text.Json.JsonSerializer.Deserialize<{| isbn: string |}>(jsonStr, options)
                         if String.IsNullOrWhiteSpace res.isbn then

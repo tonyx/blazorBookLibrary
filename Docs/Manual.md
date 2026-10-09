@@ -83,10 +83,10 @@ The **Library Search** page is designed to query the active tenant's catalog:
 <a name="ai-librarian"></a>
 ### AI Librarian (RAG-Powered Virtual Literary Assistant)
 Accessible from the main navigation menu (**AI Librarian**), this conversational assistant acts as your digital literary scholar:
-- **RAG Architecture (Retrieval-Augmented Generation)**: The assistant uses advanced vector embeddings to search and retrieve relevant books and specific articles/papers from your active tenant's collection, feeding this grounded context directly to **Google Gemini (Gemini 3.5 Flash)**.
+- **RAG Architecture (Retrieval-Augmented Generation)**: The assistant uses advanced vector embeddings to search and retrieve relevant books and specific articles/papers from your active tenant's collection, feeding this grounded context directly to **Google Gemini (Gemini 3.6 Flash)**.
 - **Interactive Knowledge Interviews**: Patrons can interview the AI Librarian about any topic, concept, thesis, or historical event represented in the library's catalog.
 - **In-Depth Grounding & Direct Citations**: When answering from the catalog, the librarian provides direct clickable links to books (`[Title](book://<book-id>)`) and explicitly cites matching internal papers, highlighting direct relevance matches and crediting their specific authors.
-- **Broad Literary & General Knowledge Mode**: By default, the librarian strictly grounds answers in your library's actual catalog. When the **"Include General Knowledge"** toggle is enabled (or when asking for external context), the assistant draws from the broad world knowledge built into and discoverable by the Gemini 3.5 Flash model itself—recommending external literature or explaining broader historical/philosophical themes while clearly labeling external works as not currently in the library.
+- **Broad Literary & General Knowledge Mode**: By default, the librarian strictly grounds answers in your library's actual catalog. When the **"Include General Knowledge"** toggle is enabled (or when asking for external context), the assistant draws from the broad world knowledge built into and discoverable by the Gemini 3.6 Flash model itself—recommending external literature or explaining broader historical/philosophical themes while clearly labeling external works as not currently in the library.
 
 <a name="viewing-book-details"></a>
 ### Viewing Book Details

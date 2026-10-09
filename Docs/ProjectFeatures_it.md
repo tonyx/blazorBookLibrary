@@ -63,7 +63,7 @@ Blazor Book Library è un sistema di archiviazione e prestito all'avanguardia, c
 
 ### 🤖 Infrastruttura IA e Ricerca
 *   **Database Vettoriale Semantico**: Alimentato da **PostgreSQL + pgvector**, memorizza embedding ad alta dimensionalità delle descrizioni dei libri.
-*   **Integrazione Large Language Model**: Utilizza **Gemini 2.5 Flash Lite** (e Vision) per la risoluzione dei metadati, la sintesi del testo e le spiegazioni dei match.
+*   **Integrazione Large Language Model**: Utilizza **Gemini 3.6 Flash** (e Vision) per la risoluzione dei metadati, la sintesi del testo e le spiegazioni dei match.
 *   **Spiegazioni dei Match**: L'IA non trova solo un libro; può spiegare *perché* corrisponde a una query semantica.
 
 ### 📦 Infrastruttura e Affidabilità

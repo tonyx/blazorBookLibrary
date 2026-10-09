@@ -49,6 +49,7 @@
   "IsTestEnv": false,
   "CancellationTokenSourceExpiration": 100000,
   "GoogleVectorApiKey": "....",
+  "GoogleGeminiModel": "gemini-3.6-flash",
   "EventStoreTimeout": 10000,
   "PgSqlJsonFormat": "PlainText",
   "MailBoxCommandProcessorsSize": 100,

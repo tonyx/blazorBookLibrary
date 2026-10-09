@@ -1165,5 +1165,14 @@
   <data name="YearIsRequired" xml:space="preserve"><value>L'anno è obbligatorio.</value></data>
   <data name="YearSearchOption" xml:space="preserve"><value>Opzione Ricerca per Anno</value></data>
   <data name="YearValue" xml:space="preserve"><value>Valore anno</value></data>
-  <data name="overActivity" xml:space="preserve"><value>Potresti avere troppa attività, riprova più tardi</value></data>
+  <data name="ConfirmBookRegistration" xml:space="preserve"><value>Conferma Registrazione Libro</value></data>
+  <data name="ConfirmBookRegistrationPrompt" xml:space="preserve"><value>Sei sicuro di voler registrare questo libro nel catalogo?</value></data>
+  <data name="DuplicateBookDetected" xml:space="preserve"><value>Libro Duplicato Rilevato</value></data>
+  <data name="DuplicateBookDetectedWarning" xml:space="preserve"><value>Un libro con lo stesso ISBN o con lo stesso titolo e gli stessi autori esiste già nel catalogo. Conferma se questa duplicazione è intenzionale.</value></data>
+  <data name="ConfirmDuplicateAndRegister" xml:space="preserve"><value>Conferma Duplicato e Registra</value></data>
+  <data name="CheckingDuplicates" xml:space="preserve"><value>Verifica duplicati in corso...</value></data>
+  <data name="MatchesIsbn" xml:space="preserve"><value>Corrisponde per ISBN</value></data>
+  <data name="MatchesTitleAndAuthors" xml:space="preserve"><value>Corrisponde per Titolo e Autori</value></data>
+  <data name="ExistingCatalogRecord" xml:space="preserve"><value>Scheda già presente nel catalogo</value></data>
+  <data name="NoAuthorsAssigned" xml:space="preserve"><value>Nessun autore assegnato</value></data>
 </root>

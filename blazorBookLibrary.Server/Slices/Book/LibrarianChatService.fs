@@ -24,13 +24,15 @@ type LibrarianChatService
         authorService: IAuthorService,
         userTenantResolverService: IUserTenantResolverService,
         httpClient: HttpClient,
-        apiKey: string
+        apiKey: string,
+        ?model: string
     ) =
+
+    let modelName = defaultArg model GoogleGeminiHelpers.DefaultGeminiModel
 
     let callGemini (systemInstruction: string) (conversationTurns: (string * string) list) (userPrompt: string) (ct: CancellationToken) =
         task {
             try
-                let modelName = "gemini-3.5-flash-lite"
                 let url = $"https://generativelanguage.googleapis.com/v1beta/models/{modelName}:generateContent?key={apiKey}"
 
                 let systemPart = {| parts = [| {| text = systemInstruction |} |] |}
@@ -61,20 +63,8 @@ type LibrarianChatService
                     return Error $"Google Gemini API error: {response.StatusCode} - {errorMsg}"
                 else
                     let! jsonResponse = response.Content.ReadAsStringAsync(ct)
-                    let options = JsonSerializerOptions(jsonOptions, PropertyNameCaseInsensitive = true)
-                    let result = JsonSerializer.Deserialize<GoogleGenerateResponse>(jsonResponse, options)
-
-                    if
-                        Object.ReferenceEquals(result, null)
-                        || Object.ReferenceEquals(result.candidates, null)
-                        || result.candidates.Length = 0
-                        || Object.ReferenceEquals(result.candidates.[0].content, null)
-                        || Object.ReferenceEquals(result.candidates.[0].content.parts, null)
-                        || result.candidates.[0].content.parts.Length = 0
-                    then
-                        return Error "Failed to receive a valid response from Gemini."
-                    else
-                        return Ok result.candidates.[0].content.parts.[0].text
+                    let result = JsonSerializer.Deserialize<GoogleGenerateResponse>(jsonResponse, GoogleGeminiHelpers.geminiJsonOptions)
+                    return GoogleGeminiHelpers.extractTextFromCandidate result
             with ex ->
                 return Error ex.Message
         }
@@ -92,7 +82,8 @@ type LibrarianChatService
         let apiKey = configuration.GetValue<string>("GoogleVectorApiKey")
         if String.IsNullOrWhiteSpace apiKey then
             failwith "GoogleVectorApiKey is missing in configuration"
-        LibrarianChatService(textEmbeddingService, vectorDbService, bookService, authorService, userTenantResolverService, httpClient, apiKey)
+        let model = GoogleGeminiHelpers.resolveGeminiModel configuration None
+        LibrarianChatService(textEmbeddingService, vectorDbService, bookService, authorService, userTenantResolverService, httpClient, apiKey, model)
 
     interface ILibrarianChatService with
         member this.ChatAsync(context: UserContext, request: LibrarianChatRequest, [<Optional; DefaultParameterValue(null: obj)>] ?ct: CancellationToken) =
