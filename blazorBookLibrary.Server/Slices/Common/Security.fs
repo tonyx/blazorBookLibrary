@@ -24,7 +24,7 @@ module Security =
         |> Result.ofBool "Access allowed only to admins or managers"
 
     let checkIsGlobalAdminOrTenantManagerOrPublicTenant (tenant: Tenant) (context: UserContext) =
-        if tenant.TenantVisibility.IsPublic then
+        if tenant.TenantId = TenantId.Default || tenant.TenantVisibility.IsPublic then
             Ok()
         else
             checkIsGlobalAdminOrTenantManager tenant context

@@ -19,6 +19,7 @@ public sealed class PersistingRevalidatingAuthenticationStateProvider : Revalida
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly PersistentComponentState _state;
     private readonly IOptions<IdentityOptions> _options;
+    private readonly IConfiguration _configuration;
 
     private readonly PersistingComponentStateSubscription _subscription;
 
@@ -28,12 +29,14 @@ public sealed class PersistingRevalidatingAuthenticationStateProvider : Revalida
         ILoggerFactory loggerFactory,
         IServiceScopeFactory scopeFactory,
         PersistentComponentState state,
-        IOptions<IdentityOptions> options)
+        IOptions<IdentityOptions> options,
+        IConfiguration configuration)
         : base(loggerFactory)
     {
         _scopeFactory = scopeFactory;
         _state = state;
         _options = options;
+        _configuration = configuration;
 
         AuthenticationStateChanged += OnAuthenticationStateChanged;
         _subscription = _state.RegisterOnPersisting(OnPersistingAsync, RenderMode.InteractiveWebAssembly);
@@ -88,7 +91,18 @@ public sealed class PersistingRevalidatingAuthenticationStateProvider : Revalida
             var userId = principal.FindFirstValue(_options.Value.ClaimsIdentity.UserIdClaimType);
             var email = principal.FindFirstValue(_options.Value.ClaimsIdentity.UserNameClaimType);
             var userName = principal.Identity.Name;
-            var roles = principal.FindAll(_options.Value.ClaimsIdentity.RoleClaimType).Select(c => c.Value).ToArray();
+            var roles = principal.FindAll(_options.Value.ClaimsIdentity.RoleClaimType).Select(c => c.Value).ToList();
+
+            var adminUsername = _configuration["AdminUsername"];
+            if (!string.IsNullOrWhiteSpace(adminUsername) &&
+                (string.Equals(email, adminUsername, StringComparison.OrdinalIgnoreCase) ||
+                 string.Equals(userName, adminUsername, StringComparison.OrdinalIgnoreCase)))
+            {
+                if (!roles.Contains("Admin", StringComparer.OrdinalIgnoreCase))
+                {
+                    roles.Add("Admin");
+                }
+            }
 
             if (userId != null && email != null)
             {
@@ -97,7 +111,7 @@ public sealed class PersistingRevalidatingAuthenticationStateProvider : Revalida
                     UserId = userId,
                     Email = email,
                     UserName = userName,
-                    Roles = roles
+                    Roles = roles.ToArray()
                 });
             }
         }

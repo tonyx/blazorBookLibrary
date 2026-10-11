@@ -5,18 +5,21 @@ using BookLibrary.Domain;
 using BookLibrary.Shared;
 using blazorBookLibrary.Shared;
 using BookLibrary.Shared.Services;
+using Microsoft.Extensions.Configuration;
 
 namespace blazorBookLibrary.Client.Services
 {
     public class TenantStateService
     {
         private readonly ICookieService _cookieService;
+        private readonly IConfiguration _configuration;
         private Tenant? _currentTenant;
         private const string CookieName = "selected_tenant_id";
         
-        public TenantStateService(ICookieService cookieService)
+        public TenantStateService(ICookieService cookieService, IConfiguration configuration)
         {
             _cookieService = cookieService;
+            _configuration = configuration;
         }
 
         public Tenant? CurrentTenant
@@ -80,7 +83,7 @@ namespace blazorBookLibrary.Client.Services
             return null;
         }
 
-        public bool HasManagementAccess(ClaimsPrincipal? principal, Tenant? tenant = null)
+        public bool IsAdministrator(ClaimsPrincipal? principal)
         {
             if (principal == null || principal.Identity?.IsAuthenticated != true)
             {
@@ -88,6 +91,33 @@ namespace blazorBookLibrary.Client.Services
             }
 
             if (principal.IsInRole("Admin"))
+            {
+                return true;
+            }
+
+            var adminUsername = _configuration["AdminUsername"];
+            if (!string.IsNullOrWhiteSpace(adminUsername))
+            {
+                var name = principal.Identity?.Name;
+                var email = principal.FindFirst(ClaimTypes.Email)?.Value ?? principal.FindFirst("email")?.Value;
+                if (string.Equals(name, adminUsername, StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(email, adminUsername, StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        public bool HasManagementAccess(ClaimsPrincipal? principal, Tenant? tenant = null)
+        {
+            if (principal == null || principal.Identity?.IsAuthenticated != true)
+            {
+                return false;
+            }
+
+            if (IsAdministrator(principal))
             {
                 return true;
             }
@@ -128,7 +158,7 @@ namespace blazorBookLibrary.Client.Services
                 return false;
             }
 
-            if (principal.IsInRole("Admin"))
+            if (IsAdministrator(principal))
             {
                 return true;
             }

@@ -155,6 +155,18 @@
 
         if (result.Succeeded)
         {
+            var adminUsername = Configuration["AdminUsername"];
+            if (!string.IsNullOrWhiteSpace(adminUsername) &&
+                (string.Equals(Input.Email, adminUsername, StringComparison.OrdinalIgnoreCase)))
+            {
+                var user = await UserManager.FindByEmailAsync(Input.Email) ?? await UserManager.FindByNameAsync(Input.Email);
+                if (user != null && !await UserManager.IsInRoleAsync(user, "Admin"))
+                {
+                    await UserManager.AddToRoleAsync(user, "Admin");
+                    await SignInManager.RefreshSignInAsync(user);
+                }
+            }
+
             Logger.LogInformation("User logged in.");
             RedirectManager.RedirectTo(ReturnUrl);
         }

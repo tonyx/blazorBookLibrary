@@ -180,7 +180,9 @@ type TenantService
             let! tenant = tenantViewerAsync ct tenantId.Value |> TaskResult.map snd
 
             let allowed =
-                tenant.TenantVisibility.IsPublic || this.IsMemberOrAdmin(context, tenant)
+                tenant.TenantId = TenantId.Default
+                || tenant.TenantVisibility.IsPublic
+                || this.IsMemberOrAdmin(context, tenant)
 
             if allowed then
                 return tenant
@@ -461,7 +463,7 @@ type TenantService
 
     member this.GetAllPublicTenants(context: UserContext, ?ct: CancellationToken) =
         let ct = ct |> Option.defaultValue CancellationToken.None
-        let filter = fun (tenant: Tenant) -> tenant.TenantVisibility.IsPublic
+        let filter = fun (tenant: Tenant) -> tenant.TenantId = TenantId.Default || tenant.TenantVisibility.IsPublic
 
         taskResult {
             let! tenants =
@@ -483,7 +485,8 @@ type TenantService
 
             let filter =
                 fun (tenant: Tenant) ->
-                    context.IsInRole Role.Admin
+                    tenant.TenantId = TenantId.Default
+                    || context.IsInRole Role.Admin
                     || tenant.TenantVisibility.IsPublic
                     || tenant.OwnerId = userId
                     || tenant.Patrons |> List.exists (fun (u, _) -> u = userId)

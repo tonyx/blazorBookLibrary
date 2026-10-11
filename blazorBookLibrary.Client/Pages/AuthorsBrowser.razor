@@ -5,6 +5,7 @@
 @using BookLibrary.Domain
 @using static BookLibrary.Shared.Commons
 @using Microsoft.FSharp.Core
+@using Microsoft.FSharp.Collections
 @using Microsoft.Extensions.Localization
 @using blazorBookLibrary.Shared.Resources
 @using Microsoft.AspNetCore.SignalR.Client
@@ -388,15 +389,15 @@
 
     private async Task PerformSearch()
     {
-        if (string.IsNullOrWhiteSpace(searchTerm)) return;
-
         isLoading = true;
         searchPerformed = true;
         try
         {
             var context = await GetContext();
-            var nameResult = Name.New(searchTerm);
-            var result = await AuthorService.SearchByNameAsync(context, nameResult);
+            var result = string.IsNullOrWhiteSpace(searchTerm)
+                ? await AuthorService.GetAllAsync(context, FSharpOption<CancellationToken>.None)
+                : await AuthorService.SearchByNameAsync(context, Name.New(searchTerm.Trim()), FSharpOption<CancellationToken>.None);
+
             if (result.IsOk)
             {
                 foundAuthors = result.ResultValue.ToList();

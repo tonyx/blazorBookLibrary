@@ -17,6 +17,9 @@
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject NavigationManager NavigationManager
 @inject BookLibrary.Shared.Services.ICookieService CookieService
+@inject blazorBookLibrary.Client.Services.TenantStateService TenantState
+@inject IUserTenantResolverService UserTenantResolverService
+@inject ITenantService TenantService
 @rendermode InteractiveAuto
 @implements IAsyncDisposable
 
@@ -53,6 +56,16 @@
         }
     </div>
 
+    @if (canManageBooks)
+    {
+        <div class="d-flex justify-content-end mb-3 animate-fade-in">
+            <a href="books-manager" class="btn btn-outline-primary rounded-pill px-4 py-2 d-inline-flex align-items-center gap-2 shadow-sm text-decoration-none">
+                <i class="bi bi-journals"></i>
+                <span class="fw-semibold">@L["BooksManager"]</span>
+            </a>
+        </div>
+    }
+
     @* Search Toolbar *@
     <div class="card-sanctuary mb-4 p-4 border-0 shadow-none bg-surface-low rounded-pill-sm">
         <BookSearchToolbar @ref="searchToolbar" InitialDistributionPointId="@DpId" OnSearchResultsFound="HandleSearchResultsFound" OnError="ShowSearchError" OnSearchStarted="HandleSearchStarted" />
@@ -70,7 +83,16 @@
                              <label class="form-check-label small fw-bold text-muted" for="imagePreviewSwitch">@L["VisualIdentity"]</label>
                         </div>
                     </div>
-                    <span class="badge-sanctuary badge-neutral">@foundBooks.Count @L["TitlesFound"]</span>
+                    <div class="d-flex align-items-center gap-3">
+                        @if (canManageBooks)
+                        {
+                            <a href="books-manager" class="btn btn-sm btn-outline-primary rounded-pill px-3 py-1 d-inline-flex align-items-center gap-1 text-decoration-none" title="@L["BooksManager"]">
+                                <i class="bi bi-journals"></i>
+                                <span>@L["BooksManager"]</span>
+                            </a>
+                        }
+                        <span class="badge-sanctuary badge-neutral">@foundBooks.Count @L["TitlesFound"]</span>
+                    </div>
                 </div>
 
                 <div class="table-responsive">
@@ -206,6 +228,7 @@
     private GridSort<BookSearchResult> _sortTaxonomy = GridSort<BookSearchResult>.ByAscending(b => b.Book.MainCategory.Value());
     private GridSort<BookSearchResult> _sortScore = GridSort<BookSearchResult>.ByDescending(b => FSharpOption<double>.get_IsSome(b.Score) ? b.Score.Value : 0f);
     private bool enableAIExplanations = false;
+    private bool canManageBooks = false;
 
     private string statusMessage = "";
     private string topMatchColor = "bg-secondary";
@@ -227,6 +250,7 @@
                 try
                 {
                     await CookieService.SetCookieAsync("selected_tenant_id", tenantGuid.ToString(), 30);
+                    await CheckCanManageBooksAsync();
                 }
                 catch (Exception ex)
                 {
@@ -384,10 +408,49 @@
         return Shared.ConverterUtils.fromClaimsPrincipal(authState.User);
     }
 
+    private async Task CheckCanManageBooksAsync()
+    {
+        try
+        {
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            canManageBooks = await TenantState.CheckManagementAccessAsync(
+                authState.User,
+                TenantService,
+                UserTenantResolverService);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Could not check management access in BookSearch");
+            canManageBooks = false;
+        }
+    }
+
+    private void OnTenantChanged()
+    {
+        _ = InvokeAsync(async () =>
+        {
+            await CheckCanManageBooksAsync();
+            StateHasChanged();
+        });
+    }
+
+    private void OnAuthStateChanged(Task<AuthenticationState> task)
+    {
+        _ = InvokeAsync(async () =>
+        {
+            await CheckCanManageBooksAsync();
+            StateHasChanged();
+        });
+    }
+
     private HubConnection? hubConnection;
 
     protected override async Task OnInitializedAsync()
     {
+        TenantState.OnChange += OnTenantChanged;
+        AuthenticationStateProvider.AuthenticationStateChanged += OnAuthStateChanged;
+        await CheckCanManageBooksAsync();
+
         try
         {
             hubConnection = new HubConnectionBuilder()
@@ -417,6 +480,8 @@
 
     public async ValueTask DisposeAsync()
     {
+        TenantState.OnChange -= OnTenantChanged;
+        AuthenticationStateProvider.AuthenticationStateChanged -= OnAuthStateChanged;
         if (hubConnection is not null)
         {
             await hubConnection.DisposeAsync();

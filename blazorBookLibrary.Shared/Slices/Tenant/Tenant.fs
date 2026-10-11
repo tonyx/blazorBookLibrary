@@ -78,7 +78,8 @@ and Tenant =
 
     static member NewDefault (userId: UserId, tenantName: TenantName, address: string) =
         { Tenant.New (userId, tenantName, address, true) with
-            TenantId = TenantId.Default }
+            TenantId = TenantId.Default
+            TenantVisibility = TenantVisibility.Public }
 
     member this.GenerateJoinPin2(pin: string) =
         { this with CurrentJoinPin = Some pin } |> Ok
