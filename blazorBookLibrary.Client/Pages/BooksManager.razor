@@ -2211,6 +2211,15 @@ else
                 else isbn = Isbn.NewInvalid(_newBookIsbn);
 
                 result = await GoogleBooksService.LookupCoverImageByIsbnWithOpenApiAndThenGoogleAsync(context, isbn, FSharpOption<ThumbRoughSize>.Some(size), CancellationToken.None);
+
+                if (result.IsOk && FSharpOption<string>.get_IsNone(result.ResultValue) && !string.IsNullOrWhiteSpace(_newBookTitle))
+                {
+                    searchMode = "Title/Author";
+                    var title = _newBookTitle;
+                    var firstAuthor = selectedAuthors.FirstOrDefault();
+                    var authorName = firstAuthor != null ? FSharpOption<string>.Some(firstAuthor.Name.Value) : FSharpOption<string>.None;
+                    result = await GoogleBooksService.LookupGoogleApiCoverImageByTitleAndOptionalAuthorAsync(context, title, authorName, CancellationToken.None);
+                }
             }
             else
             {

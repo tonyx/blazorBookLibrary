@@ -26,20 +26,6 @@ type IndustryIdentifier =
       [<JsonPropertyName("identifier")>]
       Identifier: string }
 
-type ImageLinks =
-    { [<JsonPropertyName("smallThumbnail")>]
-      SmallThumbnail: string
-      [<JsonPropertyName("thumbnail")>]
-      Thumbnail: string
-      [<JsonPropertyName("small")>]
-      Small: string
-      [<JsonPropertyName("medium")>]
-      Medium: string
-      [<JsonPropertyName("large")>]
-      Large: string
-      [<JsonPropertyName("extraLarge")>]
-      ExtraLarge: string }
-
 type VolumeInfo =
     { [<JsonPropertyName("title")>]
       Title: string
@@ -115,7 +101,7 @@ type GoogleBooksService
     let timeoutMs =
         match Int32.TryParse(configuration.["GoogleBooksApiTimeoutMs"]) with
         | true, v -> v
-        | _ -> 5000
+        | _ -> 10000
 
     let withTimeout (fn: System.Threading.CancellationToken -> Task<Result<'T, string>>) =
         task {
@@ -126,6 +112,57 @@ type GoogleBooksService
             with
             | :? OperationCanceledException -> return Error "Request timed out"
             | ex -> return Error ex.Message
+        }
+
+    let keyParam = if String.IsNullOrWhiteSpace apiKey then "" else $"&key={apiKey}"
+
+    let searchGoogleBooksCover (title: string) (author: string option) (ct: CancellationToken) : Task<string option> =
+        task {
+            let encodedTitle = System.Web.HttpUtility.UrlEncode(title)
+            let authorPart =
+                match author with
+                | Some a when not (String.IsNullOrWhiteSpace a) ->
+                    let encodedAuthor = System.Web.HttpUtility.UrlEncode(a)
+                    $"+inauthor:{encodedAuthor}"
+                | _ -> ""
+
+            let queries =
+                [ $"https://www.googleapis.com/books/v1/volumes?q=intitle:{encodedTitle}{authorPart}{keyParam}"
+                  $"https://www.googleapis.com/books/v1/volumes?q=\"{encodedTitle}\"{authorPart}{keyParam}"
+                  $"https://www.googleapis.com/books/v1/volumes?q={encodedTitle}{authorPart}{keyParam}" ]
+
+            let rec tryQueries qList =
+                task {
+                    match qList with
+                    | [] -> return None
+                    | (queryUrl: string) :: rest ->
+                        try
+                            use req = new HttpRequestMessage(HttpMethod.Get, queryUrl)
+                            req.Headers.TryAddWithoutValidation("User-Agent", "BlazorBookLibrary/1.0 (book-library-app)") |> ignore
+                            let! response = httpClient.SendAsync(req, ct)
+                            if response.IsSuccessStatusCode then
+                                let! respObj = response.Content.ReadFromJsonAsync<GoogleBooksResponse>(cancellationToken = ct)
+                                if not (isNull (box respObj)) && not (isNull (box respObj.Items)) && respObj.Items.Length > 0 then
+                                    let imgOpt =
+                                        respObj.Items
+                                        |> Array.tryPick (fun item ->
+                                            if not (isNull (box item.VolumeInfo)) && not (isNull (box item.VolumeInfo.ImageLinks)) then
+                                                BookCoverHelpers.extractBestGoogleImage item.VolumeInfo.ImageLinks
+                                            else
+                                                None)
+                                    match imgOpt with
+                                    | Some url -> return Some url
+                                    | None -> return! tryQueries rest
+                                else
+                                    return! tryQueries rest
+                            elif response.StatusCode = System.Net.HttpStatusCode.ServiceUnavailable || response.StatusCode = System.Net.HttpStatusCode.TooManyRequests then
+                                return None
+                            else
+                                return! tryQueries rest
+                        with _ ->
+                            return! tryQueries rest
+                }
+            return! tryQueries queries
         }
 
     let createMetadata (item: VolumeInfo) =
@@ -201,7 +238,7 @@ type GoogleBooksService
                                 return Error "Not authorized to lookup books"
                             else
                                 use linkedCts = CancellationTokenSource.CreateLinkedTokenSource(ct, internalCt)
-                                let url = $"https://www.googleapis.com/books/v1/volumes?q=isbn:{isbn}&key={apiKey}"
+                                let url = $"https://www.googleapis.com/books/v1/volumes?q=isbn:{isbn}{keyParam}"
                                 let! response = httpClient.GetFromJsonAsync<GoogleBooksResponse>(url, linkedCts.Token)
 
                                 if
@@ -235,18 +272,27 @@ type GoogleBooksService
                                 let encodedTitle = System.Web.HttpUtility.UrlEncode(title)
 
                                 let url =
-                                    $"https://www.googleapis.com/books/v1/volumes?q=intitle:{encodedTitle}&key={apiKey}"
+                                    $"https://www.googleapis.com/books/v1/volumes?q=intitle:{encodedTitle}{keyParam}"
 
                                 let! response = httpClient.GetFromJsonAsync<GoogleBooksResponse>(url, linkedCts.Token)
 
+                                let! finalResponse =
+                                    task {
+                                        if isNull (box response) || isNull (box response.Items) || response.Items.Length = 0 then
+                                            let fallbackUrl = $"https://www.googleapis.com/books/v1/volumes?q=\"{encodedTitle}\"{keyParam}"
+                                            return! httpClient.GetFromJsonAsync<GoogleBooksResponse>(fallbackUrl, linkedCts.Token)
+                                        else
+                                            return response
+                                    }
+
                                 if
-                                    isNull (box response)
-                                    || isNull (box response.Items)
-                                    || response.Items.Length = 0
+                                    isNull (box finalResponse)
+                                    || isNull (box finalResponse.Items)
+                                    || finalResponse.Items.Length = 0
                                 then
                                     return Ok None
                                 else
-                                    let metadata = createMetadata response.Items.[0].VolumeInfo
+                                    let metadata = createMetadata finalResponse.Items.[0].VolumeInfo
                                     return Ok(Some metadata)
                         }))
                 (fun () -> (geminiService :> IBooksMetadataSearchService).LookupByTitleAsync(context, title, ct))
@@ -269,15 +315,24 @@ type GoogleBooksService
                                 let encodedTitle = System.Web.HttpUtility.UrlEncode(title)
 
                                 let url =
-                                    $"https://www.googleapis.com/books/v1/volumes?q=intitle:{encodedTitle}&key={apiKey}"
+                                    $"https://www.googleapis.com/books/v1/volumes?q=intitle:{encodedTitle}{keyParam}"
 
                                 let! response = httpClient.GetFromJsonAsync<GoogleBooksResponse>(url, linkedCts.Token)
 
-                                if isNull (box response) || isNull (box response.Items) then
+                                let! finalResponse =
+                                    task {
+                                        if isNull (box response) || isNull (box response.Items) || response.Items.Length = 0 then
+                                            let fallbackUrl = $"https://www.googleapis.com/books/v1/volumes?q=\"{encodedTitle}\"{keyParam}"
+                                            return! httpClient.GetFromJsonAsync<GoogleBooksResponse>(fallbackUrl, linkedCts.Token)
+                                        else
+                                            return response
+                                    }
+
+                                if isNull (box finalResponse) || isNull (box finalResponse.Items) then
                                     return Ok []
                                 else
                                     let results =
-                                        response.Items
+                                        finalResponse.Items
                                         |> Array.map (fun item -> createMetadata item.VolumeInfo)
                                         |> Array.toList
 
@@ -311,22 +366,12 @@ type GoogleBooksService
                                 match isbn with
                                 | Isbn value ->
                                     let url = $"https://covers.openlibrary.org/b/isbn/{value}-{sizeStr}.jpg"
-                                    let! response = httpClient.GetAsync(url, linkedCts.Token)
-
-                                    if response.IsSuccessStatusCode then
-                                        let finalUrl = response.RequestMessage.RequestUri.ToString()
-                                        let! content = response.Content.ReadAsByteArrayAsync(linkedCts.Token)
-
-                                        if
-                                            content.Length > 1000
-                                            && not (finalUrl.Contains("blank"))
-                                            && finalUrl <> url
-                                        then
-                                            return Ok(Some finalUrl)
-                                        else
-                                            return Ok None
-                                    else
-                                        return Ok None
+                                    let! direct = BookCoverHelpers.verifyCoverUrl httpClient url linkedCts.Token
+                                    match direct with
+                                    | Some u -> return Ok (Some u)
+                                    | None ->
+                                        let! fromEdition = BookCoverHelpers.checkOpenLibraryEditionCovers httpClient value sizeStr linkedCts.Token
+                                        return Ok fromEdition
                                 | InvalidIsbn _ -> return Error "Cannot lookup cover for an invalid ISBN."
                                 | EmptyIsbn -> return Ok None
                         }))
@@ -354,29 +399,31 @@ type GoogleBooksService
                                     return Ok None
                                 else
                                     let url =
-                                        $"https://www.googleapis.com/books/v1/volumes?q=isbn:{isbnStr}&key={apiKey}"
+                                        $"https://www.googleapis.com/books/v1/volumes?q=isbn:{isbnStr}{keyParam}"
 
-                                    let! response =
-                                        httpClient.GetFromJsonAsync<GoogleBooksResponse>(url, linkedCts.Token)
+                                    use req = new HttpRequestMessage(HttpMethod.Get, url)
+                                    req.Headers.TryAddWithoutValidation("User-Agent", "BlazorBookLibrary/1.0 (book-library-app)") |> ignore
+                                    let! response = httpClient.SendAsync(req, linkedCts.Token)
 
-                                    if
-                                        isNull (box response)
-                                        || isNull (box response.Items)
-                                        || response.Items.Length = 0
-                                    then
-                                        return Ok None
-                                    else
-                                        let firstItem = response.Items.[0]
-
+                                    if response.IsSuccessStatusCode then
+                                        let! respObj = response.Content.ReadFromJsonAsync<GoogleBooksResponse>(cancellationToken = linkedCts.Token)
                                         if
-                                            not (isNull (box firstItem.VolumeInfo.ImageLinks))
-                                            && not (
-                                                String.IsNullOrWhiteSpace firstItem.VolumeInfo.ImageLinks.Thumbnail
-                                            )
+                                            isNull (box respObj)
+                                            || isNull (box respObj.Items)
+                                            || respObj.Items.Length = 0
                                         then
-                                            return Ok(Some firstItem.VolumeInfo.ImageLinks.Thumbnail)
-                                        else
                                             return Ok None
+                                        else
+                                            let imgOpt =
+                                                respObj.Items
+                                                |> Array.tryPick (fun item ->
+                                                    if not (isNull (box item.VolumeInfo)) && not (isNull (box item.VolumeInfo.ImageLinks)) then
+                                                        BookCoverHelpers.extractBestGoogleImage item.VolumeInfo.ImageLinks
+                                                    else
+                                                        None)
+                                            return Ok imgOpt
+                                    else
+                                        return Ok None
                         }))
                 (fun () ->
                     (geminiService :> IBooksMetadataSearchService)
@@ -407,9 +454,30 @@ type GoogleBooksService
                             match openLibraryResult with
                             | Ok(Some url) -> return Ok(Some url)
                             | _ ->
-                                return!
+                                let! googleResult =
                                     (this :> IBooksMetadataSearchService)
                                         .LookupGoogleApiCoverImageByIsbnAsync(context, isbn, ct)
+                                match googleResult with
+                                | Ok(Some url) -> return Ok(Some url)
+                                | _ ->
+                                    // Fallback: lookup metadata by ISBN and then search cover by title/author
+                                    let! metaResult = (this :> IBooksMetadataSearchService).LookupByIsbnAsync(context, isbn.Value, ct)
+                                    match metaResult with
+                                    | Ok(Some meta) when not (String.IsNullOrWhiteSpace meta.Title) ->
+                                        let authorOpt =
+                                            if not (isNull (box meta.Authors)) && meta.Authors.Count > 0 then
+                                                Some meta.Authors.[0]
+                                            else
+                                                None
+                                        return!
+                                            (this :> IBooksMetadataSearchService)
+                                                .LookupGoogleApiCoverImageByTitleAndOptionalAuthorAsync(
+                                                    context,
+                                                    meta.Title,
+                                                    ?author = authorOpt,
+                                                    ct = ct
+                                                )
+                                    | _ -> return Ok None
                     })
                 (fun () ->
                     (geminiService :> IBooksMetadataSearchService)
@@ -428,41 +496,25 @@ type GoogleBooksService
                 (fun () ->
                     withTimeout (fun internalCt ->
                         task {
-                            use linkedCts = CancellationTokenSource.CreateLinkedTokenSource(ct, internalCt)
-
-                            if String.IsNullOrWhiteSpace title then
-                                return Ok None
+                            let! allowed = checkIsGlobalAdminOrTenantManager context internalCt
+                            if allowed |> Result.isError then
+                                return Error "Not authorized to lookup book covers"
                             else
-                                let encodedTitle = System.Web.HttpUtility.UrlEncode(title)
+                                use linkedCts = CancellationTokenSource.CreateLinkedTokenSource(ct, internalCt)
 
-                                let authorPart =
-                                    match author with
-                                    | Some a when not (String.IsNullOrWhiteSpace a) ->
-                                        let encodedAuthor = System.Web.HttpUtility.UrlEncode(a)
-                                        $"+inauthor:{encodedAuthor}"
-                                    | _ -> ""
-
-                                let url =
-                                    $"https://www.googleapis.com/books/v1/volumes?q=intitle:{encodedTitle}{authorPart}&key={apiKey}"
-
-                                let! response = httpClient.GetFromJsonAsync<GoogleBooksResponse>(url, linkedCts.Token)
-
-                                if
-                                    isNull (box response)
-                                    || isNull (box response.Items)
-                                    || response.Items.Length = 0
-                                then
+                                if String.IsNullOrWhiteSpace title then
                                     return Ok None
                                 else
-                                    let firstItem = response.Items.[0]
-
-                                    if
-                                        not (isNull (box firstItem.VolumeInfo.ImageLinks))
-                                        && not (String.IsNullOrWhiteSpace firstItem.VolumeInfo.ImageLinks.Thumbnail)
-                                    then
-                                        return Ok(Some firstItem.VolumeInfo.ImageLinks.Thumbnail)
-                                    else
-                                        return Ok None
+                                    // 1. Try Google Books (with fallback queries & scanning all items)
+                                    let! googleResult = searchGoogleBooksCover title author linkedCts.Token
+                                    match googleResult with
+                                    | Some url -> return Ok (Some url)
+                                    | None ->
+                                        // 2. Try OpenLibrary Search API (by cover_i and ISBN)
+                                        let! openLibResult = BookCoverHelpers.searchOpenLibraryCover httpClient title author "M" linkedCts.Token
+                                        match openLibResult with
+                                        | Some url -> return Ok (Some url)
+                                        | None -> return Ok None
                         }))
                 (fun () ->
                     (geminiService :> IBooksMetadataSearchService)

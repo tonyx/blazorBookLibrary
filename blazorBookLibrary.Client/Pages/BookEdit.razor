@@ -2660,13 +2660,6 @@ else
         {
             FSharpResult<FSharpOption<string>, string> result;
             string searchMode = "";
-
-            /*
-            todo improve the fallback mechanism on the service part 
-            check the open api call result, if it returns None value for the cover
-            then try to find the cover using the title and author name in 
-            */
-
             if (isBookIsbnValid())
             {
                 searchMode = "ISBN";
@@ -2676,6 +2669,15 @@ else
 
                 var context = await GetContext();
                 result = await GoogleBooksService.LookupCoverImageByIsbnWithOpenApiAndThenGoogleAsync(context, _bookDetails.Book.Isbn, FSharpOption<ThumbRoughSize>.Some(size));
+
+                if (result.IsOk && FSharpOption<string>.get_IsNone(result.ResultValue) && !string.IsNullOrWhiteSpace(_bookDetails.Book.Title.Value))
+                {
+                    searchMode = "Title/Author";
+                    var title = _bookDetails.Book.Title.Value;
+                    var firstAuthor = _bookDetails.Authors.FirstOrDefault();
+                    var authorName = firstAuthor != null ? FSharpOption<string>.Some(firstAuthor.Name.Value) : FSharpOption<string>.None;
+                    result = await GoogleBooksService.LookupGoogleApiCoverImageByTitleAndOptionalAuthorAsync(context, title, authorName);
+                }
             }
             else
             {

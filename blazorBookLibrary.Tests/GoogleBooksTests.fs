@@ -77,7 +77,7 @@ module GoogleBooksTests =
                           list |> List.iter (fun m -> printfn "Found: %s" m.Title)
                       | Error e -> failwith e
                   }
-              ptestCaseTask "can lookup cover image by ISBN (Open Library)"
+              testCaseTask "can lookup cover image by ISBN (Open Library)"
               <| fun _ ->
                   task {
                       let isbnStr = "9788804668237"
@@ -118,7 +118,7 @@ module GoogleBooksTests =
                           Expect.isTrue (url.Contains("archive.org")) "Large cover should also point to archive.org"
                       | _ -> failwith "Failed to lookup Large cover"
                   }
-              ptestCaseTask "returns error for invalid ISBN in cover lookup"
+              testCaseTask "returns error for invalid ISBN in cover lookup"
               <| fun _ ->
                   task {
                       let isbn = InvalidIsbn "123"
@@ -127,6 +127,62 @@ module GoogleBooksTests =
                       match result with
                       | Error msg -> Expect.stringContains msg "invalid" "Should return error message for invalid ISBN"
                       | _ -> failwith "Should have returned an error"
+                  }
+
+              testCaseTask "can lookup cover image for 'La coscienza di Zeno' by title and author"
+              <| fun _ ->
+                  task {
+                      let title = "La coscienza di Zeno"
+                      let author = Some "Italo Svevo"
+                      let! result = googleService.LookupGoogleApiCoverImageByTitleAndOptionalAuthorAsync(adminContext, title, ?author = author)
+
+                      match result with
+                      | Ok(Some url) ->
+                          Expect.isTrue (url.StartsWith("http")) "URL should start with http or https"
+                          Expect.isFalse (url.Contains("blank", StringComparison.OrdinalIgnoreCase)) "URL should not be blank"
+                          printfn "Found cover URL for 'La coscienza di Zeno': %s" url
+                      | Ok None -> failwith "Should have found a cover for 'La coscienza di Zeno'"
+                      | Error e -> failwith e
+                  }
+
+              testCaseTask "can lookup cover image for 'La coscienza di Zeno' by title alone"
+              <| fun _ ->
+                  task {
+                      let title = "La coscienza di Zeno"
+                      let! result = googleService.LookupGoogleApiCoverImageByTitleAndOptionalAuthorAsync(adminContext, title)
+
+                      match result with
+                      | Ok(Some url) ->
+                          Expect.isTrue (url.StartsWith("http")) "URL should start with http or https"
+                          Expect.isFalse (url.Contains("blank", StringComparison.OrdinalIgnoreCase)) "URL should not be blank"
+                          printfn "Found cover URL for 'La coscienza di Zeno' by title alone: %s" url
+                      | Ok None -> failwith "Should have found a cover for 'La coscienza di Zeno'"
+                      | Error e -> failwith e
+                  }
+
+              testCaseTask "LookupCoverImageByIsbnWithOpenApiAndThenGoogleAsync can find cover for valid book"
+              <| fun _ ->
+                  task {
+                      let isbn = Isbn "9788804668237"
+                      let! result = googleService.LookupCoverImageByIsbnWithOpenApiAndThenGoogleAsync(adminContext, isbn)
+                      match result with
+                      | Ok(Some url) ->
+                          Expect.isTrue (url.StartsWith("http")) "Should return valid URL"
+                          printfn "Found cover via OpenApi/Google combo: %s" url
+                      | Ok None -> failwith "Expected to find a cover"
+                      | Error e -> failwith e
+                  }
+
+              testCaseTask "does not return white or fake image for fictitious book title"
+              <| fun _ ->
+                  task {
+                      let title = "XyZ123987NonExistentBookCompletelyFake_QwErTy"
+                      let! result = googleService.LookupGoogleApiCoverImageByTitleAndOptionalAuthorAsync(adminContext, title)
+
+                      match result with
+                      | Ok None -> ()
+                      | Ok(Some url) -> failwithf "Expected no cover for fictitious book, but got: %s" url
+                      | Error _ -> ()
                   }
 
               // service may be down
@@ -192,4 +248,45 @@ module GoogleBooksTests =
                                   (matchData.IsValidTitle || matchData.IsValidIsbn)
                                   "Should identify either title or ISBN from cover"
                           | Error e -> failwith e
-                  } ]
+                  }
+              testCase "can parse Gemini metadata response with singular author array (reported user bug)"
+              <| fun _ ->
+                  let json = """[ { "title": "E verrà un altro inverno", "author": [ "Massimo Carlotto" ], "categories": [ "Fiction", "Crime", "Noir" ], "year": 2021, "isbn": "9788817154017", "description": "Un noir teso e spietato ambientato nella valle della ricca provincia veneta, dove una rapina finita male scoperchia i segreti, la cupidigia e la decadenza morale di una comunità apparentemente irreprensibile." } ]"""
+                  let cleaned = GoogleGeminiHelpers.cleanJsonCodeBlock json
+                  let list = GoogleGeminiHelpers.parseBooksMetadataList cleaned
+                  Expect.equal list.Length 1 "Should parse exactly 1 book"
+                  let book = list.[0]
+                  Expect.equal book.Title "E verrà un altro inverno" "Title should match"
+                  Expect.equal (book.Authors |> Seq.toList) [ "Massimo Carlotto" ] "Authors should contain Massimo Carlotto"
+                  Expect.equal (book.Categories |> Seq.toList) [ "Fiction"; "Crime"; "Noir" ] "Categories should match"
+                  Expect.equal book.Year (Some 2021) "Year should be 2021"
+                  Expect.equal book.Isbn (Some "9788817154017") "ISBN should match"
+                  Expect.isSome book.Description "Description should be populated"
+
+              testCase "can parse Gemini metadata response with singular author string and code fences"
+              <| fun _ ->
+                  let json = """```json
+[ { "title": "Test Book", "author": "John Doe", "categories": "Fiction, Sci-Fi", "year": "2020", "isbn": "978-0132350884" } ]
+```"""
+                  let cleaned = GoogleGeminiHelpers.cleanJsonCodeBlock json
+                  let list = GoogleGeminiHelpers.parseBooksMetadataList cleaned
+                  Expect.equal list.Length 1 "Should parse exactly 1 book"
+                  let book = list.[0]
+                  Expect.equal book.Title "Test Book" "Title should match"
+                  Expect.equal (book.Authors |> Seq.toList) [ "John Doe" ] "Authors should match"
+                  Expect.equal (book.Categories |> Seq.toList) [ "Fiction"; "Sci-Fi" ] "Categories should match"
+                  Expect.equal book.Year (Some 2020) "Year should be 2020"
+
+              testCase "can parse single book metadata response with missing optional fields"
+              <| fun _ ->
+                  let json = """{ "title": "Minimal Book", "writers": ["Jane Smith"] }"""
+                  let cleaned = GoogleGeminiHelpers.cleanJsonCodeBlock json
+                  let bookOpt = GoogleGeminiHelpers.parseSingleBookMetadata cleaned
+                  Expect.isSome bookOpt "Should parse book"
+                  let book = bookOpt.Value
+                  Expect.equal book.Title "Minimal Book" "Title should match"
+                  Expect.equal (book.Authors |> Seq.toList) [ "Jane Smith" ] "Authors should match"
+                  Expect.equal book.Categories.Count 0 "Categories should be empty"
+                  Expect.isNone book.Year "Year should be none"
+                  Expect.isNone book.Isbn "Isbn should be none"
+                  Expect.isNone book.Description "Description should be none" ]

@@ -56,7 +56,7 @@ public class GoogleBooksClientService : IBooksMetadataSearchService
 
     public async Task<FSharpResult<FSharpOption<string>, string>> LookupGoogleApiCoverImageByTitleAndOptionalAuthorAsync(Commons.UserContext context, string title, FSharpOption<string> author, FSharpOption<CancellationToken> ct)
     {
-        var authorParam = FSharpOption<string>.get_IsSome(author) ? $"&author={Uri.EscapeDataString(author.Value)}" : "";
+        var authorParam = FSharpOption<string>.get_IsSome(author) ? $"?author={Uri.EscapeDataString(author.Value)}" : "";
         var response = await _httpClient.GetAsync($"api/GoogleBooks/cover/title/{Uri.EscapeDataString(title)}{authorParam}", ServiceClientHelper.GetValue(ct, CancellationToken.None));
         return await ServiceClientHelper.HandleResponse<FSharpOption<string>>(response);
     }

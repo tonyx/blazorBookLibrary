@@ -18,7 +18,18 @@ open BookLibrary.Utils
 open Sharpino.CommandHandler
 open FsToolkit.ErrorHandling
 open Sharpino.EventBroker
+open System.Text.Json
 open System.Text.Json.Serialization
+open System.Collections.Generic
+open System.Threading
+open System.Runtime.InteropServices
+open Sharpino
+open Sharpino.Storage
+open BookLibrary.Domain
+open BookLibrary.Utils
+open Sharpino.CommandHandler
+open FsToolkit.ErrorHandling
+open Sharpino.EventBroker
 
 [<AllowNullLiteral>]
 type GooglePart() =
@@ -28,7 +39,7 @@ type GooglePart() =
     [<JsonPropertyName("thought")>]
     member val thought: Nullable<bool> = Nullable() with get, set
 
-[<AllowNullLiteral>]
+ [<AllowNullLiteral>]
 type GoogleContent() =
     [<JsonPropertyName("parts")>]
     member val parts: GooglePart[] = [||] with get, set
@@ -65,11 +76,18 @@ module GoogleGeminiHelpers =
     let cleanJsonCodeBlock (rawJsonText: string) : string =
         if String.IsNullOrWhiteSpace rawJsonText then ""
         else
-            rawJsonText.Trim()
-                .Replace("```json", "")
-                .Replace("```JSON", "")
-                .Replace("```", "")
-                .Trim()
+            let cleaned =
+                rawJsonText.Trim()
+                    .Replace("```json", "")
+                    .Replace("```JSON", "")
+                    .Replace("```", "")
+                    .Trim()
+            let firstBrace = cleaned.IndexOfAny([| '{'; '[' |])
+            let lastBrace = cleaned.LastIndexOfAny([| '}'; ']' |])
+            if firstBrace >= 0 && lastBrace >= firstBrace then
+                cleaned.Substring(firstBrace, lastBrace - firstBrace + 1)
+            else
+                cleaned
 
     let extractTextFromCandidate (response: GoogleGenerateResponse) : Result<string, string> =
         if isNull (box response) || isNull (box response.candidates) || response.candidates.Length = 0 then
@@ -99,29 +117,6 @@ module GoogleGeminiHelpers =
                     Error "Empty text content returned from Gemini."
                 else
                     Ok (combinedText.Trim())
-
-[<CLIMutable>]
-type GeminiBookMetadataResponse =
-    { title: string
-      authors: string[]
-      categories: string[]
-      year: Nullable<int>
-      isbn: string
-      description: string }
-
-type GeminiBasedBooksMetadataSearchService
-    (
-        eventStore: IEventStore<string>,
-        messageSenders: MessageSenders,
-        secretsReader: SecretsReader,
-        httpClient: HttpClient,
-        tenantViewerAsync: AggregateViewerAsync2<Tenant>,
-        userTenantResolverService: IUserTenantResolverService,
-        apiKey: string,
-        ?model: string
-    ) =
-
-    let modelName = defaultArg model GoogleGeminiHelpers.DefaultGeminiModel
 
     let calculateIsbn13CheckDigit (digits: string) =
         let sum =
@@ -160,6 +155,180 @@ type GeminiBasedBooksMetadataSearchService
                 clean.Substring(0, 9) + correctDigit
             else
                 isbn
+
+    let tryGetProperty (names: string list) (elem: JsonElement) : JsonElement option =
+        if elem.ValueKind <> JsonValueKind.Object then None
+        else
+            let props = elem.EnumerateObject()
+            names
+            |> List.tryPick (fun targetName ->
+                props
+                |> Seq.tryFind (fun p -> String.Equals(p.Name, targetName, StringComparison.OrdinalIgnoreCase))
+                |> Option.map (fun p -> p.Value)
+                |> Option.filter (fun v -> v.ValueKind <> JsonValueKind.Null && v.ValueKind <> JsonValueKind.Undefined))
+
+    let parseBookElement (elem: JsonElement) : GoogleBookMetadata =
+        let title =
+            match tryGetProperty [ "title"; "bookTitle"; "name" ] elem with
+            | Some v when v.ValueKind = JsonValueKind.String -> v.GetString().Trim()
+            | _ -> ""
+
+        let authors =
+            match tryGetProperty [ "authors"; "author"; "writers"; "writer" ] elem with
+            | Some v when v.ValueKind = JsonValueKind.Array ->
+                v.EnumerateArray()
+                |> Seq.choose (fun item ->
+                    if item.ValueKind = JsonValueKind.String then
+                        let s = item.GetString()
+                        if String.IsNullOrWhiteSpace s then None else Some (s.Trim())
+                    else None)
+                |> Seq.toList
+            | Some v when v.ValueKind = JsonValueKind.String ->
+                let s = v.GetString().Trim()
+                if String.IsNullOrWhiteSpace s then [] else [ s ]
+            | _ -> []
+
+        let categories =
+            match tryGetProperty [ "categories"; "category"; "genres"; "genre" ] elem with
+            | Some v when v.ValueKind = JsonValueKind.Array ->
+                v.EnumerateArray()
+                |> Seq.choose (fun item ->
+                    if item.ValueKind = JsonValueKind.String then
+                        let s = item.GetString()
+                        if String.IsNullOrWhiteSpace s then None else Some (s.Trim())
+                    else None)
+                |> Seq.toList
+            | Some v when v.ValueKind = JsonValueKind.String ->
+                let s = v.GetString().Trim()
+                if String.IsNullOrWhiteSpace s then []
+                else
+                    s.Split([| ','; ';' |], StringSplitOptions.RemoveEmptyEntries)
+                    |> Seq.map (fun x -> x.Trim())
+                    |> Seq.filter (fun x -> not (String.IsNullOrWhiteSpace x))
+                    |> Seq.toList
+            | _ -> []
+
+        let year =
+            match tryGetProperty [ "year"; "publishedYear"; "publicationYear"; "published_year"; "date" ] elem with
+            | Some v when v.ValueKind = JsonValueKind.Number ->
+                try
+                    Some (v.GetInt32())
+                with _ -> None
+            | Some v when v.ValueKind = JsonValueKind.String ->
+                let s = v.GetString().Trim()
+                let m = System.Text.RegularExpressions.Regex.Match(s, @"\b(19\d\d|20\d\d)\b")
+                if m.Success then
+                    match Int32.TryParse(m.Value) with
+                    | true, y -> Some y
+                    | false, _ -> None
+                else
+                    match Int32.TryParse(s) with
+                    | true, y -> Some y
+                    | false, _ -> None
+            | _ -> None
+
+        let isbn =
+            match tryGetProperty [ "isbn"; "isbn13"; "isbn10"; "isbn_13"; "isbn_10" ] elem with
+            | Some v when v.ValueKind = JsonValueKind.String ->
+                let s = v.GetString().Trim()
+                if String.IsNullOrWhiteSpace s then None else Some (tryCorrectIsbn s)
+            | _ -> None
+
+        let description =
+            match tryGetProperty [ "description"; "summary"; "synopsis"; "overview" ] elem with
+            | Some v when v.ValueKind = JsonValueKind.String ->
+                let s = v.GetString().Trim()
+                if String.IsNullOrWhiteSpace s then None else Some s
+            | _ -> None
+
+        { Title = title
+          Authors = List<string>(authors)
+          Categories = List<string>(categories)
+          Year = year
+          Isbn = isbn
+          Description = description }
+
+    let parseBooksMetadataList (jsonStr: string) : GoogleBookMetadata list =
+        use doc = JsonDocument.Parse(jsonStr)
+        let root = doc.RootElement
+        match root.ValueKind with
+        | JsonValueKind.Array ->
+            root.EnumerateArray()
+            |> Seq.filter (fun e -> e.ValueKind = JsonValueKind.Object)
+            |> Seq.map parseBookElement
+            |> Seq.toList
+        | JsonValueKind.Object ->
+            let innerArray =
+                [ "books"; "items"; "results"; "data" ]
+                |> List.tryPick (fun name ->
+                    let props = root.EnumerateObject()
+                    props
+                    |> Seq.tryFind (fun p -> String.Equals(p.Name, name, StringComparison.OrdinalIgnoreCase))
+                    |> Option.map (fun p -> p.Value)
+                    |> Option.filter (fun v -> v.ValueKind = JsonValueKind.Array))
+            match innerArray with
+            | Some arr ->
+                arr.EnumerateArray()
+                |> Seq.filter (fun e -> e.ValueKind = JsonValueKind.Object)
+                |> Seq.map parseBookElement
+                |> Seq.toList
+            | None ->
+                [ parseBookElement root ]
+        | _ -> []
+
+    let parseSingleBookMetadata (jsonStr: string) : GoogleBookMetadata option =
+        use doc = JsonDocument.Parse(jsonStr)
+        let root = doc.RootElement
+        match root.ValueKind with
+        | JsonValueKind.Object ->
+            let innerArray =
+                [ "books"; "items"; "results"; "data" ]
+                |> List.tryPick (fun name ->
+                    let props = root.EnumerateObject()
+                    props
+                    |> Seq.tryFind (fun p -> String.Equals(p.Name, name, StringComparison.OrdinalIgnoreCase))
+                    |> Option.map (fun p -> p.Value)
+                    |> Option.filter (fun v -> v.ValueKind = JsonValueKind.Array))
+            match innerArray with
+            | Some arr ->
+                arr.EnumerateArray()
+                |> Seq.filter (fun e -> e.ValueKind = JsonValueKind.Object)
+                |> Seq.map parseBookElement
+                |> Seq.tryHead
+            | None ->
+                Some (parseBookElement root)
+        | JsonValueKind.Array ->
+            root.EnumerateArray()
+            |> Seq.filter (fun e -> e.ValueKind = JsonValueKind.Object)
+            |> Seq.map parseBookElement
+            |> Seq.tryHead
+        | _ -> None
+
+[<CLIMutable>]
+type GeminiBookMetadataResponse =
+    { title: string
+      authors: string[]
+      categories: string[]
+      year: Nullable<int>
+      isbn: string
+      description: string }
+
+type GeminiBasedBooksMetadataSearchService
+    (
+        eventStore: IEventStore<string>,
+        messageSenders: MessageSenders,
+        secretsReader: SecretsReader,
+        httpClient: HttpClient,
+        tenantViewerAsync: AggregateViewerAsync2<Tenant>,
+        userTenantResolverService: IUserTenantResolverService,
+        apiKey: string,
+        ?model: string
+    ) =
+
+    let modelName = defaultArg model GoogleGeminiHelpers.DefaultGeminiModel
+    let calculateIsbn13CheckDigit = GoogleGeminiHelpers.calculateIsbn13CheckDigit
+    let calculateIsbn10CheckDigit = GoogleGeminiHelpers.calculateIsbn10CheckDigit
+    let tryCorrectIsbn = GoogleGeminiHelpers.tryCorrectIsbn
 
     let checkIsGlobalAdminOrTenantManager (context: UserContext) (ct: CancellationToken) =
         taskResult {
@@ -251,19 +420,22 @@ type GeminiBasedBooksMetadataSearchService
                     return Error "Not authorized to lookup books"
                 else
                     let prompt =
-                        $"Find the metadata for the book with ISBN: {isbn}. Use your internal knowledge to retrieve highly accurate information. You MUST ensure the 'isbn' returned is a mathematically valid 13-digit or 10-digit ISBN number. Format the response as a single JSON object with the following keys: 'title' (string), 'authors' (array of strings), 'categories' (array of strings), 'year' (integer, or null if unknown), 'isbn' (string), and 'description' (string, a brief summary of the book, or null if unknown)."
+                        $"Find the metadata for the book with ISBN: {isbn}. Use your internal knowledge to retrieve highly accurate information. You MUST ensure the 'isbn' returned is a mathematically valid 13-digit or 10-digit ISBN number. Format the response as a single JSON object with the following keys: 'title' (string), 'authors' (array of strings, do NOT use 'author'), 'categories' (array of strings), 'year' (integer, or null if unknown), 'isbn' (string), and 'description' (string, a brief summary of the book, or null if unknown)."
                     let! responseResult = callGemini prompt (Some "application/json") ct
                     match responseResult with
                     | Ok rawJsonStr ->
                         try
                             let jsonStr = GoogleGeminiHelpers.cleanJsonCodeBlock rawJsonStr
-                            let options = System.Text.Json.JsonSerializerOptions(jsonOptions, PropertyNameCaseInsensitive = true)
-                            let res = System.Text.Json.JsonSerializer.Deserialize<GeminiBookMetadataResponse>(jsonStr, options)
-                            let correctedIsbn = if not (String.IsNullOrWhiteSpace res.isbn) then tryCorrectIsbn res.isbn else isbn
-                            let correctedRes = { res with isbn = correctedIsbn }
-                            let metadata = toGoogleBookMetadata correctedRes
-                            let metadataWithActualIsbn = { metadata with Isbn = Some correctedIsbn }
-                            return Ok (Some metadataWithActualIsbn)
+                            match GoogleGeminiHelpers.parseSingleBookMetadata jsonStr with
+                            | Some metadata ->
+                                let correctedIsbn =
+                                    match metadata.Isbn with
+                                    | Some i when not (String.IsNullOrWhiteSpace i) -> tryCorrectIsbn i
+                                    | _ -> isbn
+                                let metadataWithActualIsbn = { metadata with Isbn = Some correctedIsbn }
+                                return Ok (Some metadataWithActualIsbn)
+                            | None ->
+                                return Ok None
                         with ex ->
                             return Error $"Failed to parse Gemini metadata: {ex.Message}. Response was: {rawJsonStr}"
                     | Error err ->
@@ -280,18 +452,22 @@ type GeminiBasedBooksMetadataSearchService
                     return Error "Not authorized to lookup books"
                 else
                     let prompt =
-                        $"Find the metadata for the book with title: {title}. Use your internal knowledge to retrieve highly accurate information. You MUST identify the correct ISBN-13 for this book and make sure the returned 'isbn' is mathematically valid. Format the response as a single JSON object with the following keys: 'title' (string), 'authors' (array of strings), 'categories' (array of strings), 'year' (integer, or null if unknown), 'isbn' (string), and 'description' (string, a brief summary of the book, or null if unknown)."
+                        $"Find the metadata for the book with title: {title}. Use your internal knowledge to retrieve highly accurate information. You MUST identify the correct ISBN-13 for this book and make sure the returned 'isbn' is mathematically valid. Format the response as a single JSON object with the following keys: 'title' (string), 'authors' (array of strings, do NOT use 'author'), 'categories' (array of strings), 'year' (integer, or null if unknown), 'isbn' (string), and 'description' (string, a brief summary of the book, or null if unknown)."
                     let! responseResult = callGemini prompt (Some "application/json") ct
                     match responseResult with
                     | Ok rawJsonStr ->
                         try
                             let jsonStr = GoogleGeminiHelpers.cleanJsonCodeBlock rawJsonStr
-                            let options = System.Text.Json.JsonSerializerOptions(jsonOptions, PropertyNameCaseInsensitive = true)
-                            let res = System.Text.Json.JsonSerializer.Deserialize<GeminiBookMetadataResponse>(jsonStr, options)
-                            let correctedIsbn = if not (String.IsNullOrWhiteSpace res.isbn) then tryCorrectIsbn res.isbn else ""
-                            let correctedRes = { res with isbn = correctedIsbn }
-                            let metadata = toGoogleBookMetadata correctedRes
-                            return Ok (Some metadata)
+                            match GoogleGeminiHelpers.parseSingleBookMetadata jsonStr with
+                            | Some metadata ->
+                                let correctedIsbn =
+                                    match metadata.Isbn with
+                                    | Some i when not (String.IsNullOrWhiteSpace i) -> Some (tryCorrectIsbn i)
+                                    | _ -> None
+                                let metadataWithCorrectedIsbn = { metadata with Isbn = correctedIsbn }
+                                return Ok (Some metadataWithCorrectedIsbn)
+                            | None ->
+                                return Ok None
                         with ex ->
                             return Error $"Failed to parse Gemini metadata: {ex.Message}. Response was: {rawJsonStr}"
                     | Error err ->
@@ -308,21 +484,22 @@ type GeminiBasedBooksMetadataSearchService
                     return Error "Not authorized to lookup books"
                 else
                     let prompt =
-                        $"Find metadata for up to 3 books that match or are highly relevant to the search title: {title}. You MUST identify the correct ISBN-13 for each book and ensure it is mathematically valid. Format the response as a JSON array of objects, where each object has the keys: 'title' (string), 'authors' (array of strings), 'categories' (array of strings), 'year' (integer, or null if unknown), 'isbn' (string, or null if unknown), and 'description' (string, or null if unknown)."
+                        $"Find metadata for up to 3 books that match or are highly relevant to the search title: {title}. You MUST identify the correct ISBN-13 for each book and ensure it is mathematically valid. Format the response as a JSON array of objects, where each object has the keys: 'title' (string), 'authors' (array of strings, do NOT use 'author'), 'categories' (array of strings), 'year' (integer, or null if unknown), 'isbn' (string, or null if unknown), and 'description' (string, or null if unknown)."
                     let! responseResult = callGemini prompt (Some "application/json") ct
                     match responseResult with
                     | Ok rawJsonStr ->
                         try
                             let jsonStr = GoogleGeminiHelpers.cleanJsonCodeBlock rawJsonStr
-                            let options = System.Text.Json.JsonSerializerOptions(jsonOptions, PropertyNameCaseInsensitive = true)
-                            let resArray = System.Text.Json.JsonSerializer.Deserialize<GeminiBookMetadataResponse[]>(jsonStr, options)
-                            let results =
-                                resArray
-                                |> Array.map (fun r ->
-                                    let correctedIsbn = if not (String.IsNullOrWhiteSpace r.isbn) then tryCorrectIsbn r.isbn else ""
-                                    toGoogleBookMetadata { r with isbn = correctedIsbn })
-                                |> Array.toList
-                            return Ok results
+                            let results = GoogleGeminiHelpers.parseBooksMetadataList jsonStr
+                            let correctedResults =
+                                results
+                                |> List.map (fun m ->
+                                    let correctedIsbn =
+                                        match m.Isbn with
+                                        | Some i when not (String.IsNullOrWhiteSpace i) -> Some (tryCorrectIsbn i)
+                                        | _ -> None
+                                    { m with Isbn = correctedIsbn })
+                            return Ok correctedResults
                         with ex ->
                             return Error $"Failed to parse Gemini metadata list: {ex.Message}. Response was: {rawJsonStr}"
                     | Error err ->
@@ -348,11 +525,13 @@ type GeminiBasedBooksMetadataSearchService
                     | Isbn value ->
                         let correctedValue = tryCorrectIsbn value
                         let url = $"https://covers.openlibrary.org/b/isbn/{correctedValue}-{sizeStr}.jpg"
-                        return Ok (Some url)
-                    | InvalidIsbn value ->
-                        let correctedValue = tryCorrectIsbn value
-                        let url = $"https://covers.openlibrary.org/b/isbn/{correctedValue}-{sizeStr}.jpg"
-                        return Ok (Some url)
+                        let! verified = BookCoverHelpers.verifyCoverUrl httpClient url ct
+                        match verified with
+                        | Some v -> return Ok (Some v)
+                        | None ->
+                            let! fromEdition = BookCoverHelpers.checkOpenLibraryEditionCovers httpClient correctedValue sizeStr ct
+                            return Ok fromEdition
+                    | InvalidIsbn _ -> return Error "Cannot lookup cover for an invalid ISBN."
                     | EmptyIsbn -> return Ok None
             }
 
@@ -404,16 +583,42 @@ type GeminiBasedBooksMetadataSearchService
                 | Ok rawJsonStr ->
                     try
                         let jsonStr = GoogleGeminiHelpers.cleanJsonCodeBlock rawJsonStr
-                        let options = System.Text.Json.JsonSerializerOptions(jsonOptions, PropertyNameCaseInsensitive = true)
-                        let res = System.Text.Json.JsonSerializer.Deserialize<{| isbn: string |}>(jsonStr, options)
-                        if String.IsNullOrWhiteSpace res.isbn then
-                            return Ok None
-                        else
-                            let correctedIsbn = tryCorrectIsbn res.isbn
+                        use doc = JsonDocument.Parse(jsonStr)
+                        let root =
+                            if doc.RootElement.ValueKind = JsonValueKind.Array && doc.RootElement.GetArrayLength() > 0 then
+                                doc.RootElement.[0]
+                            else
+                                doc.RootElement
+                        let isbnOpt =
+                            if root.ValueKind = JsonValueKind.Object then
+                                GoogleGeminiHelpers.tryGetProperty [ "isbn"; "isbn13"; "isbn10"; "isbn_13"; "isbn_10" ] root
+                                |> Option.bind (fun v ->
+                                    if v.ValueKind = JsonValueKind.String then
+                                        let s = v.GetString().Trim()
+                                        if String.IsNullOrWhiteSpace s then None else Some s
+                                    else None)
+                            else None
+                        match isbnOpt with
+                        | Some isbnVal ->
+                            let correctedIsbn = tryCorrectIsbn isbnVal
                             let url = $"https://covers.openlibrary.org/b/isbn/{correctedIsbn}-M.jpg"
-                            return Ok (Some url)
+                            let! verified = BookCoverHelpers.verifyCoverUrl httpClient url ct
+                            match verified with
+                            | Some v -> return Ok (Some v)
+                            | None ->
+                                let! fromEdition = BookCoverHelpers.checkOpenLibraryEditionCovers httpClient correctedIsbn "M" ct
+                                match fromEdition with
+                                | Some v -> return Ok (Some v)
+                                | None ->
+                                    let! openLibResult = BookCoverHelpers.searchOpenLibraryCover httpClient title author "M" ct
+                                    return Ok openLibResult
+                        | None ->
+                            let! openLibResult = BookCoverHelpers.searchOpenLibraryCover httpClient title author "M" ct
+                            return Ok openLibResult
                     with _ ->
-                        return Ok None
+                        let! openLibResult = BookCoverHelpers.searchOpenLibraryCover httpClient title author "M" ct
+                        return Ok openLibResult
                 | Error _ ->
-                    return Ok None
+                    let! openLibResult = BookCoverHelpers.searchOpenLibraryCover httpClient title author "M" ct
+                    return Ok openLibResult
             }

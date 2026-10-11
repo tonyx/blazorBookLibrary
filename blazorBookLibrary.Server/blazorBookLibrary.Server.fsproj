@@ -89,6 +89,7 @@
     <Compile Include="Slices/Loan/LoanService.fs" />
     <Compile Include="Slices/Book/VectorDbService.fs" />
     <Compile Include="Slices/Book/BookService.fs" />
+    <Compile Include="Slices/Book/BookCoverHelpers.fs" />
     <Compile Include="Slices/Book/GeminiBasedBooksMetadataSearchService.fs" />
     <Compile Include="Slices/Book/GoogleBooksService.fs" />
     <Compile Include="Slices/Author/AuthorsSearchService.fs" />
