@@ -1,0 +1,61 @@
+@page "/tenant/{TenantParam}"
+@page "/t/{TenantParam}"
+@using BookLibrary.Domain
+@using BookLibrary.Shared
+@using BookLibrary.Shared.Services
+@using blazorBookLibrary.Client.Services
+@inject NavigationManager NavigationManager
+@inject TenantStateService TenantState
+@inject ITenantService TenantService
+@inject IUserService UserService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+<div class="d-flex justify-content-center align-items-center vh-100">
+    <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Loading...</span>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public string TenantParam { get; set; } = "";
+
+    [SupplyParameterFromQuery(Name = "returnUrl")]
+    public string? ReturnUrl { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        Commons.TenantId? targetTenantId = null;
+        if (string.Equals(TenantParam, "default", StringComparison.OrdinalIgnoreCase))
+        {
+            targetTenantId = Commons.TenantId.Default;
+        }
+        else if (Guid.TryParse(TenantParam, out var guid))
+        {
+            targetTenantId = Commons.TenantId.NewTenantId(guid);
+        }
+
+        if (targetTenantId != null)
+        {
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var userContext = TenantState.GetUserContext(authState.User);
+            var tenantResult = await TenantService.GetTenantAsync(userContext, targetTenantId, CancellationToken.None);
+            if (tenantResult.IsOk)
+            {
+                await TenantState.SetTenantAsync(tenantResult.ResultValue);
+                if (authState.User.Identity?.IsAuthenticated == true && userContext.UserId != null && Microsoft.FSharp.Core.FSharpOption<Commons.UserId>.get_IsSome(userContext.UserId))
+                {
+                    await UserService.SetCurrentTenantAsync(userContext, userContext.UserId.Value, targetTenantId, Microsoft.FSharp.Core.FSharpOption<CancellationToken>.None);
+                }
+            }
+        }
+
+        var destination = "/";
+        if (!string.IsNullOrWhiteSpace(ReturnUrl))
+        {
+            destination = ReturnUrl.StartsWith("/") ? ReturnUrl : $"/{ReturnUrl}";
+        }
+
+        NavigationManager.NavigateTo(destination, forceLoad: true);
+    }
+}

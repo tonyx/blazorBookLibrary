@@ -24,63 +24,97 @@ public class ActiveTenantController : Controller
     }
 
     [HttpPost]
-    public async Task<IActionResult> SetActiveTenant([FromForm] string tenantId, [FromForm] string returnUrl)
+    [HttpGet]
+    public async Task<IActionResult> SetActiveTenant(
+        [FromForm(Name = "tenantId")] string? formTenantId,
+        [FromQuery(Name = "tenantId")] string? queryTenantId,
+        [FromForm(Name = "returnUrl")] string? formReturnUrl,
+        [FromQuery(Name = "returnUrl")] string? queryReturnUrl)
     {
-        if (Guid.TryParse(tenantId, out var tenantGuid))
+        var tenantId = !string.IsNullOrWhiteSpace(formTenantId) ? formTenantId : queryTenantId;
+        var returnUrl = !string.IsNullOrWhiteSpace(formReturnUrl) ? formReturnUrl : queryReturnUrl;
+
+        return await ProcessTenantSelectionAsync(tenantId, returnUrl);
+    }
+
+    [HttpGet("/tenant/{tenantId}")]
+    [HttpGet("/t/{tenantId}")]
+    [HttpGet("Select")]
+    public async Task<IActionResult> Select(string? tenantId, [FromQuery] string? returnUrl = null)
+    {
+        return await ProcessTenantSelectionAsync(tenantId, returnUrl);
+    }
+
+    private async Task<IActionResult> ProcessTenantSelectionAsync(string? tenantId, string? returnUrl)
+    {
+        if (!string.IsNullOrWhiteSpace(tenantId))
         {
-            var tenantIdentifier = Commons.TenantId.NewTenantId(tenantGuid);
-
-            if (User.Identity != null && User.Identity.IsAuthenticated)
+            Guid tenantGuid;
+            if (string.Equals(tenantId, "default", StringComparison.OrdinalIgnoreCase))
             {
-                var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                if (Guid.TryParse(userIdStr, out var userIdGuid))
+                tenantGuid = Commons.TenantId.Default.Value;
+            }
+            else if (!Guid.TryParse(tenantId, out tenantGuid))
+            {
+                tenantGuid = Guid.Empty;
+            }
+
+            if (tenantGuid != Guid.Empty)
+            {
+                var tenantIdentifier = Commons.TenantId.NewTenantId(tenantGuid);
+                var cookieOptions = new CookieOptions
                 {
-                    var userContext = UserContextMapper.mapFromClaimsPrincipal(User);
-                    var userId = Commons.UserId.NewUserId(userIdGuid);
+                    Expires = DateTimeOffset.UtcNow.AddDays(30),
+                    HttpOnly = false,
+                    SameSite = SameSiteMode.Lax,
+                    Secure = Request.IsHttps,
+                    Path = "/"
+                };
 
-                    // 1. Persist the tenant selection in the backend event store
-                    var setTenantResult = await _userService.SetCurrentTenantAsync(
-                        userContext, 
-                        userId, 
-                        tenantIdentifier, 
-                        FSharpOption<CancellationToken>.None);
-
-                    if (setTenantResult.IsOk)
+                if (User.Identity != null && User.Identity.IsAuthenticated)
+                {
+                    var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                    if (Guid.TryParse(userIdStr, out var userIdGuid))
                     {
-                        // 2. Set the cookie for immediate recognition by client & server
-                        Response.Cookies.Append(
-                            "selected_tenant_id", 
-                            tenantGuid.ToString(), 
-                            new CookieOptions 
-                            { 
-                                Expires = DateTimeOffset.UtcNow.AddDays(30), 
-                                HttpOnly = false, 
-                                SameSite = SameSiteMode.Lax 
-                            });
+                        var userContext = UserContextMapper.mapFromClaimsPrincipal(User);
+                        var userId = Commons.UserId.NewUserId(userIdGuid);
 
-                        // 3. Warm up the cache for the new tenant
-                        _ = Task.Run(() => _warmupService.WarmupTenantAsync(tenantIdentifier, CancellationToken.None));
+                        // 1. Persist the tenant selection in the backend event store
+                        var setTenantResult = await _userService.SetCurrentTenantAsync(
+                            userContext,
+                            userId,
+                            tenantIdentifier,
+                            FSharpOption<CancellationToken>.None);
+
+                        if (setTenantResult.IsOk)
+                        {
+                            // 2. Set the cookies for immediate recognition by client & server
+                            Response.Cookies.Append("selected_tenant_id", tenantGuid.ToString(), cookieOptions);
+                            Response.Cookies.Append("selected_tenant", tenantGuid.ToString(), cookieOptions);
+
+                            // 3. Warm up the cache for the new tenant
+                            _ = Task.Run(() => _warmupService.WarmupTenantAsync(tenantIdentifier, CancellationToken.None));
+                        }
                     }
                 }
-            }
-            else
-            {
-                // Anonymous user - just set the cookie and warm up cache
-                Response.Cookies.Append(
-                    "selected_tenant_id", 
-                    tenantGuid.ToString(), 
-                    new CookieOptions 
-                    { 
-                        Expires = DateTimeOffset.UtcNow.AddDays(30), 
-                        HttpOnly = false, 
-                        SameSite = SameSiteMode.Lax 
-                    });
+                else
+                {
+                    // Anonymous user - set cookies and warm up cache
+                    Response.Cookies.Append("selected_tenant_id", tenantGuid.ToString(), cookieOptions);
+                    Response.Cookies.Append("selected_tenant", tenantGuid.ToString(), cookieOptions);
 
-                _ = Task.Run(() => _warmupService.WarmupTenantAsync(tenantIdentifier, CancellationToken.None));
+                    _ = Task.Run(() => _warmupService.WarmupTenantAsync(tenantIdentifier, CancellationToken.None));
+                }
             }
         }
 
-        // Redirect back to the referrer or home page
-        return LocalRedirect(string.IsNullOrWhiteSpace(returnUrl) ? "/" : $"/{returnUrl}");
+        // Redirect back to returnUrl safely
+        var redirectUrl = "/";
+        if (!string.IsNullOrWhiteSpace(returnUrl))
+        {
+            redirectUrl = returnUrl.StartsWith("/") ? returnUrl : $"/{returnUrl}";
+        }
+
+        return LocalRedirect(redirectUrl);
     }
 }

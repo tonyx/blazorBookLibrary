@@ -82,9 +82,13 @@
     protected override void OnInitialized()
     {
         currentUrl = NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
-        NavigationManager.LocationChanged += (s, e) => {
+        NavigationManager.LocationChanged += async (s, e) => {
             currentUrl = NavigationManager.ToBaseRelativePath(e.Location);
-            StateHasChanged();
+            var switched = await CheckUrlForTenantSwitchAsync(e.Location);
+            if (switched)
+            {
+                StateHasChanged();
+            }
         };
 
         TenantState.OnChange += StateHasChanged;
@@ -92,17 +96,22 @@
 
     protected override async Task OnInitializedAsync()
     {
+        var tenantSwitchedFromUrl = await CheckUrlForTenantSwitchAsync(NavigationManager.Uri);
+
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         var userContext = TenantState.GetUserContext(authState.User);
 
-        // Resolve current tenant for both authenticated and anonymous users
-        var tenantResult = await UserTenantResolverService.GetTenantForUserAsync(userContext, Microsoft.FSharp.Core.FSharpOption<System.Threading.CancellationToken>.None);
-        if (tenantResult.IsOk)
+        // Resolve current tenant if not already set from URL
+        if (TenantState.CurrentTenant == null)
         {
-            var tenantInfoResult = await TenantService.GetTenantAsync(userContext, tenantResult.ResultValue, CancellationToken.None);
-            if (tenantInfoResult.IsOk)
+            var tenantResult = await UserTenantResolverService.GetTenantForUserAsync(userContext, Microsoft.FSharp.Core.FSharpOption<System.Threading.CancellationToken>.None);
+            if (tenantResult.IsOk)
             {
-                TenantState.CurrentTenant = tenantInfoResult.ResultValue;
+                var tenantInfoResult = await TenantService.GetTenantAsync(userContext, tenantResult.ResultValue, CancellationToken.None);
+                if (tenantInfoResult.IsOk)
+                {
+                    TenantState.CurrentTenant = tenantInfoResult.ResultValue;
+                }
             }
         }
 
@@ -114,6 +123,77 @@
         {
             await LoadPublicTenantsAsync();
         }
+    }
+
+    private async Task<bool> CheckUrlForTenantSwitchAsync(string url)
+    {
+        try
+        {
+            var uri = NavigationManager.ToAbsoluteUri(url);
+            var query = ParseQueryString(uri.Query);
+
+            if (query.TryGetValue("tenant", out var tenantVal) || query.TryGetValue("tenantId", out tenantVal))
+            {
+                var tenantStr = tenantVal;
+                if (!string.IsNullOrWhiteSpace(tenantStr))
+                {
+                    Commons.TenantId? targetTenantId = null;
+                    if (string.Equals(tenantStr, "default", StringComparison.OrdinalIgnoreCase))
+                    {
+                        targetTenantId = Commons.TenantId.Default;
+                    }
+                    else if (Guid.TryParse(tenantStr, out var parsedGuid))
+                    {
+                        targetTenantId = Commons.TenantId.NewTenantId(parsedGuid);
+                    }
+
+                    if (targetTenantId != null)
+                    {
+                        if (TenantState.CurrentTenant?.TenantId.Value != targetTenantId.Value)
+                        {
+                            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+                            var userContext = TenantState.GetUserContext(authState.User);
+                            var tenantInfoResult = await TenantService.GetTenantAsync(userContext, targetTenantId, CancellationToken.None);
+                            if (tenantInfoResult.IsOk)
+                            {
+                                await TenantState.SetTenantAsync(tenantInfoResult.ResultValue);
+                                if (authState.User.Identity?.IsAuthenticated == true && userContext.UserId != null && Microsoft.FSharp.Core.FSharpOption<Commons.UserId>.get_IsSome(userContext.UserId))
+                                {
+                                    await UserService.SetCurrentTenantAsync(userContext, userContext.UserId.Value, targetTenantId, Microsoft.FSharp.Core.FSharpOption<CancellationToken>.None);
+                                }
+                                return true;
+                            }
+                        }
+                        else
+                        {
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
+        catch
+        {
+            // Fail safely if query cannot be parsed
+        }
+        return false;
+    }
+
+    private static Dictionary<string, string> ParseQueryString(string queryString)
+    {
+        var result = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        if (string.IsNullOrWhiteSpace(queryString)) return result;
+
+        var query = queryString.StartsWith("?") ? queryString.Substring(1) : queryString;
+        var pairs = query.Split('&', StringSplitOptions.RemoveEmptyEntries);
+        foreach (var pair in pairs)
+        {
+            var parts = pair.Split('=', 2);
+            var key = Uri.UnescapeDataString(parts[0]);
+            var val = parts.Length > 1 ? Uri.UnescapeDataString(parts[1]) : "";
+            result[key] = val;
+        }
+        return result;
     }
 
     private async Task LoadPublicTenantsAsync()
