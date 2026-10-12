@@ -27,7 +27,26 @@ module GoogleBooksTests =
         // test pending as Google Books API may be down
         testList
             "Google Books Service Tests"
-            [ ptestCaseTask "can lookup book by ISBN and populate Description"
+            [ testCaseTask "can lookup book 978-8858830888 (Tiziano Ferro)"
+              <| fun _ ->
+                  task {
+                      let isbn = "978-8858830888"
+                      let! result = googleService.LookupByIsbnAsync(adminContext, isbn)
+
+                      match result with
+                      | Ok(Some metadata) ->
+                          Expect.isNotNull metadata.Title "Title should not be null"
+                          Expect.isTrue
+                              (metadata.Title.Contains("amore", System.StringComparison.OrdinalIgnoreCase))
+                              $"Title '{metadata.Title}' should contain 'amore'"
+                          Expect.isTrue
+                              (metadata.Authors |> Seq.exists (fun a -> a.Contains("Ferro", System.StringComparison.OrdinalIgnoreCase)))
+                              $"Authors should contain 'Ferro'"
+                          printfn "Successfully resolved ISBN %s to '%s' by %A" isbn metadata.Title metadata.Authors
+                      | Ok None -> failwith "Book not found"
+                      | Error e -> failwith e
+                  }
+              ptestCaseTask "can lookup book by ISBN and populate Description"
               <| fun _ ->
                   task {
                       let isbn = "9780132350884" // Clean Code

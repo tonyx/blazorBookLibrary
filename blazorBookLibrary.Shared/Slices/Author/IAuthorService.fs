@@ -25,6 +25,7 @@ type IAuthorService =
     abstract member UpdateIsniAsync : context: UserContext * authorId: AuthorId * isni: Isni * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> TaskResult<unit, string>
     abstract member UpdateBioAsync : context: UserContext * authorId: AuthorId * bio: string * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> TaskResult<unit, string>
     abstract member UpdateWikipediaUriAsync : context: UserContext * authorId: AuthorId * wikipediaUri: Uri * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> TaskResult<unit, string>
+    abstract member RemoveWikipediaUriAsync : context: UserContext * authorId: AuthorId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> TaskResult<unit, string>
     abstract member SealAsync : context: UserContext * authorId: AuthorId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> TaskResult<unit, string>
     abstract member UnsealAsync : context: UserContext * authorId: AuthorId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> TaskResult<unit, string>
     abstract member GetAllAsync: context: UserContext * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<List<Author>, string>>

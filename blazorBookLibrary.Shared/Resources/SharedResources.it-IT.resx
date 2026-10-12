@@ -1155,6 +1155,8 @@
   <data name="WikipediaLink" xml:space="preserve"><value>Link Wikipedia</value></data>
   <data name="WikipediaLinkFound" xml:space="preserve"><value>Link Wikipedia trovato</value></data>
   <data name="WikipediaLinkUpdated" xml:space="preserve"><value>Link Wikipedia aggiornato con successo</value></data>
+  <data name="WikipediaLinkRemoved" xml:space="preserve"><value>Link Wikipedia rimosso con successo</value></data>
+  <data name="DiscardWikipediaLink" xml:space="preserve"><value>Rimuovi link Wikipedia</value></data>
   <data name="WikipediaLookupError" xml:space="preserve"><value>Ricerca su Wikipedia fallita: {0}</value></data>
   <data name="WikipediaUriLookup" xml:space="preserve"><value>Ricerca Link Wikipedia</value></data>
   <data name="WorksCount" xml:space="preserve"><value>Conteggio Opere</value></data>

@@ -227,6 +227,7 @@ type GoogleBooksService
             (context: UserContext, isbn: string, [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken)
             =
             let ct = defaultArg ct CancellationToken.None
+            let cleanIsbn = isbn.Replace("-", "").Replace(" ", "").Trim()
 
             runWithFallback
                 (fun () ->
@@ -238,7 +239,7 @@ type GoogleBooksService
                                 return Error "Not authorized to lookup books"
                             else
                                 use linkedCts = CancellationTokenSource.CreateLinkedTokenSource(ct, internalCt)
-                                let url = $"https://www.googleapis.com/books/v1/volumes?q=isbn:{isbn}{keyParam}"
+                                let url = $"https://www.googleapis.com/books/v1/volumes?q=isbn:{cleanIsbn}{keyParam}"
                                 let! response = httpClient.GetFromJsonAsync<GoogleBooksResponse>(url, linkedCts.Token)
 
                                 if
@@ -246,13 +247,13 @@ type GoogleBooksService
                                     || isNull (box response.Items)
                                     || response.Items.Length = 0
                                 then
-                                    return Ok None
+                                    return! (geminiService :> IBooksMetadataSearchService).LookupByIsbnAsync(context, cleanIsbn, ct)
                                 else
                                     let metadata = createMetadata response.Items.[0].VolumeInfo
-                                    let metadataWithActualIsbn = { metadata with Isbn = Some isbn }
+                                    let metadataWithActualIsbn = { metadata with Isbn = Some cleanIsbn }
                                     return Ok(Some metadataWithActualIsbn)
                         }))
-                (fun () -> (geminiService :> IBooksMetadataSearchService).LookupByIsbnAsync(context, isbn, ct))
+                (fun () -> (geminiService :> IBooksMetadataSearchService).LookupByIsbnAsync(context, cleanIsbn, ct))
 
         member this.LookupByTitleAsync
             (context: UserContext, title: string, [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken)
@@ -290,7 +291,7 @@ type GoogleBooksService
                                     || isNull (box finalResponse.Items)
                                     || finalResponse.Items.Length = 0
                                 then
-                                    return Ok None
+                                    return! (geminiService :> IBooksMetadataSearchService).LookupByTitleAsync(context, title, ct)
                                 else
                                     let metadata = createMetadata finalResponse.Items.[0].VolumeInfo
                                     return Ok(Some metadata)
@@ -328,8 +329,8 @@ type GoogleBooksService
                                             return response
                                     }
 
-                                if isNull (box finalResponse) || isNull (box finalResponse.Items) then
-                                    return Ok []
+                                if isNull (box finalResponse) || isNull (box finalResponse.Items) || finalResponse.Items.Length = 0 then
+                                    return! (geminiService :> IBooksMetadataSearchService).LookupMultipleByTitleAsync(context, title, ct)
                                 else
                                     let results =
                                         finalResponse.Items
@@ -365,12 +366,13 @@ type GoogleBooksService
 
                                 match isbn with
                                 | Isbn value ->
-                                    let url = $"https://covers.openlibrary.org/b/isbn/{value}-{sizeStr}.jpg"
+                                    let cleanVal = value.Replace("-", "").Replace(" ", "").Trim()
+                                    let url = $"https://covers.openlibrary.org/b/isbn/{cleanVal}-{sizeStr}.jpg"
                                     let! direct = BookCoverHelpers.verifyCoverUrl httpClient url linkedCts.Token
                                     match direct with
                                     | Some u -> return Ok (Some u)
                                     | None ->
-                                        let! fromEdition = BookCoverHelpers.checkOpenLibraryEditionCovers httpClient value sizeStr linkedCts.Token
+                                        let! fromEdition = BookCoverHelpers.checkOpenLibraryEditionCovers httpClient cleanVal sizeStr linkedCts.Token
                                         return Ok fromEdition
                                 | InvalidIsbn _ -> return Error "Cannot lookup cover for an invalid ISBN."
                                 | EmptyIsbn -> return Ok None
@@ -393,7 +395,7 @@ type GoogleBooksService
                                 return Error "Not authorized to lookup book covers"
                             else
                                 use linkedCts = CancellationTokenSource.CreateLinkedTokenSource(ct, internalCt)
-                                let isbnStr = isbn.Value
+                                let isbnStr = isbn.Value.Replace("-", "").Replace(" ", "").Trim()
 
                                 if String.IsNullOrWhiteSpace isbnStr then
                                     return Ok None
@@ -461,7 +463,8 @@ type GoogleBooksService
                                 | Ok(Some url) -> return Ok(Some url)
                                 | _ ->
                                     // Fallback: lookup metadata by ISBN and then search cover by title/author
-                                    let! metaResult = (this :> IBooksMetadataSearchService).LookupByIsbnAsync(context, isbn.Value, ct)
+                                    let cleanVal = isbn.Value.Replace("-", "").Replace(" ", "").Trim()
+                                    let! metaResult = (this :> IBooksMetadataSearchService).LookupByIsbnAsync(context, cleanVal, ct)
                                     match metaResult with
                                     | Ok(Some meta) when not (String.IsNullOrWhiteSpace meta.Title) ->
                                         let authorOpt =

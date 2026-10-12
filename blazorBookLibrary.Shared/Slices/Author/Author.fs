@@ -99,6 +99,17 @@ type Author =
                 { this with
                     WikipediaUri = wikipediaUri |> Some }
         }
+        
+    member this.RemoveWikipediaUri (dateTime: DateTime) =
+        result
+            {
+                do! this.Sealed.IsSealed(dateTime) |> not |> Result.ofBool "Author is sealed"
+                return 
+                    { 
+                        this with 
+                            WikipediaUri = None
+                    }
+            }
 
     member this.Seal(dateTime: DateTime) =
         result {

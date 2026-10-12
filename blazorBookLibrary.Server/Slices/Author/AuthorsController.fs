@@ -190,6 +190,18 @@ type AuthorsController(authorService: IAuthorService, hubContext: Microsoft.AspN
             | _ -> return this.BadRequest("Invalid Wikipedia URI") :> IActionResult
         }
 
+    [<HttpDelete("{id}/wikipedia-uri")>]
+    member this.RemoveWikipediaUri(id: Guid) =
+        task {
+            let context = UserContextMapper.mapFromClaimsPrincipal this.User
+            let! result = authorService.RemoveWikipediaUriAsync(context, AuthorId id)
+            match result with
+            | Ok _ -> 
+                do! hubContext.Clients.All.SendCoreAsync("AuthorsChanged", [||])
+                return this.Ok() :> IActionResult
+            | Error msg -> return this.BadRequest(msg) :> IActionResult
+        }
+
     [<HttpPost("{id}/seal")>]
     member this.Seal(id: Guid) =
         task {

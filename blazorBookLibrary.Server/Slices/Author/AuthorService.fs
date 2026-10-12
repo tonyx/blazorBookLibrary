@@ -250,6 +250,30 @@ type AuthorService
             return! result
         }
 
+    member this.RemoveWikipediaUriAsync(context: UserContext, authorId: AuthorId, ?ct: CancellationToken) =
+        let ct = defaultArg ct CancellationToken.None
+
+        taskResult {
+            let! tenantId = userTenantResolverService.GetTenantForUserAsync(context, ct)
+            let! author = this.GetAuthorAsync(context, authorId, ct)
+            do! tenantId = author.TenantId |> Result.ofBool "Tenant ids not matching"
+            do! checkIsGlobalAdminOrTenantManager context ct
+
+            let removeWikipediaUriCommand =
+                AuthorCommand.RemoveWikipediaUri(DateTime.UtcNow)
+
+            let result =
+                runAggregateCommandMdAsync<Author, AuthorEvent, string>
+                    authorId.Value
+                    eventStore
+                    messageSenders
+                    context.Metadata
+                    removeWikipediaUriCommand
+                    (Some ct)
+
+            return! result
+        }
+
     member this.UpdateImageUrlAsync(context: UserContext, authorId: AuthorId, imageUrl: Uri, ?ct: CancellationToken) =
         let ct = defaultArg ct CancellationToken.None
 
@@ -534,6 +558,10 @@ type AuthorService
         member this.UpdateWikipediaUriAsync(context, authorId: AuthorId, wikipediaUri: Uri, ?ct: CancellationToken) =
             let ct = defaultArg ct CancellationToken.None
             this.UpdateWikipediaUriAsync(context, authorId, wikipediaUri, ct)
+
+        member this.RemoveWikipediaUriAsync(context, authorId: AuthorId, ?ct: CancellationToken) =
+            let ct = defaultArg ct CancellationToken.None
+            this.RemoveWikipediaUriAsync(context, authorId, ct)
 
         member this.UpdateImageUrlAsync(context, authorId: AuthorId, imageUrl: Uri, ?ct: CancellationToken) =
             let ct = defaultArg ct CancellationToken.None

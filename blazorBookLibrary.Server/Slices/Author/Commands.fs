@@ -13,6 +13,7 @@ type AuthorCommand =
     | RemoveImageUrl of DateTime
     | UpdateBio of string * DateTime
     | UpdateWikipediaUri of Uri * DateTime
+    | RemoveWikipediaUri of DateTime
 
     interface AggregateCommand<Author, AuthorEvent> with
         member this.Execute(author: Author) =
@@ -29,6 +30,9 @@ type AuthorCommand =
             | UpdateWikipediaUri(wikipediaUri, dateTime) ->
                 author.UpdateWikipediaUri wikipediaUri dateTime
                 |> Result.map (fun a -> (a, [ WikipediaUriUpdated(wikipediaUri, dateTime) ]))
+            | RemoveWikipediaUri dateTime ->
+                author.RemoveWikipediaUri dateTime
+                |> Result.map (fun a -> (a, [ WikipediaUriRemoved(dateTime) ]))
             | UpdateImageUrl(imageUrl, dateTime) ->
                 author.UpdateImageUrl imageUrl dateTime
                 |> Result.map (fun a -> (a, [ ImageUrlUpdated(imageUrl, dateTime) ]))

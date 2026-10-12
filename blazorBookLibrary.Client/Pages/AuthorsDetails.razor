@@ -321,6 +321,12 @@ else
                                         <a href="@_authorDetails.Author.WikipediaUri.Value.ToString()" target="_blank" class="text-primary text-decoration-none small d-flex align-items-center">
                                             <i class="bi bi-wikipedia me-2"></i> @_authorDetails.Author.WikipediaUri.Value.ToString()
                                         </a>
+                                        @if (_authorDetails.Author.Editable)
+                                        {
+                                            <button class="btn btn-link p-0 text-danger" @onclick="RemoveWikipediaUri" @onclick:stopPropagation title="@L["DiscardWikipediaLink"]">
+                                                <i class="bi bi-x-lg" style="font-size: 0.8rem;"></i>
+                                            </button>
+                                        }
                                     }
                                     @if (_authorDetails.Author.Editable)
                                     {
@@ -860,8 +866,7 @@ else
         if (_authorDetails == null) return;
         if (string.IsNullOrWhiteSpace(_editedWikipediaUri))
         {
-            // Optional: handle removal
-            _isEditingWikipediaUri = false;
+            await RemoveWikipediaUri();
             return;
         }
 
@@ -892,6 +897,33 @@ else
         else
         {
             Logger.LogWarning("Invalid URL format entered: {Url}", _editedWikipediaUri);
+            await ShowStatus(L["ErrorOccurred"].Value, "alert-danger");
+        }
+    }
+
+    private async Task RemoveWikipediaUri()
+    {
+        if (_authorDetails == null) return;
+
+        try
+        {
+            var context = await GetContext();
+            var result = await AuthorService.RemoveWikipediaUriAsync(context, _authorDetails.Author.AuthorId);
+            if (result.IsOk)
+            {
+                await LoadAuthorDetails();
+                _isEditingWikipediaUri = false;
+                await ShowStatus(L["WikipediaLinkRemoved"], "alert-success");
+            }
+            else
+            {
+                Logger.LogError("Error removing Wikipedia URI for author {AuthorId}: {Error}", _authorDetails.Author.AuthorId.Value, result.ErrorValue);
+                await ShowStatus(L["ErrorOccurred"].Value, "alert-danger");
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Exception while removing Wikipedia URI for author {AuthorId}", _authorDetails.Author.AuthorId.Value);
             await ShowStatus(L["ErrorOccurred"].Value, "alert-danger");
         }
     }

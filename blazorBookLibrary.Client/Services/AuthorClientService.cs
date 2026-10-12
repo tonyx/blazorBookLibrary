@@ -98,6 +98,12 @@ public class AuthorClientService : IAuthorService
         return await ServiceClientHelper.HandleUnitResponse(response);
     }
 
+    public async Task<FSharpResult<Unit, string>> RemoveWikipediaUriAsync(Commons.UserContext context, Commons.AuthorId authorId, FSharpOption<CancellationToken> ct)
+    {
+        var response = await _httpClient.DeleteAsync($"api/Authors/{authorId.Value}/wikipedia-uri", ServiceClientHelper.GetValue(ct, CancellationToken.None));
+        return await ServiceClientHelper.HandleUnitResponse(response);
+    }
+
     public async Task<FSharpResult<Unit, string>> SealAsync(Commons.UserContext context, Commons.AuthorId authorId, FSharpOption<CancellationToken> ct)
     {
         var response = await _httpClient.PostAsync($"api/Authors/{authorId.Value}/seal", null, ServiceClientHelper.GetValue(ct, CancellationToken.None));

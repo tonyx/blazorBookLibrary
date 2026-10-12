@@ -16,6 +16,7 @@ type AuthorEvent =
     | ImageUrlRemoved of DateTime
     | BioUpdated of string * DateTime
     | WikipediaUriUpdated of Uri * DateTime
+    | WikipediaUriRemoved of DateTime
 
     interface Event<Author> with
         member this.Process(author: Author) : Result<Author, string> =
@@ -24,6 +25,7 @@ type AuthorEvent =
             | IsniUpdated(isni, dateTime) -> author.UpdateIsni isni dateTime
             | BioUpdated(bio, dateTime) -> author.UpdateBio bio dateTime
             | WikipediaUriUpdated(wikipediaUri, dateTime) -> author.UpdateWikipediaUri wikipediaUri dateTime
+            | WikipediaUriRemoved dateTime -> author.RemoveWikipediaUri dateTime
             | ImageUrlUpdated(imageUrl, dateTime) -> author.UpdateImageUrl imageUrl dateTime
             | ImageUrlRemoved dateTime -> author.RemoveImageUrl dateTime
             | Sealed dateTime -> author.Seal dateTime

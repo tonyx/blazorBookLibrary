@@ -348,22 +348,28 @@ type GeminiBasedBooksMetadataSearchService
           Isbn = if String.IsNullOrWhiteSpace r.isbn then None else Some r.isbn
           Description = if String.IsNullOrWhiteSpace r.description then None else Some r.description }
 
-    let callGemini (prompt: string) (responseMimeType: string option) (ct: CancellationToken) =
+    let callGemini (prompt: string) (useGoogleSearch: bool) (responseMimeType: string option) (ct: CancellationToken) =
         task {
             try
                 let url = $"https://generativelanguage.googleapis.com/v1beta/models/{modelName}:generateContent?key={apiKey}"
 
                 let requestBody =
-                    match responseMimeType with
-                    | Some mimeType ->
+                    if useGoogleSearch then
                         box {| contents = [| {| parts = [| {| text = prompt |} |] |} |]
-                               generationConfig =
-                                   {| response_mime_type = mimeType
-                                      thinkingConfig = {| thinkingLevel = "MINIMAL" |} |} |}
-                    | None ->
-                        box {| contents = [| {| parts = [| {| text = prompt |} |] |} |]
+                               tools = [| {| google_search = {| |} |} |]
                                generationConfig =
                                    {| thinkingConfig = {| thinkingLevel = "MINIMAL" |} |} |}
+                    else
+                        match responseMimeType with
+                        | Some mimeType ->
+                            box {| contents = [| {| parts = [| {| text = prompt |} |] |} |]
+                                   generationConfig =
+                                       {| response_mime_type = mimeType
+                                          thinkingConfig = {| thinkingLevel = "MINIMAL" |} |} |}
+                        | None ->
+                            box {| contents = [| {| parts = [| {| text = prompt |} |] |} |]
+                                   generationConfig =
+                                       {| thinkingConfig = {| thinkingLevel = "MINIMAL" |} |} |}
 
                 let jsonRequest = System.Text.Json.JsonSerializer.Serialize(requestBody)
                 use content = new StringContent(jsonRequest, System.Text.Encoding.UTF8, "application/json")
@@ -419,9 +425,10 @@ type GeminiBasedBooksMetadataSearchService
                 if allowed |> Result.isError then
                     return Error "Not authorized to lookup books"
                 else
+                    let cleanIsbn = isbn.Replace("-", "").Replace(" ", "").Trim()
                     let prompt =
-                        $"Find the metadata for the book with ISBN: {isbn}. Use your internal knowledge to retrieve highly accurate information. You MUST ensure the 'isbn' returned is a mathematically valid 13-digit or 10-digit ISBN number. Format the response as a single JSON object with the following keys: 'title' (string), 'authors' (array of strings, do NOT use 'author'), 'categories' (array of strings), 'year' (integer, or null if unknown), 'isbn' (string), and 'description' (string, a brief summary of the book, or null if unknown)."
-                    let! responseResult = callGemini prompt (Some "application/json") ct
+                        $"Find the metadata for the book with ISBN: {cleanIsbn}. Search the web for this ISBN to identify the exact book title, author, year, categories, and description. Format the response as a single JSON object with the following keys: 'title' (string), 'authors' (array of strings, do NOT use 'author'), 'categories' (array of strings), 'year' (integer, or null if unknown), 'isbn' (string), and 'description' (string, a brief summary of the book, or null if unknown)."
+                    let! responseResult = callGemini prompt true None ct
                     match responseResult with
                     | Ok rawJsonStr ->
                         try
@@ -431,7 +438,7 @@ type GeminiBasedBooksMetadataSearchService
                                 let correctedIsbn =
                                     match metadata.Isbn with
                                     | Some i when not (String.IsNullOrWhiteSpace i) -> tryCorrectIsbn i
-                                    | _ -> isbn
+                                    | _ -> cleanIsbn
                                 let metadataWithActualIsbn = { metadata with Isbn = Some correctedIsbn }
                                 return Ok (Some metadataWithActualIsbn)
                             | None ->
@@ -452,8 +459,8 @@ type GeminiBasedBooksMetadataSearchService
                     return Error "Not authorized to lookup books"
                 else
                     let prompt =
-                        $"Find the metadata for the book with title: {title}. Use your internal knowledge to retrieve highly accurate information. You MUST identify the correct ISBN-13 for this book and make sure the returned 'isbn' is mathematically valid. Format the response as a single JSON object with the following keys: 'title' (string), 'authors' (array of strings, do NOT use 'author'), 'categories' (array of strings), 'year' (integer, or null if unknown), 'isbn' (string), and 'description' (string, a brief summary of the book, or null if unknown)."
-                    let! responseResult = callGemini prompt (Some "application/json") ct
+                        $"Find the metadata for the book with title: {title}. Search the web to retrieve highly accurate information and identify its correct ISBN-13. Format the response as a single JSON object with the following keys: 'title' (string), 'authors' (array of strings, do NOT use 'author'), 'categories' (array of strings), 'year' (integer, or null if unknown), 'isbn' (string), and 'description' (string, a brief summary of the book, or null if unknown)."
+                    let! responseResult = callGemini prompt true None ct
                     match responseResult with
                     | Ok rawJsonStr ->
                         try
@@ -484,8 +491,8 @@ type GeminiBasedBooksMetadataSearchService
                     return Error "Not authorized to lookup books"
                 else
                     let prompt =
-                        $"Find metadata for up to 3 books that match or are highly relevant to the search title: {title}. You MUST identify the correct ISBN-13 for each book and ensure it is mathematically valid. Format the response as a JSON array of objects, where each object has the keys: 'title' (string), 'authors' (array of strings, do NOT use 'author'), 'categories' (array of strings), 'year' (integer, or null if unknown), 'isbn' (string, or null if unknown), and 'description' (string, or null if unknown)."
-                    let! responseResult = callGemini prompt (Some "application/json") ct
+                        $"Find metadata for up to 3 books that match or are highly relevant to the search title: {title}. Search the web to identify the correct ISBN-13 for each book and ensure it is valid. Format the response as a JSON array of objects, where each object has the keys: 'title' (string), 'authors' (array of strings, do NOT use 'author'), 'categories' (array of strings), 'year' (integer, or null if unknown), 'isbn' (string, or null if unknown), and 'description' (string, or null if unknown)."
+                    let! responseResult = callGemini prompt true None ct
                     match responseResult with
                     | Ok rawJsonStr ->
                         try
@@ -577,8 +584,8 @@ type GeminiBasedBooksMetadataSearchService
             task {
                 let authorPart = match author with Some a when not (String.IsNullOrWhiteSpace a) -> $" by {a}" | _ -> ""
                 let prompt =
-                    $"Find the most likely, accurate ISBN-13 for the book with title: '{title}'{authorPart}. Use your internal database to find the real ISBN-13. Format the response as a single JSON object with a single key 'isbn' (string)."
-                let! responseResult = callGemini prompt (Some "application/json") ct
+                    $"Find the most likely, accurate ISBN-13 for the book with title: '{title}'{authorPart}. Search the web to find the real ISBN-13. Format the response as a single JSON object with a single key 'isbn' (string)."
+                let! responseResult = callGemini prompt true None ct
                 match responseResult with
                 | Ok rawJsonStr ->
                     try

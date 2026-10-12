@@ -271,6 +271,30 @@ let tests =
             Expect.equal limitResults.Length 1 "should respect max suggestions limit"
         }
 
+        testCaseTask "update and remove wikipedia uri - Ok" <| fun _ -> task {
+            setUp ()
+            let authorService = getAuthorService()
+            let author = Author.NewWithoutIsni TenantId.Default (Name.New "George Orwell")
+
+            let! _ = authorService.AddAuthorAsync(adminContext, author)
+            let wikiUri = System.Uri "https://en.wikipedia.org/wiki/George_Orwell"
+            let! updateRes = (authorService :> IAuthorService).UpdateWikipediaUriAsync(adminContext, author.AuthorId, wikiUri)
+            Expect.isOk updateRes "update should be ok"
+
+            let! getAuthorAfterUpdate = authorService.GetAuthorAsync(adminContext, author.AuthorId)
+            Expect.isOk getAuthorAfterUpdate "get should be ok"
+            let updatedAuthor = getAuthorAfterUpdate |> Result.get
+            Expect.equal updatedAuthor.WikipediaUri (Some wikiUri) "wikipedia uri should match"
+
+            let! removeRes = (authorService :> IAuthorService).RemoveWikipediaUriAsync(adminContext, author.AuthorId)
+            Expect.isOk removeRes "remove should be ok"
+
+            let! getAuthorAfterRemove = authorService.GetAuthorAsync(adminContext, author.AuthorId)
+            Expect.isOk getAuthorAfterRemove "get after remove should be ok"
+            let removedAuthor = getAuthorAfterRemove |> Result.get
+            Expect.equal removedAuthor.WikipediaUri None "wikipedia uri should be None"
+        }
+
     ]
 
     |> testSequenced
