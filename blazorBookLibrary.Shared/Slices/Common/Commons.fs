@@ -477,13 +477,19 @@ type Isbn =
     | InvalidIsbn of string
     | EmptyIsbn
 
+    static member StripExtraChars(isbn: string) =
+        if String.IsNullOrWhiteSpace(isbn) then ""
+        else isbn.Trim().Replace("-", "").Replace(" ", "")
+
     static member IsValid(isbn: string) =
         if String.IsNullOrWhiteSpace(isbn) then
             false
         else
-            let cleanIsbn = isbn.Replace("-", "").Replace(" ", "")
+            let cleanIsbn = Isbn.StripExtraChars(isbn)
 
-            if cleanIsbn.Length = 10 then
+            if cleanIsbn.Length = 9 then
+                Isbn.IsValid("0" + cleanIsbn)
+            elif cleanIsbn.Length = 10 then
                 let isValidFormat =
                     cleanIsbn
                     |> Seq.mapi (fun i c ->
@@ -521,15 +527,14 @@ type Isbn =
             else
                 false
 
-    static member StripExtraChars(isbn: string) = isbn.Replace("-", "").Replace(" ", "")
-
     static member New(isbn: string) =
         if Isbn.IsValid(isbn) then
-            Ok(Isbn(isbn.Replace("-", "").Replace(" ", "")))
+            Ok(Isbn(Isbn.StripExtraChars(isbn)))
         else
             Error "Invalid ISBN"
 
-    static member NewInvalid(isbn: string) = InvalidIsbn isbn
+    static member NewInvalid(isbn: string) =
+        InvalidIsbn(if String.IsNullOrWhiteSpace(isbn) then "" else isbn.Trim())
     static member NewEmpty() = EmptyIsbn
 
     member this.Value =
@@ -557,8 +562,12 @@ type SbnCode =
         if System.String.IsNullOrWhiteSpace(s) then
             false
         else
+            let trimmed = s.Trim()
+            let clean = trimmed.Replace("-", "").Replace(" ", "")
             let regex = System.Text.RegularExpressions.Regex(@"^(?:IT[\\/]ICCU[\\/])?([A-Z0-9]{3})[\\/]?([0-9]{7}|[A-Z][0-9]{6})$", System.Text.RegularExpressions.RegexOptions.IgnoreCase)
-            regex.IsMatch(s.Trim())
+            regex.IsMatch(trimmed)
+            || Isbn.IsValid(trimmed)
+            || (clean.Length = 9 && Isbn.IsValid("0" + clean))
 
     static member NewValid (s:string) = 
         if SbnCode.IsValid(s) then Ok (ValidSbn(s.Trim()))

@@ -114,6 +114,11 @@
         }
 
         <div class="nav-item">
+            <NavLink class="nav-link sanctuary-nav-link" href="technical-info">
+                <span class="bi bi-cpu" aria-hidden="true"></span> @(System.Globalization.CultureInfo.CurrentCulture.TwoLetterISOLanguageName.Equals("it", StringComparison.OrdinalIgnoreCase) ? "Info Tecniche" : "Technical Info")
+            </NavLink>
+        </div>
+        <div class="nav-item">
             <NavLink class="nav-link sanctuary-nav-link" href="beta-info">
                 <span class="bi bi-shield-exclamation" aria-hidden="true"></span> @(System.Globalization.CultureInfo.CurrentCulture.TwoLetterISOLanguageName.Equals("it", StringComparison.OrdinalIgnoreCase) ? "Informazioni Beta" : "Beta Information")
             </NavLink>
@@ -158,7 +163,11 @@
         </AuthorizeView>
 
         <div class="nav-menu-footer mt-auto pt-4 text-center">
-            <div class="mb-2">
+            <div class="mb-2 d-flex flex-column gap-1 align-items-center">
+                <a href="technical-info" class="nav-footer-email text-muted small text-decoration-none d-inline-flex align-items-center gap-1">
+                    <i class="bi bi-cpu"></i>
+                    <span>@(System.Globalization.CultureInfo.CurrentCulture.TwoLetterISOLanguageName.Equals("it", StringComparison.OrdinalIgnoreCase) ? "Info Tecniche" : "Technical Info")</span>
+                </a>
                 <a href="privacy-info" class="nav-footer-email text-muted small text-decoration-none d-inline-flex align-items-center gap-1">
                     <i class="bi bi-shield-lock"></i>
                     <span>@(System.Globalization.CultureInfo.CurrentCulture.TwoLetterISOLanguageName.Equals("it", StringComparison.OrdinalIgnoreCase) ? "Privacy & GDPR" : "Privacy Policy")</span>

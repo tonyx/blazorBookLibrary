@@ -514,4 +514,78 @@ window.librarianSpeech = {
 
 if (typeof window !== 'undefined') {
     window.librarianSpeech.initVoices();
+
+    window.renderTechnicalMath = function(containerSelector) {
+        function doRender() {
+            const container = document.querySelector(containerSelector || '.markdown-technical-content');
+            if (!container) return;
+
+            if (window.katex) {
+                const mathElements = container.querySelectorAll('.math');
+                mathElements.forEach(el => {
+                    let text = el.textContent || '';
+                    text = text.trim();
+                    if (text.startsWith('\\[') && text.endsWith('\\]')) {
+                        text = text.substring(2, text.length - 2).trim();
+                    } else if (text.startsWith('$$') && text.endsWith('$$')) {
+                        text = text.substring(2, text.length - 2).trim();
+                    }
+                    try {
+                        window.katex.render(text, el, {
+                            displayMode: true,
+                            throwOnError: false
+                        });
+                    } catch (err) {
+                        console.warn('KaTeX render error:', err);
+                    }
+                });
+
+                if (window.renderMathInElement) {
+                    try {
+                        window.renderMathInElement(container, {
+                            delimiters: [
+                                { left: '$$', right: '$$', display: true },
+                                { left: '\\[', right: '\\]', display: true },
+                                { left: '$', right: '$', display: false },
+                                { left: '\\(', right: '\\)', display: false }
+                            ],
+                            throwOnError: false
+                        });
+                    } catch (err) {
+                        console.warn('renderMathInElement error:', err);
+                    }
+                }
+            }
+        }
+
+        if (window.katex) {
+            doRender();
+        } else {
+            if (!document.getElementById('katex-css')) {
+                const link = document.createElement('link');
+                link.id = 'katex-css';
+                link.rel = 'stylesheet';
+                link.href = 'https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css';
+                document.head.appendChild(link);
+            }
+
+            if (!document.getElementById('katex-js')) {
+                const script = document.createElement('script');
+                script.id = 'katex-js';
+                script.src = 'https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js';
+                script.onload = () => {
+                    const autoRender = document.createElement('script');
+                    autoRender.id = 'katex-autorender-js';
+                    autoRender.src = 'https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js';
+                    autoRender.onload = () => doRender();
+                    document.head.appendChild(autoRender);
+                    doRender();
+                };
+                document.head.appendChild(script);
+            } else {
+                setTimeout(doRender, 300);
+            }
+        }
+    };
 }
+

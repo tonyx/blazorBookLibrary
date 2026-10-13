@@ -1,0 +1,335 @@
+@page "/technical-info"
+@page "/technicalinfo"
+@rendermode InteractiveAuto
+@using System.Globalization
+@using Markdig
+@using blazorBookLibrary.Client.Services
+@inject ITechnicalInfoService TechnicalInfoService
+@inject IJSRuntime JSRuntime
+
+<PageTitle>@(IsItalian ? "Informazioni Tecniche & Architettura — BiblioNet" : "Technical Architecture & Specs — BiblioNet")</PageTitle>
+
+<HeadContent>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" crossorigin="anonymous">
+</HeadContent>
+
+<div class="sanctuary-container py-5">
+
+    @* Page Header *@
+    <div class="mb-5 text-center text-fade-in">
+        <div class="d-inline-flex align-items-center justify-content-center bg-primary-fixed text-primary rounded-circle mb-3 shadow-sm" style="width: 72px; height: 72px;">
+            <i class="bi bi-cpu" style="font-size: 2.2rem;"></i>
+        </div>
+        <h1 class="display-4 text-serif mb-2 fw-bold">
+            @(IsItalian ? "Specifiche Tecniche & Architettura" : "Technical Architecture & Specifications")
+        </h1>
+        <p class="text-muted lead mx-auto" style="max-width: 820px; font-family: var(--font-sans);">
+            @(IsItalian 
+                ? "Panoramica ingegneristica di BiblioNet.eu: programmazione funzionale in F#, Event Sourcing con Sharpino e persistenza relazionale su PostgreSQL." 
+                : "Engineering overview of BiblioNet.eu: functional programming in F#, Event Sourcing powered by Sharpino, and PostgreSQL persistence.")
+        </p>
+
+        @* Badges *@
+        <div class="d-flex flex-wrap justify-content-center gap-2 mt-3">
+            <span class="badge bg-primary bg-opacity-10 text-primary border border-primary-subtle px-3 py-2">
+                <i class="bi bi-diagram-3 me-1"></i> Event Sourcing & CQRS
+            </span>
+            <span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary-subtle px-3 py-2">
+                <i class="bi bi-file-code me-1"></i> F# (.NET 10) & Sharpino
+            </span>
+            <span class="badge bg-success bg-opacity-10 text-success border border-success-subtle px-3 py-2">
+                <i class="bi bi-database me-1"></i> PostgreSQL & pgvector
+            </span>
+        </div>
+    </div>
+
+    @* Content Area *@
+    @if (isLoading)
+    {
+        <div class="d-flex flex-column align-items-center justify-content-center py-5">
+            <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
+                <span class="visually-hidden">@(IsItalian ? "Caricamento in corso..." : "Loading...")</span>
+            </div>
+            <p class="text-muted">@(IsItalian ? "Caricamento della documentazione tecnica..." : "Loading technical documentation...")</p>
+        </div>
+    }
+    else if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <div class="alert alert-danger p-4 rounded-3 shadow-sm mx-auto" style="max-width: 700px;">
+            <div class="d-flex align-items-center gap-3">
+                <i class="bi bi-exclamation-triangle-fill fs-3 text-danger"></i>
+                <div>
+                    <h5 class="fw-bold mb-1">@(IsItalian ? "Errore di caricamento" : "Loading Error")</h5>
+                    <p class="mb-0 text-muted small">@errorMessage</p>
+                </div>
+            </div>
+            <button class="btn btn-outline-danger btn-sm mt-3" @onclick="LoadContentAsync">
+                <i class="bi bi-arrow-clockwise me-1"></i> @(IsItalian ? "Riprova" : "Retry")
+            </button>
+        </div>
+    }
+    else
+    {
+        <div class="card-sanctuary p-4 p-md-5 mb-5 shadow-sm bg-surface-lowest rounded-4 border border-light text-fade-in animation-delay-1">
+            <div class="markdown-technical-content">
+                @((MarkupString)renderedHtml!)
+            </div>
+        </div>
+    }
+
+    @* Footer Action / Back Button *@
+    <div class="text-center text-fade-in animation-delay-2 mt-4">
+        <a href="" class="btn-sanctuary-primary">
+            <i class="bi bi-arrow-left"></i>
+            @(IsItalian ? "Ritorna al Catalogo" : "Return to Catalog")
+        </a>
+    </div>
+
+</div>
+
+@code {
+    private bool isLoading = true;
+    private string? rawMarkdown;
+    private string? renderedHtml;
+    private string? errorMessage;
+
+    private bool IsItalian => CultureInfo.CurrentCulture.TwoLetterISOLanguageName.Equals("it", StringComparison.OrdinalIgnoreCase);
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadContentAsync();
+    }
+
+    private async Task LoadContentAsync()
+    {
+        isLoading = true;
+        errorMessage = null;
+
+        try
+        {
+            var lang = IsItalian ? "it" : "en";
+            rawMarkdown = await TechnicalInfoService.GetTechnicalInfoMarkdownAsync(lang);
+
+            var pipeline = new MarkdownPipelineBuilder()
+                .UseAdvancedExtensions()
+                .UseMathematics()
+                .Build();
+
+            renderedHtml = Markdown.ToHtml(rawMarkdown, pipeline);
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.Message;
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!isLoading && string.IsNullOrEmpty(errorMessage))
+        {
+            try
+            {
+                await JSRuntime.InvokeVoidAsync("renderTechnicalMath", ".markdown-technical-content");
+            }
+            catch
+            {
+                // Silently ignore if JS math rendering is unavailable during prerendering
+            }
+        }
+    }
+}
+
+<style>
+    /* Sleek fade-in animation rules */
+    .text-fade-in {
+        animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        opacity: 0;
+    }
+    
+    .animation-delay-1 {
+        animation-delay: 0.15s;
+    }
+    
+    .animation-delay-2 {
+        animation-delay: 0.3s;
+    }
+
+    @@keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(15px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    /* Markdown Styling */
+    .markdown-technical-content {
+        line-height: 1.75;
+        font-size: 1.05rem;
+        color: #2b2f38;
+    }
+
+    .markdown-technical-content h1 {
+        font-family: var(--font-serif);
+        font-size: 2.2rem;
+        font-weight: 700;
+        color: var(--primary, #1e293b);
+        margin-bottom: 1.5rem;
+        border-bottom: 2px solid rgba(var(--primary-rgb, 30, 41, 59), 0.12);
+        padding-bottom: 0.75rem;
+    }
+
+    .markdown-technical-content h2 {
+        font-family: var(--font-serif);
+        font-size: 1.55rem;
+        font-weight: 700;
+        color: var(--primary, #1e293b);
+        margin-top: 2.5rem;
+        margin-bottom: 1rem;
+        padding-bottom: 0.4rem;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+    }
+
+    .markdown-technical-content h3 {
+        font-family: var(--font-serif);
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: #334155;
+        margin-top: 1.75rem;
+        margin-bottom: 0.75rem;
+    }
+
+    .markdown-technical-content p {
+        margin-bottom: 1.25rem;
+    }
+
+    .markdown-technical-content hr {
+        margin: 2.5rem 0;
+        border: none;
+        border-top: 1px dashed rgba(0, 0, 0, 0.15);
+    }
+
+    .markdown-technical-content ul,
+    .markdown-technical-content ol {
+        margin-bottom: 1.5rem;
+        padding-left: 1.5rem;
+    }
+
+    .markdown-technical-content li {
+        margin-bottom: 0.5rem;
+    }
+
+    .markdown-technical-content li > strong {
+        color: #1e293b;
+    }
+
+    /* Code and Pre */
+    .markdown-technical-content code {
+        background: #f1f5f9;
+        color: #0f172a;
+        padding: 0.18rem 0.45rem;
+        border-radius: 6px;
+        font-size: 0.9em;
+        font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        border: 1px solid rgba(0, 0, 0, 0.06);
+    }
+
+    .markdown-technical-content pre {
+        background: #0f172a;
+        color: #f8fafc;
+        padding: 1.25rem;
+        border-radius: 10px;
+        overflow-x: auto;
+        margin: 1.5rem 0;
+    }
+
+    .markdown-technical-content pre code {
+        background: transparent;
+        color: inherit;
+        padding: 0;
+        border: none;
+    }
+
+    /* Blockquotes */
+    .markdown-technical-content blockquote {
+        border-left: 4px solid var(--primary, #0d6efd);
+        background: rgba(13, 110, 253, 0.04);
+        padding: 1rem 1.25rem;
+        border-radius: 0 8px 8px 0;
+        margin: 1.5rem 0;
+        font-style: normal;
+    }
+
+    .markdown-technical-content blockquote p:last-child {
+        margin-bottom: 0;
+    }
+
+    /* Modern Table Styling */
+    .markdown-technical-content table {
+        width: 100%;
+        margin: 2rem 0;
+        border-collapse: separate;
+        border-spacing: 0;
+        border-radius: 10px;
+        overflow: hidden;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    }
+
+    .markdown-technical-content th {
+        background: #f8fafc;
+        color: #1e293b;
+        font-weight: 700;
+        text-align: left;
+        padding: 0.85rem 1rem;
+        border-bottom: 2px solid #e2e8f0;
+        font-size: 0.95rem;
+    }
+
+    .markdown-technical-content td {
+        padding: 0.85rem 1rem;
+        border-bottom: 1px solid #f1f5f9;
+        font-size: 0.95rem;
+        color: #334155;
+    }
+
+    .markdown-technical-content tr:last-child td {
+        border-bottom: none;
+    }
+
+    .markdown-technical-content tr:hover td {
+        background: #f8fafc;
+    }
+
+    /* Mathematics Formula Styling */
+    .markdown-technical-content .math {
+        display: block;
+        margin: 1.5rem auto;
+        padding: 1rem 1.5rem;
+        background: #f8fafc;
+        border-radius: 10px;
+        border: 1px solid #e2e8f0;
+        text-align: center;
+        font-size: 1.15rem;
+        overflow-x: auto;
+    }
+
+    /* Links */
+    .markdown-technical-content a {
+        color: var(--primary, #0d6efd);
+        text-decoration: underline;
+        text-underline-offset: 3px;
+        transition: color 0.15s ease-in-out;
+    }
+
+    .markdown-technical-content a:hover {
+        color: #0b5ed7;
+    }
+</style>

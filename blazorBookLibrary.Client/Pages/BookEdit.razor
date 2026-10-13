@@ -314,9 +314,26 @@ else
                             {
                                 <div class="p-3 bg-surface-low rounded border">
                                     <div class="input-group mb-2">
-                                        <input type="text" class="form-control small py-2" @bind="editedIsbn" placeholder="ISBN..." />
-                                        <button class="btn btn-primary btn-sm" @onclick="UpdateIsbn"><i class="bi bi-check-lg"></i></button>
-                                        <button class="btn btn-white border-start" @onclick="CancelEditIsbn"><i class="bi bi-x-lg"></i></button>
+                                        <input type="text" class="form-control small py-2 font-monospace" @bind="editedIsbn" @bind:event="oninput" @onkeyup="HandleIsbnKeyUp" placeholder="ISBN..." autofocus />
+                                        @if (!string.IsNullOrWhiteSpace(editedIsbn))
+                                        {
+                                            <span class="input-group-text bg-white border">
+                                                @if (Isbn.IsValid(editedIsbn.Trim()))
+                                                {
+                                                    <i class="bi bi-check-circle-fill text-success" title="Valid ISBN format"></i>
+                                                }
+                                                else if (acceptInvalidIsbn)
+                                                {
+                                                    <i class="bi bi-exclamation-triangle-fill text-warning" title="Invalid ISBN format (accepted)"></i>
+                                                }
+                                                else
+                                                {
+                                                    <i class="bi bi-x-circle-fill text-danger" title="Invalid ISBN format"></i>
+                                                }
+                                            </span>
+                                        }
+                                        <button class="btn btn-primary btn-sm" @onclick="UpdateIsbn" disabled="@isUpdatingIsbn"><i class="bi bi-check-lg"></i></button>
+                                        <button class="btn btn-white border-start" @onclick="CancelEditIsbn" disabled="@isUpdatingIsbn"><i class="bi bi-x-lg"></i></button>
                                     </div>
                                     <div class="form-check form-switch small">
                                         <input class="form-check-input" type="checkbox" id="invalidIsbnSwitch" @bind="acceptInvalidIsbn" />
@@ -327,7 +344,13 @@ else
                             else
                             {
                                 <div class="d-flex align-items-center gap-3">
-                                    <span class="badge-sanctuary badge-neutral font-monospace p-2">@_bookDetails.Book.Isbn.Value</span>
+                                    <span class="badge-sanctuary badge-neutral font-monospace p-2 d-inline-flex align-items-center gap-2">
+                                        @_bookDetails.Book.Isbn.Value
+                                        @if (_bookDetails.Book.Isbn.IsValidIsbn == false && !_bookDetails.Book.Isbn.IsNoneIsbn)
+                                        {
+                                            <span class="badge bg-warning text-dark x-small py-0 px-1" title="Marked as invalid format">invalid</span>
+                                        }
+                                    </span>
                                     @if (_bookDetails.Book.Editable)
                                     {
                                         <button class="btn btn-link p-0 text-muted" @onclick="StartEditIsbn"><i class="bi bi-pencil-square"></i></button>
@@ -1865,6 +1888,7 @@ else
     private bool isEditingIsbn = false;
     private string editedIsbn = "";
     private bool acceptInvalidIsbn = false;
+    private bool isUpdatingIsbn = false;
 
     private bool isEditingSbn = false;
     private string editedSbn = "";
@@ -2977,6 +3001,20 @@ else
     private void CancelEditIsbn()
     {
         isEditingIsbn = false;
+        editedIsbn = "";
+        acceptInvalidIsbn = false;
+    }
+
+    private async Task HandleIsbnKeyUp(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await UpdateIsbn();
+        }
+        else if (e.Key == "Escape")
+        {
+            CancelEditIsbn();
+        }
     }
 
     private async Task UpdateIsbn()
@@ -2988,25 +3026,27 @@ else
             return;
         }
 
+        var trimmedIsbn = editedIsbn.Trim();
+        Isbn isbn;
+        var validResult = Isbn.New(trimmedIsbn);
+        
+        if (validResult.IsOk)
+        {
+            isbn = validResult.ResultValue;
+        }
+        else if (acceptInvalidIsbn)
+        {
+            isbn = Isbn.NewInvalid(trimmedIsbn);
+        }
+        else
+        {
+            await ShowStatus(L["InvalidIsbnFormatSwitch"], "alert-warning");
+            return;
+        }
+
+        isUpdatingIsbn = true;
         try
         {
-            Isbn isbn;
-            var validResult = Isbn.New(editedIsbn);
-            
-            if (validResult.IsOk)
-            {
-                isbn = validResult.ResultValue;
-            }
-            else if (acceptInvalidIsbn)
-            {
-                isbn = Isbn.NewInvalid(editedIsbn);
-            }
-            else
-            {
-                await ShowStatus(L["InvalidIsbnFormatSwitch"], "alert-warning");
-                return;
-            }
-
             var context = await GetContext();
             var result = await BookService.UpdateIsbnAsync(context, isbn, _bookDetails.Book.BookId, FSharpOption<CancellationToken>.None);
             if (result.IsOk)
@@ -3023,6 +3063,10 @@ else
         catch (Exception ex)
         {
             await ShowStatus(string.Format(L["ErrorUpdatingIsbnGeneric"], ex.Message), "alert-danger");
+        }
+        finally
+        {
+            isUpdatingIsbn = false;
         }
     }
 

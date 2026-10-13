@@ -44,6 +44,7 @@ public class Program
         builder.Services.AddScoped<IInAppMessagesRetriever, InAppMessagesRetrieverClientService>();
         builder.Services.AddScoped<ICookieService, ClientCookieService>();
         builder.Services.AddScoped<IUserTenantResolverService, UserTenantResolverClientService>();
+        builder.Services.AddScoped<ITechnicalInfoService, TechnicalInfoClientService>();
         builder.Services.AddScoped<TenantStateService>();
 
         var host = builder.Build();

@@ -1163,7 +1163,7 @@ let tests =
             Expect.equal book.OptionalEmbedding None "OptionalEmbedding should be None"
             Expect.equal book.SbnCode None "SbnCode should be None after upcast"
 
-        testCase "SbnCode.IsValid validates standard, backslash, slash, and ancient SBN codes" <| fun _ ->
+        testCase "SbnCode.IsValid validates standard, backslash, slash, ancient SBN codes, and ISBN/SBN standard formats" <| fun _ ->
             let validCodes = [
                 @"IT\ICCU\LI3\0004083"
                 "IT/ICCU/LI3/0004083"
@@ -1177,6 +1177,12 @@ let tests =
                 "it/iccu/li3/0004083"
                 @"IT\ICCU\UFI\E003456"
                 "UFIE003456"
+                "9788856673395"
+                "978-88-566-7339-5"
+                " 9788856673395 "
+                "0-306-40615-2"
+                "0306406152"
+                "843610727"
             ]
             for code in validCodes do
                 Expect.isTrue (SbnCode.IsValid code) (sprintf "%s should be valid" code)

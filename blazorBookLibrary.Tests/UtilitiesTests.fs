@@ -4,6 +4,7 @@ open Expecto
 open blazorBookLibrary.Shared
 open BookLibrary.Shared.Commons
 open System
+open Markdig
 
 [<Tests>]
 let converterUtilsTests =
@@ -52,3 +53,34 @@ let converterUtilsTests =
             let result = ConverterUtils.parseIsbns input
             Expect.equal result.Length 3 "Should handle mixed newline and comma"
     ]
+
+[<Tests>]
+let technicalInfoTests =
+    testList "TechnicalInfo" [
+        testCase "Italian technical info markdown loads and contains key sections" <| fun _ ->
+            let path = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Templates", "it", "biblionet_technical_info.md")
+            Expect.isTrue (System.IO.File.Exists path) "Templates/it/biblionet_technical_info.md must exist in output directory"
+            let content = System.IO.File.ReadAllText path
+            Expect.stringContains content "Architettura e Tecnologie di BiblioNet.eu" "Should contain Italian title"
+            Expect.stringContains content "Event Sourcing" "Should describe Event Sourcing"
+            Expect.stringContains content "Sharpino" "Should mention Sharpino"
+
+            let pipeline = MarkdownExtensions.UseMathematics(MarkdownExtensions.UseAdvancedExtensions(MarkdownPipelineBuilder())).Build()
+            let html: string = Markdown.ToHtml(content, pipeline)
+            Expect.stringContains html "<h1" "Should render h1 tag"
+            Expect.stringContains html "<table" "Should render architecture table"
+
+        testCase "English technical info markdown loads and contains key sections" <| fun _ ->
+            let path = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Templates", "en", "biblionet_technical_info.md")
+            Expect.isTrue (System.IO.File.Exists path) "Templates/en/biblionet_technical_info.md must exist in output directory"
+            let content = System.IO.File.ReadAllText path
+            Expect.stringContains content "BiblioNet.eu Architecture and Technical Overview" "Should contain English title"
+            Expect.stringContains content "Event Sourcing" "Should describe Event Sourcing"
+            Expect.stringContains content "Sharpino" "Should mention Sharpino"
+
+            let pipeline = MarkdownExtensions.UseMathematics(MarkdownExtensions.UseAdvancedExtensions(MarkdownPipelineBuilder())).Build()
+            let html: string = Markdown.ToHtml(content, pipeline)
+            Expect.stringContains html "<h1" "Should render h1 tag"
+            Expect.stringContains html "<table" "Should render architecture table"
+    ]
+
