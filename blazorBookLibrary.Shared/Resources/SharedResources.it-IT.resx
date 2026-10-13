@@ -1177,4 +1177,7 @@
   <data name="MatchesTitleAndAuthors" xml:space="preserve"><value>Corrisponde per Titolo e Autori</value></data>
   <data name="ExistingCatalogRecord" xml:space="preserve"><value>Scheda già presente nel catalogo</value></data>
   <data name="NoAuthorsAssigned" xml:space="preserve"><value>Nessun autore assegnato</value></data>
+  <data name="BarcodeScannedTitle" xml:space="preserve"><value>Codice a barre rilevato</value></data>
+  <data name="ConfirmCompleteMetadataPrompt" xml:space="preserve"><value>Codice a barre letto con successo. Vuoi recuperare e compilare automaticamente tutti i metadati di questo libro?</value></data>
+  <data name="Ok" xml:space="preserve"><value>OK</value></data>
 </root>

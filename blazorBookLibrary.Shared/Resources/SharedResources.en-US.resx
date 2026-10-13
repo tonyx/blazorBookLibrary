@@ -1177,4 +1177,7 @@
   <data name="MatchesTitleAndAuthors" xml:space="preserve"><value>Matches Title &amp; Authors</value></data>
   <data name="ExistingCatalogRecord" xml:space="preserve"><value>Existing Catalog Record</value></data>
   <data name="NoAuthorsAssigned" xml:space="preserve"><value>No authors assigned</value></data>
+  <data name="BarcodeScannedTitle" xml:space="preserve"><value>Barcode Detected</value></data>
+  <data name="ConfirmCompleteMetadataPrompt" xml:space="preserve"><value>Barcode read successfully. Would you like to automatically retrieve and populate all metadata for this book?</value></data>
+  <data name="Ok" xml:space="preserve"><value>OK</value></data>
 </root>

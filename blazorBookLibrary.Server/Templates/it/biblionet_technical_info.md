@@ -51,7 +51,6 @@ L'architettura software di BiblioNet.eu combina un backend funzionale rigoroso c
 | **Event Persistence** | PostgreSQL | Event Store append-only e persistenza sicura degli snapshot |
 | **Ricerca Vettoriale & AI** | PostgreSQL (`pgvector`) | Indicizzazione semantica dei testi e recupero concettuale per somiglianza vettoriale tra titoli e abstract |
 | **Frontend & UI** | Blazor / C# | Interfaccia utente web ricca, modulare e integrata nell'ecosistema .NET |
-| **Ispezione & Strumenti** | SharpLens (WASM / Bolero) | Cruscotto analitico per l'ispezione visiva degli stream di eventi e debug dello stato |
 
 ---
 

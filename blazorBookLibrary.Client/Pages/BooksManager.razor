@@ -1041,6 +1041,47 @@ else
             </div>
         </div>
     }
+
+    @* Modal 3: Confirm Metadata Completion After Barcode Scan *@
+    @if (showIsbnScanConfirmModal)
+    {
+        <div class="modal-backdrop fade show"></div>
+        <div class="modal fade show d-block" tabindex="-1" role="dialog" style="background-color: rgba(0, 0, 0, 0.55); backdrop-filter: blur(4px);">
+            <div class="modal-dialog modal-dialog-centered" role="document">
+                <div class="modal-content border-0 shadow-lg bg-surface-lowest rounded-4 overflow-hidden">
+                    <div class="modal-header border-bottom p-4 pb-3 bg-light-subtle d-flex justify-content-between align-items-center">
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="p-2 bg-primary-subtle text-primary rounded-3">
+                                <i class="bi bi-upc-scan fs-5"></i>
+                            </div>
+                            <h5 class="modal-title text-serif fw-bold text-dark mb-0">
+                                @L["BarcodeScannedTitle"]
+                            </h5>
+                        </div>
+                        <button type="button" class="btn-close" @onclick="DismissIsbnScanConfirmModal" disabled="@isLookingUpMetadata" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body p-4 text-center">
+                        <div class="my-3">
+                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-2 font-monospace fs-5 rounded-pill shadow-sm">
+                                <i class="bi bi-upc me-2"></i>@_newBookIsbn
+                            </span>
+                        </div>
+                        <p class="text-muted mt-3 mb-1 fs-6">
+                            @L["ConfirmCompleteMetadataPrompt"]
+                        </p>
+                    </div>
+                    <div class="modal-footer border-top p-3 bg-light-subtle d-flex justify-content-end gap-2">
+                        <button type="button" class="btn btn-outline-secondary rounded-pill px-4" @onclick="DismissIsbnScanConfirmModal" disabled="@isLookingUpMetadata">
+                            @L["Cancel"]
+                        </button>
+                        <button type="button" class="btn btn-primary rounded-pill px-4 shadow-sm fw-semibold" @onclick="ConfirmIsbnMetadataLookupAsync" disabled="@isLookingUpMetadata" autofocus>
+                            <i class="bi bi-check2-circle me-2"></i>@L["Ok"]
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
 </div>
 }
 
@@ -1209,6 +1250,7 @@ else
 
     private bool showConfirmAddModal = false;
     private bool showDuplicateWarningModal = false;
+    private bool showIsbnScanConfirmModal = false;
     private bool isCheckingDuplicates = false;
     private bool isSavingBook = false;
 
@@ -1310,13 +1352,25 @@ else
 
         var scannedText = args.BarcodeText.Trim();
         
-        if (Isbn.IsValid(scannedText))
+        if (Isbn.IsValid(scannedText) || (allowInvalidIsbn && !string.IsNullOrWhiteSpace(scannedText)))
         {
             _newBookIsbn = scannedText;
             showScanner = false;
             await JSRuntime.InvokeVoidAsync("playScanSound");
+            showIsbnScanConfirmModal = true;
             StateHasChanged();
         }
+    }
+
+    private async Task ConfirmIsbnMetadataLookupAsync()
+    {
+        showIsbnScanConfirmModal = false;
+        await LookupMetadataByIsbn();
+    }
+
+    private void DismissIsbnScanConfirmModal()
+    {
+        showIsbnScanConfirmModal = false;
     }
 
     private BookSearchToolbar searchToolbar = default!;
@@ -1954,6 +2008,7 @@ else
         bookTags.Clear();
         showConfirmAddModal = false;
         showDuplicateWarningModal = false;
+        showIsbnScanConfirmModal = false;
         isCheckingDuplicates = false;
         isSavingBook = false;
         detectedDuplicates.Clear();

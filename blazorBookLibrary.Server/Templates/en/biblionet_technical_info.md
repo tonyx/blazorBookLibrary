@@ -50,7 +50,6 @@ BiblioNet.eu combines a functional backend with reactive web interfaces and high
 | **Event Persistence** | PostgreSQL | Append-only event storage, transactional streams, and snapshot persistence |
 | **Vector Search & AI** | PostgreSQL (`pgvector`) | Semantic text indexing and conceptual similarity matching across titles, abstracts, and metadata |
 | **Frontend & UI** | Blazor / C# | Modular, performant web interface integrated within the .NET runtime |
-| **Diagnostics & Tooling** | SharpLens (WASM / Bolero) | Visual event-stream explorer and aggregate state debugging dashboard |
 
 ## 4. Open Source Philosophy & Transparency
 
