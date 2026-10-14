@@ -14,18 +14,20 @@ type PatronRole =
 type Tenant001 =
     { OwnerId: UserId
       TenantId: TenantId
-      InvitedPatrons: List<UserId * PatronInvitationCode>
+      InvitedPatrons: List<(UserId * PatronInvitationCode)>
       Patrons: List<UserId * PatronRole>
       Name: TenantName
       Address: string
       TenantState: TenantState
+      ReservationNotificationPreference: NotificationPreference
+      LoanNotificationPreference: NotificationPreference
       TenantVisibility: TenantVisibility
       Tags: List<Tag>
       CurrentJoinPin: Option<string>
       JoinRequests: List<UserId> }
-        with 
+        with
             member
-                this.Upcast (): Tenant =
+                this.Upcast(): Tenant =
                     {
                         OwnerId = this.OwnerId
                         TenantId = this.TenantId
@@ -34,12 +36,13 @@ type Tenant001 =
                         Name = this.Name
                         Address = this.Address
                         TenantState = this.TenantState
-                        ReservationNotificationPreference = NotificationPreference.InApp
-                        LoanNotificationPreference = NotificationPreference.InApp
+                        ReservationNotificationPreference = this.ReservationNotificationPreference
+                        LoanNotificationPreference = this.LoanNotificationPreference
                         TenantVisibility = this.TenantVisibility
                         Tags = this.Tags
                         CurrentJoinPin = this.CurrentJoinPin
                         JoinRequests = this.JoinRequests
+                        GeoLocSettings = GeoLocSettings.Disabled
                     }
 
 and Tenant =
@@ -55,9 +58,11 @@ and Tenant =
       TenantVisibility: TenantVisibility
       Tags: List<Tag>
       CurrentJoinPin: Option<string>
-      JoinRequests: List<UserId> }
+      JoinRequests: List<UserId> 
+      GeoLocSettings: GeoLocSettings
+    }
 
-    static member New (userId: UserId, tenantName: TenantName, address: string, ?pub: bool) =
+    static member New (userId: UserId, tenantName: TenantName, address: string, ?pub: bool): Tenant =
         { OwnerId = userId
           TenantId = TenantId.New()
           InvitedPatrons = []
@@ -74,7 +79,9 @@ and Tenant =
           LoanNotificationPreference = NotificationPreference.InApp
           Tags = []
           CurrentJoinPin = None
-          JoinRequests = [] }
+          JoinRequests = [] 
+          GeoLocSettings = GeoLocSettings.Disabled
+          }
 
     static member NewDefault (userId: UserId, tenantName: TenantName, address: string) =
         { Tenant.New (userId, tenantName, address, true) with
@@ -332,6 +339,26 @@ and Tenant =
                     TenantVisibility = TenantVisibility.RequestedPublic }
         }
 
+    member this.DisableGeoLocSettings () =
+        result
+            {
+                return
+                    {
+                        this with
+                            GeoLocSettings = GeoLocSettings.Disabled
+                    }
+            }
+
+    member this.SetGeoLocSettings (geoLocSettings: GeoLocSettings) =
+        result
+            {
+                return
+                    {
+                        this with
+                            GeoLocSettings = geoLocSettings
+                    }
+            }
+
     member this.SetPrivate() =
         { this with
             TenantVisibility = TenantVisibility.Private }
@@ -380,7 +407,5 @@ and Tenant =
             try
                 let tenant001 = (data, jsonOptions) |> JsonSerializer.Deserialize<Tenant001>
                 tenant001.Upcast () |> Ok
-            with ex2 -> Error (ex.Message + ex2.Message)
+            with ex2 -> Error $"Error in deserializing {data} - {ex.Message}, {ex2.Message}"
                 
-                
-            

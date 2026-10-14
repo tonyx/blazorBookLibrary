@@ -29,6 +29,8 @@ type TenantCommand =
     | SubmitJoinRequest2 of UserId
     | ApproveJoinRequest2 of UserId
     | RejectJoinRequest2 of UserId
+    | DisableGeoLocSettings
+    | SetGeoLocSettings of GeoLocSettings
 
     interface AggregateCommand<Tenant, TenantEvent> with
         member this.Execute(tenant: Tenant) =
@@ -95,5 +97,11 @@ type TenantCommand =
             | RejectJoinRequest2 userId ->
                 tenant.RejectJoinRequest2 userId
                 |> Result.map (fun t -> (t, [ TenantEvent.JoinRequestRejected2 userId ]))
+            | DisableGeoLocSettings ->
+                tenant.DisableGeoLocSettings()
+                |> Result.map (fun t -> (t, [ TenantEvent.GeoLocSettingsDisabled ]))
+            | SetGeoLocSettings settings ->
+                tenant.SetGeoLocSettings settings
+                |> Result.map (fun t -> (t, [ TenantEvent.GeoLocSettingsSet settings ]))
 
         member this.Undoer = None

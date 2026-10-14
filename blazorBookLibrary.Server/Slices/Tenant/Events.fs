@@ -30,6 +30,8 @@ type TenantEvent =
     | JoinRequestSubmitted2 of UserId
     | JoinRequestApproved2 of UserId
     | JoinRequestRejected2 of UserId
+    | GeoLocSettingsDisabled
+    | GeoLocSettingsSet of GeoLocSettings
 
     interface Event<Tenant> with
         member this.Process(tenant: Tenant) : Result<Tenant, string> =
@@ -58,6 +60,8 @@ type TenantEvent =
             | JoinRequestSubmitted2 userId -> tenant.AddJoinRequest2 userId
             | JoinRequestApproved2 userId -> tenant.ApproveJoinRequest2 userId
             | JoinRequestRejected2 userId -> tenant.RejectJoinRequest2 userId
+            | GeoLocSettingsDisabled -> tenant.DisableGeoLocSettings()
+            | GeoLocSettingsSet settings -> tenant.SetGeoLocSettings settings
 
     static member Deserialize(x: string) : Result<TenantEvent, string> =
         try

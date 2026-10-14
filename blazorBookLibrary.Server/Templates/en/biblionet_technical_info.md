@@ -65,3 +65,7 @@ BiblioNet is founded on the belief that software built for cultural institutions
 * **Event Sourcing Framework:** [Sharpino on GitHub](https://github.com/tonyx/Sharpino)
 * **Biblionet Source code:** [Biblionet - blazorBookLibrary - on GitHub](https://github.com/tonyx/blazorBookLibrary)
 * **Technical Contact:** For research partnerships, inter-library interoperability, or security disclosures: `info@bibionet.eu`
+
+---
+
+> **Note:** The content of this document has been generated with the help of A.I.

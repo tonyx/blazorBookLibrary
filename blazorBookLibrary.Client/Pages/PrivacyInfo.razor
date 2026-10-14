@@ -265,7 +265,7 @@
                         <h2 class="h5 fw-bold text-serif mb-0">
                             @(IsItalian ? "Autenticazione Terze Parti & Servizi Esterni" : "Third Parties & External Providers")
                         </h2>
-                        <span class="small text-muted">Google OAuth & Facebook Login</span>
+                        <span class="small text-muted">OAuth, Google Books & Wikipedia</span>
                     </div>
                 </div>
                 <div class="text-muted small" style="line-height: 1.7;">
@@ -275,12 +275,28 @@
                             ? "Se scegli di effettuare l'accesso tramite Google o Facebook, riceviamo unicamente il tuo identificativo utente univoco e l'indirizzo email verificato. Non accediamo ai tuoi contatti, foto, feed o bacheche social, né pubblichiamo contenuti per tuo conto." 
                             : "When choosing to log in with Google or Facebook, we only receive your verified email address and unique subject ID token. We do not access contacts, posts, friend lists, or publish on your behalf.")
                     </p>
-                    <p class="mb-0">
+                    <p class="mb-3">
                         <strong>@(IsItalian ? "API di Metadati Bibliografici:" : "Bibliographic Metadata APIs:")</strong><br />
                         @(IsItalian 
                             ? "Le ricerche di copertine e schede libro (Google Books, Wikipedia, OpenLibrary) inviano unicamente codici ISBN o titoli d'opera. Nessun dato personale o identificativo dell'utente viene mai trasmesso a tali servizi terzi." 
                             : "Queries for book covers and bibliographic data (Google Books, Wikipedia, OpenLibrary) transmit solely ISBN codes or book titles. Zero user identity or personal data is transmitted to these providers.")
                     </p>
+                    <div class="p-3 bg-surface-low rounded-3 border">
+                        <div class="d-flex align-items-center gap-2 mb-1 text-primary fw-bold">
+                            <i class="bi bi-info-circle-fill"></i>
+                            <span>@(IsItalian ? "Metadati, Immagini e Fair Use:" : "Metadata Discovery, Images & Fair Use:")</span>
+                        </div>
+                        <p class="mb-2">
+                            @(IsItalian 
+                                ? "Il sistema impiega procedure di metadata discovery per fare riferimento a informazioni e immagini pubbliche relative a libri e autori tramite Wikipedia e le API di Google Book Search. Il sistema utilizza tali informazioni o include collegamenti ad esse nell'ambito del fair use (uso legittimo)." 
+                                : "The system uses metadata discovery to reference public books and authors information and images using Wikipedia and Google Book Search API. The system uses such information or contains links to them under a fair use.")
+                        </p>
+                        <p class="mb-0">
+                            @(IsItalian 
+                                ? "L'utente può aggiungere un collegamento a qualsiasi URL di immagine dichiarando che tale utilizzo non viola alcun diritto d'autore, che l'immagine impiegata è di pubblico dominio oppure che il suo uso ricade nel fair use." 
+                                : "The user can add a link to any URL image declaring that this use does not infringe any copyright, that the image used is public, or that the use is fair.")
+                        </p>
+                    </div>
                 </div>
             </div>
         </div>

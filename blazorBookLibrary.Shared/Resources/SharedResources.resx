@@ -1180,4 +1180,46 @@
   <data name="BarcodeScannedTitle" xml:space="preserve"><value>Barcode Detected</value></data>
   <data name="ConfirmCompleteMetadataPrompt" xml:space="preserve"><value>Barcode read successfully. Would you like to automatically retrieve and populate all metadata for this book?</value></data>
   <data name="Ok" xml:space="preserve"><value>OK</value></data>
+  <data name="GeoLocSettings_PageTitle" xml:space="preserve"><value>Library Geolocation</value></data>
+  <data name="GeoLocSettings_Breadcrumb" xml:space="preserve"><value>Geolocation &amp; Proximity</value></data>
+  <data name="BackToTenantDetails" xml:space="preserve"><value>Back to Library Details</value></data>
+  <data name="LoadingGeoLocSettings" xml:space="preserve"><value>Loading Geolocation Settings...</value></data>
+  <data name="GeoLocSettings_Badge" xml:space="preserve"><value>Spatial Verification</value></data>
+  <data name="GeoLocSettings_Title" xml:space="preserve"><value>Library Geolocation &amp; Proximity Settings</value></data>
+  <data name="GeoLocSettings_Subtitle" xml:space="preserve"><value>Define the library coordinates and radius threshold for patron proximity checks.</value></data>
+  <data name="GeoLoc_ActiveRestriction" xml:space="preserve"><value>Proximity Check Active</value></data>
+  <data name="GeoLoc_ActiveRestrictionDesc" xml:space="preserve"><value>Patrons must be within {0} meters of the library coordinates.</value></data>
+  <data name="GeoLoc_Inactive" xml:space="preserve"><value>Proximity Check Disabled</value></data>
+  <data name="GeoLoc_InactiveDesc" xml:space="preserve"><value>Patrons can perform operations from any location without distance verification.</value></data>
+  <data name="GeoLoc_Latitude" xml:space="preserve"><value>Latitude</value></data>
+  <data name="GeoLoc_Longitude" xml:space="preserve"><value>Longitude</value></data>
+  <data name="GeoLoc_Radius" xml:space="preserve"><value>Proximity Radius (meters)</value></data>
+  <data name="GeoLoc_MapInstructions" xml:space="preserve"><value>Drag the marker pin or click anywhere on the map to set the library location. The circle reflects the allowed proximity radius.</value></data>
+  <data name="GeoLoc_LocateMe" xml:space="preserve"><value>Use My Current Location</value></data>
+  <data name="GeoLoc_Disabling" xml:space="preserve"><value>Disabling...</value></data>
+  <data name="GeoLoc_DisableButton" xml:space="preserve"><value>Disable Geolocation</value></data>
+  <data name="Saving" xml:space="preserve"><value>Saving...</value></data>
+  <data name="GeoLoc_SaveButton" xml:space="preserve"><value>Save &amp; Enable Geolocation</value></data>
+  <data name="GeoLoc_InvalidCoordinates" xml:space="preserve"><value>Please specify valid coordinates (Latitude between -90 and 90, Longitude between -180 and 180).</value></data>
+  <data name="GeoLoc_InvalidRadius" xml:space="preserve"><value>Radius must be greater than 0 meters.</value></data>
+  <data name="GeoLoc_SaveSuccess" xml:space="preserve"><value>Geolocation and proximity radius settings successfully saved and activated.</value></data>
+  <data name="GeoLoc_ConfirmDisable" xml:space="preserve"><value>Are you sure you want to disable geolocation restrictions for this library?</value></data>
+  <data name="GeoLoc_DisableSuccess" xml:space="preserve"><value>Geolocation restriction has been disabled.</value></data>
+  <data name="GeoLocSettings_Label" xml:space="preserve"><value>Geolocation &amp; Proximity Settings</value></data>
+  <data name="GeoLocEnabled" xml:space="preserve"><value>Active</value></data>
+  <data name="GeoLocDisabled" xml:space="preserve"><value>Disabled</value></data>
+  <data name="DisableGeoLoc" xml:space="preserve"><value>Disable Geolocation</value></data>
+  <data name="ConfigureCoordinates" xml:space="preserve"><value>Configure Coordinates</value></data>
+  <data name="SetCoordinatesMap" xml:space="preserve"><value>Set on Map</value></data>
+  <data name="EnableGeoLoc" xml:space="preserve"><value>Enable Geolocation</value></data>
+  <data name="EnableOnMap" xml:space="preserve"><value>Enable on Map</value></data>
+  <data name="GeoLocSettingsDescription" xml:space="preserve"><value>Specify library coordinates and proximity radius in meters using an interactive map.</value></data>
+  <data name="ConfirmDisableGeoLoc" xml:space="preserve"><value>Are you sure you want to disable geolocation settings for {0}?</value></data>
+  <data name="GeoLocDisabledSuccess" xml:space="preserve"><value>Geolocation settings disabled successfully.</value></data>
+  <data name="GeoLoc_AccessDenied" xml:space="preserve"><value>You are not authorized to manage geolocation settings for this library.</value></data>
+  <data name="GeoLoc_ErrUserDenied" xml:space="preserve"><value>User denied the request for Geolocation.</value></data>
+  <data name="GeoLoc_ErrPositionUnavailable" xml:space="preserve"><value>Location information is unavailable.</value></data>
+  <data name="GeoLoc_ErrTimeout" xml:space="preserve"><value>The request to get user location timed out.</value></data>
+  <data name="GeoLoc_ErrNotSupported" xml:space="preserve"><value>Geolocation is not supported by this browser.</value></data>
+  <data name="GeoLoc_ErrUnableToRetrieve" xml:space="preserve"><value>Unable to retrieve your location.</value></data>
 </root>

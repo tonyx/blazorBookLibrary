@@ -511,5 +511,54 @@ let tests =
                   | Ok t ->
                       Expect.isFalse (t.Tags |> List.contains tag) "Tenant should not contain the removed tag"
                   | Error msg -> failwith msg
+              }
+          testCaseTask "owner can set and disable geoloc settings on tenant"
+          <| fun _ ->
+              task {
+                  setUp ()
+                  let tenantService = getTenantService ()
+                  let! ownerId = registerUserTask "owner@test.com" "Password123!"
+                  let ownerContext = UserContext.Authenticated(ownerId, [])
+
+                  let tenant =
+                      Tenant.New(ownerId, TenantName.New "Library with geoloc" |> Result.get, "123 Main St")
+
+                  let tenantId = tenant.TenantId
+                  let! _ = tenantService.CreateTenantAsync(ownerContext, tenant)
+
+                  let! otherUserId = registerUserTask "other@test.com" "Password123!"
+                  let otherUserContext = UserContext.Authenticated(otherUserId, [])
+
+                  let geoLoc = GeoLocSettings.CreateEnabled(45.4642, 9.1900) |> Result.get
+
+                  // Other user cannot set geoloc
+                  let! unauthorizedSetResult = tenantService.SetGeoLocSettingsAsync(otherUserContext, tenantId, geoLoc)
+                  Expect.isError unauthorizedSetResult "Non-manager should not be able to set geoloc settings"
+
+                  // Owner sets geoloc
+                  let! setResult = tenantService.SetGeoLocSettingsAsync(ownerContext, tenantId, geoLoc)
+                  Expect.isOk setResult "Owner should be able to set geoloc settings"
+
+                  let! getResult = tenantService.GetTenantAsync(ownerContext, tenantId)
+                  Expect.isOk getResult "Should retrieve tenant"
+                  match getResult with
+                  | Ok t ->
+                      Expect.equal t.GeoLocSettings geoLoc "Tenant should have the configured geoloc settings"
+                  | Error msg -> failwith msg
+
+                  // Other user cannot disable geoloc
+                  let! unauthorizedDisableResult = tenantService.DisableGeoLocSettingsAsync(otherUserContext, tenantId)
+                  Expect.isError unauthorizedDisableResult "Non-manager should not be able to disable geoloc settings"
+
+                  // Owner disables geoloc
+                  let! disableResult = tenantService.DisableGeoLocSettingsAsync(ownerContext, tenantId)
+                  Expect.isOk disableResult "Owner should be able to disable geoloc settings"
+
+                  let! getResult2 = tenantService.GetTenantAsync(ownerContext, tenantId)
+                  Expect.isOk getResult2 "Should retrieve tenant"
+                  match getResult2 with
+                  | Ok t ->
+                      Expect.equal t.GeoLocSettings GeoLocSettings.Disabled "Tenant should have disabled geoloc settings"
+                  | Error msg -> failwith msg
               } ]
 

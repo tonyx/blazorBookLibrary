@@ -606,6 +606,40 @@ type TenantService
                     ct
         }
 
+    member this.DisableGeoLocSettingsAsync(context: UserContext, tenantId: TenantId, ?ct: CancellationToken) =
+        taskResult {
+            let! (_, tenant) = tenantViewerAsync ct tenantId.Value
+            let ctVal = ct |> Option.defaultValue CancellationToken.None
+            do! Security.checkIsGlobalAdminOrTenantManager tenant context
+            let command = TenantCommand.DisableGeoLocSettings
+
+            return!
+                runAggregateCommandMdAsync<Tenant, TenantEvent, string>
+                    tenantId.Value
+                    eventStore
+                    messageSenders
+                    context.Metadata
+                    command
+                    ct
+        }
+
+    member this.SetGeoLocSettingsAsync(context: UserContext, tenantId: TenantId, geoLocSettings: GeoLocSettings, ?ct: CancellationToken) =
+        taskResult {
+            let! (_, tenant) = tenantViewerAsync ct tenantId.Value
+            let ctVal = ct |> Option.defaultValue CancellationToken.None
+            do! Security.checkIsGlobalAdminOrTenantManager tenant context
+            let command = TenantCommand.SetGeoLocSettings geoLocSettings
+
+            return!
+                runAggregateCommandMdAsync<Tenant, TenantEvent, string>
+                    tenantId.Value
+                    eventStore
+                    messageSenders
+                    context.Metadata
+                    command
+                    ct
+        }
+
     member this.RequestPublicAsync(context: UserContext, tenantId: TenantId, ?ct: CancellationToken) =
         taskResult {
             let! (_, tenant) = tenantViewerAsync ct tenantId.Value
@@ -1019,3 +1053,9 @@ type TenantService
             this.RejectJoinRequest(context, tenantId, userId, ?ct = ct)
 
         member this.FindTenantByJoinPinAsync(pin, ?ct) = this.FindTenantByJoinPin(pin, ?ct = ct)
+
+        member this.DisableGeoLocSettingsAsync(context, tenantId, ?ct) =
+            this.DisableGeoLocSettingsAsync(context, tenantId, ?ct = ct)
+
+        member this.SetGeoLocSettingsAsync(context, tenantId, geoLocSettings, ?ct) =
+            this.SetGeoLocSettingsAsync(context, tenantId, geoLocSettings, ?ct = ct)

@@ -234,4 +234,18 @@ public class TenantClientService : ITenantService
         var response = await _httpClient.SendAsync(request, ServiceClientHelper.GetValue(ct, CancellationToken.None));
         return await ServiceClientHelper.HandleResponse<Tenant>(response);
     }
+
+    public async Task<FSharpResult<Unit, string>> DisableGeoLocSettingsAsync(Commons.UserContext context, Commons.TenantId tenantId, FSharpOption<CancellationToken> ct)
+    {
+        var request = ServiceClientHelper.CreateRequest(HttpMethod.Put, $"api/Tenant/{tenantId.Value}/geoloc-settings/disable", context);
+        var response = await _httpClient.SendAsync(request, ServiceClientHelper.GetValue(ct, CancellationToken.None));
+        return await ServiceClientHelper.HandleUnitResponse(response);
+    }
+
+    public async Task<FSharpResult<Unit, string>> SetGeoLocSettingsAsync(Commons.UserContext context, Commons.TenantId tenantId, Commons.GeoLocSettings geoLocSettings, FSharpOption<CancellationToken> ct)
+    {
+        var request = ServiceClientHelper.CreateRequest(HttpMethod.Put, $"api/Tenant/{tenantId.Value}/geoloc-settings", context, geoLocSettings);
+        var response = await _httpClient.SendAsync(request, ServiceClientHelper.GetValue(ct, CancellationToken.None));
+        return await ServiceClientHelper.HandleUnitResponse(response);
+    }
 }

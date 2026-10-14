@@ -930,6 +930,77 @@ type Locale =
         match this with
         | Locale v -> v
 
+[<CLIMutable>]
+type Coordinates =
+    {
+        Latitude: double
+        Longitude: double
+        RadiusInMeters: double
+    }
+    with
+        static member Create (latitude: double, longitude: double, ?radiusInMeters: double) =
+            let radius = defaultArg radiusInMeters 50.0
+            if latitude < -90.0 || latitude > 90.0 then
+                Error "Latitude must be between -90.0 and 90.0 degrees"
+            elif longitude < -180.0 || longitude > 180.0 then
+                Error "Longitude must be between -180.0 and 180.0 degrees"
+            elif radius <= 0.0 then
+                Error "Radius must be greater than 0 meters"
+            else
+                Ok { Latitude = latitude; Longitude = longitude; RadiusInMeters = radius }
+
+        static member New (latitude: double, longitude: double, ?radiusInMeters: double) =
+            let radius = defaultArg radiusInMeters 50.0
+            { Latitude = latitude; Longitude = longitude; RadiusInMeters = radius }
+
+        member this.Radius = this.RadiusInMeters
+
+        /// Calculates distance to another point (lat, lon) in meters using the Haversine formula
+        member this.DistanceInMeters (lat: double, lon: double) =
+            let r = 6371000.0 // Earth mean radius in meters
+            let dLat = (lat - this.Latitude) * Math.PI / 180.0
+            let dLon = (lon - this.Longitude) * Math.PI / 180.0
+            let lat1 = this.Latitude * Math.PI / 180.0
+            let lat2 = lat * Math.PI / 180.0
+            let a =
+                Math.Sin(dLat / 2.0) * Math.Sin(dLat / 2.0) +
+                Math.Cos(lat1) * Math.Cos(lat2) *
+                Math.Sin(dLon / 2.0) * Math.Sin(dLon / 2.0)
+            let c = 2.0 * Math.Atan2(Math.Sqrt(a), Math.Sqrt(1.0 - a))
+            r * c
+
+        /// Calculates distance to another Coordinates object in meters
+        member this.DistanceInMeters (other: Coordinates) =
+            this.DistanceInMeters (other.Latitude, other.Longitude)
+
+        /// Checks whether a given (lat, lon) is within the defined area radius
+        member this.IsWithin (lat: double, lon: double) =
+            this.DistanceInMeters (lat, lon) <= this.RadiusInMeters
+
+        /// Checks whether another Coordinates object is within the defined area radius
+        member this.IsWithin (other: Coordinates) =
+            this.IsWithin (other.Latitude, other.Longitude)
+
+type GeoLocCoordinates = Coordinates
+type GeoLocArea = Coordinates
+
+type GeoLocSettings =
+    | Disabled
+    | Enabled of coordinates: Coordinates
+    with
+        member this.OptCoordinates : Option<Coordinates> =
+            match this with
+            | Enabled coords -> Some coords
+            | Disabled -> None
+
+        static member Default = Disabled
+
+        static member CreateEnabled (latitude: double, longitude: double, ?radiusInMeters: double) =
+            Coordinates.Create (latitude, longitude, ?radiusInMeters = radiusInMeters)
+            |> Result.map Enabled
+                    
+type GeolocSettings = GeoLocSettings
+
 type Availability =
     | Circulating
     | ReferenceOnly

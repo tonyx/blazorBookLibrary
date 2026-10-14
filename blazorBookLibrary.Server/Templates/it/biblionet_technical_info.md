@@ -70,3 +70,7 @@ BiblioNet crede che il software per la cultura e la conoscenza debba riflettere 
 - **Framework Event Sourcing:** [Sharpino su GitHub](https://github.com/tonyx/Sharpino)
 * **Biblionet Source code:** [Biblionet - blazorBookLibrary - on GitHub](https://github.com/tonyx/blazorBookLibrary)
 * **Technical Contact:** For research partnerships, inter-library interoperability, or security disclosures: `info@bibionet.eu`
+
+---
+
+> **Nota:** I contenuti di questo documento sono stati generati con l'ausilio dell'Intelligenza Artificiale (A.I.).

@@ -1180,4 +1180,46 @@
   <data name="BarcodeScannedTitle" xml:space="preserve"><value>Codice a barre rilevato</value></data>
   <data name="ConfirmCompleteMetadataPrompt" xml:space="preserve"><value>Codice a barre letto con successo. Vuoi recuperare e compilare automaticamente tutti i metadati di questo libro?</value></data>
   <data name="Ok" xml:space="preserve"><value>OK</value></data>
+  <data name="GeoLocSettings_PageTitle" xml:space="preserve"><value>Geolocalizzazione Biblioteca</value></data>
+  <data name="GeoLocSettings_Breadcrumb" xml:space="preserve"><value>Geolocalizzazione e Prossimità</value></data>
+  <data name="BackToTenantDetails" xml:space="preserve"><value>Torna ai Dettagli della Biblioteca</value></data>
+  <data name="LoadingGeoLocSettings" xml:space="preserve"><value>Caricamento impostazioni di geolocalizzazione...</value></data>
+  <data name="GeoLocSettings_Badge" xml:space="preserve"><value>Verifica Spaziale</value></data>
+  <data name="GeoLocSettings_Title" xml:space="preserve"><value>Geolocalizzazione e Raggio di Prossimità della Biblioteca</value></data>
+  <data name="GeoLocSettings_Subtitle" xml:space="preserve"><value>Imposta visivamente la posizione della biblioteca e il raggio di prossimità per i prestiti e le prenotazioni sul posto.</value></data>
+  <data name="GeoLoc_ActiveRestriction" xml:space="preserve"><value>Vincolo di Prossimità Attivo</value></data>
+  <data name="GeoLoc_ActiveRestrictionDesc" xml:space="preserve"><value>Gli utenti devono trovarsi entro {0} metri dalle coordinate della biblioteca.</value></data>
+  <data name="GeoLoc_Inactive" xml:space="preserve"><value>Vincolo di Prossimità Disattivato</value></data>
+  <data name="GeoLoc_InactiveDesc" xml:space="preserve"><value>Gli utenti possono operare da qualsiasi posizione senza verifica della distanza.</value></data>
+  <data name="GeoLoc_Latitude" xml:space="preserve"><value>Latitudine</value></data>
+  <data name="GeoLoc_Longitude" xml:space="preserve"><value>Longitudine</value></data>
+  <data name="GeoLoc_Radius" xml:space="preserve"><value>Raggio di Prossimità (metri)</value></data>
+  <data name="GeoLoc_MapInstructions" xml:space="preserve"><value>Trascina il segnaposto o fai clic su un punto della mappa per impostare la posizione della biblioteca. Il cerchio mostra il raggio consentito.</value></data>
+  <data name="GeoLoc_LocateMe" xml:space="preserve"><value>Rileva Posizione Attuale</value></data>
+  <data name="GeoLoc_Disabling" xml:space="preserve"><value>Disattivazione in corso...</value></data>
+  <data name="GeoLoc_DisableButton" xml:space="preserve"><value>Disattiva Geolocalizzazione</value></data>
+  <data name="Saving" xml:space="preserve"><value>Salvataggio in corso...</value></data>
+  <data name="GeoLoc_SaveButton" xml:space="preserve"><value>Salva e Attiva Geolocalizzazione</value></data>
+  <data name="GeoLoc_InvalidCoordinates" xml:space="preserve"><value>Specificare coordinate valide (Latitudine tra -90 e 90, Longitudine tra -180 e 180).</value></data>
+  <data name="GeoLoc_InvalidRadius" xml:space="preserve"><value>Il raggio deve essere maggiore di 0 metri.</value></data>
+  <data name="GeoLoc_SaveSuccess" xml:space="preserve"><value>Impostazioni di geolocalizzazione e raggio aggiornate con successo.</value></data>
+  <data name="GeoLoc_ConfirmDisable" xml:space="preserve"><value>Sei sicuro di voler disattivare la geolocalizzazione per questa biblioteca?</value></data>
+  <data name="GeoLoc_DisableSuccess" xml:space="preserve"><value>Il vincolo di geolocalizzazione è stato disattivato con successo.</value></data>
+  <data name="GeoLocSettings_Label" xml:space="preserve"><value>Impostazioni di Geolocalizzazione e Prossimità</value></data>
+  <data name="GeoLocEnabled" xml:space="preserve"><value>Attivo</value></data>
+  <data name="GeoLocDisabled" xml:space="preserve"><value>Disattivato</value></data>
+  <data name="DisableGeoLoc" xml:space="preserve"><value>Disattiva Geolocalizzazione</value></data>
+  <data name="ConfigureCoordinates" xml:space="preserve"><value>Configura Coordinate</value></data>
+  <data name="SetCoordinatesMap" xml:space="preserve"><value>Imposta su Mappa</value></data>
+  <data name="EnableGeoLoc" xml:space="preserve"><value>Attiva Geolocalizzazione</value></data>
+  <data name="EnableOnMap" xml:space="preserve"><value>Attiva su Mappa</value></data>
+  <data name="GeoLocSettingsDescription" xml:space="preserve"><value>Specifica le coordinate della biblioteca e il raggio di prossimità in metri tramite una mappa interattiva.</value></data>
+  <data name="ConfirmDisableGeoLoc" xml:space="preserve"><value>Sei sicuro di voler disattivare le impostazioni di geolocalizzazione per {0}?</value></data>
+  <data name="GeoLocDisabledSuccess" xml:space="preserve"><value>Impostazioni di geolocalizzazione disattivate con successo.</value></data>
+  <data name="GeoLoc_AccessDenied" xml:space="preserve"><value>Non sei autorizzato a gestire le impostazioni di geolocalizzazione di questa biblioteca.</value></data>
+  <data name="GeoLoc_ErrUserDenied" xml:space="preserve"><value>Richiesta di geolocalizzazione negata dall'utente.</value></data>
+  <data name="GeoLoc_ErrPositionUnavailable" xml:space="preserve"><value>Informazioni sulla posizione non disponibili.</value></data>
+  <data name="GeoLoc_ErrTimeout" xml:space="preserve"><value>Richiesta per ottenere la posizione scaduta per timeout.</value></data>
+  <data name="GeoLoc_ErrNotSupported" xml:space="preserve"><value>La geolocalizzazione non è supportata da questo browser.</value></data>
+  <data name="GeoLoc_ErrUnableToRetrieve" xml:space="preserve"><value>Impossibile recuperare la posizione corrente.</value></data>
 </root>

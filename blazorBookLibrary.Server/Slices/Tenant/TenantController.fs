@@ -280,6 +280,31 @@ type TenantController(tenantService: ITenantService, hubContext: Microsoft.AspNe
             | Error msg -> return this.BadRequest(msg) :> IActionResult
         }
 
+    [<HttpPut("{id}/geoloc-settings/disable")>]
+    member this.DisableGeoLocSettings(id: Guid) =
+        task {
+            let context = UserContextMapper.mapFromRequest this.Request
+            let! result = tenantService.DisableGeoLocSettingsAsync(context, TenantId id)
+
+            match result with
+            | Ok _ -> 
+                do! hubContext.Clients.All.SendCoreAsync("TenantListChanged", [||])
+                return this.Ok() :> IActionResult
+            | Error msg -> return this.BadRequest(msg) :> IActionResult
+        }
+
+    [<HttpPut("{id}/geoloc-settings")>]
+    member this.SetGeoLocSettings(id: Guid, [<FromBody>] geoLocSettings: GeoLocSettings) =
+        task {
+            let context = UserContextMapper.mapFromRequest this.Request
+            let! result = tenantService.SetGeoLocSettingsAsync(context, TenantId id, geoLocSettings)
+
+            match result with
+            | Ok _ -> 
+                do! hubContext.Clients.All.SendCoreAsync("TenantListChanged", [||])
+                return this.Ok() :> IActionResult
+            | Error msg -> return this.BadRequest(msg) :> IActionResult
+        }
 
     [<HttpPut("{id}/request-public")>]
     member this.RequestPublic(id: Guid) =

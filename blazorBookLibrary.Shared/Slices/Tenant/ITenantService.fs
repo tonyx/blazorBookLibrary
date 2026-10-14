@@ -150,3 +150,16 @@ type ITenantService =
 
     abstract member FindTenantByJoinPinAsync:
         pin: string * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<Tenant, string>>
+
+    abstract member DisableGeoLocSettingsAsync:
+        context: UserContext *
+        tenantId: TenantId *
+        [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken ->
+            Task<Result<unit, string>>
+
+    abstract member SetGeoLocSettingsAsync:
+        context: UserContext *
+        tenantId: TenantId *
+        geoLocSettings: GeoLocSettings *
+        [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken ->
+            Task<Result<unit, string>>

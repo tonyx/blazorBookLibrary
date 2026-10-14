@@ -1,0 +1,536 @@
+@page "/tenants/{Id:guid}/geoloc"
+@page "/tenants/{Id:guid}/coordinates"
+@using System.Security.Claims
+@using Microsoft.AspNetCore.Authorization
+@using BookLibrary.Domain
+@using BookLibrary.Shared.Services
+@using static BookLibrary.Shared.Commons
+@using BookLibrary.Shared
+@using blazorBookLibrary.Shared
+@using static BookLibrary.Shared.Details;
+@using blazorBookLibrary.Shared.Resources
+@using Microsoft.Extensions.Localization
+@using Microsoft.FSharp.Core
+
+@attribute [Authorize]
+@inject ITenantService TenantService
+@inject IDetailsService DetailsService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject blazorBookLibrary.Client.Services.TenantStateService TenantState
+@inject NavigationManager NavigationManager
+@inject IJSRuntime JSRuntime
+@inject IStringLocalizer<SharedResources> L
+@rendermode InteractiveAuto
+@implements IDisposable
+
+<PageTitle>@(libraryDetails != null ? $"{libraryDetails.Tenant.Name.Value} — {L["GeoLocSettings_PageTitle"]}" : L["GeoLocSettings_PageTitle"]) — @L["BiblioNet"]</PageTitle>
+
+<div class="sanctuary-container py-5">
+    <div class="mb-4">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/" class="text-decoration-none text-muted">@L["Home"]</a></li>
+                <li class="breadcrumb-item"><a href="/tenants" class="text-decoration-none text-muted">@L["Tenants"]</a></li>
+                <li class="breadcrumb-item"><a href="/tenants/@Id" class="text-decoration-none text-muted">@(libraryDetails?.Tenant.Name.Value ?? L["TenantDetails"])</a></li>
+                <li class="breadcrumb-item active text-serif" aria-current="page">@L["GeoLocSettings_Breadcrumb"]</li>
+            </ol>
+        </nav>
+        <a href="/tenants/@Id" class="btn btn-link text-muted p-0 text-decoration-none mb-3 d-inline-flex align-items-center">
+            <i class="bi bi-arrow-left me-1"></i> @L["BackToTenantDetails"]
+        </a>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="d-flex flex-column justify-content-center align-items-center py-5">
+            <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
+                <span class="visually-hidden">@L["Loading"]...</span>
+            </div>
+            <p class="text-muted italic serif">@L["LoadingGeoLocSettings"]</p>
+        </div>
+    }
+    else if (!isAuthorized || (!string.IsNullOrEmpty(errorMessage) && libraryDetails == null))
+    {
+        <div class="card card-sanctuary border-0 shadow-sm bg-surface-low p-5 text-center animate-fade-in">
+            <div class="py-4">
+                <i class="bi bi-shield-slash display-1 text-danger mb-4"></i>
+                <h2 class="text-serif text-danger mb-3">@L["AccessDenied"]</h2>
+                <p class="text-muted lead max-width-md mx-auto mb-4">
+                    @(string.IsNullOrEmpty(errorMessage) ? L["GeoLoc_AccessDenied"] : errorMessage)
+                </p>
+                <div class="d-flex justify-content-center gap-3">
+                    <a href="/tenants/@Id" class="btn btn-primary rounded-pill px-4">
+                        <i class="bi bi-arrow-left me-2"></i>@L["BackToTenantDetails"]
+                    </a>
+                </div>
+            </div>
+        </div>
+    }
+    else if (libraryDetails != null)
+    {
+        <div class="card card-sanctuary border-0 shadow-sm bg-surface-low p-4 p-md-5 animate-fade-in">
+            <div class="d-flex justify-content-between align-items-start border-bottom pb-4 mb-4 flex-wrap gap-3">
+                <div>
+                    <span class="badge-sanctuary badge-neutral mb-2 text-uppercase letter-spacing-1 fw-bold">
+                        <i class="bi bi-geo-alt-fill me-1 text-primary"></i>@L["GeoLocSettings_Badge"]
+                    </span>
+                    <h1 class="h3 text-serif mb-1">
+                        @L["GeoLocSettings_Title"]
+                    </h1>
+                    <p class="text-muted mb-0">
+                        @L["GeoLocSettings_Subtitle"]
+                    </p>
+                </div>
+                <div>
+                    <span class="badge bg-primary fs-6 px-3 py-2 shadow-sm rounded-pill">
+                        <i class="bi bi-bank me-1"></i>@libraryDetails.Tenant.Name.Value
+                    </span>
+                </div>
+            </div>
+
+            @if (!string.IsNullOrEmpty(errorMessage))
+            {
+                <div class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert">
+                    <i class="bi bi-exclamation-octagon-fill me-2"></i>
+                    @errorMessage
+                    <button type="button" class="btn-close" @onclick="() => errorMessage = null" aria-label="Close"></button>
+                </div>
+            }
+
+            @if (!string.IsNullOrEmpty(successMessage))
+            {
+                <div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
+                    <i class="bi bi-check-circle-fill me-2"></i>
+                    @successMessage
+                    <button type="button" class="btn-close" @onclick="() => successMessage = null" aria-label="Close"></button>
+                </div>
+            }
+
+            <!-- Status Banner -->
+            <div class="card mb-4 bg-surface border shadow-sm rounded-3">
+                <div class="card-body p-3">
+                    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                        <div class="d-flex align-items-center gap-3">
+                            @if (isGeoLocCurrentlyEnabled)
+                            {
+                                <span class="badge bg-success-subtle text-success border border-success px-3 py-2 fs-6 rounded-pill">
+                                    <i class="bi bi-check-circle-fill me-1"></i>@L["GeoLoc_ActiveRestriction"]
+                                </span>
+                                <span class="text-muted small">
+                                    @L["GeoLoc_ActiveRestrictionDesc", radiusInMeters]
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-secondary-subtle text-secondary border border-secondary px-3 py-2 fs-6 rounded-pill">
+                                    <i class="bi bi-slash-circle me-1"></i>@L["GeoLoc_Inactive"]
+                                </span>
+                                <span class="text-muted small">
+                                    @L["GeoLoc_InactiveDesc"]
+                                </span>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Coordinate and Radius Controls -->
+            <div class="row g-3 mb-3">
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold text-secondary small">
+                        <i class="bi bi-compass me-1"></i>@L["GeoLoc_Latitude"]
+                    </label>
+                    <input type="number" step="any" class="form-control font-monospace"
+                           placeholder="e.g. 45.4642"
+                           value="@latitude"
+                           @onchange="OnLatitudeChanged" />
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold text-secondary small">
+                        <i class="bi bi-compass me-1"></i>@L["GeoLoc_Longitude"]
+                    </label>
+                    <input type="number" step="any" class="form-control font-monospace"
+                           placeholder="e.g. 9.1900"
+                           value="@longitude"
+                           @onchange="OnLongitudeChanged" />
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold text-secondary small">
+                        <i class="bi bi-bullseye me-1"></i>@L["GeoLoc_Radius"]
+                    </label>
+                    <div class="input-group">
+                        <input type="number" min="1" max="100000" step="1" class="form-control font-monospace"
+                               value="@radiusInMeters"
+                               @onchange="OnRadiusChanged" />
+                        <span class="input-group-text">m</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                <div class="text-muted small">
+                    <i class="bi bi-info-circle me-1"></i>@L["GeoLoc_MapInstructions"]
+                </div>
+                <button type="button" class="btn btn-outline-primary btn-sm px-3 shadow-sm rounded-pill" @onclick="LocateUser">
+                    <i class="bi bi-cursor-fill me-1"></i>@L["GeoLoc_LocateMe"]
+                </button>
+            </div>
+
+            <!-- Interactive Leaflet Map -->
+            <div class="mb-4 rounded-3 shadow-sm overflow-hidden border">
+                <div id="tenant-map" style="height: 420px; width: 100%;"></div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 pt-3 border-top">
+                <div>
+                    @if (isGeoLocCurrentlyEnabled)
+                    {
+                        <button type="button" class="btn btn-outline-danger px-4 py-2 rounded-pill shadow-sm"
+                                @onclick="DisableGeoLoc" disabled="@(isSaving || isDisabling)">
+                            @if (isDisabling)
+                            {
+                                <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                                <span>@L["GeoLoc_Disabling"]</span>
+                            }
+                            else
+                            {
+                                <i class="bi bi-slash-circle me-1"></i>
+                                <span>@L["GeoLoc_DisableButton"]</span>
+                            }
+                        </button>
+                    }
+                </div>
+
+                <div class="d-flex gap-2">
+                    <a href="/tenants/@Id" class="btn btn-light px-4 py-2 rounded-pill border">
+                        @L["Cancel"]
+                    </a>
+                    <button type="button" class="btn btn-primary px-4 py-2 rounded-pill shadow-sm"
+                            @onclick="SaveAndEnableGeoLoc" disabled="@(isSaving || isDisabling)">
+                        @if (isSaving)
+                        {
+                            <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                            <span>@L["Saving"]</span>
+                        }
+                        else
+                        {
+                            <i class="bi bi-check-circle-fill me-1"></i>
+                            <span>@L["GeoLoc_SaveButton"]</span>
+                        }
+                    </button>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public Guid Id { get; set; }
+
+    private BookLibrary.Shared.Details.TenantDetails? libraryDetails;
+    private bool isLoading = true;
+    private bool isSaving = false;
+    private bool isDisabling = false;
+    private bool isAuthorized = true;
+    private string? errorMessage;
+    private string? successMessage;
+
+    private double? latitude;
+    private double? longitude;
+    private double radiusInMeters = 50.0;
+    private bool isGeoLocCurrentlyEnabled = false;
+
+    private bool mapInitialized = false;
+    private DotNetObjectReference<TenantGeoLoc>? dotNetHelper;
+    private UserContext? userContext;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadTenantData();
+    }
+
+    private async Task LoadTenantData()
+    {
+        isLoading = true;
+        errorMessage = null;
+
+        try
+        {
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var claimsPrincipal = authState.User;
+            if (claimsPrincipal == null)
+            {
+                isAuthorized = false;
+                return;
+            }
+
+            userContext = TenantState.GetUserContext(claimsPrincipal);
+            var tenantId = TenantId.NewTenantId(Id);
+
+            var detailsResult = await DetailsService.GetTenantDetailsAsync(userContext, tenantId, default);
+            if (detailsResult.IsOk)
+            {
+                libraryDetails = detailsResult.ResultValue;
+                var currentUserIdClaim = claimsPrincipal.FindFirst(c => c.Type == System.Security.Claims.ClaimTypes.NameIdentifier) ?? claimsPrincipal.FindFirst("sub");
+                Guid? currentUserId = (currentUserIdClaim != null && Guid.TryParse(currentUserIdClaim.Value, out var guid)) ? guid : null;
+
+                var isOwner = currentUserId.HasValue && libraryDetails.Tenant.IsOwner(UserId.NewUserId(currentUserId.Value));
+                var isManager = currentUserId.HasValue && libraryDetails.Tenant.IsManager(UserId.NewUserId(currentUserId.Value));
+                var isAdmin = claimsPrincipal.IsInRole("Admin");
+
+                if (!isOwner && !isManager && !isAdmin)
+                {
+                    isAuthorized = false;
+                    return;
+                }
+
+                if (libraryDetails.Tenant.GeoLocSettings != null &&
+                    libraryDetails.Tenant.GeoLocSettings.IsEnabled &&
+                    libraryDetails.Tenant.GeoLocSettings.OptCoordinates != null &&
+                    FSharpOption<Coordinates>.get_IsSome(libraryDetails.Tenant.GeoLocSettings.OptCoordinates))
+                {
+                    isGeoLocCurrentlyEnabled = true;
+                    var coords = libraryDetails.Tenant.GeoLocSettings.OptCoordinates.Value;
+                    latitude = coords.Latitude;
+                    longitude = coords.Longitude;
+                    radiusInMeters = coords.RadiusInMeters > 0 ? coords.RadiusInMeters : 50.0;
+                }
+                else
+                {
+                    isGeoLocCurrentlyEnabled = false;
+                    if (!latitude.HasValue || !longitude.HasValue)
+                    {
+                        radiusInMeters = 50.0;
+                    }
+                }
+            }
+            else
+            {
+                errorMessage = detailsResult.ErrorValue;
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.Message;
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            dotNetHelper = DotNetObjectReference.Create(this);
+        }
+
+        if (!mapInitialized && dotNetHelper != null && libraryDetails != null)
+        {
+            mapInitialized = true;
+            try
+            {
+                await JSRuntime.InvokeVoidAsync("tenantMap.initialize", "tenant-map", dotNetHelper, latitude, longitude, radiusInMeters);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error initializing map: {ex.Message}");
+            }
+        }
+    }
+
+    [JSInvokable]
+    public void UpdateCoordinatesFromMap(double lat, double lng)
+    {
+        latitude = Math.Round(lat, 6);
+        longitude = Math.Round(lng, 6);
+        StateHasChanged();
+    }
+
+    [JSInvokable]
+    public async Task OnLocationSuccess(double lat, double lng)
+    {
+        latitude = Math.Round(lat, 6);
+        longitude = Math.Round(lng, 6);
+        StateHasChanged();
+
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("tenantMap.updateMarker", lat, lng, radiusInMeters);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error updating marker: {ex.Message}");
+        }
+    }
+
+    [JSInvokable]
+    public void OnLocationError(string message)
+    {
+        errorMessage = message switch
+        {
+            "User denied the request for Geolocation." => L["GeoLoc_ErrUserDenied"].Value,
+            "Location information is unavailable." => L["GeoLoc_ErrPositionUnavailable"].Value,
+            "The request to get user location timed out." => L["GeoLoc_ErrTimeout"].Value,
+            "Geolocation is not supported by this browser." => L["GeoLoc_ErrNotSupported"].Value,
+            "Unable to retrieve your location." => L["GeoLoc_ErrUnableToRetrieve"].Value,
+            _ => !string.IsNullOrWhiteSpace(message) ? message : L["GeoLoc_ErrUnableToRetrieve"].Value
+        };
+        StateHasChanged();
+    }
+
+    private async Task LocateUser()
+    {
+        if (dotNetHelper != null)
+        {
+            errorMessage = null;
+            try
+            {
+                await JSRuntime.InvokeVoidAsync("tenantMap.getUserLocation", dotNetHelper);
+            }
+            catch (Exception ex)
+            {
+                errorMessage = ex.Message;
+            }
+        }
+    }
+
+    private async Task OnLatitudeChanged(ChangeEventArgs e)
+    {
+        if (double.TryParse(e.Value?.ToString(), System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var lat))
+        {
+            latitude = lat;
+            if (longitude.HasValue)
+            {
+                await JSRuntime.InvokeVoidAsync("tenantMap.updateMarker", latitude.Value, longitude.Value, radiusInMeters);
+            }
+        }
+    }
+
+    private async Task OnLongitudeChanged(ChangeEventArgs e)
+    {
+        if (double.TryParse(e.Value?.ToString(), System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var lng))
+        {
+            longitude = lng;
+            if (latitude.HasValue)
+            {
+                await JSRuntime.InvokeVoidAsync("tenantMap.updateMarker", latitude.Value, longitude.Value, radiusInMeters);
+            }
+        }
+    }
+
+    private async Task OnRadiusChanged(ChangeEventArgs e)
+    {
+        if (double.TryParse(e.Value?.ToString(), System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var r) && r > 0)
+        {
+            radiusInMeters = r;
+            await JSRuntime.InvokeVoidAsync("tenantMap.updateRadius", radiusInMeters);
+        }
+    }
+
+    private async Task SaveAndEnableGeoLoc()
+    {
+        if (libraryDetails == null || userContext == null) return;
+
+        if (!latitude.HasValue || latitude.Value < -90.0 || latitude.Value > 90.0 ||
+            !longitude.HasValue || longitude.Value < -180.0 || longitude.Value > 180.0)
+        {
+            errorMessage = L["GeoLoc_InvalidCoordinates"].Value;
+            return;
+        }
+
+        if (radiusInMeters <= 0)
+        {
+            errorMessage = L["GeoLoc_InvalidRadius"].Value;
+            return;
+        }
+
+        isSaving = true;
+        errorMessage = null;
+        successMessage = null;
+
+        try
+        {
+            var enabledSettingsResult = GeoLocSettings.CreateEnabled(latitude.Value, longitude.Value, FSharpOption<double>.Some(radiusInMeters));
+            if (!enabledSettingsResult.IsOk)
+            {
+                errorMessage = enabledSettingsResult.ErrorValue;
+                return;
+            }
+
+            var tenantId = TenantId.NewTenantId(Id);
+            var result = await TenantService.SetGeoLocSettingsAsync(userContext, tenantId, enabledSettingsResult.ResultValue, default);
+            if (result.IsOk)
+            {
+                successMessage = L["GeoLoc_SaveSuccess"].Value;
+                await JSRuntime.InvokeVoidAsync("showToast", successMessage, "success");
+                isGeoLocCurrentlyEnabled = true;
+                await LoadTenantData();
+            }
+            else
+            {
+                errorMessage = result.ErrorValue;
+                await JSRuntime.InvokeVoidAsync("showToast", errorMessage, "error");
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.Message;
+            await JSRuntime.InvokeVoidAsync("showToast", errorMessage, "error");
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private async Task DisableGeoLoc()
+    {
+        if (libraryDetails == null || userContext == null) return;
+
+        var confirmed = await JSRuntime.InvokeAsync<bool>("confirm", L["GeoLoc_ConfirmDisable"].Value);
+        if (!confirmed)
+        {
+            return;
+        }
+
+        isDisabling = true;
+        errorMessage = null;
+        successMessage = null;
+
+        try
+        {
+            var tenantId = TenantId.NewTenantId(Id);
+            var result = await TenantService.DisableGeoLocSettingsAsync(userContext, tenantId, default);
+            if (result.IsOk)
+            {
+                successMessage = L["GeoLoc_DisableSuccess"].Value;
+                await JSRuntime.InvokeVoidAsync("showToast", successMessage, "success");
+                isGeoLocCurrentlyEnabled = false;
+                await LoadTenantData();
+            }
+            else
+            {
+                errorMessage = result.ErrorValue;
+                await JSRuntime.InvokeVoidAsync("showToast", errorMessage, "error");
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.Message;
+            await JSRuntime.InvokeVoidAsync("showToast", errorMessage, "error");
+        }
+        finally
+        {
+            isDisabling = false;
+        }
+    }
+
+    public void Dispose()
+    {
+        dotNetHelper?.Dispose();
+    }
+}
