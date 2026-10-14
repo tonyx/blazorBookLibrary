@@ -88,6 +88,7 @@ classDiagram
         +TenantName TentantName
         +List~UserId_PatronRole~ Patrons
         +bool Public
+        +Option~Coordinates~ Coordinates
         +TenantState TenantState
     }
     class DistributionPoint {
@@ -118,11 +119,12 @@ classDiagram
 
 ### 🔗 Key F# Core Entities & Interfaces
 
-*   **[Tenant](file:///Users/antoniolucca/github/blazorBookLibrary/blazorBookLibrary.Shared/Domain/Tenant.fs#L12-L21)**: The core multi-tenancy boundary containing metadata, status (Active/Deactivated), visibility (Public/Private), and the roster of patrons.
+*   **[Tenant](file:///Users/antoniolucca/github/blazorBookLibrary/blazorBookLibrary.Shared/Domain/Tenant.fs#L12-L21)**: The core multi-tenancy boundary containing metadata, status (Active/Deactivated), visibility (Public/Private), optional geographical coordinates (`Coordinates: Option<Coordinates>`), and the roster of patrons.
+*   **[Coordinates](file:///Users/antoniolucca/github/blazorBookLibrary/blazorBookLibrary.Shared/Slices/Common/Commons.fs)**: Value type representing physical latitude and longitude with validation and optional address notes.
 *   **[TenantId](file:///Users/antoniolucca/github/blazorBookLibrary/blazorBookLibrary.Shared/Commons.fs#L79-L86)**: The unique identifier. Defines `TenantId.Default` for the demonstration circuit.
 *   **[DistributionPoint](file:///Users/antoniolucca/github/blazorBookLibrary/blazorBookLibrary.Shared/Domain/DistributionPoint.fs#L10-L16)**: Represents a physical library branch or pick-up locker associated with a single [TenantId](file:///Users/antoniolucca/github/blazorBookLibrary/blazorBookLibrary.Shared/Commons.fs#L79-L86).
 *   **[Book](file:///Users/antoniolucca/github/blazorBookLibrary/blazorBookLibrary.Shared/Domain/Book.fs#L9-L32)**: Isolated records belonging to a tenant, containing an optional reference to a [DistributionPointId](file:///Users/antoniolucca/github/blazorBookLibrary/blazorBookLibrary.Shared/Commons.fs#L62-L69).
-*   **[ITenantService](file:///Users/antoniolucca/github/blazorBookLibrary/blazorBookLibrary.Shared/Services/ITenantService.fs#L10)**: The service layer executing commands like creating tenants, promoting patrons, or setting privacy toggles.
+*   **[ITenantService](file:///Users/antoniolucca/github/blazorBookLibrary/blazorBookLibrary.Shared/Services/ITenantService.fs#L10)**: The service layer executing commands like creating tenants, promoting patrons, updating/removing coordinates, and querying circuits by proximity via `GetAllowedTenantsByProximityAsync`.
 *   **[IUserTenantResolverService](file:///Users/antoniolucca/github/blazorBookLibrary/blazorBookLibrary.Shared/Services/IUserTenantResolverService.fs#L13)**: Dynamically resolves which [TenantId](file:///Users/antoniolucca/github/blazorBookLibrary/blazorBookLibrary.Shared/Commons.fs#L79-L86) represents the current viewing context for a given [UserContext](file:///Users/antoniolucca/github/blazorBookLibrary/blazorBookLibrary.Shared/Commons.fs#L514-L543).
 
 ---
@@ -134,6 +136,12 @@ The multi-tenant framework transforms the Blazor Book Library from a simple sing
 ### 📚 Low-Effort Community Bookcrossing & Cataloging
 * **Unleashing Catalog Value**: Creating book metadata is incredibly low effort. Once a tenant is spun up, cataloging books, configuring categories, and tracking book conditions is immediate. This makes it trivial for anyone to share catalogs.
 * **Bookcrossing Circuits**: Users can establish a local "Bookcrossing Circuit" in their town or neighborhood. By configuring the circuit as **Public**, anyone in the vicinity can discover available books, learn where the physical distribution boxes or cafés are located, and easily participate in community-driven sharing.
+
+### 📍 Geographical Proximity & Local Circuit Discovery
+To bridge digital catalogs with physical neighborhoods, the system provides integrated **Geographical Proximity Discovery**:
+* **Library Coordinates**: Tenant Owners and Managers can attach latitude and longitude coordinates to their library using an interactive Leaflet map or device GPS (`/tenants/{id}/geoloc`).
+* **User Location Filtering**: Patrons can set their location and preferred discovery radius (`/user-location`).
+* **Proximity Sorting & Selection**: When active, the system calculates great-circle distances using the Haversine formula, automatically ordering and filtering public circuits so readers immediately discover collections closest to their physical location.
 
 ### ✉️ The Patron Invitation & Onboarding Workflow
 Onboarding members to an autonomous circuit is completely seamless and automated:

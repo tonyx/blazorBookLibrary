@@ -16,16 +16,20 @@ Smettete di digitare. Il nostro motore utilizza codici a barre e la ricerca basa
 ### 2. Integrità archivistica a prova di errore
 Costruito su **F# ed Event Sourcing (Sharpino)**, ogni cambiamento nella vostra biblioteca è monitorato e tracciabile. Non ci limitiamo a memorizzare lo “stato attuale”; conserviamo l'intera cronologia del tuo archivio, fornendo una traccia di audit immutabile che previene la perdita di dati e garantisce l'affidabilità.
 
-### 3. Scoperta Semantica Alimentata dall'IA
-Trovare il libro giusto non dovrebbe richiedere la conoscenza del titolo esatto. Il nostro **Motore di Ricerca Semantica** utilizza l'intelligenza artificiale per comprendere il significato dietro le tue ricerche. Cerca "una storia su un robot solitario" o "narrativa storica ambientata nella Parigi del XVII secolo" e scopri titoli pertinenti anche se quelle parole esatte non sono presenti nei metadati.
+### 3. Scoperta Semantica Alimentata dall'IA e Archiviazione Multi-Paper
+Trovare il libro giusto non dovrebbe richiedere la conoscenza del titolo esatto. Il nostro **Motore di Ricerca Semantica** utilizza embedding vettoriali per comprendere il significato profondo delle tue ricerche. Cerca "una storia su un robot solitario" o "l'entanglement quantistico nei processi biologici" e scopri libri pertinenti e singoli articoli o paper scientifici inclusi nei volumi collettivi.
 
-### 4. Esperienza Utente Senza Confini
+### 4. Bibliotecario IA Conversazionale (Assistente RAG)
+Incontra il tuo studioso letterario digitale. Combinando la Retrieval-Augmented Generation (RAG) con Google Gemini, il Bibliotecario IA intrattiene conversazioni naturali con i lettori, fornendo approfondimenti ancorati al catalogo, link diretti ai libri e citazioni puntuali dei singoli paper.
+
+### 5. Esperienza Utente Senza Confini e Scoperta per Prossimità
 La biblioteca non è solo per i curatori; è un santuario per i lettori. 
+- **Scoperta Basata sulla Prossimità**: Imposta la tua posizione via GPS o mappa interattiva per scoprire e filtrare le biblioteche pubbliche e i circuiti di bookcrossing in base alla vicinanza geografica.
 - **Navigazione Elegante**: Visualizzazioni del catalogo ad alta fedeltà con filtri intelligenti per titolo, ISBN o categoria, rendendo la scoperta del prossimo libro un vero piacere.
 - **Prestiti Semplificati**: Stato di disponibilità chiaro in tempo reale e flussi di lavoro intuitivi per il prestito e la restituzione dei volumi.
 - **Prenotazioni Intelligenti**: Un sistema di prenotazione robusto che consente agli utenti di assicurarsi i titoli più richiesti, con monitoraggio automatico delle date di restituzione e della disponibilità futura.
 
-### 4. L'estetica “Sanctuary”
+### 6. L'estetica “Sanctuary”
 Crediamo che un software di archiviazione non debba assomigliare a un foglio di calcolo del 1995. Il nostro **Sanctuary Design System** offre un'interfaccia tranquilla, di alta qualità e interattiva che rende la catalogazione e la lettura un piacere, non un lavoro di routine.
 
 ---

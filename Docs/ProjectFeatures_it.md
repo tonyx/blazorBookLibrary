@@ -15,7 +15,9 @@ Blazor Book Library è un sistema di archiviazione e prestito all'avanguardia, c
 *Focalizzato sulla scoperta e sul prestito semplificato.*
 
 *   **Ricerca Catalogo Avanzata**: filtraggio tradizionale per Titolo, ISBN, Anno e Categoria.
-*   **Scoperta Semantica tramite IA**: Ricerca per significato. Gli utenti possono descrivere ciò che stanno cercando (es. *"una tragica storia d'amore ambientata durante la rivoluzione industriale"*) e il sistema trova i libri concettualmente rilevanti.
+*   **Scoperta Semantica tramite IA e Ricerca su Articoli/Paper**: Ricerca per significato anziché per parole chiave. Gli utenti possono descrivere ciò che cercano (es. *"una tragica storia d'amore ambientata durante la rivoluzione industriale"* oppure *"l'entanglement quantistico nei processi biologici"*) e il sistema trova i libri concettualmente rilevanti e i singoli paper/articoli inclusi nei volumi.
+*   **Bibliotecario IA Conversazionale (Chatbot basato su RAG)**: Un assistente letterario e di ricerca interattivo che combina Retrieval-Augmented Generation (RAG) e modelli Gemini. Intrattiene dialoghi multi-turno con i lettori, risponde a domande complesse basandosi sul catalogo effettivo della biblioteca, fornisce link diretti ai libri e citazioni specifiche dei paper, con supporto vocale e una modalità opzionale di conoscenza letteraria generale.
+*   **Scoperta della Biblioteca e Filtraggio per Prossimità**: I lettori possono impostare la propria posizione (tramite GPS del browser, mappa interattiva o coordinate manuali) per filtrare e scoprire le biblioteche pubbliche e i circuiti di condivisione ordinati per vicinanza geografica.
 *   **Filtraggio basato su Tag**: Scoperta flessibile utilizzando tag d'archivio (es. "Prima Edizione", "Interesse Locale") con supporto per il filtraggio logico "OR".
 *   **Disponibilità in Tempo Reale**: Feedback istantaneo se un libro è "Immediatamente Disponibile", "Sola Consultazione" o "Attualmente in Prestito".
 *   **Prestiti e Prenotazioni Self-Service**: I membri possono prendere in prestito i titoli disponibili o prenotare libri attualmente in prestito, ricevendo notifiche automatiche quando tornano disponibili.
@@ -24,6 +26,14 @@ Blazor Book Library è un sistema di archiviazione e prestito all'avanguardia, c
 ### 📚 Il Manager (Bibliotecario)
 *Focalizzato sull'eccellenza del catalogo e sull'integrità dei dati.*
 
+*   **Libri Multi-Articolo e Indicizzazione ("Papers")**:
+    *   **Catalogazione di Contributi Singoli**: Registrazione di singoli paper, saggi e articoli all'interno di volumi collettivi (antologie, atti di convegni, riviste scientifiche) con autori e titoli dedicati.
+    *   **Scansione OCR dell'Indice tramite Fotocamera**: Scatto fotografico del sommario o dell'indice del libro stampato; la computer vision dell'IA estrae titoli e autori degli articoli per un'aggiunta immediata con un click.
+    *   **Embedding di Abstract e Testi**: Generazione di vettori ad alta dimensionalità per gli abstract o i testi trascritti dei paper in PostgreSQL pgvector, rendendo i singoli articoli direttamente rintracciabili dalla ricerca semantica e dal Bibliotecario IA.
+    *   **Sincronizzazione degli Embedding Fratelli**: Collegamento e sincronizzazione degli embedding dei paper fratelli all'interno dello stesso libro per valorizzare le correlazioni semantiche interne.
+*   **Gestione della Geolocalizzazione della Biblioteca**:
+    *   **Mappatura Interattiva delle Coordinate**: Configurazione e rimozione facoltativa delle coordinate geografiche (latitudine e longitudine) della biblioteca tramite mappa interattiva Leaflet, GPS o immissione manuale.
+    *   **Visibilità per la Comunità Locale**: I circuiti pubblici provvisti di coordinate possono essere individuati dai lettori vicini tramite il filtro per distanza.
 *   **Catalogazione Assistita dall'IA**:
     *   **Integrazione Google Books**: Autocompletamento dei metadati da un singolo ISBN o Titolo.
     *   **Sintesi delle Descrizioni tramite IA**: Generazione automatica di riassunti di alta qualità per libri rari o antichi privi di record digitali.
@@ -62,8 +72,10 @@ Blazor Book Library è un sistema di archiviazione e prestito all'avanguardia, c
 *   **UI Blazor InteractiveServer**: Un'interfaccia C# ricca e reattiva che fornisce un'esperienza "simile a un desktop" nel browser con aggiornamenti in tempo reale.
 
 ### 🤖 Infrastruttura IA e Ricerca
-*   **Database Vettoriale Semantico**: Alimentato da **PostgreSQL + pgvector**, memorizza embedding ad alta dimensionalità delle descrizioni dei libri.
+*   **Database Vettoriale Semantico Multi-Livello**: Alimentato da **PostgreSQL + pgvector**, memorizza embedding ad alta dimensionalità partizionati per tipologia di entità (descrizioni di `book` e abstract/testi di `paper`).
 *   **Integrazione Large Language Model**: Utilizza **Gemini 3.6 Flash** (e Vision) per la risoluzione dei metadati, la sintesi del testo e le spiegazioni dei match.
+*   **Motore Conversazionale RAG (Bibliotecario IA)**: Orchestra la ricerca di similarità vettoriale con la memoria della conversazione, iniettando il contesto mirato dei libri e dei paper nei prompt di Gemini per produrre risposte documentate e arricchite da citazioni.
+*   **Motore di Prossimità Geografica**: Utilizza il calcolo della distanza sferica (formula di Haversine) nei servizi di dominio F# e l'interoperabilità JS con mappe interattive Leaflet per filtrare e ordinare i circuiti pubblici in base alla posizione dell'utente.
 *   **Spiegazioni dei Match**: L'IA non trova solo un libro; può spiegare *perché* corrisponde a una query semantica.
 
 ### 📦 Infrastruttura e Affidabilità

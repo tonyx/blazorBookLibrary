@@ -28,7 +28,9 @@ See the [LICENSE](LICENSE) file for the full legal text.
 - **Event-Sourcing Architecture**: Leveraging the power of Event-Sourcing for robust and reliable data management with [Sharpino](https://github.com/sharpino/sharpino).
 - **GDPR-Compliant Anonymization**: A robust "Ghosting" workflow that anonymizes user records while preserving event stream integrity, ensuring privacy compliance without breaking historical archival relationships.
 - **Advanced Bulk Operations**: High-performance JSON/CSV archival export and intelligent ISBN-based bulk import with real-time progress tracking. Features AI-assisted enrichment, including automated author generation, missing description synthesis, and instant vector embedding creation.
-- **AI-Powered Semantic Discovery**: Intelligent meaning-based search using **PostgreSQL pgvector** embeddings. Discover literature through thematic descriptions and plot summaries, moving beyond traditional keyword-only matching.
+- **AI-Powered Semantic Discovery & Multi-Paper Indexing**: Intelligent meaning-based search using **PostgreSQL pgvector** embeddings. Search evaluates both overall book descriptions and individual paper/article abstracts within collective volumes, moving beyond traditional keyword matching.
+- **Conversational AI Librarian (RAG Chatbot)**: An interactive digital literary assistant combining Retrieval-Augmented Generation (RAG) and **Gemini 3.6 Flash**. Engages in natural dialogue with patrons, retrieving grounded catalog context with direct book links, specific paper citations, and optional general knowledge modes.
+- **Geographical Proximity & Library Discovery**: Optional geographical coordinates for libraries and patrons. Users can set their location via GPS or interactive map to discover and filter public libraries and shared circuits by physical proximity.
 
 ## 📖 Documentation
 Detailed guides and architectural references are available in the [Docs](./Docs) folder:

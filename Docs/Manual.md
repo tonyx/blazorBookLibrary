@@ -13,6 +13,7 @@ Welcome to the **Blazor Book Library** manual. This guide will help you navigate
 3. [Core Features for All Users](#core-features-for-all-users)
     - [Search & Discovery](#search--discovery)
     - [AI Librarian (RAG-Powered Virtual Assistant)](#ai-librarian)
+    - [User Location & Proximity Discovery](#user-location--proximity-discovery)
     - [Viewing Book Details & Articles](#viewing-book-details)
 4. [Patron Privileges & Circulation](#patron-privileges--circulation)
     - [Accepting a Circuit Invitation](#accepting-a-circuit-invitation)
@@ -21,6 +22,7 @@ Welcome to the **Blazor Book Library** manual. This guide will help you navigate
 5. [Tenant Owner & Manager Tools](#tenant-owner--manager-tools)
     - [Creating Your Own Tenant (Library-as-a-Service)](#creating-your-own-tenant-library-as-a-service)
     - [Tenant Visibility & Settings (Public vs. Private)](#tenant-visibility--settings-public-vs-private)
+    - [Library Geographic Coordinates & Proximity (GeoLoc)](#library-geographic-coordinates-geoloc)
     - [Patron Roster & Role Delegation](#patron-roster--role-delegation)
     - [Managing Distribution Points & Custody](#managing-distribution-points--custody)
     - [Catalog Management](#catalog-management)
@@ -88,6 +90,20 @@ Accessible from the main navigation menu (**AI Librarian**), this conversational
 - **In-Depth Grounding & Direct Citations**: When answering from the catalog, the librarian provides direct clickable links to books (`[Title](book://<book-id>)`) and explicitly cites matching internal papers, highlighting direct relevance matches and crediting their specific authors.
 - **Broad Literary & General Knowledge Mode**: By default, the librarian strictly grounds answers in your library's actual catalog. When the **"Include General Knowledge"** toggle is enabled (or when asking for external context), the assistant draws from the broad world knowledge built into and discoverable by the Gemini 3.6 Flash model itself—recommending external literature or explaining broader historical/philosophical themes while clearly labeling external works as not currently in the library.
 
+<a name="user-location--proximity-discovery"></a>
+### User Location & Proximity Discovery
+Patrons can personalize catalog and circuit browsing according to their physical geographical position:
+- **Setting Your Location**: Access the **User Location** interface (`/user-location`) directly from the header navigation or the discovery badge in the Book Search page.
+- **Location Input Methods**:
+  - **Browser Geolocation (GPS)**: Automatically fetch your current coordinates with one click.
+  - **Interactive Leaflet Map**: Click anywhere on the map to place your location pin.
+  - **Manual Latitude & Longitude**: Enter precise coordinates directly.
+- **Search Radius Customization**: Set your desired proximity radius (e.g., 5 km, 25 km, 50 km, or custom distances).
+- **Proximity-Filtered Circuits & Catalogs**:
+  - Once your location is saved, the **Tenant Selector** dropdown automatically filters and displays public circuits ordered by physical proximity using high-precision spherical distance calculations (Haversine formula).
+  - The **Library Search** page displays an active status indicator (e.g., *"Filtering within 25 km"*) to confirm your search is localized.
+  - Click **"Clear Location"** at any time to remove your coordinates and revert to worldwide, unfiltered exploration.
+
 <a name="viewing-book-details"></a>
 ### Viewing Book Details
 Clicking a book opens the **Book View** page:
@@ -138,6 +154,19 @@ To host your own sharing circuit:
 Owners can toggle their tenant's privacy configuration:
 - **🔒 Private (Closed Circle)**: Virtually invisible. The catalog and details are completely hidden from general platform users. Users must be invited via email to browse or borrow. This is perfect for family shelves, book clubs, or small circles of friends.
 - **🏛️ Public (Community Library)**: Searchable and browseable by any registered platform user. Ideal for community workspaces, neighborhood cafes, public micro-libraries, and bookcrossing networks.
+
+<a name="library-geographic-coordinates-geoloc"></a>
+### Library Geographic Coordinates & Proximity (GeoLoc)
+To make physical collections and public micro-libraries discoverable to nearby community members, Owners and Managers can configure geographical coordinates:
+- **Navigating to GeoLoc Settings**: From the **Tenant Details** page (`/tenants/{id}`), click **"Coordinates / Location"** or navigate directly to `/tenants/{id}/geoloc`.
+- **Mapping Tools**:
+  - **Interactive Leaflet Map**: Click anywhere on the map to place or reposition the library's pin.
+  - **Browser GPS / Current Location**: Instantly pin the device's current location with one click.
+  - **Manual Latitude & Longitude**: Specify decimal degree coordinates directly.
+  - **Location Notes / Address**: Add optional descriptive notes (e.g., street address, floor, or access instructions).
+- **Impact on Discovery**:
+  - When coordinates are saved for a **Public** tenant, patrons who set their location will automatically see the library ranked and filtered by physical distance in the Tenant Selector and search interfaces.
+  - Coordinates can be updated or cleared at any time with a single click.
 
 <a name="patron-roster--role-delegation"></a>
 ### Patron Roster & Role Delegation

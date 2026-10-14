@@ -22,12 +22,27 @@ This document outlines the core functionality of the Blazor Book Library applica
     - Combine multiple search criteria (e.g., Title + Year).
     - Results should display book details, categories, and real-time availability within the current active tenant context.
 
-### **As a Visitor or Patron, I want to search for books by their meaning or topic (AI Semantic Search) so that I can discover relevant literature even without knowing exact titles or keywords.**
+### **As a Visitor or Patron, I want to search for books by their meaning or topic (AI Semantic Search) so that I can discover relevant literature and specific articles even without knowing exact titles or keywords.**
 - **Criteria**:
-    - Enter a natural language query describing a topic or plot (e.g., "stories about robots learning to love").
+    - Enter a natural language query describing a topic, thesis, or plot (e.g., "quantum entanglement in biological systems" or "stories about robots learning to love").
     - Specify the maximum number of results (limit) to return.
-    - Results are ordered by semantic similarity to the query, pulled from the active tenant's vector database records.
+    - Results are ordered by semantic similarity, evaluating both book-level summaries and individual paper/article abstracts embedded within collective volumes.
     - Semantic search can be combined with other filters (like categories or authors) to narrow down AI-driven discoveries within the tenant context.
+
+### **As a Visitor or Patron, I want to converse with an AI Librarian (RAG Chatbot) so that I can explore the library's collection through natural interactive dialogue.**
+- **Criteria**:
+    - Ask questions about literary themes, historical events, authors, or concepts represented in the active tenant.
+    - The assistant performs Retrieval-Augmented Generation (RAG) using vector embeddings to find relevant books and internal papers in the active tenant.
+    - Responses are strictly grounded in retrieved catalog items, featuring direct clickable book links (`book://<id>`) and specific paper/author citations.
+    - Toggle the "Include General Knowledge" mode to allow broader discussions beyond the catalog when desired.
+    - Interact via text or voice/speech capabilities.
+
+### **As a Visitor or Patron, I want to set my geographical location and search radius so that I can discover and filter public libraries by physical proximity.**
+- **Criteria**:
+    - Set coordinates via browser GPS, clicking on an interactive Leaflet map, or manual latitude/longitude input.
+    - Specify a desired proximity radius in kilometers.
+    - When active, the Tenant Selector and search interfaces automatically filter and order public libraries based on calculated distance.
+    - Clear or adjust my location at any time to return to worldwide catalog browsing.
 
 ### **As a Visitor or Patron, I want to view detailed information about a specific book, including its description, location, and authors.**
 - **Criteria**:
@@ -52,6 +67,13 @@ This document outlines the core functionality of the Blazor Book Library applica
     - A **Public** tenant is searchable and discoverable by any platform visitor or member, enabling open community book sharing.
     - A **Private** tenant is completely hidden from public directories, accessible only to invited patrons.
     - Toggle visibility dynamically via the Tenant management page.
+
+### **As a Tenant Owner or Manager, I want to set the physical geographical coordinates of my library so that nearby patrons can discover our circuit by proximity.**
+- **Criteria**:
+    - Navigate to the library's GeoLoc settings (`/tenants/{id}/geoloc`).
+    - Use an interactive Leaflet map to click and pin the exact location, fetch device GPS coordinates, or input latitude and longitude manually.
+    - Save, modify, or clear coordinates at any time.
+    - When the tenant is configured as Public, the library becomes discoverable and ordered by proximity for nearby patrons.
 
 ### **As a Tenant Owner, I want to view my Tenant details page with configuration options, and ensure that only I (the Owner) can access these administrative controls.**
 - **Criteria**:
@@ -104,6 +126,15 @@ This document outlines the core functionality of the Blazor Book Library applica
     - Perform a "Sanity Check" by testing if the book is correctly retrieved by a query similar to its own description.
     - Remove or update an embedding manually when a book's description changes.
     - The system automatically handles embedding cleanup when a book is deleted.
+
+### **As a Librarian or Manager, I want to catalog individual papers/articles within collective volumes and generate abstract embeddings so that granular contributions are discoverable via semantic search and AI RAG.**
+- **Criteria**:
+    - Add distinct papers, essays, or chapters within collective volumes (anthologies, conference proceedings, scholarly journals).
+    - Scan the book's printed table of contents or index with a camera to automatically extract article titles and authors via AI vision OCR.
+    - Enter, edit, or transcribe paper abstracts and full-text content.
+    - Generate vector embeddings for individual papers (`item_type = "paper"`) in PostgreSQL pgvector.
+    - Synchronize sibling paper embeddings within the volume to ensure intra-volume semantic relationships.
+    - Ensure individual papers appear with proper author citations in semantic search queries and the conversational AI Librarian assistant.
 
 ### **As a Librarian, I want to perform bulk updates on multiple books to save time on repetitive tasks.**
 - **Criteria**:

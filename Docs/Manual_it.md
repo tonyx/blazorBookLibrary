@@ -13,6 +13,7 @@ Benvenuti nel manuale utente di **Blazor Book Library**. Questa guida ti aiuter�
 3. [Funzionalità Principali per Tutti gli Utenti](#funzionalità-principali-per-tutti-gli-utenti)
     - [Ricerca e Scoperta](#ricerca-e-scoperta)
     - [Bibliotecario IA (Assistente Virtuale Basato su RAG)](#bibliotecario-ia)
+    - [Posizione Utente e Scoperta per Prossimità](#posizione-utente--scoperta-per-prossimita)
     - [Visualizzazione Dettagli Libro e Articoli](#visualizzazione-dettagli-libro)
 4. [Privilegi dei Patron e Circolazione](#privilegi-dei-patron-e-circolazione)
     - [Accettare un Invito a un Circuito](#accettare-un-invito-a-un-circuito)
@@ -21,6 +22,7 @@ Benvenuti nel manuale utente di **Blazor Book Library**. Questa guida ti aiuter�
 5. [Strumenti per Proprietari di Tenant e Manager](#strumenti-per-proprietari-di-tenant-e-manager)
     - [Creare il Proprio Tenant (Library-as-a-Service)](#creare-il-proprio-tenant-library-as-a-service)
     - [Visibilità e Impostazioni del Tenant (Pubblico vs. Privato)](#visibilità-e-impostazioni-del-tenant-pubblico-vs-privato)
+    - [Coordinate Geografiche della Biblioteca e Prossimità (GeoLoc)](#coordinate-geografiche-della-biblioteca-geoloc)
     - [Elenco Patron e Delega dei Ruoli](#elenco-patron-e-delega-dei-ruoli)
     - [Gestione dei Punti di Distribuzione e Custodia](#gestione-dei-punti-di-distribuzione-e-custodia)
     - [Gestione del Catalogo](#gestione-del-catalogo)
@@ -88,6 +90,20 @@ Accessibile dal menu di navigazione principale (**Bibliotecario IA**), questo as
 - **Risposte Radicate e Citazioni Puntuali**: Quando risponde a partire dal catalogo, il bibliotecario fornisce link cliccabili diretti ai libri (`[Titolo](book://<book-id>)`) e cita esplicitamente i singoli paper o articoli pertinenti, evidenziando le corrispondenze dirette e attribuendoli ai rispettivi autori.
 - **Modalità Conoscenza Letteraria Generale ed Extra-Catalogo**: Per impostazione predefinita, il bibliotecario ancora rigorosamente le proprie risposte al catalogo effettivo della biblioteca. Attivando l'opzione **"Includi Conoscenza Generale"** (o richiedendo informazioni esterne), l'assistente attinge alla vasta conoscenza incorporata o esplorabile dal modello Gemini 3.6 Flash stesso, suggerendo opere esterne o approfondendo temi storici/filosofici più ampi, contrassegnando chiaramente le opere non attualmente presenti nella biblioteca.
 
+<a name="posizione-utente--scoperta-per-prossimita"></a>
+### Posizione Utente e Scoperta per Prossimità
+I lettori possono personalizzare l'esplorazione del catalogo e dei circuiti in base alla propria posizione geografica:
+- **Impostazione della Posizione**: Accedi alla schermata **Posizione Utente** (`/user-location`) direttamente dalla barra di navigazione o dal badge informativo nella pagina di Ricerca Libri.
+- **Modalità di Immissione**:
+  - **Geolocalizzazione del Browser (GPS)**: Rilevamento automatico delle coordinate correnti con un solo click.
+  - **Mappa Interattiva Leaflet**: Clicca su qualsiasi punto della mappa per posizionare il segnaposto della tua posizione.
+  - **Coordinate Manuali (Latitudine e Longitudine)**: Inserisci direttamente i valori decimali.
+- **Raggio di Ricerca Personalizzabile**: Seleziona il raggio di prossimità desiderato (es. 5 km, 25 km, 50 km o distanze personalizzate).
+- **Circuiti e Cataloghi Filtrati per Vicinanza**:
+  - Con la posizione salvata, il menu a discesa **Selettore Tenant** filtra e ordina automaticamente i circuiti pubblici in base alla vicinanza geografica, calcolata con formule trigonometriche sferiche ad alta precisione (formula di Haversine).
+  - La pagina **Ricerca Biblioteca** mostra un indicatore di stato attivo (es. *"Filtro attivo entro 25 km"*) per confermare che l'esplorazione è localizzata.
+  - Cliccando su **"Rimuovi Posizione"** è possibile ripristinare in qualsiasi momento la consultazione globale senza filtri geografici.
+
 <a name="visualizzazione-dettagli-libro"></a>
 ### Visualizzazione Dettagli Libro e Articoli
 Cliccando su un libro si apre la pagina **Visualizza Libro**:
@@ -138,6 +154,19 @@ Per ospitare il tuo circuito di condivisione:
 I proprietari possono attivare e disattivare la visibilità del proprio tenant:
 - **🔒 Privato (Cerchio Chiuso)**: Praticamente invisibile. Il catalogo e i dettagli sono completamente nascosti agli utenti generici della piattaforma. Gli utenti devono essere invitati via email per sfogliare o prendere in prestito. Perfetto per scaffali familiari, club del libro o ristrette cerchie di amici.
 - **🏛️ Pubblico (Biblioteca Comunitaria)**: Ricercabile e consultabile da qualsiasi utente registrato sulla piattaforma. Ideale per spazi di coworking, caffè di quartiere, micro-biblioteche pubbliche e reti di bookcrossing.
+
+<a name="coordinate-geografiche-della-biblioteca-geoloc"></a>
+### Coordinate Geografiche della Biblioteca e Prossimità (GeoLoc)
+Per rendere le collezioni fisiche e le micro-biblioteche pubbliche individuabili dai membri della comunità locale, i Proprietari e i Manager possono impostare le coordinate geografiche della biblioteca:
+- **Navigazione alle Impostazioni GeoLoc**: Dalla pagina **Dettagli Tenant** (`/tenants/{id}`), clicca su **"Coordinate / Posizione"** oppure naviga direttamente su `/tenants/{id}/geoloc`.
+- **Strumenti di Mappatura**:
+  - **Mappa Interattiva Leaflet**: Clicca su un qualsiasi punto della mappa per posizionare o correggere il segnaposto della biblioteca.
+  - **GPS del Dispositivo / Posizione Corrente**: Acquisisci istantaneamente la posizione del dispositivo con un click.
+  - **Coordinate Manuali (Latitudine e Longitudine)**: Inserisci direttamente i valori decimali delle coordinate.
+  - **Note sulla Posizione / Indirizzo**: Aggiungi note descrittive opzionali (es. indirizzo, piano, indicazioni per l'accesso).
+- **Impatto sulla Scoperta**:
+  - Quando le coordinate sono impostate per un tenant **Pubblico**, i lettori che hanno definito la propria posizione vedranno automaticamente la biblioteca ordinata e filtrata per vicinanza nel Selettore Tenant e nella ricerca.
+  - Le coordinate possono essere aggiornate o rimosse in qualsiasi momento con un solo click.
 
 <a name="elenco-patron-e-delega-dei-ruoli"></a>
 ### Elenco Patron e Delega dei Ruoli
