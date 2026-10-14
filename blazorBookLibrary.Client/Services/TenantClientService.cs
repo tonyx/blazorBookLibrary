@@ -109,9 +109,29 @@ public class TenantClientService : ITenantService
         return await ServiceClientHelper.HandleResponse<PatronRole>(response);
     }
 
+    public async Task<FSharpResult<FSharpList<Tenant>, string>> GetAllPublicTenantsByProximityAsync(Commons.UserContext context, Commons.Coordinates userCoordinates, FSharpOption<CancellationToken> ct)
+    {
+        var lat = userCoordinates.Latitude.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        var lon = userCoordinates.Longitude.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        var radius = userCoordinates.RadiusInMeters.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        var request = ServiceClientHelper.CreateRequest(HttpMethod.Get, $"api/Tenant/public/by-proximity?latitude={lat}&longitude={lon}&radiusInMeters={radius}", context);
+        var response = await _httpClient.SendAsync(request, ServiceClientHelper.GetValue(ct, CancellationToken.None));
+        return await ServiceClientHelper.HandleResponse<FSharpList<Tenant>>(response);
+    }
+
     public async Task<FSharpResult<FSharpList<Tenant>, string>> GetAllPublicTenantsAsync(Commons.UserContext context, FSharpOption<CancellationToken> ct)
     {
         var request = ServiceClientHelper.CreateRequest(HttpMethod.Get, "api/Tenant/public", context);
+        var response = await _httpClient.SendAsync(request, ServiceClientHelper.GetValue(ct, CancellationToken.None));
+        return await ServiceClientHelper.HandleResponse<FSharpList<Tenant>>(response);
+    }
+
+    public async Task<FSharpResult<FSharpList<Tenant>, string>> GetAllowedTenantsByProximityAsync(Commons.UserContext context, Commons.Coordinates userCoordinates, FSharpOption<CancellationToken> ct)
+    {
+        var lat = userCoordinates.Latitude.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        var lon = userCoordinates.Longitude.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        var radius = userCoordinates.RadiusInMeters.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        var request = ServiceClientHelper.CreateRequest(HttpMethod.Get, $"api/Tenant/allowed/by-proximity?latitude={lat}&longitude={lon}&radiusInMeters={radius}", context);
         var response = await _httpClient.SendAsync(request, ServiceClientHelper.GetValue(ct, CancellationToken.None));
         return await ServiceClientHelper.HandleResponse<FSharpList<Tenant>>(response);
     }

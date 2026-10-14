@@ -184,6 +184,25 @@ type TenantController(tenantService: ITenantService, hubContext: Microsoft.AspNe
             | Error msg -> return this.BadRequest(msg) :> IActionResult
         }
 
+    [<HttpGet("public/by-proximity")>]
+    [<Route("by-proximity")>]
+    member this.GetAllPublicTenantsByProximity([<FromQuery>] latitude: double, [<FromQuery>] longitude: double, [<FromQuery>] radiusInMeters: Nullable<double>, [<FromQuery>] radius: Nullable<double>) =
+        task {
+            let context = UserContextMapper.mapFromRequest this.Request
+            let radiusOpt =
+                if radiusInMeters.HasValue then Some radiusInMeters.Value
+                elif radius.HasValue then Some radius.Value
+                else None
+            match Coordinates.Create(latitude, longitude, ?radiusInMeters = radiusOpt) with
+            | Error msg -> return this.BadRequest(msg) :> IActionResult
+            | Ok coords ->
+                let! result = tenantService.GetAllPublicTenantsByProximityAsync(context, coords)
+
+                match result with
+                | Ok tenants -> return this.Ok(tenants) :> IActionResult
+                | Error msg -> return this.BadRequest(msg) :> IActionResult
+        }
+
     [<HttpGet("allowed")>]
     member this.GetAllowedTenants() =
         task {
@@ -193,6 +212,24 @@ type TenantController(tenantService: ITenantService, hubContext: Microsoft.AspNe
             match result with
             | Ok tenants -> return this.Ok(tenants) :> IActionResult
             | Error msg -> return this.BadRequest(msg) :> IActionResult
+        }
+
+    [<HttpGet("allowed/by-proximity")>]
+    member this.GetAllowedTenantsByProximity([<FromQuery>] latitude: double, [<FromQuery>] longitude: double, [<FromQuery>] radiusInMeters: Nullable<double>, [<FromQuery>] radius: Nullable<double>) =
+        task {
+            let context = UserContextMapper.mapFromRequest this.Request
+            let radiusOpt =
+                if radiusInMeters.HasValue then Some radiusInMeters.Value
+                elif radius.HasValue then Some radius.Value
+                else None
+            match Coordinates.Create(latitude, longitude, ?radiusInMeters = radiusOpt) with
+            | Error msg -> return this.BadRequest(msg) :> IActionResult
+            | Ok coords ->
+                let! result = tenantService.GetAllowedTenantsByProximityAsync(context, coords)
+
+                match result with
+                | Ok tenants -> return this.Ok(tenants) :> IActionResult
+                | Error msg -> return this.BadRequest(msg) :> IActionResult
         }
 
     [<HttpGet("my")>]

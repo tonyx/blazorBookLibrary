@@ -54,6 +54,7 @@ builder.Services.AddCascadingAuthenticationState();
 builder.Services.AddScoped<IdentityRedirectManager>();
 builder.Services.AddScoped<AuthenticationStateProvider, PersistingRevalidatingAuthenticationStateProvider>();
 builder.Services.AddScoped<blazorBookLibrary.Client.Services.TenantStateService>();
+builder.Services.AddScoped<blazorBookLibrary.Client.Services.IUserLocationService, blazorBookLibrary.Client.Services.UserLocationService>();
 builder.Services.AddScoped<blazorBookLibrary.Client.Services.ITechnicalInfoService, blazorBookLibrary.Services.ServerTechnicalInfoService>();
 builder.Services.AddAuthentication(options =>
     {

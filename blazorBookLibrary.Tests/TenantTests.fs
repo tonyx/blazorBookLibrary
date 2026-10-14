@@ -560,5 +560,64 @@ let tests =
                   | Ok t ->
                       Expect.equal t.GeoLocSettings GeoLocSettings.Disabled "Tenant should have disabled geoloc settings"
                   | Error msg -> failwith msg
+              }
+          testCaseTask "retrieve public tenants by proximity"
+          <| fun _ ->
+              task {
+                  setUp ()
+                  let tenantService = getTenantService ()
+
+                  let! ownerId = registerUserTask "owner@test.com" "Password123!"
+                  let ownerContext = UserContext.Authenticated(ownerId, [])
+
+                  let tenant =
+                      Tenant.New(ownerId, TenantName.New "Milan Public Library" |> Result.get, "Via Dante 1", true)
+
+                  let tenantId = tenant.TenantId
+                  let! createResult = tenantService.CreateTenantAsync(ownerContext, tenant)
+                  Expect.isOk createResult "Tenant creation should succeed"
+
+                  let! approveResult = tenantService.SetPublicAsync(adminContext, tenantId)
+                  Expect.isOk approveResult "Admin approval should succeed"
+
+                  let geoLoc = GeoLocSettings.CreateEnabled(45.4642, 9.1900) |> Result.get
+                  let! setResult = tenantService.SetGeoLocSettingsAsync(ownerContext, tenantId, geoLoc)
+                  Expect.isOk setResult "Setting geoloc should succeed"
+
+                  // User in Milan (within 1000m)
+                  let milanUserCoords = Coordinates.New(45.4645, 9.1905, 1000.0)
+                  let romeUserCoords = Coordinates.New(41.9028, 12.4964, 1000.0)
+                  let! nearResult = tenantService.GetAllPublicTenantsByProximityAsync(UserContext.Anonymous, milanUserCoords)
+                  Expect.isOk nearResult "Should succeed retrieving tenants by proximity"
+                  match nearResult with
+                  | Ok tenants ->
+                      Expect.isTrue (tenants |> List.exists (fun t -> t.TenantId = tenantId)) "Milan library should be found by nearby user"
+                  | Error msg -> failwith msg
+
+                  // Test GetAllowedTenantsByProximityAsync
+                  // Anonymous nearby: found
+                  let! allowedNearResult = tenantService.GetAllowedTenantsByProximityAsync(UserContext.Anonymous, milanUserCoords)
+                  Expect.isOk allowedNearResult "Should succeed retrieving allowed tenants by proximity"
+                  match allowedNearResult with
+                  | Ok tenants ->
+                      Expect.isTrue (tenants |> List.exists (fun t -> t.TenantId = tenantId)) "Milan library should be in allowed tenants for nearby anonymous user"
+                  | Error msg -> failwith msg
+
+                  // Anonymous far away: NOT found
+                  let! allowedFarResult = tenantService.GetAllowedTenantsByProximityAsync(UserContext.Anonymous, romeUserCoords)
+                  Expect.isOk allowedFarResult "Should succeed retrieving allowed tenants by proximity"
+                  match allowedFarResult with
+                  | Ok tenants ->
+                      Expect.isFalse (tenants |> List.exists (fun t -> t.TenantId = tenantId)) "Milan library should NOT be in allowed tenants for distant anonymous user"
+                      Expect.isTrue (tenants |> List.exists (fun t -> t.TenantId = TenantId.Default)) "Default tenant should always be included for anonymous user"
+                  | Error msg -> failwith msg
+
+                  // Owner far away: FOUND because user is owner
+                  let! allowedOwnerFarResult = tenantService.GetAllowedTenantsByProximityAsync(ownerContext, romeUserCoords)
+                  Expect.isOk allowedOwnerFarResult "Should succeed retrieving allowed tenants for owner"
+                  match allowedOwnerFarResult with
+                  | Ok tenants ->
+                      Expect.isTrue (tenants |> List.exists (fun t -> t.TenantId = tenantId)) "Milan library should be in allowed tenants for distant owner"
+                  | Error msg -> failwith msg
               } ]
 

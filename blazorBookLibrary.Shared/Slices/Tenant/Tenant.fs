@@ -359,6 +359,13 @@ and Tenant =
                     }
             }
 
+    member this.IsNear (userCoordinates: Coordinates) = 
+        match this.GeoLocSettings with
+        | GeoLocSettings.Disabled ->
+            false
+        | GeoLocSettings.Enabled tenantCoordinates ->
+            userCoordinates.DistanceInMeters (tenantCoordinates) <= userCoordinates.RadiusInMeters
+
     member this.SetPrivate() =
         { this with
             TenantVisibility = TenantVisibility.Private }

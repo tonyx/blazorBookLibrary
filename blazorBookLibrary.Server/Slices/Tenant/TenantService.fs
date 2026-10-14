@@ -461,6 +461,36 @@ type TenantService
                     ct
         }
 
+    member this.GetAllPublicTenantsByProximity(context: UserContext, userCoordinates: Coordinates, ?ct: CancellationToken) =
+        let ct = ct |> Option.defaultValue CancellationToken.None
+        let filter = 
+            fun (tenant: Tenant) -> 
+                tenant.TenantId = TenantId.Default || 
+                (tenant.TenantVisibility.IsPublic && tenant.IsNear userCoordinates)
+
+        taskResult { 
+            let! tenants =
+                StateView.getAllFilteredAggregateStatesAsync<Tenant, TenantEvent, string> filter eventStore (ct |> Some)
+            return tenants |>> snd
+        }
+
+    member this.GetAllowedTenantsByProximity(context: UserContext, userCoordinates: Coordinates, ?ct: CancellationToken) =   
+        let ct = ct |> Option.defaultValue CancellationToken.None
+        let filter = 
+            fun (tenant: Tenant) -> 
+                tenant.TenantId = TenantId.Default || 
+                (tenant.TenantVisibility.IsPublic && tenant.IsNear userCoordinates)
+                || context.IsInRole Role.Admin
+                || (match context.UserId with
+                    | Some uid -> tenant.OwnerId = uid || (tenant.Patrons |> List.exists (fun (u, _) -> u = uid))
+                    | None -> false)
+
+        taskResult { 
+            let! tenants =
+                StateView.getAllFilteredAggregateStatesAsync<Tenant, TenantEvent, string> filter eventStore (ct |> Some)
+            return tenants |>> snd
+        }
+
     member this.GetAllPublicTenants(context: UserContext, ?ct: CancellationToken) =
         let ct = ct |> Option.defaultValue CancellationToken.None
         let filter = fun (tenant: Tenant) -> tenant.TenantId = TenantId.Default || tenant.TenantVisibility.IsPublic
@@ -1004,6 +1034,12 @@ type TenantService
 
         member this.GetUserRoleAsync(context, tenantId, userId, ?ct) =
             this.GetUserRole(context, tenantId, userId, ?ct = ct)
+
+        member this.GetAllPublicTenantsByProximityAsync(context, userCoordinates, ?ct) =
+            this.GetAllPublicTenantsByProximity(context, userCoordinates, ?ct = ct)
+
+        member this.GetAllowedTenantsByProximityAsync(context, userCoordinates, ?ct) =
+            this.GetAllowedTenantsByProximity(context, userCoordinates, ?ct = ct)
 
         member this.GetAllPublicTenantsAsync(context, ?ct) =
             this.GetAllPublicTenants(context, ?ct = ct)

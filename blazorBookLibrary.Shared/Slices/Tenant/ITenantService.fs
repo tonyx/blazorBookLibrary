@@ -66,6 +66,14 @@ type ITenantService =
         UserContext * TenantId * UserId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken ->
             Task<Result<PatronRole, string>>
 
+    abstract member GetAllPublicTenantsByProximityAsync:
+        UserContext * userCoordinates:Coordinates * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken ->
+            Task<Result<List<Tenant>, string>>
+
+    abstract member GetAllowedTenantsByProximityAsync:
+        UserContext * userCoordinates:Coordinates * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken ->
+            Task<Result<List<Tenant>, string>>
+
     abstract member GetAllPublicTenantsAsync:
         UserContext * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken ->
             Task<Result<List<Tenant>, string>>

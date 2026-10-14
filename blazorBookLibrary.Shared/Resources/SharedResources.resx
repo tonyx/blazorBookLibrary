@@ -1222,4 +1222,28 @@
   <data name="GeoLoc_ErrTimeout" xml:space="preserve"><value>The request to get user location timed out.</value></data>
   <data name="GeoLoc_ErrNotSupported" xml:space="preserve"><value>Geolocation is not supported by this browser.</value></data>
   <data name="GeoLoc_ErrUnableToRetrieve" xml:space="preserve"><value>Unable to retrieve your location.</value></data>
+  <data name="UserLocation_PageTitle" xml:space="preserve"><value>My Location Settings</value></data>
+  <data name="UserLocation_Breadcrumb" xml:space="preserve"><value>Location</value></data>
+  <data name="UserLocation_Badge" xml:space="preserve"><value>Proximity Filter</value></data>
+  <data name="UserLocation_Title" xml:space="preserve"><value>Library Proximity Filter</value></data>
+  <data name="UserLocation_Subtitle" xml:space="preserve"><value>Configure your location to find and filter libraries near you</value></data>
+  <data name="UserLocation_StatusActive" xml:space="preserve"><value>Proximity Filter Active</value></data>
+  <data name="UserLocation_StatusWorldwide" xml:space="preserve"><value>Worldwide Mode (All Libraries)</value></data>
+  <data name="UserLocation_Presets" xml:space="preserve"><value>Search Radius</value></data>
+  <data name="UserLocation_MapInstructions" xml:space="preserve"><value>Click on the map or drag the marker to set your location</value></data>
+  <data name="UserLocation_NearbyLibrariesPreview" xml:space="preserve"><value>Libraries near your location</value></data>
+  <data name="UserLocation_NoLibrariesFoundInRadius" xml:space="preserve"><value>No public libraries found within this radius.</value></data>
+  <data name="UserLocation_TryExpandingRadius" xml:space="preserve"><value>Try selecting a larger search radius (e.g. 50 km or 100 km).</value></data>
+  <data name="UserLocation_ClearButton" xml:space="preserve"><value>Reset to Worldwide</value></data>
+  <data name="UserLocation_SaveButton" xml:space="preserve"><value>Save Location</value></data>
+  <data name="UserLocation_SaveSuccess" xml:space="preserve"><value>Location preferences saved successfully! Library dropdown now filters by proximity.</value></data>
+  <data name="UserLocation_ClearSuccess" xml:space="preserve"><value>Location cleared. You can now see all public libraries.</value></data>
+  <data name="UserLocation_FilterActiveTooltip" xml:space="preserve"><value>Filtering libraries near your location. Click to change.</value></data>
+  <data name="UserLocation_SetLocationTooltip" xml:space="preserve"><value>Filter libraries near you</value></data>
+  <data name="UserLocation_FilteringWithin" xml:space="preserve"><value>Showing libraries within {0} km of your location</value></data>
+  <data name="UserLocation_ChangeLocation" xml:space="preserve"><value>Change</value></data>
+  <data name="UserLocation_WorldwideNotice" xml:space="preserve"><value>Browsing libraries worldwide</value></data>
+  <data name="UserLocation_SetYourLocation" xml:space="preserve"><value>Set your location</value></data>
+  <data name="Libraries" xml:space="preserve"><value>Libraries</value></data>
+  <data name="Locating" xml:space="preserve"><value>Locating</value></data>
 </root>

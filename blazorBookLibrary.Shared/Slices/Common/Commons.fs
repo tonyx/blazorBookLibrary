@@ -71,9 +71,6 @@ type EmbeddingData =
 
 let random = System.Random()
 
-
-    
-
 type DistributionPointId =
     | DistributionPointId of Guid
 

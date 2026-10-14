@@ -106,13 +106,26 @@ window.tenantMap = {
                     circleInstance.setRadius(radius);
                 }
             }
-            mapInstance.setView([lat, lng], 16);
+            if (circleInstance && typeof radius === 'number' && radius > 1000) {
+                mapInstance.fitBounds(circleInstance.getBounds(), { padding: [20, 20] });
+            } else {
+                mapInstance.setView([lat, lng], 16);
+            }
         }
     },
 
     updateRadius: function (radius) {
         if (circleInstance && typeof radius === 'number' && radius > 0) {
             circleInstance.setRadius(radius);
+            if (mapInstance && radius > 1000) {
+                mapInstance.fitBounds(circleInstance.getBounds(), { padding: [20, 20] });
+            }
+        }
+    },
+
+    fitBoundsToRadius: function () {
+        if (circleInstance && mapInstance) {
+            mapInstance.fitBounds(circleInstance.getBounds(), { padding: [20, 20] });
         }
     },
 

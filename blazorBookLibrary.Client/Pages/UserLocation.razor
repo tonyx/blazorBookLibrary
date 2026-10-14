@@ -1,0 +1,539 @@
+@page "/user-location"
+@using BookLibrary.Domain
+@using BookLibrary.Shared
+@using BookLibrary.Shared.Services
+@using blazorBookLibrary.Client.Services
+@using blazorBookLibrary.Shared.Resources
+@using Microsoft.Extensions.Localization
+@using Microsoft.FSharp.Collections
+@using Microsoft.FSharp.Core
+@inject IUserLocationService UserLocationService
+@inject ITenantService TenantService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject TenantStateService TenantState
+@inject IJSRuntime JSRuntime
+@inject IStringLocalizer<SharedResources> L
+@inject NavigationManager NavigationManager
+@rendermode InteractiveAuto
+@implements IAsyncDisposable
+
+<PageTitle>@L["UserLocation_PageTitle"] — @L["BiblioNet"]</PageTitle>
+
+<div class="sanctuary-container py-4">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="/" class="text-decoration-none">@L["Home"]</a></li>
+            <li class="breadcrumb-item active text-serif" aria-current="page">@L["UserLocation_Breadcrumb"]</li>
+        </ol>
+    </nav>
+
+    <div class="card card-sanctuary border-0 shadow-sm bg-surface-low p-4 p-md-5 animate-fade-in">
+        <!-- Header -->
+        <div class="d-flex justify-content-between align-items-start border-bottom pb-4 mb-4 flex-wrap gap-3">
+            <div>
+                <span class="badge-sanctuary badge-neutral mb-2 text-uppercase letter-spacing-1 fw-bold">
+                    <i class="bi bi-geo-alt-fill me-1 text-primary"></i>@L["UserLocation_Badge"]
+                </span>
+                <h1 class="h3 text-serif mb-1">
+                    @L["UserLocation_Title"]
+                </h1>
+                <p class="text-muted mb-0">
+                    @L["UserLocation_Subtitle"]
+                </p>
+            </div>
+            <div>
+                @if (isLocationSaved)
+                {
+                    <span class="badge bg-success-subtle text-success border border-success px-3 py-2 fs-6 rounded-pill">
+                        <i class="bi bi-check-circle-fill me-1"></i>@L["UserLocation_StatusActive"]
+                    </span>
+                }
+                else
+                {
+                    <span class="badge bg-secondary-subtle text-secondary border border-secondary px-3 py-2 fs-6 rounded-pill">
+                        <i class="bi bi-globe me-1"></i>@L["UserLocation_StatusWorldwide"]
+                    </span>
+                }
+            </div>
+        </div>
+
+        @if (!string.IsNullOrEmpty(errorMessage))
+        {
+            <div class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert">
+                <i class="bi bi-exclamation-octagon-fill me-2"></i>
+                @errorMessage
+                <button type="button" class="btn-close" @onclick="() => errorMessage = null" aria-label="Close"></button>
+            </div>
+        }
+
+        @if (!string.IsNullOrEmpty(successMessage))
+        {
+            <div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
+                <i class="bi bi-check-circle-fill me-2"></i>
+                @successMessage
+                <button type="button" class="btn-close" @onclick="() => successMessage = null" aria-label="Close"></button>
+            </div>
+        }
+
+        <!-- Coordinate & Radius Inputs -->
+        <div class="row g-3 mb-3">
+            <div class="col-md-4">
+                <label class="form-label fw-semibold text-secondary small">
+                    <i class="bi bi-compass me-1"></i>@L["GeoLoc_Latitude"]
+                </label>
+                <input type="number" step="any" class="form-control font-monospace"
+                       placeholder="e.g. 45.4642"
+                       value="@latitude"
+                       @onchange="OnLatitudeChanged" />
+            </div>
+            <div class="col-md-4">
+                <label class="form-label fw-semibold text-secondary small">
+                    <i class="bi bi-compass me-1"></i>@L["GeoLoc_Longitude"]
+                </label>
+                <input type="number" step="any" class="form-control font-monospace"
+                       placeholder="e.g. 9.1900"
+                       value="@longitude"
+                       @onchange="OnLongitudeChanged" />
+            </div>
+            <div class="col-md-4">
+                <label class="form-label fw-semibold text-secondary small">
+                    <i class="bi bi-bullseye me-1"></i>@L["GeoLoc_Radius"]
+                </label>
+                <div class="input-group">
+                    <input type="number" min="1" max="500" step="1" class="form-control font-monospace"
+                           value="@(radiusInMeters / 1000.0)"
+                           @onchange="OnRadiusKmChanged" />
+                    <span class="input-group-text">km</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Radius Presets -->
+        <div class="mb-3 d-flex align-items-center flex-wrap gap-2">
+            <span class="text-muted small me-2"><i class="bi bi-sliders me-1"></i>@L["UserLocation_Presets"]:</span>
+            @foreach (var rKm in new[] { 5, 10, 25, 50, 100 })
+            {
+                var rMeters = rKm * 1000.0;
+                <button type="button"
+                        class="btn btn-sm rounded-pill @(Math.Abs(radiusInMeters - rMeters) < 1.0 ? "btn-primary" : "btn-outline-secondary")"
+                        @onclick="() => SelectRadius(rMeters)">
+                    @(rKm) km
+                </button>
+            }
+        </div>
+
+        <!-- Map toolbar: Instructions + Locate Me -->
+        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+            <div class="text-muted small">
+                <i class="bi bi-info-circle me-1"></i>@L["UserLocation_MapInstructions"]
+            </div>
+            <button type="button" class="btn btn-outline-primary btn-sm px-3 shadow-sm rounded-pill" @onclick="LocateUser" disabled="@isLocating">
+                @if (isLocating)
+                {
+                    <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                    <span>@L["Locating"]...</span>
+                }
+                else
+                {
+                    <i class="bi bi-cursor-fill me-1"></i>
+                    <span>@L["GeoLoc_LocateMe"]</span>
+                }
+            </button>
+        </div>
+
+        <!-- Interactive Map Container -->
+        <div class="mb-4 rounded-3 shadow-sm overflow-hidden border">
+            <div id="user-location-map" style="height: 420px; width: 100%;"></div>
+        </div>
+
+        <!-- Live Preview of Nearby Libraries -->
+        <div class="card mb-4 bg-surface border shadow-sm rounded-3">
+            <div class="card-header bg-transparent py-3 d-flex justify-content-between align-items-center">
+                <span class="fw-semibold text-secondary">
+                    <i class="bi bi-buildings me-2 text-primary"></i>
+                    @L["UserLocation_NearbyLibrariesPreview"]
+                </span>
+                @if (isLoadingPreview)
+                {
+                    <div class="spinner-border spinner-border-sm text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                }
+                else if (previewTenants != null)
+                {
+                    <span class="badge bg-primary rounded-pill">@previewTenants.Length @L["Libraries"]</span>
+                }
+            </div>
+            <div class="card-body p-0">
+                @if (isLoadingPreview)
+                {
+                    <div class="p-4 text-center text-muted">
+                        <p class="mb-0 italic serif">@L["Loading"]...</p>
+                    </div>
+                }
+                else if (previewTenants == null || !previewTenants.Any())
+                {
+                    <div class="p-4 text-center text-muted">
+                        <i class="bi bi-geo-alt fs-2 text-muted mb-2 d-block"></i>
+                        <p class="mb-1">@L["UserLocation_NoLibrariesFoundInRadius"]</p>
+                        <small class="text-muted">@L["UserLocation_TryExpandingRadius"]</small>
+                    </div>
+                }
+                else
+                {
+                    <div class="list-group list-group-flush">
+                        @foreach (var tenant in previewTenants)
+                        {
+                            <div class="list-group-item d-flex justify-content-between align-items-center p-3">
+                                <div>
+                                    <div class="fw-bold">
+                                        @tenant.Name.Value
+                                        @if (tenant.TenantId == Commons.TenantId.Default)
+                                        {
+                                            <span class="badge bg-secondary ms-2 small">@L["Default"]</span>
+                                        }
+                                        else if (tenant.TenantVisibility.IsPublic)
+                                        {
+                                            <span class="badge bg-info-subtle text-info border border-info ms-2 small">@L["Public"]</span>
+                                        }
+                                    </div>
+                                    <div class="text-muted small">
+                                        <i class="bi bi-geo-alt me-1"></i>@tenant.Address
+                                    </div>
+                                </div>
+                                <div>
+                                    @if (tenant.TenantId != Commons.TenantId.Default &&
+                                         tenant.GeoLocSettings != null &&
+                                         tenant.GeoLocSettings.IsEnabled &&
+                                         tenant.GeoLocSettings.OptCoordinates != null &&
+                                         FSharpOption<Commons.Coordinates>.get_IsSome(tenant.GeoLocSettings.OptCoordinates) &&
+                                         latitude.HasValue && longitude.HasValue)
+                                    {
+                                        var tCoords = tenant.GeoLocSettings.OptCoordinates.Value;
+                                        var currentCoords = Commons.Coordinates.New(latitude.Value, longitude.Value, radiusInMeters);
+                                        var distMeters = currentCoords.DistanceInMeters(tCoords.Latitude, tCoords.Longitude);
+                                        var distKm = Math.Round(distMeters / 1000.0, 1);
+                                        <span class="badge bg-light text-dark border px-2 py-1">
+                                            <i class="bi bi-signpost me-1"></i>~@distKm km
+                                        </span>
+                                    }
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 pt-3 border-top">
+            <div>
+                @if (isLocationSaved)
+                {
+                    <button type="button" class="btn btn-outline-danger px-4 py-2 rounded-pill shadow-sm"
+                            @onclick="ClearLocation" disabled="@isSaving">
+                        <i class="bi bi-trash3 me-1"></i>
+                        <span>@L["UserLocation_ClearButton"]</span>
+                    </button>
+                }
+            </div>
+            <div class="d-flex gap-2">
+                <a href="/" class="btn btn-outline-secondary px-4 py-2 rounded-pill">
+                    @L["Cancel"]
+                </a>
+                <button type="button" class="btn btn-primary px-4 py-2 rounded-pill shadow-sm fw-semibold"
+                        @onclick="SaveLocation" disabled="@(isSaving || !latitude.HasValue || !longitude.HasValue)">
+                    @if (isSaving)
+                    {
+                        <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                        <span>@L["Saving"]...</span>
+                    }
+                    else
+                    {
+                        <i class="bi bi-check2-circle me-1"></i>
+                        <span>@L["UserLocation_SaveButton"]</span>
+                    }
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private const double DefaultRadiusInMeters = 25000.0;
+    private double? latitude;
+    private double? longitude;
+    private double radiusInMeters = DefaultRadiusInMeters;
+
+    private bool isLocationSaved = false;
+    private bool isLocating = false;
+    private bool isSaving = false;
+    private bool isLoadingPreview = false;
+    private bool mapInitialized = false;
+
+    private string? errorMessage;
+    private string? successMessage;
+
+    private FSharpList<Tenant>? previewTenants;
+    private DotNetObjectReference<UserLocation>? dotNetHelper;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var savedLoc = await UserLocationService.GetLocationAsync();
+        if (savedLoc != null)
+        {
+            latitude = savedLoc.Latitude;
+            longitude = savedLoc.Longitude;
+            radiusInMeters = savedLoc.RadiusInMeters > 0 ? savedLoc.RadiusInMeters : DefaultRadiusInMeters;
+            isLocationSaved = true;
+        }
+        else
+        {
+            // Default center if no coordinates saved (Rome, Italy)
+            latitude = 41.9028;
+            longitude = 12.4964;
+            radiusInMeters = DefaultRadiusInMeters;
+            isLocationSaved = false;
+        }
+
+        await LoadPreviewTenantsAsync();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            dotNetHelper = DotNetObjectReference.Create(this);
+        }
+
+        if (!mapInitialized && dotNetHelper != null && latitude.HasValue && longitude.HasValue)
+        {
+            mapInitialized = true;
+            try
+            {
+                await JSRuntime.InvokeVoidAsync("tenantMap.initialize", "user-location-map", dotNetHelper, latitude.Value, longitude.Value, radiusInMeters);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error initializing map: {ex.Message}");
+            }
+        }
+    }
+
+    [JSInvokable]
+    public void UpdateCoordinatesFromMap(double lat, double lng)
+    {
+        latitude = Math.Round(lat, 6);
+        longitude = Math.Round(lng, 6);
+        StateHasChanged();
+        _ = RefreshPreviewDebouncedAsync();
+    }
+
+    [JSInvokable]
+    public async Task OnLocationSuccess(double lat, double lng)
+    {
+        isLocating = false;
+        latitude = Math.Round(lat, 6);
+        longitude = Math.Round(lng, 6);
+        errorMessage = null;
+        StateHasChanged();
+
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("tenantMap.updateMarker", lat, lng, radiusInMeters);
+        }
+        catch { }
+
+        await LoadPreviewTenantsAsync();
+    }
+
+    [JSInvokable]
+    public void OnLocationError(string message)
+    {
+        isLocating = false;
+        errorMessage = message switch
+        {
+            "User denied the request for Geolocation." => L["GeoLoc_ErrUserDenied"].Value,
+            "Location information is unavailable." => L["GeoLoc_ErrPositionUnavailable"].Value,
+            "The request to get user location timed out." => L["GeoLoc_ErrTimeout"].Value,
+            "Geolocation is not supported by this browser." => L["GeoLoc_ErrNotSupported"].Value,
+            _ => !string.IsNullOrWhiteSpace(message) ? message : L["GeoLoc_ErrUnableToRetrieve"].Value
+        };
+        StateHasChanged();
+    }
+
+    private async Task LocateUser()
+    {
+        isLocating = true;
+        errorMessage = null;
+        successMessage = null;
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("tenantMap.getUserLocation", dotNetHelper);
+        }
+        catch (Exception ex)
+        {
+            isLocating = false;
+            errorMessage = ex.Message;
+        }
+    }
+
+    private async Task OnLatitudeChanged(ChangeEventArgs e)
+    {
+        if (double.TryParse(e.Value?.ToString(), System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var val))
+        {
+            latitude = Math.Round(val, 6);
+            await UpdateMapMarkerAsync();
+            await LoadPreviewTenantsAsync();
+        }
+    }
+
+    private async Task OnLongitudeChanged(ChangeEventArgs e)
+    {
+        if (double.TryParse(e.Value?.ToString(), System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var val))
+        {
+            longitude = Math.Round(val, 6);
+            await UpdateMapMarkerAsync();
+            await LoadPreviewTenantsAsync();
+        }
+    }
+
+    private async Task OnRadiusKmChanged(ChangeEventArgs e)
+    {
+        if (double.TryParse(e.Value?.ToString(), System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var valKm) && valKm > 0)
+        {
+            radiusInMeters = valKm * 1000.0;
+            await UpdateMapRadiusAsync();
+            await LoadPreviewTenantsAsync();
+        }
+    }
+
+    private async Task SelectRadius(double meters)
+    {
+        radiusInMeters = meters;
+        await UpdateMapRadiusAsync();
+        await LoadPreviewTenantsAsync();
+    }
+
+    private async Task UpdateMapMarkerAsync()
+    {
+        if (latitude.HasValue && longitude.HasValue)
+        {
+            try
+            {
+                await JSRuntime.InvokeVoidAsync("tenantMap.updateMarker", latitude.Value, longitude.Value, radiusInMeters);
+            }
+            catch { }
+        }
+    }
+
+    private async Task UpdateMapRadiusAsync()
+    {
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("tenantMap.updateRadius", radiusInMeters);
+        }
+        catch { }
+    }
+
+    private async Task RefreshPreviewDebouncedAsync()
+    {
+        await LoadPreviewTenantsAsync();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task LoadPreviewTenantsAsync()
+    {
+        if (!latitude.HasValue || !longitude.HasValue) return;
+
+        isLoadingPreview = true;
+        try
+        {
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var userContext = TenantState.GetUserContext(authState.User);
+            var coords = Commons.Coordinates.New(latitude.Value, longitude.Value, radiusInMeters);
+
+            var result = await TenantService.GetAllowedTenantsByProximityAsync(userContext, coords, FSharpOption<CancellationToken>.None);
+            if (result.IsOk)
+            {
+                previewTenants = result.ResultValue;
+            }
+            else
+            {
+                previewTenants = null;
+            }
+        }
+        catch
+        {
+            previewTenants = null;
+        }
+        finally
+        {
+            isLoadingPreview = false;
+        }
+    }
+
+    private async Task SaveLocation()
+    {
+        if (!latitude.HasValue || !longitude.HasValue)
+        {
+            errorMessage = L["GeoLoc_InvalidCoordinates"].Value;
+            return;
+        }
+
+        if (latitude.Value < -90.0 || latitude.Value > 90.0 || longitude.Value < -180.0 || longitude.Value > 180.0)
+        {
+            errorMessage = L["GeoLoc_InvalidCoordinates"].Value;
+            return;
+        }
+
+        isSaving = true;
+        errorMessage = null;
+        successMessage = null;
+
+        try
+        {
+            await UserLocationService.SetLocationAsync(latitude.Value, longitude.Value, radiusInMeters);
+            isLocationSaved = true;
+            successMessage = L["UserLocation_SaveSuccess"].Value;
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.Message;
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private async Task ClearLocation()
+    {
+        isSaving = true;
+        errorMessage = null;
+        successMessage = null;
+
+        try
+        {
+            await UserLocationService.ClearLocationAsync();
+            isLocationSaved = false;
+            successMessage = L["UserLocation_ClearSuccess"].Value;
+            await LoadPreviewTenantsAsync();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.Message;
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    public ValueTask DisposeAsync()
+    {
+        dotNetHelper?.Dispose();
+        return ValueTask.CompletedTask;
+    }
+}

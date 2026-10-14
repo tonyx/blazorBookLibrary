@@ -10,6 +10,7 @@
 @inject BookLibrary.Shared.Services.IUserTenantResolverService UserTenantResolverService
 @inject IStringLocalizer<SharedResources> L
 @inject IJSRuntime JSRuntime
+@inject blazorBookLibrary.Client.Services.IUserLocationService UserLocationService
 
 <div class="page">
     <div class="sidebar">
@@ -45,6 +46,11 @@
                     {
                         <span class="tenant-name fw-bold text-serif">@TenantState.CurrentTenant.Name.Value</span>
                     }
+
+                    <a href="/user-location" class="btn btn-sm btn-link p-0 text-decoration-none ms-1 @(isProximityFilteringActive ? "text-primary" : "text-muted")"
+                       title="@(isProximityFilteringActive ? L["UserLocation_FilterActiveTooltip"] : L["UserLocation_SetLocationTooltip"])">
+                        <i class="bi @(isProximityFilteringActive ? "bi-geo-alt-fill text-primary" : "bi-geo-alt") fs-6"></i>
+                    </a>
                 </div>
                 <div class="d-flex align-items-center gap-3">
                     <NotificationBell currentUrl="@currentUrl" />
@@ -77,6 +83,7 @@
     private string? currentUrl;
     private FSharpList<Tenant>? allowedTenants;
     private bool isLoadingAllowedTenants = false;
+    private bool isProximityFilteringActive = false;
 
 
     protected override void OnInitialized()
@@ -92,6 +99,15 @@
         };
 
         TenantState.OnChange += StateHasChanged;
+        UserLocationService.OnLocationChanged += OnLocationChangedHandler;
+    }
+
+    private void OnLocationChangedHandler()
+    {
+        _ = InvokeAsync(async () =>
+        {
+            await LoadTenantsForDropdownAsync();
+        });
     }
 
     protected override async Task OnInitializedAsync()
@@ -115,14 +131,7 @@
             }
         }
 
-        if (authState.User.Identity?.IsAuthenticated == true)
-        {
-            await LoadAllowedTenantsAsync();
-        }
-        else
-        {
-            await LoadPublicTenantsAsync();
-        }
+        await LoadTenantsForDropdownAsync();
     }
 
     private async Task<bool> CheckUrlForTenantSwitchAsync(string url)
@@ -196,22 +205,61 @@
         return result;
     }
 
-    private async Task LoadPublicTenantsAsync()
+    private async Task LoadTenantsForDropdownAsync()
     {
         isLoadingAllowedTenants = true;
         StateHasChanged();
         try
         {
-            var userContext = TenantState.GetUserContext(new System.Security.Claims.ClaimsPrincipal());
-            var publicResult = await TenantService.GetAllPublicTenantsAsync(userContext, Microsoft.FSharp.Core.FSharpOption<System.Threading.CancellationToken>.None);
-            if (publicResult.IsOk)
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var userContext = TenantState.GetUserContext(authState.User);
+            var userCoords = await UserLocationService.GetCoordinatesAsync();
+
+            if (userCoords != null)
             {
-                allowedTenants = publicResult.ResultValue;
+                isProximityFilteringActive = true;
+                var proximityResult = await TenantService.GetAllowedTenantsByProximityAsync(
+                    userContext,
+                    userCoords,
+                    Microsoft.FSharp.Core.FSharpOption<System.Threading.CancellationToken>.None);
+
+                if (proximityResult.IsOk)
+                {
+                    allowedTenants = proximityResult.ResultValue;
+                }
             }
+            else
+            {
+                isProximityFilteringActive = false;
+                if (authState.User.Identity?.IsAuthenticated == true)
+                {
+                    var allowedResult = await TenantService.GetAllowedTenantsAsync(
+                        userContext,
+                        Microsoft.FSharp.Core.FSharpOption<System.Threading.CancellationToken>.None);
+
+                    if (allowedResult.IsOk)
+                    {
+                        allowedTenants = allowedResult.ResultValue;
+                    }
+                }
+                else
+                {
+                    var publicResult = await TenantService.GetAllPublicTenantsAsync(
+                        userContext,
+                        Microsoft.FSharp.Core.FSharpOption<System.Threading.CancellationToken>.None);
+
+                    if (publicResult.IsOk)
+                    {
+                        allowedTenants = publicResult.ResultValue;
+                    }
+                }
+            }
+
+            EnsureCurrentTenantInList();
         }
-        catch (Exception ex)
+        catch
         {
-            // Silent log
+            // Fail safely
         }
         finally
         {
@@ -220,30 +268,23 @@
         }
     }
 
-    private async Task LoadAllowedTenantsAsync()
+    private void EnsureCurrentTenantInList()
     {
-        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-        if (authState.User.Identity?.IsAuthenticated == true)
+        if (TenantState.CurrentTenant != null && allowedTenants != null)
         {
-            isLoadingAllowedTenants = true;
-            StateHasChanged();
-            try
+            var currentId = TenantState.CurrentTenant.TenantId.Value;
+            var exists = false;
+            foreach (var t in allowedTenants)
             {
-                var userContext = TenantState.GetUserContext(authState.User);
-                var allowedResult = await TenantService.GetAllowedTenantsAsync(userContext, Microsoft.FSharp.Core.FSharpOption<System.Threading.CancellationToken>.None);
-                if (allowedResult.IsOk)
+                if (t.TenantId.Value == currentId)
                 {
-                    allowedTenants = allowedResult.ResultValue;
+                    exists = true;
+                    break;
                 }
             }
-            catch (Exception ex)
+            if (!exists)
             {
-                // Silent log
-            }
-            finally
-            {
-                isLoadingAllowedTenants = false;
-                StateHasChanged();
+                allowedTenants = FSharpList<Tenant>.Cons(TenantState.CurrentTenant, allowedTenants);
             }
         }
     }
@@ -251,6 +292,7 @@
     public void Dispose()
     {
         TenantState.OnChange -= StateHasChanged;
+        UserLocationService.OnLocationChanged -= OnLocationChangedHandler;
     }
 }
 
