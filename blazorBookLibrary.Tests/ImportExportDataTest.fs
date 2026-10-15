@@ -10,6 +10,48 @@ open BookLibrary.Shared.Services
 open BookLibrary.Shared.Details
 
 [<Tests>]
+let exportTests =
+    testList "Export tests" [
+        testCaseTask "ExportAllBooksAsync as JSON exports author names and formatted JSON" <| fun _ -> task {
+            setUp ()
+            let dataExportService = (getDataExportService () :> IDataExportService)
+            let bookService = (getBookService () :> IBookService)
+            let authorService = (getAuthorService () :> IAuthorService)
+
+            let authorName = "Isaac Asimov"
+            let author = Author.NewWithoutIsni TenantId.Default (Name.New authorName)
+            let! addAuthor = authorService.AddAuthorAsync(adminContext, author)
+            Expect.isOk addAuthor "Add author should succeed"
+
+            let bookTitle = "Foundation"
+            let book = Book.New TenantId.Default (Title.New bookTitle) [author.AuthorId] [] [] None Category.ScienceFiction [] (Year.New 1951) (Isbn.NewEmpty()) None
+            let! addBook = bookService.AddBookAsync(adminContext, book, CancellationToken.None)
+            Expect.isOk addBook "Add book should succeed"
+
+            let! exportResult = dataExportService.ExportAllBooksAsync(adminContext, Json)
+            Expect.isOk exportResult "Export should succeed"
+
+            let json = exportResult |> Result.get
+            // Verify JSON is formatted (contains newlines and indentation)
+            Expect.isTrue (json.Contains("\n")) "JSON should be formatted with newlines"
+            Expect.isTrue (json.Contains("  \"Authors\":")) "JSON should be indented"
+
+            // Verify author name is present
+            Expect.isTrue (json.Contains(authorName)) "JSON should contain author name"
+
+            // Parse JSON and check structure
+            use doc = System.Text.Json.JsonDocument.Parse(json)
+            let root = doc.RootElement
+            Expect.equal root.ValueKind System.Text.Json.JsonValueKind.Array "Root should be array"
+            let books = root.EnumerateArray() |> Seq.toList
+            Expect.isFalse (List.isEmpty books) "Books array should not be empty"
+            let matchingBook = books |> List.find (fun b -> b.GetProperty("Title").GetString() = bookTitle)
+            let authors = matchingBook.GetProperty("Authors").EnumerateArray() |> Seq.map (fun a -> a.GetString()) |> Seq.toList
+            Expect.contains authors authorName "Authors list should contain author name"
+        }
+    ]
+
+[<Tests>]
 let tests =
     // test suspended as they can be slow and the external services may be unavailable or unpredictable
      

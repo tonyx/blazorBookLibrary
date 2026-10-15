@@ -121,7 +121,26 @@ type DataExportService
 
                 match exportFormat with
                 | Json ->
-                    let json = System.Text.Json.JsonSerializer.Serialize(allBooks, jsonOptions)
+                    let exportData =
+                        bookDetails
+                        |> List.map (fun bd ->
+                            {|
+                                Id = bd.Book.BookId.Value
+                                Title = bd.Book.Title.Value
+                                Authors = bd.Authors |> List.map (fun a -> a.Name.Value)
+                                Isbn = bd.Book.Isbn.Value
+                                Year = bd.Book.Year.Value
+                                Description = bd.Book.Description
+                                Availability = bd.Book.Availability.ToString()
+                                MainCategory = bd.Book.MainCategory.ToString()
+                                AdditionalCategories = bd.Book.AdditionalCategories |> List.map (fun c -> c.ToString())
+                                Tags = bd.Book.Tags |> List.map (fun t -> t.TagName)
+                                Languages = bd.Book.Languages |> List.map (fun l -> l.Name)
+                                ImageUrl = bd.Book.ImageUrl |> Option.map string
+                            |})
+
+                    let formattedJsonOptions = System.Text.Json.JsonSerializerOptions(jsonOptions, WriteIndented = true)
+                    let json = System.Text.Json.JsonSerializer.Serialize(exportData, formattedJsonOptions)
                     return json
                 | Csv ->
                     let header = "Id,Title,Isbn,Year,Availability,MainCategory"
