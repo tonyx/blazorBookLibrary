@@ -69,7 +69,13 @@ type UserTenantResolverService(
                             if System.Object.ReferenceEquals(cookieService, null) then
                                 return TenantId.Default
                             else
-                                let! cookieVal = cookieService.GetCookieAsync("selected_tenant_id")
+                                let! cookieVal = 
+                                    task {
+                                        let! c1 = cookieService.GetCookieAsync("selected_tenant_id")
+                                        match c1 with
+                                        | Some _ -> return c1
+                                        | None -> return! cookieService.GetCookieAsync("selected_tenant")
+                                    }
                                 match cookieVal with
                                 | Some guidStr ->
                                     match System.Guid.TryParse(guidStr) with

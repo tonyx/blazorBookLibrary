@@ -53,6 +53,17 @@ type BookService
             return! Security.checkIsGlobalAdminOrTenantManagerOrPublicTenant tenant context
         }
 
+    let isTenantAccessible (targetTenantId: TenantId) (activeTenantId: TenantId) (ct: CancellationToken) =
+        task {
+            if targetTenantId = activeTenantId || targetTenantId = TenantId.Default then
+                return true
+            else
+                let! tenantRes = tenantViewerAsync (Some ct) targetTenantId.Value
+                match tenantRes with
+                | Ok (_, tenant) -> return tenant.TenantVisibility.IsPublic
+                | Error _ -> return false
+        }
+
     new (eventStore: IEventStore<string>, userTenantResolverService: IUserTenantResolverService, textEmbeddingService: ITextEmbeddingService, vectorDbService: IVectorDbService) =
         BookService (
             eventStore,
@@ -630,8 +641,9 @@ type BookService
                 let ct = defaultArg ct CancellationToken.None
                 let! book = 
                     bookViewerAsync (Some ct) id.Value |> TaskResult.map snd
+                let! isAccessible = isTenantAccessible book.TenantId tenantId ct
                 do! 
-                    tenantId = book.TenantId
+                    isAccessible
                     |> Result.ofBool "Book tenant id not matching"
                 
                 return book
@@ -647,8 +659,19 @@ type BookService
                     distinctIds 
                     |> List.traverseTaskResultM (fun id -> bookViewerAsync (Some ct) id.Value |> TaskResult.map snd)
 
+                let distinctTenantIds = books |> List.map (fun book -> book.TenantId) |> List.distinct
+                let! allAccessible =
+                    task {
+                        let mutable allOk = true
+                        for bTenantId in distinctTenantIds do
+                            if allOk then
+                                let! ok = isTenantAccessible bTenantId tenantId ct
+                                if not ok then allOk <- false
+                        return allOk
+                    }
+
                 do! 
-                    (books |> List.forall (fun book -> tenantId = book.TenantId))
+                    allAccessible
                     |> Result.ofBool "Book tenant id not matching"
                 
                 return books

@@ -19,6 +19,8 @@
 @inject ILogger<BookSearchToolbar> Logger
 @inject AuthenticationStateProvider AuthStateProvider
 @inject IUserService UserService
+@inject blazorBookLibrary.Client.Services.TenantStateService TenantState
+@inject IUserTenantResolverService UserTenantResolverService
 @implements IDisposable
 
 <div class="card-sanctuary bg-surface-lowest floating mb-3 p-0 overflow-hidden">
@@ -505,17 +507,28 @@
 
     private async Task<UserContext> GetUserContextAsync()
     {
-        if (_userContext == null)
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var context = blazorBookLibrary.Shared.ConverterUtils.fromClaimsPrincipal(authState.User);
+        if (context.IsAuthenticated)
         {
-            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
-            _userContext = blazorBookLibrary.Shared.ConverterUtils.fromClaimsPrincipal(authState.User);
+            _userContext = context.WithNewTenant(_currentTenant);
+        }
+        else
+        {
+            _userContext = context;
         }
         return _userContext;
     }
 
-    protected override async Task OnInitializedAsync()
+    private async Task<TenantId> ResolveCurrentTenantAsync()
     {
-        var userContext = await GetUserContextAsync();
+        if (TenantState.CurrentTenant != null)
+        {
+            return TenantState.CurrentTenant.TenantId;
+        }
+
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var userContext = blazorBookLibrary.Shared.ConverterUtils.fromClaimsPrincipal(authState.User);
 
         if (userContext.IsAuthenticated)
         {
@@ -523,15 +536,32 @@
             var userResult = await UserService.GetUserAsync(userContext, userId);
             if (userResult.IsOk)
             {
-                _currentTenant = userResult.ResultValue.CurrentTenant;
-                _userContext = _userContext.WithNewTenant(_currentTenant);
+                return userResult.ResultValue.CurrentTenant;
             }
         }
 
-        var tenantResult = await TenantService.GetTenantAsync(_userContext ?? userContext, _currentTenant, FSharpOption<CancellationToken>.None);
+        var tenantResult = await UserTenantResolverService.GetTenantForUserAsync(userContext, FSharpOption<CancellationToken>.None);
+        if (tenantResult.IsOk)
+        {
+            return tenantResult.ResultValue;
+        }
+
+        return TenantId.Default;
+    }
+
+    private async Task LoadTenantDataAsync()
+    {
+        _currentTenant = await ResolveCurrentTenantAsync();
+        var userContext = await GetUserContextAsync();
+
+        var tenantResult = await TenantService.GetTenantAsync(userContext, _currentTenant, FSharpOption<CancellationToken>.None);
         if (tenantResult.IsOk)
         {
             allBookTags = tenantResult.ResultValue.Tags.Where(t => t.IsBookTag).ToList();
+        }
+        else
+        {
+            allBookTags = new();
         }
 
         var dpResult = await DistributionPointService.GetAllDistributionPointsAsync(userContext);
@@ -539,6 +569,25 @@
         {
             allDistributionPoints = dpResult.ResultValue.ToList();
         }
+        else
+        {
+            allDistributionPoints = new();
+        }
+    }
+
+    private void OnTenantChanged()
+    {
+        _ = InvokeAsync(async () =>
+        {
+            await LoadTenantDataAsync();
+            StateHasChanged();
+        });
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        TenantState.OnChange += OnTenantChanged;
+        await LoadTenantDataAsync();
 
         if (!isInitialSearchTriggered && !string.IsNullOrEmpty(InitialDistributionPointId) && allDistributionPoints.Any())
         {
@@ -759,6 +808,7 @@
 
         try
         {
+            _currentTenant = await ResolveCurrentTenantAsync();
             if (searchMode == "AI")
             {
                 if (string.IsNullOrWhiteSpace(semanticSearchText))
@@ -1133,6 +1183,7 @@
 
     public void Dispose()
     {
+        TenantState.OnChange -= OnTenantChanged;
         CancelAutocompleteToken();
     }
 
