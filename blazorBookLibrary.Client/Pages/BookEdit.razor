@@ -2649,7 +2649,7 @@ else
     {
         if (_bookDetails == null) return;
         
-        bool confirm = await JSRuntime.InvokeAsync<bool>("confirm", L["ConfirmRemoveBookImage"]);
+        bool confirm = await JSRuntime.InvokeAsync<bool>("confirm", L["ConfirmRemoveBookImage"].Value);
         if (!confirm) return;
 
         try
@@ -3430,7 +3430,7 @@ else
     {
         if (_bookDetails == null || FSharpOption<EmbeddingDataId>.get_IsNone(_bookDetails.Book.OptionalEmbedding)) return;
 
-        bool confirm = await JSRuntime.InvokeAsync<bool>("confirm", L["ConfirmRemoveEmbedding"]);
+        bool confirm = await JSRuntime.InvokeAsync<bool>("confirm", L["ConfirmRemoveEmbedding"].Value);
         if (!confirm) return;
 
         _isRemovingEmbedding = true;
