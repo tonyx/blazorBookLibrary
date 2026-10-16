@@ -24,6 +24,7 @@ type ServerCookieService(httpContextAccessor: IHttpContextAccessor) =
                     options.HttpOnly <- false
                     options.Secure <- true
                     options.SameSite <- SameSiteMode.Lax
+                    options.Path <- "/"
                     match days with
                     | Some d -> options.Expires <- Nullable (DateTimeOffset.UtcNow.AddDays(float d))
                     | None -> ()
@@ -34,5 +35,7 @@ type ServerCookieService(httpContextAccessor: IHttpContextAccessor) =
             task {
                 let context = httpContextAccessor.HttpContext
                 if not (isNull context) && not context.Response.HasStarted then
-                    context.Response.Cookies.Delete(key)
+                    let options = CookieOptions()
+                    options.Path <- "/"
+                    context.Response.Cookies.Delete(key, options)
             }

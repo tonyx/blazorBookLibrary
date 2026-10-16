@@ -20,6 +20,7 @@
 @inject blazorBookLibrary.Client.Services.TenantStateService TenantState
 @inject IUserTenantResolverService UserTenantResolverService
 @inject ITenantService TenantService
+@inject IUserService UserService
 @inject blazorBookLibrary.Client.Services.IUserLocationService UserLocationService
 @rendermode InteractiveAuto
 @implements IAsyncDisposable
@@ -275,6 +276,20 @@
                 try
                 {
                     await CookieService.SetCookieAsync("selected_tenant_id", tenantGuid.ToString(), 30);
+                    await CookieService.SetCookieAsync("selected_tenant", tenantGuid.ToString(), 30);
+
+                    var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+                    var userContext = TenantState.GetUserContext(authState.User);
+                    var tid = Commons.TenantId.NewTenantId(tenantGuid);
+                    if (authState.User.Identity?.IsAuthenticated == true && userContext.UserId != null && FSharpOption<Commons.UserId>.get_IsSome(userContext.UserId))
+                    {
+                        await UserService.SetCurrentTenantAsync(userContext, userContext.UserId.Value, tid, FSharpOption<CancellationToken>.None);
+                    }
+                    var tenantResult = await TenantService.GetTenantAsync(userContext, tid, CancellationToken.None);
+                    if (tenantResult.IsOk)
+                    {
+                        await TenantState.SetTenantAsync(tenantResult.ResultValue);
+                    }
                     await CheckCanManageBooksAsync();
                 }
                 catch (Exception ex)

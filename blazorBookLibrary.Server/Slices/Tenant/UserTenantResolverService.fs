@@ -60,47 +60,46 @@ type UserTenantResolverService(
     member this.GetTenantForUser (context: UserContext, ?ct: CancellationToken) =
         taskResult {
             let ctValue = defaultArg ct CancellationToken.None
+            let! userOpt =
+                task {
+                    match context with
+                    | UserContext.Authenticated(userId, _) ->
+                        let! userRes = userViewerAsync (Some ctValue) userId.Value
+                        match userRes with
+                        | Ok (_, u) -> return Some u
+                        | Error _ -> return None
+                    | _ -> return None
+                }
+
             let! resolvedTenantId =
                 taskResult {
                     match context.TenantId with
                     | Some tenantId -> return tenantId
                     | None ->
-                        if context.IsAnonymous then
-                            if System.Object.ReferenceEquals(cookieService, null) then
-                                return TenantId.Default
-                            else
-                                let! cookieVal = 
-                                    task {
-                                        let! c1 = cookieService.GetCookieAsync("selected_tenant_id")
-                                        match c1 with
-                                        | Some _ -> return c1
-                                        | None -> return! cookieService.GetCookieAsync("selected_tenant")
-                                    }
-                                match cookieVal with
-                                | Some guidStr ->
-                                    match System.Guid.TryParse(guidStr) with
-                                    | true, guid -> return TenantId guid
-                                    | _ -> return TenantId.Default
+                        if not (System.Object.ReferenceEquals(cookieService, null)) then
+                            let! cookieVal = 
+                                task {
+                                    let! c1 = cookieService.GetCookieAsync("selected_tenant_id")
+                                    match c1 with
+                                    | Some _ -> return c1
+                                    | None -> return! cookieService.GetCookieAsync("selected_tenant")
+                                }
+                            match cookieVal with
+                            | Some guidStr ->
+                                match System.Guid.TryParse(guidStr) with
+                                | true, guid -> return TenantId guid
+                                | _ ->
+                                    match userOpt with
+                                    | Some u -> return u.CurrentTenant
+                                    | None -> return TenantId.Default
+                            | None ->
+                                match userOpt with
+                                | Some u -> return u.CurrentTenant
                                 | None -> return TenantId.Default
                         else
-                            let userId = context.UserId.Value
-                            let! user = userViewerAsync ct userId.Value |> TaskResult.map snd
-                            if user.CurrentTenant = TenantId.Default && not (System.Object.ReferenceEquals(cookieService, null)) then
-                                let! cookieVal = 
-                                    task {
-                                        let! c1 = cookieService.GetCookieAsync("selected_tenant_id")
-                                        match c1 with
-                                        | Some _ -> return c1
-                                        | None -> return! cookieService.GetCookieAsync("selected_tenant")
-                                    }
-                                match cookieVal with
-                                | Some guidStr ->
-                                    match System.Guid.TryParse(guidStr) with
-                                    | true, guid -> return TenantId guid
-                                    | _ -> return user.CurrentTenant
-                                | None -> return user.CurrentTenant
-                            else
-                                return user.CurrentTenant
+                            match userOpt with
+                            | Some u -> return u.CurrentTenant
+                            | None -> return TenantId.Default
                 }
 
             if context.IsAnonymous then
@@ -110,7 +109,54 @@ type UserTenantResolverService(
                 else
                     return resolvedTenantId
             else
-                return resolvedTenantId
+                let! tenantOpt =
+                    task {
+                        let! res = tenantViewerAsync (Some ctValue) resolvedTenantId.Value
+                        match res with
+                        | Ok (_, t) -> return Some t
+                        | Error _ -> return None
+                    }
+                match tenantOpt with
+                | Some tenant ->
+                    let userId = context.UserId.Value
+                    let hasAccess =
+                        resolvedTenantId = TenantId.Default
+                        || context.IsInRole Role.Admin
+                        || tenant.TenantVisibility.IsPublic
+                        || tenant.OwnerId = userId
+                        || (tenant.Patrons |> List.exists (fun (u, _) -> u = userId))
+                        || (tenant.InvitedPatrons |> List.exists (fun (u, _) -> u = userId))
+                    if hasAccess then
+                        return resolvedTenantId
+                    else
+                        match userOpt with
+                        | Some u when u.CurrentTenant <> resolvedTenantId ->
+                            let! userTenantOpt =
+                                task {
+                                    let! res = tenantViewerAsync (Some ctValue) u.CurrentTenant.Value
+                                    match res with
+                                    | Ok (_, t) -> return Some t
+                                    | Error _ -> return None
+                                }
+                            match userTenantOpt with
+                            | Some uTenant ->
+                                let userHasAccess =
+                                    u.CurrentTenant = TenantId.Default
+                                    || context.IsInRole Role.Admin
+                                    || uTenant.TenantVisibility.IsPublic
+                                    || uTenant.OwnerId = userId
+                                    || (uTenant.Patrons |> List.exists (fun (uId, _) -> uId = userId))
+                                    || (uTenant.InvitedPatrons |> List.exists (fun (uId, _) -> uId = userId))
+                                if userHasAccess then
+                                    return u.CurrentTenant
+                                else
+                                    return TenantId.Default
+                            | None -> return TenantId.Default
+                        | _ -> return TenantId.Default
+                | None ->
+                    match userOpt with
+                    | Some u when u.CurrentTenant <> resolvedTenantId -> return u.CurrentTenant
+                    | _ -> return TenantId.Default
         }
 
     interface IUserTenantResolverService with 

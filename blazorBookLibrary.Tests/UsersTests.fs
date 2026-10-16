@@ -110,4 +110,51 @@ let tests =
                       user.CurrentTenant
                       tenant.TenantId
                       "Current tenant should match the selected public tenant"
+              }
+          testCaseTask "invited user to private tenant can set current tenant, resolve it, and see it in allowed tenants"
+          <| fun _ ->
+              task {
+                  setUp ()
+                  let userService = getUserService ()
+                  let tenantService = getTenantService ()
+                  let resolverService = getUserTenantResolverService ()
+
+                  let! ownerId = registerUserTask "owner_priv@example.com" "Password123!"
+                  let ownerContext = UserContext.Authenticated(ownerId, [])
+
+                  let tenant =
+                      Tenant.New(ownerId, TenantName.New "Private Tenant" |> Result.get, "Private Address", false)
+
+                  let! createResult = tenantService.CreateTenantAsync(ownerContext, tenant)
+                  Expect.isOk createResult (sprintf "tenant creation failed: %A" createResult)
+
+                  let! inviteeId = registerUserTask "invitee@example.com" "Password123!"
+                  let inviteeContext = UserContext.Authenticated(inviteeId, [])
+
+                  // Before invitation, invitee cannot select private tenant
+                  let! uninvitedSetResult = userService.SetCurrentTenantAsync(inviteeContext, inviteeId, tenant.TenantId)
+                  Expect.isError uninvitedSetResult "uninvited user should not be able to select private tenant"
+
+                  // Owner invites patron
+                  let! inviteResult = tenantService.InvitePatronAsync(ownerContext, tenant.TenantId, inviteeId)
+                  Expect.isOk inviteResult "owner should be able to invite patron"
+
+                  // Invitee can get the private tenant
+                  let! getTenantRes = tenantService.GetTenantAsync(inviteeContext, tenant.TenantId)
+                  Expect.isOk getTenantRes "invitee should be able to get invited tenant"
+
+                  // Invitee sees private tenant in allowed tenants
+                  let! allowedTenantsRes = tenantService.GetAllowedTenantsAsync(inviteeContext)
+                  Expect.isOk allowedTenantsRes "invitee should be able to get allowed tenants"
+                  let allowed = allowedTenantsRes |> Result.get
+                  Expect.isTrue (allowed |> List.exists (fun t -> t.TenantId = tenant.TenantId)) "allowed tenants should include invited tenant"
+
+                  // Invitee can set current tenant to the invited tenant
+                  let! setTenantResult = userService.SetCurrentTenantAsync(inviteeContext, inviteeId, tenant.TenantId)
+                  Expect.isOk setTenantResult "invitee should be able to select invited private tenant"
+
+                  // Resolver returns the invited tenant for the invitee
+                  let! resolvedTenantRes = resolverService.GetTenantForUserAsync(inviteeContext)
+                  Expect.isOk resolvedTenantRes "resolver should succeed"
+                  Expect.equal (resolvedTenantRes |> Result.get) tenant.TenantId "resolver should resolve to invited tenant"
               } ]

@@ -15,6 +15,7 @@ namespace blazorBookLibrary.Client.Services
         private readonly IConfiguration _configuration;
         private Tenant? _currentTenant;
         private const string CookieName = "selected_tenant_id";
+        private const string LegacyCookieName = "selected_tenant";
         
         public TenantStateService(ICookieService cookieService, IConfiguration configuration)
         {
@@ -54,7 +55,9 @@ namespace blazorBookLibrary.Client.Services
             CurrentTenant = tenant;
             try 
             {
-                await _cookieService.SetCookieAsync(CookieName, tenant.TenantId.Value.ToString(), Microsoft.FSharp.Core.FSharpOption<int>.Some(30));
+                var expiration = Microsoft.FSharp.Core.FSharpOption<int>.Some(30);
+                await _cookieService.SetCookieAsync(CookieName, tenant.TenantId.Value.ToString(), expiration);
+                await _cookieService.SetCookieAsync(LegacyCookieName, tenant.TenantId.Value.ToString(), expiration);
             }
             catch { /* Prerendering or JS not available */ }
         }
@@ -65,6 +68,7 @@ namespace blazorBookLibrary.Client.Services
             try 
             {
                 await _cookieService.DeleteCookieAsync(CookieName);
+                await _cookieService.DeleteCookieAsync(LegacyCookieName);
             }
             catch { /* Prerendering or JS not available */ }
         }
@@ -74,6 +78,11 @@ namespace blazorBookLibrary.Client.Services
             try 
             {
                 var valueOpt = await _cookieService.GetCookieAsync(CookieName);
+                if (valueOpt == null || !Microsoft.FSharp.Core.FSharpOption<string>.get_IsSome(valueOpt))
+                {
+                    valueOpt = await _cookieService.GetCookieAsync(LegacyCookieName);
+                }
+
                 if (valueOpt != null && Microsoft.FSharp.Core.FSharpOption<string>.get_IsSome(valueOpt))
                 {
                     if (Guid.TryParse(valueOpt.Value, out var guid)) return guid;

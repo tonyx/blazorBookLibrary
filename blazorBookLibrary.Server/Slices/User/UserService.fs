@@ -458,6 +458,7 @@ type UserService
                 | _ when tenant.TenantVisibility.IsPublic -> true
                 | _ when (tenant.OwnerId = userId) -> true
                 | _ when (tenant.Patrons |> List.exists (fun (u, _) -> u = userId)) -> true
+                | _ when (tenant.InvitedPatrons |> List.exists (fun (u, _) -> u = userId)) -> true
                 | _ -> false
 
             do!

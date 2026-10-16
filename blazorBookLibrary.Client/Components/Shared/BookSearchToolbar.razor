@@ -530,19 +530,14 @@
         var authState = await AuthStateProvider.GetAuthenticationStateAsync();
         var userContext = blazorBookLibrary.Shared.ConverterUtils.fromClaimsPrincipal(authState.User);
 
-        if (userContext.IsAuthenticated)
-        {
-            var userId = userContext.UserId.Value;
-            var userResult = await UserService.GetUserAsync(userContext, userId);
-            if (userResult.IsOk)
-            {
-                return userResult.ResultValue.CurrentTenant;
-            }
-        }
-
         var tenantResult = await UserTenantResolverService.GetTenantForUserAsync(userContext, FSharpOption<CancellationToken>.None);
         if (tenantResult.IsOk)
         {
+            var tenantInfo = await TenantService.GetTenantAsync(userContext, tenantResult.ResultValue, FSharpOption<CancellationToken>.None);
+            if (tenantInfo.IsOk)
+            {
+                TenantState.CurrentTenant = tenantInfo.ResultValue;
+            }
             return tenantResult.ResultValue;
         }
 

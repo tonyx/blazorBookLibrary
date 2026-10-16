@@ -156,11 +156,15 @@
             }
 
             // 4. Update current tenant in HTTP response cookies so that the server & client recognize it immediately
-            HttpContext.Response.Cookies.Append(
-                "selected_tenant", 
-                parsedTenantId.Value.ToString(), 
-                new CookieOptions { Expires = DateTimeOffset.UtcNow.AddDays(30), HttpOnly = false, SameSite = SameSiteMode.Lax }
-            );
+            var cookieOptions = new CookieOptions 
+            { 
+                Expires = DateTimeOffset.UtcNow.AddDays(30), 
+                HttpOnly = false, 
+                SameSite = SameSiteMode.Lax,
+                Path = "/" 
+            };
+            HttpContext.Response.Cookies.Append("selected_tenant_id", parsedTenantId.Value.ToString(), cookieOptions);
+            HttpContext.Response.Cookies.Append("selected_tenant", parsedTenantId.Value.ToString(), cookieOptions);
 
             isSuccess = true;
             isLoading = false;

@@ -1509,13 +1509,12 @@ else
                         _cachedUserContext = context.WithNewTenant(_currentTenant);
                         context = _cachedUserContext;
                     }
-                    else if (context.IsAuthenticated)
+                    else
                     {
-                        var userId = context.UserId.Value;
-                        var userResult = await UserService.GetUserAsync(context, userId);
-                        if (userResult.IsOk && !userResult.ResultValue.CurrentTenant.Equals(TenantId.Default))
+                        var tenantRes = await UserTenantResolverService.GetTenantForUserAsync(context, FSharpOption<CancellationToken>.None);
+                        if (tenantRes.IsOk && !tenantRes.ResultValue.Equals(TenantId.Default))
                         {
-                            _currentTenant = userResult.ResultValue.CurrentTenant;
+                            _currentTenant = tenantRes.ResultValue;
                             _cachedUserContext = context.WithNewTenant(_currentTenant);
                             context = _cachedUserContext;
                         }

@@ -11,11 +11,13 @@ public class NotificationsController : Controller
 {
     private readonly INotificationService _notificationService;
     private readonly ITenantService _tenantService;
+    private readonly IUserService _userService;
 
-    public NotificationsController(INotificationService notificationService, ITenantService tenantService)
+    public NotificationsController(INotificationService notificationService, ITenantService tenantService, IUserService userService)
     {
         _notificationService = notificationService;
         _tenantService = tenantService;
+        _userService = userService;
     }
 
     [HttpGet]
@@ -48,17 +50,22 @@ public class NotificationsController : Controller
             if (acceptResult.IsOk)
             {
                 await _notificationService.MarkAsReadAsync(userContext, notifId, FSharpOption<CancellationToken>.None);
+
+                if (userContext.UserId != null && FSharpOption<Commons.UserId>.get_IsSome(userContext.UserId))
+                {
+                    await _userService.SetCurrentTenantAsync(userContext, userContext.UserId.Value, tId, FSharpOption<CancellationToken>.None);
+                }
                 
-                // Set active tenant cookie so it takes effect instantly on the next page render
-                Response.Cookies.Append(
-                    "selected_tenant", 
-                    tenantGuid.ToString(), 
-                    new CookieOptions 
-                    { 
-                        Expires = DateTimeOffset.UtcNow.AddDays(30), 
-                        HttpOnly = false, 
-                        SameSite = SameSiteMode.Lax 
-                    });
+                // Set active tenant cookies so they take effect instantly on the next page render
+                var cookieOptions = new CookieOptions 
+                { 
+                    Expires = DateTimeOffset.UtcNow.AddDays(30), 
+                    HttpOnly = false, 
+                    SameSite = SameSiteMode.Lax,
+                    Path = "/"
+                };
+                Response.Cookies.Append("selected_tenant_id", tenantGuid.ToString(), cookieOptions);
+                Response.Cookies.Append("selected_tenant", tenantGuid.ToString(), cookieOptions);
                 
                 return LocalRedirect("/tenants");
             }

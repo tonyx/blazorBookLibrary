@@ -211,6 +211,7 @@ type TenantService
         | UserContext.Authenticated(userId, _) when userId = tenant.OwnerId -> true
         | UserContext.Authenticated _ when context.IsInRole Role.Admin -> true
         | UserContext.Authenticated(userId, _) when tenant.Patrons |> List.exists (fun (u, _) -> u = userId) -> true
+        | UserContext.Authenticated(userId, _) when tenant.InvitedPatrons |> List.exists (fun (u, _) -> u = userId) -> true
         | _ -> false
 
     member private this.IsInvitedOrAdmin(context: UserContext, tenant: Tenant) =
@@ -482,7 +483,7 @@ type TenantService
                 (tenant.TenantVisibility.IsPublic && tenant.IsNear userCoordinates)
                 || context.IsInRole Role.Admin
                 || (match context.UserId with
-                    | Some uid -> tenant.OwnerId = uid || (tenant.Patrons |> List.exists (fun (u, _) -> u = uid))
+                    | Some uid -> tenant.OwnerId = uid || (tenant.Patrons |> List.exists (fun (u, _) -> u = uid)) || (tenant.InvitedPatrons |> List.exists (fun (u, _) -> u = uid))
                     | None -> false)
 
         taskResult { 
@@ -520,6 +521,7 @@ type TenantService
                     || tenant.TenantVisibility.IsPublic
                     || tenant.OwnerId = userId
                     || tenant.Patrons |> List.exists (fun (u, _) -> u = userId)
+                    || tenant.InvitedPatrons |> List.exists (fun (u, _) -> u = userId)
 
             let! tenants =
                 StateView.getAllFilteredAggregateStatesAsync<Tenant, TenantEvent, string> filter eventStore (ct |> Some)
@@ -542,6 +544,7 @@ type TenantService
                 fun (tenant: Tenant) ->
                     tenant.OwnerId = context.UserId.Value
                     || tenant.Patrons |> List.exists (fun (u, _) -> u = userId)
+                    || tenant.InvitedPatrons |> List.exists (fun (u, _) -> u = userId)
 
             let! tenants =
                 StateView.getAllFilteredAggregateStatesAsync<Tenant, TenantEvent, string> filter eventStore (ct |> Some)
