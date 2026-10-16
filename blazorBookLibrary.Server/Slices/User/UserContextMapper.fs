@@ -29,5 +29,36 @@ module UserContextMapper =
         mapFromClaimsPrincipal principal
 
     let mapFromRequest (request: Microsoft.AspNetCore.Http.HttpRequest) =
-        mapFromClaimsPrincipal request.HttpContext.User
+        let context = mapFromClaimsPrincipal request.HttpContext.User
+        if request = null then
+            context
+        else
+            let headerTenant =
+                if request.Headers <> null && request.Headers.ContainsKey("X-Tenant-Id") then
+                    let h = request.Headers.["X-Tenant-Id"].ToString()
+                    match System.Guid.TryParse(h) with
+                    | true, g -> Some (TenantId g)
+                    | _ -> None
+                else
+                    None
+
+            let cookieTenant =
+                if headerTenant.IsNone && request.Cookies <> null then
+                    let tryCookie name =
+                        if request.Cookies.ContainsKey(name) then
+                            let c = request.Cookies.[name]
+                            match System.Guid.TryParse(c) with
+                            | true, g -> Some (TenantId g)
+                            | _ -> None
+                        else
+                            None
+                    match tryCookie "selected_tenant_id" with
+                    | Some tid -> Some tid
+                    | None -> tryCookie "selected_tenant"
+                else
+                    None
+
+            match headerTenant |> Option.orElse cookieTenant with
+            | Some tid -> context.WithNewTenant(tid)
+            | None -> context
 

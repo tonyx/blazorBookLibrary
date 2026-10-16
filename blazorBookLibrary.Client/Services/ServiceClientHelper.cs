@@ -67,7 +67,10 @@ public static class ServiceClientHelper
     public static HttpRequestMessage CreateRequest(HttpMethod method, string uri, Commons.UserContext context)
     {
         var request = new HttpRequestMessage(method, uri);
-
+        if (context != null && context.TenantId != null && FSharpOption<Commons.TenantId>.get_IsSome(context.TenantId))
+        {
+            request.Headers.Add("X-Tenant-Id", context.TenantId.Value.Value.ToString());
+        }
         return request;
     }
 

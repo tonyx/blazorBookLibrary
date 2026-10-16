@@ -201,8 +201,8 @@ type TenantService
         match context with
         | UserContext.Anonymous -> false
         | UserContext.Authenticated(userId, _) when userId = tenant.OwnerId -> true
-        | UserContext.Authenticated _ when context.IsInRole Role.Admin -> true
-        | UserContext.Authenticated(userId, _) when tenant.IsManager(userId) -> true
+        | UserContext.Authenticated _ when context.IsInRole Role.Admin || context.IsInRole Role.Manager -> true
+        | UserContext.Authenticated(userId, _) when tenant.IsManager(userId) || (tenant.GetUserRole userId = Some PatronRole.Manager) -> true
         | _ -> false
 
     member private this.IsMemberOrAdmin(context: UserContext, tenant: Tenant) =

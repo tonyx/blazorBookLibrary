@@ -85,7 +85,22 @@ type UserTenantResolverService(
                         else
                             let userId = context.UserId.Value
                             let! user = userViewerAsync ct userId.Value |> TaskResult.map snd
-                            return user.CurrentTenant
+                            if user.CurrentTenant = TenantId.Default && not (System.Object.ReferenceEquals(cookieService, null)) then
+                                let! cookieVal = 
+                                    task {
+                                        let! c1 = cookieService.GetCookieAsync("selected_tenant_id")
+                                        match c1 with
+                                        | Some _ -> return c1
+                                        | None -> return! cookieService.GetCookieAsync("selected_tenant")
+                                    }
+                                match cookieVal with
+                                | Some guidStr ->
+                                    match System.Guid.TryParse(guidStr) with
+                                    | true, guid -> return TenantId guid
+                                    | _ -> return user.CurrentTenant
+                                | None -> return user.CurrentTenant
+                            else
+                                return user.CurrentTenant
                 }
 
             if context.IsAnonymous then

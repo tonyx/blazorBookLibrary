@@ -62,15 +62,7 @@ type EmbeddingOrchestrationService(
                 let! description =
                     book.Description |> Result.ofOption "Book has no description"
 
-                let! userId =
-                    match context with
-                    | UserContext.Anonymous -> Error "anonymous user is not allowed to create embedding for book"
-                    | UserContext.Authenticated(userId, _) -> Ok userId
-                do!
-                    match context with
-                    | UserContext.Authenticated(_, roles) when (roles |> List.contains Role.Admin) -> Ok ()
-                    | _ when tenant.OwnerId = userId ->  Ok ()
-                    | _ -> Error "user is not allowed to create embedding for book"
+                do! Security.checkIsGlobalAdminOrTenantManager tenant context
                     
                 let! embedding = textEmbeddingService.GetEmbeddingAsync(context, description, ct)
                 let embeddingId = EmbeddingDataId.New()
@@ -100,15 +92,7 @@ type EmbeddingOrchestrationService(
             let ct = defaultArg ct CancellationToken.None
             let! tenantId = userTenantResolverService.GetTenantForUserAsync(context, ct)
             let! (_, tenant) = tenantViewerAsync (Some ct) tenantId.Value
-            let! userId =
-                match context with
-                | UserContext.Anonymous -> Error "anonymous user is not allowed to manage embeddings"
-                | UserContext.Authenticated(userId, _) -> Ok userId
-            do!
-                match context with
-                | UserContext.Authenticated(_, roles) when (roles |> List.contains Role.Admin) -> Ok ()
-                | _ when tenant.OwnerId = userId -> Ok ()
-                | _ -> Error "user is not allowed to manage embeddings"
+            do! Security.checkIsGlobalAdminOrTenantManager tenant context
 
             let! book = bookService.GetBookAsync(context, bookId, ct)
             let! paper =
@@ -144,15 +128,7 @@ type EmbeddingOrchestrationService(
             let ct = defaultArg ct CancellationToken.None
             let! tenantId = userTenantResolverService.GetTenantForUserAsync(context, ct)
             let! (_, tenant) = tenantViewerAsync (Some ct) tenantId.Value
-            let! userId =
-                match context with
-                | UserContext.Anonymous -> Error "anonymous user is not allowed to manage embeddings"
-                | UserContext.Authenticated(userId, _) -> Ok userId
-            do!
-                match context with
-                | UserContext.Authenticated(_, roles) when (roles |> List.contains Role.Admin) -> Ok ()
-                | _ when tenant.OwnerId = userId -> Ok ()
-                | _ -> Error "user is not allowed to manage embeddings"
+            do! Security.checkIsGlobalAdminOrTenantManager tenant context
 
             let! book = bookService.GetBookAsync(context, bookId, ct)
             let! paper =

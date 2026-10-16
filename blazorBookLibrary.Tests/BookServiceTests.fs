@@ -8,6 +8,7 @@ open BookLibrary.Domain
 open BookLibrary.Shared.Details
 open BookLibrary.Shared.Commons
 open BookLibrary.Shared.Services
+open BookLibrary.Services
 open System.Threading
 open Sharpino.Cache
 open FsToolkit.ErrorHandling.Operator.Task
@@ -1201,6 +1202,99 @@ let tests =
             for code in invalidCodes do
                 Expect.isFalse (SbnCode.IsValid code) (sprintf "%A should be invalid" code)
                 Expect.isError (SbnCode.NewValid code) (sprintf "%A should fail NewValid" code)
+
+        testCase "Security.isGlobalAdminOrTenantManager checks manager and admin correctly" <| fun _ ->
+            let ownerId = UserId.New()
+            let managerId = UserId.New()
+            let regularUserId = UserId.New()
+            let adminId = UserId.New()
+            let globalManagerId = UserId.New()
+
+            let tenant =
+                { Tenant.New(ownerId, TenantName.New "Test Tenant" |> Result.get, "Address") with
+                    Patrons = [ (managerId, PatronRole.Manager); (regularUserId, PatronRole.User) ] }
+
+            let ownerContext = UserContext.Authenticated(ownerId, [Role.User])
+            let managerContext = UserContext.Authenticated(managerId, [Role.User])
+            let regularContext = UserContext.Authenticated(regularUserId, [Role.User])
+            let adminContext = UserContext.Authenticated(adminId, [Role.Admin])
+            let globalManagerContext = UserContext.Authenticated(globalManagerId, [Role.Manager])
+
+            Expect.isTrue (Security.isGlobalAdminOrTenantManager tenant ownerContext) "Owner should be allowed"
+            Expect.isTrue (Security.isGlobalAdminOrTenantManager tenant managerContext) "Tenant Manager patron should be allowed"
+            Expect.isTrue (Security.isGlobalAdminOrTenantManager tenant adminContext) "Admin should be allowed"
+            Expect.isTrue (Security.isGlobalAdminOrTenantManager tenant globalManagerContext) "User with Role.Manager should be allowed"
+            Expect.isFalse (Security.isGlobalAdminOrTenantManager tenant regularContext) "Regular patron should NOT be allowed"
+            Expect.isFalse (Security.isGlobalAdminOrTenantManager tenant UserContext.Anonymous) "Anonymous should NOT be allowed"
+
+        testCaseTask "manager can create embedding for book, create and remove paper embedding, but regular patron is rejected" <| fun _ -> task {
+            setUp ()
+            let tenantService = getTenantService ()
+            let bookService = getBookService ()
+            let authorService = getAuthorService ()
+            let embeddingService = getEmbeddingOrchestrationService ()
+
+            let! ownerId = registerUserTask "emb_owner@test.com" "Password123!"
+            let! managerId = registerUserTask "emb_mgr@test.com" "Password123!"
+            let! regularId = registerUserTask "emb_reg@test.com" "Password123!"
+
+            let ownerCtx = UserContext.Authenticated(ownerId, [Role.User])
+            let managerCtx = UserContext.Authenticated(managerId, [Role.User])
+            let regularCtx = UserContext.Authenticated(regularId, [Role.User])
+
+            let tenant = Tenant.New(ownerId, TenantName.New "Embedding Test Lib" |> Result.get, "123 Test Rd")
+            let tenantId = tenant.TenantId
+            let! createTenantRes = tenantService.CreateTenantAsync(ownerCtx, tenant)
+            Expect.isOk createTenantRes "Create tenant should succeed"
+
+            // Add manager and regular patrons
+            let! addMgr = tenantService.AddPatronAsync(ownerCtx, tenantId, managerId, PatronRole.Manager)
+            Expect.isOk addMgr "Add manager patron should succeed"
+
+            let! addReg = tenantService.AddPatronAsync(ownerCtx, tenantId, regularId, PatronRole.User)
+            Expect.isOk addReg "Add regular patron should succeed"
+
+            let managerTenantCtx = managerCtx.WithNewTenant(tenantId)
+            let regularTenantCtx = regularCtx.WithNewTenant(tenantId)
+
+            // Manager adds author and book
+            let author = Author.NewWithoutIsni tenantId (Name.New "Test Author")
+            let! addAuthorRes = authorService.AddAuthorAsync(managerTenantCtx, author)
+            Expect.isOk addAuthorRes "Manager should be able to add author"
+
+            let paper = Paper.New(Title.New "Test Paper", Some "Test Paper Description", [author.AuthorId], [], [])
+
+            let book =
+                { Book.New tenantId (Title.New "Embedding Test Book") [author.AuthorId] [] [] None Category.Other [] (Year.New 2024) (Isbn.NewEmpty()) None with
+                    Description = Some "This is a book description for testing embeddings."
+                    Papers = [paper] }
+
+            let! addBookRes = bookService.AddBookAsync(managerTenantCtx, book, CancellationToken.None)
+            Expect.isOk addBookRes "Manager should be able to add book"
+
+            // Regular patron tries to create embedding -> must be rejected
+            let! regEmbedRes = embeddingService.CreateEmbeddingForBookAsync(regularTenantCtx, book.BookId, ?ct = None)
+            Expect.isError regEmbedRes "Regular patron should NOT be allowed to create embedding for book"
+
+            let! regPaperEmbedRes = embeddingService.CreateEmbeddingForPaperAsync(regularTenantCtx, book.BookId, paper.PaperId, "Paper text", ?storeDescription = None, ?ct = None)
+            Expect.isError regPaperEmbedRes "Regular patron should NOT be allowed to create embedding for paper"
+
+            // Manager creates embedding for paper -> must succeed
+            let! mgrPaperEmbedRes = embeddingService.CreateEmbeddingForPaperAsync(managerTenantCtx, book.BookId, paper.PaperId, "Paper text by manager", ?storeDescription = None, ?ct = None)
+            Expect.isOk mgrPaperEmbedRes "Manager should be allowed to create paper embedding"
+
+            // Regular patron tries to remove paper embedding -> must be rejected
+            let! regRemovePaper = embeddingService.RemoveEmbeddingForPaperAsync(regularTenantCtx, book.BookId, paper.PaperId, ?ct = None)
+            Expect.isError regRemovePaper "Regular patron should NOT be allowed to remove paper embedding"
+
+            // Manager removes paper embedding -> must succeed
+            let! mgrRemovePaper = embeddingService.RemoveEmbeddingForPaperAsync(managerTenantCtx, book.BookId, paper.PaperId, ?ct = None)
+            Expect.isOk mgrRemovePaper "Manager should be allowed to remove paper embedding"
+
+            // Manager removes book embedding -> must succeed
+            let! mgrRemoveBookEmbedding = bookService.RemoveEmbeddingAsync(managerTenantCtx, book.BookId, CancellationToken.None)
+            Expect.isOk mgrRemoveBookEmbedding "Manager should be allowed to remove book embedding"
+        }
     ]
 
     |> testSequenced

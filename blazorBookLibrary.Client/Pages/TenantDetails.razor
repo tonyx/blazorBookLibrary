@@ -2398,7 +2398,7 @@
                         }
                     }
 
-                    if (isOwner && TenantState.CurrentTenant?.TenantId.Value != details.Tenant.TenantId.Value)
+                    if ((isOwner || isManager) && TenantState.CurrentTenant?.TenantId.Value != details.Tenant.TenantId.Value)
                     {
                         try
                         {

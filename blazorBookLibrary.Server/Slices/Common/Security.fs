@@ -12,11 +12,11 @@ module Security =
         let isManagerOrOwner =
             match context with
             | UserContext.Authenticated(userId, _) ->
-                tenant.OwnerId = userId || (tenant.GetUserRole userId = Some PatronRole.Manager)
+                tenant.OwnerId = userId || tenant.IsManager userId || (tenant.GetUserRole userId = Some PatronRole.Manager)
             | _ -> false
 
         match context with
-        | UserContext.Authenticated _ when context.IsInRole Role.Admin -> true
+        | UserContext.Authenticated _ when context.IsInRole Role.Admin || context.IsInRole Role.Manager -> true
         | _ -> isManagerOrOwner
 
     let checkIsGlobalAdminOrTenantManager (tenant: Tenant) (context: UserContext) =

@@ -48,7 +48,7 @@ else if (!isAuthorized)
             </div>
             <h1 class="display-5 text-serif mb-3 text-dark">@L["AccessDenied"]</h1>
             <p class="text-muted lead mb-4">
-                Access Denied. You must be the Owner of the current library (tenant) or a global Administrator to manage books.
+                Access Denied. You must be the Owner or Manager of the current library (tenant) or a global Administrator to manage books.
             </p>
             <a href="/" class="btn btn-primary rounded-pill px-5 py-3 shadow-sm shadow-hover">
                 <i class="bi bi-house-door me-2"></i> @L["Home"]
@@ -1162,6 +1162,10 @@ else
         try
         {
             var context = await GetUserContextAsync();
+            if (_currentTenant != null && !_currentTenant.Equals(TenantId.Default))
+            {
+                context = context.WithNewTenant(_currentTenant);
+            }
             var bookIdsList = ListModule.OfSeq(selectedBookIds);
             var result = await EmbeddingOrchestrationService.CreateEmbeddingsForBooksIfMissingAsync(
                 context, 
@@ -1499,11 +1503,17 @@ else
                     
                     var context = await GetUserContextAsync();
 
-                    if (context.IsAuthenticated)
+                    if (TenantState.CurrentTenant != null && !TenantState.CurrentTenant.TenantId.Equals(TenantId.Default))
+                    {
+                        _currentTenant = TenantState.CurrentTenant.TenantId;
+                        _cachedUserContext = context.WithNewTenant(_currentTenant);
+                        context = _cachedUserContext;
+                    }
+                    else if (context.IsAuthenticated)
                     {
                         var userId = context.UserId.Value;
                         var userResult = await UserService.GetUserAsync(context, userId);
-                        if (userResult.IsOk)
+                        if (userResult.IsOk && !userResult.ResultValue.CurrentTenant.Equals(TenantId.Default))
                         {
                             _currentTenant = userResult.ResultValue.CurrentTenant;
                             _cachedUserContext = context.WithNewTenant(_currentTenant);
@@ -1865,6 +1875,11 @@ else
 
             var availability = Availability.FromString(newBookAvailability);
 
+            if (_currentTenant != null && !_currentTenant.Equals(TenantId.Default))
+            {
+                context = context.WithNewTenant(_currentTenant);
+            }
+
             var tryTenant = await UserTenantResolverService.GetTenantForUserAsync(context);
             if (tryTenant.IsError) 
             {
@@ -1966,6 +1981,10 @@ else
         try
         {
             var context = await GetUserContextAsync();
+            if (_currentTenant != null && !_currentTenant.Equals(TenantId.Default))
+            {
+                context = context.WithNewTenant(_currentTenant);
+            }
             var embedResult = await EmbeddingOrchestrationService.CreateEmbeddingForBookAsync(context, bookId, FSharpOption<CancellationToken>.None);
             if (embedResult.IsOk)
             {

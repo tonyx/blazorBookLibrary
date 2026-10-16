@@ -325,6 +325,17 @@ let getBookService () : IBookService =
     )
     :> IBookService
 
+let getEmbeddingOrchestrationService () : IEmbeddingOrchestrationService =
+    EmbeddingOrchestrationService(
+        getTextEmbeddingService (),
+        getBookService (),
+        getVectorDbService (),
+        getUserTenantResolverService (),
+        tenantViewerAsync,
+        userViewerAsync
+    )
+    :> IEmbeddingOrchestrationService
+
 
 
 let getGoogleBooksService () =
