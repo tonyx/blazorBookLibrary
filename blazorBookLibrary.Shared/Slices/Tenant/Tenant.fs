@@ -384,6 +384,22 @@ and Tenant =
     member this.GetUserRole userId =
         this.Patrons |> List.tryFind (fun (u, _) -> u = userId) |> Option.map snd
 
+    member this.HasManagementAccess(context: UserContext) =
+        match context with
+        | UserContext.Anonymous -> false
+        | UserContext.Authenticated(userId, roles) ->
+            roles |> List.contains Role.Admin
+            || roles |> List.contains Role.Manager
+            || this.OwnerId = userId
+            || this.IsManager userId
+            || (this.GetUserRole userId = Some PatronRole.Manager)
+
+    member this.IsOrdinaryPatron(context: UserContext) =
+        match context with
+        | UserContext.Anonymous -> false
+        | UserContext.Authenticated(userId, _) ->
+            this.GetUserRole userId = Some PatronRole.User
+
     member this.Activate =
         match this.TenantState with
         | Deactivated ->
@@ -415,4 +431,11 @@ and Tenant =
                 let tenant001 = (data, jsonOptions) |> JsonSerializer.Deserialize<Tenant001>
                 tenant001.Upcast () |> Ok
             with ex2 -> Error $"Error in deserializing {data} - {ex.Message}, {ex2.Message}"
+
+[<AutoOpen>]
+module UserContextTenantExtensions =
+    type UserContext with
+        member this.IsManagerOrOwnerOf(tenant: Tenant) =
+            tenant.HasManagementAccess(this)
+
                 

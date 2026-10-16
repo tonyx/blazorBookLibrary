@@ -9,15 +9,7 @@ open System.Threading.Tasks
 
 module Security =
     let isGlobalAdminOrTenantManager (tenant: Tenant) (context: UserContext) =
-        let isManagerOrOwner =
-            match context with
-            | UserContext.Authenticated(userId, _) ->
-                tenant.OwnerId = userId || tenant.IsManager userId || (tenant.GetUserRole userId = Some PatronRole.Manager)
-            | _ -> false
-
-        match context with
-        | UserContext.Authenticated _ when context.IsInRole Role.Admin || context.IsInRole Role.Manager -> true
-        | _ -> isManagerOrOwner
+        tenant.HasManagementAccess(context)
 
     let checkIsGlobalAdminOrTenantManager (tenant: Tenant) (context: UserContext) =
         isGlobalAdminOrTenantManager tenant context

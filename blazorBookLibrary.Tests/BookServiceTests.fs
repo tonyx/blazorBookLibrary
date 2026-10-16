@@ -1227,12 +1227,26 @@ let tests =
             Expect.isFalse (Security.isGlobalAdminOrTenantManager tenant regularContext) "Regular patron should NOT be allowed"
             Expect.isFalse (Security.isGlobalAdminOrTenantManager tenant UserContext.Anonymous) "Anonymous should NOT be allowed"
 
-        testCaseTask "manager can create embedding for book, create and remove paper embedding, but regular patron is rejected" <| fun _ -> task {
+            Expect.isTrue (tenant.HasManagementAccess ownerContext) "Owner has management access"
+            Expect.isTrue (tenant.HasManagementAccess managerContext) "Tenant Manager has management access"
+            Expect.isTrue (tenant.HasManagementAccess adminContext) "Admin has management access"
+            Expect.isTrue (tenant.HasManagementAccess globalManagerContext) "Global Manager has management access"
+            Expect.isFalse (tenant.HasManagementAccess regularContext) "Regular patron does NOT have management access"
+            Expect.isFalse (tenant.HasManagementAccess UserContext.Anonymous) "Anonymous does NOT have management access"
+
+            Expect.isFalse (tenant.IsOrdinaryPatron ownerContext) "Owner is not ordinary patron"
+            Expect.isFalse (tenant.IsOrdinaryPatron managerContext) "Tenant Manager is not ordinary patron"
+            Expect.isTrue (tenant.IsOrdinaryPatron regularContext) "Regular patron is ordinary patron"
+            Expect.isFalse (tenant.IsOrdinaryPatron UserContext.Anonymous) "Anonymous is not ordinary patron"
+
+        testCaseTask "manager can manage books, embeddings, reservations and reviews, but ordinary patron is rejected" <| fun _ -> task {
             setUp ()
             let tenantService = getTenantService ()
             let bookService = getBookService ()
             let authorService = getAuthorService ()
             let embeddingService = getEmbeddingOrchestrationService ()
+            let reservationService = getReservationService ()
+            let reviewService = getReviewService ()
 
             let! ownerId = registerUserTask "emb_owner@test.com" "Password123!"
             let! managerId = registerUserTask "emb_mgr@test.com" "Password123!"
@@ -1257,6 +1271,11 @@ let tests =
             let managerTenantCtx = managerCtx.WithNewTenant(tenantId)
             let regularTenantCtx = regularCtx.WithNewTenant(tenantId)
 
+            // Ordinary patron is rejected from adding author
+            let authorForReg = Author.NewWithoutIsni tenantId (Name.New "Reg Author")
+            let! regAddAuthorRes = authorService.AddAuthorAsync(regularTenantCtx, authorForReg)
+            Expect.isError regAddAuthorRes "Regular patron should NOT be allowed to add author"
+
             // Manager adds author and book
             let author = Author.NewWithoutIsni tenantId (Name.New "Test Author")
             let! addAuthorRes = authorService.AddAuthorAsync(managerTenantCtx, author)
@@ -1269,8 +1288,40 @@ let tests =
                     Description = Some "This is a book description for testing embeddings."
                     Papers = [paper] }
 
+            // Ordinary patron is rejected from adding book
+            let! regAddBookRes = bookService.AddBookAsync(regularTenantCtx, book, CancellationToken.None)
+            Expect.isError regAddBookRes "Regular patron should NOT be allowed to add book"
+
             let! addBookRes = bookService.AddBookAsync(managerTenantCtx, book, CancellationToken.None)
             Expect.isOk addBookRes "Manager should be able to add book"
+
+            // Ordinary patron is rejected from removing book
+            let! regRemoveBookRes = bookService.RemoveBookAsync(regularTenantCtx, book.BookId, CancellationToken.None)
+            Expect.isError regRemoveBookRes "Regular patron should NOT be allowed to remove book"
+
+            // Ordinary patron is rejected from viewing pending reservations
+            let! regPendingReservations = reservationService.GetAllPendingReservationsDetailsAsync(regularTenantCtx)
+            Expect.isError regPendingReservations "Regular patron should NOT be allowed to view all pending reservations"
+
+            // Manager is allowed to view pending reservations
+            let! mgrPendingReservations = reservationService.GetAllPendingReservationsDetailsAsync(managerTenantCtx)
+            Expect.isOk mgrPendingReservations "Manager should be allowed to view all pending reservations"
+
+            // Ordinary patron is rejected from viewing pending reviews
+            let! regPendingReviews = reviewService.GetPendingReviewsAsync(regularTenantCtx)
+            Expect.isError regPendingReviews "Regular patron should NOT be allowed to view pending reviews"
+
+            // Manager is allowed to view pending reviews
+            let! mgrPendingReviews = reviewService.GetPendingReviewsAsync(managerTenantCtx)
+            Expect.isOk mgrPendingReviews "Manager should be allowed to view pending reviews"
+
+            // Ordinary patron is rejected from viewing all reviews
+            let! regAllReviews = reviewService.GetAllReviewsAsync(regularTenantCtx)
+            Expect.isError regAllReviews "Regular patron should NOT be allowed to view all reviews"
+
+            // Manager is allowed to view all reviews
+            let! mgrAllReviews = reviewService.GetAllReviewsAsync(managerTenantCtx)
+            Expect.isOk mgrAllReviews "Manager should be allowed to view all reviews"
 
             // Regular patron tries to create embedding -> must be rejected
             let! regEmbedRes = embeddingService.CreateEmbeddingForBookAsync(regularTenantCtx, book.BookId, ?ct = None)

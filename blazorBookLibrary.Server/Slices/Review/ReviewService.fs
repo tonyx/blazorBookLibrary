@@ -133,7 +133,7 @@ type ReviewService
         let ct = ct |> Option.defaultValue CancellationToken.None
 
         taskResult {
-            do! checkIsGlobalAdminOrTenantManagerOrPublicTenant context ct
+            do! checkIsGlobalAdminOrTenantManager context ct
             let! tenantId = userTenantResolverService.GetTenantForUserAsync(context, ct)
 
             let! result =
@@ -147,7 +147,7 @@ type ReviewService
         let ct = ct |> Option.defaultValue CancellationToken.None
 
         taskResult {
-            do! checkIsGlobalAdminOrTenantManagerOrPublicTenant context ct
+            do! checkIsGlobalAdminOrTenantManager context ct
             let! tenantId = userTenantResolverService.GetTenantForUserAsync(context, ct)
 
             let! result =

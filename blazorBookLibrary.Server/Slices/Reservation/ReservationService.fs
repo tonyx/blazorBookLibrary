@@ -503,6 +503,7 @@ type ReservationService
             taskResult {
                 let ct = defaultArg ct CancellationToken.None
                 let! tenantId = userTenantResolverService.GetTenantForUserAsync(context, ct)
+                do! checkIsGlobalAdminOrTenantManager context ct
 
                 let! reservations =
                     StateView.getAllFilteredAggregateStatesAsync<Reservation, ReservationEvent, string>

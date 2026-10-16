@@ -126,7 +126,7 @@ namespace blazorBookLibrary.Client.Services
                 return false;
             }
 
-            if (IsAdministrator(principal) || principal.IsInRole("Manager"))
+            if (IsAdministrator(principal))
             {
                 return true;
             }
@@ -137,23 +137,8 @@ namespace blazorBookLibrary.Client.Services
                 return false;
             }
 
-            var userIdClaim = principal.FindFirst(c => c.Type == ClaimTypes.NameIdentifier) ?? principal.FindFirst("sub");
-            if (userIdClaim != null && Guid.TryParse(userIdClaim.Value, out var guid))
-            {
-                var userId = Commons.UserId.NewUserId(guid);
-                return guid.Equals(targetTenant.OwnerId.Value) 
-                    || targetTenant.IsOwner(userId) 
-                    || targetTenant.IsManager(userId);
-            }
-
-            var userContext = ConverterUtils.fromClaimsPrincipal(principal);
-            if (userContext.UserId != null && Microsoft.FSharp.Core.FSharpOption<Commons.UserId>.get_IsSome(userContext.UserId))
-            {
-                var userId = userContext.UserId.Value;
-                return targetTenant.IsOwner(userId) || targetTenant.IsManager(userId);
-            }
-
-            return false;
+            var userContext = GetUserContext(principal);
+            return targetTenant.HasManagementAccess(userContext);
         }
 
         public async Task<bool> CheckManagementAccessAsync(
@@ -167,41 +152,27 @@ namespace blazorBookLibrary.Client.Services
                 return false;
             }
 
-            if (IsAdministrator(principal) || principal.IsInRole("Manager"))
+            if (IsAdministrator(principal))
             {
                 return true;
             }
 
             var targetTenant = tenant ?? CurrentTenant;
-            if (targetTenant == null || (!HasManagementAccess(principal, targetTenant) && targetTenant.TenantId.Equals(Commons.TenantId.Default)))
+            if (targetTenant == null)
             {
                 try
                 {
                     var userContext = GetUserContext(principal);
-                    var myTenantsRes = await tenantService.GetMyTenantsAsync(userContext, Microsoft.FSharp.Core.FSharpOption<System.Threading.CancellationToken>.None);
-                    if (myTenantsRes.IsOk && myTenantsRes.ResultValue.Any())
+                    var tenantResult = await resolverService.GetTenantForUserAsync(userContext, Microsoft.FSharp.Core.FSharpOption<System.Threading.CancellationToken>.None);
+                    if (tenantResult.IsOk)
                     {
-                        var managedTenant = myTenantsRes.ResultValue.FirstOrDefault(t => HasManagementAccess(principal, t));
-                        if (managedTenant != null)
+                        var tenantInfoResult = await tenantService.GetTenantAsync(userContext, tenantResult.ResultValue, System.Threading.CancellationToken.None);
+                        if (tenantInfoResult.IsOk)
                         {
-                            targetTenant = managedTenant;
-                            CurrentTenant = targetTenant;
-                        }
-                    }
-
-                    if (targetTenant == null || (!HasManagementAccess(principal, targetTenant) && targetTenant.TenantId.Equals(Commons.TenantId.Default)))
-                    {
-                        var tenantResult = await resolverService.GetTenantForUserAsync(userContext, Microsoft.FSharp.Core.FSharpOption<System.Threading.CancellationToken>.None);
-                        if (tenantResult.IsOk)
-                        {
-                            var tenantInfoResult = await tenantService.GetTenantAsync(userContext, tenantResult.ResultValue, System.Threading.CancellationToken.None);
-                            if (tenantInfoResult.IsOk)
+                            targetTenant = tenantInfoResult.ResultValue;
+                            if (CurrentTenant == null)
                             {
-                                targetTenant = tenantInfoResult.ResultValue;
-                                if (CurrentTenant == null || CurrentTenant.TenantId.Equals(Commons.TenantId.Default))
-                                {
-                                    CurrentTenant = targetTenant;
-                                }
+                                CurrentTenant = targetTenant;
                             }
                         }
                     }
@@ -210,6 +181,11 @@ namespace blazorBookLibrary.Client.Services
                 {
                     // Silent fallback
                 }
+            }
+
+            if (targetTenant == null)
+            {
+                return false;
             }
 
             return HasManagementAccess(principal, targetTenant);
