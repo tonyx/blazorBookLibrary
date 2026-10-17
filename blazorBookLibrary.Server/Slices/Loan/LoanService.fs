@@ -71,7 +71,12 @@ type LoanService
                 book.TenantId = tenantId
                 |> Result.ofBool $"Book tenant id {book.TenantId} does not match user tenant id {tenantId}"
 
-            let! user = userViewerAsync (Some ct) loan.UserId.Value |> TaskResult.map snd
+            let patronUserId =
+                match loan.Patron with
+                | RegisteredUser u -> u
+                | Guest _ -> failwith "Guest loans do not have a registered UserId"
+
+            let! user = userViewerAsync (Some ct) patronUserId.Value |> TaskResult.map snd
 
             do! checkIsGlobalAdminOrTenantManager context ct
 
@@ -104,14 +109,14 @@ type LoanService
             let! _ =
                 notificationDispatcher.DispatchNotificationAsync(
                     context,
-                    loan.UserId,
+                    patronUserId,
                     tenantId,
                     Some $"/loans/{loan.Id}",
                     ct
                 )
 
             // not sure this is needed
-            let! _ = DetailsCache.Instance.RefreshDependentDetailsAsync(loan.UserId.Value, Some ct)
+            let! _ = DetailsCache.Instance.RefreshDependentDetailsAsync(patronUserId.Value, Some ct)
             return result
         }
 
@@ -119,8 +124,11 @@ type LoanService
         taskResult {
             let ct = defaultArg ct CancellationToken.None
             let! loan = loanViewerAsync (Some ct) id.Value |> TaskResult.map snd
-            let userId = loan.UserId
-            do! checkIsGlobalAdminOrTenantManagerOrSelf context ct userId
+            let patronUserId =
+                match loan.Patron with
+                | RegisteredUser u -> u
+                | Guest _ -> failwith "Guest loans do not have a registered UserId"
+            do! checkIsGlobalAdminOrTenantManagerOrSelf context ct patronUserId
             let! result = loanViewerAsync (Some ct) id.Value
             return result |> snd
         }
@@ -139,7 +147,11 @@ type LoanService
                             let! tenantId = userTenantResolverService.GetTenantForUserAsync(context, ct)
                             let! loan = loanViewerAsync (ct |> Some) loanId.Value |> TaskResult.map snd
                             let! book = bookViewerAsync (ct |> Some) loan.BookId.Value |> TaskResult.map snd
-                            let! userDetail = usersService.GetUserDetailsAsync(context, loan.UserId, ct)
+                            let patronUserId =
+                                match loan.Patron with
+                                | RegisteredUser u -> u
+                                | Guest _ -> failwith "Guest loans do not have a registered UserId"
+                            let! userDetail = usersService.GetUserDetailsAsync(context, patronUserId, ct)
 
                             do!
                                 book.TenantId = tenantId
@@ -187,7 +199,12 @@ type LoanService
 
             let! result =
                 StateView.getAllFilteredAggregateStatesAsync<Loan, LoanEvent, string>
-                    (fun (loan: Loan) -> loan.TenantId = tenantId && loan.UserId = userId)
+                    (fun (loan: Loan) ->
+                        let patronUserId =
+                            match loan.Patron with
+                            | RegisteredUser u -> u
+                            | Guest _ -> failwith "Guest loans do not have a registered UserId"
+                        loan.TenantId = tenantId && patronUserId = userId)
                     eventStore
                     (ct |> Some)
                 |> TaskResult.map (fun x -> x |>> snd)
@@ -230,7 +247,11 @@ type LoanService
                     |> TaskResult.map (fun (_, x) -> x.Name)
                 | None -> taskResult { return NonEmptyName(localizer.GetString("Unspecified").Value) }
 
-            let! user = userViewerAsync (Some ct) loan.UserId.Value |> TaskResult.map snd
+            let patronUserId =
+                match loan.Patron with
+                | RegisteredUser u -> u
+                | Guest _ -> failwith "Guest loans do not have a registered UserId"
+            let! user = userViewerAsync (Some ct) patronUserId.Value |> TaskResult.map snd
             let releaseLoanCommand = BookCommand.ReleaseLoan(loanId, dateTime)
             let releaseBookCommand = LoanCommand.Return dateTime
             let userReleaseLoanCommandr = UserCommand.ReleaseLoan(loanId)
@@ -252,13 +273,13 @@ type LoanService
             let! _ =
                 notificationDispatcher.DispatchNotificationAsync(
                     context,
-                    loan.UserId,
+                    patronUserId,
                     loan.TenantId,
                     Some $"/loans/{loan.Id}/release",
                     ct
                 )
 
-            let! _ = DetailsCache.Instance.RefreshDependentDetailsAsync(loan.UserId.Value, Some ct)
+            let! _ = DetailsCache.Instance.RefreshDependentDetailsAsync(patronUserId.Value, Some ct)
             return result
         }
 
@@ -271,7 +292,12 @@ type LoanService
 
             let! loans =
                 StateView.getAllFilteredAggregateStatesAsync<Loan, LoanEvent, string>
-                    (fun loan -> loan.UserId = userId && loan.TenantId = tenantId)
+                    (fun loan ->
+                        let patronUserId =
+                            match loan.Patron with
+                            | RegisteredUser u -> u
+                            | Guest _ -> failwith "Guest loans do not have a registered UserId"
+                        patronUserId = userId && loan.TenantId = tenantId)
                     eventStore
                     (ct |> Some)
                 |> TaskResult.map (fun x -> x |> List.map snd)
@@ -349,17 +375,22 @@ type LoanService
             let updateDetails =
                 DetailsCache.Instance.UpdateMultipleAggregateIdAssociation [| loan.Id |] key
 
+            let patronUserId =
+                match reservation.Patron with
+                | RegisteredUser u -> u
+                | Guest _ -> failwith "Guest reservations do not have a registered UserId"
+
             let! _ =
                 notificationDispatcher.DispatchNotificationAsync(
                     context,
-                    reservation.UserId,
+                    patronUserId,
                     reservation.TenantId,
                     Some $"/loans/{loan.Id}",
                     ct
                 )
 
             let! _ = DetailsCache.Instance.RefreshDependentDetailsAsync(reservation.BookId.Value, Some ct)
-            let! _ = DetailsCache.Instance.RefreshDependentDetailsAsync(reservation.UserId.Value, Some ct)
+            let! _ = DetailsCache.Instance.RefreshDependentDetailsAsync(patronUserId.Value, Some ct)
             return result
         }
 
@@ -430,17 +461,22 @@ type LoanService
             let updateDetails =
                 DetailsCache.Instance.UpdateMultipleAggregateIdAssociation [| loan.Id |] key
 
+            let patronUserId =
+                match reservation.Patron with
+                | RegisteredUser u -> u
+                | Guest _ -> failwith "Guest reservations do not have a registered UserId"
+
             let! _ =
                 notificationDispatcher.DispatchNotificationAsync(
                     context,
-                    reservation.UserId,
+                    patronUserId,
                     reservation.TenantId,
                     Some $"/loans/{loan.Id}",
                     ct
                 )
 
             // todo: check if this is needed
-            let! _ = DetailsCache.Instance.RefreshDependentDetailsAsync(reservation.UserId.Value, Some ct)
+            let! _ = DetailsCache.Instance.RefreshDependentDetailsAsync(patronUserId.Value, Some ct)
             return result
         }
 

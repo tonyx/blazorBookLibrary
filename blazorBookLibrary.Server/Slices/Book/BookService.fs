@@ -1463,7 +1463,12 @@ type BookService
                     |> Result.ofBool $"Book tenant '{book.TenantId}' doesn't match user tenant '{tenantId}'"
                 let! loans =
                     StateView.getAllFilteredAggregateStatesAsync<Loan, LoanEvent, string> 
-                        (fun loan -> loan.BookId = bookId && loan.UserId = userId && loan.LoanStatus.IsReturned)
+                        (fun loan ->
+                            let patronUserId =
+                                match loan.Patron with
+                                | RegisteredUser u -> u
+                                | Guest _ -> failwith "Guest loans do not have a registered UserId"
+                            loan.BookId = bookId && patronUserId = userId && loan.LoanStatus.IsReturned)
                         eventStore
                         (Some ct)
                     |> TaskResult.map (fun x -> x |> List.ofSeq |> List.map snd)

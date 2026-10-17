@@ -630,7 +630,11 @@ let tests =
             let loan = reservationDetailsResult.OkValue.ToLoan (System.DateTime.Now.AddDays(32))
             Expect.isOk loan "should be ok"
             Expect.equal loan.OkValue.BookId book.BookId "should have the same book id"
-            Expect.equal loan.OkValue.UserId userId1 "should have the same user id"
+            let loanUserId =
+                match loan.OkValue.Patron with
+                | RegisteredUser u -> u
+                | Guest _ -> failwith "unexpected guest"
+            Expect.equal loanUserId userId1 "should have the same user id"
             Expect.equal loan.OkValue.TimeSlot reservation.TimeSlot "should have the same time slot"
         }
 
@@ -733,7 +737,11 @@ let tests =
 
             Expect.isOk loan "should be ok"
             Expect.equal loan.OkValue.BookId book.BookId "should have the same book id"
-            Expect.equal loan.OkValue.UserId userId1 "should have the same user id"
+            let loanUserId1 =
+                match loan.OkValue.Patron with
+                | RegisteredUser u -> u
+                | Guest _ -> failwith "unexpected guest"
+            Expect.equal loanUserId1 userId1 "should have the same user id"
             Expect.equal loan.OkValue.TimeSlot (futureTimeSlot.Shift now) "should have the same time slot"
         }
 
@@ -768,7 +776,11 @@ let tests =
 
             Expect.isOk loan "should be ok"
             Expect.equal loan.OkValue.BookId book.BookId "should have the same book id"
-            Expect.equal loan.OkValue.UserId userId1 "should have the same user id"
+            let loanUserId2 =
+                match loan.OkValue.Patron with
+                | RegisteredUser u -> u
+                | Guest _ -> failwith "unexpected guest"
+            Expect.equal loanUserId2 userId1 "should have the same user id"
             Expect.equal loan.OkValue.TimeSlot (futureTimeSlot.Shift now) "should have the same time slot"
 
             let! tranformedIntoALoan = (loanService :> ILoanService).TransformReservationIntoLoanAsync (adminContext, reservation.ReservationId, reservation.ReservationCode, now)
@@ -806,7 +818,11 @@ let tests =
 
             Expect.isOk loan "should be ok"
             Expect.equal loan.OkValue.BookId book.BookId "should have the same book id"
-            Expect.equal loan.OkValue.UserId userId1 "should have the same user id"
+            let loanUserId3 =
+                match loan.OkValue.Patron with
+                | RegisteredUser u -> u
+                | Guest _ -> failwith "unexpected guest"
+            Expect.equal loanUserId3 userId1 "should have the same user id"
             Expect.equal loan.OkValue.TimeSlot (futureTimeSlot.Shift now) "should have the same time slot"
 
             let! tranformedIntoALoan = (loanService :> ILoanService).TransformReservationIntoLoanAsync (adminContext, reservation.ReservationId, ReservationCode.EmptyReservationCode, now)
@@ -914,7 +930,11 @@ let tests =
 
             Expect.isOk loan "should be ok"
             Expect.equal loan.OkValue.BookId book.BookId "should have the same book id"
-            Expect.equal loan.OkValue.UserId userId1 "should have the same user id"
+            let loanUserId4 =
+                match loan.OkValue.Patron with
+                | RegisteredUser u -> u
+                | Guest _ -> failwith "unexpected guest"
+            Expect.equal loanUserId4 userId1 "should have the same user id"
             Expect.equal loan.OkValue.TimeSlot (futureTimeSlot.Shift now) "should have the same time slot"
 
             let! tranformedIntoALoan = (loanService :> ILoanService).TransformReservationIntoLoanAsync (adminContext, reservation.ReservationId, reservation.ReservationCode, now)
@@ -929,7 +949,7 @@ let tests =
             let reservation = getReservationResult.OkValue
             Expect.equal reservation.Status ReservationStatus.Loaned "should have status loaned"
 
-            Expect.isTrue (loans.OkValue |> List.exists (fun l -> l.UserId = userId1)) "should contain the user"
+            Expect.isTrue (loans.OkValue |> List.exists (fun l -> (match l.Patron with RegisteredUser u -> u | Guest _ -> failwith "unexpected guest") = userId1)) "should contain the user"
             Expect.isTrue (loans.OkValue |> List.exists (fun l -> l.BookId = book.BookId)) "should contain the book"
             Expect.isTrue (loans.OkValue |> List.exists (fun l -> l.TimeSlot = futureTimeSlot.Shift now)) "should contain the time slot"
             Expect.isTrue (loans.OkValue |> List.exists (fun l -> l.ReservationId = Some reservation.ReservationId)) "should contain the reservation id"
@@ -1003,13 +1023,28 @@ let tests =
             Expect.isOk loans "should retrieve loans list"
             Expect.equal loans.OkValue.Length 1 "should contain exactly one loan"
             let createdLoan = loans.OkValue |> List.head
-            Expect.equal createdLoan.UserId userId1 "loan should belong to patron"
+            let createdLoanUserId =
+                match createdLoan.Patron with
+                | RegisteredUser u -> u
+                | Guest _ -> failwith "unexpected guest"
+            Expect.equal createdLoanUserId userId1 "loan should belong to patron"
             Expect.equal createdLoan.BookId book.BookId "loan should contain book"
 
             let! getReservationAfterCheckout = reservationService.GetReservationAsync(adminContext, reservation.ReservationId)
             Expect.isOk getReservationAfterCheckout "should retrieve reservation"
             Expect.equal getReservationAfterCheckout.OkValue.Status ReservationStatus.Loaned "reservation status should transition to Loaned"
             Expect.isTrue getReservationAfterCheckout.OkValue.PickupPinHash.IsNone "PIN hash should be cleared post-checkout"
+        }
+        testCaseTask "in app reservation manager notification template format (en and it)" <| fun _ -> task {
+            let retriever = BookLibrary.Services.InAppMessagesRetriever() :> IInAppMessagesRetriever
+            let bookTitle = Title.New "The Hobbit"
+            let! enResult = retriever.GetReservationManagerNotificationInAppAsync("alice", bookTitle, ShortLang.New "en")
+            Expect.isOk enResult "English template retrieval should succeed"
+            Expect.equal (enResult.OkValue.Trim()) "user alice has reserved the book The Hobbit" "English message format should match expected template"
+
+            let! itResult = retriever.GetReservationManagerNotificationInAppAsync("alice", bookTitle, ShortLang.New "it")
+            Expect.isOk itResult "Italian template retrieval should succeed"
+            Expect.equal (itResult.OkValue.Trim()) "l'utente alice ha richiesto il libro The Hobbit" "Italian message format should match expected template"
         }
     ]
     |> testSequenced

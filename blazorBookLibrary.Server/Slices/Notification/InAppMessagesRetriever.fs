@@ -112,6 +112,34 @@ type InAppMessagesRetriever() =
                 return replacedContent
             }
 
+        member this.GetReservationManagerNotificationInAppAsync
+            (
+                userName: string,
+                bookTitle: Title,
+                shortLang: ShortLang,
+                ?ct: CancellationToken
+            ) =
+            let templatePath =
+                System.IO.Path.Combine(
+                    AppDomain.CurrentDomain.BaseDirectory,
+                    "InAppTemplates",
+                    shortLang.Value,
+                    "ReservationManagerNotification.txt"
+                )
+
+            let ct = defaultArg ct CancellationToken.None
+
+            taskResult {
+                let! content = System.IO.File.ReadAllTextAsync(templatePath, ct)
+
+                let replacedContent =
+                    content
+                        .Replace("{user}", userName)
+                        .Replace("{book}", bookTitle.Value)
+
+                return replacedContent
+            }
+
         member this.GetPatronInvitationInAppAsync
             (shortLang: ShortLang, ct: CancellationToken option)
             : Tasks.Task<Result<string, string>> =

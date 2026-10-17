@@ -108,8 +108,12 @@ type LoansController(loanService: ILoanService, reservationService: IReservation
             | Ok _ -> 
                 match resDetails with
                 | Some r ->
-                    do! hubContext.Clients.Group($"Tenant_{r.TenantId.Value}").SendCoreAsync("PendingReservationsChanged", [| r.TenantId.Value :> obj; r.BookId.Value :> obj; r.UserId.Value :> obj |])
-                    do! hubContext.Clients.Group($"User_{r.UserId.Value}").SendCoreAsync("PendingReservationsChanged", [| r.TenantId.Value :> obj; r.BookId.Value :> obj; r.UserId.Value :> obj |])
+                    let patronUserId =
+                        match r.Patron with
+                        | RegisteredUser u -> u
+                        | Guest _ -> failwith "Guest reservations do not have a registered UserId"
+                    do! hubContext.Clients.Group($"Tenant_{r.TenantId.Value}").SendCoreAsync("PendingReservationsChanged", [| r.TenantId.Value :> obj; r.BookId.Value :> obj; patronUserId.Value :> obj |])
+                    do! hubContext.Clients.Group($"User_{patronUserId.Value}").SendCoreAsync("PendingReservationsChanged", [| r.TenantId.Value :> obj; r.BookId.Value :> obj; patronUserId.Value :> obj |])
                     do! hubContext.Clients.Group($"Tenant_{r.TenantId.Value}").SendCoreAsync("BookAvailabilityChanged", [| r.TenantId.Value :> obj; r.BookId.Value :> obj |])
                     do! hubContext.Clients.Group($"Book_{r.BookId.Value}").SendCoreAsync("BookAvailabilityChanged", [| r.TenantId.Value :> obj; r.BookId.Value :> obj |])
                 | None ->
@@ -134,8 +138,12 @@ type LoansController(loanService: ILoanService, reservationService: IReservation
             | Ok _ -> 
                 match resDetails with
                 | Some r ->
-                    do! hubContext.Clients.Group($"Tenant_{r.TenantId.Value}").SendCoreAsync("PendingReservationsChanged", [| r.TenantId.Value :> obj; r.BookId.Value :> obj; r.UserId.Value :> obj |])
-                    do! hubContext.Clients.Group($"User_{r.UserId.Value}").SendCoreAsync("PendingReservationsChanged", [| r.TenantId.Value :> obj; r.BookId.Value :> obj; r.UserId.Value :> obj |])
+                    let patronUserId =
+                        match r.Patron with
+                        | RegisteredUser u -> u
+                        | Guest _ -> failwith "Guest reservations do not have a registered UserId"
+                    do! hubContext.Clients.Group($"Tenant_{r.TenantId.Value}").SendCoreAsync("PendingReservationsChanged", [| r.TenantId.Value :> obj; r.BookId.Value :> obj; patronUserId.Value :> obj |])
+                    do! hubContext.Clients.Group($"User_{patronUserId.Value}").SendCoreAsync("PendingReservationsChanged", [| r.TenantId.Value :> obj; r.BookId.Value :> obj; patronUserId.Value :> obj |])
                     do! hubContext.Clients.Group($"Tenant_{r.TenantId.Value}").SendCoreAsync("BookAvailabilityChanged", [| r.TenantId.Value :> obj; r.BookId.Value :> obj |])
                     do! hubContext.Clients.Group($"Book_{r.BookId.Value}").SendCoreAsync("BookAvailabilityChanged", [| r.TenantId.Value :> obj; r.BookId.Value :> obj |])
                 | None ->

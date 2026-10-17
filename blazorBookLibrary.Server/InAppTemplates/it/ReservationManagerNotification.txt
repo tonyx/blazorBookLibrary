@@ -1,0 +1,1 @@
+l'utente {user} ha richiesto il libro {book}

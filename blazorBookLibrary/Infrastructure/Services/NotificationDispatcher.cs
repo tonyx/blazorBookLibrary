@@ -83,7 +83,11 @@ public class NotificationDispatcher : INotificationDispatcher
 
             if (actionUrlValue != null && actionUrlValue.StartsWith("/reservations/", StringComparison.OrdinalIgnoreCase))
             {
-                var reservationIdString = actionUrlValue.Substring("/reservations/".Length);
+                var isManager = actionUrlValue.EndsWith("/manager", StringComparison.OrdinalIgnoreCase);
+                var reservationIdString = isManager 
+                    ? actionUrlValue.Substring("/reservations/".Length, actionUrlValue.Length - "/reservations/".Length - "/manager".Length)
+                    : actionUrlValue.Substring("/reservations/".Length);
+
                 if (Guid.TryParse(reservationIdString, out Guid resGuid))
                 {
                     var reservationId = ReservationId.NewReservationId(resGuid);
@@ -97,58 +101,120 @@ public class NotificationDispatcher : INotificationDispatcher
                     {
                         var reservation = resResult.ResultValue;
                         var bookResult = await bookService.GetBookAsync(context, reservation.BookId, cancellationToken);
-                        var userResult = await userService.GetUserUnsafeAsync(recipientId, cancellationToken);
 
-                        if (bookResult.IsOk && userResult.IsOk)
+                        if (isManager)
                         {
-                            var book = bookResult.ResultValue;
-                            var user = userResult.ResultValue;
-                            var langPref = user.LangPref;
-
-                            string dpName = "Unspecified";
-                            if (book.DistributionPoint != null && FSharpOption<DistributionPointId>.get_IsSome(book.DistributionPoint))
+                            UserId patronUserId = reservation.Patron switch
                             {
-                                var dpResult = await dpService.GetDistributionPointAsync(context, book.DistributionPoint.Value, cancellationToken);
-                                if (dpResult.IsOk)
+                                Patron.RegisteredUser registeredUser => registeredUser.Item,
+                                Patron.Guest _ => throw new InvalidOperationException("Guest reservations do not have a registered UserId"),
+                                _ => throw new InvalidOperationException("Unknown Patron type")
+                            };
+
+                            var patronUserResult = await userService.GetUserUnsafeAsync(patronUserId, cancellationToken);
+                            var recipientUserResult = await userService.GetUserUnsafeAsync(recipientId, cancellationToken);
+
+                            if (bookResult.IsOk && patronUserResult.IsOk && recipientUserResult.IsOk)
+                            {
+                                var book = bookResult.ResultValue;
+                                var patronUser = patronUserResult.ResultValue;
+                                var recipientUser = recipientUserResult.ResultValue;
+                                var langPref = recipientUser.LangPref;
+                                var patronName = patronUser.AppUserInfo.UserName;
+
+                                var inAppTextRes = await _inAppMessagesRetriever.GetReservationManagerNotificationInAppAsync(
+                                    patronName,
+                                    book.Title,
+                                    langPref,
+                                    cancellationToken
+                                );
+
+                                if (inAppTextRes.IsOk)
                                 {
-                                    dpName = dpResult.ResultValue.Name.Value;
+                                    resolvedInAppContent = inAppTextRes.ResultValue;
                                 }
+
+                                resolvedTitle = langPref.Value == "it" ? "Nuova Prenotazione" : "New Reservation";
+
+                                var notifId = NotificationId.NewNotificationId(Guid.NewGuid());
+                                var notification = new Notification(
+                                    notifId,
+                                    recipientId,
+                                    resolvedTitle,
+                                    resolvedInAppContent,
+                                    false, // isRead
+                                    DateTime.UtcNow,
+                                    FSharpOption<string>.Some($"/reservations/{reservationIdString}")
+                                );
+
+                                var adminRoles = Microsoft.FSharp.Collections.FSharpList<Role>.Cons(
+                                    Role.Admin,
+                                    Microsoft.FSharp.Collections.FSharpList<Role>.Empty);
+                                var adminContext = UserContext.NewAuthenticated(recipientId, adminRoles);
+                                var createNotifResult = await _notificationService.CreateNotificationAsync(adminContext, notification, cancellationToken);
+                                if (createNotifResult.IsError)
+                                {
+                                    return FSharpResult<Unit, string>.NewError($"Failed to create in-app notification: {createNotifResult.ErrorValue}");
+                                }
+
+                                return FSharpResult<Unit, string>.NewOk(null);
                             }
+                        }
+                        else
+                        {
+                            var userResult = await userService.GetUserUnsafeAsync(recipientId, cancellationToken);
 
-                            var emailTextRes = await _mailBodyRetriever.GetReservationNotificationTextMailAsync(
-                                book.Title,
-                                reservation.ReservationCode,
-                                tenant.Name,
-                                dpName,
-                                langPref,
-                                cancellationToken
-                            );
-
-                            var emailSubjRes = await _mailBodyRetriever.GetReservationNotificationSubject(
-                                langPref,
-                                cancellationToken
-                            );
-
-                            var inAppTextRes = await _inAppMessagesRetriever.GetReservationNotificationInAppAsync(
-                                book.Title,
-                                reservation.ReservationCode,
-                                tenant.Name,
-                                dpName,
-                                langPref,
-                                cancellationToken
-                            );
-
-                            if (emailTextRes.IsOk)
+                            if (bookResult.IsOk && userResult.IsOk)
                             {
-                                resolvedEmailContent = emailTextRes.ResultValue;
-                            }
-                            if (emailSubjRes.IsOk)
-                            {
-                                resolvedTitle = emailSubjRes.ResultValue.Replace("{bookTitle}", book.Title.Value);
-                            }
-                            if (inAppTextRes.IsOk)
-                            {
-                                resolvedInAppContent = inAppTextRes.ResultValue;
+                                var book = bookResult.ResultValue;
+                                var user = userResult.ResultValue;
+                                var langPref = user.LangPref;
+
+                                string dpName = "Unspecified";
+                                if (book.DistributionPoint != null && FSharpOption<DistributionPointId>.get_IsSome(book.DistributionPoint))
+                                {
+                                    var dpResult = await dpService.GetDistributionPointAsync(context, book.DistributionPoint.Value, cancellationToken);
+                                    if (dpResult.IsOk)
+                                    {
+                                        dpName = dpResult.ResultValue.Name.Value;
+                                    }
+                                }
+
+                                var emailTextRes = await _mailBodyRetriever.GetReservationNotificationTextMailAsync(
+                                    book.Title,
+                                    reservation.ReservationCode,
+                                    tenant.Name,
+                                    dpName,
+                                    langPref,
+                                    cancellationToken
+                                );
+
+                                var emailSubjRes = await _mailBodyRetriever.GetReservationNotificationSubject(
+                                    langPref,
+                                    cancellationToken
+                                );
+
+                                var inAppTextRes = await _inAppMessagesRetriever.GetReservationNotificationInAppAsync(
+                                    book.Title,
+                                    reservation.ReservationCode,
+                                    tenant.Name,
+                                    dpName,
+                                    langPref,
+                                    cancellationToken
+                                );
+
+                                if (emailTextRes.IsOk)
+                                {
+                                    resolvedEmailContent = emailTextRes.ResultValue;
+                                }
+                                if (emailSubjRes.IsOk)
+                                {
+                                    resolvedTitle = emailSubjRes.ResultValue.Replace("{bookTitle}", book.Title.Value);
+                                }
+                                if (inAppTextRes.IsOk)
+                                {
+                                    resolvedInAppContent = inAppTextRes.ResultValue;
+                                }
                             }
                         }
                     }

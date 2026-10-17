@@ -33,6 +33,12 @@ type GetReservationNotificationRequest = {
     ShortLang: string
 }
 
+type GetReservationManagerNotificationRequest = {
+    UserName: string
+    BookTitle: string
+    ShortLang: string
+}
+
 type IInAppMessagesRetriever =
     abstract member GetLoanNotificationInAppAsync:
         bookTitle: Title *
@@ -60,6 +66,13 @@ type IInAppMessagesRetriever =
         code: ReservationCode *
         tenantName: TenantName *
         distributionPoint: string *
+        shortLang: ShortLang *
+        [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken ->
+            Task<Result<string, string>>
+
+    abstract member GetReservationManagerNotificationInAppAsync:
+        userName: string *
+        bookTitle: Title *
         shortLang: ShortLang *
         [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken ->
             Task<Result<string, string>>

@@ -106,6 +106,29 @@ namespace blazorBookLibrary.Client.Services
             return await ServiceClientHelper.HandleResponse<string>(response);
         }
 
+        public async Task<FSharpResult<string, string>> GetReservationManagerNotificationInAppAsync(
+            string userName,
+            Commons.Title bookTitle,
+            Commons.ShortLang shortLang,
+            FSharpOption<CancellationToken> ct)
+        {
+            var request = new
+            {
+                UserName = userName,
+                BookTitle = bookTitle.Value,
+                ShortLang = shortLang.Value
+            };
+
+            var response = await _httpClient.PostAsJsonAsync(
+                "api/InAppMessagesRetriever/reservation-manager",
+                request,
+                ServiceClientHelper.JsonOptions,
+                ServiceClientHelper.GetValue(ct, CancellationToken.None)
+            );
+
+            return await ServiceClientHelper.HandleResponse<string>(response);
+        }
+
         public async Task<FSharpResult<string, string>> GetPatronInvitationInAppAsync(
             Commons.ShortLang shortLang,
             FSharpOption<CancellationToken> ct)

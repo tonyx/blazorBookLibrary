@@ -41,8 +41,13 @@
     <None Include="Templates/en/PatronInvitationSubject.txt" CopyToOutputDirectory="PreserveNewest" />
     <None Include="Templates/it/PatronInvitationSubject.txt" CopyToOutputDirectory="PreserveNewest" />
 
+    <None Include="Templates/en/ReservationManagerNotification.txt" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="Templates/it/ReservationManagerNotification.txt" CopyToOutputDirectory="PreserveNewest" />
+
     <None Include="InAppTemplates/en/ReservationNotification.txt" CopyToOutputDirectory="PreserveNewest" />
     <None Include="InAppTemplates/it/ReservationNotification.txt" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="InAppTemplates/en/ReservationManagerNotification.txt" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="InAppTemplates/it/ReservationManagerNotification.txt" CopyToOutputDirectory="PreserveNewest" />
     <None Include="InAppTemplates/en/LoanNotification.txt" CopyToOutputDirectory="PreserveNewest" />
     <None Include="InAppTemplates/it/LoanNotification.txt" CopyToOutputDirectory="PreserveNewest" />
     <None Include="InAppTemplates/en/LoanReturnNotification.txt" CopyToOutputDirectory="PreserveNewest" />

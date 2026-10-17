@@ -5,11 +5,35 @@ open FsToolkit.ErrorHandling
 open BookLibrary.Shared.Commons
 open System
 
-type Loan = {
+type Loan001 =
+    {
+        TenantId: TenantId
+        LoanId: LoanId
+        BookId: BookId
+        UserId: UserId
+        ReservationId: Option<ReservationId>
+        LoanedAt: DateTime
+        TimeSlot: TimeSlot
+        LoanStatus: LoanStatus
+    }
+    with
+        member this.Upcast() : Loan =
+            {
+                TenantId = this.TenantId
+                LoanId = this.LoanId
+                BookId = this.BookId
+                Patron = RegisteredUser this.UserId
+                LoanedAt = this.LoanedAt
+                TimeSlot = this.TimeSlot
+                ReservationId = this.ReservationId
+                LoanStatus = this.LoanStatus
+            }
+
+and Loan = {
     TenantId: TenantId
     LoanId: LoanId
     BookId: BookId
-    UserId: UserId
+    Patron: Patron
     ReservationId: Option<ReservationId>
     LoanedAt: DateTime
     TimeSlot: TimeSlot
@@ -20,7 +44,7 @@ type Loan = {
             TenantId = tenantId
             LoanId = LoanId.New(); 
             BookId = bookId;
-            UserId = userId;
+            Patron = RegisteredUser userId;
             LoanedAt = loanedAt;
             TimeSlot = timeSlot;
             ReservationId = None;
@@ -31,7 +55,7 @@ type Loan = {
             TenantId = reservation.TenantId
             LoanId = LoanId.New(); 
             BookId = reservation.BookId;
-            UserId = reservation.UserId;
+            Patron = reservation.Patron;
             LoanedAt = loanedAt;
             TimeSlot = reservation.TimeSlot;
             ReservationId = Some reservation.ReservationId;
@@ -78,6 +102,8 @@ type Loan = {
         try
             let loan = JsonSerializer.Deserialize<Loan> (data, jsonOptions)
             Ok loan
-        with
-            | ex -> 
-                sprintf "Failed to deserialize loan: %s" ex.Message |> Error
+        with ex ->
+            try 
+                let loan001 = (data, jsonOptions) |> JsonSerializer.Deserialize<Loan001>
+                loan001.Upcast () |> Ok
+            with ex2 -> Error $"Error in deserializing {data} - {ex.Message}, {ex2.Message}"

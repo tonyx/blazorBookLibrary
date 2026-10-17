@@ -1018,6 +1018,27 @@ type Availability =
     static member AllCases() =
         [ Circulating; ReferenceOnly; Unspecified ]
 
+type GuestPatron =
+    { Name: string
+      PhoneNumber: Option<string>
+      Email: Option<string>
+      Notes: Option<string> }
+    with
+        static member Create(name: string, ?phoneNumber: string, ?email: string, ?notes: string) =
+            { Name = name
+              PhoneNumber = phoneNumber
+              Email = email
+              Notes = notes }
+
+type Patron =
+    | RegisteredUser of UserId
+    | Guest of GuestPatron
+    with
+        member this.TryGetUserId() =
+            match this with
+            | RegisteredUser userId -> Some userId
+            | Guest _ -> None
+
 type LoanStatus =
     | InProgress
     | Returned of DateTime

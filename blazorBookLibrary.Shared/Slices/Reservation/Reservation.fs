@@ -6,41 +6,41 @@ open FsToolkit.ErrorHandling
 open BookLibrary.Shared.Commons
 open System
 
-// type Reservation001 =
-//     { TenantId: TenantId
-//       ReservationId: ReservationId
-//       BookId: BookId
-//       UserId: UserId
-//       TimeSlot: TimeSlot
-//       ReservedAt: DateTime
-//       CanceledAt: Option<Cancellation>
-//       ReservationCode: ReservationCode
-//       Status: ReservationStatus
-//       Sealed: Sealed
-//       PickupPinHash: Option<string>
-//       PickupPinExpiresAt: Option<DateTime> }
-
-//     member this.Upcast() : Reservation =
-//         { TenantId = this.TenantId
-//           ReservationId = this.ReservationId
-//           BookId = this.BookId
-//           UserId = this.UserId
-//           TimeSlot = this.TimeSlot
-//           ReservedAt = this.ReservedAt
-//           ReservationCode = this.ReservationCode
-//           Status =
-//             match this.CanceledAt with
-//             | Some _ -> ReservationStatus.Canceled NotRelevant
-//             | None -> this.Status
-//           Sealed = this.Sealed
-//           PickupPinHash = this.PickupPinHash
-//           PickupPinExpiresAt = this.PickupPinExpiresAt }
-
-type Reservation =
+type Reservation001 =
     { TenantId: TenantId
       ReservationId: ReservationId
       BookId: BookId
       UserId: UserId
+      TimeSlot: TimeSlot
+      ReservedAt: DateTime
+      ReservationCode: ReservationCode
+      Status: ReservationStatus
+      Sealed: Sealed
+      PickupPinHash: Option<string>
+      PickupPinExpiresAt: Option<DateTime> }
+    
+        with
+            member
+                this.Upcast(): Reservation =
+                    {
+                        TenantId = this.TenantId
+                        ReservationId = this.ReservationId
+                        BookId = this.BookId
+                        Patron = RegisteredUser this.UserId
+                        TimeSlot = this.TimeSlot
+                        ReservedAt = this.ReservedAt
+                        ReservationCode = this.ReservationCode
+                        Status = this.Status
+                        Sealed = this.Sealed
+                        PickupPinHash = this.PickupPinHash
+                        PickupPinExpiresAt = this.PickupPinExpiresAt
+                    }
+
+and Reservation =
+    { TenantId: TenantId
+      ReservationId: ReservationId
+      BookId: BookId
+      Patron: Patron
       TimeSlot: TimeSlot
       ReservedAt: DateTime
       ReservationCode: ReservationCode
@@ -59,7 +59,7 @@ type Reservation =
         { TenantId = tenantId
           ReservationId = ReservationId.New()
           BookId = bookId
-          UserId = userId
+          Patron = RegisteredUser userId
           TimeSlot = timeSlot
           ReservedAt = dateTime
           ReservationCode = ReservationCode.New()
@@ -138,4 +138,7 @@ type Reservation =
             let reservation = JsonSerializer.Deserialize<Reservation>(data, jsonOptions)
             Ok reservation
         with ex ->
-            Error ex.Message
+            try
+                let reservation001 = (data, jsonOptions) |> JsonSerializer.Deserialize<Reservation001>
+                reservation001.Upcast () |> Ok
+            with ex2 -> Error $"Error in deserializing {data} - {ex.Message}, {ex2.Message}"

@@ -156,7 +156,11 @@ type ReservationService
                 let! reservation = reservationViewerAsync (ct |> Some) id.Value |> TaskResult.map snd
                 let! tenantId = userTenantResolverService.GetTenantForUserAsync(context, ct)
                 let! book = bookViewerAsync (ct |> Some) reservation.BookId.Value |> TaskResult.map snd
-                let! userDetails = usersService.GetUserDetailsAsync(context, reservation.UserId, ct)
+                let patronUserId =
+                    match reservation.Patron with
+                    | RegisteredUser u -> u
+                    | Guest _ -> failwith "Guest reservations do not have a registered UserId"
+                let! userDetails = usersService.GetUserDetailsAsync(context, patronUserId, ct)
 
                 do!
                     book.TenantId = tenantId
@@ -179,7 +183,11 @@ type ReservationService
 
             do! 
                 if (reason.IsRequestedByUser) then
-                    checkIsGlobalAdminOrTenantManagerOrSelf context ct reservation.UserId
+                    let patronUserId =
+                        match reservation.Patron with
+                        | RegisteredUser u -> u
+                        | Guest _ -> failwith "Guest reservations do not have a registered UserId"
+                    checkIsGlobalAdminOrTenantManagerOrSelf context ct patronUserId
                 else
                     checkIsGlobalAdminOrTenantManager context ct
                 
@@ -220,15 +228,24 @@ type ReservationService
 
         taskResult {
             let ct = defaultArg ct CancellationToken.None
+            let patronUserId =
+                match reservation.Patron with
+                | RegisteredUser u -> u
+                | Guest _ -> failwith "Guest reservations do not have a registered UserId"
             let! book = bookViewerAsync (Some ct) reservation.BookId.Value |> TaskResult.map snd
-            let! user = userViewerAsync (Some ct) reservation.UserId.Value |> TaskResult.map snd
+            let! user = userViewerAsync (Some ct) patronUserId.Value |> TaskResult.map snd
 
             let! tenantId = userTenantResolverService.GetTenantForUserAsync(context, ct)
-            do! checkIsGlobalAdminOrTenantManagerOrSelf context ct reservation.UserId
+            do! checkIsGlobalAdminOrTenantManagerOrSelf context ct patronUserId
 
             let! userReservations =
                 StateView.getAllFilteredAggregateStatesAsync<Reservation, ReservationEvent, string>
-                    (fun r -> r.UserId = reservation.UserId && r.TenantId = tenantId && r.IsPending)
+                    (fun r ->
+                        let rUserId =
+                            match r.Patron with
+                            | RegisteredUser u -> u
+                            | Guest _ -> failwith "Guest reservations do not have a registered UserId"
+                        rUserId = patronUserId && r.TenantId = tenantId && r.IsPending)
                     eventStore
                     (Some ct)
                 |> TaskResult.map (List.ofSeq >> List.map snd)
@@ -267,14 +284,31 @@ type ReservationService
             let! _ =
                 notificationDispatcher.DispatchNotificationAsync(
                     context,
-                    reservation.UserId,
+                    patronUserId,
                     tenantId,
                     Some $"/reservations/{reservation.Id}",
                     ct
                 )
 
+            let managersAndOwner =
+                tenant.Patrons
+                |> List.choose (fun (uId, role) -> if role = PatronRole.Manager then Some uId else None)
+                |> fun managers -> tenant.OwnerId :: managers
+                |> List.distinct
+
+            for managerOrOwnerId in managersAndOwner do
+                let! _ =
+                    notificationDispatcher.DispatchNotificationAsync(
+                        context,
+                        managerOrOwnerId,
+                        tenantId,
+                        Some $"/reservations/{reservation.Id}/manager",
+                        ct
+                    )
+                ()
+
             let! _ = DetailsCache.Instance.RefreshDependentDetailsAsync(reservation.BookId.Value, Some ct)
-            let! _ = DetailsCache.Instance.RefreshDependentDetailsAsync(reservation.UserId.Value, Some ct)
+            let! _ = DetailsCache.Instance.RefreshDependentDetailsAsync(patronUserId.Value, Some ct)
             return result
         }
 
@@ -301,7 +335,11 @@ type ReservationService
 
         taskResult {
             let! reservation = reservationViewerAsync (ct |> Some) id.Value |> TaskResult.map snd
-            do! checkIsGlobalAdminOrTenantManagerOrSelf context ct reservation.UserId
+            let patronUserId =
+                match reservation.Patron with
+                | RegisteredUser u -> u
+                | Guest _ -> failwith "Guest reservations do not have a registered UserId"
+            do! checkIsGlobalAdminOrTenantManagerOrSelf context ct patronUserId
             let! tenantId = userTenantResolverService.GetTenantForUserAsync(context, ct)
             let! result = reservationViewerAsync (Some ct) id.Value |> TaskResult.map snd
 
@@ -331,7 +369,11 @@ type ReservationService
         taskResult {
             let ct = defaultArg ct CancellationToken.None
             let! reservation = this.GetReservationAsync(context, reservationId, ct)
-            do! checkIsGlobalAdminOrTenantManagerOrSelf context ct reservation.UserId
+            let patronUserId =
+                match reservation.Patron with
+                | RegisteredUser u -> u
+                | Guest _ -> failwith "Guest reservations do not have a registered UserId"
+            do! checkIsGlobalAdminOrTenantManagerOrSelf context ct patronUserId
 
             let! result =
                 runDeleteAsync<Reservation, ReservationEvent, string>
@@ -342,7 +384,7 @@ type ReservationService
                     (Some ct)
 
             let! _ = DetailsCache.Instance.RefreshDependentDetailsAsync(reservation.BookId.Value, Some ct)
-            let! _ = DetailsCache.Instance.RefreshDependentDetailsAsync(reservation.UserId.Value, Some ct)
+            let! _ = DetailsCache.Instance.RefreshDependentDetailsAsync(patronUserId.Value, Some ct)
             return result
         }
 
@@ -386,8 +428,12 @@ type ReservationService
             let! reservation = this.GetReservationAsync(context, id, ct)
 
             let isPatron =
+                let patronUserId =
+                    match reservation.Patron with
+                    | RegisteredUser u -> u
+                    | Guest _ -> failwith "Guest reservations do not have a registered UserId"
                 match context.UserId with
-                | Some uid -> uid = reservation.UserId
+                | Some uid -> uid = patronUserId
                 | None -> false
 
             let! _ =
@@ -447,7 +493,12 @@ type ReservationService
                 
             let! reservations =
                 StateView.getAllFilteredAggregateStatesAsync<Reservation, ReservationEvent, string>
-                    (fun r -> r.UserId = userId && r.TenantId = tenantId && r.IsPending)
+                    (fun r ->
+                        let rUserId =
+                            match r.Patron with
+                            | RegisteredUser u -> u
+                            | Guest _ -> failwith "Guest reservations do not have a registered UserId"
+                        rUserId = userId && r.TenantId = tenantId && r.IsPending)
                     eventStore
                     (Some ct)
                 |> TaskResult.map (List.ofSeq >> List.map snd)

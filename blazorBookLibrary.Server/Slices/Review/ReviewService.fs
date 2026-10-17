@@ -186,7 +186,11 @@ type ReviewService
                     let! loans =
                         StateView.getAllFilteredAggregateStatesAsync<Loan, LoanEvent, string>
                             (fun loan ->
-                                loan.UserId = comment.UserId
+                                let loanUserId =
+                                    match loan.Patron with
+                                    | RegisteredUser u -> u
+                                    | Guest _ -> failwith "Guest loans do not have a registered UserId"
+                                loanUserId = comment.UserId
                                 && loan.BookId = comment.BookId
                                 && loan.TenantId = tenantId
                                 && loan.LoanStatus.IsReturned)

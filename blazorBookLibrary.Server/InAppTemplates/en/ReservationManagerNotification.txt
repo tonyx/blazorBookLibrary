@@ -1,0 +1,1 @@
+user {user} has reserved the book {book}

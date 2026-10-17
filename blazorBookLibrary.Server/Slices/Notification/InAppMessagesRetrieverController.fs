@@ -67,6 +67,17 @@ type InAppMessagesRetrieverController(inAppMessagesRetriever: IInAppMessagesRetr
                 return this.BadRequest(err) :> IActionResult
         }
 
+    [<HttpPost("reservation-manager")>]
+    member this.GetReservationManagerNotificationInApp([<FromBody>] request: GetReservationManagerNotificationRequest) =
+        task {
+            let bookTitle = Title.New request.BookTitle
+            let shortLang = ShortLang.New request.ShortLang
+            let! result = inAppMessagesRetriever.GetReservationManagerNotificationInAppAsync(request.UserName, bookTitle, shortLang)
+            match result with
+            | Ok content -> return this.Ok(content) :> IActionResult
+            | Error msg -> return this.BadRequest(msg) :> IActionResult
+        }
+
     [<HttpGet("patron-invitation")>]
     member this.GetPatronInvitationInApp([<FromQuery>] shortLang: string) =
         task {
