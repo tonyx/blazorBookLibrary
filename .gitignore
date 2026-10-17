@@ -100,3 +100,6 @@ Thumbs.db
 Desktop.ini
 
 .fake
+
+# Agent directories and local skills
+.agents/
