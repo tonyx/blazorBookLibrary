@@ -102,4 +102,5 @@ Desktop.ini
 .fake
 
 # Agent directories and local skills
-.agents/
+# decided to enable skills
+# .agents/
