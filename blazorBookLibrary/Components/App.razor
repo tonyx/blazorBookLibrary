@@ -23,7 +23,12 @@
             document.documentElement.classList.add('hide-welcome-msg');
         }
         try {
-            if (document.cookie.split(';').some((item) => item.trim().startsWith('cookie_banner_dismissed=true')) || (window.localStorage && localStorage.getItem('cookie_banner_dismissed') === 'true')) {
+            var hasCookie = document.cookie.split(';').some((item) => item.trim().startsWith('cookie_banner_dismissed=true'));
+            var hasLocal = false;
+            var hasSession = false;
+            try { hasLocal = window.localStorage && localStorage.getItem('cookie_banner_dismissed') === 'true'; } catch(e) {}
+            try { hasSession = window.sessionStorage && sessionStorage.getItem('cookie_banner_dismissed') === 'true'; } catch(e) {}
+            if (hasCookie || hasLocal || hasSession) {
                 document.documentElement.classList.add('hide-cookie-banner');
             }
         } catch (e) {}

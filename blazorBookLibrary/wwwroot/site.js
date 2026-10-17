@@ -151,12 +151,15 @@ window.blazorCulture = {
 window.blazorCookies = {
     set: (name, value, days) => {
         let expires = "";
+        let maxAge = "";
         if (days) {
             const date = new Date();
             date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
             expires = "; expires=" + date.toUTCString();
+            maxAge = "; max-age=" + (days * 24 * 60 * 60);
         }
-        document.cookie = name + "=" + (value || "") + expires + "; path=/; SameSite=Lax";
+        const secure = window.location.protocol === 'https:' ? '; Secure' : '';
+        document.cookie = name + "=" + (value || "") + expires + maxAge + "; path=/; SameSite=Lax" + secure;
     },
     get: (name) => {
         const nameEQ = name + "=";
@@ -171,18 +174,43 @@ window.blazorCookies = {
 };
 
 window.dismissCookieBanner = function() {
+    // 1. Set client-side cookie with full RFC-compliant parameters (max-age, expires, path, dynamic Secure)
     try {
         if (window.blazorCookies && typeof window.blazorCookies.set === 'function') {
             window.blazorCookies.set('cookie_banner_dismissed', 'true', 365);
         } else {
             const date = new Date();
             date.setTime(date.getTime() + (365 * 24 * 60 * 60 * 1000));
-            document.cookie = "cookie_banner_dismissed=true; expires=" + date.toUTCString() + "; path=/; SameSite=Lax";
+            const secure = window.location.protocol === 'https:' ? '; Secure' : '';
+            document.cookie = "cookie_banner_dismissed=true; expires=" + date.toUTCString() + "; max-age=" + (365 * 24 * 60 * 60) + "; path=/; SameSite=Lax" + secure;
         }
-        localStorage.setItem('cookie_banner_dismissed', 'true');
     } catch (e) {}
 
-    document.documentElement.classList.add('hide-cookie-banner');
+    // 2. Set LocalStorage fallback
+    try {
+        if (window.localStorage) {
+            localStorage.setItem('cookie_banner_dismissed', 'true');
+        }
+    } catch (e) {}
+
+    // 3. Set SessionStorage fallback (survives in Safari Private Browsing)
+    try {
+        if (window.sessionStorage) {
+            sessionStorage.setItem('cookie_banner_dismissed', 'true');
+        }
+    } catch (e) {}
+
+    // 4. Ping server-side endpoint so the server issues an authoritative HTTP Set-Cookie header
+    // This completely bypasses Safari ITP (Intelligent Tracking Prevention) client-side cookie blocking
+    try {
+        fetch('/CookieConsent/Dismiss', { method: 'POST', credentials: 'same-origin' }).catch(() => {});
+    } catch (e) {}
+
+    // 5. Hide and remove banner from DOM immediately
+    try {
+        document.documentElement.classList.add('hide-cookie-banner');
+    } catch (e) {}
+
     const banner = document.getElementById('cookie-banner-container');
     if (banner) {
         banner.style.transition = 'opacity 0.25s ease, transform 0.25s ease';

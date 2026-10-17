@@ -64,8 +64,9 @@
         {
             try
             {
-                var ls = await JSRuntime.InvokeAsync<string?>("localStorage.getItem", "cookie_banner_dismissed");
-                if (ls == "true")
+                var stored = await JSRuntime.InvokeAsync<string?>("eval", 
+                    "(() => { try { return (localStorage.getItem('cookie_banner_dismissed') === 'true' || sessionStorage.getItem('cookie_banner_dismissed') === 'true') ? 'true' : null; } catch(e) { return null; } })()");
+                if (stored == "true")
                 {
                     isDismissed = true;
                     StateHasChanged();
@@ -73,7 +74,7 @@
             }
             catch
             {
-                // Fallback if localStorage is inaccessible
+                // Fallback if JS interop is inaccessible
             }
         }
     }

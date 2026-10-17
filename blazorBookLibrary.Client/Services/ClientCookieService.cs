@@ -47,13 +47,15 @@ namespace blazorBookLibrary.Client.Services
             try
             {
                 var expires = "";
+                var maxAge = "";
                 if (days != null && FSharpOption<int>.get_IsSome(days))
                 {
                     var date = DateTime.UtcNow.AddDays(days.Value);
                     expires = $"; expires={date:R}";
+                    maxAge = $"; max-age={days.Value * 86400}";
                 }
-                var cookie = $"{key}={value}{expires}; path=/; SameSite=Lax; Secure";
-                await _jsRuntime.InvokeVoidAsync("eval", $"document.cookie = '{cookie}'");
+                var js = $"(function() {{ var sec = window.location.protocol === 'https:' ? '; Secure' : ''; document.cookie = '{key}={value}{expires}{maxAge}; path=/; SameSite=Lax' + sec; }})()";
+                await _jsRuntime.InvokeVoidAsync("eval", js);
             }
             catch (InvalidOperationException)
             {

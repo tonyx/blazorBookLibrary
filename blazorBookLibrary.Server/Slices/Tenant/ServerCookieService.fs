@@ -22,11 +22,14 @@ type ServerCookieService(httpContextAccessor: IHttpContextAccessor) =
                 if not (isNull context) && not context.Response.HasStarted then
                     let options = CookieOptions()
                     options.HttpOnly <- false
-                    options.Secure <- true
+                    options.Secure <- if not (isNull context.Request) && context.Request.IsHttps then true else false
                     options.SameSite <- SameSiteMode.Lax
+                    options.IsEssential <- true
                     options.Path <- "/"
                     match days with
-                    | Some d -> options.Expires <- Nullable (DateTimeOffset.UtcNow.AddDays(float d))
+                    | Some d -> 
+                        options.Expires <- Nullable (DateTimeOffset.UtcNow.AddDays(float d))
+                        options.MaxAge <- Nullable (TimeSpan.FromDays(float d))
                     | None -> ()
                     context.Response.Cookies.Append(key, value, options)
             }
