@@ -6,37 +6,37 @@ open FsToolkit.ErrorHandling
 open BookLibrary.Shared.Commons
 open System
 
-type Reservation001 =
-    { TenantId: TenantId
-      ReservationId: ReservationId
-      BookId: BookId
-      UserId: UserId
-      TimeSlot: TimeSlot
-      ReservedAt: DateTime
-      CanceledAt: Option<Cancellation>
-      ReservationCode: ReservationCode
-      Status: ReservationStatus
-      Sealed: Sealed
-      PickupPinHash: Option<string>
-      PickupPinExpiresAt: Option<DateTime> }
+// type Reservation001 =
+//     { TenantId: TenantId
+//       ReservationId: ReservationId
+//       BookId: BookId
+//       UserId: UserId
+//       TimeSlot: TimeSlot
+//       ReservedAt: DateTime
+//       CanceledAt: Option<Cancellation>
+//       ReservationCode: ReservationCode
+//       Status: ReservationStatus
+//       Sealed: Sealed
+//       PickupPinHash: Option<string>
+//       PickupPinExpiresAt: Option<DateTime> }
 
-    member this.Upcast() : Reservation =
-        { TenantId = this.TenantId
-          ReservationId = this.ReservationId
-          BookId = this.BookId
-          UserId = this.UserId
-          TimeSlot = this.TimeSlot
-          ReservedAt = this.ReservedAt
-          ReservationCode = this.ReservationCode
-          Status =
-            match this.CanceledAt with
-            | Some _ -> ReservationStatus.Canceled NotRelevant
-            | None -> this.Status
-          Sealed = this.Sealed
-          PickupPinHash = this.PickupPinHash
-          PickupPinExpiresAt = this.PickupPinExpiresAt }
+//     member this.Upcast() : Reservation =
+//         { TenantId = this.TenantId
+//           ReservationId = this.ReservationId
+//           BookId = this.BookId
+//           UserId = this.UserId
+//           TimeSlot = this.TimeSlot
+//           ReservedAt = this.ReservedAt
+//           ReservationCode = this.ReservationCode
+//           Status =
+//             match this.CanceledAt with
+//             | Some _ -> ReservationStatus.Canceled NotRelevant
+//             | None -> this.Status
+//           Sealed = this.Sealed
+//           PickupPinHash = this.PickupPinHash
+//           PickupPinExpiresAt = this.PickupPinExpiresAt }
 
-and Reservation =
+type Reservation =
     { TenantId: TenantId
       ReservationId: ReservationId
       BookId: BookId
