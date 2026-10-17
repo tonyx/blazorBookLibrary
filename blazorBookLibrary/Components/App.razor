@@ -32,12 +32,36 @@
                 document.documentElement.classList.add('hide-cookie-banner');
             }
         } catch (e) {}
+
+        window.dismissCookieBanner = function() {
+            try {
+                var date = new Date();
+                date.setTime(date.getTime() + (365 * 24 * 60 * 60 * 1000));
+                var sec = window.location.protocol === 'https:' ? '; Secure' : '';
+                document.cookie = "cookie_banner_dismissed=true; expires=" + date.toUTCString() + "; max-age=" + (365 * 24 * 60 * 60) + "; path=/; SameSite=Lax" + sec;
+            } catch (e) {}
+
+            try { if (window.localStorage) localStorage.setItem('cookie_banner_dismissed', 'true'); } catch (e) {}
+            try { if (window.sessionStorage) sessionStorage.setItem('cookie_banner_dismissed', 'true'); } catch (e) {}
+            try { fetch('/CookieConsent/Dismiss', { method: 'POST', credentials: 'same-origin' }).catch(function() {}); } catch (e) {}
+
+            try { document.documentElement.classList.add('hide-cookie-banner'); } catch (e) {}
+
+            var banner = document.getElementById('cookie-banner-container');
+            if (banner) {
+                banner.style.display = 'none';
+                if (banner.parentNode) {
+                    banner.parentNode.removeChild(banner);
+                }
+            }
+        };
     </script>
     <style>
         .hide-welcome-msg .welcome-message-dismissible {
             display: none !important;
         }
-        .hide-cookie-banner .cookie-banner-container {
+        .hide-cookie-banner .cookie-banner-container,
+        .hide-cookie-banner #cookie-banner-container {
             display: none !important;
         }
     </style>
@@ -58,7 +82,7 @@
     <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     <script src="tenantMap.js"></script>
-    <script src="site.js"></script>
+    <script src="site.js?v=20261017_3"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
     <script>
         (function() {

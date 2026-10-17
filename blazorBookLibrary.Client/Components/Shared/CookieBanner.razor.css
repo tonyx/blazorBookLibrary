@@ -4,7 +4,7 @@
     right: var(--spacing-6, 1.5rem);
     max-width: 520px;
     width: calc(100% - 2rem);
-    z-index: 1050;
+    z-index: 99999;
     pointer-events: auto;
     animation: cookieBannerSlideIn 0.35s cubic-bezier(0.16, 1, 0.3, 1);
 }
@@ -50,9 +50,15 @@
     color: var(--on-primary, #ffffff);
     border: none;
     border-radius: var(--radius-full, 9999px);
-    padding: 0.35rem 1.25rem;
-    font-size: 0.875rem;
+    padding: 0.45rem 1.4rem;
+    font-size: 0.9rem;
     font-weight: 600;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    touch-action: manipulation;
+    cursor: pointer;
     transition: opacity 0.2s ease, transform 0.1s ease;
 }
 

@@ -21,7 +21,8 @@
                         <button type="button" 
                                 id="cookieBannerDismissBtn"
                                 class="btn btn-cookie-dismiss" 
-                                onclick="window.dismissCookieBanner();">
+                                onclick="if(window.dismissCookieBanner){window.dismissCookieBanner();}else{document.cookie='cookie_banner_dismissed=true; path=/; max-age=31536000';try{localStorage.setItem('cookie_banner_dismissed','true');}catch(e){}document.documentElement.classList.add('hide-cookie-banner');var b=document.getElementById('cookie-banner-container');if(b)b.remove();fetch('/CookieConsent/Dismiss',{method:'POST'}).catch(function(){});}"
+                                ontouchend="if(window.dismissCookieBanner){window.dismissCookieBanner();}">
                             <i class="bi bi-check-lg me-1"></i>@L["CookieBanner_Acknowledge"]
                         </button>
                         <a href="privacy-info#cookies" class="btn-cookie-link">

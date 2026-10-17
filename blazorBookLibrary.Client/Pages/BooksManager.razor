@@ -67,42 +67,38 @@ else
                 <li class="breadcrumb-item active text-serif" aria-current="page">@L["BooksManager"]</li>
             </ol>
         </nav>
-        <div class="d-flex justify-content-between align-items-end">
-            <div>
-                <h1 class="display-4 text-serif mb-2">@L["CatalogManagement"]</h1>
-                <p class="text-muted lead mb-0">@L["BooksManagerDescription"]</p>
+        <div class="mb-3">
+            <h1 class="display-4 text-serif mb-2">@L["CatalogManagement"]</h1>
+            <p class="text-muted lead mb-0">@L["BooksManagerDescription"]</p>
+        </div>
+        
+        <div class="d-flex flex-wrap align-items-center gap-2 gap-sm-3 pt-1">
+            <div class="dropdown">
+                <button class="btn btn-outline-sanctuary dropdown-toggle" type="button" id="exportDropdown" data-bs-toggle="dropdown" aria-expanded="false" disabled="@isExporting">
+                    @if (isExporting)
+                    {
+                        <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                        @L["Exporting"]
+                    }
+                    else
+                    {
+                        <i class="bi bi-download me-2"></i> @L["Export"]
+                    }
+                </button>
+                <ul class="dropdown-menu shadow-sm border-0" aria-labelledby="exportDropdown">
+                    <li><a class="dropdown-item py-2" href="javascript:void(0)" @onclick="() => ExportBooks(ExportFormat.Json)"><i class="bi bi-filetype-json me-2 text-primary"></i> JSON</a></li>
+                    <li><a class="dropdown-item py-2" href="javascript:void(0)" @onclick="() => ExportBooks(ExportFormat.Csv)"><i class="bi bi-filetype-csv me-2 text-success"></i> CSV</a></li>
+                </ul>
             </div>
             
-            <div class="d-flex gap-3">
-                <div class="dropdown">
-                    <button class="btn btn-outline-sanctuary dropdown-toggle" type="button" id="exportDropdown" data-bs-toggle="dropdown" aria-expanded="false" disabled="@isExporting">
-                        @if (isExporting)
-                        {
-                            <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                            @L["Exporting"]
-                        }
-                        else
-                        {
-                            <i class="bi bi-download me-2"></i> @L["Export"]
-                        }
-                    </button>
-                    <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0" aria-labelledby="exportDropdown">
-                        <li><a class="dropdown-item py-2" href="javascript:void(0)" @onclick="() => ExportBooks(ExportFormat.Json)"><i class="bi bi-filetype-json me-2 text-primary"></i> JSON</a></li>
-                        <li><a class="dropdown-item py-2" href="javascript:void(0)" @onclick="() => ExportBooks(ExportFormat.Csv)"><i class="bi bi-filetype-csv me-2 text-success"></i> CSV</a></li>
-                    </ul>
-                </div>
-                
-                <div class="border-start ps-3">
-                    <a href="/books-manager/import" class="btn btn-outline-sanctuary">
-                        <i class="bi bi-file-earmark-arrow-up me-2"></i> @L["Import"]
-                    </a>
-                </div>
-                
-                <button class="btn btn-sanctuary @(showAddSection ? "active" : "")" @onclick="() => showAddSection = !showAddSection">
-                    <i class="bi @(showAddSection ? "bi-dash-lg" : "bi-plus-lg") me-2"></i>
-                    @(showAddSection ? L["CloseEntryForm"] : L["AddNewBookEntry"])
-                </button>
-            </div>
+            <a href="/books-manager/import" class="btn btn-outline-sanctuary">
+                <i class="bi bi-file-earmark-arrow-up me-2"></i> @L["Import"]
+            </a>
+            
+            <button class="btn btn-sanctuary @(showAddSection ? "active" : "")" @onclick="() => showAddSection = !showAddSection">
+                <i class="bi @(showAddSection ? "bi-dash-lg" : "bi-plus-lg") me-2"></i>
+                @(showAddSection ? L["CloseEntryForm"] : L["AddNewBookEntry"])
+            </button>
         </div>
     </div>
  
@@ -735,20 +731,8 @@ else
                             }
 
                             
-                            @* Action Buttons *@
-                            <div class="col-12 mt-5">
-                                <div class="d-flex gap-3">
-                                    <button type="submit" class="btn btn-sanctuary btn-lg flex-grow-1 py-3 shadow-sm shadow-hover">
-                                        <i class="bi bi-journal-plus me-2"></i> @L["FinalizeArchivalRegistration"]
-                                    </button>
-                                    <button type="button" class="btn btn-outline-warning btn-lg px-4" @onclick="ResetForm">
-                                        <i class="bi bi-eraser me-2"></i> @L["Reset"]
-                                    </button>
-                                    <button type="button" class="btn btn-outline-secondary btn-lg px-4" @onclick="() => showAddSection = false">
-                                        @L["Discard"]
-                                    </button>
-                                </div>
-                            </div>
+                            @* Hidden submit button to support Enter key submission in input fields *@
+                            <button type="submit" class="d-none" tabindex="-1" aria-hidden="true"></button>
                         </div>
                     </EditForm>
                 </div>
@@ -845,6 +829,25 @@ else
                         <p class="small text-muted mb-0 italic">
                             @L["AssociationNote"]
                         </p>
+                    </div>
+                </div>
+            </div>
+
+            @* Action Buttons at the bottom of the entire entry section *@
+            <div class="col-12">
+                <div class="card-sanctuary p-4 bg-surface-low border-0 shadow-sm">
+                    <div class="d-flex flex-column flex-md-row gap-3">
+                        <button type="button" class="btn btn-sanctuary btn-lg flex-grow-1 py-3 shadow-sm shadow-hover" @onclick="HandleAddBook">
+                            <i class="bi bi-journal-plus me-2"></i> @L["FinalizeArchivalRegistration"]
+                        </button>
+                        <div class="d-flex gap-3">
+                            <button type="button" class="btn btn-outline-warning btn-lg px-4 flex-grow-1 flex-md-grow-0" @onclick="ResetForm">
+                                <i class="bi bi-eraser me-2"></i> @L["Reset"]
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary btn-lg px-4 flex-grow-1 flex-md-grow-0" @onclick="() => showAddSection = false">
+                                @L["Discard"]
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>

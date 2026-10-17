@@ -20,9 +20,15 @@ type ServerCookieService(httpContextAccessor: IHttpContextAccessor) =
             task {
                 let context = httpContextAccessor.HttpContext
                 if not (isNull context) && not context.Response.HasStarted then
+                    let isHttps = 
+                        if isNull context.Request then false 
+                        else 
+                            context.Request.IsHttps || 
+                            (context.Request.Headers.ContainsKey("X-Forwarded-Proto") && 
+                             String.Equals(context.Request.Headers.["X-Forwarded-Proto"].ToString(), "https", StringComparison.OrdinalIgnoreCase))
                     let options = CookieOptions()
                     options.HttpOnly <- false
-                    options.Secure <- if not (isNull context.Request) && context.Request.IsHttps then true else false
+                    options.Secure <- isHttps
                     options.SameSite <- SameSiteMode.Lax
                     options.IsEssential <- true
                     options.Path <- "/"

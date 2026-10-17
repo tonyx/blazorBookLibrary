@@ -7,10 +7,14 @@ namespace blazorBookLibrary.Controllers;
 [Route("CookieConsent/[action]")]
 public class CookieConsentController : Controller
 {
+    [IgnoreAntiforgeryToken]
     [HttpPost]
     [HttpGet]
     public IActionResult Dismiss()
     {
+        var isHttps = Request.IsHttps || 
+                      string.Equals(Request.Headers["X-Forwarded-Proto"], "https", StringComparison.OrdinalIgnoreCase);
+
         var cookieOptions = new CookieOptions
         {
             Path = "/",
@@ -19,7 +23,7 @@ public class CookieConsentController : Controller
             SameSite = SameSiteMode.Lax,
             HttpOnly = false,
             IsEssential = true,
-            Secure = Request.IsHttps
+            Secure = isHttps
         };
         Response.Cookies.Append("cookie_banner_dismissed", "true", cookieOptions);
         return Ok(new { success = true });
