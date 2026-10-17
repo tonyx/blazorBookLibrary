@@ -1,0 +1,97 @@
+.cookie-banner-container {
+    position: fixed;
+    bottom: var(--spacing-6, 1.5rem);
+    right: var(--spacing-6, 1.5rem);
+    max-width: 520px;
+    width: calc(100% - 2rem);
+    z-index: 1050;
+    pointer-events: auto;
+    animation: cookieBannerSlideIn 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.cookie-banner-card {
+    background-color: var(--surface-container-lowest, #ffffff);
+    border: 1px solid var(--outline-variant, #c1c8c2);
+    border-radius: var(--radius-xl, 0.75rem);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12), 0 2px 6px rgba(0, 0, 0, 0.04);
+    padding: var(--spacing-4, 1rem) var(--spacing-5, 1.25rem);
+}
+
+.cookie-icon-wrapper {
+    width: 44px;
+    height: 44px;
+    background-color: var(--primary-fixed, #c0edd4);
+    color: var(--on-primary-fixed, #002114);
+    border-radius: var(--radius-full, 9999px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.cookie-banner-title {
+    font-family: var(--font-serif);
+    color: var(--primary);
+    font-size: 1.05rem;
+    font-weight: 700;
+    margin-bottom: 0.25rem;
+}
+
+.cookie-banner-text {
+    font-size: 0.875rem;
+    color: var(--on-surface, #191c1d);
+    opacity: 0.85;
+    line-height: 1.5;
+    margin-bottom: 0.75rem;
+}
+
+.btn-cookie-dismiss {
+    background-color: var(--primary, #00160c);
+    color: var(--on-primary, #ffffff);
+    border: none;
+    border-radius: var(--radius-full, 9999px);
+    padding: 0.35rem 1.25rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    transition: opacity 0.2s ease, transform 0.1s ease;
+}
+
+.btn-cookie-dismiss:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
+    color: var(--on-primary, #ffffff);
+}
+
+.btn-cookie-link {
+    color: var(--secondary, #0055c9);
+    font-size: 0.875rem;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-weight: 500;
+}
+
+.btn-cookie-link:hover {
+    text-decoration: underline;
+}
+
+@keyframes cookieBannerSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@media (max-width: 576px) {
+    .cookie-banner-container {
+        bottom: 1rem;
+        right: 1rem;
+        left: 1rem;
+        width: auto;
+    }
+}

@@ -170,6 +170,32 @@ window.blazorCookies = {
     }
 };
 
+window.dismissCookieBanner = function() {
+    try {
+        if (window.blazorCookies && typeof window.blazorCookies.set === 'function') {
+            window.blazorCookies.set('cookie_banner_dismissed', 'true', 365);
+        } else {
+            const date = new Date();
+            date.setTime(date.getTime() + (365 * 24 * 60 * 60 * 1000));
+            document.cookie = "cookie_banner_dismissed=true; expires=" + date.toUTCString() + "; path=/; SameSite=Lax";
+        }
+        localStorage.setItem('cookie_banner_dismissed', 'true');
+    } catch (e) {}
+
+    document.documentElement.classList.add('hide-cookie-banner');
+    const banner = document.getElementById('cookie-banner-container');
+    if (banner) {
+        banner.style.transition = 'opacity 0.25s ease, transform 0.25s ease';
+        banner.style.opacity = '0';
+        banner.style.transform = 'translateY(15px)';
+        setTimeout(() => {
+            if (banner && banner.parentNode) {
+                banner.remove();
+            }
+        }, 250);
+    }
+};
+
 window.librarianSpeech = {
     recognition: null,
     voices: [],

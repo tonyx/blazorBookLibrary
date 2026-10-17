@@ -1,0 +1,80 @@
+@using blazorBookLibrary.Shared.Resources
+@using Microsoft.Extensions.Localization
+@inject BookLibrary.Shared.Services.ICookieService CookieService
+@inject IStringLocalizer<SharedResources> L
+@inject IJSRuntime JSRuntime
+
+@if (!isDismissed)
+{
+    <aside id="cookie-banner-container" class="cookie-banner-container" role="region" aria-label="@L["CookieBanner_Title"]">
+        <div class="cookie-banner-card">
+            <div class="d-flex align-items-start gap-3">
+                <div class="cookie-icon-wrapper" aria-hidden="true">
+                    <i class="bi bi-cookie fs-5"></i>
+                </div>
+                <div class="flex-grow-1">
+                    <h2 class="cookie-banner-title">@L["CookieBanner_Title"]</h2>
+                    <p class="cookie-banner-text">
+                        @L["CookieBanner_Message"]
+                    </p>
+                    <div class="d-flex align-items-center gap-3 flex-wrap">
+                        <button type="button" 
+                                id="cookieBannerDismissBtn"
+                                class="btn btn-cookie-dismiss" 
+                                onclick="window.dismissCookieBanner();">
+                            <i class="bi bi-check-lg me-1"></i>@L["CookieBanner_Acknowledge"]
+                        </button>
+                        <a href="privacy-info#cookies" class="btn-cookie-link">
+                            @L["CookieBanner_LearnMore"]
+                            <i class="bi bi-box-arrow-up-right small"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </aside>
+}
+
+@code {
+    private bool isDismissed = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var cookie = await CookieService.GetCookieAsync("cookie_banner_dismissed");
+            if (cookie != null && Microsoft.FSharp.Core.FSharpOption<string>.get_IsSome(cookie) && cookie.Value == "true")
+            {
+                isDismissed = true;
+            }
+            else
+            {
+                isDismissed = false;
+            }
+        }
+        catch
+        {
+            isDismissed = false;
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && !isDismissed)
+        {
+            try
+            {
+                var ls = await JSRuntime.InvokeAsync<string?>("localStorage.getItem", "cookie_banner_dismissed");
+                if (ls == "true")
+                {
+                    isDismissed = true;
+                    StateHasChanged();
+                }
+            }
+            catch
+            {
+                // Fallback if localStorage is inaccessible
+            }
+        }
+    }
+}
