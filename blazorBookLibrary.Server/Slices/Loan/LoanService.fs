@@ -168,6 +168,7 @@ type LoanService
     member this.GetLoansAsync(context: UserContext, ?ct: CancellationToken) : TaskResult<List<Loan>, string> =
         taskResult {
             let ct = defaultArg ct CancellationToken.None
+            do! checkIsGlobalAdminOrTenantManager context ct
             let! tenantId = userTenantResolverService.GetTenantForUserAsync(context, ct)
 
             let! result =
@@ -180,9 +181,9 @@ type LoanService
     member this.GetLoansOfUserInATenantAsync
         (context: UserContext, tenantId: TenantId, userId: UserId, ?ct: CancellationToken)
         : TaskResult<List<Loan>, string> =
-        // todo: add a security check
         taskResult {
             let ct = defaultArg ct CancellationToken.None
+            do! checkIsGlobalAdminOrTenantManagerOrSelf context ct userId
 
             let! result =
                 StateView.getAllFilteredAggregateStatesAsync<Loan, LoanEvent, string>
@@ -197,6 +198,7 @@ type LoanService
     member this.GetUnarchivedLoansAsync(context: UserContext, ?ct: CancellationToken) : TaskResult<List<Loan>, string> =
         taskResult {
             let ct = defaultArg ct CancellationToken.None
+            do! checkIsGlobalAdminOrTenantManager context ct
             let! tenantId = userTenantResolverService.GetTenantForUserAsync(context, ct)
 
             let isUnarchivedForTenant (loan: Loan) =

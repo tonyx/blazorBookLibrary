@@ -2,6 +2,7 @@
 namespace BookLibrary.Controllers
 
 open Microsoft.AspNetCore.Mvc
+open Microsoft.AspNetCore.Authorization
 open BookLibrary.Services
 open BookLibrary.Shared.Services
 open BookLibrary.Shared.Commons
@@ -10,6 +11,7 @@ open System
 open System.Threading.Tasks
 open System.Collections.Generic
 
+[<Authorize>]
 [<ApiController>]
 [<Route("api/[controller]")>]
 type LoansController(loanService: ILoanService, reservationService: IReservationService, hubContext: Microsoft.AspNetCore.SignalR.IHubContext<BookLibrary.Hubs.LibraryHub>) =

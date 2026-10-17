@@ -157,8 +157,20 @@ app.Use(async (context, next) =>
 {
     // Legge la lista dei domini autorizzati dalle variabili d'ambiente di Azure
     // Se non trova nulla (es. in locale durante lo sviluppo), lascia passare per non bloccarti
-    var allowedHostsConfig = builder.Configuration["Cloudfare:AllowedHosts"];
+    var allowedHostsConfig = builder.Configuration["Cloudflare:AllowedHosts"] ?? builder.Configuration["Cloudfare:AllowedHosts"];
+    var originSecretConfig = builder.Configuration["Cloudflare:OriginSecret"] ?? builder.Configuration["Cloudfare:OriginSecret"];
     
+    if (!string.IsNullOrEmpty(originSecretConfig))
+    {
+        var secretHeader = context.Request.Headers["X-Origin-Secret"].ToString();
+        if (!string.Equals(secretHeader, originSecretConfig, StringComparison.Ordinal))
+        {
+            context.Response.StatusCode = StatusCodes.Status403Forbidden;
+            await context.Response.WriteAsync("Direct access to origin disabled.");
+            return;
+        }
+    }
+
     if (!string.IsNullOrEmpty(allowedHostsConfig))
     {
         var allowedHosts = allowedHostsConfig.Split(',', StringSplitOptions.TrimEntries);

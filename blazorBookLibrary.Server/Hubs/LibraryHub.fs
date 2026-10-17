@@ -2,6 +2,7 @@ namespace BookLibrary.Hubs
 
 open System
 open Microsoft.AspNetCore.SignalR
+open BookLibrary.Shared.Commons
 open BookLibrary.Shared.Services
 open BookLibrary.Services
 
@@ -43,7 +44,13 @@ type LibraryHub
         this.Groups.RemoveFromGroupAsync(this.Context.ConnectionId, $"Book_{bookId}") :> System.Threading.Tasks.Task
 
     member this.JoinUserGroup(userId: Guid) =
-        this.Groups.AddToGroupAsync(this.Context.ConnectionId, $"User_{userId}") :> System.Threading.Tasks.Task
+        let user = this.Context.User
+        let context = UserContextMapper.mapFromClaimsPrincipal user
+        match context with
+        | UserContext.Authenticated(u, roles) when u.Value = userId || roles |> List.contains Role.Admin ->
+            this.Groups.AddToGroupAsync(this.Context.ConnectionId, $"User_{userId}") :> System.Threading.Tasks.Task
+        | _ ->
+            System.Threading.Tasks.Task.CompletedTask
 
     member this.LeaveUserGroup(userId: Guid) =
         this.Groups.RemoveFromGroupAsync(this.Context.ConnectionId, $"User_{userId}") :> System.Threading.Tasks.Task

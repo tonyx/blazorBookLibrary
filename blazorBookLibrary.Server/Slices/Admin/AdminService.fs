@@ -41,6 +41,24 @@ type AdminService
             return! Security.checkIsGlobalAdminOrTenantManager tenant context
         }
 
+    let checkIsGlobalAdminOrTenantManagerForDistributionPoint (context: UserContext) (ct: CancellationToken) (dpId: DistributionPointId) =
+        taskResult {
+            let! (_, dp) =
+                StateView.getAggregateFreshStateAsync<DistributionPoint, DistributionPointEvent, string>
+                    dpId.Value
+                    eventStore
+                    (Some ct)
+            match context with
+            | UserContext.Authenticated(_, roles) when roles |> List.contains Role.Admin -> return ()
+            | _ ->
+                let! callerTenantId = userTenantResolverService.GetTenantForUserAsync(context, ct)
+                if dp.TenantId <> callerTenantId then
+                    return! Error "Distribution point does not belong to the user's tenant"
+                else
+                    let! tenant = tenantViewerAsync (Some ct) callerTenantId.Value |> TaskResult.map snd
+                    return! Security.checkIsGlobalAdminOrTenantManager tenant context
+        }
+
     new
         (
             secretsReader: SecretsReader,
@@ -136,7 +154,7 @@ type AdminService
         =
         taskResult {
             let ct = defaultArg ct CancellationToken.None
-            do! checkIsGlobalAdminOrTenantManager context ct
+            do! checkIsGlobalAdminOrTenantManagerForDistributionPoint context ct id
             let command = DistributionPointCommand.AddReferenceUser userId
 
             return!
@@ -155,7 +173,7 @@ type AdminService
         =
         taskResult {
             let ct = defaultArg ct CancellationToken.None
-            do! checkIsGlobalAdminOrTenantManager context ct
+            do! checkIsGlobalAdminOrTenantManagerForDistributionPoint context ct id
             let command = DistributionPointCommand.RemoveReferenceUser userId
 
             return!
@@ -174,7 +192,7 @@ type AdminService
         =
         taskResult {
             let ct = defaultArg ct CancellationToken.None
-            do! checkIsGlobalAdminOrTenantManager context ct
+            do! checkIsGlobalAdminOrTenantManagerForDistributionPoint context ct id
 
             let command = DistributionPointCommand.UpdateInfo info
 
@@ -194,7 +212,7 @@ type AdminService
         =
         taskResult {
             let ct = defaultArg ct CancellationToken.None
-            do! checkIsGlobalAdminOrTenantManager context ct
+            do! checkIsGlobalAdminOrTenantManagerForDistributionPoint context ct id
             let command = DistributionPointCommand.Rename name
 
             return!

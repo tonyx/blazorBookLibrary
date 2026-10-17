@@ -71,6 +71,7 @@ type AuthorService
 
         taskResult {
             let! tenantId = userTenantResolverService.GetTenantForUserAsync(context, ct)
+            do! checkIsGlobalAdminOrTenantManager context ct
 
             do!
                 authors
@@ -165,6 +166,7 @@ type AuthorService
             let! tenantId = userTenantResolverService.GetTenantForUserAsync(context, ct)
             let! author = this.GetAuthorAsync(context, authorId, ct)
             do! tenantId = author.TenantId |> Result.ofBool "Tenant ids not matching"
+            do! checkIsGlobalAdminOrTenantManager context ct
 
             let reamecommand = AuthorCommand.Rename(newName, DateTime.UtcNow)
 

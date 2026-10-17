@@ -173,8 +173,7 @@ type UserService
         taskResult {
             let ct = defaultArg ct CancellationToken.None
 
-            // todo: fix
-            // do! checkIsGlobalAdminOrTenantManagerOrSelf context ct userId
+            do! checkIsGlobalAdminOrTenantManagerOrSelf context ct userId
 
             let! refreshableUserDetails = this.GetRefreshableUserDetailsAsync(context, userId, ct)
             return refreshableUserDetails.UserDetails
@@ -284,29 +283,46 @@ type UserService
     member this.SetNameAsync
         (context: UserContext, userId: UserId, name: string, ?ct: CancellationToken)
         : Task<Result<unit, string>> =
-        this.UpdateAppUserAndAggregateAsync(context, userId, (fun u -> u.Nome <- name), SetNome name, ?ct = ct)
+        let ct = defaultArg ct CancellationToken.None
+
+        taskResult {
+            do! checkIsGlobalAdminOrTenantManagerOrSelf context ct userId
+            return! this.UpdateAppUserAndAggregateAsync(context, userId, (fun u -> u.Nome <- name), SetNome name, ct)
+        }
 
     member this.SetSurnameAsync
         (context: UserContext, userId: UserId, surname: string, ?ct: CancellationToken)
         : Task<Result<unit, string>> =
-        this.UpdateAppUserAndAggregateAsync(
-            context,
-            userId,
-            (fun u -> u.Cognome <- surname),
-            SetCognome surname,
-            ?ct = ct
-        )
+        let ct = defaultArg ct CancellationToken.None
+
+        taskResult {
+            do! checkIsGlobalAdminOrTenantManagerOrSelf context ct userId
+            return!
+                this.UpdateAppUserAndAggregateAsync(
+                    context,
+                    userId,
+                    (fun u -> u.Cognome <- surname),
+                    SetCognome surname,
+                    ct
+                )
+        }
 
     member this.SetPhoneNumberAsync
         (context: UserContext, userId: UserId, phoneNumber: PhoneNumber, ?ct: CancellationToken)
         : Task<Result<unit, string>> =
-        this.UpdateAppUserAndAggregateAsync(
-            context,
-            userId,
-            (fun u -> u.PhoneNumber <- phoneNumber.Value),
-            SetPhoneNumber phoneNumber,
-            ?ct = ct
-        )
+        let ct = defaultArg ct CancellationToken.None
+
+        taskResult {
+            do! checkIsGlobalAdminOrTenantManagerOrSelf context ct userId
+            return!
+                this.UpdateAppUserAndAggregateAsync(
+                    context,
+                    userId,
+                    (fun u -> u.PhoneNumber <- phoneNumber.Value),
+                    SetPhoneNumber phoneNumber,
+                    ct
+                )
+        }
 
     member this.SetIsPhysicallyIdentifiedAsync
         (context: UserContext, userId: UserId, ?ct: CancellationToken)
@@ -329,13 +345,20 @@ type UserService
     member this.UnSetIsPhysicallyIdentifiedAsync
         (context: UserContext, userId: UserId, ?ct: CancellationToken)
         : Task<Result<unit, string>> =
-        this.UpdateAppUserAndAggregateAsync(
-            context,
-            userId,
-            (fun u -> u.IsIdentifiedPhysically <- false),
-            UnsetPhysicalIdentification,
-            ?ct = ct
-        )
+        let ct = defaultArg ct CancellationToken.None
+
+        taskResult {
+            do! checkIsGlobalAdminOrTenantManager context ct
+
+            return!
+                this.UpdateAppUserAndAggregateAsync(
+                    context,
+                    userId,
+                    (fun u -> u.IsIdentifiedPhysically <- false),
+                    UnsetPhysicalIdentification,
+                    ct
+                )
+        }
 
     member this.GhostUserAsync
         (context: UserContext, userId: UserId, ?ct: CancellationToken)
@@ -451,6 +474,18 @@ type UserService
             let! (eventId, user) =
                 getAggregateStorageFreshStateViewerAsync<User, UserEvent, string> eventStore (Some ct) userId.Value
 
+            let isAuthorizedCaller =
+                match context with
+                | UserContext.Authenticated(u, roles) when roles |> List.contains (Role.Admin) -> true
+                | UserContext.Authenticated(u, _) when u = userId -> true
+                | _ -> false
+
+            do!
+                if not isAuthorizedCaller then
+                    Error "Not allowed to set current tenant for this user"
+                else
+                    Ok()
+
             let allowed =
                 match context with
                 | UserContext.Authenticated(u, roles) when roles |> List.contains (Role.Admin) -> true
@@ -534,6 +569,8 @@ type UserService
         let ct = defaultArg ct CancellationToken.None
 
         taskResult {
+            do! checkIsGlobalAdminOrTenantManagerOrSelf context ct userId
+
             let! (_, user) = userViewerAsync (Some ct) userId.Value
             let setLangPrefCommand = UserCommand.SetLangPref langPref
 

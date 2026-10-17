@@ -1,6 +1,7 @@
 namespace BookLibrary.Controllers
 
 open Microsoft.AspNetCore.Mvc
+open Microsoft.AspNetCore.Authorization
 open BookLibrary.Shared.Services
 open BookLibrary.Shared.Commons
 open BookLibrary.Domain
@@ -26,6 +27,7 @@ type StoreEmbeddingRequest =
 type VectorDbController(vectorDbService: IVectorDbService) =
     inherit ControllerBase()
 
+    [<Authorize>]
     [<HttpPost("store")>]
     member this.StoreEmbedding([<FromBody>] request: StoreEmbeddingRequest) =
         task {
@@ -43,6 +45,7 @@ type VectorDbController(vectorDbService: IVectorDbService) =
             | Error msg -> return this.BadRequest(msg) :> IActionResult
         }
 
+    [<Authorize>]
     [<HttpGet("read/{id}")>]
     member this.ReadEmbedding([<FromRoute>] id: Guid) =
         task {
@@ -54,6 +57,7 @@ type VectorDbController(vectorDbService: IVectorDbService) =
             | Error msg -> return this.BadRequest(msg) :> IActionResult
         }
 
+    [<Authorize>]
     [<HttpPost("update")>]
     member this.UpdateEmbedding([<FromBody>] request: {| id: Guid; model: string; vector: float32[] |}) =
         task {
@@ -64,6 +68,7 @@ type VectorDbController(vectorDbService: IVectorDbService) =
             | Error msg -> return this.BadRequest(msg) :> IActionResult
         }
 
+    [<Authorize>]
     [<HttpDelete("remove/{id}")>]
     member this.RemoveEmbedding([<FromRoute>] id: Guid) =
         task {
@@ -73,6 +78,7 @@ type VectorDbController(vectorDbService: IVectorDbService) =
             | Error msg -> return this.BadRequest(msg) :> IActionResult
         }
 
+    [<Authorize>]
     [<HttpPost("remove-multiple")>]
     member this.RemoveEmbeddings([<FromBody>] ids: seq<Guid>) =
         task {
@@ -144,6 +150,7 @@ type VectorDbController(vectorDbService: IVectorDbService) =
             | Error msg -> return this.BadRequest(msg) :> IActionResult
         }
 
+    [<Authorize>]
     [<HttpDelete("remove-by-book/{bookId}")>]
     member this.RemoveEmbeddingsByBook([<FromRoute>] bookId: Guid, [<FromQuery>] tenantId: Guid) =
         task {
@@ -177,6 +184,7 @@ type VectorDbController(vectorDbService: IVectorDbService) =
             | Error msg -> return this.BadRequest(msg) :> IActionResult
         }
 
+    [<Authorize>]
     [<HttpGet("all-ids")>]
     member this.ReadAllIds([<FromQuery>] tenantId: Guid) =
         task {
@@ -191,6 +199,7 @@ type VectorDbController(vectorDbService: IVectorDbService) =
             | Error msg -> return this.BadRequest(msg) :> IActionResult
         }
 
+    [<Authorize>]
     [<HttpGet("all-paper-ids")>]
     member this.ReadAllPaperIds([<FromQuery>] tenantId: Guid) =
         task {
@@ -205,6 +214,7 @@ type VectorDbController(vectorDbService: IVectorDbService) =
             | Error msg -> return this.BadRequest(msg) :> IActionResult
         }
 
+    [<Authorize>]
     [<HttpPost("link-intra-book/{bookId}")>]
     member this.LinkIntraBookEmbeddings([<FromRoute>] bookId: Guid, [<FromQuery>] tenantId: Guid) =
         task {
@@ -214,6 +224,7 @@ type VectorDbController(vectorDbService: IVectorDbService) =
             | Error msg -> return this.BadRequest(msg) :> IActionResult
         }
 
+    [<Authorize>]
     [<HttpPost("enquiry-missing")>]
     member this.EnquiryMissing([<FromBody>] ids: seq<Guid>) =
         task {

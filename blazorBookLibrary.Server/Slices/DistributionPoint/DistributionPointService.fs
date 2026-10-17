@@ -147,6 +147,7 @@ type DistributionPointService
 
         taskResult {
             do! checkIsGlobalAdminOrTenantManager context ctValue
+            let! _ = this.GetDistributionPointAsync(context, distributionPointId, ?ct = ct)
             let! books = this.GetBooksOfADistributionPoint(context, distributionPointId, ?ct = ct)
 
             do!

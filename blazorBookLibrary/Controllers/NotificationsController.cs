@@ -33,9 +33,20 @@ public class NotificationsController : Controller
         return LocalRedirect(string.IsNullOrWhiteSpace(redirectUrl) ? "/" : redirectUrl);
     }
 
+    private bool IsUntrustedCrossSiteRequest()
+    {
+        return Request.Headers.TryGetValue("Sec-Fetch-Site", out var secFetchSite) &&
+               string.Equals(secFetchSite, "cross-site", StringComparison.OrdinalIgnoreCase);
+    }
+
     [HttpGet]
     public async Task<IActionResult> AcceptInvitation(string notificationId, string tenantId, string code)
     {
+        if (IsUntrustedCrossSiteRequest())
+        {
+            return Forbid();
+        }
+
         if (Guid.TryParse(notificationId, out var notifGuid) && 
             Guid.TryParse(tenantId, out var tenantGuid) && 
             Guid.TryParse(code, out var codeGuid) && 
@@ -81,6 +92,11 @@ public class NotificationsController : Controller
     [HttpGet]
     public async Task<IActionResult> ApproveJoin(string notificationId, string tenantId, string? requesterId = null)
     {
+        if (IsUntrustedCrossSiteRequest())
+        {
+            return Forbid();
+        }
+
         if (Guid.TryParse(notificationId, out var notifGuid) && 
             Guid.TryParse(tenantId, out var tenantGuid) && 
             User.Identity != null && User.Identity.IsAuthenticated)
@@ -116,6 +132,11 @@ public class NotificationsController : Controller
     [HttpGet]
     public async Task<IActionResult> RejectJoin(string notificationId, string? tenantId = null, string? requesterId = null, string? returnUrl = null)
     {
+        if (IsUntrustedCrossSiteRequest())
+        {
+            return Forbid();
+        }
+
         if (Guid.TryParse(notificationId, out var notifGuid) && User.Identity != null && User.Identity.IsAuthenticated)
         {
             var userContext = UserContextMapper.mapFromClaimsPrincipal(User);

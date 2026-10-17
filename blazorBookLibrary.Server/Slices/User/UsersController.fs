@@ -2,6 +2,7 @@
 namespace BookLibrary.Controllers
 
 open Microsoft.AspNetCore.Mvc
+open Microsoft.AspNetCore.Authorization
 open BookLibrary.Services
 open BookLibrary.Shared.Services
 open BookLibrary.Shared.Commons
@@ -10,6 +11,7 @@ open System.Threading.Tasks
 open System
 open System.Collections.Generic
 
+[<Authorize>]
 [<ApiController>]
 [<Route("api/[controller]")>]
 type UsersController(userService: IUserService) =

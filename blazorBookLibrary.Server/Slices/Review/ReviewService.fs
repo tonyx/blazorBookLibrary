@@ -169,6 +169,11 @@ type ReviewService
             let! tenantId = userTenantResolverService.GetTenantForUserAsync(context, ct)
 
             do!
+                match context with
+                | UserContext.Authenticated(u, roles) when u = comment.UserId || roles |> List.contains Role.Admin -> Ok ()
+                | _ -> Error "Not authorized to submit review for this user"
+
+            do!
                 book.TenantId = tenantId
                 |> Result.ofBool $"Book {book.BookId} tenant id {book.TenantId} not matching"
 
