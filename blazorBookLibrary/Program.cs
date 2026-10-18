@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.AspNetCore.RateLimiting;
+using System.Threading.RateLimiting;
 
 using Microsoft.EntityFrameworkCore;
 using blazorBookLibrary.Components;
@@ -54,6 +56,7 @@ builder.Services.AddCascadingAuthenticationState();
 builder.Services.AddScoped<IdentityRedirectManager>();
 builder.Services.AddScoped<AuthenticationStateProvider, PersistingRevalidatingAuthenticationStateProvider>();
 builder.Services.AddScoped<blazorBookLibrary.Client.Services.TenantStateService>();
+builder.Services.AddScoped<blazorBookLibrary.Client.Services.AiRateLimitStateService>();
 builder.Services.AddScoped<blazorBookLibrary.Client.Services.IUserLocationService, blazorBookLibrary.Client.Services.UserLocationService>();
 builder.Services.AddScoped<blazorBookLibrary.Client.Services.ITechnicalInfoService, blazorBookLibrary.Services.ServerTechnicalInfoService>();
 builder.Services.AddAuthentication(options =>
@@ -151,6 +154,112 @@ builder.Services.AddScoped<IDataExportService, DataExportService>();
 builder.Services.AddHostedService<MailResenderScheduler>();
 builder.Services.AddHostedService<ExpiredReservationsRemovalScheduler>();
 
+// Configure Rate Limiting for external paid AI services
+var aiRateLimitingEnabled = builder.Configuration.GetValue<bool>("AiRateLimiting:Enabled", true);
+var globalAiLimitPerMinute = builder.Configuration.GetValue<int>("AiRateLimiting:GlobalLimitPerMinute", 60);
+var guestPermitLimit = builder.Configuration.GetValue<int>("AiRateLimiting:Guest:PermitLimit", 5);
+var guestWindowMinutes = builder.Configuration.GetValue<int>("AiRateLimiting:Guest:WindowMinutes", 1);
+var authPermitLimit = builder.Configuration.GetValue<int>("AiRateLimiting:Authenticated:PermitLimit", 20);
+var authWindowMinutes = builder.Configuration.GetValue<int>("AiRateLimiting:Authenticated:WindowMinutes", 1);
+var librarianPermitLimit = builder.Configuration.GetValue<int>("AiRateLimiting:Librarian:PermitLimit", 100);
+var librarianWindowMinutes = builder.Configuration.GetValue<int>("AiRateLimiting:Librarian:WindowMinutes", 1);
+
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.OnRejected = async (context, token) =>
+    {
+        context.HttpContext.Response.Headers.RetryAfter = "60";
+        var isGuest = !(context.HttpContext.User.Identity?.IsAuthenticated ?? false);
+        await context.HttpContext.Response.WriteAsJsonAsync(new
+        {
+            error = "Rate limit exceeded. Please wait a moment before trying again.",
+            isGuest = isGuest,
+            retryAfterSeconds = 60
+        }, cancellationToken: token);
+    };
+
+    // Global rate limiter specifically for AI endpoints
+    options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(httpContext =>
+    {
+        if (!aiRateLimitingEnabled)
+        {
+            return RateLimitPartition.GetNoLimiter("global_disabled");
+        }
+
+        var path = httpContext.Request.Path;
+        var isAiRequest = path.StartsWithSegments("/api/AIAssistant", StringComparison.OrdinalIgnoreCase)
+                          || path.StartsWithSegments("/api/LibrarianChat", StringComparison.OrdinalIgnoreCase)
+                          || path.StartsWithSegments("/api/TextEmbedding", StringComparison.OrdinalIgnoreCase);
+
+        if (!isAiRequest)
+        {
+            return RateLimitPartition.GetNoLimiter("non_ai_request");
+        }
+
+        return RateLimitPartition.GetSlidingWindowLimiter("global_ai_ceiling", _ => new SlidingWindowRateLimiterOptions
+        {
+            PermitLimit = globalAiLimitPerMinute,
+            Window = TimeSpan.FromMinutes(1),
+            SegmentsPerWindow = 4,
+            QueueLimit = 0
+        });
+    });
+
+    // Per-user / per-guest policy applied via [EnableRateLimiting("AiServicesPolicy")]
+    options.AddPolicy("AiServicesPolicy", httpContext =>
+    {
+        if (!aiRateLimitingEnabled)
+        {
+            return RateLimitPartition.GetNoLimiter("ai_disabled");
+        }
+
+        // Tier 1: Librarian / Admin (High limit)
+        if (httpContext.User.IsInRole("Admin") || httpContext.User.IsInRole("Librarian"))
+        {
+            var adminId = httpContext.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
+                          ?? httpContext.User.Identity?.Name
+                          ?? "admin_user";
+            return RateLimitPartition.GetSlidingWindowLimiter($"ai_librarian_{adminId}", _ => new SlidingWindowRateLimiterOptions
+            {
+                PermitLimit = librarianPermitLimit,
+                Window = TimeSpan.FromMinutes(librarianWindowMinutes),
+                SegmentsPerWindow = 4,
+                QueueLimit = 0
+            });
+        }
+
+        // Tier 2: Authenticated patron (by UserId)
+        if (httpContext.User.Identity?.IsAuthenticated == true)
+        {
+            var userId = httpContext.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
+                         ?? httpContext.User.Identity?.Name
+                         ?? "auth_user";
+            return RateLimitPartition.GetSlidingWindowLimiter($"ai_auth_{userId}", _ => new SlidingWindowRateLimiterOptions
+            {
+                PermitLimit = authPermitLimit,
+                Window = TimeSpan.FromMinutes(authWindowMinutes),
+                SegmentsPerWindow = 4,
+                QueueLimit = 0
+            });
+        }
+
+        // Tier 3: Guest / Anonymous (by IP)
+        var clientIp = httpContext.Request.Headers["CF-Connecting-IP"].FirstOrDefault()
+                       ?? httpContext.Request.Headers["X-Forwarded-For"].FirstOrDefault()?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).FirstOrDefault()
+                       ?? httpContext.Connection.RemoteIpAddress?.ToString()
+                       ?? "guest_unknown";
+
+        return RateLimitPartition.GetSlidingWindowLimiter($"ai_guest_{clientIp}", _ => new SlidingWindowRateLimiterOptions
+        {
+            PermitLimit = guestPermitLimit,
+            Window = TimeSpan.FromMinutes(guestWindowMinutes),
+            SegmentsPerWindow = 2,
+            QueueLimit = 0
+        });
+    });
+});
+
 var app = builder.Build();
 
 app.Use(async (context, next) =>
@@ -211,7 +320,10 @@ var localizationOptions = new RequestLocalizationOptions()
 
 app.UseRequestLocalization(localizationOptions);
 
+app.UseAuthentication();
+app.UseAuthorization();
 app.UseAntiforgery();
+app.UseRateLimiter();
 
 app.MapStaticAssets();
 app.MapRazorComponents<App>()

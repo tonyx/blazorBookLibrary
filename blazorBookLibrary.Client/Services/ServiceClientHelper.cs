@@ -11,6 +11,62 @@ public static class ServiceClientHelper
 {
     public static readonly JsonSerializerOptions JsonOptions = BookLibrary.Shared.Commons.jsonOptions;
 
+    public static event Action<AiRateLimitNotification>? OnRateLimited;
+
+    private static async Task<string> ProcessErrorResponse(HttpResponseMessage response)
+    {
+        var error = await response.Content.ReadAsStringAsync();
+
+        if (response.StatusCode == System.Net.HttpStatusCode.TooManyRequests)
+        {
+            var isGuest = true;
+            var retryAfterSeconds = 60;
+            var friendlyMessage = "Rate limit reached. Please wait before retrying.";
+
+            if (response.Headers.RetryAfter?.Delta.HasValue == true)
+            {
+                retryAfterSeconds = (int)response.Headers.RetryAfter.Delta.Value.TotalSeconds;
+            }
+
+            if (!string.IsNullOrWhiteSpace(error))
+            {
+                try
+                {
+                    using var doc = JsonDocument.Parse(error);
+                    if (doc.RootElement.TryGetProperty("isGuest", out var isGuestProp))
+                    {
+                        isGuest = isGuestProp.GetBoolean();
+                    }
+                    if (doc.RootElement.TryGetProperty("retryAfterSeconds", out var retryProp))
+                    {
+                        retryAfterSeconds = retryProp.GetInt32();
+                    }
+                    if (doc.RootElement.TryGetProperty("error", out var errorProp) && errorProp.GetString() is { } msg)
+                    {
+                        friendlyMessage = msg;
+                    }
+                }
+                catch
+                {
+                    // Fall back to defaults if not JSON
+                }
+            }
+
+            try
+            {
+                OnRateLimited?.Invoke(new AiRateLimitNotification(isGuest, retryAfterSeconds, friendlyMessage));
+            }
+            catch
+            {
+                // Prevent listener errors from failing HTTP response handling
+            }
+
+            return friendlyMessage;
+        }
+
+        return string.IsNullOrWhiteSpace(error) ? response.ReasonPhrase ?? "Unknown error" : error;
+    }
+
     public static async Task<FSharpResult<T, string>> HandleResponse<T>(HttpResponseMessage response)
     {
         if (response.IsSuccessStatusCode)
@@ -43,8 +99,8 @@ public static class ServiceClientHelper
         }
         else
         {
-            var error = await response.Content.ReadAsStringAsync();
-            return FSharpResult<T, string>.NewError(string.IsNullOrWhiteSpace(error) ? response.ReasonPhrase ?? "Unknown error" : error);
+            var error = await ProcessErrorResponse(response);
+            return FSharpResult<T, string>.NewError(error);
         }
     }
 
@@ -56,8 +112,8 @@ public static class ServiceClientHelper
         }
         else
         {
-            var error = await response.Content.ReadAsStringAsync();
-            return FSharpResult<Unit, string>.NewError(string.IsNullOrWhiteSpace(error) ? response.ReasonPhrase ?? "Unknown error" : error);
+            var error = await ProcessErrorResponse(response);
+            return FSharpResult<Unit, string>.NewError(error);
         }
     }
 

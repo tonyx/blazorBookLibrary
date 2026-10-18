@@ -1,0 +1,80 @@
+@using blazorBookLibrary.Shared.Resources
+@using Microsoft.Extensions.Localization
+@using blazorBookLibrary.Client.Services
+@inject AiRateLimitStateService RateLimitService
+@inject IStringLocalizer<SharedResources> L
+@inject NavigationManager NavigationManager
+@implements IDisposable
+
+@if (RateLimitService.IsRateLimited)
+{
+    <aside class="ai-rate-limit-banner animate-fade-in shadow-lg" role="alert" aria-live="assertive">
+        <div class="ai-banner-card">
+            <div class="d-flex align-items-start gap-3">
+                <div class="ai-banner-icon-wrapper @(RateLimitService.IsGuest ? "guest-icon" : "user-icon")" aria-hidden="true">
+                    @if (RateLimitService.IsGuest)
+                    {
+                        <i class="bi bi-shield-lock-fill"></i>
+                    }
+                    else
+                    {
+                        <i class="bi bi-hourglass-split"></i>
+                    }
+                </div>
+                <div class="flex-grow-1">
+                    <div class="d-flex align-items-center justify-content-between mb-1">
+                        <h4 class="ai-banner-title mb-0">
+                            @(RateLimitService.IsGuest ? L["AiRateLimit_GuestTitle"] : L["AiRateLimit_UserTitle"])
+                        </h4>
+                        <span class="ai-countdown-badge">
+                            <i class="bi bi-clock-history me-1"></i>@(RateLimitService.RemainingSeconds)s
+                        </span>
+                    </div>
+
+                    <p class="ai-banner-text mb-2">
+                        @(RateLimitService.IsGuest 
+                            ? string.Format(L["AiRateLimit_GuestMessage"], RateLimitService.RemainingSeconds) 
+                            : string.Format(L["AiRateLimit_UserMessage"], RateLimitService.RemainingSeconds))
+                    </p>
+
+                    <div class="d-flex align-items-center gap-2 flex-wrap pt-1">
+                        @if (RateLimitService.IsGuest)
+                        {
+                            <a href="Account/Login" class="btn btn-sm btn-primary py-1 px-3 fw-bold rounded-pill shadow-sm">
+                                <i class="bi bi-box-arrow-in-right me-1"></i>@L["AiRateLimit_SignIn"]
+                            </a>
+                            <a href="Account/Register" class="btn btn-sm btn-outline-primary py-1 px-3 rounded-pill">
+                                <i class="bi bi-person-plus me-1"></i>@L["AiRateLimit_Register"]
+                            </a>
+                        }
+                        <button type="button" class="btn btn-sm btn-link text-muted p-0 ms-auto text-decoration-none" @onclick="Dismiss">
+                            <i class="bi bi-x-lg me-1"></i>Dismiss
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </aside>
+}
+
+@code {
+    protected override void OnInitialized()
+    {
+        RateLimitService.OnChange += OnStateChanged;
+    }
+
+    private void OnStateChanged()
+    {
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    private void Dismiss()
+    {
+        RateLimitService.Dismiss();
+    }
+
+    public void Dispose()
+    {
+        RateLimitService.OnChange -= OnStateChanged;
+    }
+}

@@ -1267,4 +1267,11 @@
   <data name="ProximityCheckRequired" xml:space="preserve"><value>Proximity Check Required</value></data>
   <data name="GuestReservationProximityNotice" xml:space="preserve"><value>This library requires guest reservations to be submitted in physical proximity (within {0} meters).</value></data>
   <data name="GeolocationRequiredForGuest" xml:space="preserve"><value>Location access is required to verify physical proximity to the library for guest reservations.</value></data>
+  <data name="AiRateLimit_GuestTitle" xml:space="preserve"><value>Guest Limit Reached</value></data>
+  <data name="AiRateLimit_GuestMessage" xml:space="preserve"><value>You have reached the free guest preview limit for AI features. Please wait {0}s, or sign in for higher capacity.</value></data>
+  <data name="AiRateLimit_UserTitle" xml:space="preserve"><value>AI Cooling Down</value></data>
+  <data name="AiRateLimit_UserMessage" xml:space="preserve"><value>You have reached the temporary request limit for AI operations. Please wait {0}s.</value></data>
+  <data name="AiRateLimit_SignIn" xml:space="preserve"><value>Sign In</value></data>
+  <data name="AiRateLimit_Register" xml:space="preserve"><value>Register</value></data>
+  <data name="AiRateLimit_WaitSeconds" xml:space="preserve"><value>Wait {0}s</value></data>
 </root>

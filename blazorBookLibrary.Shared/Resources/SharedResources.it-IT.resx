@@ -1267,4 +1267,11 @@
   <data name="ProximityCheckRequired" xml:space="preserve"><value>Verifica di prossimità richiesta</value></data>
   <data name="GuestReservationProximityNotice" xml:space="preserve"><value>Questa biblioteca richiede che le prenotazioni ospiti siano effettuate in prossimità fisica (entro {0} metri).</value></data>
   <data name="GeolocationRequiredForGuest" xml:space="preserve"><value>L'accesso alla posizione è necessario per verificare la prossimità fisica alla biblioteca per le prenotazioni ospiti.</value></data>
+  <data name="AiRateLimit_GuestTitle" xml:space="preserve"><value>Limite Ospite Raggiunto</value></data>
+  <data name="AiRateLimit_GuestMessage" xml:space="preserve"><value>Hai raggiunto il limite di anteprima ospite per le funzionalità IA. Attendi {0}s, oppure accedi per una capacità superiore.</value></data>
+  <data name="AiRateLimit_UserTitle" xml:space="preserve"><value>Raffreddamento IA</value></data>
+  <data name="AiRateLimit_UserMessage" xml:space="preserve"><value>Hai raggiunto il limite temporaneo di richieste IA. Attendi {0}s.</value></data>
+  <data name="AiRateLimit_SignIn" xml:space="preserve"><value>Accedi</value></data>
+  <data name="AiRateLimit_Register" xml:space="preserve"><value>Registrati</value></data>
+  <data name="AiRateLimit_WaitSeconds" xml:space="preserve"><value>Attendi {0}s</value></data>
 </root>

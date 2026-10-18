@@ -47,6 +47,7 @@ public class Program
         builder.Services.AddScoped<ITechnicalInfoService, TechnicalInfoClientService>();
         builder.Services.AddScoped<IUserLocationService, UserLocationService>();
         builder.Services.AddScoped<TenantStateService>();
+        builder.Services.AddScoped<AiRateLimitStateService>();
 
         var host = builder.Build();
 

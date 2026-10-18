@@ -11,6 +11,7 @@
 @using BookLibrary.Shared.Services
 @using blazorBookLibrary.Shared.Resources
 @inject ILibrarianChatService LibrarianChatService
+@inject blazorBookLibrary.Client.Services.AiRateLimitStateService RateLimitService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject IStringLocalizer<SharedResources> L
 @inject IJSRuntime JSRuntime
@@ -236,22 +237,42 @@
                         </div>
                     }
 
+                    @if (RateLimitService.IsRateLimited)
+                    {
+                        <div class="alert alert-warning border-0 rounded-xl py-2 px-3 mb-2 d-flex align-items-center justify-content-between animate-fade-in" role="alert" style="background: rgba(255, 193, 7, 0.15); border-left: 4px solid #ffc107 !important;">
+                            <div class="d-flex align-items-center gap-2">
+                                <i class="bi bi-hourglass-split text-warning fs-5"></i>
+                                <span class="small">
+                                    @(RateLimitService.IsGuest 
+                                        ? string.Format(L["AiRateLimit_GuestMessage"], RateLimitService.RemainingSeconds) 
+                                        : string.Format(L["AiRateLimit_UserMessage"], RateLimitService.RemainingSeconds))
+                                </span>
+                            </div>
+                            @if (RateLimitService.IsGuest)
+                            {
+                                <div class="d-flex align-items-center gap-2 ms-2">
+                                    <a href="Account/Login" class="btn btn-xs btn-primary rounded-pill px-2 py-1 text-nowrap">@L["AiRateLimit_SignIn"]</a>
+                                </div>
+                            }
+                        </div>
+                    }
+
                     <div class="input-group bg-surface rounded-xl shadow-sm border overflow-hidden p-1">
                         <textarea id="librarianChatInput"
                                   class="form-control border-0 bg-transparent shadow-none px-3 py-2" 
                                   rows="2"
-                                  placeholder="@L["AskLibrarianPlaceholder"]"
+                                  placeholder="@(RateLimitService.IsRateLimited ? string.Format(L["AiRateLimit_WaitSeconds"], RateLimitService.RemainingSeconds) : L["AskLibrarianPlaceholder"])"
                                   @bind="_userInput"
                                   @bind:event="oninput"
                                   @onkeydown="HandleKeyDown"
-                                  disabled="@_isThinking"></textarea>
+                                  disabled="@(_isThinking || RateLimitService.IsRateLimited)"></textarea>
 
                         @if (_speechRecSupported)
                         {
                             <button class="btn @(_isListening ? "btn-danger" : "btn-light border") align-self-end m-1 px-3 py-2 rounded-xl transition-hover" 
                                     type="button" 
                                     @onclick="ToggleListening" 
-                                    disabled="@_isThinking"
+                                    disabled="@(_isThinking || RateLimitService.IsRateLimited)"
                                     title="@L["VoiceInput"]">
                                 <i class="bi @(_isListening ? "bi-mic-fill animate-pulse text-white" : "bi-mic text-primary")"></i>
                             </button>
@@ -260,16 +281,21 @@
                         <button class="btn-sanctuary-primary align-self-end m-1 px-3 py-2" 
                                 type="button" 
                                 @onclick="SendMessage" 
-                                disabled="@(_isThinking || string.IsNullOrWhiteSpace(_userInput))">
+                                disabled="@(_isThinking || RateLimitService.IsRateLimited || string.IsNullOrWhiteSpace(_userInput))">
                             @if (_isThinking)
                             {
                                 <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
                             }
+                            else if (RateLimitService.IsRateLimited)
+                            {
+                                <i class="bi bi-hourglass-split"></i>
+                                <span class="ms-1">@(RateLimitService.RemainingSeconds)s</span>
+                            }
                             else
                             {
                                 <i class="bi bi-send-fill"></i>
+                                <span class="d-none d-sm-inline ms-1">@L["AskQuestion"]</span>
                             }
-                            <span class="d-none d-sm-inline ms-1">@L["AskQuestion"]</span>
                         </button>
                     </div>
                 </div>
@@ -501,6 +527,11 @@
     private bool _autoSpeechEnabled = false;
     private int _currentlySpeakingIndex = -1;
 
+    private void HandleRateLimitChanged()
+    {
+        _ = InvokeAsync(StateHasChanged);
+    }
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
@@ -657,7 +688,10 @@
             }
             else
             {
-                _errorMessage = result.ErrorValue;
+                if (!RateLimitService.IsRateLimited)
+                {
+                    _errorMessage = result.ErrorValue;
+                }
             }
         }
         catch (Exception ex)
@@ -757,6 +791,7 @@
     {
         var current = CultureInfo.CurrentUICulture.Name;
         _speechLanguage = current.StartsWith("it", StringComparison.OrdinalIgnoreCase) ? "it-IT" : "en-US";
+        RateLimitService.OnChange += HandleRateLimitChanged;
     }
 
     private async Task ToggleListening()
@@ -892,6 +927,7 @@
 
     public async ValueTask DisposeAsync()
     {
+        RateLimitService.OnChange -= HandleRateLimitChanged;
         try
         {
             if (_isListening)

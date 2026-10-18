@@ -1,0 +1,78 @@
+.ai-rate-limit-banner {
+    position: fixed;
+    top: 24px;
+    right: 24px;
+    z-index: 1060;
+    max-width: 440px;
+    width: calc(100vw - 48px);
+    border-radius: 16px;
+    animation: slideDown 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.ai-banner-card {
+    background: rgba(30, 30, 35, 0.94);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 16px;
+    padding: 18px 20px;
+    color: #f1f3f5;
+    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.35);
+}
+
+.ai-banner-icon-wrapper {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.35rem;
+    flex-shrink: 0;
+}
+
+.ai-banner-icon-wrapper.guest-icon {
+    background: rgba(220, 53, 69, 0.2);
+    color: #ff6b6b;
+    border: 1px solid rgba(220, 53, 69, 0.35);
+}
+
+.ai-banner-icon-wrapper.user-icon {
+    background: rgba(255, 193, 7, 0.2);
+    color: #ffd166;
+    border: 1px solid rgba(255, 193, 7, 0.35);
+}
+
+.ai-banner-title {
+    font-size: 0.95rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+}
+
+.ai-countdown-badge {
+    font-size: 0.75rem;
+    font-weight: 700;
+    background: rgba(255, 255, 255, 0.15);
+    color: #ffd166;
+    padding: 2px 8px;
+    border-radius: 20px;
+    display: inline-flex;
+    align-items: center;
+}
+
+.ai-banner-text {
+    font-size: 0.85rem;
+    color: #ced4da;
+    line-height: 1.45;
+}
+
+@keyframes slideDown {
+    0% {
+        opacity: 0;
+        transform: translateY(-20px) scale(0.96);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}

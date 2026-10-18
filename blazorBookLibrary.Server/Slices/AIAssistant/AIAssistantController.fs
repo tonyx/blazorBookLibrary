@@ -2,6 +2,7 @@
 namespace BookLibrary.Controllers
 
 open Microsoft.AspNetCore.Mvc
+open Microsoft.AspNetCore.RateLimiting
 open BookLibrary.Services
 open BookLibrary.Shared.Services
 open BookLibrary.Shared.Commons
@@ -12,6 +13,7 @@ open System.Collections.Generic
 
 [<ApiController>]
 [<Route("api/[controller]")>]
+[<EnableRateLimiting("AiServicesPolicy")>]
 type AIAssistantController(textEmbeddingService: ITextEmbeddingService) =
     inherit ControllerBase()
 

@@ -88,6 +88,22 @@
     "ServiceBusSubscriptionName": "sharpino-sub-1",
     "L2CacheExpirationSeconds": 120
   },
+  "AiRateLimiting": {
+    "Enabled": true,
+    "GlobalLimitPerMinute": 60,
+    "Guest": {
+      "PermitLimit": 5,
+      "WindowMinutes": 1
+    },
+    "Authenticated": {
+      "PermitLimit": 20,
+      "WindowMinutes": 1
+    },
+    "Librarian": {
+      "PermitLimit": 100,
+      "WindowMinutes": 1
+    }
+  },
 
   "GoogleBookApiKey": "....",
   "AdminUsername": "this@willbetheadmin.com",
