@@ -1042,13 +1042,18 @@ type GuestPatron =
     { Name: string
       PhoneNumber: Option<string>
       Email: Option<string>
-      Notes: Option<string> }
+      Notes: Option<string>
+      Coordinates: Option<Coordinates> }
     with
-        static member Create(name: string, ?phoneNumber: string, ?email: string, ?notes: string) =
+        static member Create(name: string, ?phoneNumber: string, ?email: string, ?notes: string, ?coordinates: Coordinates) =
             { Name = name
               PhoneNumber = phoneNumber
               Email = email
-              Notes = notes }
+              Notes = notes
+              Coordinates = coordinates }
+
+        static member New(name: string, ?phoneNumber: string, ?email: string, ?notes: string, ?coordinates: Coordinates) =
+            GuestPatron.Create(name, ?phoneNumber = phoneNumber, ?email = email, ?notes = notes, ?coordinates = coordinates)
 
 type Patron =
     | RegisteredUser of UserId

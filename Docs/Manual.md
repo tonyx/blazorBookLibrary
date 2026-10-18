@@ -145,6 +145,9 @@ If a friend, family member, or community leader invites you to their private ten
   - **Public Library Exclusivity**: Guest reservations and loans are strictly permitted in **Public Libraries** (or the default community circuit). Private, closed-circle tenants require account registration and an invitation.
   - **Direct Walk-In Reservation**: Visitors without an account can request a reservation directly on any book marked `Circulating (Including Guests)` by providing their full name and optional contact details (phone, email, notes).
   - **Fair Access Invariant**: To protect inventory while remaining open to the public, a book only accepts a guest reservation if it is currently available with no active loan and no prior pending reservations.
+  - **Geolocation Proximity Verification**:
+    - **No Control if Disabled**: If the public library has not geolocalized itself (`GeoLocSettings.Disabled`), no proximity control is enforced and walk-in reservations proceed without location verification.
+    - **Physical Proximity Check if Enabled**: If the public library has configured its geolocation coordinates and radius (`GeoLocSettings.Enabled`), guest users must provide device geolocation verifying that they are physically in proximity of the library (within the configured radius threshold) to place a reservation.
   - **PIN Pickup Verification**: Once approved, a pickup PIN (or librarian desk review) is used at the Distribution Point to finalize the handover and transition the reservation into an active guest loan.
 
 ---

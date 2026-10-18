@@ -252,6 +252,8 @@ type ReservationService
                     book.Availability.AllowsGuest
                     |> Result.ofBool "This book is not available for guest reservations"
 
+                do! tenant.CheckGuestProximity guest.Coordinates
+
                 do! book.NoLoan |> Result.ofBool "Book is currently loaned"
 
                 let! (alreadyExistingReservations: Reservation list) =

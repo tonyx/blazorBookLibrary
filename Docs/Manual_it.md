@@ -145,6 +145,9 @@ Se un amico, un familiare o un leader di una comunità ti invita nel suo tenant 
   - **Esclusiva per Biblioteche Pubbliche**: Le prenotazioni e i prestiti per ospiti sono consentiti esclusivamente nelle **Biblioteche Pubbliche** (o nel circuito predefinito di comunità). I tenant privati e chiusi richiedono la registrazione e l'invito.
   - **Prenotazione Diretta Senza Registrazione**: I visitatori sprovvisti di account possono richiedere una prenotazione direttamente su qualsiasi libro contrassegnato come `Circolante (Inclusi Ospiti)`, inserendo nome e recapiti facoltativi (telefono, email, note).
   - **Invariante di Equo Accesso**: Per tutelare il patrimonio librario rimanendo aperti al pubblico, un libro accetta una prenotazione ospite solo se è attualmente disponibile, senza prestiti attivi né prenotazioni pendenti precedenti.
+  - **Verifica di Prossimità tramite Geolocalizzazione**:
+    - **Nessun Controllo se Disabilitata**: Se la biblioteca pubblica non ha impostato la propria geolocalizzazione (`GeoLocSettings.Disabled`), nessun controllo di prossimità viene eseguito per le prenotazioni ospiti.
+    - **Controllo di Prossimità Fisica se Abilitata**: Se la biblioteca pubblica ha configurato coordinate e raggio di copertura (`GeoLocSettings.Enabled`), l'utente ospite deve fornire la posizione del proprio dispositivo per attestare la presenza fisica in prossimità della biblioteca (entro il raggio impostato) prima di poter prenotare.
   - **Ritiro Verificato Tramite PIN**: Una volta approvata la richiesta, viene generato un PIN di ritiro (o controllo manuale al banco del bibliotecario) da utilizzare al Punto di Distribuzione per completare il passaggio e trasformare la prenotazione in un prestito ospite attivo.
 
 ---

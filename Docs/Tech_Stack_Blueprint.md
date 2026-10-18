@@ -179,6 +179,13 @@ type Availability =
         member this.CanCirculate: bool = ...
         member this.AllowsGuest: bool = ...
 
+type GuestPatron =
+    { Name: string
+      PhoneNumber: Option<string>
+      Email: Option<string>
+      Notes: Option<string>
+      Coordinates: Option<Coordinates> }
+
 type Patron =
     | RegisteredUser of UserId
     | Guest of GuestPatron

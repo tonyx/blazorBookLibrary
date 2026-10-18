@@ -204,6 +204,9 @@ This document outlines the core functionality of the Blazor Book Library applica
     - The book must be configured with availability `Circulating (Including Guests)`. Books marked `Circulating (Members Only)` clearly instruct the visitor to log in or register.
     - The book must be currently available with no prior active reservations.
     - Provide full name and optional contact details (phone, email, notes).
+    - **Geolocation Proximity Verification**:
+        - If the public library has not geolocalized itself (`Disabled`), no proximity verification is enforced.
+        - If the public library uses geolocation (`Enabled` with coordinates and proximity radius), the guest must provide device geolocation verifying physical proximity within the library's configured radius threshold.
     - Receive confirmation of the pending reservation to coordinate physical pickup.
 
 ### **As a Librarian or Custodian, I want to manage and fulfill guest reservations using a secure PIN or desk verification.**

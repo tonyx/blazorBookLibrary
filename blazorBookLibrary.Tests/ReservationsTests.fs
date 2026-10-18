@@ -1162,5 +1162,112 @@ let tests =
             | Error err -> Expect.equal err "This book is not available for guest reservations" "should report proper error"
             | Ok _ -> failwith "expected error"
         }
+        testCaseTask "guest reservation on geolocalized library requires location verification - missing coords Error" <| fun _ -> task {
+            setUp ()
+            let tenantService = getTenantService ()
+            let bookService = getBookService ()
+            let reservationService = getReservationService ()
+
+            let! ownerId = registerUserTask "geoloc_owner1@test.com" "Password123!"
+            let ownerContext = (UserContext.Authenticated(ownerId, [ Role.Manager ]))
+            let geoTenant =
+                Tenant.New(ownerId, TenantName.New "Geoloc Library Test" |> Result.get, "Duomo, Milan", true)
+            let! addTenant = tenantService.CreateTenantAsync(ownerContext, geoTenant)
+            Expect.isOk addTenant "create public tenant should succeed"
+            let! approveResult = tenantService.SetPublicAsync(adminContext, geoTenant.TenantId)
+            Expect.isOk approveResult "approve public tenant should succeed"
+
+            // Enable geolocation on tenant: Duomo Milan (45.4642, 9.1900) with 100m radius
+            let geoLoc = GeoLocSettings.CreateEnabled(45.4642, 9.1900, 100.0) |> Result.get
+            let! setGeo = tenantService.SetGeoLocSettingsAsync(ownerContext, geoTenant.TenantId, geoLoc)
+            Expect.isOk setGeo "enable geolocation on tenant should succeed"
+
+            let managerContext = ownerContext.WithNewTenant(geoTenant.TenantId)
+            let book = { Book.New geoTenant.TenantId (Title.New "Geoloc Guest Book") [] [] [] None Category.Other [] (Year.New 2023) (Isbn.NewEmpty()) None with Availability = Availability.CirculatingIncludingGuest }
+            let! addBook = bookService.AddBookAsync(managerContext, book)
+            Expect.isOk addBook "add book to geoloc tenant should succeed"
+
+            // Guest without coordinates tries to reserve -> must fail
+            let guestNoCoords = GuestPatron.Create("Remote Guest", email = "remote@example.com")
+            let futureSlot = TimeSlot.New (DateTime.UtcNow.AddDays(1)) (DateTime.UtcNow.AddDays(7))
+            let guestResNoCoords = Reservation.NewGuest geoTenant.TenantId book.BookId guestNoCoords futureSlot DateTime.UtcNow
+
+            let! addRes = reservationService.AddReservationAsync(UserContext.Anonymous, guestResNoCoords, ShortLang.New "en")
+            Expect.isError addRes "guest reservation without coordinates should fail on geolocalized library"
+            match addRes with
+            | Error err -> Expect.equal err "Guest reservation requires device location verification when library geolocation is enabled" "should report location verification required"
+            | Ok _ -> failwith "expected error"
+        }
+        testCaseTask "guest reservation on geolocalized library fails when guest is outside proximity radius - Error" <| fun _ -> task {
+            setUp ()
+            let tenantService = getTenantService ()
+            let bookService = getBookService ()
+            let reservationService = getReservationService ()
+
+            let! ownerId = registerUserTask "geoloc_owner2@test.com" "Password123!"
+            let ownerContext = (UserContext.Authenticated(ownerId, [ Role.Manager ]))
+            let geoTenant =
+                Tenant.New(ownerId, TenantName.New "Geoloc Library Radius Test" |> Result.get, "Duomo, Milan", true)
+            let! addTenant = tenantService.CreateTenantAsync(ownerContext, geoTenant)
+            Expect.isOk addTenant "create public tenant should succeed"
+            let! approveResult = tenantService.SetPublicAsync(adminContext, geoTenant.TenantId)
+            Expect.isOk approveResult "approve public tenant should succeed"
+
+            // Library at (45.4642, 9.1900) with 100m radius
+            let geoLoc = GeoLocSettings.CreateEnabled(45.4642, 9.1900, 100.0) |> Result.get
+            let! setGeo = tenantService.SetGeoLocSettingsAsync(ownerContext, geoTenant.TenantId, geoLoc)
+            Expect.isOk setGeo "enable geolocation on tenant should succeed"
+
+            let managerContext = ownerContext.WithNewTenant(geoTenant.TenantId)
+            let book = { Book.New geoTenant.TenantId (Title.New "Geoloc Guest Book 2") [] [] [] None Category.Other [] (Year.New 2023) (Isbn.NewEmpty()) None with Availability = Availability.CirculatingIncludingGuest }
+            let! addBook = bookService.AddBookAsync(managerContext, book)
+            Expect.isOk addBook "add book should succeed"
+
+            // Guest ~4km away at (45.5000, 9.1900)
+            let farCoords = Coordinates.New(45.5000, 9.1900)
+            let guestFar = GuestPatron.Create("Far Guest", email = "far@example.com", coordinates = farCoords)
+            let futureSlot = TimeSlot.New (DateTime.UtcNow.AddDays(1)) (DateTime.UtcNow.AddDays(7))
+            let guestResFar = Reservation.NewGuest geoTenant.TenantId book.BookId guestFar futureSlot DateTime.UtcNow
+
+            let! addRes = reservationService.AddReservationAsync(UserContext.Anonymous, guestResFar, ShortLang.New "en")
+            Expect.isError addRes "guest reservation far outside proximity radius should fail"
+            match addRes with
+            | Error err -> Expect.isTrue (err.Contains("requires proximity to the library")) $"unexpected error message: {err}"
+            | Ok _ -> failwith "expected error"
+        }
+        testCaseTask "guest reservation on geolocalized library succeeds when guest is within proximity radius - Ok" <| fun _ -> task {
+            setUp ()
+            let tenantService = getTenantService ()
+            let bookService = getBookService ()
+            let reservationService = getReservationService ()
+
+            let! ownerId = registerUserTask "geoloc_owner3@test.com" "Password123!"
+            let ownerContext = (UserContext.Authenticated(ownerId, [ Role.Manager ]))
+            let geoTenant =
+                Tenant.New(ownerId, TenantName.New "Geoloc Library Proximity Ok" |> Result.get, "Duomo, Milan", true)
+            let! addTenant = tenantService.CreateTenantAsync(ownerContext, geoTenant)
+            Expect.isOk addTenant "create public tenant should succeed"
+            let! approveResult = tenantService.SetPublicAsync(adminContext, geoTenant.TenantId)
+            Expect.isOk approveResult "approve public tenant should succeed"
+
+            // Library at (45.4642, 9.1900) with 100m radius
+            let geoLoc = GeoLocSettings.CreateEnabled(45.4642, 9.1900, 100.0) |> Result.get
+            let! setGeo = tenantService.SetGeoLocSettingsAsync(ownerContext, geoTenant.TenantId, geoLoc)
+            Expect.isOk setGeo "enable geolocation on tenant should succeed"
+
+            let managerContext = ownerContext.WithNewTenant(geoTenant.TenantId)
+            let book = { Book.New geoTenant.TenantId (Title.New "Geoloc Guest Book 3") [] [] [] None Category.Other [] (Year.New 2023) (Isbn.NewEmpty()) None with Availability = Availability.CirculatingIncludingGuest }
+            let! addBook = bookService.AddBookAsync(managerContext, book)
+            Expect.isOk addBook "add book should succeed"
+
+            // Guest very close at (45.46422, 9.19002) ~2.5m away
+            let nearCoords = Coordinates.New(45.46422, 9.19002)
+            let guestNear = GuestPatron.Create("Nearby Guest", email = "near@example.com", coordinates = nearCoords)
+            let futureSlot = TimeSlot.New (DateTime.UtcNow.AddDays(1)) (DateTime.UtcNow.AddDays(7))
+            let guestResNear = Reservation.NewGuest geoTenant.TenantId book.BookId guestNear futureSlot DateTime.UtcNow
+
+            let! addRes = reservationService.AddReservationAsync(UserContext.Anonymous, guestResNear, ShortLang.New "en")
+            Expect.isOk addRes "guest reservation within proximity radius should succeed"
+        }
     ]
     |> testSequenced

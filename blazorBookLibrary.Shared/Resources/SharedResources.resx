@@ -1264,4 +1264,7 @@
   <data name="NameIsRequired" xml:space="preserve"><value>Name is required</value></data>
   <data name="ReservationRequested" xml:space="preserve"><value>Reservation Requested</value></data>
   <data name="GuestReservationDeskHelp" xml:space="preserve"><value>Please contact or visit the library desk to complete your pickup.</value></data>
+  <data name="ProximityCheckRequired" xml:space="preserve"><value>Proximity Check Required</value></data>
+  <data name="GuestReservationProximityNotice" xml:space="preserve"><value>This library requires guest reservations to be submitted in physical proximity (within {0} meters).</value></data>
+  <data name="GeolocationRequiredForGuest" xml:space="preserve"><value>Location access is required to verify physical proximity to the library for guest reservations.</value></data>
 </root>

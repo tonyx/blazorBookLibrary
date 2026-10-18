@@ -332,6 +332,31 @@ type Tenant =
         | GeoLocSettings.Enabled tenantCoordinates ->
             userCoordinates.DistanceInMeters (tenantCoordinates) <= userCoordinates.RadiusInMeters
 
+    /// Checks whether the coordinates are within the proximity radius configured by the library.
+    /// If library geolocation is disabled, returns true (no proximity control).
+    member this.IsInProximity (userCoordinates: Coordinates) =
+        match this.GeoLocSettings with
+        | GeoLocSettings.Disabled -> true
+        | GeoLocSettings.Enabled tenantCoordinates ->
+            tenantCoordinates.DistanceInMeters(userCoordinates) <= tenantCoordinates.RadiusInMeters
+
+    /// Validates proximity requirements for guest reservations.
+    /// If library geolocation is disabled, no control is done (returns Ok ()).
+    /// If library geolocation is enabled, guest coordinates must be provided and within proximity radius.
+    member this.CheckGuestProximity (guestCoordinates: Option<Coordinates>) : Result<unit, string> =
+        match this.GeoLocSettings with
+        | GeoLocSettings.Disabled -> Ok ()
+        | GeoLocSettings.Enabled tenantCoordinates ->
+            match guestCoordinates with
+            | None ->
+                Error "Guest reservation requires device location verification when library geolocation is enabled"
+            | Some coords ->
+                let distance = tenantCoordinates.DistanceInMeters (coords)
+                if distance <= tenantCoordinates.RadiusInMeters then
+                    Ok ()
+                else
+                    Error $"Guest reservation requires proximity to the library (distance: {int (Math.Round distance)}m, allowed: {int tenantCoordinates.RadiusInMeters}m)"
+
     member this.SetPrivate() =
         { this with
             TenantVisibility = TenantVisibility.Private }

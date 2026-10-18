@@ -26,6 +26,7 @@
 @inject IStringLocalizer<SharedResources> L
 @inject IBotScoreService BotScoreService
 @inject blazorBookLibrary.Client.Services.TenantStateService TenantState
+@inject ITenantService TenantService
 @rendermode InteractiveAuto
 
 <PageTitle>@L["BookDetails"]</PageTitle>
@@ -232,6 +233,17 @@
                                             <a href="/Account/Login" class="fw-bold text-decoration-underline text-reset ms-1">@L["LogIn"]</a>
                                         </div>
                                     </div>
+
+                                    @if (libraryTenant?.GeoLocSettings != null && libraryTenant.GeoLocSettings.IsEnabled && libraryTenant.GeoLocSettings.OptCoordinates != null && Microsoft.FSharp.Core.FSharpOption<Coordinates>.get_IsSome(libraryTenant.GeoLocSettings.OptCoordinates))
+                                    {
+                                        var coords = libraryTenant.GeoLocSettings.OptCoordinates.Value;
+                                        <div class="alert alert-warning py-2 px-3 small d-flex align-items-center gap-2 mb-3 text-start" style="border-radius: 8px;">
+                                            <i class="bi bi-geo-alt-fill text-warning fs-6"></i>
+                                            <div>
+                                                <strong>@L["ProximityCheckRequired"]</strong>: @string.Format(L["GuestReservationProximityNotice"].Value, (int)coords.RadiusInMeters)
+                                            </div>
+                                        </div>
+                                    }
 
                                     <div class="mb-2 text-start">
                                         <label class="form-label small fw-semibold mb-1">@L["YourName"] <span class="text-danger">*</span></label>
@@ -592,6 +604,7 @@
     private bool isSubmittingGuest = false;
     private bool guestReservationSubmitted = false;
     private string? guestFormError = null;
+    private Tenant? libraryTenant;
 
     private string activePin = "";
     private DateTime pinExpiresAt;
@@ -788,11 +801,39 @@
             FSharpOption<string> ToOpt(string? s) =>
                 string.IsNullOrWhiteSpace(s) ? FSharpOption<string>.None : FSharpOption<string>.Some(s.Trim());
 
+            FSharpOption<Coordinates> guestCoordinates = FSharpOption<Coordinates>.None;
+
+            if (libraryTenant?.GeoLocSettings != null && libraryTenant.GeoLocSettings.IsEnabled)
+            {
+                DeviceLocationResult? locResult = null;
+                try
+                {
+                    locResult = await JSRuntime.InvokeAsync<DeviceLocationResult>("tenantMap.getDeviceCoordinates");
+                }
+                catch (Exception jsEx)
+                {
+                    Logger.LogWarning(jsEx, "Failed to invoke tenantMap.getDeviceCoordinates");
+                }
+
+                if (locResult == null || !locResult.Success)
+                {
+                    guestFormError = !string.IsNullOrWhiteSpace(locResult?.ErrorMessage)
+                        ? locResult.ErrorMessage
+                        : (L["GeolocationRequiredForGuest"]?.Value ?? "Location access is required to verify proximity to the library.");
+                    return;
+                }
+
+                guestCoordinates = FSharpOption<Coordinates>.Some(
+                    Coordinates.New(locResult.Latitude, locResult.Longitude, locResult.Accuracy > 0 ? locResult.Accuracy : 50.0)
+                );
+            }
+
             var guestPatron = new GuestPatron(
                 guestName.Trim(),
                 ToOpt(guestPhone),
                 ToOpt(guestEmail),
-                ToOpt(guestNotes)
+                ToOpt(guestNotes),
+                guestCoordinates
             );
 
             var reservation = Reservation.NewGuest(tenantId, bookDetails.Book.BookId, guestPatron, nextSlot, now);
@@ -909,6 +950,19 @@
                     if (bookDetails.Book.Papers.Any())
                     {
                         await EnsurePaperAuthorsResolved(bookDetails.Book.Papers);
+                    }
+
+                    try
+                    {
+                        var tenantResult = await TenantService.GetTenantAsync(context, bookDetails.Book.TenantId, FSharpOption<CancellationToken>.None);
+                        if (tenantResult.IsOk)
+                        {
+                            libraryTenant = tenantResult.ResultValue;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.LogWarning(ex, "Failed to load library tenant details for proximity check");
                     }
                 }
                 else
@@ -1140,5 +1194,15 @@
             return author.Name.Value;
         }
         return authorId.Value.ToString();
+    }
+
+    public class DeviceLocationResult
+    {
+        public bool Success { get; set; }
+        public double Latitude { get; set; }
+        public double Longitude { get; set; }
+        public double Accuracy { get; set; }
+        public int ErrorCode { get; set; }
+        public string? ErrorMessage { get; set; }
     }
 }
