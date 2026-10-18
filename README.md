@@ -30,6 +30,7 @@ See the [LICENSE](LICENSE) file for the full legal text.
 - **Advanced Bulk Operations**: High-performance JSON/CSV archival export and intelligent ISBN-based bulk import with real-time progress tracking. Features AI-assisted enrichment, including automated author generation, missing description synthesis, and instant vector embedding creation.
 - **AI-Powered Semantic Discovery & Multi-Paper Indexing**: Intelligent meaning-based search using **PostgreSQL pgvector** embeddings. Search evaluates both overall book descriptions and individual paper/article abstracts within collective volumes, moving beyond traditional keyword matching.
 - **Conversational AI Librarian (RAG Chatbot)**: An interactive digital literary assistant combining Retrieval-Augmented Generation (RAG) and **Gemini 3.6 Flash**. Engages in natural dialogue with patrons, retrieving grounded catalog context with direct book links, specific paper citations, and optional general knowledge modes.
+- **Flexible Lending & Guest Reservations**: Multi-tiered availability policies (`Circulating (Members Only)`, `Circulating (Including Guests)`, `Reference Only`). Enables public community libraries to accept frictionless walk-in guest reservations and secure PIN/desk checkouts without forcing account registration.
 - **Geographical Proximity & Library Discovery**: Optional geographical coordinates for libraries and patrons. Users can set their location via GPS or interactive map to discover and filter public libraries and shared circuits by physical proximity.
 
 ## 📖 Documentation

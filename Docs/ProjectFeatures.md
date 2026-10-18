@@ -19,8 +19,9 @@ The Blazor Book Library is a state-of-the-art archival and lending system built 
 *   **Conversational AI Librarian (RAG-Powered Chatbot)**: An interactive AI literary scholar combining Retrieval-Augmented Generation (RAG) and Gemini models. Engages patrons in multi-turn dialogues, answers research questions grounded in the library's actual catalog, provides direct book links and paper citations, and features an optional general knowledge mode with voice/speech capabilities.
 *   **Geographical Proximity & Library Discovery**: Patrons can set their optional location (via browser GPS, interactive map, or manual coordinates) to filter and discover public libraries and community book-sharing circuits ordered by physical proximity.
 *   **Tag-Based Filtering**: Flexible discovery using archival tags (e.g., "First Edition", "Local Interest") with support for logical disjunction (OR) filtering.
-*   **Real-time Availability**: Instant feedback on whether a book is "Immediately Available", "Reference Only", or "Currently Loaned".
-*   **Self-Service Loans & Reservations**: Members can borrow available titles or reserve books currently on loan, receiving automated notifications when they become available.
+*   **Real-time Availability & Circulation Policies**: Instant feedback on whether a book is "Available", "Circulating (Members Only)", "Circulating (Open to Guests)", "Reference Only", or "Currently Loaned".
+*   **Self-Service Loans & Member Reservations**: Registered members can borrow available titles or reserve books currently on loan, receiving automated notifications when they become available.
+*   **Frictionless Walk-In Guest Reservations**: Unauthenticated visitors in public community libraries can place reservations on guest-eligible volumes directly without creating an account, picking up their books via secure PIN or librarian desk validation.
 *   **Personal Dashboard**: A unified view of current loans, pending reservations, and personal reading history.
 
 ### 📚 The Manager (Librarian)

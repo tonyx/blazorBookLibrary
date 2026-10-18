@@ -3,7 +3,7 @@
 This document outlines the core functionality of the Blazor Book Library application from the perspective of different user roles, updated to reflect the self-governing **Multi-Tenant (Circuit)** architecture.
 
 ## Roles
-- **Visitor**: An unauthenticated user browsing public catalogs or public demonstration areas.
+- **Visitor (Guest)**: An unauthenticated user browsing public catalogs or demonstration areas who can also place guest reservations on titles explicitly configured for guest circulation.
 - **Member (Patron)**: A registered user belonging to one or more tenants (by default, the demonstration tenant, or any autonomous tenant they have joined). Patrons can browse catalogs, borrow books, and make reservations within their active tenant context.
 - **Owner**: An authenticated user who creates a new autonomous tenant (circuit) to run a custom library service. Owners have absolute administrative authority to set privacy (Public vs. Private), manage patron rosters, invite new patrons, and delegate roles.
 - **Librarian / Manager**: A staff member or tenant-appointed role responsible for catalog operations (adding/editing books, managing authors, generating AI embeddings) within a specific tenant context.
@@ -197,6 +197,20 @@ This document outlines the core functionality of the Blazor Book Library applica
 - **Criteria**:
     - Members can cancel their own reservations.
     - Librarians can cancel any reservation on behalf of a user in their tenant context.
+
+### **As a Visitor (Guest), I want to place a reservation on an eligible book without creating an account.**
+- **Criteria**:
+    - The tenant must be a **Public Library** (or default circuit); private libraries reject guest requests.
+    - The book must be configured with availability `Circulating (Including Guests)`. Books marked `Circulating (Members Only)` clearly instruct the visitor to log in or register.
+    - The book must be currently available with no prior active reservations.
+    - Provide full name and optional contact details (phone, email, notes).
+    - Receive confirmation of the pending reservation to coordinate physical pickup.
+
+### **As a Librarian or Custodian, I want to manage and fulfill guest reservations using a secure PIN or desk verification.**
+- **Criteria**:
+    - View pending guest reservations in the management view, clearly distinguishing `Guest` patrons from registered user accounts.
+    - Verify the guest's identity or redeem a generated Checkout PIN.
+    - Transition the reservation into an active `Loan` assigned to the `GuestPatron` while preserving full audit traceability.
 
 ---
 

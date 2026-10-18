@@ -127,15 +127,25 @@ Se un amico, un familiare o un leader di una comunità ti invita nel suo tenant 
 
 <a name="prestiti-e-restituzioni-regole-di-circolazione"></a>
 ### Prestiti e Restituzioni (Regole di Circolazione)
-- **Prestito**: Vai alla pagina dei dettagli di un libro disponibile e clicca su **"Prendi in prestito"**. Puoi selezionare un **Punto di Distribuzione** fisico per coordinare il ritiro.
+- **Politiche di Disponibilità dei Libri**:
+  - **Circolante (Solo Registrati)**: Il volume può essere prenotato o preso in prestito dagli utenti registrati del circuito bibliotecario.
+  - **Circolante (Inclusi Ospiti)**: Il volume è aperto al prestito e alla prenotazione sia per gli utenti registrati che per ospiti e visitatori occasionali non registrati.
+  - **Solo Consultazione**: Il volume è riservato alla sola consultazione in sede; il prestito e la prenotazione a distanza sono disabilitati.
+  - **Non Specificato**: Stato archivistico iniziale non ancora assegnato.
+- **Prestito (Utenti Registrati)**: Vai alla pagina dei dettagli di un libro disponibile e clicca su **"Prendi in prestito"** o **"Ottieni PIN di Consegna"**. Puoi selezionare un **Punto di Distribuzione** fisico per coordinare il ritiro.
 - **Restituzioni (Vincolo Stretto)**: Per preservare la tracciabilità dell'inventario fisico, **i libri devono essere restituiti all'esatto Punto di Distribuzione fisico** da cui sono stati presi in prestito o registrati.
 - **Self-Service vs. Approvazione del Custode**:
-  - In un tenant **Gestito da Custodi**, un referente designato (Utente di Riferimento) deve controllare fisicamente e approvare il ritiro o la restituzione nel sistema.
-  - In un tenant **Self-Service (Basato sulla Fiducia)**, i patron confermano direttamente i loro ritiri e restituzioni digitali, affidandosi interamente alla fiducia reciproca e all'onestà.
+  - In un tenant **Gestito da Custodi**, un referente designato (Utente di Riferimento o Manager) verifica e approva fisicamente la consegna o la restituzione nel sistema (ad es. convalidando il PIN di consegna del patron).
+  - In un tenant **Self-Service (Basato sulla Fiducia)**, i patron confermano direttamente i loro ritiri e restituzioni digitali, affidandosi alla fiducia reciproca.
 
 <a name="prenotazioni"></a>
 ### Prenotazioni
-Se un libro è attualmente in prestito, clicca su **"Prenota"** per metterti in coda. Verrai avvisato via email al momento della restituzione. Le prenotazioni possono essere annullate in qualsiasi momento dalla dashboard del tuo profilo.
+- **Prenotazioni per Utenti Registrati**: Se un libro circolante è attualmente in prestito, gli utenti registrati possono cliccare su **"Prenota"** per mettersi in coda. Riceverai una notifica automatica al momento della restituzione quando il volume sarà pronto per il ritiro. Le prenotazioni possono essere annullate in qualsiasi momento dalla dashboard del tuo profilo.
+- **Prenotazioni per Ospiti (Accesso Comunitario Senza Barriere)**:
+  - **Esclusiva per Biblioteche Pubbliche**: Le prenotazioni e i prestiti per ospiti sono consentiti esclusivamente nelle **Biblioteche Pubbliche** (o nel circuito predefinito di comunità). I tenant privati e chiusi richiedono la registrazione e l'invito.
+  - **Prenotazione Diretta Senza Registrazione**: I visitatori sprovvisti di account possono richiedere una prenotazione direttamente su qualsiasi libro contrassegnato come `Circolante (Inclusi Ospiti)`, inserendo nome e recapiti facoltativi (telefono, email, note).
+  - **Invariante di Equo Accesso**: Per tutelare il patrimonio librario rimanendo aperti al pubblico, un libro accetta una prenotazione ospite solo se è attualmente disponibile, senza prestiti attivi né prenotazioni pendenti precedenti.
+  - **Ritiro Verificato Tramite PIN**: Una volta approvata la richiesta, viene generato un PIN di ritiro (o controllo manuale al banco del bibliotecario) da utilizzare al Punto di Distribuzione per completare il passaggio e trasformare la prenotazione in un prestito ospite attivo.
 
 ---
 

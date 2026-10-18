@@ -19,8 +19,9 @@ Blazor Book Library è un sistema di archiviazione e prestito all'avanguardia, c
 *   **Bibliotecario IA Conversazionale (Chatbot basato su RAG)**: Un assistente letterario e di ricerca interattivo che combina Retrieval-Augmented Generation (RAG) e modelli Gemini. Intrattiene dialoghi multi-turno con i lettori, risponde a domande complesse basandosi sul catalogo effettivo della biblioteca, fornisce link diretti ai libri e citazioni specifiche dei paper, con supporto vocale e una modalità opzionale di conoscenza letteraria generale.
 *   **Scoperta della Biblioteca e Filtraggio per Prossimità**: I lettori possono impostare la propria posizione (tramite GPS del browser, mappa interattiva o coordinate manuali) per filtrare e scoprire le biblioteche pubbliche e i circuiti di condivisione ordinati per vicinanza geografica.
 *   **Filtraggio basato su Tag**: Scoperta flessibile utilizzando tag d'archivio (es. "Prima Edizione", "Interesse Locale") con supporto per il filtraggio logico "OR".
-*   **Disponibilità in Tempo Reale**: Feedback istantaneo se un libro è "Immediatamente Disponibile", "Sola Consultazione" o "Attualmente in Prestito".
-*   **Prestiti e Prenotazioni Self-Service**: I membri possono prendere in prestito i titoli disponibili o prenotare libri attualmente in prestito, ricevendo notifiche automatiche quando tornano disponibili.
+*   **Disponibilità in Tempo Reale e Politiche di Circolazione**: Feedback istantaneo se un libro è "Disponibile", "Circolante (Solo Registrati)", "Circolante (Inclusi Ospiti)", "Sola Consultazione" o "Attualmente in Prestito".
+*   **Prestiti e Prenotazioni per Membri Registrati**: I membri possono prendere in prestito i titoli disponibili o prenotare libri attualmente in prestito, ricevendo notifiche automatiche quando tornano disponibili.
+*   **Prenotazioni per Ospiti Senza Barriere**: I visitatori occasionali delle biblioteche pubbliche possono prenotare direttamente i volumi aperti agli ospiti senza obbligo di registrazione, ritirandoli mediante PIN sicuro o verifica al banco del bibliotecario.
 *   **Dashboard Personale**: Una vista unificata dei prestiti correnti, delle prenotazioni in sospeso e della cronologia di lettura personale.
 
 ### 📚 Il Manager (Bibliotecario)

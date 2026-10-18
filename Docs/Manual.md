@@ -127,15 +127,25 @@ If a friend, family member, or community leader invites you to their private ten
 
 <a name="loans--returns-circulation-rules"></a>
 ### Loans & Returns (Circulation Rules)
-- **Borrowing**: Navigate to an available book's details page and click **"Borrow"**. You can select a physical **Distribution Point** to coordinate the pickup.
+- **Book Availability Policies**:
+  - **Circulating (Members Only)**: The volume can be reserved or borrowed by registered members of the library circuit.
+  - **Circulating (Including Guests)**: The volume is openly available for loans and reservations to both registered members and walk-in/unregistered guests.
+  - **Reference Only**: The volume is restricted to in-library consultation only; borrowing and remote reservations are disabled.
+  - **Unspecified**: Initial unassigned archival status.
+- **Borrowing (Registered Members)**: Navigate to an available book's details page and click **"Borrow"** or **"Get Checkout PIN"**. You can select a physical **Distribution Point** to coordinate pickup.
 - **Returns (Strict Constraint)**: To preserve physical inventory tracking, **books must be returned to the exact physical Distribution Point** from which they were borrowed or registered.
 - **Self-Service vs. Custodian Approval**:
-  - In a **Custodian-Led** tenant, a designated caretaker (Reference User) must physically check and approve the pickup or return in the system.
-  - In a **Self-Service (Trust-Based)** tenant, patrons directly confirm their physical pickups and returns digitally, relying entirely on mutual trust and honesty.
+  - In a **Custodian-Led** tenant, a designated caretaker (Reference User or Manager) verifies and completes the pickup or return in the system (e.g., by validating the patron's Checkout PIN).
+  - In a **Self-Service (Trust-Based)** tenant, patrons directly confirm their physical pickups and returns digitally, relying on mutual trust.
 
 <a name="reservations"></a>
 ### Reservations
-If a book is currently on loan, click **"Place Reservation"** to queue for the copy. You will be notified via email when it is returned. You can cancel your reservations at any time from your profile dashboard.
+- **Member Reservations**: If a circulating book is currently on loan, registered members can click **"Reserve"** to queue for the copy. You receive an automated notification when the book is returned and ready for pickup. Reservations can be canceled at any time from your profile dashboard.
+- **Guest Reservations (Frictionless Community Access)**:
+  - **Public Library Exclusivity**: Guest reservations and loans are strictly permitted in **Public Libraries** (or the default community circuit). Private, closed-circle tenants require account registration and an invitation.
+  - **Direct Walk-In Reservation**: Visitors without an account can request a reservation directly on any book marked `Circulating (Including Guests)` by providing their full name and optional contact details (phone, email, notes).
+  - **Fair Access Invariant**: To protect inventory while remaining open to the public, a book only accepts a guest reservation if it is currently available with no active loan and no prior pending reservations.
+  - **PIN Pickup Verification**: Once approved, a pickup PIN (or librarian desk review) is used at the Distribution Point to finalize the handover and transition the reservation into an active guest loan.
 
 ---
 

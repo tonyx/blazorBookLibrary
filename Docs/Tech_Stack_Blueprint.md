@@ -170,11 +170,18 @@ Closed sets of domain values are also value objects:
 ```fsharp
 type Availability =
     | Circulating
+    | CirculatingIncludingGuest
     | ReferenceOnly
     | Unspecified
     with
-        static member AllCases () = [ Circulating; ReferenceOnly; Unspecified ]
+        static member AllCases () = [ Circulating; CirculatingIncludingGuest; ReferenceOnly; Unspecified ]
         static member FromString (s: string) = ...
+        member this.CanCirculate: bool = ...
+        member this.AllowsGuest: bool = ...
+
+type Patron =
+    | RegisteredUser of UserId
+    | Guest of GuestPatron
 
 type ApprovalStatus =
     | Pending
