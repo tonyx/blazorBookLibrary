@@ -29,7 +29,8 @@ module SearchCriteria =
     let searchNoneBooks = BookSearchCriteria(fun _ -> false)
     let searchImmediatelyAvailable = BookSearchCriteria(fun book -> book.ImmediatelyAvailable)
 
-    let searchCirculating = BookSearchCriteria(fun book -> book.Availability.IsCirculating)
+    let searchCirculating = BookSearchCriteria(fun book -> book.Availability.CanCirculate)
+    let searchCirculatingIncludingGuest = BookSearchCriteria(fun book -> book.Availability.AllowsGuest)
     let searchReferenceOnly = BookSearchCriteria(fun book -> book.Availability.IsReferenceOnly)
     let searchUnspecifiedAvailability = BookSearchCriteria(fun book -> book.Availability.IsUnspecified)
 
@@ -37,6 +38,7 @@ module SearchCriteria =
         match availability with
         | "ImmediatelyAvailable" -> searchImmediatelyAvailable
         | "Circulating" -> searchCirculating
+        | "CirculatingIncludingGuest" -> searchCirculatingIncludingGuest
         | "ReferenceOnly" -> searchReferenceOnly
         | "Unspecified" -> searchUnspecifiedAvailability
         | _ -> searchAllBooks

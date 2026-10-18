@@ -1000,23 +1000,43 @@ type GeolocSettings = GeoLocSettings
 
 type Availability =
     | Circulating
+    | CirculatingIncludingGuest
     | ReferenceOnly
     | Unspecified
 
     override this.ToString() =
         match this with
         | Circulating -> "Circulating"
+        | CirculatingIncludingGuest -> "CirculatingIncludingGuest"
         | ReferenceOnly -> "ReferenceOnly"
         | Unspecified -> "Unspecified"
 
     static member FromString(s: string) =
-        match s.ToLower() with
+        match s.Trim().ToLowerInvariant().Replace(" ", "").Replace("_", "") with
         | "circulating" -> Circulating
+        | "circulatingincludingguest" -> CirculatingIncludingGuest
         | "referenceonly" -> ReferenceOnly
         | _ -> Unspecified
 
     static member AllCases() =
-        [ Circulating; ReferenceOnly; Unspecified ]
+        [ Circulating; CirculatingIncludingGuest; ReferenceOnly; Unspecified ]
+
+    member this.CanCirculate =
+        match this with
+        | Circulating
+        | CirculatingIncludingGuest -> true
+        | ReferenceOnly
+        | Unspecified -> false
+
+    member this.AllowsGuest =
+        match this with
+        | CirculatingIncludingGuest -> true
+        | Circulating
+        | ReferenceOnly
+        | Unspecified -> false
+
+    member this.AllowsRegistered =
+        this.CanCirculate
 
 type GuestPatron =
     { Name: string

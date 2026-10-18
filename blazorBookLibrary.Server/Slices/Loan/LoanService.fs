@@ -73,6 +73,10 @@ type LoanService
 
             do! checkIsGlobalAdminOrTenantManager context ct
 
+            do!
+                book.Availability.CanCirculate
+                |> Result.ofBool "This book is not available for loan"
+
             let! (_, tenant) = tenantViewerAsync (ct |> Some) tenantId.Value
 
             match loan.Patron with
@@ -80,6 +84,9 @@ type LoanService
                 do!
                     (tenant.TenantId = TenantId.Default || tenant.TenantVisibility.IsPublic)
                     |> Result.ofBool "Guest loans are only allowed for public libraries"
+                do!
+                    book.Availability.AllowsGuest
+                    |> Result.ofBool "This book is not available for guest loans"
             | RegisteredUser _ -> ()
 
             let! optDpName =
@@ -359,6 +366,9 @@ type LoanService
                 do!
                     (tenant.TenantId = TenantId.Default || tenant.TenantVisibility.IsPublic)
                     |> Result.ofBool "Guest loans are only allowed for public libraries"
+                do!
+                    book.Availability.AllowsGuest
+                    |> Result.ofBool "This book is not available for guest loans"
             | RegisteredUser _ -> ()
 
             let setBookLoaned =
@@ -475,6 +485,9 @@ type LoanService
                 do!
                     (tenant.TenantId = TenantId.Default || tenant.TenantVisibility.IsPublic)
                     |> Result.ofBool "Guest loans are only allowed for public libraries"
+                do!
+                    book.Availability.AllowsGuest
+                    |> Result.ofBool "This book is not available for guest loans"
             | RegisteredUser _ -> ()
 
             let setBookLoaned =

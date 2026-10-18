@@ -68,9 +68,10 @@
                         <i class="bi bi-check2-square me-2"></i>@L["Availability"]
                     </label>
                     <select class="form-select" @bind="availability" disabled="@(!editAvailability)">
-                        <option value="Circulating">@L["Circulating"]</option>
-                        <option value="ReferenceOnly">@L["ReferenceOnly"]</option>
-                        <option value="Unspecified">@L["Unspecified"]</option>
+                        @foreach (var avail in Availability.AllCases())
+                        {
+                            <option value="@avail.ToString()">@GetAvailabilityLocalName(avail)</option>
+                        }
                     </select>
                 </div>
             </div>
@@ -453,5 +454,13 @@
     private void Cancel()
     {
         OnCancel.InvokeAsync();
+    }
+
+    private string GetAvailabilityLocalName(Availability avail)
+    {
+        if (avail.IsCirculatingIncludingGuest) return L["CirculatingIncludingGuest"];
+        if (avail.IsCirculating) return L["Circulating"];
+        if (avail.IsReferenceOnly) return L["ReferenceOnly"];
+        return L["Unspecified"];
     }
 }

@@ -622,9 +622,10 @@ else
                                 <div class="col-md-6 animate-fade-in">
                                     <label class="form-label small text-muted text-uppercase fw-bold mb-2">@L["ArchivalAvailability"]</label>
                                     <select class="form-select bg-surface-low border-0 py-2 shadow-sm" @bind="newBookAvailability">
-                                        <option value="Circulating">@L["Circulating"]</option>
-                                        <option value="ReferenceOnly">@L["ReferenceOnly"]</option>
-                                        <option value="Unspecified">@L["Unspecified"]</option>
+                                        @foreach (var avail in Availability.AllCases())
+                                        {
+                                            <option value="@avail.ToString()">@GetAvailabilityLocalName(avail)</option>
+                                        }
                                     </select>
                                 </div>
 
@@ -2442,6 +2443,14 @@ else
         {
             await hubConnection.DisposeAsync();
         }
+    }
+
+    private string GetAvailabilityLocalName(Availability avail)
+    {
+        if (avail.IsCirculatingIncludingGuest) return L["CirculatingIncludingGuest"];
+        if (avail.IsCirculating) return L["Circulating"];
+        if (avail.IsReferenceOnly) return L["ReferenceOnly"];
+        return L["Unspecified"];
     }
 }
 

@@ -267,7 +267,11 @@
   <data name="CheckoutDate" xml:space="preserve"><value>Data di Prestito</value></data>
   <data name="ChooseFromResults" xml:space="preserve"><value>-- Scegli dai risultati --</value></data>
   <data name="Circulating" xml:space="preserve"><value>Circolante</value></data>
-  <data name="CirculatingRule" xml:space="preserve"><value>Circolante (Prestito Standard)</value></data>
+  <data name="CirculatingRule" xml:space="preserve"><value>Circolante (Solo Registrati)</value></data>
+  <data name="CirculatingIncludingGuest" xml:space="preserve"><value>Circolante (Inclusi Ospiti)</value></data>
+  <data name="CirculatingIncludingGuestRule" xml:space="preserve"><value>Circolante (Inclusi Ospiti)</value></data>
+  <data name="RegisteredUsersOnlyTitle" xml:space="preserve"><value>Solo per Utenti Registrati</value></data>
+  <data name="RegisteredUsersOnlyNotice" xml:space="preserve"><value>Questo volume è disponibile per il prestito e la prenotazione solo per gli utenti registrati. Effettua l'accesso o registrati.</value></data>
   <data name="CleanDuplicatedVectors" xml:space="preserve"><value>Pulisci Vettori Duplicati</value></data>
   <data name="CleanDuplicatedVectorsDescription" xml:space="preserve"><value>Identifica e rimuove gli embedding vettoriali ridondanti che puntano allo stesso BookId, assicurando una rappresentazione semantica unica.</value></data>
   <data name="Clear" xml:space="preserve"><value>Cancella</value></data>

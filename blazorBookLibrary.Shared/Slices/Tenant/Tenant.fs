@@ -11,40 +11,6 @@ type PatronRole =
     | User
     | Suspended of string
 
-// type Tenant001 =
-//     { OwnerId: UserId
-//       TenantId: TenantId
-//       InvitedPatrons: List<(UserId * PatronInvitationCode)>
-//       Patrons: List<UserId * PatronRole>
-//       Name: TenantName
-//       Address: string
-//       TenantState: TenantState
-//       ReservationNotificationPreference: NotificationPreference
-//       LoanNotificationPreference: NotificationPreference
-//       TenantVisibility: TenantVisibility
-//       Tags: List<Tag>
-//       CurrentJoinPin: Option<string>
-//       JoinRequests: List<UserId> }
-//         with
-//             member
-//                 this.Upcast(): Tenant =
-//                     {
-//                         OwnerId = this.OwnerId
-//                         TenantId = this.TenantId
-//                         InvitedPatrons = this.InvitedPatrons
-//                         Patrons = this.Patrons
-//                         Name = this.Name
-//                         Address = this.Address
-//                         TenantState = this.TenantState
-//                         ReservationNotificationPreference = this.ReservationNotificationPreference
-//                         LoanNotificationPreference = this.LoanNotificationPreference
-//                         TenantVisibility = this.TenantVisibility
-//                         Tags = this.Tags
-//                         CurrentJoinPin = this.CurrentJoinPin
-//                         JoinRequests = this.JoinRequests
-//                         GeoLocSettings = GeoLocSettings.Disabled
-//                     }
-
 type Tenant =
     { OwnerId: UserId
       TenantId: TenantId

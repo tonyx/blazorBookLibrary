@@ -268,6 +268,10 @@
   <data name="ChooseFromResults" xml:space="preserve"><value>-- Choose from results --</value></data>
   <data name="Circulating" xml:space="preserve"><value>Circulating</value></data>
   <data name="CirculatingRule" xml:space="preserve"><value>Circulating</value></data>
+  <data name="CirculatingIncludingGuest" xml:space="preserve"><value>Circulating (Including Guests)</value></data>
+  <data name="CirculatingIncludingGuestRule" xml:space="preserve"><value>Circulating (Including Guests)</value></data>
+  <data name="RegisteredUsersOnlyTitle" xml:space="preserve"><value>Members Only</value></data>
+  <data name="RegisteredUsersOnlyNotice" xml:space="preserve"><value>This volume is only available for loan and reservation to registered members. Please log in or register.</value></data>
   <data name="CleanDuplicatedVectors" xml:space="preserve"><value>Clean Duplicated Vectors</value></data>
   <data name="CleanDuplicatedVectorsDescription" xml:space="preserve"><value>Identify and remove redundant vector embeddings that point to the same BookId, ensuring each book has only one unique semantic representation.</value></data>
   <data name="Clear" xml:space="preserve"><value>Clear</value></data>

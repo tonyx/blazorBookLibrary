@@ -242,6 +242,16 @@ type ReservationService
                 do!
                     reservation.TenantId = book.TenantId
                     |> Result.ofBool $"Book tenant id {book.TenantId} does not match reservation tenant id {reservation.TenantId}"
+
+                let! (_, tenant) = tenantViewerAsync (ct |> Some) book.TenantId.Value
+                do!
+                    (tenant.TenantId = TenantId.Default || tenant.TenantVisibility.IsPublic)
+                    |> Result.ofBool "Guest reservations and loans are only allowed for public libraries"
+
+                do!
+                    book.Availability.AllowsGuest
+                    |> Result.ofBool "This book is not available for guest reservations"
+
                 do! book.NoLoan |> Result.ofBool "Book is currently loaned"
 
                 let! (alreadyExistingReservations: Reservation list) =
@@ -253,11 +263,6 @@ type ReservationService
                 do!
                     alreadyExistingReservations.IsEmpty
                     |> Result.ofBool "Book already has active reservations"
-
-                let! (_, tenant) = tenantViewerAsync (ct |> Some) book.TenantId.Value
-                do!
-                    (tenant.TenantId = TenantId.Default || tenant.TenantVisibility.IsPublic)
-                    |> Result.ofBool "Guest reservations and loans are only allowed for public libraries"
 
                 let! result =
                     runInitAsync<Reservation, ReservationEvent, string> eventStore messageSenders reservation (ct |> Some)
@@ -290,6 +295,9 @@ type ReservationService
                 return result
 
             | RegisteredUser patronUserId ->
+                do!
+                    book.Availability.CanCirculate
+                    |> Result.ofBool "This book is not available for circulation"
                 let! user = userViewerAsync (Some ct) patronUserId.Value |> TaskResult.map snd
                 let! tenantId = userTenantResolverService.GetTenantForUserAsync(context, ct)
                 do! checkIsGlobalAdminOrTenantManagerOrSelf context ct patronUserId

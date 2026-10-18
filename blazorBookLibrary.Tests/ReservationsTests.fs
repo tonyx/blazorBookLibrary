@@ -1051,7 +1051,7 @@ let tests =
             let reservationService = getReservationService()
             let detailsService = getDetailsService()
 
-            let book = Book.New TenantId.Default (Title.New "Guest Book Test") [] [] [] None Category.Other [] (Year.New 2020) (Isbn.NewEmpty()) None
+            let book = { Book.New TenantId.Default (Title.New "Guest Book Test") [] [] [] None Category.Other [] (Year.New 2020) (Isbn.NewEmpty()) None with Availability = Availability.CirculatingIncludingGuest }
             let! addBook = bookService.AddBookAsync(adminContext, book)
             Expect.isOk addBook "add book should succeed"
 
@@ -1083,7 +1083,7 @@ let tests =
             let reservationService = getReservationService()
             let loanService = getLoanService()
 
-            let book = Book.New TenantId.Default (Title.New "Guest Loan PIN Test") [] [] [] None Category.Other [] (Year.New 2021) (Isbn.NewEmpty()) None
+            let book = { Book.New TenantId.Default (Title.New "Guest Loan PIN Test") [] [] [] None Category.Other [] (Year.New 2021) (Isbn.NewEmpty()) None with Availability = Availability.CirculatingIncludingGuest }
             let! addBook = bookService.AddBookAsync(adminContext, book)
             Expect.isOk addBook "add book should succeed"
 
@@ -1140,6 +1140,26 @@ let tests =
             Expect.isError addRes "guest reservation on private library should fail"
             match addRes with
             | Error err -> Expect.equal err "Guest reservations and loans are only allowed for public libraries" "should report proper error"
+            | Ok _ -> failwith "expected error"
+        }
+        testCaseTask "guest reservation on members-only circulating book fails - Error" <| fun _ -> task {
+            setUp ()
+            let bookService = getBookService ()
+            let reservationService = getReservationService ()
+
+            // Book.New defaults to Availability.Circulating (Members Only)
+            let book = Book.New TenantId.Default (Title.New "Members Only Book") [] [] [] None Category.Other [] (Year.New 2022) (Isbn.NewEmpty()) None
+            let! addBook = bookService.AddBookAsync(adminContext, book)
+            Expect.isOk addBook "add book should succeed"
+
+            let guest = GuestPatron.Create("Bob Guest", email = "bob@guest.com")
+            let futureSlot = TimeSlot.New (DateTime.UtcNow.AddDays(1)) (DateTime.UtcNow.AddDays(7))
+            let guestReservation = Reservation.NewGuest TenantId.Default book.BookId guest futureSlot DateTime.UtcNow
+
+            let! addRes = reservationService.AddReservationAsync(adminContext, guestReservation, ShortLang.New "en")
+            Expect.isError addRes "guest reservation on members-only book should fail"
+            match addRes with
+            | Error err -> Expect.equal err "This book is not available for guest reservations" "should report proper error"
             | Ok _ -> failwith "expected error"
         }
     ]

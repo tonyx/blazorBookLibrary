@@ -456,8 +456,8 @@ else
                             else
                             {
                                 <div class="d-flex align-items-center gap-3">
-                                    <span class="badge-sanctuary @(_bookDetails.Book.Availability.IsCirculating ? "badge-available" : "badge-neutral") p-2">
-                                        <i class="bi @(_bookDetails.Book.Availability.IsCirculating ? "bi-journal-check" : "bi-journal-lock") me-2"></i>
+                                    <span class="badge-sanctuary @(_bookDetails.Book.Availability.CanCirculate ? "badge-available" : "badge-neutral") p-2">
+                                        <i class="bi @(_bookDetails.Book.Availability.CanCirculate ? "bi-journal-check" : "bi-journal-lock") me-2"></i>
                                         @GetAvailabilityLocalName(_bookDetails.Book.Availability)
                                     </span>
                                     @if (_bookDetails.Book.Editable)
@@ -2547,6 +2547,7 @@ else
 
     private string GetAvailabilityLocalName(Availability availability)
     {
+        if (availability.IsCirculatingIncludingGuest) return L["CirculatingIncludingGuestRule"];
         if (availability.IsCirculating) return L["CirculatingRule"];
         if (availability.IsReferenceOnly) return L["ReferenceOnlyRule"];
         return L["UnspecifiedRule"];

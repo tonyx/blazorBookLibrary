@@ -69,56 +69,7 @@ type Paper =
             Tags = tags
         }
 
-type Book001 =
-    { TenantId: TenantId
-      BookId: BookId
-      Title: Title
-      ImageUrl: Option<Uri>
-      Description: Option<string>
-      OptionalEmbedding: Option<EmbeddingDataId>
-      Availability: Availability
-      DistributionPoint: Option<DistributionPointId>
-
-      Authors: List<AuthorId>
-      Translators: List<AuthorId>
-      Languages: List<CultureInfo>
-      CurrentLoan: Option<LoanId>
-      Editor: Option<EditorId>
-      MainCategory: Category
-      AdditionalCategories: List<Category>
-      Tags: List<Tag>
-      Year: Year
-      Isbn: Isbn
-      SbnCode: Option<SbnCode>
-      Sealed: Sealed }
-
-    with
-        member this.Upcast(): Book =
-            {
-                TenantId = this.TenantId
-                BookId = this.BookId
-                Title = this.Title
-                Papers = []
-                ImageUrl = this.ImageUrl
-                Description = this.Description
-                OptionalEmbedding = this.OptionalEmbedding
-                Availability = this.Availability
-                DistributionPoint = this.DistributionPoint
-                Authors = this.Authors
-                Translators = this.Translators
-                Languages = this.Languages
-                CurrentLoan = this.CurrentLoan
-                Editor = this.Editor
-                MainCategory = this.MainCategory
-                AdditionalCategories = this.AdditionalCategories
-                Tags = this.Tags
-                Year = this.Year
-                Isbn = this.Isbn
-                SbnCode = None
-                Sealed = this.Sealed
-            }
-
-and Book =
+type Book =
     { TenantId: TenantId
       BookId: BookId
       Title: Title
@@ -636,16 +587,16 @@ and Book =
     member this.Available = this.CurrentLoan |> Option.isNone
 
     member this.ImmediatelyAvailable =
-        this.Availability = Availability.Circulating && this.Available
+        this.Availability.CanCirculate && this.Available
 
     member this.AvailabilityStatus =
         if
             this.NoLoan
             && this.NoReservations
-            && this.Availability = Availability.Circulating
+            && this.Availability.CanCirculate
         then
             Available
-        else if this.NoLoan && this.Availability = Availability.Circulating then
+        else if this.NoLoan && this.Availability.CanCirculate then
             Reserved
         else if this.Availability = Availability.ReferenceOnly then
             Consultable
@@ -662,10 +613,5 @@ and Book =
         try
             JsonSerializer.Deserialize<Book>(data, jsonOptions) |> Ok
         with ex ->
-            try
-                let book001 = JsonSerializer.Deserialize<Book001>(data, jsonOptions)
-                Ok (book001.Upcast())
-            with ex2 ->
-                Error $"error deserializing {data}\n
-                    ex1: {ex.Message}
-                    ex2: {ex2.Message}"
+            Error $"error deserializing {data}: {ex.Message}\n"
+                
