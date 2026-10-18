@@ -53,15 +53,21 @@ type BookService
             return! Security.checkIsGlobalAdminOrTenantManagerOrPublicTenant tenant context
         }
 
-    let isTenantAccessible (targetTenantId: TenantId) (activeTenantId: TenantId) (ct: CancellationToken) =
+    let isTenantAccessible (context: UserContext) (targetTenantId: TenantId) (activeTenantId: TenantId) (ct: CancellationToken) =
         task {
-            if targetTenantId = activeTenantId || targetTenantId = TenantId.Default then
-                return true
-            else
-                let! tenantRes = tenantViewerAsync (Some ct) targetTenantId.Value
-                match tenantRes with
-                | Ok (_, tenant) -> return tenant.TenantVisibility.IsPublic
-                | Error _ -> return false
+            let! tenantRes = tenantViewerAsync (Some ct) targetTenantId.Value
+            match tenantRes with
+            | Ok (_, tenant) ->
+                if tenant.TenantId = TenantId.Default || tenant.TenantVisibility.IsPublic then
+                    return true
+                elif context.IsAnonymous then
+                    return false
+                elif targetTenantId = activeTenantId then
+                    return true
+                else
+                    return context.IsInRole Role.Admin || tenant.OwnerId = context.UserId.Value || (tenant.Patrons |> List.exists (fun (p, _) -> p = context.UserId.Value))
+            | Error _ ->
+                return targetTenantId = TenantId.Default
         }
 
     new (eventStore: IEventStore<string>, userTenantResolverService: IUserTenantResolverService, textEmbeddingService: ITextEmbeddingService, vectorDbService: IVectorDbService) =
@@ -641,7 +647,7 @@ type BookService
                 let ct = defaultArg ct CancellationToken.None
                 let! book = 
                     bookViewerAsync (Some ct) id.Value |> TaskResult.map snd
-                let! isAccessible = isTenantAccessible book.TenantId tenantId ct
+                let! isAccessible = isTenantAccessible context book.TenantId tenantId ct
                 do! 
                     isAccessible
                     |> Result.ofBool "Book tenant id not matching"
@@ -665,7 +671,7 @@ type BookService
                         let mutable allOk = true
                         for bTenantId in distinctTenantIds do
                             if allOk then
-                                let! ok = isTenantAccessible bTenantId tenantId ct
+                                let! ok = isTenantAccessible context bTenantId tenantId ct
                                 if not ok then allOk <- false
                         return allOk
                     }
@@ -690,6 +696,9 @@ type BookService
         let ct = defaultArg ct CancellationToken.None
         taskResult
             {
+                let! userTenantId = userTenantResolverService.GetTenantForUserAsync(context, ct)
+                let! isAccessible = isTenantAccessible context tenantId userTenantId ct
+                do! isAccessible |> Result.ofBool "Access denied to tenant books"
                 let! booksWithId = StateView.getAllFilteredAggregateStatesAsync<Book, BookEvent, string> (fun b -> b.TenantId = tenantId) eventStore (Some ct) 
                 return booksWithId |> List.ofSeq |> List.map snd
             }
@@ -1464,11 +1473,9 @@ type BookService
                 let! loans =
                     StateView.getAllFilteredAggregateStatesAsync<Loan, LoanEvent, string> 
                         (fun loan ->
-                            let patronUserId =
-                                match loan.Patron with
-                                | RegisteredUser u -> u
-                                | Guest _ -> failwith "Guest loans do not have a registered UserId"
-                            loan.BookId = bookId && patronUserId = userId && loan.LoanStatus.IsReturned)
+                            match loan.Patron with
+                            | RegisteredUser u -> loan.BookId = bookId && u = userId && loan.LoanStatus.IsReturned
+                            | Guest _ -> false)
                         eventStore
                         (Some ct)
                     |> TaskResult.map (fun x -> x |> List.ofSeq |> List.map snd)

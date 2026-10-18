@@ -76,22 +76,18 @@ type UserService
                 let! futurereservations =
                     StateView.getAllFilteredAggregateStatesAsync<Reservation, ReservationEvent, string>
                         (fun r ->
-                            let rUserId =
-                                match r.Patron with
-                                | RegisteredUser u -> u
-                                | Guest _ -> failwith "Guest reservations do not have a registered UserId"
-                            rUserId = id && r.TenantId = tenantId && r.IsPending)
+                            match r.Patron with
+                            | RegisteredUser u -> u = id && r.TenantId = tenantId && r.IsPending
+                            | Guest _ -> false)
                         eventStore
                         (Some ct)
                     |> TaskResult.map (List.ofSeq >> List.map snd)
                 let! currentLoans =
                     StateView.getAllFilteredAggregateStatesAsync<Loan, LoanEvent, string>
                         (fun l ->
-                            let lUserId =
-                                match l.Patron with
-                                | RegisteredUser u -> u
-                                | Guest _ -> failwith "Guest loans do not have a registered UserId"
-                            lUserId = id && l.TenantId = tenantId && l.InProgress)
+                            match l.Patron with
+                            | RegisteredUser u -> u = id && l.TenantId = tenantId && l.InProgress
+                            | Guest _ -> false)
                         eventStore
                         (Some ct)
                     |> TaskResult.map (List.ofSeq >> List.map snd)

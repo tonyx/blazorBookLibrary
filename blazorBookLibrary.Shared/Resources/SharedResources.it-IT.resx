@@ -1248,6 +1248,16 @@
   <data name="Locating" xml:space="preserve"><value>Rilevamento in corso</value></data>
   <data name="CookieBanner_Title" xml:space="preserve"><value>Informativa sui Cookie Tecnici</value></data>
   <data name="CookieBanner_Message" xml:space="preserve"><value>BiblioNet impiega esclusivamente cookie tecnici strettamente necessari al funzionamento, alla sicurezza della sessione e alle preferenze di navigazione. Non utilizziamo cookie di profilazione o tracciamento pubblicitario.</value></data>
-  <data name="CookieBanner_LearnMore" xml:space="preserve"><value>Informativa Privacy &amp; Cookie</value></data>
-  <data name="CookieBanner_Acknowledge" xml:space="preserve"><value>Ho capito</value></data>
+  <data name="ReserveAsGuest" xml:space="preserve"><value>Prenota come Ospite</value></data>
+  <data name="GuestReservationNotice" xml:space="preserve"><value>Hai già un account? Accedi prima per una migliore gestione delle prenotazioni.</value></data>
+  <data name="GuestReservationSuccess" xml:space="preserve"><value>Grazie, {0}! La tua prenotazione è stata inviata. Il gestore della biblioteca è stato informato e preparerà il prestito.</value></data>
+  <data name="GuestReservationWaitlistNotice" xml:space="preserve"><value>Le prenotazioni per ospiti sono disponibili solo se il volume è presente e senza lista d'attesa.</value></data>
+  <data name="UnavailableForGuestReservation" xml:space="preserve"><value>Non disponibile per prenotazione ospite</value></data>
+  <data name="LogInToJoinWaitlist" xml:space="preserve"><value>Accedi per metterti in coda</value></data>
+  <data name="YourName" xml:space="preserve"><value>Il tuo nome</value></data>
+  <data name="Notes" xml:space="preserve"><value>Note</value></data>
+  <data name="OptionalNotesPlaceholder" xml:space="preserve"><value>Note opzionali per il ritiro o recapito</value></data>
+  <data name="NameIsRequired" xml:space="preserve"><value>Il nome è obbligatorio</value></data>
+  <data name="ReservationRequested" xml:space="preserve"><value>Prenotazione Inviata</value></data>
+  <data name="GuestReservationDeskHelp" xml:space="preserve"><value>Contatta o recati al bancone della biblioteca per completare il ritiro.</value></data>
 </root>

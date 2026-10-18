@@ -1,0 +1,276 @@
+@page "/confirm-loan/{ReservationIdStr}"
+@using BookLibrary.Shared.Services
+@using BookLibrary.Domain
+@using BookLibrary.Shared
+@using static BookLibrary.Shared.Details
+@using blazorBookLibrary.Shared.Resources
+@using static BookLibrary.Shared.Commons
+@using Microsoft.Extensions.Localization
+@using Microsoft.Extensions.Configuration
+@using System.Threading
+@using System.Globalization
+
+@inject IDetailsService DetailsService
+@inject ILoanService LoanService
+@inject IConfiguration Configuration
+@inject IStringLocalizer<SharedResources> L
+@inject IJSRuntime JSRuntime
+@inject NavigationManager NavigationManager
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject ILogger<ConfirmLoan> Logger
+@inject blazorBookLibrary.Client.Services.TenantStateService TenantState
+@rendermode InteractiveAuto
+
+<PageTitle>@L["Confirm Loan Pickup"]</PageTitle>
+
+<div class="sanctuary-container py-5" style="max-width: 680px; margin: 0 auto;">
+    @if (isLoading)
+    {
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">@L["Loading"]...</span>
+            </div>
+            <p class="mt-2 text-muted serif italic">@L["RetrievingArchivalRecords"]...</p>
+        </div>
+    }
+    else if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <div class="card card-sanctuary border-danger-subtle shadow p-5 text-center rounded-xl animate-fade-in">
+            <div class="text-danger mb-3">
+                <i class="bi bi-exclamation-octagon-fill display-3"></i>
+            </div>
+            <h3 class="serif mb-2">@L["Unable to Load Reservation"]</h3>
+            <p class="text-muted mb-4">@errorMessage</p>
+            <div>
+                <a href="/" class="btn btn-outline-primary rounded-pill px-4">
+                    <i class="bi bi-house-door me-1"></i> @L["Return to Home"]
+                </a>
+            </div>
+        </div>
+    }
+    else if (reservationDetails != null)
+    {
+        <div class="card card-sanctuary shadow-lg border-0 rounded-xl overflow-hidden animate-fade-in" style="background: var(--surface-container, #ffffff); border: 1px solid rgba(0,0,0,0.06);">
+            <!-- Header Banner -->
+            <div class="p-4 border-bottom bg-surface-low d-flex align-items-center justify-content-between">
+                <div>
+                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-3 py-1 mb-2 small fw-semibold">
+                        <i class="bi bi-shield-check me-1"></i> @L["Loan Pickup Confirmation"]
+                    </span>
+                    <h2 class="h4 serif mb-0">@L["Confirm Your Book Loan"]</h2>
+                </div>
+                <div class="text-end">
+                    <i class="bi bi-book-half text-primary fs-2 opacity-50"></i>
+                </div>
+            </div>
+
+            <div class="p-4 p-md-5">
+                <!-- Book & Borrower Overview Card -->
+                <div class="p-3 bg-surface-lowest rounded-xl border mb-4 shadow-sm d-flex gap-3 align-items-center">
+                    <div class="bg-surface-low rounded flex-shrink-0 d-flex align-items-center justify-content-center overflow-hidden"
+                         style="width: 70px; height: 100px; box-shadow: 0 4px 12px rgba(0,0,0,0.08);">
+                        @if (Microsoft.FSharp.Core.FSharpOption<Uri>.get_IsSome(reservationDetails.Book.ImageUrl))
+                        {
+                            <img src="@reservationDetails.Book.ImageUrl.Value" class="w-100 h-100" style="object-fit: cover;" alt="@reservationDetails.Book.Title.Value" />
+                        }
+                        else
+                        {
+                            <i class="bi bi-book text-muted fs-2"></i>
+                        }
+                    </div>
+                    <div class="flex-grow-1 min-w-0">
+                        <h5 class="serif fw-bold mb-1 text-truncate" title="@reservationDetails.Book.Title.Value">
+                            @reservationDetails.Book.Title.Value
+                        </h5>
+                        <p class="x-small text-muted font-monospace mb-1">
+                            ISBN: @reservationDetails.Book.Isbn.Value
+                        </p>
+                        <div class="small text-muted">
+                            <i class="bi bi-person-fill text-primary me-1"></i>
+                            <span class="fw-semibold">@L["Borrower"]:</span> @reservationDetails.BorrowerName
+                        </div>
+                        <div class="x-small text-muted mt-1">
+                            <i class="bi bi-calendar3 me-1"></i>
+                            @reservationDetails.Reservation.TimeSlot.Start.ToShortDateString() — @reservationDetails.Reservation.TimeSlot.End.ToShortDateString()
+                        </div>
+                    </div>
+                </div>
+
+                @if (isSuccessConfirmed || reservationDetails.Reservation.Status.IsLoaned)
+                {
+                    <div class="p-4 text-center rounded-xl bg-success-subtle border border-success-subtle shadow-sm animate-fade-in my-3">
+                        <i class="bi bi-check-circle-fill text-success display-4 d-block mb-3"></i>
+                        <h4 class="serif fw-bold text-success mb-2">@L["Loan Confirmed Successfully!"]</h4>
+                        <p class="text-muted small mb-4">
+                            @L["Your loan has been officially confirmed and registered. Please take your book and enjoy reading!"]
+                        </p>
+                        <a href="/" class="btn btn-success rounded-pill px-4 shadow-sm">
+                            <i class="bi bi-house-door me-1"></i> @L["Home"]
+                        </a>
+                    </div>
+                }
+                else if (reservationDetails.Reservation.Status.IsCanceled)
+                {
+                    <div class="p-4 text-center rounded-xl bg-danger-subtle border border-danger-subtle shadow-sm animate-fade-in my-3">
+                        <i class="bi bi-x-circle-fill text-danger display-4 d-block mb-3"></i>
+                        <h4 class="serif fw-bold text-danger mb-2">@L["Reservation Cancelled"]</h4>
+                        <p class="text-muted small mb-0">
+                            @L["This reservation has been cancelled and cannot be transformed into a loan."]
+                        </p>
+                    </div>
+                }
+                else
+                {
+                    <!-- Confirmation Form -->
+                    <div class="my-3">
+                        <p class="text-muted small mb-3">
+                            @L["Please verify the 6-digit Pickup PIN generated by the library manager to complete your pickup."]
+                        </p>
+
+                        <div class="mb-4">
+                            <label class="form-label small text-muted text-uppercase fw-bold">@L["Pickup PIN"]</label>
+                            <div class="input-group input-group-lg shadow-sm">
+                                <span class="input-group-text bg-white border-end-0">
+                                    <i class="bi bi-shield-lock text-primary"></i>
+                                </span>
+                                <input type="text"
+                                       class="form-control border-start-0 text-center font-monospace fw-bold tracking-widest fs-3"
+                                       style="letter-spacing: 0.25em;"
+                                       maxlength="6"
+                                       placeholder="000000"
+                                       @bind="pinInput"
+                                       disabled="@isConfirming" />
+                            </div>
+                        </div>
+
+                        @if (!string.IsNullOrEmpty(statusMessage))
+                        {
+                            <div class="alert alert-danger p-3 rounded-xl small mb-4 animate-fade-in">
+                                <i class="bi bi-exclamation-triangle-fill me-2"></i> @statusMessage
+                            </div>
+                        }
+
+                        <button class="btn btn-primary w-100 py-3 rounded-xl shadow-lg d-flex align-items-center justify-content-center gap-2 fw-semibold"
+                                @onclick="ConfirmLoanPickup"
+                                disabled="@(isConfirming || string.IsNullOrWhiteSpace(pinInput))">
+                            @if (isConfirming)
+                            {
+                                <span class="spinner-border spinner-border-sm" role="status"></span>
+                                <span>@L["Confirming Pickup..."]</span>
+                            }
+                            else
+                            {
+                                <i class="bi bi-check2-circle fs-5"></i>
+                                <span>@L["Confirm Loan Pickup"]</span>
+                            }
+                        </button>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public string? ReservationIdStr { get; set; }
+
+    [SupplyParameterFromQuery(Name = "pin")]
+    public string? PinQuery { get; set; }
+
+    private bool isLoading = true;
+    private bool isConfirming = false;
+    private bool isSuccessConfirmed = false;
+    private string errorMessage = "";
+    private string statusMessage = "";
+    private string pinInput = "";
+    private ReservationDetails? reservationDetails;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!string.IsNullOrEmpty(PinQuery))
+        {
+            pinInput = PinQuery.Trim();
+        }
+
+        await LoadReservation();
+    }
+
+    private async Task LoadReservation()
+    {
+        isLoading = true;
+        errorMessage = "";
+        try
+        {
+            if (Guid.TryParse(ReservationIdStr, out var resGuid))
+            {
+                var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+                var context = TenantState.GetUserContext(authState.User);
+                var resId = ReservationId.NewReservationId(resGuid);
+                var result = await DetailsService.GetReservationDetailsAsync(context, resId, Microsoft.FSharp.Core.FSharpOption<CancellationToken>.None);
+                if (result.IsOk)
+                {
+                    reservationDetails = result.ResultValue;
+                }
+                else
+                {
+                    errorMessage = result.ErrorValue;
+                }
+            }
+            else
+            {
+                errorMessage = "Invalid reservation identifier.";
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading reservation for loan confirmation");
+            errorMessage = ex.Message;
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task ConfirmLoanPickup()
+    {
+        if (reservationDetails == null || string.IsNullOrWhiteSpace(pinInput)) return;
+
+        try
+        {
+            isConfirming = true;
+            statusMessage = "";
+            StateHasChanged();
+
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var context = TenantState.GetUserContext(authState.User).WithNewTenant(reservationDetails.Book.TenantId);
+
+            var result = await LoanService.TransformReservationIntoLoanByPinAsync(
+                context,
+                reservationDetails.Reservation.ReservationId,
+                pinInput.Trim(),
+                DateTime.UtcNow,
+                Microsoft.FSharp.Core.FSharpOption<CancellationToken>.None);
+
+            if (result.IsOk)
+            {
+                isSuccessConfirmed = true;
+            }
+            else
+            {
+                statusMessage = result.ErrorValue;
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error confirming loan pickup");
+            statusMessage = ex.Message;
+        }
+        finally
+        {
+            isConfirming = false;
+            StateHasChanged();
+        }
+    }
+}

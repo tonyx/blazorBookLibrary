@@ -68,6 +68,25 @@ and Reservation =
           PickupPinHash = None
           PickupPinExpiresAt = None }
 
+    static member NewGuest
+        (tenantId: TenantId)
+        (bookId: BookId)
+        (guest: GuestPatron)
+        (timeSlot: TimeSlot)
+        (dateTime: DateTime)
+        : Reservation =
+        { TenantId = tenantId
+          ReservationId = ReservationId.New()
+          BookId = bookId
+          Patron = Guest guest
+          TimeSlot = timeSlot
+          ReservedAt = dateTime
+          ReservationCode = ReservationCode.New()
+          Status = ReservationStatus.Pending
+          Sealed = Sealed.New(dateTime)
+          PickupPinHash = None
+          PickupPinExpiresAt = None }
+
     member this.CancelByUser (cancellation: Cancellation) (dateTime: DateTime) (userId: UserId) = result { return this }
 
     member this.Cancel (reason: CancellationReason) =

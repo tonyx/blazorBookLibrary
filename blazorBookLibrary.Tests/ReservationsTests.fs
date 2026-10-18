@@ -599,7 +599,7 @@ let tests =
 
             Expect.isTrue (reservationDetailsResult.OkValue.Reservation.ReservationId = reservation.ReservationId) "should contain the reservation"
             Expect.isTrue (reservationDetailsResult.OkValue.Book.BookId = book.BookId) "should contain the book"
-            Expect.isTrue (reservationDetailsResult.OkValue.UserDetails.User.UserId = userId1) "should contain the user"
+            Expect.isTrue (reservationDetailsResult.OkValue.UserDetails.Value.User.UserId = userId1) "should contain the user"
         }
 
         testCaseTask "given a reservation transformed into a loan, if the current time is within the time slot, the loan time slot is the same of the reservation - Ok" <| fun _ -> task {
@@ -625,7 +625,7 @@ let tests =
 
             Expect.isTrue (reservationDetailsResult.OkValue.Reservation.ReservationId = reservation.ReservationId) "should contain the reservation"
             Expect.isTrue (reservationDetailsResult.OkValue.Book.BookId = book.BookId) "should contain the book"
-            Expect.isTrue (reservationDetailsResult.OkValue.UserDetails.User.UserId = userId1) "should contain the user"
+            Expect.isTrue (reservationDetailsResult.OkValue.UserDetails.Value.User.UserId = userId1) "should contain the user"
 
             let loan = reservationDetailsResult.OkValue.ToLoan (System.DateTime.Now.AddDays(32))
             Expect.isOk loan "should be ok"
@@ -662,7 +662,7 @@ let tests =
 
             Expect.isTrue (reservationDetailsResult.OkValue.Reservation.ReservationId = reservation.ReservationId) "should contain the reservation"
             Expect.isTrue (reservationDetailsResult.OkValue.Book.BookId = book.BookId) "should contain the book"
-            Expect.isTrue (reservationDetailsResult.OkValue.UserDetails.User.UserId = userId1) "should contain the user"
+            Expect.isTrue (reservationDetailsResult.OkValue.UserDetails.Value.User.UserId = userId1) "should contain the user"
 
             let loan = reservationDetailsResult.OkValue.ToLoan (System.DateTime.Now.AddMonths(3))
             Expect.isError loan "should be error"
@@ -729,7 +729,7 @@ let tests =
 
             Expect.isTrue (reservationDetailsResult.OkValue.Reservation.ReservationId = reservation.ReservationId) "should contain the reservation"
             Expect.isTrue (reservationDetailsResult.OkValue.Book.BookId = book.BookId) "should contain the book"
-            Expect.isTrue (reservationDetailsResult.OkValue.UserDetails.User.UserId = userId1) "should contain the user"
+            Expect.isTrue (reservationDetailsResult.OkValue.UserDetails.Value.User.UserId = userId1) "should contain the user"
 
             let now = System.DateTime.Now   
 
@@ -768,7 +768,7 @@ let tests =
 
             Expect.isTrue (reservationDetailsResult.OkValue.Reservation.ReservationId = reservation.ReservationId) "should contain the reservation"
             Expect.isTrue (reservationDetailsResult.OkValue.Book.BookId = book.BookId) "should contain the book"
-            Expect.isTrue (reservationDetailsResult.OkValue.UserDetails.User.UserId = userId1) "should contain the user"
+            Expect.isTrue (reservationDetailsResult.OkValue.UserDetails.Value.User.UserId = userId1) "should contain the user"
 
             let now = System.DateTime.Now   
 
@@ -810,7 +810,7 @@ let tests =
 
             Expect.isTrue (reservationDetailsResult.OkValue.Reservation.ReservationId = reservation.ReservationId) "should contain the reservation"
             Expect.isTrue (reservationDetailsResult.OkValue.Book.BookId = book.BookId) "should contain the book"
-            Expect.isTrue (reservationDetailsResult.OkValue.UserDetails.User.UserId = userId1) "should contain the user"
+            Expect.isTrue (reservationDetailsResult.OkValue.UserDetails.Value.User.UserId = userId1) "should contain the user"
 
             let now = System.DateTime.Now   
 
@@ -852,7 +852,7 @@ let tests =
 
             Expect.isTrue (reservationDetailsResult.OkValue.Reservation.ReservationId = reservation.ReservationId) "should contain the reservation"
             Expect.isTrue (reservationDetailsResult.OkValue.Book.BookId = book.BookId) "should contain the book"
-            Expect.isTrue (reservationDetailsResult.OkValue.UserDetails.User.UserId = userId1) "should contain the user"
+            Expect.isTrue (reservationDetailsResult.OkValue.UserDetails.Value.User.UserId = userId1) "should contain the user"
 
             let now = System.DateTime.Now.AddMonths(3)
 
@@ -888,7 +888,7 @@ let tests =
 
             Expect.isTrue (reservationDetailsResult.OkValue.Reservation.ReservationId = reservation.ReservationId) "should contain the reservation"
             Expect.isTrue (reservationDetailsResult.OkValue.Book.BookId = book.BookId) "should contain the book"
-            Expect.isTrue (reservationDetailsResult.OkValue.UserDetails.User.UserId = userId2) "should contain the user"
+            Expect.isTrue (reservationDetailsResult.OkValue.UserDetails.Value.User.UserId = userId2) "should contain the user"
 
             let now = System.DateTime.Now.AddMonths(1)
 
@@ -922,7 +922,7 @@ let tests =
 
             Expect.isTrue (reservationDetailsResult.OkValue.Reservation.ReservationId = reservation.ReservationId) "should contain the reservation"
             Expect.isTrue (reservationDetailsResult.OkValue.Book.BookId = book.BookId) "should contain the book"
-            Expect.isTrue (reservationDetailsResult.OkValue.UserDetails.User.UserId = userId1) "should contain the user"
+            Expect.isTrue (reservationDetailsResult.OkValue.UserDetails.Value.User.UserId = userId1) "should contain the user"
 
             let now = System.DateTime.Now   
 
@@ -1045,6 +1045,102 @@ let tests =
             let! itResult = retriever.GetReservationManagerNotificationInAppAsync("alice", bookTitle, ShortLang.New "it")
             Expect.isOk itResult "Italian template retrieval should succeed"
             Expect.equal (itResult.OkValue.Trim()) "l'utente alice ha richiesto il libro The Hobbit" "Italian message format should match expected template"
+        }
+        testCaseTask "guest can reserve an available book with no existing reservations - Ok" <| fun _ -> task {
+            let bookService = getBookService()
+            let reservationService = getReservationService()
+            let detailsService = getDetailsService()
+
+            let book = Book.New TenantId.Default (Title.New "Guest Book Test") [] [] [] None Category.Other [] (Year.New 2020) (Isbn.NewEmpty()) None
+            let! addBook = bookService.AddBookAsync(adminContext, book)
+            Expect.isOk addBook "add book should succeed"
+
+            let guest = GuestPatron.Create("John Guest", phoneNumber = "1234567890", email = "guest@example.com")
+            let futureSlot = TimeSlot.New (DateTime.UtcNow.AddDays(1)) (DateTime.UtcNow.AddDays(7))
+            let guestReservation = Reservation.NewGuest TenantId.Default book.BookId guest futureSlot DateTime.UtcNow
+
+            let! addRes = reservationService.AddReservationAsync(adminContext, guestReservation, ShortLang.New "en")
+            Expect.isOk addRes "guest reservation should succeed"
+
+            let! resDetails = detailsService.GetReservationDetailsAsync(adminContext, guestReservation.ReservationId)
+            Expect.isOk resDetails "reservation details should succeed"
+            Expect.isTrue resDetails.OkValue.UserDetails.IsNone "guest has no registered user details"
+            Expect.equal resDetails.OkValue.BorrowerName "John Guest" "borrower name matches guest name"
+
+            // Second reservation for guest on the same book should fail because it already has an active reservation
+            let guest2 = GuestPatron.Create("Jane Guest")
+            let futureSlot2 = TimeSlot.New (DateTime.UtcNow.AddDays(8)) (DateTime.UtcNow.AddDays(14))
+            let guestReservation2 = Reservation.NewGuest TenantId.Default book.BookId guest2 futureSlot2 DateTime.UtcNow
+            let! addRes2 = reservationService.AddReservationAsync(adminContext, guestReservation2, ShortLang.New "en")
+            Expect.isError addRes2 "second guest reservation should fail"
+            match addRes2 with
+            | Error err -> Expect.equal err "Book already has active reservations" "should report active reservations error"
+            | Ok _ -> failwith "expected error"
+        }
+        testCaseTask "guest reservation can be transformed into loan by PIN - Ok" <| fun _ -> task {
+            setUp ()
+            let bookService = getBookService()
+            let reservationService = getReservationService()
+            let loanService = getLoanService()
+
+            let book = Book.New TenantId.Default (Title.New "Guest Loan PIN Test") [] [] [] None Category.Other [] (Year.New 2021) (Isbn.NewEmpty()) None
+            let! addBook = bookService.AddBookAsync(adminContext, book)
+            Expect.isOk addBook "add book should succeed"
+
+            let guest = GuestPatron.Create("Alice Guest", phoneNumber = "987654321", email = "alice@guest.com")
+            let futureSlot = TimeSlot.New (DateTime.UtcNow.AddDays(1)) (DateTime.UtcNow.AddDays(10))
+            let guestReservation = Reservation.NewGuest TenantId.Default book.BookId guest futureSlot DateTime.UtcNow
+
+            let! addRes = reservationService.AddReservationAsync(adminContext, guestReservation, ShortLang.New "en")
+            Expect.isOk addRes "guest reservation should succeed"
+
+            let! pinResult = reservationService.GeneratePickupPinAsync(adminContext, guestReservation.ReservationId)
+            Expect.isOk pinResult "PIN generation should succeed"
+            let pin, _ = pinResult.OkValue
+
+            let! transformResult = (loanService :> ILoanService).TransformReservationIntoLoanByPinAsync(adminContext, guestReservation.ReservationId, pin, DateTime.UtcNow)
+            Expect.isOk transformResult "transforming guest reservation into loan by PIN should succeed"
+
+            let! loans = loanService.GetLoansAsync(adminContext)
+            Expect.isOk loans "should retrieve loans list"
+            Expect.equal loans.OkValue.Length 1 "should contain exactly one loan"
+            let (createdLoan: Loan) = loans.OkValue |> List.head
+            Expect.equal createdLoan.BookId book.BookId "loan book id should match"
+            match createdLoan.Patron with
+            | Guest g -> Expect.equal g.Name "Alice Guest" "loan patron guest name should match"
+            | RegisteredUser _ -> failwith "expected guest patron"
+
+            let! getReservation = reservationService.GetReservationAsync(adminContext, guestReservation.ReservationId)
+            Expect.isOk getReservation "get reservation should succeed"
+            Expect.equal getReservation.OkValue.Status ReservationStatus.Loaned "reservation should transition to Loaned"
+        }
+        testCaseTask "guest reservation on private library fails - Error" <| fun _ -> task {
+            setUp ()
+            let tenantService = getTenantService ()
+            let bookService = getBookService ()
+            let reservationService = getReservationService ()
+
+            let! ownerId = registerUserTask "private_owner@test.com" "Password123!"
+            let ownerContext = (UserContext.Authenticated(ownerId, [ Role.Manager ]))
+            let privateTenant =
+                Tenant.New(ownerId, TenantName.New "Private Library Test" |> Result.get, "123 Main St", false)
+            let! addTenant = tenantService.CreateTenantAsync(ownerContext, privateTenant)
+            Expect.isOk addTenant "create private tenant should succeed"
+
+            let managerContext = ownerContext.WithNewTenant(privateTenant.TenantId)
+            let book = Book.New privateTenant.TenantId (Title.New "Private Book") [] [] [] None Category.Other [] (Year.New 2021) (Isbn.NewEmpty()) None
+            let! addBook = bookService.AddBookAsync(managerContext, book)
+            Expect.isOk addBook "add book to private tenant should succeed"
+
+            let guest = GuestPatron.Create("Sneaky Guest", email = "sneaky@example.com")
+            let futureSlot = TimeSlot.New (DateTime.UtcNow.AddDays(1)) (DateTime.UtcNow.AddDays(7))
+            let guestReservation = Reservation.NewGuest privateTenant.TenantId book.BookId guest futureSlot DateTime.UtcNow
+
+            let! addRes = reservationService.AddReservationAsync(UserContext.Anonymous, guestReservation, ShortLang.New "en")
+            Expect.isError addRes "guest reservation on private library should fail"
+            match addRes with
+            | Error err -> Expect.equal err "Guest reservations and loans are only allowed for public libraries" "should report proper error"
+            | Ok _ -> failwith "expected error"
         }
     ]
     |> testSequenced

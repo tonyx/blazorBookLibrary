@@ -68,7 +68,7 @@ namespace blazorBookLibrary.Client.Services
         {
             try
             {
-                await _jsRuntime.InvokeVoidAsync("eval", $"document.cookie = '{key}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;'");
+                await _jsRuntime.InvokeVoidAsync("eval", $"document.cookie = '{key}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;'; try {{ localStorage.removeItem('{key}'); sessionStorage.removeItem('{key}'); }} catch(e){{}}");
             }
             catch (InvalidOperationException)
             {

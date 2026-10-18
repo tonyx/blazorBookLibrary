@@ -32,7 +32,15 @@ module Details =
     type ReservationDetails =
         { Reservation: Reservation
           Book: Book
-          UserDetails: UserDetails }
+          UserDetails: Option<UserDetails> }
+
+        member this.BorrowerName =
+            match this.Reservation.Patron with
+            | RegisteredUser _ ->
+                match this.UserDetails with
+                | Some u -> u.AppUser.UserName
+                | None -> "User"
+            | Guest g -> g.Name
 
         member this.ToLoan(now: DateTime) =
             if now > this.Reservation.TimeSlot.End then
@@ -50,7 +58,31 @@ module Details =
     type LoanDetails =
         { Loan: Loan
           Book: Book
-          UserDetails: UserDetails }
+          UserDetails: Option<UserDetails> }
+
+        member this.BorrowerName =
+            match this.Loan.Patron with
+            | RegisteredUser _ ->
+                match this.UserDetails with
+                | Some u -> u.AppUser.UserName
+                | None -> "User"
+            | Guest g -> g.Name
+
+        member this.BorrowerEmail =
+            match this.Loan.Patron with
+            | RegisteredUser _ ->
+                match this.UserDetails with
+                | Some u -> u.AppUser.Email
+                | None -> ""
+            | Guest g -> g.Email |> Option.defaultValue ""
+
+        member this.BorrowerPhone =
+            match this.Loan.Patron with
+            | RegisteredUser _ ->
+                match this.UserDetails with
+                | Some u -> u.AppUser.PhoneNumber
+                | None -> ""
+            | Guest g -> g.PhoneNumber |> Option.defaultValue ""
 
     type ReviewDetails =
         { AppUser: AppUserInfo

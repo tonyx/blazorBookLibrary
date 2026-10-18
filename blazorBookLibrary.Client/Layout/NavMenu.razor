@@ -139,7 +139,7 @@
                     </NavLink>
                 </div>
                 <div class="nav-item">
-                    <form action="Account/Logout" method="post">
+                    <form action="Account/Logout" method="post" onsubmit="document.cookie='selected_tenant_id=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;'; document.cookie='selected_tenant=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;'; try { localStorage.removeItem('selected_tenant_id'); localStorage.removeItem('selected_tenant'); sessionStorage.removeItem('selected_tenant_id'); sessionStorage.removeItem('selected_tenant'); } catch(e){}">
                         <AntiforgeryToken />
                         <input type="hidden" name="ReturnUrl" value="@currentUrl" />
                         <button type="submit" class="nav-link sanctuary-nav-link w-100 text-start border-0 bg-transparent">

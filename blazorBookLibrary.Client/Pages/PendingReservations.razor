@@ -1,4 +1,6 @@
 @page "/pending-reservations"
+@page "/pending-reservations/{ReservationIdStr}"
+@page "/reservations/{ReservationIdStr}/manager"
 @using Microsoft.AspNetCore.Authorization
 @using BookLibrary.Shared.Services
 @using BookLibrary.Domain
@@ -11,6 +13,7 @@
 @using System.Threading
 @using System.Globalization
 @using Microsoft.AspNetCore.SignalR.Client
+@using QRCoder
 
 @attribute [Authorize]
 @inject IUserTenantResolverService UserTenantResolverService
@@ -136,8 +139,20 @@ else
                                                 </div>
                                             </td>
                                             <td class="py-3">
-                                                <div class="fw-bold">@res.UserDetails.AppUser.UserName</div>
-                                                <div class="x-small text-muted">@res.UserDetails.AppUser.CodiceFiscale</div>
+                                                @if (res.UserDetails != null && Microsoft.FSharp.Core.FSharpOption<BookLibrary.Shared.Details.UserDetails>.get_IsSome(res.UserDetails))
+                                                {
+                                                    <div class="fw-bold">@res.UserDetails.Value.AppUser.UserName</div>
+                                                    <div class="x-small text-muted">@res.UserDetails.Value.AppUser.CodiceFiscale</div>
+                                                }
+                                                else if (res.Reservation.Patron.IsGuest)
+                                                {
+                                                    var guest = ((BookLibrary.Shared.Commons.Patron.Guest)res.Reservation.Patron).Item;
+                                                    <div class="fw-bold"><span class="badge bg-secondary me-1">Guest</span>@guest.Name</div>
+                                                    @if (Microsoft.FSharp.Core.FSharpOption<string>.get_IsSome(guest.PhoneNumber))
+                                                    {
+                                                        <div class="x-small text-muted">@guest.PhoneNumber.Value</div>
+                                                    }
+                                                }
                                             </td>
                                             <td class="py-3 text-nowrap">
                                                 <div class="small">
@@ -179,12 +194,15 @@ else
                             <div class="animate-fade-in">
                                 <div class="mb-4 p-3 bg-primary-subtle rounded-xl border border-primary-subtle shadow-sm">
                                     <h6 class="serif fw-bold text-primary mb-1">@selectedReservation.Book.Title.Value</h6>
-                                    <p class="x-small text-muted mb-0">@L["Borrower"]: @selectedReservation.UserDetails.AppUser.UserName</p>
+                                    <p class="x-small text-muted mb-0">@L["Borrower"]: @selectedReservation.BorrowerName</p>
                                 </div>
 
                                 <div class="mb-4">
                                     <div class="btn-group w-100" role="group">
                                         <button type="button" class="btn btn-sm @(selectedAction == "loan" ? "btn-primary" : "btn-outline-primary")" style="border-radius: 8px 0 0 8px;" @onclick='() => selectedAction = "loan"'>@L["ConvertToLoan", "Convert to Loan"]</button>
+                                        <button type="button" class="btn btn-sm @(selectedAction == "qr" ? "btn-primary" : "btn-outline-primary")" @onclick='SelectQrAction'>
+                                            <i class="bi bi-qr-code me-1"></i>@L["QR & Link", "QR & Link"]
+                                        </button>
                                         <button type="button" class="btn btn-sm @(selectedAction == "cancel" ? "btn-danger" : "btn-outline-danger")" style="border-radius: 0 8px 8px 0;" @onclick='() => selectedAction = "cancel"'>@L["CancelReservation", "Cancel Reservation"]</button>
                                     </div>
                                 </div>
@@ -255,6 +273,63 @@ else
                                         </button>
                                     </div>
                                 }
+                                else if (selectedAction == "qr")
+                                {
+                                    <div class="mb-4 animate-fade-in text-center">
+                                        <p class="small text-muted mb-3">
+                                            @L["Generate a pickup QR code and confirmation URL for the patron."]
+                                        </p>
+
+                                        @if (string.IsNullOrEmpty(qrCodeBase64))
+                                        {
+                                            <button class="btn btn-outline-primary w-100 py-3 rounded-xl shadow-sm d-flex align-items-center justify-content-center gap-2"
+                                                    @onclick="GenerateQrForReservation"
+                                                    disabled="@isGeneratingQr">
+                                                @if (isGeneratingQr)
+                                                {
+                                                    <span class="spinner-border spinner-border-sm" role="status"></span>
+                                                    <span>@L["Generating QR Code..."]</span>
+                                                }
+                                                else
+                                                {
+                                                    <i class="bi bi-qr-code-scan fs-5"></i>
+                                                    <span class="fw-semibold">@L["Generate Pickup Link & QR"]</span>
+                                                }
+                                            </button>
+                                        }
+                                        else
+                                        {
+                                            <div class="p-3 bg-white rounded-xl border shadow-sm mb-3 d-inline-block">
+                                                <img src="data:image/png;base64,@qrCodeBase64" alt="Pickup QR Code" style="width: 180px; height: 180px; object-fit: contain;" />
+                                                <div class="x-small text-muted mt-2 font-monospace fw-bold">PIN: @generatedPin</div>
+                                            </div>
+
+                                            <div class="mb-3 text-start">
+                                                <label class="form-label x-small text-muted text-uppercase fw-bold">@L["Confirmation URL"]</label>
+                                                <div class="input-group input-group-sm">
+                                                    <input type="text" class="form-control font-monospace x-small" value="@confirmationUrl" readonly />
+                                                    <button class="btn btn-outline-secondary" type="button" @onclick="CopyConfirmationUrl">
+                                                        <i class="bi bi-clipboard"></i>
+                                                    </button>
+                                                </div>
+                                                @if (copiedToClipboard)
+                                                {
+                                                    <div class="x-small text-success mt-1"><i class="bi bi-check2"></i> @L["Copied to clipboard!"]</div>
+                                                }
+                                            </div>
+
+                                            <button class="btn btn-sm btn-outline-secondary w-100 rounded-pill" @onclick="GenerateQrForReservation" disabled="@isGeneratingQr">
+                                                <i class="bi bi-arrow-clockwise me-1"></i> @L["Regenerate QR / PIN"]
+                                            </button>
+                                        }
+
+                                        <div class="text-center mt-3">
+                                            <button class="btn btn-link btn-sm text-decoration-none text-muted" @onclick="() => selectedReservation = null">
+                                                @L["CancelSelection"]
+                                            </button>
+                                        </div>
+                                    </div>
+                                }
                                 else
                                 {
                                     <div class="mb-4 animate-fade-in">
@@ -316,6 +391,9 @@ else
 }
 
 @code {
+    [Parameter]
+    public string? ReservationIdStr { get; set; }
+
     private bool isAuthorized = false;
     private bool isPageLoading = true;
     private bool isLoading = true;
@@ -330,6 +408,13 @@ else
     private bool isCancelling = false;
     private HubConnection? hubConnection;
     private Guid? activeTenantId;
+
+    private string? qrCodeBase64;
+    private string? confirmationUrl;
+    private string? generatedPin;
+    private DateTime? pinExpiry;
+    private bool isGeneratingQr = false;
+    private bool copiedToClipboard = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -427,6 +512,18 @@ else
             if (result.IsOk)
             {
                 pendingReservations = result.ResultValue.ToList();
+                if (!string.IsNullOrEmpty(ReservationIdStr) && Guid.TryParse(ReservationIdStr, out var targetId))
+                {
+                    var target = pendingReservations.FirstOrDefault(r => r.Reservation.ReservationId.Value == targetId);
+                    if (target != null)
+                    {
+                        SelectReservation(target);
+                        if (target.Reservation.Patron.IsGuest)
+                        {
+                            await SelectQrAction();
+                        }
+                    }
+                }
             }
             else
             {
@@ -445,12 +542,32 @@ else
         }
     }
 
+    protected override async Task OnParametersSetAsync()
+    {
+        if (!string.IsNullOrEmpty(ReservationIdStr) && Guid.TryParse(ReservationIdStr, out var targetId) && pendingReservations.Any())
+        {
+            var target = pendingReservations.FirstOrDefault(r => r.Reservation.ReservationId.Value == targetId);
+            if (target != null && (selectedReservation == null || selectedReservation.Reservation.ReservationId.Value != targetId))
+            {
+                SelectReservation(target);
+                if (target.Reservation.Patron.IsGuest)
+                {
+                    await SelectQrAction();
+                }
+            }
+        }
+    }
+
     private void SelectReservation(ReservationDetails res)
     {
         selectedReservation = res;
-        selectedAction = "loan";
+        selectedAction = res.Reservation.Patron.IsGuest ? "qr" : "loan";
         cancellationReasonInput = "";
-        
+        qrCodeBase64 = null;
+        confirmationUrl = null;
+        generatedPin = null;
+        copiedToClipboard = false;
+
         var preFill = Configuration.GetValue<bool>("BooksLibrary:PreFillReservationCode", false);
         if (preFill)
         {
@@ -459,6 +576,76 @@ else
         else
         {
             reservationCodeInput = "";
+        }
+    }
+
+    private async Task SelectQrAction()
+    {
+        selectedAction = "qr";
+        if (string.IsNullOrEmpty(qrCodeBase64))
+        {
+            await GenerateQrForReservation();
+        }
+    }
+
+    private async Task GenerateQrForReservation()
+    {
+        if (selectedReservation == null) return;
+        try
+        {
+            isGeneratingQr = true;
+            copiedToClipboard = false;
+            StateHasChanged();
+
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var context = blazorBookLibrary.Shared.ConverterUtils.fromClaimsPrincipal(authState.User);
+            var result = await ReservationService.GeneratePickupPinAsync(
+                context,
+                selectedReservation.Reservation.ReservationId,
+                Microsoft.FSharp.Core.FSharpOption<CancellationToken>.None);
+
+            if (result.IsOk)
+            {
+                generatedPin = result.ResultValue.Item1;
+                pinExpiry = result.ResultValue.Item2;
+                confirmationUrl = NavigationManager.ToAbsoluteUri($"/confirm-loan/{selectedReservation.Reservation.ReservationId.Value}?pin={generatedPin}").ToString();
+                using var qrGenerator = new QRCodeGenerator();
+                using var qrCodeData = qrGenerator.CreateQrCode(confirmationUrl, QRCodeGenerator.ECCLevel.Q);
+                var qrCode = new PngByteQRCode(qrCodeData);
+                byte[] qrCodeAsPngByteArr = qrCode.GetGraphic(20);
+                qrCodeBase64 = Convert.ToBase64String(qrCodeAsPngByteArr);
+            }
+            else
+            {
+                await ShowStatus(result.ErrorValue, "danger");
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error generating pickup QR code");
+            await ShowStatus(ex.Message, "danger");
+        }
+        finally
+        {
+            isGeneratingQr = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task CopyConfirmationUrl()
+    {
+        if (!string.IsNullOrEmpty(confirmationUrl))
+        {
+            try
+            {
+                await JSRuntime.InvokeVoidAsync("navigator.clipboard.writeText", confirmationUrl);
+                copiedToClipboard = true;
+                StateHasChanged();
+            }
+            catch (Exception ex)
+            {
+                Logger.LogWarning(ex, "Failed to copy URL to clipboard");
+            }
         }
     }
 

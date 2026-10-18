@@ -49,8 +49,13 @@ public class NotificationDispatcher : INotificationDispatcher
 
         try
         {
+            var adminRoles = Microsoft.FSharp.Collections.FSharpList<Role>.Cons(
+                Role.Admin,
+                Microsoft.FSharp.Collections.FSharpList<Role>.Empty);
+            var systemContext = UserContext.NewAuthenticated(recipientId, adminRoles).WithNewTenant(tenantId);
+
             var tenantService = _serviceProvider.GetRequiredService<ITenantService>();
-            var tenantResult = await tenantService.GetTenantAsync(context, tenantId, cancellationToken);
+            var tenantResult = await tenantService.GetTenantAsync(systemContext, tenantId, cancellationToken);
             if (tenantResult.IsError)
             {
                 return FSharpResult<Unit, string>.NewError($"Failed to fetch tenant: {tenantResult.ErrorValue}");
@@ -69,7 +74,7 @@ public class NotificationDispatcher : INotificationDispatcher
             if (preference.IsEmail || preference.IsInAppAndEmail)
             {
                 var userService = _serviceProvider.GetRequiredService<IUserService>();
-                var userDetailsResult = await userService.GetUserDetailsAsync(context, recipientId, cancellationToken);
+                var userDetailsResult = await userService.GetUserDetailsAsync(systemContext, recipientId, cancellationToken);
                 if (userDetailsResult.IsError)
                 {
                     return FSharpResult<Unit, string>.NewError($"Failed to fetch user details: {userDetailsResult.ErrorValue}");
@@ -96,31 +101,37 @@ public class NotificationDispatcher : INotificationDispatcher
                     var userService = _serviceProvider.GetRequiredService<IUserService>();
                     var dpService = _serviceProvider.GetRequiredService<IDistributionPointService>();
 
-                    var resResult = await reservationService.GetReservationAsync(context, reservationId, cancellationToken);
+                    var resResult = await reservationService.GetReservationAsync(systemContext, reservationId, cancellationToken);
                     if (resResult.IsOk)
                     {
                         var reservation = resResult.ResultValue;
-                        var bookResult = await bookService.GetBookAsync(context, reservation.BookId, cancellationToken);
+                        var bookResult = await bookService.GetBookAsync(systemContext, reservation.BookId, cancellationToken);
 
                         if (isManager)
                         {
-                            UserId patronUserId = reservation.Patron switch
+                            string patronName = "User";
+                            if (reservation.Patron.IsRegisteredUser)
                             {
-                                Patron.RegisteredUser registeredUser => registeredUser.Item,
-                                Patron.Guest _ => throw new InvalidOperationException("Guest reservations do not have a registered UserId"),
-                                _ => throw new InvalidOperationException("Unknown Patron type")
-                            };
+                                var patronUserId = ((Patron.RegisteredUser)reservation.Patron).Item;
+                                var patronUserResult = await userService.GetUserUnsafeAsync(patronUserId, cancellationToken);
+                                if (patronUserResult.IsOk)
+                                {
+                                    patronName = patronUserResult.ResultValue.AppUserInfo.UserName;
+                                }
+                            }
+                            else if (reservation.Patron.IsGuest)
+                            {
+                                var guest = ((Patron.Guest)reservation.Patron).Item;
+                                patronName = guest.Name;
+                            }
 
-                            var patronUserResult = await userService.GetUserUnsafeAsync(patronUserId, cancellationToken);
                             var recipientUserResult = await userService.GetUserUnsafeAsync(recipientId, cancellationToken);
 
-                            if (bookResult.IsOk && patronUserResult.IsOk && recipientUserResult.IsOk)
+                            if (bookResult.IsOk && recipientUserResult.IsOk)
                             {
                                 var book = bookResult.ResultValue;
-                                var patronUser = patronUserResult.ResultValue;
                                 var recipientUser = recipientUserResult.ResultValue;
                                 var langPref = recipientUser.LangPref;
-                                var patronName = patronUser.AppUserInfo.UserName;
 
                                 var inAppTextRes = await _inAppMessagesRetriever.GetReservationManagerNotificationInAppAsync(
                                     patronName,
@@ -147,11 +158,7 @@ public class NotificationDispatcher : INotificationDispatcher
                                     FSharpOption<string>.Some($"/reservations/{reservationIdString}")
                                 );
 
-                                var adminRoles = Microsoft.FSharp.Collections.FSharpList<Role>.Cons(
-                                    Role.Admin,
-                                    Microsoft.FSharp.Collections.FSharpList<Role>.Empty);
-                                var adminContext = UserContext.NewAuthenticated(recipientId, adminRoles);
-                                var createNotifResult = await _notificationService.CreateNotificationAsync(adminContext, notification, cancellationToken);
+                                var createNotifResult = await _notificationService.CreateNotificationAsync(systemContext, notification, cancellationToken);
                                 if (createNotifResult.IsError)
                                 {
                                     return FSharpResult<Unit, string>.NewError($"Failed to create in-app notification: {createNotifResult.ErrorValue}");
@@ -173,7 +180,7 @@ public class NotificationDispatcher : INotificationDispatcher
                                 string dpName = "Unspecified";
                                 if (book.DistributionPoint != null && FSharpOption<DistributionPointId>.get_IsSome(book.DistributionPoint))
                                 {
-                                    var dpResult = await dpService.GetDistributionPointAsync(context, book.DistributionPoint.Value, cancellationToken);
+                                    var dpResult = await dpService.GetDistributionPointAsync(systemContext, book.DistributionPoint.Value, cancellationToken);
                                     if (dpResult.IsOk)
                                     {
                                         dpName = dpResult.ResultValue.Name.Value;
@@ -235,11 +242,11 @@ public class NotificationDispatcher : INotificationDispatcher
                     var userService = _serviceProvider.GetRequiredService<IUserService>();
                     var dpService = _serviceProvider.GetRequiredService<IDistributionPointService>();
 
-                    var loanResult = await loanService.GetLoanAsync(context, loanId, cancellationToken);
+                    var loanResult = await loanService.GetLoanAsync(systemContext, loanId, cancellationToken);
                     if (loanResult.IsOk)
                     {
                         var loan = loanResult.ResultValue;
-                        var bookResult = await bookService.GetBookAsync(context, loan.BookId, cancellationToken);
+                        var bookResult = await bookService.GetBookAsync(systemContext, loan.BookId, cancellationToken);
                         var userResult = await userService.GetUserUnsafeAsync(recipientId, cancellationToken);
 
                         if (bookResult.IsOk && userResult.IsOk)
@@ -251,7 +258,7 @@ public class NotificationDispatcher : INotificationDispatcher
                             string dpName = "Unspecified";
                             if (book.DistributionPoint != null && FSharpOption<DistributionPointId>.get_IsSome(book.DistributionPoint))
                             {
-                                var dpResult = await dpService.GetDistributionPointAsync(context, book.DistributionPoint.Value, cancellationToken);
+                                var dpResult = await dpService.GetDistributionPointAsync(systemContext, book.DistributionPoint.Value, cancellationToken);
                                 if (dpResult.IsOk)
                                 {
                                     dpName = dpResult.ResultValue.Name.Value;
@@ -375,7 +382,7 @@ public class NotificationDispatcher : INotificationDispatcher
                     actionUrl
                 );
 
-                var createNotifResult = await _notificationService.CreateNotificationAsync(context, notification, cancellationToken);
+                var createNotifResult = await _notificationService.CreateNotificationAsync(systemContext, notification, cancellationToken);
                 if (createNotifResult.IsError)
                 {
                     return FSharpResult<Unit, string>.NewError($"Failed to create in-app notification: {createNotifResult.ErrorValue}");

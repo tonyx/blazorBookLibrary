@@ -71,18 +71,16 @@ type LoanService
                 book.TenantId = tenantId
                 |> Result.ofBool $"Book tenant id {book.TenantId} does not match user tenant id {tenantId}"
 
-            let patronUserId =
-                match loan.Patron with
-                | RegisteredUser u -> u
-                | Guest _ -> failwith "Guest loans do not have a registered UserId"
-
-            let! user = userViewerAsync (Some ct) patronUserId.Value |> TaskResult.map snd
-
             do! checkIsGlobalAdminOrTenantManager context ct
 
-            let! userDetails = usersService.GetUserDetailsAsync(context, user.UserId, ct)
-
             let! (_, tenant) = tenantViewerAsync (ct |> Some) tenantId.Value
+
+            match loan.Patron with
+            | Guest _ ->
+                do!
+                    (tenant.TenantId = TenantId.Default || tenant.TenantVisibility.IsPublic)
+                    |> Result.ofBool "Guest loans are only allowed for public libraries"
+            | RegisteredUser _ -> ()
 
             let! optDpName =
                 match book.DistributionPoint with
@@ -106,17 +104,26 @@ type LoanService
                     setCurrentLoanCommand
                     (ct |> Some)
 
-            let! _ =
-                notificationDispatcher.DispatchNotificationAsync(
-                    context,
-                    patronUserId,
-                    tenantId,
-                    Some $"/loans/{loan.Id}",
-                    ct
-                )
+            match loan.Patron with
+            | RegisteredUser patronUserId ->
+                let! user = userViewerAsync (Some ct) patronUserId.Value |> TaskResult.map snd
+                let! userDetails = usersService.GetUserDetailsAsync(context, user.UserId, ct)
 
-            // not sure this is needed
-            let! _ = DetailsCache.Instance.RefreshDependentDetailsAsync(patronUserId.Value, Some ct)
+                let! _ =
+                    notificationDispatcher.DispatchNotificationAsync(
+                        context,
+                        patronUserId,
+                        tenantId,
+                        Some $"/loans/{loan.Id}",
+                        ct
+                    )
+                    |> Task.map (fun _ -> Ok ())
+
+                let! _ = DetailsCache.Instance.RefreshDependentDetailsAsync(patronUserId.Value, Some ct)
+                ()
+            | Guest _ ->
+                ()
+
             return result
         }
 
@@ -124,13 +131,12 @@ type LoanService
         taskResult {
             let ct = defaultArg ct CancellationToken.None
             let! loan = loanViewerAsync (Some ct) id.Value |> TaskResult.map snd
-            let patronUserId =
-                match loan.Patron with
-                | RegisteredUser u -> u
-                | Guest _ -> failwith "Guest loans do not have a registered UserId"
-            do! checkIsGlobalAdminOrTenantManagerOrSelf context ct patronUserId
-            let! result = loanViewerAsync (Some ct) id.Value
-            return result |> snd
+            match loan.Patron with
+            | RegisteredUser patronUserId ->
+                do! checkIsGlobalAdminOrTenantManagerOrSelf context ct patronUserId
+            | Guest _ ->
+                do! checkIsGlobalAdminOrTenantManager context ct
+            return loan
         }
 
     member this.GetRefreshableLoanDetailsAsync
@@ -147,11 +153,12 @@ type LoanService
                             let! tenantId = userTenantResolverService.GetTenantForUserAsync(context, ct)
                             let! loan = loanViewerAsync (ct |> Some) loanId.Value |> TaskResult.map snd
                             let! book = bookViewerAsync (ct |> Some) loan.BookId.Value |> TaskResult.map snd
-                            let patronUserId =
+                            let! userDetail =
                                 match loan.Patron with
-                                | RegisteredUser u -> u
-                                | Guest _ -> failwith "Guest loans do not have a registered UserId"
-                            let! userDetail = usersService.GetUserDetailsAsync(context, patronUserId, ct)
+                                | RegisteredUser patronUserId ->
+                                    usersService.GetUserDetailsAsync(context, patronUserId, ct) |> TaskResult.map Some
+                                | Guest _ ->
+                                    taskResult { return None }
 
                             do!
                                 book.TenantId = tenantId
@@ -167,11 +174,16 @@ type LoanService
                 taskResult {
                     let! loanDetails = refresher (Some ct)
 
+                    let keyDependencies =
+                        match loanDetails.UserDetails with
+                        | Some u -> [ loanId.Value; loanDetails.Book.Id; u.User.Id ]
+                        | None -> [ loanId.Value; loanDetails.Book.Id ]
+
                     return
                         { LoanDetails = loanDetails
                           Refresher = refresher }
                         :> RefreshableAsync<RefreshableLoanDetails>,
-                        [ loanId.Value; loanDetails.Book.Id; loanDetails.UserDetails.User.Id ]
+                        keyDependencies
                 }
 
         let key = DetailsCacheKey.OfType typeof<RefreshableLoanDetails> loanId.Value
@@ -200,11 +212,9 @@ type LoanService
             let! result =
                 StateView.getAllFilteredAggregateStatesAsync<Loan, LoanEvent, string>
                     (fun (loan: Loan) ->
-                        let patronUserId =
-                            match loan.Patron with
-                            | RegisteredUser u -> u
-                            | Guest _ -> failwith "Guest loans do not have a registered UserId"
-                        loan.TenantId = tenantId && patronUserId = userId)
+                        match loan.Patron with
+                        | RegisteredUser u -> loan.TenantId = tenantId && u = userId
+                        | Guest _ -> false)
                     eventStore
                     (ct |> Some)
                 |> TaskResult.map (fun x -> x |>> snd)
@@ -247,40 +257,54 @@ type LoanService
                     |> TaskResult.map (fun (_, x) -> x.Name)
                 | None -> taskResult { return NonEmptyName(localizer.GetString("Unspecified").Value) }
 
-            let patronUserId =
-                match loan.Patron with
-                | RegisteredUser u -> u
-                | Guest _ -> failwith "Guest loans do not have a registered UserId"
-            let! user = userViewerAsync (Some ct) patronUserId.Value |> TaskResult.map snd
             let releaseLoanCommand = BookCommand.ReleaseLoan(loanId, dateTime)
             let releaseBookCommand = LoanCommand.Return dateTime
-            let userReleaseLoanCommandr = UserCommand.ReleaseLoan(loanId)
-            printf "XXXX 100 running release lona async\n"
-            let! result =
-                runThreeAggregateCommandsMdAsync<Book, BookEvent, Loan, LoanEvent, User, UserEvent, string>
-                    book.Id
-                    loan.Id
-                    user.Id
-                    eventStore
-                    messageSenders
-                    ""
-                    releaseLoanCommand
-                    releaseBookCommand
-                    userReleaseLoanCommandr
-                    (ct |> Some)
 
-            printf "XXXX 200 after running release lona async\n"
-            let! _ =
-                notificationDispatcher.DispatchNotificationAsync(
-                    context,
-                    patronUserId,
-                    loan.TenantId,
-                    Some $"/loans/{loan.Id}/release",
-                    ct
-                )
+            match loan.Patron with
+            | RegisteredUser patronUserId ->
+                let! user = userViewerAsync (Some ct) patronUserId.Value |> TaskResult.map snd
+                let userReleaseLoanCommandr = UserCommand.ReleaseLoan(loanId)
+                printf "XXXX 100 running release lona async\n"
+                let! result =
+                    runThreeAggregateCommandsMdAsync<Book, BookEvent, Loan, LoanEvent, User, UserEvent, string>
+                        book.Id
+                        loan.Id
+                        user.Id
+                        eventStore
+                        messageSenders
+                        ""
+                        releaseLoanCommand
+                        releaseBookCommand
+                        userReleaseLoanCommandr
+                        (ct |> Some)
 
-            let! _ = DetailsCache.Instance.RefreshDependentDetailsAsync(patronUserId.Value, Some ct)
-            return result
+                printf "XXXX 200 after running release lona async\n"
+                let! _ =
+                    notificationDispatcher.DispatchNotificationAsync(
+                        context,
+                        patronUserId,
+                        loan.TenantId,
+                        Some $"/loans/{loan.Id}/release",
+                        ct
+                    )
+                    |> Task.map (fun _ -> Ok ())
+
+                let! _ = DetailsCache.Instance.RefreshDependentDetailsAsync(patronUserId.Value, Some ct)
+                return result
+            | Guest _ ->
+                do! checkIsGlobalAdminOrTenantManager context ct
+                printf "XXXX 100 running release guest loan async\n"
+                let! result =
+                    runTwoNAggregateCommandsMdAsync<Book, BookEvent, Loan, LoanEvent, string>
+                        [ book.Id ]
+                        [ loan.Id ]
+                        eventStore
+                        messageSenders
+                        ""
+                        [ releaseLoanCommand ]
+                        [ releaseBookCommand ]
+                        (ct |> Some)
+                return result
         }
 
     member this.GetHistoryLoansOfUserAsync(context: UserContext, userId: UserId, ?ct: CancellationToken) =
@@ -293,11 +317,9 @@ type LoanService
             let! loans =
                 StateView.getAllFilteredAggregateStatesAsync<Loan, LoanEvent, string>
                     (fun loan ->
-                        let patronUserId =
-                            match loan.Patron with
-                            | RegisteredUser u -> u
-                            | Guest _ -> failwith "Guest loans do not have a registered UserId"
-                        patronUserId = userId && loan.TenantId = tenantId)
+                        match loan.Patron with
+                        | RegisteredUser u -> u = userId && loan.TenantId = tenantId
+                        | Guest _ -> false)
                     eventStore
                     (ct |> Some)
                 |> TaskResult.map (fun x -> x |> List.map snd)
@@ -331,6 +353,14 @@ type LoanService
 
             let! loan = reservationDetails.ToLoan now
 
+            let! (_, tenant) = tenantViewerAsync (ct |> Some) book.TenantId.Value
+            match reservation.Patron with
+            | Guest _ ->
+                do!
+                    (tenant.TenantId = TenantId.Default || tenant.TenantVisibility.IsPublic)
+                    |> Result.ofBool "Guest loans are only allowed for public libraries"
+            | RegisteredUser _ -> ()
+
             let setBookLoaned =
                 BookCommand.SetCurrentLoanFromReservation(reservationId, loan.LoanId, now)
 
@@ -348,49 +378,71 @@ type LoanService
                     }
 
             let! result =
-                runInitAndThreeAggregateCommandsMdAsync<
-                    Reservation,
-                    ReservationEvent,
-                    Book,
-                    BookEvent,
-                    User,
-                    UserEvent,
-                    string,
-                    Loan
-                 >
-                    reservation.Id
-                    book.Id
-                    reservationDetails.UserDetails.User.Id
-                    eventStore
-                    messageSenders
-                    loan
-                    ""
-                    makeReservationLoaned
-                    setBookLoaned
-                    makeLoanFromReservation
-                    (ct |> Some)
+                match reservation.Patron with
+                | RegisteredUser patronUserId ->
+                    taskResult {
+                        let makeLoanFromReservation =
+                            UserCommand.LoanFromReservation(loan.LoanId, reservationId)
+                        let! res =
+                            runInitAndThreeAggregateCommandsMdAsync<
+                                Reservation,
+                                ReservationEvent,
+                                Book,
+                                BookEvent,
+                                User,
+                                UserEvent,
+                                string,
+                                Loan
+                             >
+                                reservation.Id
+                                book.Id
+                                patronUserId.Value
+                                eventStore
+                                messageSenders
+                                loan
+                                ""
+                                makeReservationLoaned
+                                setBookLoaned
+                                makeLoanFromReservation
+                                (ct |> Some)
+
+                        let! _ =
+                            notificationDispatcher.DispatchNotificationAsync(
+                                context,
+                                patronUserId,
+                                reservation.TenantId,
+                                Some $"/loans/{loan.Id}",
+                                ct
+                            )
+                            |> Task.map (fun _ -> Ok ())
+                        let! _ = DetailsCache.Instance.RefreshDependentDetailsAsync(patronUserId.Value, Some ct)
+                        return res
+                    }
+                | Guest _ ->
+                    runInitAndTwoAggregateCommandsMdAsync<
+                        Reservation,
+                        ReservationEvent,
+                        Book,
+                        BookEvent,
+                        string,
+                        Loan
+                     >
+                        reservation.Id
+                        book.Id
+                        eventStore
+                        messageSenders
+                        loan
+                        ""
+                        makeReservationLoaned
+                        setBookLoaned
+                        (ct |> Some)
 
             let key = DetailsCacheKey.OfType typeof<RefreshableTenantDetails> reservation.Id
 
             let updateDetails =
                 DetailsCache.Instance.UpdateMultipleAggregateIdAssociation [| loan.Id |] key
 
-            let patronUserId =
-                match reservation.Patron with
-                | RegisteredUser u -> u
-                | Guest _ -> failwith "Guest reservations do not have a registered UserId"
-
-            let! _ =
-                notificationDispatcher.DispatchNotificationAsync(
-                    context,
-                    patronUserId,
-                    reservation.TenantId,
-                    Some $"/loans/{loan.Id}",
-                    ct
-                )
-
             let! _ = DetailsCache.Instance.RefreshDependentDetailsAsync(reservation.BookId.Value, Some ct)
-            let! _ = DetailsCache.Instance.RefreshDependentDetailsAsync(patronUserId.Value, Some ct)
             return result
         }
 
@@ -417,6 +469,14 @@ type LoanService
 
             let! loan = reservationDetails.ToLoan now
 
+            let! (_, tenant) = tenantViewerAsync (ct |> Some) book.TenantId.Value
+            match reservation.Patron with
+            | Guest _ ->
+                do!
+                    (tenant.TenantId = TenantId.Default || tenant.TenantVisibility.IsPublic)
+                    |> Result.ofBool "Guest loans are only allowed for public libraries"
+            | RegisteredUser _ -> ()
+
             let setBookLoaned =
                 BookCommand.SetCurrentLoanFromReservation(reservationId, loan.LoanId, now)
 
@@ -434,49 +494,71 @@ type LoanService
                     }
 
             let! result =
-                runInitAndThreeAggregateCommandsMdAsync<
-                    Reservation,
-                    ReservationEvent,
-                    Book,
-                    BookEvent,
-                    User,
-                    UserEvent,
-                    string,
-                    Loan
-                 >
-                    reservation.Id
-                    book.Id
-                    reservationDetails.UserDetails.User.Id
-                    eventStore
-                    messageSenders
-                    loan
-                    ""
-                    verifyPickupPin
-                    setBookLoaned
-                    makeLoanFromReservation
-                    (ct |> Some)
+                match reservation.Patron with
+                | RegisteredUser patronUserId ->
+                    taskResult {
+                        let makeLoanFromReservation =
+                            UserCommand.LoanFromReservation(loan.LoanId, reservationId)
+                        let! res =
+                            runInitAndThreeAggregateCommandsMdAsync<
+                                Reservation,
+                                ReservationEvent,
+                                Book,
+                                BookEvent,
+                                User,
+                                UserEvent,
+                                string,
+                                Loan
+                             >
+                                reservation.Id
+                                book.Id
+                                patronUserId.Value
+                                eventStore
+                                messageSenders
+                                loan
+                                ""
+                                verifyPickupPin
+                                setBookLoaned
+                                makeLoanFromReservation
+                                (ct |> Some)
+
+                        let! _ =
+                            notificationDispatcher.DispatchNotificationAsync(
+                                context,
+                                patronUserId,
+                                reservation.TenantId,
+                                Some $"/loans/{loan.Id}",
+                                ct
+                            )
+                            |> Task.map (fun _ -> Ok ())
+                        let! _ = DetailsCache.Instance.RefreshDependentDetailsAsync(patronUserId.Value, Some ct)
+                        return res
+                    }
+                | Guest _ ->
+                    runInitAndTwoAggregateCommandsMdAsync<
+                        Reservation,
+                        ReservationEvent,
+                        Book,
+                        BookEvent,
+                        string,
+                        Loan
+                     >
+                        reservation.Id
+                        book.Id
+                        eventStore
+                        messageSenders
+                        loan
+                        ""
+                        verifyPickupPin
+                        setBookLoaned
+                        (ct |> Some)
 
             let key = DetailsCacheKey.OfType typeof<RefreshableTenantDetails> reservation.Id
 
             let updateDetails =
                 DetailsCache.Instance.UpdateMultipleAggregateIdAssociation [| loan.Id |] key
 
-            let patronUserId =
-                match reservation.Patron with
-                | RegisteredUser u -> u
-                | Guest _ -> failwith "Guest reservations do not have a registered UserId"
-
-            let! _ =
-                notificationDispatcher.DispatchNotificationAsync(
-                    context,
-                    patronUserId,
-                    reservation.TenantId,
-                    Some $"/loans/{loan.Id}",
-                    ct
-                )
-
-            // todo: check if this is needed
-            let! _ = DetailsCache.Instance.RefreshDependentDetailsAsync(patronUserId.Value, Some ct)
+            let! _ = DetailsCache.Instance.RefreshDependentDetailsAsync(reservation.BookId.Value, Some ct)
             return result
         }
 

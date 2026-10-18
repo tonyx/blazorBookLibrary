@@ -96,11 +96,9 @@ type DetailsService
                 let! futurereservations =
                     StateView.getAllFilteredAggregateStatesAsync<Reservation, ReservationEvent, string>
                         (fun r ->
-                            let rUserId =
-                                match r.Patron with
-                                | RegisteredUser u -> u
-                                | Guest _ -> failwith "Guest reservations do not have a registered UserId"
-                            rUserId = id && r.TenantId = tenantId && r.IsPending)
+                            match r.Patron with
+                            | RegisteredUser u -> u = id && r.TenantId = tenantId && r.IsPending
+                            | Guest _ -> false)
                         eventStore
                         (Some ct)
                     |> TaskResult.map (List.ofSeq >> List.map snd)
@@ -108,11 +106,9 @@ type DetailsService
                 let! currentLoans =
                     StateView.getAllFilteredAggregateStatesAsync<Loan, LoanEvent, string>
                         (fun l ->
-                            let lUserId =
-                                match l.Patron with
-                                | RegisteredUser u -> u
-                                | Guest _ -> failwith "Guest loans do not have a registered UserId"
-                            lUserId = id && l.TenantId = tenantId && l.InProgress)
+                            match l.Patron with
+                            | RegisteredUser u -> u = id && l.TenantId = tenantId && l.InProgress
+                            | Guest _ -> false)
                         eventStore
                         (Some ct)
                     |> TaskResult.map (List.ofSeq >> List.map snd)
@@ -210,11 +206,12 @@ type DetailsService
                                 |> Result.ofBool $"Loan '{loanId}' doesn't belong to this tenant '{tenantId}'"
 
                             let! book = bookViewerAsync (Some ct) loan.BookId.Value |> TaskResult.map snd
-                            let patronUserId =
+                            let! userDetail =
                                 match loan.Patron with
-                                | RegisteredUser u -> u
-                                | Guest _ -> failwith "Guest loans do not have a registered UserId"
-                            let! userDetail = this.GetUserDetailsAsync(context, patronUserId, ct)
+                                | RegisteredUser patronUserId ->
+                                    this.GetUserDetailsAsync(context, patronUserId, ct) |> TaskResult.map Some
+                                | Guest _ ->
+                                    taskResult { return None }
 
                             return
                                 { Loan = loan
@@ -225,11 +222,16 @@ type DetailsService
                 taskResult {
                     let! loanDetails = refresher (Some ct)
 
+                    let keyDependencies =
+                        match loanDetails.UserDetails with
+                        | Some u -> [ loanId.Value; loanDetails.Book.Id; u.User.Id ]
+                        | None -> [ loanId.Value; loanDetails.Book.Id ]
+
                     return
                         { LoanDetails = loanDetails
                           Refresher = refresher }
                         :> RefreshableAsync<RefreshableLoanDetails>,
-                        [ loanId.Value; loanDetails.Book.Id; loanDetails.UserDetails.User.Id ]
+                        keyDependencies
                 }
 
         let key = DetailsCacheKey.OfType typeof<RefreshableLoanDetails> loanId.Value
@@ -270,11 +272,12 @@ type DetailsService
                     |> Result.ofBool $"Reservation '{id}' doesn't belong to this tenant '{tenantId}'"
 
                 let! book = bookViewerAsync (ct |> Some) reservation.BookId.Value |> TaskResult.map snd
-                let patronUserId =
+                let! userDetails =
                     match reservation.Patron with
-                    | RegisteredUser u -> u
-                    | Guest _ -> failwith "Guest reservations do not have a registered UserId"
-                let! userDetails = this.GetUserDetailsAsync(context, patronUserId, ct)
+                    | RegisteredUser patronUserId ->
+                        this.GetUserDetailsAsync(context, patronUserId, ct) |> TaskResult.map Some
+                    | Guest _ ->
+                        taskResult { return None }
 
                 return
                     { Reservation = reservation

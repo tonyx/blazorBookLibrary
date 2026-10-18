@@ -92,6 +92,12 @@
             return;
         }
 
+        var cookieOptions = new CookieOptions { Path = "/" };
+        HttpContext.Response.Cookies.Delete("selected_tenant_id", cookieOptions);
+        HttpContext.Response.Cookies.Delete("selected_tenant", cookieOptions);
+        HttpContext.Response.Cookies.Delete("selected_tenant_id");
+        HttpContext.Response.Cookies.Delete("selected_tenant");
+
         await SignInManager.SignOutAsync();
 
         Logger.LogInformation("User with ID '{UserId}' anonymized themselves.", userIdStr);

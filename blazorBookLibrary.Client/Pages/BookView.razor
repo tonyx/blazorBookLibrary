@@ -124,73 +124,155 @@
                     {
                         <div class="mt-5 p-4 bg-surface-low rounded-xl">
                             <h6 class="serif mb-3">@L["ReserveThisVolume"]</h6>
-                            @if (userReservation != null)
+                            @if (isAuthenticated)
                             {
-                                <div class="p-3 mb-1 small text-start bg-surface-lowest rounded shadow-sm border-start border-4 border-info">
-                                    <div class="d-flex align-items-center gap-2 mb-2">
-                                        <i class="bi bi-check2-all text-info fw-bold"></i>
-                                        <span class="fw-bold">@L["Active Reservation"]</span>
-                                    </div>
-                                    <p class="mb-3 text-muted">@L["AlreadyReservedMessage", userReservation.ReservedAt.ToLocalTime().ToString("g")]</p>
-                                    
-                                    @if (string.IsNullOrEmpty(activePin))
-                                    {
-                                        <button class="btn btn-sm btn-info w-100 py-2 text-white shadow-sm d-flex align-items-center justify-content-center gap-2"
-                                                style="border-radius: 8px;"
-                                                @onclick="GeneratePin"
-                                                disabled="@isGeneratingPin">
-                                            @if (isGeneratingPin)
-                                            {
-                                                <span class="spinner-border spinner-border-sm" role="status"></span>
-                                            }
-                                            else
-                                            {
-                                                <i class="bi bi-shield-lock-fill"></i>
-                                            }
-                                            <span>@L["Get Checkout PIN"]</span>
-                                        </button>
-                                    }
-                                    else
-                                    {
-                                        <div class="mt-3 p-3 text-center rounded shadow-inner border border-info-subtle position-relative overflow-hidden" 
-                                             style="background: linear-gradient(135deg, rgba(13, 202, 240, 0.05), rgba(13, 202, 240, 0.15)); backdrop-filter: blur(8px); border-radius: 12px;">
-                                            <div class="small text-muted text-uppercase tracking-wider fw-bold mb-1" style="font-size: 0.7rem;">@L["Checkout PIN"]</div>
-                                            <div class="h3 font-monospace fw-bold tracking-widest text-info my-2" style="font-size: 2rem; letter-spacing: 0.15em;">@activePin</div>
-                                            
-                                            <div class="d-flex align-items-center justify-content-center gap-2 mt-2 text-info">
-                                                <i class="bi bi-stopwatch-fill animate-pulse"></i>
-                                                <span class="font-monospace fw-bold">@formattedCountdown</span>
-                                            </div>
-                                            
-                                            @if (isPinExpired)
-                                            {
-                                                <div class="text-danger small mt-2 fw-bold">
-                                                    <i class="bi bi-exclamation-triangle-fill me-1"></i> @L["PIN expired. Please regenerate."]
-                                                </div>
-                                                <button class="btn btn-sm btn-outline-danger w-100 mt-2 py-1" style="border-radius: 6px;" @onclick="GeneratePin">
-                                                    @L["Regenerate PIN"]
-                                                </button>
-                                            }
+                                @if (userReservation != null)
+                                {
+                                    <div class="p-3 mb-1 small text-start bg-surface-lowest rounded shadow-sm border-start border-4 border-info">
+                                        <div class="d-flex align-items-center gap-2 mb-2">
+                                            <i class="bi bi-check2-all text-info fw-bold"></i>
+                                            <span class="fw-bold">@L["Active Reservation"]</span>
                                         </div>
-                                    }
-                                </div>
-                            }
-                            else if (loggedInUserDetails != null && 
-                                     loggedInUserDetails.FutureReservations.Length >= Configuration.GetValue<int>("BooksLibrary:MaxReservationsPerUser", 3))
-                            {
-                                <div class="p-3 mb-1 small text-start bg-surface-lowest rounded shadow-sm border-start border-4 border-warning">
-                                    <i class="bi bi-exclamation-octagon-fill me-2 text-warning"></i>
-                                    @L["MaxReservationsReachedMessage", Configuration.GetValue<int>("BooksLibrary:MaxReservationsPerUser", 3)]
-                                </div>
+                                        <p class="mb-3 text-muted">@L["AlreadyReservedMessage", userReservation.ReservedAt.ToLocalTime().ToString("g")]</p>
+                                        
+                                        @if (string.IsNullOrEmpty(activePin))
+                                        {
+                                            <button class="btn btn-sm btn-info w-100 py-2 text-white shadow-sm d-flex align-items-center justify-content-center gap-2"
+                                                    style="border-radius: 8px;"
+                                                    @onclick="GeneratePin"
+                                                    disabled="@isGeneratingPin">
+                                                @if (isGeneratingPin)
+                                                {
+                                                    <span class="spinner-border spinner-border-sm" role="status"></span>
+                                                }
+                                                else
+                                                {
+                                                    <i class="bi bi-shield-lock-fill"></i>
+                                                }
+                                                <span>@L["Get Checkout PIN"]</span>
+                                            </button>
+                                        }
+                                        else
+                                        {
+                                            <div class="mt-3 p-3 text-center rounded shadow-inner border border-info-subtle position-relative overflow-hidden" 
+                                                 style="background: linear-gradient(135deg, rgba(13, 202, 240, 0.05), rgba(13, 202, 240, 0.15)); backdrop-filter: blur(8px); border-radius: 12px;">
+                                                <div class="small text-muted text-uppercase tracking-wider fw-bold mb-1" style="font-size: 0.7rem;">@L["Checkout PIN"]</div>
+                                                <div class="h3 font-monospace fw-bold tracking-widest text-info my-2" style="font-size: 2rem; letter-spacing: 0.15em;">@activePin</div>
+                                                
+                                                <div class="d-flex align-items-center justify-content-center gap-2 mt-2 text-info">
+                                                    <i class="bi bi-stopwatch-fill animate-pulse"></i>
+                                                    <span class="font-monospace fw-bold">@formattedCountdown</span>
+                                                </div>
+                                                
+                                                @if (isPinExpired)
+                                                {
+                                                    <div class="text-danger small mt-2 fw-bold">
+                                                        <i class="bi bi-exclamation-triangle-fill me-1"></i> @L["PIN expired. Please regenerate."]
+                                                    </div>
+                                                    <button class="btn btn-sm btn-outline-danger w-100 mt-2 py-1" style="border-radius: 6px;" @onclick="GeneratePin">
+                                                        @L["Regenerate PIN"]
+                                                    </button>
+                                                }
+                                            </div>
+                                        }
+                                    </div>
+                                }
+                                else if (loggedInUserDetails != null && 
+                                         loggedInUserDetails.FutureReservations.Length >= Configuration.GetValue<int>("BooksLibrary:MaxReservationsPerUser", 3))
+                                {
+                                    <div class="p-3 mb-1 small text-start bg-surface-lowest rounded shadow-sm border-start border-4 border-warning">
+                                        <i class="bi bi-exclamation-octagon-fill me-2 text-warning"></i>
+                                        @L["MaxReservationsReachedMessage", Configuration.GetValue<int>("BooksLibrary:MaxReservationsPerUser", 3)]
+                                    </div>
+                                }
+                                else
+                                {
+                                    <button class="btn-sanctuary-primary w-100 justify-content-center" @onclick="ReserveBook">
+                                        <i class="bi bi-calendar2-check"></i> @L["Reserve"]
+                                    </button>
+                                    <p class="text-muted small mt-3 mb-0">
+                                        <i class="bi bi-people-fill me-1"></i> @L["Reservations"]: @bookDetails.ReservationsDetails.Length
+                                    </p>
+                                }
                             }
                             else
                             {
-                                <button class="btn-sanctuary-primary w-100 justify-content-center" @onclick="ReserveBook">
-                                    <i class="bi bi-calendar2-check"></i> @L["Reserve"]
-                                </button>
-                                <p class="text-muted small mt-3 mb-0">
-                                    <i class="bi bi-people-fill me-1"></i> @L["Reservations"]: @bookDetails.ReservationsDetails.Length
-                                </p>
+                                @if (guestReservationSubmitted)
+                                {
+                                    <div class="p-3 mb-1 small text-start bg-surface-lowest rounded shadow-sm border-start border-4 border-success">
+                                        <div class="d-flex align-items-center gap-2 mb-2 text-success">
+                                            <i class="bi bi-check2-circle fw-bold fs-5"></i>
+                                            <span class="fw-bold">@L["ReservationRequested"]</span>
+                                        </div>
+                                        <p class="mb-2 text-muted">@L["GuestReservationSuccess", guestName]</p>
+                                        <div class="small text-muted fst-italic">
+                                            <i class="bi bi-info-circle me-1"></i>@L["GuestReservationDeskHelp"]
+                                        </div>
+                                    </div>
+                                }
+                                else if (bookDetails.Book.Available && bookDetails.PendingReservationsDetails.IsEmpty)
+                                {
+                                    <div class="alert alert-info py-2 px-3 small d-flex align-items-center gap-2 mb-3 text-start" style="border-radius: 8px;">
+                                        <i class="bi bi-info-circle-fill text-info fs-6"></i>
+                                        <div>
+                                            @L["GuestReservationNotice"]
+                                            <a href="/Account/Login" class="fw-bold text-decoration-underline text-reset ms-1">@L["LogIn"]</a>
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-2 text-start">
+                                        <label class="form-label small fw-semibold mb-1">@L["YourName"] <span class="text-danger">*</span></label>
+                                        <input type="text" class="form-control form-control-sm" placeholder="@L["FullName"]" @bind="guestName" />
+                                    </div>
+
+                                    <div class="mb-2 text-start">
+                                        <label class="form-label small fw-semibold mb-1">@L["PhoneNumber"] <span class="text-muted fw-normal">(@L["Optional"])</span></label>
+                                        <input type="tel" class="form-control form-control-sm" placeholder="+123456789" @bind="guestPhone" />
+                                    </div>
+
+                                    <div class="mb-2 text-start">
+                                        <label class="form-label small fw-semibold mb-1">@L["Email"] <span class="text-muted fw-normal">(@L["Optional"])</span></label>
+                                        <input type="email" class="form-control form-control-sm" placeholder="name@example.com" @bind="guestEmail" />
+                                    </div>
+
+                                    <div class="mb-3 text-start">
+                                        <label class="form-label small fw-semibold mb-1">@L["Notes"] <span class="text-muted fw-normal">(@L["Optional"])</span></label>
+                                        <textarea class="form-control form-control-sm" rows="2" placeholder="@L["OptionalNotesPlaceholder"]" @bind="guestNotes"></textarea>
+                                    </div>
+
+                                    @if (!string.IsNullOrEmpty(guestFormError))
+                                    {
+                                        <div class="text-danger small mb-2 text-start">
+                                            <i class="bi bi-exclamation-triangle-fill me-1"></i>@guestFormError
+                                        </div>
+                                    }
+
+                                    <button class="btn-sanctuary-primary w-100 justify-content-center" @onclick="ReserveAsGuest" disabled="@isSubmittingGuest">
+                                        @if (isSubmittingGuest)
+                                        {
+                                            <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                                            <span>@L["Submitting..."]</span>
+                                        }
+                                        else
+                                        {
+                                            <i class="bi bi-person-check-fill me-1"></i>
+                                            <span>@L["ReserveAsGuest"]</span>
+                                        }
+                                    </button>
+                                }
+                                else
+                                {
+                                    <div class="p-3 mb-1 small text-start bg-surface-lowest rounded shadow-sm border-start border-4 border-warning">
+                                        <div class="d-flex align-items-center gap-2 mb-2 text-warning">
+                                            <i class="bi bi-clock-history fw-bold"></i>
+                                            <span class="fw-bold">@L["UnavailableForGuestReservation"]</span>
+                                        </div>
+                                        <p class="mb-2 text-muted">@L["GuestReservationWaitlistNotice"]</p>
+                                        <a href="/Account/Login" class="btn btn-sm btn-outline-primary w-100 mt-2">
+                                            <i class="bi bi-box-arrow-in-right me-1"></i>@L["LogInToJoinWaitlist"]
+                                        </a>
+                                    </div>
+                                }
                             }
                         </div>
                     }
@@ -489,6 +571,15 @@
     private string statusMessage = "";
     private string statusClass = "alert-info";
 
+    private bool isAuthenticated = false;
+    private string guestName = "";
+    private string guestPhone = "";
+    private string guestEmail = "";
+    private string guestNotes = "";
+    private bool isSubmittingGuest = false;
+    private bool guestReservationSubmitted = false;
+    private string? guestFormError = null;
+
     private string activePin = "";
     private DateTime pinExpiresAt;
     private string formattedCountdown = "15:00";
@@ -635,7 +726,7 @@
             
             var result = await ReservationService.AddReservationAsync(context, reservation, ShortLang.New(CultureInfo.CurrentCulture.Name.Substring(0,2)), FSharpOption<System.Threading.CancellationToken>.None);
             
-            if (tryTenant.IsOk)
+            if (result.IsOk)
             {
                 await ShowStatus(L["ReservationSuccessMessage"], "alert-success");
                 await LoadBookDetails();
@@ -643,7 +734,7 @@
             }
             else
             {
-                await ShowStatus(L["ReservationFailedMessage", tryTenant.ErrorValue], "alert-danger");
+                await ShowStatus(L["ReservationFailedMessage", result.ErrorValue], "alert-danger");
             }
         }
         catch (Exception ex)
@@ -653,6 +744,73 @@
         finally
         {
             isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task ReserveAsGuest()
+    {
+        if (bookDetails == null) return;
+
+        guestFormError = null;
+        if (string.IsNullOrWhiteSpace(guestName))
+        {
+            guestFormError = L["NameIsRequired"]?.Value ?? "Name is required.";
+            return;
+        }
+
+        try
+        {
+            isSubmittingGuest = true;
+            StateHasChanged();
+
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var context = TenantState.GetUserContext(authState.User);
+            var tenantId = bookDetails.Book.TenantId;
+
+            int loanDuration = Configuration.GetValue<int>("BooksLibrary:TimeSlotLoanDurationInDays", 25);
+            var now = DateTime.UtcNow;
+            var nextSlot = bookDetails.GetNextAvailableTimeSlot(loanDuration, now);
+
+            FSharpOption<string> ToOpt(string? s) =>
+                string.IsNullOrWhiteSpace(s) ? FSharpOption<string>.None : FSharpOption<string>.Some(s.Trim());
+
+            var guestPatron = new GuestPatron(
+                guestName.Trim(),
+                ToOpt(guestPhone),
+                ToOpt(guestEmail),
+                ToOpt(guestNotes)
+            );
+
+            var reservation = Reservation.NewGuest(tenantId, bookDetails.Book.BookId, guestPatron, nextSlot, now);
+            var langStr = CultureInfo.CurrentCulture.TwoLetterISOLanguageName;
+            var result = await ReservationService.AddReservationAsync(
+                context,
+                reservation,
+                ShortLang.New(string.IsNullOrEmpty(langStr) ? "en" : langStr),
+                FSharpOption<CancellationToken>.None
+            );
+
+            if (result.IsOk)
+            {
+                guestReservationSubmitted = true;
+                await ShowStatus(L["ReservationSuccessMessage"].Value, "alert-success");
+                await LoadBookDetails();
+            }
+            else
+            {
+                guestFormError = result.ErrorValue;
+                await ShowStatus(L["ReservationFailedMessage", result.ErrorValue].Value, "alert-danger");
+            }
+        }
+        catch (Exception ex)
+        {
+            guestFormError = ex.Message;
+            await ShowStatus(L["ReservationFailedMessage", ex.Message].Value, "alert-danger");
+        }
+        finally
+        {
+            isSubmittingGuest = false;
             StateHasChanged();
         }
     }
@@ -766,9 +924,10 @@
         {
             var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
             var user = authState.User;
+            isAuthenticated = user.Identity?.IsAuthenticated == true;
             var context = TenantState.GetUserContext(user);
             
-            if (user.Identity?.IsAuthenticated == true)
+            if (isAuthenticated)
             {
                 var userIdStr = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
                 if (!string.IsNullOrEmpty(userIdStr) && Guid.TryParse(userIdStr, out var userGuid))
@@ -798,6 +957,14 @@
                         }
                     }
                 }
+            }
+            else
+            {
+                loggedInUserDetails = null;
+                userReservation = null;
+                userReview = null;
+                canAddReview = false;
+                hasLoaned = false;
             }
         }
         catch (Exception ex)

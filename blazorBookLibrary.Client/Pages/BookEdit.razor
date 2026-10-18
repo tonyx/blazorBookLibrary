@@ -1551,7 +1551,7 @@ else
                                         <i class="bi bi-journal-minus fs-3 text-warning"></i>
                                         <div>
                                             <h6 class="serif mb-1">@L["ItemCurrentlyWithBorrower"]</h6>
-                                            <p class="small text-muted mb-0">UID: @loan.UserDetails.AppUser.UserName</p>
+                                            <p class="small text-muted mb-0">@(loan.Loan.Patron.IsGuest ? $"{L["Guest"]}: " : "UID: ")@loan.BorrowerName</p>
                                         </div>
                                     </div>
                                     <div class="d-flex justify-content-between small border-top pt-2">
@@ -1603,8 +1603,24 @@ else
                                                 var res = pendingRes[i];
                                                 <tr>
                                                     <td class="ps-0 py-3">
-                                                        <div class="fw-bold serif">@res.UserDetails.AppUser.UserName</div>
-                                                        <div class="x-small text-muted">@res.UserDetails.AppUser.CodiceFiscale</div>
+                                                        @if (res.UserDetails != null && Microsoft.FSharp.Core.FSharpOption<BookLibrary.Shared.Details.UserDetails>.get_IsSome(res.UserDetails))
+                                                        {
+                                                            <div class="fw-bold serif">@res.UserDetails.Value.AppUser.UserName</div>
+                                                            <div class="x-small text-muted">@res.UserDetails.Value.AppUser.CodiceFiscale</div>
+                                                        }
+                                                        else if (res.Reservation.Patron.IsGuest)
+                                                        {
+                                                            var guest = ((BookLibrary.Shared.Commons.Patron.Guest)res.Reservation.Patron).Item;
+                                                            <div class="fw-bold serif"><span class="badge bg-secondary me-1">Guest</span>@guest.Name</div>
+                                                            @if (Microsoft.FSharp.Core.FSharpOption<string>.get_IsSome(guest.PhoneNumber))
+                                                            {
+                                                                <div class="x-small text-muted">@guest.PhoneNumber.Value</div>
+                                                            }
+                                                        }
+                                                        else
+                                                        {
+                                                            <div class="fw-bold serif">@res.BorrowerName</div>
+                                                        }
                                                     </td>
                                                     <td class="py-3">
                                                         <div class="small font-monospace">@res.Reservation.TimeSlot.Start.ToShortDateString() — @res.Reservation.TimeSlot.End.ToShortDateString()</div>

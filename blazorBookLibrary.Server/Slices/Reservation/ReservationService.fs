@@ -156,15 +156,18 @@ type ReservationService
                 let! reservation = reservationViewerAsync (ct |> Some) id.Value |> TaskResult.map snd
                 let! tenantId = userTenantResolverService.GetTenantForUserAsync(context, ct)
                 let! book = bookViewerAsync (ct |> Some) reservation.BookId.Value |> TaskResult.map snd
-                let patronUserId =
-                    match reservation.Patron with
-                    | RegisteredUser u -> u
-                    | Guest _ -> failwith "Guest reservations do not have a registered UserId"
-                let! userDetails = usersService.GetUserDetailsAsync(context, patronUserId, ct)
 
                 do!
                     book.TenantId = tenantId
                     |> Result.ofBool $"Book tenant id {book.TenantId} does not match user tenant id {tenantId}"
+
+                let! userDetails =
+                    match reservation.Patron with
+                    | RegisteredUser patronUserId ->
+                        usersService.GetUserDetailsAsync(context, patronUserId, ct)
+                        |> TaskResult.map Some
+                    | Guest _ ->
+                        taskResult { return None }
 
                 return
                     { Reservation = reservation
@@ -183,11 +186,11 @@ type ReservationService
 
             do! 
                 if (reason.IsRequestedByUser) then
-                    let patronUserId =
-                        match reservation.Patron with
-                        | RegisteredUser u -> u
-                        | Guest _ -> failwith "Guest reservations do not have a registered UserId"
-                    checkIsGlobalAdminOrTenantManagerOrSelf context ct patronUserId
+                    match reservation.Patron with
+                    | RegisteredUser patronUserId ->
+                        checkIsGlobalAdminOrTenantManagerOrSelf context ct patronUserId
+                    | Guest _ ->
+                        checkIsGlobalAdminOrTenantManager context ct
                 else
                     checkIsGlobalAdminOrTenantManager context ct
                 
@@ -228,88 +231,138 @@ type ReservationService
 
         taskResult {
             let ct = defaultArg ct CancellationToken.None
-            let patronUserId =
-                match reservation.Patron with
-                | RegisteredUser u -> u
-                | Guest _ -> failwith "Guest reservations do not have a registered UserId"
             let! book = bookViewerAsync (Some ct) reservation.BookId.Value |> TaskResult.map snd
-            let! user = userViewerAsync (Some ct) patronUserId.Value |> TaskResult.map snd
-
-            let! tenantId = userTenantResolverService.GetTenantForUserAsync(context, ct)
-            do! checkIsGlobalAdminOrTenantManagerOrSelf context ct patronUserId
-
-            let! userReservations =
-                StateView.getAllFilteredAggregateStatesAsync<Reservation, ReservationEvent, string>
-                    (fun r ->
-                        let rUserId =
-                            match r.Patron with
-                            | RegisteredUser u -> u
-                            | Guest _ -> failwith "Guest reservations do not have a registered UserId"
-                        rUserId = patronUserId && r.TenantId = tenantId && r.IsPending)
-                    eventStore
-                    (Some ct)
-                |> TaskResult.map (List.ofSeq >> List.map snd)
-
-            let! userHasEnoughReservations =
-                userReservations.Length < maxReservations
-                |> Result.ofBool "Already reached maximum number of reservations"
 
             do!
                 reservation.TimeSlot.IsFutureOf(dateTime)
                 |> Result.ofBool "Reservation time slot must be in the future"
 
-            let! alreadyExistingReservations = this.GetReservationsOfABookAsync(context, book.BookId, ct)
+            match reservation.Patron with
+            | Guest guest ->
+                do!
+                    reservation.TenantId = book.TenantId
+                    |> Result.ofBool $"Book tenant id {book.TenantId} does not match reservation tenant id {reservation.TenantId}"
+                do! book.NoLoan |> Result.ofBool "Book is currently loaned"
 
-            do!
-                tenantId = book.TenantId
-                |> Result.ofBool $"Book tenant id {book.TenantId} does not match user tenant id {tenantId}"
+                let! (alreadyExistingReservations: Reservation list) =
+                    StateView.getAllFilteredAggregateStatesAsync<Reservation, ReservationEvent, string>
+                        (fun r -> r.BookId = book.BookId && r.TenantId = book.TenantId && r.IsPending)
+                        eventStore
+                        (Some ct)
+                    |> TaskResult.map (List.ofSeq >> List.map snd)
+                do!
+                    alreadyExistingReservations.IsEmpty
+                    |> Result.ofBool "Book already has active reservations"
 
-            let! (_, tenant) = tenantViewerAsync (ct |> Some) tenantId.Value
+                let! (_, tenant) = tenantViewerAsync (ct |> Some) book.TenantId.Value
+                do!
+                    (tenant.TenantId = TenantId.Default || tenant.TenantVisibility.IsPublic)
+                    |> Result.ofBool "Guest reservations and loans are only allowed for public libraries"
 
-            let! noOverlaps =
-                alreadyExistingReservations
-                |> List.forall (fun r -> not (r.TimeSlot.Overlaps(reservation.TimeSlot)))
-                |> Result.ofBool "Reservation overlaps with existing reservation"
+                let! result =
+                    runInitAsync<Reservation, ReservationEvent, string> eventStore messageSenders reservation (ct |> Some)
 
-            let! userDetails = usersService.GetUserDetailsAsync(context, user.UserId, ct)
+                let key = DetailsCacheKey.OfType typeof<RefreshableTenantDetails> reservation.Id
+                let _ =
+                    DetailsCache.Instance.UpdateMultipleAggregateIdAssociation [| reservation.Id |] key
 
-            let! result =
-                runInitAsync<Reservation, ReservationEvent, string> eventStore messageSenders reservation (ct |> Some)
+                let managersAndOwner =
+                    tenant.Patrons
+                    |> List.choose (fun (uId, role) -> if role = PatronRole.Manager then Some uId else None)
+                    |> fun managers -> tenant.OwnerId :: managers
+                    |> List.distinct
 
-            let key = DetailsCacheKey.OfType typeof<RefreshableTenantDetails> reservation.Id
+                for managerOrOwnerId in managersAndOwner do
+                    let managerContext =
+                        (UserContext.Authenticated(managerOrOwnerId, [ Role.Admin ])).WithNewTenant(book.TenantId)
+                    let! _ =
+                        notificationDispatcher.DispatchNotificationAsync(
+                            managerContext,
+                            managerOrOwnerId,
+                            book.TenantId,
+                            Some $"/reservations/{reservation.Id}/manager",
+                            ct
+                        )
+                        |> Task.map (fun _ -> Ok ())
+                    ()
 
-            let updateDetails =
-                DetailsCache.Instance.UpdateMultipleAggregateIdAssociation [| reservation.Id |] key
+                let! _ = DetailsCache.Instance.RefreshDependentDetailsAsync(reservation.BookId.Value, Some ct)
+                return result
 
-            let! _ =
-                notificationDispatcher.DispatchNotificationAsync(
-                    context,
-                    patronUserId,
-                    tenantId,
-                    Some $"/reservations/{reservation.Id}",
-                    ct
-                )
+            | RegisteredUser patronUserId ->
+                let! user = userViewerAsync (Some ct) patronUserId.Value |> TaskResult.map snd
+                let! tenantId = userTenantResolverService.GetTenantForUserAsync(context, ct)
+                do! checkIsGlobalAdminOrTenantManagerOrSelf context ct patronUserId
 
-            let managersAndOwner =
-                tenant.Patrons
-                |> List.choose (fun (uId, role) -> if role = PatronRole.Manager then Some uId else None)
-                |> fun managers -> tenant.OwnerId :: managers
-                |> List.distinct
+                let! userReservations =
+                    StateView.getAllFilteredAggregateStatesAsync<Reservation, ReservationEvent, string>
+                        (fun r ->
+                            match r.Patron with
+                            | RegisteredUser u -> u = patronUserId && r.TenantId = tenantId && r.IsPending
+                            | Guest _ -> false)
+                        eventStore
+                        (Some ct)
+                    |> TaskResult.map (List.ofSeq >> List.map snd)
 
-            for managerOrOwnerId in managersAndOwner do
+                let! userHasEnoughReservations =
+                    userReservations.Length < maxReservations
+                    |> Result.ofBool "Already reached maximum number of reservations"
+
+                let! alreadyExistingReservations = this.GetReservationsOfABookAsync(context, book.BookId, ct)
+
+                do!
+                    tenantId = book.TenantId
+                    |> Result.ofBool $"Book tenant id {book.TenantId} does not match user tenant id {tenantId}"
+
+                let! (_, tenant) = tenantViewerAsync (ct |> Some) tenantId.Value
+
+                let! noOverlaps =
+                    alreadyExistingReservations
+                    |> List.forall (fun r -> not (r.TimeSlot.Overlaps(reservation.TimeSlot)))
+                    |> Result.ofBool "Reservation overlaps with existing reservation"
+
+                let! userDetails = usersService.GetUserDetailsAsync(context, user.UserId, ct)
+
+                let! result =
+                    runInitAsync<Reservation, ReservationEvent, string> eventStore messageSenders reservation (ct |> Some)
+
+                let key = DetailsCacheKey.OfType typeof<RefreshableTenantDetails> reservation.Id
+                let _ =
+                    DetailsCache.Instance.UpdateMultipleAggregateIdAssociation [| reservation.Id |] key
+
                 let! _ =
                     notificationDispatcher.DispatchNotificationAsync(
                         context,
-                        managerOrOwnerId,
+                        patronUserId,
                         tenantId,
-                        Some $"/reservations/{reservation.Id}/manager",
+                        Some $"/reservations/{reservation.Id}",
                         ct
                     )
-                ()
+                    |> Task.map (fun _ -> Ok ())
 
-            let! _ = DetailsCache.Instance.RefreshDependentDetailsAsync(reservation.BookId.Value, Some ct)
-            let! _ = DetailsCache.Instance.RefreshDependentDetailsAsync(patronUserId.Value, Some ct)
-            return result
+                let managersAndOwner =
+                    tenant.Patrons
+                    |> List.choose (fun (uId, role) -> if role = PatronRole.Manager then Some uId else None)
+                    |> fun managers -> tenant.OwnerId :: managers
+                    |> List.distinct
+
+                for managerOrOwnerId in managersAndOwner do
+                    let managerContext =
+                        (UserContext.Authenticated(managerOrOwnerId, [ Role.Admin ])).WithNewTenant(tenantId)
+                    let! _ =
+                        notificationDispatcher.DispatchNotificationAsync(
+                            managerContext,
+                            managerOrOwnerId,
+                            tenantId,
+                            Some $"/reservations/{reservation.Id}/manager",
+                            ct
+                        )
+                        |> Task.map (fun _ -> Ok ())
+                    ()
+
+                let! _ = DetailsCache.Instance.RefreshDependentDetailsAsync(reservation.BookId.Value, Some ct)
+                let! _ = DetailsCache.Instance.RefreshDependentDetailsAsync(patronUserId.Value, Some ct)
+                return result
         }
 
     member this.AddReservationAsync
@@ -335,11 +388,11 @@ type ReservationService
 
         taskResult {
             let! reservation = reservationViewerAsync (ct |> Some) id.Value |> TaskResult.map snd
-            let patronUserId =
-                match reservation.Patron with
-                | RegisteredUser u -> u
-                | Guest _ -> failwith "Guest reservations do not have a registered UserId"
-            do! checkIsGlobalAdminOrTenantManagerOrSelf context ct patronUserId
+            match reservation.Patron with
+            | RegisteredUser u ->
+                do! checkIsGlobalAdminOrTenantManagerOrSelf context ct u
+            | Guest _ ->
+                do! checkIsGlobalAdminOrTenantManager context ct
             let! tenantId = userTenantResolverService.GetTenantForUserAsync(context, ct)
             let! result = reservationViewerAsync (Some ct) id.Value |> TaskResult.map snd
 
@@ -369,11 +422,11 @@ type ReservationService
         taskResult {
             let ct = defaultArg ct CancellationToken.None
             let! reservation = this.GetReservationAsync(context, reservationId, ct)
-            let patronUserId =
-                match reservation.Patron with
-                | RegisteredUser u -> u
-                | Guest _ -> failwith "Guest reservations do not have a registered UserId"
-            do! checkIsGlobalAdminOrTenantManagerOrSelf context ct patronUserId
+            match reservation.Patron with
+            | RegisteredUser u ->
+                do! checkIsGlobalAdminOrTenantManagerOrSelf context ct u
+            | Guest _ ->
+                do! checkIsGlobalAdminOrTenantManager context ct
 
             let! result =
                 runDeleteAsync<Reservation, ReservationEvent, string>
@@ -384,7 +437,11 @@ type ReservationService
                     (Some ct)
 
             let! _ = DetailsCache.Instance.RefreshDependentDetailsAsync(reservation.BookId.Value, Some ct)
-            let! _ = DetailsCache.Instance.RefreshDependentDetailsAsync(patronUserId.Value, Some ct)
+            match reservation.Patron with
+            | RegisteredUser u ->
+                let! _ = DetailsCache.Instance.RefreshDependentDetailsAsync(u.Value, Some ct)
+                ()
+            | Guest _ -> ()
             return result
         }
 
@@ -428,13 +485,12 @@ type ReservationService
             let! reservation = this.GetReservationAsync(context, id, ct)
 
             let isPatron =
-                let patronUserId =
-                    match reservation.Patron with
-                    | RegisteredUser u -> u
-                    | Guest _ -> failwith "Guest reservations do not have a registered UserId"
-                match context.UserId with
-                | Some uid -> uid = patronUserId
-                | None -> false
+                match reservation.Patron with
+                | RegisteredUser u ->
+                    match context.UserId with
+                    | Some uid -> uid = u
+                    | None -> false
+                | Guest _ -> false
 
             let! _ =
                 if isPatron then
@@ -494,11 +550,9 @@ type ReservationService
             let! reservations =
                 StateView.getAllFilteredAggregateStatesAsync<Reservation, ReservationEvent, string>
                     (fun r ->
-                        let rUserId =
-                            match r.Patron with
-                            | RegisteredUser u -> u
-                            | Guest _ -> failwith "Guest reservations do not have a registered UserId"
-                        rUserId = userId && r.TenantId = tenantId && r.IsPending)
+                        match r.Patron with
+                        | RegisteredUser u -> u = userId && r.TenantId = tenantId && r.IsPending
+                        | Guest _ -> false)
                     eventStore
                     (Some ct)
                 |> TaskResult.map (List.ofSeq >> List.map snd)

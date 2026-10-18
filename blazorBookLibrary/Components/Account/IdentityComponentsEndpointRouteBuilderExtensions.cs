@@ -45,11 +45,20 @@ internal static class IdentityComponentsEndpointRouteBuilderExtensions
         }).DisableAntiforgery();
 
         accountGroup.MapPost("/Logout", async (
+            HttpContext context,
             ClaimsPrincipal user,
             [FromServices] SignInManager<ApplicationUser> signInManager,
             [FromForm] string returnUrl) =>
         {
             await signInManager.SignOutAsync();
+            var cookieOptions = new CookieOptions
+            {
+                Path = "/"
+            };
+            context.Response.Cookies.Delete("selected_tenant_id", cookieOptions);
+            context.Response.Cookies.Delete("selected_tenant", cookieOptions);
+            context.Response.Cookies.Delete("selected_tenant_id");
+            context.Response.Cookies.Delete("selected_tenant");
             return TypedResults.LocalRedirect($"~/{returnUrl}");
         });
 

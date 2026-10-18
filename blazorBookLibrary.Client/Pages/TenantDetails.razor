@@ -802,8 +802,7 @@
                                                         </a>
                                                     </td>
                                                     <td>
-                                                        @* <div class="font-monospace small text-truncate" style="max-width: 100px;" title="@loan.Loan.UserId.Value">@loan.Loan.UserId.Value</div> *@
-                                                        <div class="font-monospace small text-truncate" style="max-width: 100px;" title="@loan.UserDetails.AppUser.UserName">@loan.UserDetails.AppUser.UserName</div>
+                                                        <div class="font-monospace small text-truncate" style="max-width: 100px;" title="@loan.BorrowerName">@loan.BorrowerName</div>
                                                     </td>
                                                     <td>
                                                         <div class="small">
@@ -917,7 +916,21 @@
                                                                 </div>
                                                             </td>
                                                             <td>
-                                                                <div class="font-monospace small text-truncate" style="max-width: 100px;" title="@res.UserDetails.AppUser.Email">@res.UserDetails.AppUser.Email</div>
+                                                                @if (res.UserDetails != null && Microsoft.FSharp.Core.FSharpOption<BookLibrary.Shared.Details.UserDetails>.get_IsSome(res.UserDetails))
+                                                                {
+                                                                    <div class="font-monospace small text-truncate" style="max-width: 100px;" title="@res.UserDetails.Value.AppUser.Email">@res.UserDetails.Value.AppUser.Email</div>
+                                                                }
+                                                                else if (res.Reservation.Patron.IsGuest)
+                                                                {
+                                                                    var guest = ((BookLibrary.Shared.Commons.Patron.Guest)res.Reservation.Patron).Item;
+                                                                    <div class="small fw-semibold text-truncate" style="max-width: 100px;" title="@guest.Name">
+                                                                        <span class="badge bg-secondary me-1">Guest</span>@guest.Name
+                                                                    </div>
+                                                                }
+                                                                else
+                                                                {
+                                                                    <div class="font-monospace small text-truncate" style="max-width: 100px;">@res.BorrowerName</div>
+                                                                }
                                                             </td>
                                                             <td>
                                                                 <div class="small">
@@ -974,7 +987,7 @@
                                                 
                                                 <div class="mb-4 p-3 bg-primary-subtle rounded-xl border border-primary-subtle shadow-sm">
                                                     <h6 class="serif fw-bold text-primary mb-1">@selectedReservation.Book.Title.Value</h6>
-                                                    <p class="x-small text-muted mb-0">@L["Borrower"]: @selectedReservation.UserDetails.AppUser.UserName</p>
+                                                    <p class="x-small text-muted mb-0">@L["Borrower"]: @selectedReservation.BorrowerName</p>
                                                 </div>
 
                                                 <div class="mb-4">

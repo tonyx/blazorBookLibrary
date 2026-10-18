@@ -1248,6 +1248,16 @@
   <data name="Locating" xml:space="preserve"><value>Locating</value></data>
   <data name="CookieBanner_Title" xml:space="preserve"><value>Technical Cookies Notice</value></data>
   <data name="CookieBanner_Message" xml:space="preserve"><value>BiblioNet uses exclusively technical cookies strictly necessary for operation, session security, and browsing preferences. We do not use profiling or commercial tracking cookies.</value></data>
-  <data name="CookieBanner_LearnMore" xml:space="preserve"><value>Privacy &amp; Cookie Policy</value></data>
-  <data name="CookieBanner_Acknowledge" xml:space="preserve"><value>Got it</value></data>
+  <data name="ReserveAsGuest" xml:space="preserve"><value>Reserve as Guest</value></data>
+  <data name="GuestReservationNotice" xml:space="preserve"><value>Already have an account? Log in first for seamless reservation tracking.</value></data>
+  <data name="GuestReservationSuccess" xml:space="preserve"><value>Thank you, {0}! Your reservation has been placed. A library manager has been notified and will prepare your loan pickup.</value></data>
+  <data name="GuestReservationWaitlistNotice" xml:space="preserve"><value>Guest reservations are only allowed when the volume is immediately available on shelf with no waiting list.</value></data>
+  <data name="UnavailableForGuestReservation" xml:space="preserve"><value>Unavailable for Guest Reservation</value></data>
+  <data name="LogInToJoinWaitlist" xml:space="preserve"><value>Log in to join the queue</value></data>
+  <data name="YourName" xml:space="preserve"><value>Your Name</value></data>
+  <data name="Notes" xml:space="preserve"><value>Notes</value></data>
+  <data name="OptionalNotesPlaceholder" xml:space="preserve"><value>Optional pickup or contact notes</value></data>
+  <data name="NameIsRequired" xml:space="preserve"><value>Name is required</value></data>
+  <data name="ReservationRequested" xml:space="preserve"><value>Reservation Requested</value></data>
+  <data name="GuestReservationDeskHelp" xml:space="preserve"><value>Please contact or visit the library desk to complete your pickup.</value></data>
 </root>

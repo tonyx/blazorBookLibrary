@@ -36,14 +36,14 @@ type UserTenantResolverService(
 ) =
     let tenantViewerAsync = getAggregateStorageFreshStateViewerAsync<Tenant, TenantEvent, string> eventStore
 
-    let isTenantPrivate (tenantId: TenantId, ct: CancellationToken) =
+    let isTenantPublic (tenantId: TenantId, ct: CancellationToken) =
         task {
             if tenantId = TenantId.Default then
-                return Ok false
+                return Ok true
             else
                 let! tenantRes = tenantViewerAsync (Some ct) tenantId.Value
                 match tenantRes with
-                | Ok (_, tenant) -> return Ok tenant.TenantVisibility.IsPrivate
+                | Ok (_, tenant) -> return Ok tenant.TenantVisibility.IsPublic
                 | Error _ -> return Ok false
         }
 
@@ -103,8 +103,8 @@ type UserTenantResolverService(
                 }
 
             if context.IsAnonymous then
-                let! isPrivate = isTenantPrivate (resolvedTenantId, ctValue)
-                if isPrivate then
+                let! isPublic = isTenantPublic (resolvedTenantId, ctValue)
+                if not isPublic then
                     return TenantId.Default
                 else
                     return resolvedTenantId
