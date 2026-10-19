@@ -511,6 +511,12 @@
   <data name="ExportErrorGeneric" xml:space="preserve"><value>Si è verificato un errore imprevisto durante l'esportazione: {0}</value></data>
   <data name="ExportSuccessful" xml:space="preserve"><value>Libri esportati con successo!</value></data>
   <data name="Exporting" xml:space="preserve"><value>Esportazione in corso...</value></data>
+  <data name="Cite" xml:space="preserve"><value>Cita</value></data>
+  <data name="CiteOrExport" xml:space="preserve"><value>Cita o Esporta</value></data>
+  <data name="CopyBibTeX" xml:space="preserve"><value>Copia BibTeX</value></data>
+  <data name="CopyJSONLD" xml:space="preserve"><value>Copia JSON-LD</value></data>
+  <data name="CopiedToClipboard" xml:space="preserve"><value>Copiato negli appunti!</value></data>
+  <data name="Publisher" xml:space="preserve"><value>Editore</value></data>
   <data name="FailedIsbnsCopied" xml:space="preserve"><value>ISBN falliti copiati negli appunti.</value></data>
   <data name="FailedToCreateAuthor" xml:space="preserve"><value>Impossibile creare l'autore '{0}'.</value></data>
   <data name="Failure" xml:space="preserve"><value>Fallimento</value></data>

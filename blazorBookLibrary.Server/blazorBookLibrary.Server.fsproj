@@ -94,6 +94,7 @@
     <Compile Include="Slices/User/UserService.fs" />
     <Compile Include="Slices/Reservation/ReservationService.fs" />
     <Compile Include="Slices/Author/AuthorService.fs" />
+    <Compile Include="Slices/Editor/EditorService.fs" />
     <Compile Include="Slices/Loan/LoanService.fs" />
     <Compile Include="Slices/Book/VectorDbService.fs" />
     <Compile Include="Slices/Book/BookService.fs" />
@@ -127,6 +128,7 @@
     <Compile Include="Slices/Book/BooksController.fs" />
     <Compile Include="Slices/Loan/LoansController.fs" />
     <Compile Include="Slices/Author/AuthorsController.fs" />
+    <Compile Include="Slices/Editor/EditorsController.fs" />
     <Compile Include="Slices/DistributionPoint/DistributionPointsController.fs" />
     <Compile Include="Slices/Review/ReviewsController.fs" />
     <Compile Include="Slices/User/UsersController.fs" />

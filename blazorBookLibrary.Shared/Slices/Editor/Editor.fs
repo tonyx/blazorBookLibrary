@@ -19,6 +19,8 @@ type Editor = {
             Name = name;
             Sealed = Sealed.New(dateTime)
         }
+    static member NewWithoutDate (tenantId: TenantId) (name: Name) = 
+        Editor.New tenantId name DateTime.UtcNow
     member this.UpdateName (name: Name) (dateTime: DateTime)= 
         result
             {

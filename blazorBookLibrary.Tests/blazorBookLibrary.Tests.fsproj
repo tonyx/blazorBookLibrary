@@ -18,6 +18,7 @@
     <Compile Include="TenantTests.fs" />
     <Compile Include="ImportExportDataTest.fs" />
     <Compile Include="AuthorsServiceTests.fs" />
+    <Compile Include="EditorServiceTests.fs" />
     <Compile Include="BookServiceTests.fs" />
     <Compile Include="LoanServiceTests.fs" />
     <Compile Include="ReservationsTests.fs" />

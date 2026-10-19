@@ -49,6 +49,63 @@ let exportTests =
             let authors = matchingBook.GetProperty("Authors").EnumerateArray() |> Seq.map (fun a -> a.GetString()) |> Seq.toList
             Expect.contains authors authorName "Authors list should contain author name"
         }
+
+        testCaseTask "ExportAllBooksAsync as BibTeX exports formatted .bib entries" <| fun _ -> task {
+            setUp ()
+            let dataExportService = (getDataExportService () :> IDataExportService)
+            let bookService = (getBookService () :> IBookService)
+            let authorService = (getAuthorService () :> IAuthorService)
+
+            let authorName = "Arthur C. Clarke"
+            let author = Author.NewWithoutIsni TenantId.Default (Name.New authorName)
+            let! addAuthor = authorService.AddAuthorAsync(adminContext, author)
+            Expect.isOk addAuthor "Add author should succeed"
+
+            let bookTitle = "2001: A Space Odyssey"
+            let book = Book.New TenantId.Default (Title.New bookTitle) [author.AuthorId] [] [] None Category.ScienceFiction [] (Year.New 1968) (Isbn.NewEmpty()) None
+            let! addBook = bookService.AddBookAsync(adminContext, book, CancellationToken.None)
+            Expect.isOk addBook "Add book should succeed"
+
+            let! exportResult = dataExportService.ExportAllBooksAsync(adminContext, BibTex)
+            Expect.isOk exportResult "BibTeX Export should succeed"
+
+            let bib = exportResult |> Result.get
+            Expect.isTrue (bib.Contains("@book{")) "BibTeX should contain @book entry"
+            Expect.isTrue (bib.Contains("title = {")) "BibTeX should contain title"
+            Expect.isTrue (bib.Contains(authorName)) "BibTeX should contain author name"
+            Expect.isTrue (bib.Contains("1968")) "BibTeX should contain year"
+        }
+
+        testCaseTask "ExportAllBooksAsync as SchemaOrg exports valid JSON-LD graph" <| fun _ -> task {
+            setUp ()
+            let dataExportService = (getDataExportService () :> IDataExportService)
+            let bookService = (getBookService () :> IBookService)
+            let authorService = (getAuthorService () :> IAuthorService)
+
+            let authorName = "Philip K. Dick"
+            let author = Author.NewWithoutIsni TenantId.Default (Name.New authorName)
+            let! addAuthor = authorService.AddAuthorAsync(adminContext, author)
+            Expect.isOk addAuthor "Add author should succeed"
+
+            let bookTitle = "Do Androids Dream of Electric Sheep?"
+            let book = Book.New TenantId.Default (Title.New bookTitle) [author.AuthorId] [] [] None Category.ScienceFiction [] (Year.New 1968) (Isbn.NewEmpty()) None
+            let! addBook = bookService.AddBookAsync(adminContext, book, CancellationToken.None)
+            Expect.isOk addBook "Add book should succeed"
+
+            let! exportResult = dataExportService.ExportAllBooksAsync(adminContext, SchemaOrg)
+            Expect.isOk exportResult "Schema.org Export should succeed"
+
+            let jsonld = exportResult |> Result.get
+            use doc = System.Text.Json.JsonDocument.Parse(jsonld)
+            let root = doc.RootElement
+            Expect.equal (root.GetProperty("@context").GetString()) "https://schema.org" "Context should be schema.org"
+            let graph = root.GetProperty("@graph").EnumerateArray() |> Seq.toList
+            Expect.isFalse (List.isEmpty graph) "@graph should not be empty"
+            let matchingBook = graph |> List.find (fun b -> b.GetProperty("name").GetString() = bookTitle)
+            Expect.equal (matchingBook.GetProperty("@type").GetString()) "Book" "@type should be Book"
+            let authors = matchingBook.GetProperty("author").EnumerateArray() |> Seq.map (fun a -> a.GetProperty("name").GetString()) |> Seq.toList
+            Expect.contains authors authorName "Authors list should contain author name"
+        }
     ]
 
 [<Tests>]

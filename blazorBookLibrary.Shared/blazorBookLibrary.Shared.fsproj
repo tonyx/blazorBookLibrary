@@ -46,6 +46,7 @@
     <Compile Include="Slices/Tenant/ITenantCacheWarmupService.fs" />
     <Compile Include="Slices/Review/IReviewService.fs" />
     <Compile Include="Slices/Details/IDetailsService.fs" />
+    <Compile Include="Slices/DataExport/FormatSerializers.fs" />
     <Compile Include="Slices/DataExport/IDataExportService.fs" />
     <Compile Include="Slices/Book/ITextEmbeddingService.fs" />
     <Compile Include="Slices/Book/ILibrarianChatService.fs" />

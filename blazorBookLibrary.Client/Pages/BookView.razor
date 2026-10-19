@@ -19,11 +19,13 @@
 @inject IConfiguration Configuration
 @inject IDetailsService DetailsService
 @inject IReviewService ReviewService
+@inject IEditorService EditorService
 @inject IUserTenantResolverService UserTenantResolverService
 @inject NavigationManager NavManager
 @inject IJSRuntime JSRuntime
 @using Microsoft.Extensions.Localization
 @using blazorBookLibrary.Shared.Resources
+@using BookLibrary.Shared.Formats
 @inject IStringLocalizer<SharedResources> L
 @inject IBotScoreService BotScoreService
 @inject blazorBookLibrary.Client.Services.TenantStateService TenantState
@@ -31,6 +33,15 @@
 @rendermode InteractiveAuto
 
 <PageTitle>@L["BookDetails"]</PageTitle>
+
+@if (!string.IsNullOrEmpty(schemaOrgJsonLd))
+{
+    <HeadContent>
+        <script type="application/ld+json">
+            @((MarkupString)schemaOrgJsonLd)
+        </script>
+    </HeadContent>
+}
 
 <style>
     .tag-chip {
@@ -62,9 +73,26 @@
             </nav>
             <h1 class="display-5 mb-0" style="font-family: var(--font-serif); font-weight: 800; color: var(--primary);">@L["BookDetails"]</h1>
         </div>
-        <button class="btn-sanctuary-outline" @onclick="GoBack">
-            <i class="bi bi-arrow-left me-2"></i>@L["Back"]
-        </button>
+        <div class="d-flex align-items-center gap-2">
+            @if (bookDetails != null)
+            {
+                <div class="dropdown">
+                    <button class="btn-sanctuary-outline dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="@L["CiteOrExport"]">
+                        <i class="bi bi-quote me-1"></i> @L["Cite"]
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0">
+                        <li><button class="dropdown-item py-2" @onclick="DownloadBibTex"><i class="bi bi-file-earmark-code me-2 text-warning"></i> BibTeX (.bib)</button></li>
+                        <li><button class="dropdown-item py-2" @onclick="CopyBibTex"><i class="bi bi-clipboard me-2 text-secondary"></i> @L["CopyBibTeX"]</button></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><button class="dropdown-item py-2" @onclick="DownloadSchemaOrg"><i class="bi bi-diagram-3 me-2 text-info"></i> Schema.org (.jsonld)</button></li>
+                        <li><button class="dropdown-item py-2" @onclick="CopySchemaOrg"><i class="bi bi-clipboard me-2 text-secondary"></i> @L["CopyJSONLD"]</button></li>
+                    </ul>
+                </div>
+            }
+            <button class="btn-sanctuary-outline" @onclick="GoBack">
+                <i class="bi bi-arrow-left me-2"></i>@L["Back"]
+            </button>
+        </div>
     </div>
 
     @if (isLoading)
@@ -456,6 +484,12 @@
                                     <dt>@L["PublicationYear"]</dt>
                                     <dd>@bookDetails.Book.Year.Value</dd>
 
+                                    @if (!string.IsNullOrEmpty(resolvedPublisher))
+                                    {
+                                        <dt>@L["Publisher"]</dt>
+                                        <dd>@resolvedPublisher</dd>
+                                    }
+
                                     <dt>@L["MainCategory"]</dt>
                                     <dd>
                                         <span class="badge-sanctuary badge-neutral mt-1">@bookDetails.Book.MainCategory.Value()</span>
@@ -648,6 +682,8 @@
     private bool isReviewSystemEnabled = true;
     private List<Details.ReviewDetails> shuffledReviews = new();
     private Details.BookDetails? bookDetails;
+    private string? schemaOrgJsonLd;
+    private string? resolvedPublisher;
     private Details.UserDetails? loggedInUserDetails;
     private bool canAddReview = false;
     private bool hasLoaned = false;
@@ -1154,6 +1190,25 @@
                     {
                         Logger.LogWarning(ex, "Failed to load library tenant details for proximity check");
                     }
+
+                    if (FSharpOption<EditorId>.get_IsSome(bookDetails.Book.Editor))
+                    {
+                        try
+                        {
+                            var edResult = await EditorService.GetEditorAsync(context, bookDetails.Book.Editor.Value, FSharpOption<CancellationToken>.None);
+                            if (edResult.IsOk)
+                            {
+                                resolvedPublisher = edResult.ResultValue.Name.Value;
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            Logger.LogWarning(ex, "Failed to load editor details for publisher attribution");
+                        }
+                    }
+
+                    var pubOpt = resolvedPublisher != null ? FSharpOption<string>.Some(resolvedPublisher) : FSharpOption<string>.None;
+                    schemaOrgJsonLd = FormatSerializers.formatSchemaOrgBook(bookDetails, pubOpt);
                 }
                 else
                 {
@@ -1173,6 +1228,44 @@
         {
             isLoading = false;
         }
+    }
+
+    private async Task DownloadBibTex()
+    {
+        if (bookDetails == null) return;
+        var pubOpt = resolvedPublisher != null ? FSharpOption<string>.Some(resolvedPublisher) : FSharpOption<string>.None;
+        var bib = FormatSerializers.formatBibTexBook(bookDetails, pubOpt);
+        var fileName = $"{FormatSerializers.generateCiteKey(bookDetails)}.bib";
+        await JSRuntime.InvokeVoidAsync("downloadFile", fileName, bib);
+        await ShowStatus(L["ExportSuccessful"], "alert-success");
+    }
+
+    private async Task CopyBibTex()
+    {
+        if (bookDetails == null) return;
+        var pubOpt = resolvedPublisher != null ? FSharpOption<string>.Some(resolvedPublisher) : FSharpOption<string>.None;
+        var bib = FormatSerializers.formatBibTexBook(bookDetails, pubOpt);
+        await JSRuntime.InvokeVoidAsync("navigator.clipboard.writeText", bib);
+        await ShowStatus(L["CopiedToClipboard"], "alert-success");
+    }
+
+    private async Task DownloadSchemaOrg()
+    {
+        if (bookDetails == null) return;
+        var pubOpt = resolvedPublisher != null ? FSharpOption<string>.Some(resolvedPublisher) : FSharpOption<string>.None;
+        var json = FormatSerializers.formatSchemaOrgBook(bookDetails, pubOpt);
+        var fileName = $"{FormatSerializers.generateCiteKey(bookDetails)}.jsonld";
+        await JSRuntime.InvokeVoidAsync("downloadFile", fileName, json);
+        await ShowStatus(L["ExportSuccessful"], "alert-success");
+    }
+
+    private async Task CopySchemaOrg()
+    {
+        if (bookDetails == null) return;
+        var pubOpt = resolvedPublisher != null ? FSharpOption<string>.Some(resolvedPublisher) : FSharpOption<string>.None;
+        var json = FormatSerializers.formatSchemaOrgBook(bookDetails, pubOpt);
+        await JSRuntime.InvokeVoidAsync("navigator.clipboard.writeText", json);
+        await ShowStatus(L["CopiedToClipboard"], "alert-success");
     }
 
     private async Task LoadUserReservation()

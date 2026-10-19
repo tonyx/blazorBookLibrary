@@ -20,7 +20,7 @@ public class DataExportClientService : IDataExportService
 
     public async Task<FSharpResult<string, string>> ExportAllBooksAsync(Commons.UserContext context, Commons.ExportFormat format, FSharpOption<CancellationToken> ct)
     {
-        var formatStr = format.IsCsv ? "csv" : "json";
+        var formatStr = format.Code;
         var response = await _httpClient.GetAsync($"api/DataExport/export/books?format={formatStr}", ServiceClientHelper.GetValue(ct, CancellationToken.None));
         if (response.IsSuccessStatusCode)
         {

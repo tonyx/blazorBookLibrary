@@ -20,14 +20,15 @@ type DataExportController(dataExportService: IDataExportService) =
         task {
             let context = UserContextMapper.mapFromClaimsPrincipal this.User
             let exportFormat = 
-                match format.ToLower() with
+                match (if isNull format then "" else format.ToLower()) with
                 | "csv" -> Csv
+                | "bibtex" | "bib" -> BibTex
+                | "schemaorg" | "jsonld" | "json-ld" -> SchemaOrg
                 | _ -> Json
             let! result = dataExportService.ExportAllBooksAsync(context, exportFormat)
             match result with
             | Ok content -> 
-                let contentType = if exportFormat = Csv then "text/csv" else "application/json"
-                return this.Content(content, contentType) :> IActionResult
+                return this.Content(content, exportFormat.ContentType) :> IActionResult
             | Error msg -> return this.BadRequest(msg) :> IActionResult
         }
 

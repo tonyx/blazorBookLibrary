@@ -192,6 +192,17 @@ let getAuthorService () : IAuthorService =
     )
     :> IAuthorService
 
+let getEditorService () : IEditorService =
+    EditorService(
+        pgEventStore,
+        MessageSenders.NoSender,
+        editorViewerAsync,
+        tenantViewerAsync,
+        getUserTenantResolverService (),
+        getSecretReader ()
+    )
+    :> IEditorService
+
 let getReviewService () : IReviewService =
     ReviewService(
         pgEventStore,

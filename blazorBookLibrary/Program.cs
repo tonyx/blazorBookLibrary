@@ -112,6 +112,7 @@ builder.Services.AddSingleton<ICookieService, ServerCookieService>();
 builder.Services.AddSingleton<IUserTenantResolverService, UserTenantResolverService>();
 
 builder.Services.AddSingleton<IAuthorService, AuthorService>();
+builder.Services.AddSingleton<IEditorService, EditorService>();
 builder.Services.AddSingleton<IReservationService, ReservationService>();
 builder.Services.AddSingleton<ILoanService, LoanService>();
 builder.Services.AddSingleton<IVectorDbService, VectorDbService>();

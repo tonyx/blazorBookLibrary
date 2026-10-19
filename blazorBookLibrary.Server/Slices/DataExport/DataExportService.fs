@@ -19,6 +19,7 @@ open BookLibrary.Domain
 open BookLibrary.Shared.Services
 open BookLibrary.Shared.Commons
 open BookLibrary.Shared.Details
+open BookLibrary.Shared.Formats
 open BookLibrary.Details.Details
 open Microsoft.Extensions.Configuration
 open Microsoft.AspNetCore.Identity
@@ -166,6 +167,32 @@ type DataExportService
 
                     let csv = String.Join("\n", header :: rows)
                     return csv
+                | BibTex ->
+                    let editorIds = bookDetails |> List.choose (fun bd -> bd.Book.Editor) |> List.distinct
+                    let! editors =
+                        editorIds
+                        |> List.traverseTaskResultM (fun edId ->
+                            editorViewerAsync (Some ct) edId.Value |> TaskResult.map snd)
+                    let editorMap = editors |> List.map (fun e -> e.EditorId, e.Name.Value) |> Map.ofList
+                    let itemsWithPublishers =
+                        bookDetails
+                        |> List.map (fun bd ->
+                            let publisher = bd.Book.Editor |> Option.bind (fun id -> Map.tryFind id editorMap)
+                            bd, publisher)
+                    return FormatSerializers.formatBibTexBulk itemsWithPublishers
+                | SchemaOrg ->
+                    let editorIds = bookDetails |> List.choose (fun bd -> bd.Book.Editor) |> List.distinct
+                    let! editors =
+                        editorIds
+                        |> List.traverseTaskResultM (fun edId ->
+                            editorViewerAsync (Some ct) edId.Value |> TaskResult.map snd)
+                    let editorMap = editors |> List.map (fun e -> e.EditorId, e.Name.Value) |> Map.ofList
+                    let itemsWithPublishers =
+                        bookDetails
+                        |> List.map (fun bd ->
+                            let publisher = bd.Book.Editor |> Option.bind (fun id -> Map.tryFind id editorMap)
+                            bd, publisher)
+                    return FormatSerializers.formatSchemaOrgGraph itemsWithPublishers
             }
 
         member this.ImportFromIsbns

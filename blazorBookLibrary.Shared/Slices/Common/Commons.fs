@@ -163,18 +163,38 @@ type TenantVisibility =
 type ExportFormat =
     | Csv
     | Json
+    | BibTex
+    | SchemaOrg
 
     member this.Extension =
         match this with
         | Csv -> ".csv"
         | Json -> ".json"
+        | BibTex -> ".bib"
+        | SchemaOrg -> ".jsonld"
 
     member this.Name =
         match this with
         | Csv -> "CSV"
         | Json -> "JSON"
+        | BibTex -> "BibTeX"
+        | SchemaOrg -> "Schema.org (JSON-LD)"
 
-    static member All() = [ Csv; Json ]
+    member this.ContentType =
+        match this with
+        | Csv -> "text/csv"
+        | Json -> "application/json"
+        | BibTex -> "application/x-bibtex"
+        | SchemaOrg -> "application/ld+json"
+
+    member this.Code =
+        match this with
+        | Csv -> "csv"
+        | Json -> "json"
+        | BibTex -> "bibtex"
+        | SchemaOrg -> "schemaorg"
+
+    static member All() = [ Csv; Json; BibTex; SchemaOrg ]
 
 type ReservationCode =
     | ReservationCode of string

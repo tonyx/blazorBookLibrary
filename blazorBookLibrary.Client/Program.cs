@@ -23,6 +23,7 @@ public class Program
 
         // API Services
         builder.Services.AddScoped<IAuthorService, AuthorClientService>();
+        builder.Services.AddScoped<IEditorService, EditorClientService>();
         builder.Services.AddScoped<IBookService, BookClientService>();
         builder.Services.AddScoped<IAuthorsSearchService, AuthorsSearchClientService>();
         builder.Services.AddScoped<IDistributionPointService, DistributionPointsClientService>();
