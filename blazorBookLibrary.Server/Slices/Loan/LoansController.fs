@@ -106,6 +106,8 @@ type LoansController(loanService: ILoanService, reservationService: IReservation
             let! result = loanService.TransformReservationIntoLoanAsync(context, ReservationId reservationId, ReservationCode reservationCode, DateTime.UtcNow)
             match result with
             | Ok _ -> 
+                do! hubContext.Clients.Group($"Reservation_{reservationId}").SendCoreAsync("ReservationConfirmedIntoLoan", [| reservationId :> obj |])
+                do! hubContext.Clients.All.SendCoreAsync("ReservationConfirmedIntoLoan", [| reservationId :> obj |])
                 match resDetails with
                 | Some r ->
                     match r.Patron with
@@ -137,6 +139,8 @@ type LoansController(loanService: ILoanService, reservationService: IReservation
             let! result = loanService.TransformReservationIntoLoanByPinAsync(context, ReservationId reservationId, pin, DateTime.UtcNow)
             match result with
             | Ok _ -> 
+                do! hubContext.Clients.Group($"Reservation_{reservationId}").SendCoreAsync("ReservationConfirmedIntoLoan", [| reservationId :> obj |])
+                do! hubContext.Clients.All.SendCoreAsync("ReservationConfirmedIntoLoan", [| reservationId :> obj |])
                 match resDetails with
                 | Some r ->
                     match r.Patron with

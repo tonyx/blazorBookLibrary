@@ -1283,4 +1283,7 @@
   <data name="ReservationVerifiedByQrScan" xml:space="preserve"><value>Reservation verified via QR scan!</value></data>
   <data name="ReservationNotFoundForScannedCode" xml:space="preserve"><value>Reservation not found for scanned QR code.</value></data>
   <data name="PositionQrInsideFrameNote" xml:space="preserve"><value>Position the patron's QR code within the frame to verify reservation</value></data>
+  <data name="LoanConfirmedTitle" xml:space="preserve"><value>Loan Confirmed!</value></data>
+  <data name="LoanConfirmedMessage" xml:space="preserve"><value>Your loan pickup has been verified and registered. Please take your book and enjoy reading!</value></data>
+  <data name="LoanStatusActive" xml:space="preserve"><value>Active Loan</value></data>
 </root>

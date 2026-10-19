@@ -7,6 +7,7 @@
 @using static BookLibrary.Shared.Commons
 @using Microsoft.Extensions.Localization
 @using Microsoft.Extensions.Configuration
+@using Microsoft.AspNetCore.SignalR.Client
 @using System.Threading
 @using System.Globalization
 
@@ -19,6 +20,7 @@
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject ILogger<ConfirmLoan> Logger
 @inject blazorBookLibrary.Client.Services.TenantStateService TenantState
+@implements IAsyncDisposable
 @rendermode InteractiveAuto
 
 <PageTitle>@L["Confirm Loan Pickup"]</PageTitle>
@@ -212,6 +214,7 @@
     private string pinInput = "";
     private string codeInput = "";
     private ReservationDetails? reservationDetails;
+    private HubConnection? hubConnection;
 
     protected override async Task OnInitializedAsync()
     {
@@ -222,6 +225,41 @@
         if (!string.IsNullOrEmpty(CodeQuery))
         {
             codeInput = CodeQuery.Trim();
+        }
+
+        try
+        {
+            hubConnection = new HubConnectionBuilder()
+                .WithUrl(NavigationManager.ToAbsoluteUri("/hubs/library"))
+                .WithAutomaticReconnect()
+                .Build();
+
+            hubConnection.On<Guid>("ReservationConfirmedIntoLoan", async (confirmedReservationId) =>
+            {
+                if (Guid.TryParse(ReservationIdStr, out var resGuid) && resGuid == confirmedReservationId)
+                {
+                    try
+                    {
+                        await JSRuntime.InvokeVoidAsync("playScanSound");
+                    }
+                    catch { }
+
+                    isSuccessConfirmed = true;
+                    await LoadReservation();
+                    await InvokeAsync(StateHasChanged);
+                }
+            });
+
+            await hubConnection.StartAsync();
+
+            if (Guid.TryParse(ReservationIdStr, out var parsedGuid))
+            {
+                await hubConnection.SendAsync("JoinReservationGroup", parsedGuid);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Could not initialize SignalR hubConnection in ConfirmLoan");
         }
 
         await LoadReservation();
@@ -317,6 +355,25 @@
         {
             isConfirming = false;
             StateHasChanged();
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (hubConnection != null)
+        {
+            try
+            {
+                if (Guid.TryParse(ReservationIdStr, out var parsedGuid))
+                {
+                    await hubConnection.SendAsync("LeaveReservationGroup", parsedGuid);
+                }
+                await hubConnection.DisposeAsync();
+            }
+            catch (Exception ex)
+            {
+                Logger.LogWarning(ex, "Error disposing SignalR connection in ConfirmLoan");
+            }
         }
     }
 }

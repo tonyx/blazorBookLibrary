@@ -1283,4 +1283,7 @@
   <data name="ReservationVerifiedByQrScan" xml:space="preserve"><value>Prenotazione verificata tramite scansione QR!</value></data>
   <data name="ReservationNotFoundForScannedCode" xml:space="preserve"><value>Nessuna prenotazione trovata per il codice QR scansionato.</value></data>
   <data name="PositionQrInsideFrameNote" xml:space="preserve"><value>Inquadra il codice QR dell'utente all'interno della cornice per verificare la prenotazione</value></data>
+  <data name="LoanConfirmedTitle" xml:space="preserve"><value>Prestito Confermato!</value></data>
+  <data name="LoanConfirmedMessage" xml:space="preserve"><value>Il ritiro del tuo prestito è stato verificato e registrato. Puoi ritirare il tuo libro. Buona lettura!</value></data>
+  <data name="LoanStatusActive" xml:space="preserve"><value>Prestito Attivo</value></data>
 </root>

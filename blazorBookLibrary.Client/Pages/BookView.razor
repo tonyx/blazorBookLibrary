@@ -125,8 +125,23 @@
                     @if (bookDetails.Book.Availability.CanCirculate)
                     {
                         <div class="mt-5 p-4 bg-surface-low rounded-xl">
-                            <h6 class="serif mb-3">@L["ReserveThisVolume"]</h6>
-                            @if (isAuthenticated)
+                            @if (isLoanConfirmedForBorrower)
+                            {
+                                <div class="p-4 text-center rounded-xl bg-success-subtle border border-success-subtle shadow-sm animate-fade-in my-2">
+                                    <i class="bi bi-check-circle-fill text-success display-4 d-block mb-3"></i>
+                                    <h5 class="serif fw-bold text-success mb-2">@L["LoanConfirmedTitle"]</h5>
+                                    <p class="text-muted small mb-3">
+                                        @L["LoanConfirmedMessage"]
+                                    </p>
+                                    <div class="p-2 bg-white rounded-lg border border-success-subtle small font-monospace text-success fw-bold d-inline-block px-3">
+                                        <i class="bi bi-bookmark-check me-1"></i> @L["LoanStatusActive"]
+                                    </div>
+                                </div>
+                            }
+                            else
+                            {
+                                <h6 class="serif mb-3">@L["ReserveThisVolume"]</h6>
+                                @if (isAuthenticated)
                             {
                                 @if (userReservation != null)
                                 {
@@ -320,6 +335,7 @@
                                         </a>
                                     </div>
                                 }
+                            }
                             }
                         </div>
                     }
@@ -627,6 +643,8 @@
     private bool guestReservationSubmitted = false;
     private string? guestPickupQrBase64 = null;
     private string? guestReservationCode = null;
+    private Guid? guestReservationId = null;
+    private bool isLoanConfirmedForBorrower = false;
     private string? guestFormError = null;
     private Tenant? libraryTenant;
 
@@ -699,15 +717,23 @@
         countdownTimer?.Dispose();
         if (hubConnection is not null)
         {
-            if (bookDetails != null)
+            try
             {
-                try
+                if (guestReservationId.HasValue)
+                {
+                    await hubConnection.SendAsync("LeaveReservationGroup", guestReservationId.Value);
+                }
+                if (userReservation != null)
+                {
+                    await hubConnection.SendAsync("LeaveReservationGroup", userReservation.ReservationId.Value);
+                }
+                if (bookDetails != null)
                 {
                     await hubConnection.SendAsync("LeaveBookGroup", bookDetails.Book.BookId.Value);
                     await hubConnection.SendAsync("LeaveTenantGroup", bookDetails.Book.TenantId.Value);
                 }
-                catch {}
             }
+            catch {}
             await hubConnection.DisposeAsync();
         }
     }
@@ -872,7 +898,9 @@
             if (result.IsOk)
             {
                 guestReservationSubmitted = true;
+                guestReservationId = reservation.ReservationId.Value;
                 guestReservationCode = reservation.ReservationCode.Value;
+                isLoanConfirmedForBorrower = false;
                 try
                 {
                     var pickupUrl = NavManager.ToAbsoluteUri($"/confirm-loan/{reservation.ReservationId.Value}?code={reservation.ReservationCode.Value}").ToString();
@@ -885,6 +913,18 @@
                 catch (Exception qrEx)
                 {
                     Logger.LogWarning(qrEx, "Could not generate guest pickup QR code");
+                }
+
+                if (hubConnection != null && hubConnection.State == HubConnectionState.Connected)
+                {
+                    try
+                    {
+                        await hubConnection.SendAsync("JoinReservationGroup", reservation.ReservationId.Value);
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.LogWarning(ex, "Could not join reservation SignalR group in BookView");
+                    }
                 }
 
                 await ShowStatus(L["ReservationSuccessMessage"].Value, "alert-success");
@@ -919,12 +959,51 @@
                 .WithAutomaticReconnect()
                 .Build();
 
+            hubConnection.On<Guid>("ReservationConfirmedIntoLoan", async (confirmedReservationId) =>
+            {
+                var matchesGuest = guestReservationId.HasValue && guestReservationId.Value == confirmedReservationId;
+                var matchesUser = userReservation != null && userReservation.ReservationId.Value == confirmedReservationId;
+
+                if (matchesGuest || matchesUser)
+                {
+                    await JSRuntime.InvokeVoidAsync("playScanSound");
+                    isLoanConfirmedForBorrower = true;
+                    guestReservationSubmitted = false;
+                    guestPickupQrBase64 = null;
+                    userReservation = null;
+                    activePin = "";
+                    await LoadBookDetails();
+                    await InvokeAsync(StateHasChanged);
+                }
+            });
+
             hubConnection.On<Guid, Guid>("BookAvailabilityChanged", async (tenantId, bookId) =>
             {
                 if (bookDetails != null && bookDetails.Book.BookId.Value == bookId)
                 {
+                    var prevGuestResId = guestReservationId;
+                    var prevUserRes = userReservation;
                     await LoadBookDetails();
                     await LoadUserReservation();
+
+                    if (prevGuestResId.HasValue && !isLoanConfirmedForBorrower)
+                    {
+                        var isStillPending = bookDetails.PendingReservationsDetails.Any(r => r.Reservation.ReservationId.Value == prevGuestResId.Value);
+                        if (!isStillPending)
+                        {
+                            await JSRuntime.InvokeVoidAsync("playScanSound");
+                            isLoanConfirmedForBorrower = true;
+                            guestReservationSubmitted = false;
+                            guestPickupQrBase64 = null;
+                        }
+                    }
+                    else if (prevUserRes != null && userReservation == null && !isLoanConfirmedForBorrower)
+                    {
+                        await JSRuntime.InvokeVoidAsync("playScanSound");
+                        isLoanConfirmedForBorrower = true;
+                        activePin = "";
+                    }
+
                     await InvokeAsync(StateHasChanged);
                 }
             });
@@ -950,12 +1029,19 @@
         await LoadBookDetails();
         await LoadUserReservation();
 
-        if (hubConnection != null && hubConnection.State == HubConnectionState.Connected && bookDetails != null)
+        if (hubConnection != null && hubConnection.State == HubConnectionState.Connected)
         {
             try
             {
-                await hubConnection.SendAsync("JoinBookGroup", bookDetails.Book.BookId.Value);
-                await hubConnection.SendAsync("JoinTenantGroup", bookDetails.Book.TenantId.Value);
+                if (bookDetails != null)
+                {
+                    await hubConnection.SendAsync("JoinBookGroup", bookDetails.Book.BookId.Value);
+                    await hubConnection.SendAsync("JoinTenantGroup", bookDetails.Book.TenantId.Value);
+                }
+                if (userReservation != null)
+                {
+                    await hubConnection.SendAsync("JoinReservationGroup", userReservation.ReservationId.Value);
+                }
             }
             catch (Exception ex)
             {

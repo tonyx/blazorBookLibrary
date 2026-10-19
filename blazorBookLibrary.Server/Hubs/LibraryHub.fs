@@ -55,5 +55,11 @@ type LibraryHub
     member this.LeaveUserGroup(userId: Guid) =
         this.Groups.RemoveFromGroupAsync(this.Context.ConnectionId, $"User_{userId}") :> System.Threading.Tasks.Task
 
+    member this.JoinReservationGroup(reservationId: Guid) =
+        this.Groups.AddToGroupAsync(this.Context.ConnectionId, $"Reservation_{reservationId}") :> System.Threading.Tasks.Task
+
+    member this.LeaveReservationGroup(reservationId: Guid) =
+        this.Groups.RemoveFromGroupAsync(this.Context.ConnectionId, $"Reservation_{reservationId}") :> System.Threading.Tasks.Task
+
 
 
