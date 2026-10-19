@@ -48,5 +48,3 @@ Detailed guides and architectural references are available in the [Docs](./Docs)
 *“To catalog is to preserve; to curate is to honor.”*
 
 **Try it on line**: https://www.biblionet.eu 
-
-**Note on the Project**: This repository contains a stable Open Source version of the project. Active development of specific features, extensions, and customizations continues in a private module/fork. The version present here remains usable as a solid public base.
