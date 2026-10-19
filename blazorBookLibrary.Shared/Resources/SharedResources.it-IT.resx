@@ -1286,4 +1286,8 @@
   <data name="LoanConfirmedTitle" xml:space="preserve"><value>Prestito Confermato!</value></data>
   <data name="LoanConfirmedMessage" xml:space="preserve"><value>Il ritiro del tuo prestito è stato verificato e registrato. Puoi ritirare il tuo libro. Buona lettura!</value></data>
   <data name="LoanStatusActive" xml:space="preserve"><value>Prestito Attivo</value></data>
+  <data name="ImportEmbeddingsRateLimitNotice" xml:space="preserve"><value>Il processo di embedding è soggetto a limiti di frequenza e non è immediato. Se vengono raggiunti i limiti del provider o di sistema, i libri verranno comunque importati nel catalogo e la generazione degli embedding verrà interrotta. Riceverai una notifica in-app al termine dell'importazione.</value></data>
+  <data name="ImportEmbeddingsStartingNotice" xml:space="preserve"><value>Importazione avviata. La generazione degli embedding vettoriali è soggetta a limiti di frequenza e non è immediata; se i limiti vengono raggiunti, l'importazione continuerà e riceverai una notifica al termine.</value></data>
+  <data name="GeneratingBulkEmbeddingsInfo" xml:space="preserve"><value>Generazione embedding in corso... Il processo è soggetto a limiti di frequenza e potrebbe richiedere del tempo. Riceverai una notifica in-app al termine.</value></data>
+  <data name="BulkEmbeddingSuccess" xml:space="preserve"><value>Generazione collettiva degli embedding completata con successo.</value></data>
 </root>

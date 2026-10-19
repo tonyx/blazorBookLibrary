@@ -88,6 +88,13 @@
                                 <input class="form-check-input ms-0 me-2" type="checkbox" id="generateEmbeddingsSwitch" @bind="importGenerateEmbeddings">
                                 <label class="form-check-label small fw-bold text-muted text-uppercase" for="generateEmbeddingsSwitch">@L["GenerateEmbeddings"]</label>
                                 <div class="form-text mt-1 small opacity-75">@L["GenerateEmbeddingsHelp"]</div>
+                                @if (importGenerateEmbeddings)
+                                {
+                                    <div class="alert alert-info py-2 px-3 mt-2 mb-0 small rounded-3 border-0 bg-info-subtle text-info-emphasis animate-fade-in">
+                                        <i class="bi bi-info-circle me-1"></i>
+                                        <span>@(L["ImportEmbeddingsRateLimitNotice"]?.Value ?? "The embedding process is rate-limited and not immediate. If system or provider limits are reached, the system will import the books into the catalog and pause embedding generation. You will receive an in-app notification when the import finishes.")</span>
+                                    </div>
+                                }
                             </div>
                         </div>
 
@@ -453,6 +460,10 @@
             });
 
             importCts = new CancellationTokenSource();
+            if (importGenerateEmbeddings)
+            {
+                await ShowStatus(L["ImportEmbeddingsStartingNotice"]?.Value ?? "Import started. Generating vector embeddings is rate-limited and not immediate; if limits are reached, book imports will continue and you will be notified upon completion.", "info");
+            }
             var context = await GetUserContextAsync();
             var result = await DataExportService.ImportFromIsbns(
                 context, 

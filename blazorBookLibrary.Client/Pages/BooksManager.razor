@@ -1165,6 +1165,7 @@ else
         isGeneratingBulkEmbedding = true;
         try
         {
+            await ShowStatus(L["GeneratingBulkEmbeddingsInfo"]?.Value ?? "Generating embeddings... This process is rate-limited and may take time. You will receive an in-app notification when finished.", "info");
             var context = await GetUserContextAsync();
             if (_currentTenant != null && !_currentTenant.Equals(TenantId.Default))
             {
@@ -1178,12 +1179,20 @@ else
 
             if (result.IsOk)
             {
-                await ShowStatus("Bulk embedding generation completed successfully.", "success");
+                await ShowStatus(L["BulkEmbeddingSuccess"]?.Value ?? "Bulk embedding generation completed successfully.", "success");
                 selectedBookIds.Clear();
             }
             else
             {
-                await ShowStatus($"Failed to generate bulk embeddings: {result.ErrorValue}", "error");
+                if (result.ErrorValue.Contains("paused") || result.ErrorValue.Contains("rate limit") || result.ErrorValue.Contains("429"))
+                {
+                    await ShowStatus(result.ErrorValue, "warning");
+                    selectedBookIds.Clear();
+                }
+                else
+                {
+                    await ShowStatus($"Failed to generate bulk embeddings: {result.ErrorValue}", "error");
+                }
             }
         }
         catch (Exception ex)

@@ -26,6 +26,7 @@ open blazorBookLibrary.Data
 open BookLibrary.Utils
 open Microsoft.Extensions.DependencyInjection
 open FsToolkit.ErrorHandling
+open System.Runtime.InteropServices
 
 type DataExportService
     (
@@ -45,9 +46,11 @@ type DataExportService
         googleBooksService: IBooksMetadataSearchService,
         authorsSearchService: IAuthorsSearchService,
         textEmbeddingService: ITextEmbeddingService,
-        vectorDbService: IVectorDbService
+        vectorDbService: IVectorDbService,
+        [<Optional; DefaultParameterValue(null)>] ?notificationService: INotificationService
     ) =
 
+    [<ActivatorUtilitiesConstructor>]
     new
         (
             secretsReader: SecretsReader,
@@ -58,7 +61,8 @@ type DataExportService
             googleBooksService: IBooksMetadataSearchService,
             authorsSearchService: IAuthorsSearchService,
             textEmbeddingService: ITextEmbeddingService,
-            vectorDbService: IVectorDbService
+            vectorDbService: IVectorDbService,
+            [<Optional; DefaultParameterValue(null)>] ?notificationService: INotificationService
         ) =
         let connectionString = secretsReader.GetBookLibraryConnectionString()
         let eventStore = PgStorage.PgEventStore connectionString
@@ -105,7 +109,8 @@ type DataExportService
             googleBooksService,
             authorsSearchService,
             textEmbeddingService,
-            vectorDbService
+            vectorDbService,
+            ?notificationService = notificationService
         )
 
     interface IDataExportService with
@@ -185,6 +190,9 @@ type DataExportService
                 match tenantIdResult with
                 | Error e -> return Error e
                 | Ok tenantId ->
+                    let embeddingGenerationHalted = ref false
+                    let descriptionGenerationHalted = ref false
+                    let embeddingsCreatedCount = ref 0
                     try
                         for i in 0 .. total - 1 do
                             let isbn = isbns.[i]
@@ -362,7 +370,7 @@ type DataExportService
                                                 match metadata.Description with
                                                 | Some d when not (String.IsNullOrWhiteSpace d) ->
                                                     Task.FromResult(Some d)
-                                                | _ when generateMissingDescriptions ->
+                                                | _ when generateMissingDescriptions && not !descriptionGenerationHalted ->
                                                     task {
                                                         reportProgress (
                                                             Some(
@@ -384,6 +392,9 @@ type DataExportService
 
                                                         match genResult with
                                                         | Ok desc -> return Some desc
+                                                        | Error e when (e.Contains("429") || e.Contains("quota") || e.Contains("limit") || e.Contains("503")) ->
+                                                            descriptionGenerationHalted := true
+                                                            return None
                                                         | Error _ -> return None
                                                     }
                                                 | _ -> Task.FromResult(None)
@@ -412,8 +423,10 @@ type DataExportService
                                                   Sealed = Sealed.New(DateTime.UtcNow) }
 
                                             let! finalBook =
-                                                taskResult {
-                                                    if generateEmbeddings then
+                                                task {
+                                                    if generateEmbeddings && not !embeddingGenerationHalted then
+                                                        reportProgress (Some(sprintf "Generating embedding for '%s'..." metadata.Title))
+                                                        do! Task.Delay(250, ct)
                                                         let textToEmbed =
                                                             match book.Description with
                                                             | Some d when not (String.IsNullOrWhiteSpace d) ->
@@ -437,35 +450,42 @@ type DataExportService
                                                                      || e.Contains("503"))
                                                                     && retries > 0
                                                                     ->
-                                                                    do! Task.Delay(2000, ct)
+                                                                    do! Task.Delay(1000, ct)
                                                                     return! getEmbeddingWithRetry text (retries - 1)
                                                                 | _ -> return res
                                                             }
 
-                                                        let! (embeddingResult: EmbeddingData) =
-                                                            getEmbeddingWithRetry textToEmbed 3
+                                                        let! embeddingRes = getEmbeddingWithRetry textToEmbed 1
 
-                                                        let embeddingId = EmbeddingDataId.New()
+                                                        match embeddingRes with
+                                                        | Ok embeddingResult ->
+                                                            let embeddingId = EmbeddingDataId.New()
 
-                                                        let! _ =
-                                                            vectorDbService.StoreEmbeddingAsync(
-                                                                embeddingId,
-                                                                tenantId,
-                                                                book.BookId,
-                                                                embeddingResult,
-                                                                ct
-                                                            )
+                                                            let! storeRes =
+                                                                vectorDbService.StoreEmbeddingAsync(
+                                                                    embeddingId,
+                                                                    tenantId,
+                                                                    book.BookId,
+                                                                    embeddingResult,
+                                                                    ct
+                                                                )
 
-                                                        return
-                                                            { book with
-                                                                OptionalEmbedding = Some embeddingId }
+                                                            match storeRes with
+                                                            | Ok () ->
+                                                                embeddingsCreatedCount := !embeddingsCreatedCount + 1
+                                                                return
+                                                                    { book with
+                                                                        OptionalEmbedding = Some embeddingId }
+                                                            | Error _ ->
+                                                                return book
+                                                        | Error e when (e.Contains("429") || e.Contains("quota") || e.Contains("limit") || e.Contains("503")) ->
+                                                            embeddingGenerationHalted := true
+                                                            return book
+                                                        | Error _ ->
+                                                            return book
                                                     else
                                                         return book
                                                 }
-                                                |> Task.map (fun r ->
-                                                    match r with
-                                                    | Ok b -> b
-                                                    | _ -> book)
 
                                             let! _ = bookService.AddBookAsync(context, finalBook, ct = ct)
                                             return ()
@@ -537,6 +557,30 @@ type DataExportService
                           FailureCount = failureCount
                           DuplicateCount = duplicateCount
                           InterruptedCount = interruptedCount }
+
+                    let notifServiceOpt =
+                        notificationService
+                        |> Option.bind (fun s -> if System.Object.ReferenceEquals(s, null) then None else Some s)
+
+                    match notifServiceOpt, context.UserId with
+                    | Some notifService, Some userId ->
+                        let title =
+                            if interruptedCount > 0 then "Book Import Interrupted"
+                            elif !embeddingGenerationHalted then "Book Import Finished (Embeddings Paused)"
+                            else "Book Import Finished"
+                        let content =
+                            if interruptedCount > 0 then
+                                $"Import was cancelled/interrupted. {successCount} books were imported."
+                            elif !embeddingGenerationHalted then
+                                $"Import completed: {successCount} books imported. Vector embeddings generation was paused after {!embeddingsCreatedCount} embeddings due to rate limits."
+                            elif generateEmbeddings then
+                                $"Import completed: {successCount} books imported with {!embeddingsCreatedCount} vector embeddings generated."
+                            else
+                                $"Import completed: {successCount} books imported."
+                        let notification = Notification.New(userId, title, content, "/books-manager")
+                        let! _ = notifService.CreateNotificationAsync(context, notification, ct = ct)
+                        ()
+                    | _ -> ()
 
                     return Ok summary
             }

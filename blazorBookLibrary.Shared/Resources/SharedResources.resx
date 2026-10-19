@@ -1286,4 +1286,8 @@
   <data name="LoanConfirmedTitle" xml:space="preserve"><value>Loan Confirmed!</value></data>
   <data name="LoanConfirmedMessage" xml:space="preserve"><value>Your loan pickup has been verified and registered. Please take your book and enjoy reading!</value></data>
   <data name="LoanStatusActive" xml:space="preserve"><value>Active Loan</value></data>
+  <data name="ImportEmbeddingsRateLimitNotice" xml:space="preserve"><value>The embedding process is rate-limited and not immediate. If system or provider limits are reached, the system will import the books into the catalog and pause embedding generation. You will receive an in-app notification when the import finishes.</value></data>
+  <data name="ImportEmbeddingsStartingNotice" xml:space="preserve"><value>Import started. Generating vector embeddings is rate-limited and not immediate; if limits are reached, book imports will continue and you will be notified upon completion.</value></data>
+  <data name="GeneratingBulkEmbeddingsInfo" xml:space="preserve"><value>Generating embeddings... This process is rate-limited and may take time. You will receive an in-app notification when finished.</value></data>
+  <data name="BulkEmbeddingSuccess" xml:space="preserve"><value>Bulk embedding generation completed successfully.</value></data>
 </root>
