@@ -145,53 +145,75 @@
                             {
                                 @if (userReservation != null)
                                 {
-                                    <div class="p-3 mb-1 small text-start bg-surface-lowest rounded shadow-sm border-start border-4 border-info">
+                                    <div class="p-3 mb-1 small text-start bg-surface-lowest rounded shadow-sm border-start border-4 border-info animate-fade-in">
                                         <div class="d-flex align-items-center gap-2 mb-2">
                                             <i class="bi bi-check2-all text-info fw-bold"></i>
                                             <span class="fw-bold">@L["Active Reservation"]</span>
                                         </div>
                                         <p class="mb-3 text-muted">@L["AlreadyReservedMessage", userReservation.ReservedAt.ToLocalTime().ToString("g")]</p>
                                         
-                                        @if (string.IsNullOrEmpty(activePin))
+                                        @if (!string.IsNullOrEmpty(userPickupQrBase64))
                                         {
-                                            <button class="btn btn-sm btn-info w-100 py-2 text-white shadow-sm d-flex align-items-center justify-content-center gap-2"
-                                                    style="border-radius: 8px;"
-                                                    @onclick="GeneratePin"
-                                                    disabled="@isGeneratingPin">
-                                                @if (isGeneratingPin)
-                                                {
-                                                    <span class="spinner-border spinner-border-sm" role="status"></span>
-                                                }
-                                                else
-                                                {
-                                                    <i class="bi bi-shield-lock-fill"></i>
-                                                }
-                                                <span>@L["Get Checkout PIN"]</span>
-                                            </button>
-                                        }
-                                        else
-                                        {
-                                            <div class="mt-3 p-3 text-center rounded shadow-inner border border-info-subtle position-relative overflow-hidden" 
-                                                 style="background: linear-gradient(135deg, rgba(13, 202, 240, 0.05), rgba(13, 202, 240, 0.15)); backdrop-filter: blur(8px); border-radius: 12px;">
-                                                <div class="small text-muted text-uppercase tracking-wider fw-bold mb-1" style="font-size: 0.7rem;">@L["Checkout PIN"]</div>
-                                                <div class="h3 font-monospace fw-bold tracking-widest text-info my-2" style="font-size: 2rem; letter-spacing: 0.15em;">@activePin</div>
+                                            <div class="mt-3 p-3 bg-white rounded-xl border text-center shadow-sm">
+                                                <div class="x-small text-muted text-uppercase fw-bold mb-2">@L["PatronPickupPass"]</div>
+                                                <img src="data:image/png;base64,@userPickupQrBase64" alt="Pickup QR Code" style="width: 170px; height: 170px; object-fit: contain;" class="d-inline-block rounded" />
                                                 
-                                                <div class="d-flex align-items-center justify-content-center gap-2 mt-2 text-info">
-                                                    <i class="bi bi-stopwatch-fill animate-pulse"></i>
-                                                    <span class="font-monospace fw-bold">@formattedCountdown</span>
-                                                </div>
-                                                
-                                                @if (isPinExpired)
+                                                @if (!string.IsNullOrEmpty(userReservation.ReservationCode.Value))
                                                 {
-                                                    <div class="text-danger small mt-2 fw-bold">
-                                                        <i class="bi bi-exclamation-triangle-fill me-1"></i> @L["PIN expired. Please regenerate."]
+                                                    <div class="mt-2">
+                                                        <span class="x-small text-muted text-uppercase fw-bold d-block">@L["ReservationCode"]</span>
+                                                        <span class="font-monospace fw-bold fs-5 text-primary" style="letter-spacing: 0.15em;">@userReservation.ReservationCode.Value</span>
                                                     </div>
-                                                    <button class="btn btn-sm btn-outline-danger w-100 mt-2 py-1" style="border-radius: 6px;" @onclick="GeneratePin">
-                                                        @L["Regenerate PIN"]
-                                                    </button>
                                                 }
+                                                
+                                                <p class="x-small text-muted mt-2 mb-0">
+                                                    <i class="bi bi-qr-code-scan me-1 text-primary"></i>@L["ShowQrAtDeskHelp"]
+                                                </p>
                                             </div>
                                         }
+
+                                        <div class="mt-3 pt-3 border-top">
+                                            @if (string.IsNullOrEmpty(activePin))
+                                            {
+                                                <button class="btn btn-sm btn-outline-info w-100 py-2 shadow-sm d-flex align-items-center justify-content-center gap-2"
+                                                        style="border-radius: 8px;"
+                                                        @onclick="GeneratePin"
+                                                        disabled="@isGeneratingPin">
+                                                    @if (isGeneratingPin)
+                                                    {
+                                                        <span class="spinner-border spinner-border-sm" role="status"></span>
+                                                    }
+                                                    else
+                                                    {
+                                                        <i class="bi bi-shield-lock-fill"></i>
+                                                    }
+                                                    <span>@L["Get Checkout PIN"]</span>
+                                                </button>
+                                            }
+                                            else
+                                            {
+                                                <div class="p-3 text-center rounded shadow-inner border border-info-subtle position-relative overflow-hidden" 
+                                                     style="background: linear-gradient(135deg, rgba(13, 202, 240, 0.05), rgba(13, 202, 240, 0.15)); backdrop-filter: blur(8px); border-radius: 12px;">
+                                                    <div class="small text-muted text-uppercase tracking-wider fw-bold mb-1" style="font-size: 0.7rem;">@L["Checkout PIN"]</div>
+                                                    <div class="h3 font-monospace fw-bold tracking-widest text-info my-2" style="font-size: 2rem; letter-spacing: 0.15em;">@activePin</div>
+                                                    
+                                                    <div class="d-flex align-items-center justify-content-center gap-2 mt-2 text-info">
+                                                        <i class="bi bi-stopwatch-fill animate-pulse"></i>
+                                                        <span class="font-monospace fw-bold">@formattedCountdown</span>
+                                                    </div>
+                                                    
+                                                    @if (isPinExpired)
+                                                    {
+                                                        <div class="text-danger small mt-2 fw-bold">
+                                                            <i class="bi bi-exclamation-triangle-fill me-1"></i> @L["PIN expired. Please regenerate."]
+                                                        </div>
+                                                        <button class="btn btn-sm btn-outline-danger w-100 mt-2 py-1" style="border-radius: 6px;" @onclick="GeneratePin">
+                                                            @L["Regenerate PIN"]
+                                                        </button>
+                                                    }
+                                                </div>
+                                            }
+                                        </div>
                                     </div>
                                 }
                                 else if (loggedInUserDetails != null && 
@@ -642,11 +664,37 @@
     private bool isSubmittingGuest = false;
     private bool guestReservationSubmitted = false;
     private string? guestPickupQrBase64 = null;
+    private string? userPickupQrBase64 = null;
     private string? guestReservationCode = null;
     private Guid? guestReservationId = null;
     private bool isLoanConfirmedForBorrower = false;
     private string? guestFormError = null;
     private Tenant? libraryTenant;
+
+    private void UpdateUserPickupQr()
+    {
+        if (userReservation != null && !string.IsNullOrEmpty(userReservation.ReservationCode.Value))
+        {
+            try
+            {
+                var pickupUrl = NavManager.ToAbsoluteUri($"/confirm-loan/{userReservation.ReservationId.Value}?code={userReservation.ReservationCode.Value}").ToString();
+                using var qrGenerator = new QRCodeGenerator();
+                using var qrCodeData = qrGenerator.CreateQrCode(pickupUrl, QRCodeGenerator.ECCLevel.Q);
+                var qrCode = new PngByteQRCode(qrCodeData);
+                byte[] qrCodeAsPngByteArr = qrCode.GetGraphic(20);
+                userPickupQrBase64 = Convert.ToBase64String(qrCodeAsPngByteArr);
+            }
+            catch (Exception qrEx)
+            {
+                Logger.LogWarning(qrEx, "Could not generate user pickup QR code");
+                userPickupQrBase64 = null;
+            }
+        }
+        else
+        {
+            userPickupQrBase64 = null;
+        }
+    }
 
     private string activePin = "";
     private DateTime pinExpiresAt;
@@ -804,9 +852,24 @@
             
             if (result.IsOk)
             {
+                isLoanConfirmedForBorrower = false;
+                userReservation = reservation;
+                UpdateUserPickupQr();
                 await ShowStatus(L["ReservationSuccessMessage"], "alert-success");
                 await LoadBookDetails();
                 await LoadUserReservation();
+
+                if (hubConnection != null && hubConnection.State == HubConnectionState.Connected && userReservation != null)
+                {
+                    try
+                    {
+                        await hubConnection.SendAsync("JoinReservationGroup", userReservation.ReservationId.Value);
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.LogWarning(ex, "Failed to join reservation group in ReserveBook");
+                    }
+                }
             }
             else
             {
@@ -970,6 +1033,7 @@
                     isLoanConfirmedForBorrower = true;
                     guestReservationSubmitted = false;
                     guestPickupQrBase64 = null;
+                    userPickupQrBase64 = null;
                     userReservation = null;
                     activePin = "";
                     await LoadBookDetails();
@@ -1001,6 +1065,7 @@
                     {
                         await JSRuntime.InvokeVoidAsync("playScanSound");
                         isLoanConfirmedForBorrower = true;
+                        userPickupQrBase64 = null;
                         activePin = "";
                     }
 
@@ -1140,6 +1205,8 @@
                                 .Select(t => t.Item1)
                                 .FirstOrDefault(r => r.BookId.Value == bookDetails.Book.BookId.Value);
 
+                            UpdateUserPickupQr();
+
                             var reviewResult = await BookService.LoanedByUserAtLeastOnceAsync(context, bookDetails.Book.BookId, sharpinoUserId, FSharpOption<CancellationToken>.None);
                             if (reviewResult.IsOk)
                             {
@@ -1154,6 +1221,7 @@
             {
                 loggedInUserDetails = null;
                 userReservation = null;
+                userPickupQrBase64 = null;
                 userReview = null;
                 canAddReview = false;
                 hasLoaned = false;
