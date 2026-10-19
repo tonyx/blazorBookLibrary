@@ -538,43 +538,46 @@
                                                         }
                                                     </td>
                                                     <td class="text-end">
-                                                        @if (patron.UserId.Value != libraryDetails.Owner.UserId.Value)
-                                                        {
-                                                            <div class="d-flex justify-content-end gap-2">
-                                                                @if (role.IsSuspended)
+                                                        <div class="d-flex justify-content-end gap-2">
+                                                            @if (role.IsSuspended)
+                                                            {
+                                                                <button class="btn btn-outline-success btn-sm rounded-pill px-3 shadow-sm"
+                                                                        @onclick="() => HandleReadmitPatron(patron)">
+                                                                    <i class="bi bi-check-circle me-1"></i> @L["Readmit"]
+                                                                </button>
+                                                                @if (patron.UserId.Value != libraryDetails.Owner.UserId.Value)
                                                                 {
-                                                                    <button class="btn btn-outline-success btn-sm rounded-pill px-3 shadow-sm"
-                                                                            @onclick="() => HandleReadmitPatron(patron)">
-                                                                        <i class="bi bi-check-circle me-1"></i> @L["Readmit"]
-                                                                    </button>
                                                                     <button class="btn btn-outline-danger btn-sm rounded-pill px-3 shadow-sm"
                                                                             @onclick="() => HandleRemovePatron(patron)">
                                                                         <i class="bi bi-person-x me-1"></i> @L["Remove", "Remove"]
                                                                     </button>
                                                                 }
+                                                            }
+                                                            else
+                                                            {
+                                                                @if (role.IsManager)
+                                                                {
+                                                                    <button class="btn btn-outline-warning btn-sm rounded-pill px-3 shadow-sm"
+                                                                            @onclick="() => HandleDemotePatron(patron)">
+                                                                        <i class="bi bi-arrow-down-circle me-1"></i> @L["Demote", "Demote"]
+                                                                    </button>
+                                                                }
                                                                 else
                                                                 {
-                                                                    @if (role.IsManager)
-                                                                    {
-                                                                        <button class="btn btn-outline-warning btn-sm rounded-pill px-3 shadow-sm"
-                                                                                @onclick="() => HandleDemotePatron(patron)">
-                                                                            <i class="bi bi-arrow-down-circle me-1"></i> @L["Demote", "Demote"]
-                                                                        </button>
-                                                                    }
-                                                                    else
-                                                                    {
-                                                                        <button class="btn btn-outline-primary btn-sm rounded-pill px-3 shadow-sm"
-                                                                                @onclick="() => HandlePromotePatron(patron)">
-                                                                            <i class="bi bi-arrow-up-circle me-1"></i> @L["Promote", "Promote"]
-                                                                        </button>
-                                                                    }
+                                                                    <button class="btn btn-outline-primary btn-sm rounded-pill px-3 shadow-sm"
+                                                                            @onclick="() => HandlePromotePatron(patron)">
+                                                                        <i class="bi bi-arrow-up-circle me-1"></i> @L["Promote", "Promote"]
+                                                                    </button>
+                                                                }
+                                                                @if (patron.UserId.Value != libraryDetails.Owner.UserId.Value)
+                                                                {
                                                                     <button class="btn btn-outline-danger btn-sm rounded-pill px-3 shadow-sm"
                                                                             @onclick="() => InitiateSuspendPatron(patron)">
                                                                         <i class="bi bi-slash-circle me-1"></i> @L["Suspend"]
                                                                     </button>
                                                                 }
-                                                            </div>
-                                                        }
+                                                            }
+                                                        </div>
                                                     </td>
                                                 </tr>
                                             }

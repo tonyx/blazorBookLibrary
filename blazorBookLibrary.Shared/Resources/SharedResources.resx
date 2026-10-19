@@ -1252,6 +1252,8 @@
   <data name="Locating" xml:space="preserve"><value>Locating</value></data>
   <data name="CookieBanner_Title" xml:space="preserve"><value>Technical Cookies Notice</value></data>
   <data name="CookieBanner_Message" xml:space="preserve"><value>BiblioNet uses exclusively technical cookies strictly necessary for operation, session security, and browsing preferences. We do not use profiling or commercial tracking cookies.</value></data>
+  <data name="CookieBanner_Acknowledge" xml:space="preserve"><value>Got it</value></data>
+  <data name="CookieBanner_LearnMore" xml:space="preserve"><value>Learn more</value></data>
   <data name="ReserveAsGuest" xml:space="preserve"><value>Reserve as Guest</value></data>
   <data name="GuestReservationNotice" xml:space="preserve"><value>Already have an account? Log in first for seamless reservation tracking.</value></data>
   <data name="GuestReservationSuccess" xml:space="preserve"><value>Thank you, {0}! Your reservation has been placed. A library manager has been notified and will prepare your loan pickup.</value></data>
@@ -1274,4 +1276,11 @@
   <data name="AiRateLimit_SignIn" xml:space="preserve"><value>Sign In</value></data>
   <data name="AiRateLimit_Register" xml:space="preserve"><value>Register</value></data>
   <data name="AiRateLimit_WaitSeconds" xml:space="preserve"><value>Wait {0}s</value></data>
+  <data name="ScanPatronPass" xml:space="preserve"><value>Scan Patron Pass</value></data>
+  <data name="ScanPatronQr" xml:space="preserve"><value>Scan Patron QR</value></data>
+  <data name="PatronPickupPass" xml:space="preserve"><value>Patron Pickup Pass</value></data>
+  <data name="ShowQrAtDeskHelp" xml:space="preserve"><value>Show this QR code at the desk to complete your pickup.</value></data>
+  <data name="ReservationVerifiedByQrScan" xml:space="preserve"><value>Reservation verified via QR scan!</value></data>
+  <data name="ReservationNotFoundForScannedCode" xml:space="preserve"><value>Reservation not found for scanned QR code.</value></data>
+  <data name="PositionQrInsideFrameNote" xml:space="preserve"><value>Position the patron's QR code within the frame to verify reservation</value></data>
 </root>

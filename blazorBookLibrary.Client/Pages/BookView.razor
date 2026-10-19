@@ -8,6 +8,7 @@
 @using BookLibrary.Shared.Services
 @using Microsoft.FSharp.Core
 @using Microsoft.AspNetCore.SignalR.Client
+@using QRCoder
 
 @inject IBookService BookService
 @inject IAuthorService AuthorService
@@ -200,13 +201,34 @@
                             {
                                 @if (guestReservationSubmitted)
                                 {
-                                    <div class="p-3 mb-1 small text-start bg-surface-lowest rounded shadow-sm border-start border-4 border-success">
+                                    <div class="p-3 mb-1 small text-start bg-surface-lowest rounded shadow-sm border-start border-4 border-success animate-fade-in">
                                         <div class="d-flex align-items-center gap-2 mb-2 text-success">
                                             <i class="bi bi-check2-circle fw-bold fs-5"></i>
                                             <span class="fw-bold">@L["ReservationRequested"]</span>
                                         </div>
                                         <p class="mb-2 text-muted">@L["GuestReservationSuccess", guestName]</p>
-                                        <div class="small text-muted fst-italic">
+
+                                        @if (!string.IsNullOrEmpty(guestPickupQrBase64))
+                                        {
+                                            <div class="mt-3 p-3 bg-white rounded-xl border text-center shadow-sm">
+                                                <div class="x-small text-muted text-uppercase fw-bold mb-2">@L["PatronPickupPass"]</div>
+                                                <img src="data:image/png;base64,@guestPickupQrBase64" alt="Pickup QR Code" style="width: 170px; height: 170px; object-fit: contain;" class="d-inline-block rounded" />
+                                                
+                                                @if (!string.IsNullOrEmpty(guestReservationCode))
+                                                {
+                                                    <div class="mt-2">
+                                                        <span class="x-small text-muted text-uppercase fw-bold d-block">@L["ReservationCode"]</span>
+                                                        <span class="font-monospace fw-bold fs-5 text-primary" style="letter-spacing: 0.15em;">@guestReservationCode</span>
+                                                    </div>
+                                                }
+                                                
+                                                <p class="x-small text-muted mt-2 mb-0">
+                                                    <i class="bi bi-qr-code-scan me-1 text-primary"></i>@L["ShowQrAtDeskHelp"]
+                                                </p>
+                                            </div>
+                                        }
+
+                                        <div class="small text-muted fst-italic mt-3">
                                             <i class="bi bi-info-circle me-1"></i>@L["GuestReservationDeskHelp"]
                                         </div>
                                     </div>
@@ -603,6 +625,8 @@
     private string guestNotes = "";
     private bool isSubmittingGuest = false;
     private bool guestReservationSubmitted = false;
+    private string? guestPickupQrBase64 = null;
+    private string? guestReservationCode = null;
     private string? guestFormError = null;
     private Tenant? libraryTenant;
 
@@ -848,6 +872,21 @@
             if (result.IsOk)
             {
                 guestReservationSubmitted = true;
+                guestReservationCode = reservation.ReservationCode.Value;
+                try
+                {
+                    var pickupUrl = NavManager.ToAbsoluteUri($"/confirm-loan/{reservation.ReservationId.Value}?code={reservation.ReservationCode.Value}").ToString();
+                    using var qrGenerator = new QRCodeGenerator();
+                    using var qrCodeData = qrGenerator.CreateQrCode(pickupUrl, QRCodeGenerator.ECCLevel.Q);
+                    var qrCode = new PngByteQRCode(qrCodeData);
+                    byte[] qrCodeAsPngByteArr = qrCode.GetGraphic(20);
+                    guestPickupQrBase64 = Convert.ToBase64String(qrCodeAsPngByteArr);
+                }
+                catch (Exception qrEx)
+                {
+                    Logger.LogWarning(qrEx, "Could not generate guest pickup QR code");
+                }
+
                 await ShowStatus(L["ReservationSuccessMessage"].Value, "alert-success");
                 await LoadBookDetails();
             }

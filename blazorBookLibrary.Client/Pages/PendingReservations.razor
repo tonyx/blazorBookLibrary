@@ -14,6 +14,7 @@
 @using System.Globalization
 @using Microsoft.AspNetCore.SignalR.Client
 @using QRCoder
+@using BlazorBarcodeScanner.ZXing.JS
 
 @attribute [Authorize]
 @inject IUserTenantResolverService UserTenantResolverService
@@ -92,8 +93,38 @@ else
                 <div class="card-sanctuary">
                     <div class="d-flex justify-content-between align-items-center mb-4">
                         <h5 class="serif mb-0">@L["ActiveReservations"]</h5>
-                        <span class="badge-sanctuary badge-neutral">@pendingReservations.Count @L["Pending"]</span>
+                        <div class="d-flex align-items-center gap-2">
+                            <button class="btn btn-sm btn-outline-primary rounded-pill px-3 shadow-sm" @onclick="ToggleScanner">
+                                <i class="bi @(showScanner ? "bi-x-circle" : "bi-camera-fill") me-1"></i>
+                                @(showScanner ? L["Close Scanner"] : L["ScanPatronPass"])
+                            </button>
+                            <span class="badge-sanctuary badge-neutral">@pendingReservations.Count @L["Pending"]</span>
+                        </div>
                     </div>
+
+                    @if (showScanner)
+                    {
+                        <div class="barcode-scanner-container p-4 bg-dark rounded-4 shadow-lg text-white mb-4 animate-fade-in">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h6 class="mb-0 text-primary text-serif"><i class="bi bi-camera-fill me-2"></i>@L["ScanPatronQr"]</h6>
+                                <button type="button" class="btn btn-link text-white p-0" @onclick="ToggleScanner">@L["Close"]</button>
+                            </div>
+                            <div class="scanner-preview-wrapper rounded-3 overflow-hidden position-relative bg-black" style="min-height: 280px; max-height: 380px;">
+                                <BarcodeReader 
+                                    OnBarcodeReceived="HandlePatronQrReceived" 
+                                    Title=""
+                                    StartCameraAutomatically="true"
+                                    ShowStart="false"
+                                    ShowReset="false"
+                                    ShowVideoDeviceList="true"
+                                />
+                                <div class="scanner-overlay border-0">
+                                    <div class="scanner-laser border-primary"></div>
+                                </div>
+                            </div>
+                            <p class="small text-muted mt-3 text-center mb-0 serif italic">@L["PositionQrInsideFrameNote"]</p>
+                        </div>
+                    }
 
                     @if (!pendingReservations.Any())
                     {
@@ -202,6 +233,9 @@ else
                                         <button type="button" class="btn btn-sm @(selectedAction == "loan" ? "btn-primary" : "btn-outline-primary")" style="border-radius: 8px 0 0 8px;" @onclick='() => selectedAction = "loan"'>@L["ConvertToLoan", "Convert to Loan"]</button>
                                         <button type="button" class="btn btn-sm @(selectedAction == "qr" ? "btn-primary" : "btn-outline-primary")" @onclick='SelectQrAction'>
                                             <i class="bi bi-qr-code me-1"></i>@L["QR & Link", "QR & Link"]
+                                        </button>
+                                        <button type="button" class="btn btn-sm @(selectedAction == "scan" ? "btn-primary" : "btn-outline-primary")" @onclick='SelectScanAction'>
+                                            <i class="bi bi-camera-fill me-1"></i>@L["Scan Patron QR"]
                                         </button>
                                         <button type="button" class="btn btn-sm @(selectedAction == "cancel" ? "btn-danger" : "btn-outline-danger")" style="border-radius: 0 8px 8px 0;" @onclick='() => selectedAction = "cancel"'>@L["CancelReservation", "Cancel Reservation"]</button>
                                     </div>
@@ -330,6 +364,36 @@ else
                                         </div>
                                     </div>
                                 }
+                                else if (selectedAction == "scan")
+                                {
+                                    <div class="mb-4 animate-fade-in text-center">
+                                        <p class="small text-muted mb-3">
+                                            @L["Scan the patron's pickup pass QR code to verify and convert to loan."]
+                                        </p>
+                                        <div class="barcode-scanner-container p-3 bg-dark rounded-4 shadow-lg text-white mb-3">
+                                            <div class="scanner-preview-wrapper rounded-3 overflow-hidden position-relative bg-black" style="min-height: 260px;">
+                                                <BarcodeReader 
+                                                    OnBarcodeReceived="HandlePatronQrReceived" 
+                                                    Title=""
+                                                    StartCameraAutomatically="true"
+                                                    ShowStart="false"
+                                                    ShowReset="false"
+                                                    ShowVideoDeviceList="true"
+                                                />
+                                                <div class="scanner-overlay border-0">
+                                                    <div class="scanner-laser border-primary"></div>
+                                                </div>
+                                            </div>
+                                            <p class="small text-muted mt-2 text-center mb-0 serif italic">@L["PositionQrInsideFrameNote"]</p>
+                                        </div>
+
+                                        <div class="text-center mt-3">
+                                            <button class="btn btn-link btn-sm text-decoration-none text-muted" @onclick="() => selectedReservation = null">
+                                                @L["CancelSelection"]
+                                            </button>
+                                        </div>
+                                    </div>
+                                }
                                 else
                                 {
                                     <div class="mb-4 animate-fade-in">
@@ -415,6 +479,8 @@ else
     private DateTime? pinExpiry;
     private bool isGeneratingQr = false;
     private bool copiedToClipboard = false;
+    private bool showScanner = false;
+    private bool isHandlingScan = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -585,6 +651,161 @@ else
         if (string.IsNullOrEmpty(qrCodeBase64))
         {
             await GenerateQrForReservation();
+        }
+    }
+
+    private void ToggleScanner()
+    {
+        showScanner = !showScanner;
+    }
+
+    private void SelectScanAction()
+    {
+        selectedAction = "scan";
+        showScanner = false;
+    }
+
+    private (Guid? resId, string? code, string? pin) ParsePatronQr(string text)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return (null, null, null);
+        text = text.Trim();
+
+        // 1. Try URL parsing
+        if (Uri.TryCreate(text, UriKind.Absolute, out var uri) || 
+            (text.StartsWith("/") && Uri.TryCreate("https://placeholder.local" + text, UriKind.Absolute, out uri)))
+        {
+            Guid? parsedGuid = null;
+            var segments = uri.AbsolutePath.Split('/', StringSplitOptions.RemoveEmptyEntries);
+            foreach (var seg in segments)
+            {
+                if (Guid.TryParse(seg, out var g))
+                {
+                    parsedGuid = g;
+                    break;
+                }
+            }
+
+            string? parsedCode = null;
+            string? parsedPin = null;
+            var query = uri.Query.TrimStart('?');
+            if (!string.IsNullOrEmpty(query))
+            {
+                foreach (var pair in query.Split('&', StringSplitOptions.RemoveEmptyEntries))
+                {
+                    var kv = pair.Split('=', 2);
+                    if (kv.Length == 2)
+                    {
+                        var key = Uri.UnescapeDataString(kv[0]).ToLowerInvariant();
+                        var val = Uri.UnescapeDataString(kv[1]).Trim();
+                        if (key == "code") parsedCode = val;
+                        else if (key == "pin") parsedPin = val;
+                    }
+                }
+            }
+
+            if (parsedGuid != null || parsedCode != null || parsedPin != null)
+            {
+                return (parsedGuid, parsedCode, parsedPin);
+            }
+        }
+
+        // 2. Try delimiter separated formats (e.g. guid:code or guid|code)
+        var parts = text.Split(new[] { ':', '|', ';' }, StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length == 2)
+        {
+            if (Guid.TryParse(parts[0], out var g1))
+            {
+                return (g1, parts[1].Trim(), null);
+            }
+            if (Guid.TryParse(parts[1], out var g2))
+            {
+                return (g2, parts[0].Trim(), null);
+            }
+        }
+
+        // 3. Single GUID
+        if (Guid.TryParse(text, out var singleGuid))
+        {
+            return (singleGuid, null, null);
+        }
+
+        // 4. Single 6-digit code
+        if (text.Length == 6 && int.TryParse(text, out _))
+        {
+            return (null, text, null);
+        }
+
+        return (null, null, null);
+    }
+
+    private async Task HandlePatronQrReceived(BarcodeReceivedEventArgs args)
+    {
+        if (isHandlingScan || string.IsNullOrWhiteSpace(args.BarcodeText)) return;
+        isHandlingScan = true;
+        try
+        {
+            var scannedText = args.BarcodeText.Trim();
+            var (resId, code, pin) = ParsePatronQr(scannedText);
+
+            if (resId == null && string.IsNullOrEmpty(code) && string.IsNullOrEmpty(pin))
+            {
+                return;
+            }
+
+            ReservationDetails? target = null;
+            if (resId != null)
+            {
+                target = pendingReservations.FirstOrDefault(r => r.Reservation.ReservationId.Value == resId.Value);
+            }
+            if (target == null && !string.IsNullOrEmpty(code))
+            {
+                target = pendingReservations.FirstOrDefault(r => r.Reservation.ReservationCode.Value == code);
+            }
+
+            // Emit short notification sound!
+            await JSRuntime.InvokeVoidAsync("playScanSound");
+
+            if (target != null)
+            {
+                SelectReservation(target);
+                showScanner = false;
+                selectedAction = "loan";
+
+                if (!string.IsNullOrEmpty(code))
+                {
+                    checkoutMethod = "code";
+                    reservationCodeInput = code;
+                }
+                else if (!string.IsNullOrEmpty(pin))
+                {
+                    checkoutMethod = "pin";
+                    pickupPinInput = pin;
+                }
+                else
+                {
+                    checkoutMethod = "code";
+                    reservationCodeInput = target.Reservation.ReservationCode.Value;
+                }
+
+                await ShowStatus(L["ReservationVerifiedByQrScan"].Value, "success");
+            }
+            else
+            {
+                showScanner = false;
+                await ShowStatus(L["ReservationNotFoundForScannedCode"].Value, "warning");
+            }
+
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error processing scanned patron QR code");
+            await ShowStatus(ex.Message, "danger");
+        }
+        finally
+        {
+            await Task.Delay(1500);
+            isHandlingScan = false;
         }
     }
 
