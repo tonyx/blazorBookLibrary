@@ -30,6 +30,7 @@ module Security =
         task {
             match context with
             | Anonymous -> return TenantId.Default
+            | AnonymousTenant tid -> return tid
             | Authenticated(userId, _) ->
                 let! userResult = userViewerAsync (Some ct) userId.Value
 

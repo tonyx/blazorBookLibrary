@@ -136,6 +136,7 @@
     <Compile Include="Slices/Admin/AdminController.fs" />
     <Compile Include="Slices/Book/GoogleBooksController.fs" />
     <Compile Include="Slices/DataExport/DataExportController.fs" />
+    <Compile Include="Slices/DataExport/CatalogController.fs" />
     <Compile Include="Slices/Details/DetailsController.fs" />
     <Compile Include="Slices/Book/VectorDbController.fs" />
     <Compile Include="Slices/AIAssistant/AIAssistantController.fs" />

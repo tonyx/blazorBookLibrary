@@ -377,7 +377,7 @@ type Tenant =
 
     member this.HasManagementAccess(context: UserContext) =
         match context with
-        | UserContext.Anonymous -> false
+        | UserContext.Anonymous | UserContext.AnonymousTenant _ -> false
         | UserContext.Authenticated(userId, roles) ->
             roles |> List.contains Role.Admin
             || roles |> List.contains Role.Manager
@@ -387,7 +387,7 @@ type Tenant =
 
     member this.IsOrdinaryPatron(context: UserContext) =
         match context with
-        | UserContext.Anonymous -> false
+        | UserContext.Anonymous | UserContext.AnonymousTenant _ -> false
         | UserContext.Authenticated(userId, _) ->
             this.GetUserRole userId = Some PatronRole.User
 

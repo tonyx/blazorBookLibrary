@@ -30,6 +30,9 @@
         "SecretKey": "...."
     }
   },
+    "Catalog": {
+    "ApiKey": "bbl_cat_......."
+  },
 
   "TestDataSeedSetup": {
     "SeedRandomAuthors": true,

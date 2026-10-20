@@ -166,6 +166,9 @@ type ExportFormat =
     | BibTex
     | SchemaOrg
     | DublinCore
+    | MarcXml
+    | Mods
+    | Onix
 
     member this.Extension =
         match this with
@@ -174,6 +177,9 @@ type ExportFormat =
         | BibTex -> ".bib"
         | SchemaOrg -> ".jsonld"
         | DublinCore -> ".xml"
+        | MarcXml -> ".xml"
+        | Mods -> ".xml"
+        | Onix -> ".xml"
 
     member this.Name =
         match this with
@@ -182,6 +188,9 @@ type ExportFormat =
         | BibTex -> "BibTeX"
         | SchemaOrg -> "Schema.org (JSON-LD)"
         | DublinCore -> "Dublin Core (XML)"
+        | MarcXml -> "MARCXML"
+        | Mods -> "MODS (XML)"
+        | Onix -> "ONIX (3.0)"
 
     member this.ContentType =
         match this with
@@ -190,6 +199,9 @@ type ExportFormat =
         | BibTex -> "application/x-bibtex"
         | SchemaOrg -> "application/ld+json"
         | DublinCore -> "application/xml"
+        | MarcXml -> "application/marcxml+xml"
+        | Mods -> "application/mods+xml"
+        | Onix -> "application/xml"
 
     member this.Code =
         match this with
@@ -198,8 +210,11 @@ type ExportFormat =
         | BibTex -> "bibtex"
         | SchemaOrg -> "schemaorg"
         | DublinCore -> "dublincore"
+        | MarcXml -> "marcxml"
+        | Mods -> "mods"
+        | Onix -> "onix"
 
-    static member All() = [ Csv; Json; BibTex; SchemaOrg; DublinCore ]
+    static member All() = [ Csv; Json; BibTex; SchemaOrg; DublinCore; MarcXml; Mods; Onix ]
 
 type ReservationCode =
     | ReservationCode of string
@@ -763,26 +778,27 @@ let private tenantTable =
 type UserContext =
     | Authenticated of UserId: UserId * Roles: List<Role>
     | Anonymous
+    | AnonymousTenant of Tenant: TenantId
 
     member this.Metadata =
         match this with
         | Authenticated (userId, _) -> sprintf "userId = %O" userId.Value
-        | Anonymous -> ""
+        | Anonymous | AnonymousTenant _ -> ""
 
     member this.IsInRole(role: Role) =
         match this with
         | Authenticated(_, roles) -> roles |> List.exists (fun r -> r = role)
-        | Anonymous -> false
+        | Anonymous | AnonymousTenant _ -> false
 
     member this.UserId =
         match this with
         | Authenticated(userId, _) -> Some userId
-        | Anonymous -> None
+        | Anonymous | AnonymousTenant _ -> None
 
     member this.Roles =
         match this with
         | Authenticated(_, roles) -> roles
-        | Anonymous -> []
+        | Anonymous | AnonymousTenant _ -> []
 
     member this.WithNewTenant(tenantId: TenantId) =
         match this with
@@ -791,12 +807,16 @@ type UserContext =
             tenantTable.Remove(newCtx) |> ignore
             tenantTable.Add(newCtx, tenantId)
             newCtx
-        | Anonymous -> Anonymous
+        | Anonymous | AnonymousTenant _ ->
+            AnonymousTenant tenantId
 
     member this.TenantId =
-        match tenantTable.TryGetValue(this) with
-        | true, tenantId -> Some tenantId
-        | _ -> None
+        match this with
+        | AnonymousTenant tid -> Some tid
+        | _ ->
+            match tenantTable.TryGetValue(this) with
+            | true, tenantId -> Some tenantId
+            | _ -> None
 
 
 type Name =

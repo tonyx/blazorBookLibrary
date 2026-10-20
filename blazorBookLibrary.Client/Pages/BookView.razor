@@ -89,6 +89,15 @@
                         <li><hr class="dropdown-divider"></li>
                         <li><button class="dropdown-item py-2" @onclick="DownloadDublinCore"><i class="bi bi-file-earmark-text me-2 text-primary"></i> Dublin Core (.xml)</button></li>
                         <li><button class="dropdown-item py-2" @onclick="CopyDublinCore"><i class="bi bi-clipboard me-2 text-secondary"></i> @L["CopyDublinCore"]</button></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><button class="dropdown-item py-2" @onclick="DownloadMarcXml"><i class="bi bi-file-earmark-code me-2 text-warning"></i> MARCXML (.xml)</button></li>
+                        <li><button class="dropdown-item py-2" @onclick="CopyMarcXml"><i class="bi bi-clipboard me-2 text-secondary"></i> @L["CopyMarcXml"]</button></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><button class="dropdown-item py-2" @onclick="DownloadMods"><i class="bi bi-file-earmark-code me-2 text-info"></i> MODS (.xml)</button></li>
+                        <li><button class="dropdown-item py-2" @onclick="CopyMods"><i class="bi bi-clipboard me-2 text-secondary"></i> @L["CopyMods"]</button></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><button class="dropdown-item py-2" @onclick="DownloadOnix"><i class="bi bi-file-earmark-text me-2 text-danger"></i> ONIX 3.0 (.xml)</button></li>
+                        <li><button class="dropdown-item py-2" @onclick="CopyOnix"><i class="bi bi-clipboard me-2 text-secondary"></i> @L["CopyOnix"]</button></li>
                     </ul>
                 </div>
             }
@@ -1286,6 +1295,63 @@
         if (bookDetails == null) return;
         var pubOpt = resolvedPublisher != null ? FSharpOption<string>.Some(resolvedPublisher) : FSharpOption<string>.None;
         var xml = FormatSerializers.formatDublinCoreBook(bookDetails, pubOpt);
+        await JSRuntime.InvokeVoidAsync("navigator.clipboard.writeText", xml);
+        await ShowStatus(L["CopiedToClipboard"], "alert-success");
+    }
+
+    private async Task DownloadMarcXml()
+    {
+        if (bookDetails == null) return;
+        var pubOpt = resolvedPublisher != null ? FSharpOption<string>.Some(resolvedPublisher) : FSharpOption<string>.None;
+        var xml = FormatSerializers.formatMarcXmlBook(bookDetails, pubOpt);
+        var fileName = $"{FormatSerializers.generateCiteKey(bookDetails)}.marcxml";
+        await JSRuntime.InvokeVoidAsync("downloadFile", fileName, xml);
+        await ShowStatus(L["ExportSuccessful"], "alert-success");
+    }
+
+    private async Task CopyMarcXml()
+    {
+        if (bookDetails == null) return;
+        var pubOpt = resolvedPublisher != null ? FSharpOption<string>.Some(resolvedPublisher) : FSharpOption<string>.None;
+        var xml = FormatSerializers.formatMarcXmlBook(bookDetails, pubOpt);
+        await JSRuntime.InvokeVoidAsync("navigator.clipboard.writeText", xml);
+        await ShowStatus(L["CopiedToClipboard"], "alert-success");
+    }
+
+    private async Task DownloadMods()
+    {
+        if (bookDetails == null) return;
+        var pubOpt = resolvedPublisher != null ? FSharpOption<string>.Some(resolvedPublisher) : FSharpOption<string>.None;
+        var xml = FormatSerializers.formatModsBook(bookDetails, pubOpt);
+        var fileName = $"{FormatSerializers.generateCiteKey(bookDetails)}.mods.xml";
+        await JSRuntime.InvokeVoidAsync("downloadFile", fileName, xml);
+        await ShowStatus(L["ExportSuccessful"], "alert-success");
+    }
+
+    private async Task CopyMods()
+    {
+        if (bookDetails == null) return;
+        var pubOpt = resolvedPublisher != null ? FSharpOption<string>.Some(resolvedPublisher) : FSharpOption<string>.None;
+        var xml = FormatSerializers.formatModsBook(bookDetails, pubOpt);
+        await JSRuntime.InvokeVoidAsync("navigator.clipboard.writeText", xml);
+        await ShowStatus(L["CopiedToClipboard"], "alert-success");
+    }
+
+    private async Task DownloadOnix()
+    {
+        if (bookDetails == null) return;
+        var pubOpt = resolvedPublisher != null ? FSharpOption<string>.Some(resolvedPublisher) : FSharpOption<string>.None;
+        var xml = FormatSerializers.formatOnixBook(bookDetails, pubOpt);
+        var fileName = $"{FormatSerializers.generateCiteKey(bookDetails)}.onix.xml";
+        await JSRuntime.InvokeVoidAsync("downloadFile", fileName, xml);
+        await ShowStatus(L["ExportSuccessful"], "alert-success");
+    }
+
+    private async Task CopyOnix()
+    {
+        if (bookDetails == null) return;
+        var pubOpt = resolvedPublisher != null ? FSharpOption<string>.Some(resolvedPublisher) : FSharpOption<string>.None;
+        var xml = FormatSerializers.formatOnixBook(bookDetails, pubOpt);
         await JSRuntime.InvokeVoidAsync("navigator.clipboard.writeText", xml);
         await ShowStatus(L["CopiedToClipboard"], "alert-success");
     }

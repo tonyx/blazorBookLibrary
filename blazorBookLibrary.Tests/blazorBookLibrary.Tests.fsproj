@@ -28,6 +28,7 @@
     <Compile Include="ReviewsServiceTests.fs" />
     <Compile Include="TextEmbeddingServiceTests.fs" />
     <Compile Include="BookClientSearchTests.fs" />
+    <Compile Include="CatalogControllerTests.fs" />
     <Compile Include="Main.fs" />
   </ItemGroup>
 

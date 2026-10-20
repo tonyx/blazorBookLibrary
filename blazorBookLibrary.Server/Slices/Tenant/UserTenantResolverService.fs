@@ -102,7 +102,7 @@ type UserTenantResolverService(
                             | None -> return TenantId.Default
                 }
 
-            if context.IsAnonymous then
+            if not context.IsAuthenticated then
                 let! isPublic = isTenantPublic (resolvedTenantId, ctValue)
                 if not isPublic then
                     return TenantId.Default

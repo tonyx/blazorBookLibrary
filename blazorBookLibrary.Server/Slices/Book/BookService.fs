@@ -60,7 +60,7 @@ type BookService
             | Ok (_, tenant) ->
                 if tenant.TenantId = TenantId.Default || tenant.TenantVisibility.IsPublic then
                     return true
-                elif context.IsAnonymous then
+                elif not context.IsAuthenticated then
                     return false
                 elif targetTenantId = activeTenantId then
                     return true

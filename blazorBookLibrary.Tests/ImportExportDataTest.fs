@@ -133,6 +133,87 @@ let exportTests =
             Expect.isTrue (xml.Contains("<dc:date>1951</dc:date>")) "XML should contain year"
             Expect.isTrue (xml.Contains("<dc:type>Text</dc:type>")) "XML should contain type Text"
         }
+
+        testCaseTask "ExportAllBooksAsync as MarcXml exports valid MARCXML collection" <| fun _ -> task {
+            setUp ()
+            let dataExportService = (getDataExportService () :> IDataExportService)
+            let bookService = (getBookService () :> IBookService)
+            let authorService = (getAuthorService () :> IAuthorService)
+
+            let authorName = "Isaac Asimov"
+            let author = Author.NewWithoutIsni TenantId.Default (Name.New authorName)
+            let! addAuthor = authorService.AddAuthorAsync(adminContext, author)
+            Expect.isOk addAuthor "Add author should succeed"
+
+            let bookTitle = "Foundation"
+            let book = Book.New TenantId.Default (Title.New bookTitle) [author.AuthorId] [] [] None Category.ScienceFiction [] (Year.New 1951) (Isbn.NewEmpty()) None
+            let! addBook = bookService.AddBookAsync(adminContext, book, CancellationToken.None)
+            Expect.isOk addBook "Add book should succeed"
+
+            let! exportResult = dataExportService.ExportAllBooksAsync(adminContext, MarcXml)
+            Expect.isOk exportResult "MARCXML Export should succeed"
+
+            let xml = exportResult |> Result.get
+            Expect.isTrue (xml.Contains("<collection xmlns=\"http://www.loc.gov/MARC21/slim\">")) "XML should declare MARCXML collection namespace"
+            Expect.isTrue (xml.Contains("<leader>00000nam a2200000 a 4500</leader>")) "XML should contain valid leader"
+            Expect.isTrue (xml.Contains(sprintf "<subfield code=\"a\">%s</subfield>" bookTitle)) "XML should contain book title in 245"
+            Expect.isTrue (xml.Contains(sprintf "<subfield code=\"a\">%s</subfield>" authorName)) "XML should contain author name in 100"
+            Expect.isTrue (xml.Contains("<subfield code=\"c\">1951</subfield>")) "XML should contain publication year in 264"
+        }
+
+        testCaseTask "ExportAllBooksAsync as Mods exports valid MODS collection" <| fun _ -> task {
+            setUp ()
+            let dataExportService = (getDataExportService () :> IDataExportService)
+            let bookService = (getBookService () :> IBookService)
+            let authorService = (getAuthorService () :> IAuthorService)
+
+            let authorName = "Isaac Asimov"
+            let author = Author.NewWithoutIsni TenantId.Default (Name.New authorName)
+            let! addAuthor = authorService.AddAuthorAsync(adminContext, author)
+            Expect.isOk addAuthor "Add author should succeed"
+
+            let bookTitle = "Foundation"
+            let book = Book.New TenantId.Default (Title.New bookTitle) [author.AuthorId] [] [] None Category.ScienceFiction [] (Year.New 1951) (Isbn.NewEmpty()) None
+            let! addBook = bookService.AddBookAsync(adminContext, book, CancellationToken.None)
+            Expect.isOk addBook "Add book should succeed"
+
+            let! exportResult = dataExportService.ExportAllBooksAsync(adminContext, Mods)
+            Expect.isOk exportResult "MODS Export should succeed"
+
+            let xml = exportResult |> Result.get
+            Expect.isTrue (xml.Contains("<modsCollection xmlns=\"http://www.loc.gov/mods/v3\">")) "XML should declare MODS collection namespace"
+            Expect.isTrue (xml.Contains(sprintf "<title>%s</title>" bookTitle)) "XML should contain book title"
+            Expect.isTrue (xml.Contains(sprintf "<namePart>%s</namePart>" authorName)) "XML should contain author name"
+            Expect.isTrue (xml.Contains("<dateIssued keyDate=\"yes\">1951</dateIssued>")) "XML should contain publication year"
+            Expect.isTrue (xml.Contains("<typeOfResource>text</typeOfResource>")) "XML should contain type of resource"
+        }
+
+        testCaseTask "ExportAllBooksAsync as Onix exports valid ONIX 3.0 message" <| fun _ -> task {
+            setUp ()
+            let dataExportService = (getDataExportService () :> IDataExportService)
+            let bookService = (getBookService () :> IBookService)
+            let authorService = (getAuthorService () :> IAuthorService)
+
+            let authorName = "Isaac Asimov"
+            let author = Author.NewWithoutIsni TenantId.Default (Name.New authorName)
+            let! addAuthor = authorService.AddAuthorAsync(adminContext, author)
+            Expect.isOk addAuthor "Add author should succeed"
+
+            let bookTitle = "Foundation"
+            let book = Book.New TenantId.Default (Title.New bookTitle) [author.AuthorId] [] [] None Category.ScienceFiction [] (Year.New 1951) (Isbn.NewEmpty()) None
+            let! addBook = bookService.AddBookAsync(adminContext, book, CancellationToken.None)
+            Expect.isOk addBook "Add book should succeed"
+
+            let! exportResult = dataExportService.ExportAllBooksAsync(adminContext, Onix)
+            Expect.isOk exportResult "ONIX Export should succeed"
+
+            let xml = exportResult |> Result.get
+            Expect.isTrue (xml.Contains("<ONIXMessage release=\"3.0\" xmlns=\"http://ns.editeur.org/onix/3.0/reference\">")) "XML should declare ONIX 3.0 namespace"
+            Expect.isTrue (xml.Contains("<NotificationType>03</NotificationType>")) "XML should contain NotificationType 03"
+            Expect.isTrue (xml.Contains(sprintf "<TitleText>%s</TitleText>" bookTitle)) "XML should contain book title"
+            Expect.isTrue (xml.Contains(sprintf "<PersonName>%s</PersonName>" authorName)) "XML should contain author name"
+            Expect.isTrue (xml.Contains("<Date dateformat=\"05\">1951</Date>")) "XML should contain publication year"
+        }
     ]
 
 [<Tests>]
