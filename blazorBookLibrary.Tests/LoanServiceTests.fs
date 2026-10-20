@@ -148,5 +148,33 @@ let tests =
             let (loanHistory: list<Loan>) = loanHistoryResult |> Result.get
             Expect.isTrue (loanHistory |> List.exists (fun l -> l.LoanId = loan.LoanId)) "should contain the loan"
         }
+        testCaseTask "add guest loan instantly without reservation - Ok" <| fun _ -> task {
+            setUp ()
+            let loanService = getLoanService()
+            let bookService = getBookService()
+
+            let book = { Book.New TenantId.Default (Title.New "guest loan instant test") [] [] [] None Category.Other [] (Year.New 1924) (Isbn.NewEmpty()) None with Availability = Availability.CirculatingIncludingGuest }
+            let! addBook = bookService.AddBookAsync(adminContext, book)
+            Expect.isOk addBook "should add book ok"
+
+            let guest = GuestPatron.Create("Instant Guest", phoneNumber = "555-1234", email = "guest@instant.com")
+            let timeSlot = TimeSlot.New (DateTime.UtcNow) (DateTime.UtcNow.AddDays(float timeSlotDurationInDays))
+            let loan = Loan.NewGuest TenantId.Default book.BookId guest DateTime.UtcNow timeSlot
+
+            let! addLoan = loanService.AddLoanAsync (adminContext, loan)
+            Expect.isOk addLoan "should add guest loan ok"
+
+            let! retrieveLoanResult = loanService.GetLoanAsync (adminContext, loan.LoanId)
+            Expect.isOk retrieveLoanResult "should retrieve guest loan ok"
+            let retrievedLoan = retrieveLoanResult |> Result.get
+            match retrievedLoan.Patron with
+            | Guest g -> Expect.equal g.Name "Instant Guest" "guest name should match"
+            | RegisteredUser _ -> failwith "expected guest patron"
+
+            let! retrieveBookResult = bookService.GetBookAsync(adminContext, book.BookId)
+            Expect.isOk retrieveBookResult "should get book ok"
+            let bookRetrieved = retrieveBookResult |> Result.get
+            Expect.equal bookRetrieved.CurrentLoan (Some loan.LoanId) "book should have current loan"
+        }
     ]
     |> testSequenced

@@ -1562,12 +1562,74 @@ else
                             }
                             else if (_bookDetails.Book.Available)
                             {
-                                <div class="p-4 bg-surface-low rounded-xl border border-success-subtle d-flex align-items-center gap-3">
+                                <div class="p-4 bg-surface-low rounded-xl border border-success-subtle d-flex align-items-center gap-3 mb-3">
                                     <i class="bi bi-journal-check fs-3 text-success"></i>
                                     <div>
                                         <h6 class="serif mb-1">@L["AvailableInStacks"]</h6>
                                         <p class="small text-muted mb-0">@L["ReadyForDissemination"]</p>
                                     </div>
+                                </div>
+
+                                <div class="p-4 bg-surface-low rounded-xl border shadow-sm animate-fade-in">
+                                    <div class="d-flex align-items-center justify-content-between mb-3 border-bottom pb-2">
+                                        <h6 class="serif mb-0 text-primary fw-bold d-flex align-items-center gap-2">
+                                            <i class="bi bi-lightning-charge-fill text-warning"></i>
+                                            @L["InstantGuestLoan"]
+                                        </h6>
+                                        <span class="badge bg-secondary-subtle text-secondary small">@L["Guest"]</span>
+                                    </div>
+
+                                    @if (!_bookDetails.Book.Availability.AllowsGuest)
+                                    {
+                                        <div class="alert alert-warning py-2 px-3 small d-flex align-items-center gap-2 mb-3" style="border-radius: 8px;">
+                                            <i class="bi bi-exclamation-triangle-fill text-warning fs-6"></i>
+                                            <div>
+                                                @L["GuestLoanRequiresCirculatingIncludingGuest"]
+                                            </div>
+                                        </div>
+                                    }
+
+                                    <div class="mb-2 text-start">
+                                        <label class="form-label small fw-semibold mb-1">@L["YourName"] <span class="text-danger">*</span></label>
+                                        <input type="text" class="form-control form-control-sm" placeholder="@L["FullName"]" @bind="_guestLoanName" />
+                                    </div>
+
+                                    <div class="mb-2 text-start">
+                                        <label class="form-label small fw-semibold mb-1">@L["PhoneNumber"] <span class="text-muted fw-normal">(@L["Optional"])</span></label>
+                                        <input type="tel" class="form-control form-control-sm" placeholder="+123456789" @bind="_guestLoanPhone" />
+                                    </div>
+
+                                    <div class="mb-2 text-start">
+                                        <label class="form-label small fw-semibold mb-1">@L["Email"] <span class="text-muted fw-normal">(@L["Optional"])</span></label>
+                                        <input type="email" class="form-control form-control-sm" placeholder="name@example.com" @bind="_guestLoanEmail" />
+                                    </div>
+
+                                    <div class="mb-3 text-start">
+                                        <label class="form-label small fw-semibold mb-1">@L["Notes"] <span class="text-muted fw-normal">(@L["Optional"])</span></label>
+                                        <textarea class="form-control form-control-sm" rows="2" placeholder="@L["OptionalNotesPlaceholder"]" @bind="_guestLoanNotes"></textarea>
+                                    </div>
+
+                                    @if (!string.IsNullOrEmpty(_guestLoanError))
+                                    {
+                                        <div class="text-danger small mb-2 text-start">
+                                            <i class="bi bi-exclamation-triangle-fill me-1"></i>@_guestLoanError
+                                        </div>
+                                    }
+
+                                    <button class="btn btn-primary w-100 btn-sm d-flex align-items-center justify-content-center gap-2" 
+                                            @onclick="CreateInstantGuestLoan" 
+                                            disabled="@(_isSubmittingGuestLoan || !_bookDetails.Book.Availability.AllowsGuest)">
+                                        @if (_isSubmittingGuestLoan)
+                                        {
+                                            <span class="spinner-border spinner-border-sm" role="status"></span>
+                                            <span>@L["WaitLoading"]...</span>
+                                        }
+                                        else
+                                        {
+                                            <i class="bi bi-journal-arrow-up"></i>
+                                            <span>@L["CreateInstantLoan"]</span>
+                                        }
+                                    </button>
                                 </div>
                             }
                             else
@@ -1858,6 +1920,12 @@ else
     private string _statusMessage = "";
     private string _statusClass = "alert-info";
     private string _reservationCodeInput = "";
+    private string _guestLoanName = "guest";
+    private string _guestLoanPhone = "";
+    private string _guestLoanEmail = "";
+    private string _guestLoanNotes = "";
+    private bool _isSubmittingGuestLoan = false;
+    private string? _guestLoanError = null;
 
     private string _authorSearchInput = "";
     private List<Author> _authorSearchResults = new();
@@ -3419,6 +3487,71 @@ else
         catch (Exception ex)
         {
             await ShowStatus($"An error occurred: {ex.Message}", "alert-danger");
+        }
+    }
+
+    private async Task CreateInstantGuestLoan()
+    {
+        if (_bookDetails == null) return;
+
+        _guestLoanError = null;
+        if (string.IsNullOrWhiteSpace(_guestLoanName))
+        {
+            _guestLoanError = L["NameIsRequired"]?.Value ?? "Name is required.";
+            return;
+        }
+
+        try
+        {
+            _isSubmittingGuestLoan = true;
+            StateHasChanged();
+
+            var context = await GetContext();
+            var tenantId = _bookDetails.Book.TenantId;
+
+            int loanDuration = Configuration.GetValue<int>("BooksLibrary:TimeSlotLoanDurationInDays", 25);
+            var now = DateTime.UtcNow;
+            var timeSlot = TimeSlot.New(now, now.AddDays(loanDuration));
+
+            FSharpOption<string> ToOpt(string? s) =>
+                string.IsNullOrWhiteSpace(s) ? FSharpOption<string>.None : FSharpOption<string>.Some(s.Trim());
+
+            var guestPatron = new GuestPatron(
+                _guestLoanName.Trim(),
+                ToOpt(_guestLoanPhone),
+                ToOpt(_guestLoanEmail),
+                ToOpt(_guestLoanNotes),
+                FSharpOption<Coordinates>.None
+            );
+
+            var loan = Loan.NewGuest(tenantId, _bookDetails.Book.BookId, guestPatron, now, timeSlot);
+            var result = await LoanService.AddLoanAsync(context, loan, FSharpOption<CancellationToken>.None);
+
+            if (result.IsOk)
+            {
+                await ShowStatus(L["GuestLoanCreatedSuccess"]?.Value ?? "Guest loan successfully created.", "alert-success");
+                await WaitForCacheUpdateAsync(d => FSharpOption<BookLibrary.Shared.Details.LoanDetails>.get_IsSome(d.CurrentLoan));
+                _guestLoanName = "guest";
+                _guestLoanPhone = "";
+                _guestLoanEmail = "";
+                _guestLoanNotes = "";
+                _guestLoanError = null;
+            }
+            else
+            {
+                _guestLoanError = result.ErrorValue;
+                await ShowStatus(result.ErrorValue, "alert-danger");
+            }
+        }
+        catch (Exception ex)
+        {
+            _guestLoanError = ex.Message;
+            await ShowStatus($"An error occurred: {ex.Message}", "alert-danger");
+        }
+        finally
+        {
+            _isSubmittingGuestLoan = false;
+            StateHasChanged();
         }
     }
 

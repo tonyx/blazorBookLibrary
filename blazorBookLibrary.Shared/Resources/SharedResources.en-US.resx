@@ -1295,5 +1295,8 @@
   <data name="ImportEmbeddingsRateLimitNotice" xml:space="preserve"><value>The embedding process is rate-limited and not immediate. If system or provider limits are reached, the system will import the books into the catalog and pause embedding generation. You will receive an in-app notification when the import finishes.</value></data>
   <data name="ImportEmbeddingsStartingNotice" xml:space="preserve"><value>Import started. Generating vector embeddings is rate-limited and not immediate; if limits are reached, book imports will continue and you will be notified upon completion.</value></data>
   <data name="GeneratingBulkEmbeddingsInfo" xml:space="preserve"><value>Generating embeddings... This process is rate-limited and may take time. You will receive an in-app notification when finished.</value></data>
-  <data name="BulkEmbeddingSuccess" xml:space="preserve"><value>Bulk embedding generation completed successfully.</value></data>
+  <data name="InstantGuestLoan" xml:space="preserve"><value>Instant Guest Loan</value></data>
+  <data name="CreateInstantLoan" xml:space="preserve"><value>Create Loan</value></data>
+  <data name="GuestLoanCreatedSuccess" xml:space="preserve"><value>Guest loan successfully created.</value></data>
+  <data name="GuestLoanRequiresCirculatingIncludingGuest" xml:space="preserve"><value>Guest loans require item availability to be 'Circulating (Including Guests)'. Please adjust it in Archival Availability above.</value></data>
 </root>

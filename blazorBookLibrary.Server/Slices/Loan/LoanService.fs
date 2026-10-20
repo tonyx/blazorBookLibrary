@@ -131,6 +131,10 @@ type LoanService
             | Guest _ ->
                 ()
 
+            let key = DetailsCacheKey.OfType typeof<RefreshableTenantDetails> tenantId.Value
+            DetailsCache.Instance.UpdateMultipleAggregateIdAssociation [| loan.Id |] key
+            let! _ = DetailsCache.Instance.RefreshDependentDetailsAsync(loan.BookId.Value, Some ct)
+
             return result
         }
 

@@ -1295,5 +1295,8 @@
   <data name="ImportEmbeddingsRateLimitNotice" xml:space="preserve"><value>Il processo di embedding è soggetto a limiti di frequenza e non è immediato. Se vengono raggiunti i limiti del provider o di sistema, i libri verranno comunque importati nel catalogo e la generazione degli embedding verrà interrotta. Riceverai una notifica in-app al termine dell'importazione.</value></data>
   <data name="ImportEmbeddingsStartingNotice" xml:space="preserve"><value>Importazione avviata. La generazione degli embedding vettoriali è soggetta a limiti di frequenza e non è immediata; se i limiti vengono raggiunti, l'importazione continuerà e riceverai una notifica al termine.</value></data>
   <data name="GeneratingBulkEmbeddingsInfo" xml:space="preserve"><value>Generazione embedding in corso... Il processo è soggetto a limiti di frequenza e potrebbe richiedere del tempo. Riceverai una notifica in-app al termine.</value></data>
-  <data name="BulkEmbeddingSuccess" xml:space="preserve"><value>Generazione collettiva degli embedding completata con successo.</value></data>
+  <data name="InstantGuestLoan" xml:space="preserve"><value>Prestito Istantaneo per Ospite</value></data>
+  <data name="CreateInstantLoan" xml:space="preserve"><value>Crea Prestito</value></data>
+  <data name="GuestLoanCreatedSuccess" xml:space="preserve"><value>Prestito per ospite creato con successo.</value></data>
+  <data name="GuestLoanRequiresCirculatingIncludingGuest" xml:space="preserve"><value>I prestiti per ospiti richiedono che la disponibilità sia impostata su 'Circolante (Inclusi Ospiti)'. Modificala nelle Disponibilità Archivistica sopra.</value></data>
 </root>

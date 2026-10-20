@@ -61,6 +61,17 @@ and Loan = {
             ReservationId = Some reservation.ReservationId;
             LoanStatus = InProgress;
         }
+    static member NewGuest (tenantId: TenantId) (bookId: BookId) (guest: GuestPatron) (loanedAt: DateTime) (timeSlot: TimeSlot) = 
+        {
+            TenantId = tenantId
+            LoanId = LoanId.New(); 
+            BookId = bookId;
+            Patron = Guest guest;
+            LoanedAt = loanedAt;
+            TimeSlot = timeSlot;
+            ReservationId = None;
+            LoanStatus = InProgress;
+        }
     member this.DueDate = 
         this.TimeSlot.End
     member this.IsOverdue (now: DateTime)= 
