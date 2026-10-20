@@ -146,7 +146,25 @@ else
             </nav>
             <h1 class="serif display-5 mb-0" style="font-weight: 800; color: var(--primary);">@L["BookDetails"]</h1>
         </div>
-        <div class="d-flex gap-3">
+        <div class="d-flex gap-3 align-items-center">
+            @if (_isAuthorized && _bookDetails != null && FSharpOption<BookLibrary.Shared.Details.LoanDetails>.get_IsSome(_bookDetails.CurrentLoan))
+            {
+                var currentLoan = _bookDetails.CurrentLoan.Value;
+                <button class="btn btn-outline-success rounded-pill px-3 shadow-sm shadow-hover d-flex align-items-center gap-2"
+                        @onclick="() => ReleaseCurrentLoan(currentLoan)"
+                        disabled="@_isReleasingLoan">
+                    @if (_isReleasingLoan)
+                    {
+                        <span class="spinner-border spinner-border-sm" role="status"></span>
+                        <span>@L["WaitLoading"]...</span>
+                    }
+                    else
+                    {
+                        <i class="bi bi-box-arrow-in-right"></i>
+                        <span>@L["Release"]</span>
+                    }
+                </button>
+            }
             <a href="/books-manager" class="btn-sanctuary-outline text-decoration-none">
                 <i class="bi bi-arrow-left me-2"></i>@L["BackToBooks"]
             </a>
@@ -1547,12 +1565,31 @@ else
                             {
                                 var loan = _bookDetails.CurrentLoan.Value;
                                 <div class="p-4 bg-surface-low rounded-xl border border-warning-subtle">
-                                    <div class="d-flex align-items-center gap-3 mb-3">
-                                        <i class="bi bi-journal-minus fs-3 text-warning"></i>
-                                        <div>
-                                            <h6 class="serif mb-1">@L["ItemCurrentlyWithBorrower"]</h6>
-                                            <p class="small text-muted mb-0">@(loan.Loan.Patron.IsGuest ? $"{L["Guest"]}: " : "UID: ")@loan.BorrowerName</p>
+                                    <div class="d-flex align-items-center justify-content-between mb-3">
+                                        <div class="d-flex align-items-center gap-3">
+                                            <i class="bi bi-journal-minus fs-3 text-warning"></i>
+                                            <div>
+                                                <h6 class="serif mb-1">@L["ItemCurrentlyWithBorrower"]</h6>
+                                                <p class="small text-muted mb-0">@(loan.Loan.Patron.IsGuest ? $"{L["Guest"]}: " : "UID: ")@loan.BorrowerName</p>
+                                            </div>
                                         </div>
+                                        @if (_isAuthorized)
+                                        {
+                                            <button class="btn btn-outline-success btn-sm rounded-pill px-3 shadow-sm shadow-hover d-flex align-items-center gap-1"
+                                                    @onclick="() => ReleaseCurrentLoan(loan)"
+                                                    disabled="@_isReleasingLoan">
+                                                @if (_isReleasingLoan)
+                                                {
+                                                    <span class="spinner-border spinner-border-sm" role="status"></span>
+                                                    <span>@L["WaitLoading"]...</span>
+                                                }
+                                                else
+                                                {
+                                                    <i class="bi bi-box-arrow-in-right me-1"></i>
+                                                    <span>@L["Release"]</span>
+                                                }
+                                            </button>
+                                        }
                                     </div>
                                     <div class="d-flex justify-content-between small border-top pt-2">
                                         <span>@L["CheckoutDate"]: <strong class="serif">@loan.Loan.TimeSlot.Start.ToShortDateString()</strong></span>
@@ -1926,6 +1963,7 @@ else
     private string _guestLoanNotes = "";
     private bool _isSubmittingGuestLoan = false;
     private string? _guestLoanError = null;
+    private bool _isReleasingLoan = false;
 
     private string _authorSearchInput = "";
     private List<Author> _authorSearchResults = new();
@@ -3551,6 +3589,45 @@ else
         finally
         {
             _isSubmittingGuestLoan = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task ReleaseCurrentLoan(BookLibrary.Shared.Details.LoanDetails loanDetails)
+    {
+        if (_bookDetails == null || _isReleasingLoan) return;
+
+        var bookTitle = _bookDetails.Book.Title.Value;
+        var confirmed = await JSRuntime.InvokeAsync<bool>("confirm", $"{L["ConfirmReturnOf"]} {bookTitle}?");
+        if (!confirmed) return;
+
+        try
+        {
+            _isReleasingLoan = true;
+            StateHasChanged();
+
+            var context = await GetContext();
+            var result = await LoanService.ReleaseLoanAsync(context, loanDetails.Loan.LoanId, DateTime.UtcNow, FSharpOption<CancellationToken>.None);
+
+            if (result.IsOk)
+            {
+                await ShowStatus(L["LoanReturnedSuccessfully"]?.Value ?? "Loan returned successfully.", "alert-success");
+                await WaitForCacheUpdateAsync(d => FSharpOption<BookLibrary.Shared.Details.LoanDetails>.get_IsNone(d.CurrentLoan));
+            }
+            else
+            {
+                Logger.LogError("Error releasing loan {LoanId}: {Error}", loanDetails.Loan.LoanId, result.ErrorValue);
+                await ShowStatus(string.Format(L["ErrorOccurred"]?.Value ?? "An error occurred: {0}", result.ErrorValue), "alert-danger");
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Exception releasing loan {LoanId}", loanDetails.Loan.LoanId);
+            await ShowStatus($"An error occurred: {ex.Message}", "alert-danger");
+        }
+        finally
+        {
+            _isReleasingLoan = false;
             StateHasChanged();
         }
     }

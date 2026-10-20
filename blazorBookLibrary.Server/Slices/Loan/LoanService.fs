@@ -301,6 +301,9 @@ type LoanService
                     |> Task.map (fun _ -> Ok ())
 
                 let! _ = DetailsCache.Instance.RefreshDependentDetailsAsync(patronUserId.Value, Some ct)
+                let! _ = DetailsCache.Instance.RefreshDependentDetailsAsync(loan.BookId.Value, Some ct)
+                let key = DetailsCacheKey.OfType typeof<RefreshableTenantDetails> loan.TenantId.Value
+                let _ = DetailsCache.Instance.RefreshAsync(key, ct |> Some)
                 return result
             | Guest _ ->
                 do! checkIsGlobalAdminOrTenantManager context ct
@@ -315,6 +318,9 @@ type LoanService
                         [ releaseLoanCommand ]
                         [ releaseBookCommand ]
                         (ct |> Some)
+                let! _ = DetailsCache.Instance.RefreshDependentDetailsAsync(loan.BookId.Value, Some ct)
+                let key = DetailsCacheKey.OfType typeof<RefreshableTenantDetails> loan.TenantId.Value
+                let _ = DetailsCache.Instance.RefreshAsync(key, ct |> Some)
                 return result
         }
 
