@@ -58,8 +58,7 @@
 
 ## Part 5: The Archival Backbone
 
-**[Scene: Export/Import or Authors Manager]**
-"As a manager, I also care about the long-term health of our data. I can export our entire catalog to CSV or JSON with one click for external analysis. And if I need to manage authors, I can use the **Authors Manager** to fetch portraits and biographies directly from Wikipedia, keeping our creators' profiles as vivid as their books."
+"As a manager, I also care about the long-term health of our data. I can export our entire catalog into 8 industry standards—including BibTeX, MARCXML, Dublin Core, and ONIX—with one click for external analysis or institutional archiving. Readers can even cite and download individual books right from the catalog view. And if I need to manage authors, I can use the **Authors Manager** to fetch portraits and biographies directly from Wikipedia, keeping our creators' profiles as vivid as their books."
 
 ---
 

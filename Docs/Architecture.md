@@ -6,14 +6,16 @@ The Blazor Book Library is a modern web application built with a clear separatio
 
 ```mermaid
 graph TB
-    subgraph "Frontend (Blazor Web App)"
+    subgraph "Frontend & HTTP APIs"
         UI["Razor Components (.razor)<br/>(Interactive Server/WASM)"]
         CLIENT["Blazor Client Project<br/>(Shared UI Logic)"]
+        CATALOG["Catalog REST API<br/>(CatalogController: /api/catalog)"]
     end
 
-    subgraph "Application Layer (F# Services)"
+    subgraph "Application Layer (F# Services & Interop)"
         SVC["Domain Services<br/>(BookService, AuthorService, etc.)"]
         EXT["External API Services<br/>(GoogleBooks, Gemini Embeddings)"]
+        SERIAL["Bibliographic Serializers<br/>(FormatSerializers: Dublin Core, MARC, MODS, ONIX, etc.)"]
     end
 
     subgraph "Domain Layer (Sharpino + F#)"
@@ -32,6 +34,8 @@ graph TB
     %% Relationships
     UI --> SVC
     CLIENT -.-> UI
+    CATALOG --> SVC
+    CATALOG --> SERIAL
     SVC --> CMD
     SVC --> VIEWER
     SVC --> EXT
@@ -48,18 +52,20 @@ graph TB
 
 ## Component Breakdown
 
-### 1. Presentation Layer (Blazor)
+### 1. Presentation Layer & Interoperability APIs
 - **Interactive Modes**: Supports both `InteractiveServer` (hosting on the server) and `InteractiveWebAssembly` (client-side execution) for optimal user experience.
 - **UI Components**: Uses `QuickGrid` for data density and performance, and custom components like `BookSearchToolbar` for complex filtering.
 - **Barcode & Vision Integration**: Utilizes JS-interop with `ZXing` for real-time ISBN scanning via device cameras, and camera OCR capture for multi-paper tables of contents and covers.
 - **Interactive Geo-Location Mapping**: Utilizes JS-interop with **Leaflet** (`tenantMap.js`) for visual pin-placement of library and user geographical coordinates.
 - **Conversational Assistant UI**: Provides the **AI Librarian** interface with multi-turn chat, grounded markdown citations (`book://` protocol), and voice/speech interaction.
+- **Catalog Interoperability REST API (`CatalogController`)**: Exposes headless endpoints under `/api/catalog` for external systems and OPAC networks, enabling queries by ISBN, SBN code, or aggregate GUID with format negotiation (`?format=` and `Accept` header) and multi-tenant isolation.
 
 ### 2. Application & Domain Layer (F# / Sharpino)
 - **CQRS Pattern**: Decouples write operations (Commands) from read operations (Viewers/Queries).
 - **Event Sourcing**: Instead of storing the current state, the system stores the **sequence of events** that led to that state. This provides a full audit trail and the ability to rebuild state at any point in time.
 - **Sharpino Integration**: A specialized library that handles the heavy lifting of event persistence, aggregate execution, and state caching.
 - **Domain Value Objects**: Enforces strict invariants using F# types, including validated `Coordinates` and immutable tenant aggregate state.
+- **Bibliographic Serialization Engine (`FormatSerializers`)**: Pure, side-effect-free F# serialization functions transforming domain models into Dublin Core (DCMES 1.1), MARC21/MARCXML, MODS 3.0, ONIX for Books 3.0, BibTeX, Schema.org (JSON-LD), JSON, and CSV.
 
 ### 3. Service Layer
 - **Domain Services**: Thin wrappers in F# that orchestrate command execution and state retrieval.
@@ -76,6 +82,7 @@ graph TB
 ### 5. Security & Infrastructure
 - **Identity & OAuth**: Integrated with Microsoft Identity and Google OAuth for secure authentication.
 - **Bot Protection**: Implements `Recaptcha v3` and a custom `BotScoreService` to mitigate automated abuse.
+- **Catalog API Security**: Employs configurable `X-API-Key` authentication for external catalog consumers (`Catalog:ApiKey`), combined with strict multi-tenant boundary checks (public vs. private circuits).
 - **Localization**: Full support for `it-IT` and `en-US` via standard .NET localization patterns (`IStringLocalizer`).
 
 ### 6. GDPR & Anonymization (Ghosting Pattern)

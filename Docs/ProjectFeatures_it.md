@@ -42,7 +42,12 @@ Blazor Book Library è un sistema di archiviazione e prestito all'avanguardia, c
     *   **Undo Narrativo**: Un meccanismo di sicurezza per ripristinare i contenuti generati dall'IA se non soddisfano gli standard d'archivio.
 *   **Sistema di Tagging d'Archivio**: Categorizzazione dei libri utilizzando un sistema di tag multi-tipo (Libro, Autore, Persona, Generale) con indicatori visivi colorati.
 *   **Registro Autori**: Gestione di un database di creatori con **Scoperta del Ritratto via Wikipedia** automatizzata e recupero dei link biografici.
+*   **Interoperabilità Bibliografica e Conformità agli Standard**:
+    *   **Esportazione Archivistica Universale**: Esportazione completa di singoli volumi o di interi cataloghi in 8 standard internazionali bibliotecari ed editoriali: **Dublin Core (DCMES 1.1)**, **MARC21 / MARCXML**, **MODS 3.0**, **ONIX for Books 3.0**, **BibTeX**, **Schema.org (JSON-LD)**, **JSON** e **CSV**.
+    *   **Azione Pubblica "Cita ed Esporta"**: Copia della citazione negli appunti con un solo clic e download diretto del file nelle pagine di dettaglio libro.
+    *   **REST API Aperta per il Catalogo**: API HTTP headless multi-tenant (`/api/catalog`) con ricerca per ISBN, SBN (ICCU) e GUID aggregato, negoziazione del formato (`?format=` e header `Accept`) e autorizzazione via API key.
 *   **Operazioni Massive**:
+    *   **Esportazione Catalogo Multi-Formato**: Download dell'intero archivio del tenant in ciascuno degli 8 formati bibliografici supportati.
     *   **Importazione di Massa via ISBN**: Caricamento di elenchi di ISBN per la registrazione batch automatizzata.
     *   **Modifica Massiva dei Metadati**: Aggiornamento simultaneo di categorie, anni o stato per centinaia di record.
 *   **Sigillatura dei Record**: Protezione dei record d'archivio verificati da modifiche accidentali tramite la "Sigillatura".

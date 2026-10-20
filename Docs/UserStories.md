@@ -151,11 +151,17 @@ This document outlines the core functionality of the Blazor Book Library applica
     - Seal a book to prevent accidental edits or during specific administrative phases.
     - Unseal a book when updates are required.
 
-### **As a Manager, I want to export my tenant's catalog in JSON or CSV format so that I have a portable backup of the archival data.**
+### **As a Manager, I want to export my tenant's catalog in standard bibliographic formats so that I have portable backups and interoperability with external archival systems.**
 - **Criteria**:
     - Trigger an export from the Books Manager ledger.
-    - Choose between JSON and CSV formats.
-    - The downloaded file contains all relevant book metadata for the tenant.
+    - Choose among 8 industry-standard formats: **Dublin Core (DCMES 1.1)**, **MARC21 / MARCXML**, **MODS 3.0**, **ONIX for Books 3.0**, **BibTeX**, **Schema.org (JSON-LD)**, **JSON**, and **CSV**.
+    - The downloaded file contains complete, validated bibliographic metadata for all books in the tenant.
+
+### **As a Reader or Researcher, I want to cite and export individual book records in standard academic and archival formats so that I can easily integrate them into reference managers or papers.**
+- **Criteria**:
+    - Open any book in the public book detail view.
+    - Choose among BibTeX, Dublin Core, MARCXML, MODS, ONIX 3.0, Schema.org, JSON, or CSV from the "Cite & Export" menu.
+    - Copy the formatted citation directly to the clipboard with visual confirmation, or download it as a dedicated file.
 
 ### **As a Manager, I want to bulk import books using a list of ISBNs so that I can quickly populate my custom catalog.**
 - **Criteria**:
@@ -239,3 +245,14 @@ This document outlines the core functionality of the Blazor Book Library applica
     - Personal identifiable information (Email, Name, Fiscal Code) is cleared and randomized across the platform and all tenants.
     - All existing connections to borrowed books or reviews remain as anonymized "ghost" records for historical accuracy.
     - The account is permanently disabled and cannot be used for future logins.
+
+---
+
+## 8. Bibliographic Interoperability & Open Catalog API (External Systems & Integrators)
+### **As an External Developer or Library Network Integrator, I want to query catalog metadata via a headless REST API by ISBN, SBN code, or Aggregate ID with content negotiation so that my external systems can consume bibliographic records automatically.**
+- **Criteria**:
+    - Query `/api/catalog` with standard book identifiers (ISBN, Italian ICCU/SBN code, or internal Aggregate GUID).
+    - Scope requests to specific tenant GUIDs (`/api/catalog/{tenant}/books/...`) or use shorthand routes for the default primary tenant (`/api/catalog/books/...`).
+    - Negotiate standard serialization formats via the `?format=` parameter or HTTP `Accept` header (e.g. `application/marcxml+xml`, `application/mods+xml`, `application/xml`, `text/plain`, `application/ld+json`, `application/json`, `text/csv`).
+    - Authenticate using an `X-API-Key` HTTP header when API key verification is enabled.
+    - Guarantee tenant isolation: public libraries allow open unauthenticated queries, while private libraries return HTTP `403 Forbidden` unless accessed within authorized context.

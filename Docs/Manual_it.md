@@ -28,7 +28,8 @@ Benvenuti nel manuale utente di **Blazor Book Library**. Questa guida ti aiuter�
     - [Gestione del Catalogo](#gestione-del-catalogo)
     - [Libri con Più Articoli e Indicizzazione ("Papers")](#libri-con-piu-articoli)
     - [Arricchimento tramite IA ed Embedding Vettoriali](#arricchimento-tramite-ia-ed-embedding)
-    - [Importazione ed Esportazione Archivio](#importazione-ed-esportazione-archivio)
+    - [Importazione, Esportazione ed Interoperabilità Archivistica](#importazione-esportazione-ed-interoperabilita-archivistica)
+    - [REST API di Interoperabilità del Catalogo](#rest-api-di-interoperabilita-del-catalogo)
 6. [Amministrazione del Sistema](#amministrazione-del-sistema)
     - [Gestione Utenti](#gestione-utenti)
     - [Pannello di Controllo Admin e Riconciliazione](#pannello-di-controllo-admin-e-riconciliazione)
@@ -219,10 +220,70 @@ Molti volumi del catalogo—come atti di convegno, raccolte di saggi, antologie 
 - **Embedding Vettoriali di Volume e di Paper**: Per abilitare la ricerca semantica IA per l'intero volume, clicca su **"Genera Embedding"** nella pagina di modifica del libro. L'IA converte le descrizioni in vettori matematici. Analogamente, i singoli paper possono essere incorporati semanticamente con abstract o testo integrale.
 - **Controllo di Integrità**: Verifica la precisione dei tuoi indici semantici digitando query in linguaggio naturale direttamente nel pannello di validazione per vedere dove si posiziona il libro.
 
-<a name="importazione-ed-esportazione-archivio"></a>
-### Importazione ed Esportazione Archivio
-- **Esportazione**: Scarica istantaneamente il catalogo del tenant attivo in formato **CSV** o **JSON** per backup digitali o stampe cartacee.
+<a name="importazione-esportazione-ed-interoperabilita-archivistica"></a>
+### Importazione, Esportazione ed Interoperabilità Archivistica
+La piattaforma fornisce una completa portabilità dei dati bibliografici conforme agli standard archivistici e bibliotecari internazionali, consentendo un'integrazione immediata con gestori di riferimenti bibliografici, repository istituzionali e reti di cataloghi nazionali.
+
+#### Standard e Formati Bibliografici Supportati
+Sia la citazione/esportazione del singolo record sia l'esportazione massiva dell'intero catalogo del tenant supportano **8 formati standard del settore**:
+- **BibTeX** (`.bib` / `text/plain`): Standard de facto per la gestione bibliografica con LaTeX, Zotero, Mendeley e per la ricerca accademica.
+- **Dublin Core DCMES 1.1** (`.xml` / `application/xml`): Schema di metadati ISO 15836 utilizzato a livello globale da biblioteche digitali, repository e protocolli di harvesting OAI-PMH.
+- **MARC21 / MARCXML** (`.xml` / `application/marcxml+xml`): Formato ufficiale della Library of Congress adottato dalle biblioteche universitarie mondiali, dai sistemi OPAC e dai cataloghi collettivi nazionali.
+- **MODS 3.0** (`.xml` / `application/mods+xml`): Metadata Object Description Schema per una catalogazione XML descrittiva ricca e strutturata.
+- **ONIX for Books 3.0** (`.xml` / `application/xml`): Standard internazionale per l'editoria libraria e la filiera commerciale curato da EDItEUR.
+- **Schema.org (JSON-LD)** (`.json` / `application/ld+json`): Vocabolario Linked Data per l'indicizzazione dei motori di ricerca e i crawler del Web Semantico (`@type: Book`).
+- **JSON** (`.json` / `application/json`): Formato strutturato completo per integrazioni software, API e backup digitali.
+- **CSV** (`.csv` / `text/csv`): Formato tabellare per fogli di calcolo, reportistica e inventari fisici.
+
+#### Funzionalità "Cita ed Esporta" per Singolo Libro
+Nella vista pubblica dei dettagli del libro (`BookView.razor`), visitatori, ricercatori e lettori possono fare clic sul menu **"Cita ed Esporta"** per qualsiasi libro:
+- **Copia**: Formatta la citazione secondo lo standard selezionato e la copia direttamente negli appunti, con notifica visiva toast di conferma.
+- **Scarica**: Genera e scarica il file formattato con nome ed estensione appropriati (es. `1234567890.bib`, `1234567890.marcxml`).
+
+#### Esportazione ed Importazione Massiva del Catalogo
+- **Esportazione dal Registro**: I gestori della biblioteca possono esportare l'intero catalogo del proprio tenant attivo in uno qualsiasi degli 8 formati con un singolo clic dalla vista Gestore Libri.
 - **Importazione ISBN Massiva**: Incolla una lista di ISBN (uno per riga) o carica un file di testo. Personalizza le opzioni per recuperare automaticamente i metadati, generare descrizioni mancanti, creare profili autore e creare embedding semantici al volo con un monitor di avanzamento in tempo reale.
+
+<a name="rest-api-di-interoperabilita-del-catalogo"></a>
+### REST API di Interoperabilità del Catalogo
+Per integrazioni automatizzate, reti universitarie e aggregatori esterni, il sistema espone una REST API headless dedicata sotto il percorso `/api/catalog`.
+
+#### Endpoint Disponibili
+L'API supporta l'interrogazione diretta per **ISBN**, codice **SBN** (identificativo del catalogo nazionale italiano ICCU/SBN), **GUID aggregato** interno o elenchi completi di collezione. Le route integrano l'isolamento multi-tenant:
+
+| Route | Descrizione |
+| :--- | :--- |
+| `GET /api/catalog/books/isbn/{isbn}` | Recupera il libro per ISBN dal Tenant Predefinito (Default Tenant) |
+| `GET /api/catalog/{tenant}/books/isbn/{isbn}` | Recupera il libro per ISBN dal Tenant identificato dal GUID specificato |
+| `GET /api/catalog/books/sbn/{sbn}` | Recupera il libro per codice SBN dal Tenant Predefinito |
+| `GET /api/catalog/{tenant}/books/sbn/{sbn}` | Recupera il libro per codice SBN dal Tenant identificato dal GUID specificato |
+| `GET /api/catalog/books/id/{id}` | Recupera il libro per GUID aggregato interno dal Tenant Predefinito |
+| `GET /api/catalog/{tenant}/books/id/{id}` | Recupera il libro per GUID aggregato interno dal Tenant specificato |
+| `GET /api/catalog/books` | Recupera l'intero catalogo dal Tenant Predefinito |
+| `GET /api/catalog/{tenant}/books` | Recupera l'intero catalogo dal Tenant identificato dal GUID specificato |
+
+#### Negoziazione del Formato
+I client possono richiedere il formato di serializzazione desiderato tramite il parametro query `?format=` o tramite gli header standard HTTP `Accept`:
+
+- **Parametro Query**: `?format=marcxml`, `?format=mods`, `?format=onix`, `?format=dublincore`, `?format=bibtex`, `?format=schemaorg`, `?format=json`, `?format=csv`.
+- **Header HTTP Accept**:
+  - `application/marcxml+xml` &rarr; MARC21 XML
+  - `application/mods+xml` &rarr; MODS 3.0 XML
+  - `application/xml` &rarr; ONIX 3.0 / Dublin Core XML
+  - `text/plain` &rarr; BibTeX
+  - `application/ld+json` &rarr; Schema.org JSON-LD
+  - `application/json` &rarr; JSON
+  - `text/csv` &rarr; CSV
+
+#### Autenticazione e Sicurezza Multi-Tenant
+- **Circuiti Pubblici**: I cataloghi dei tenant pubblici sono consultabili liberamente senza autenticazione, favorendo la condivisione open-access.
+- **Circuiti Privati**: I cataloghi dei tenant privati restituiscono `403 Forbidden` a meno che la richiesta non provenga da una sessione autenticata autorizzata per quel tenant.
+- **Protezione via API Key**: Gli amministratori possono configurare una chiave di accesso API in `appsettings.json` sotto `"Catalog": { "ApiKey": "TUA_CHIAVE" }`. Quando configurata, tutte le richieste esterne verso `/api/catalog` devono includere la chiave nell'header HTTP `X-API-Key`:
+  ```http
+  GET /api/catalog/books/isbn/9780141439518?format=marcxml HTTP/1.1
+  Host: library.example.com
+  X-API-Key: TUA_CATALOG_API_KEY
+  ```
 
 ---
 

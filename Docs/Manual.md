@@ -28,7 +28,8 @@ Welcome to the **Blazor Book Library** manual. This guide will help you navigate
     - [Catalog Management](#catalog-management)
     - [Multi-Paper Books & Article Indexing ("Papers")](#multi-paper-books)
     - [AI-Powered Enrichment & Embeddings](#ai-powered-enrichment--embeddings)
-    - [Archival Import & Export](#archival-import--export)
+    - [Archival Import, Export & Interoperability](#archival-import-export--interoperability)
+    - [Catalog Interoperability REST API](#catalog-interoperability-rest-api)
 6. [System Administration](#system-administration)
     - [User Management](#user-management)
     - [Admin Control Panel & Reconciliation](#admin-control-panel--reconciliation)
@@ -219,10 +220,70 @@ Many cataloged volumes—such as academic conference proceedings, essay collecti
 - **Volume & Paper Vector Embeddings**: To enable AI semantic search for the entire volume, click **"Generate Embedding"** on a book edit page. The AI converts descriptions into mathematical vectors. Individual papers inside the book can similarly be embedded with abstracts or full texts.
 - **Sanity Check**: Test the accuracy of your semantic indices by typing natural-language queries directly into the book validation panel to see where it ranks.
 
-<a name="archival-import--export"></a>
-### Archival Import & Export
-- **Export**: Instantly download the active tenant's catalog as **CSV** or **JSON** for digital backups or legacy printing.
+<a name="archival-import-export--interoperability"></a>
+### Archival Import, Export & Interoperability
+The platform provides comprehensive bibliographic data portability adhering to international archival and library standards, enabling seamless integration with reference managers, institutional repositories, and national catalog networks.
+
+#### Supported Bibliographic Standards & Formats
+Both single-record citation and tenant-wide bulk exports support **8 industry-standard formats**:
+- **BibTeX** (`.bib` / `text/plain`): Standard bibliographic toolchain for LaTeX, Zotero, Mendeley, and academic research citations.
+- **Dublin Core DCMES 1.1** (`.xml` / `application/xml`): ISO 15836 core metadata schema widely used by digital libraries, repositories, and OAI-PMH harvesting protocols.
+- **MARC21 / MARCXML** (`.xml` / `application/marcxml+xml`): Official Library of Congress standard format powering global university libraries, OPACs, and national union catalogs.
+- **MODS 3.0** (`.xml` / `application/mods+xml`): Metadata Object Description Schema providing rich descriptive XML cataloging.
+- **ONIX for Books 3.0** (`.xml` / `application/xml`): International book publishing and commercial supply chain standard maintained by EDItEUR.
+- **Schema.org (JSON-LD)** (`.json` / `application/ld+json`): Linked Data vocabulary for search engine indexing and Semantic Web crawlers (`@type: Book`).
+- **JSON** (`.json` / `application/json`): Complete structured payload format for software integrations and digital backups.
+- **CSV** (`.csv` / `text/csv`): Tabular layout for spreadsheets, reporting, and physical inventory tracking.
+
+#### Single-Book "Cite & Export"
+In the public book details view (`BookView.razor`), visitors, researchers, and patrons can click the **"Cite & Export"** menu for any book:
+- **Copy**: Formats the selected citation standard and copies it directly to your clipboard, accompanied by a visual confirmation toast.
+- **Download**: Generates and downloads the formatted file with its appropriate filename and file extension (e.g. `1234567890.bib`, `1234567890.marcxml`).
+
+#### Bulk Catalog Export & Import
+- **Ledger Export**: Library managers can export their active tenant's complete catalog in any of the 8 formats directly from the Books Manager view with a single click.
 - **Bulk ISBN Import**: Paste a list of ISBNs (one per line) or upload a text file. Customize options to automatically fetch metadata, generate missing descriptions, auto-create author profiles, and build semantic embeddings on-the-fly with a real-time progress monitor.
+
+<a name="catalog-interoperability-rest-api"></a>
+### Catalog Interoperability REST API
+For automated integrations, university networks, and external aggregators, the system exposes a dedicated, headless REST API under `/api/catalog`.
+
+#### Endpoints
+The API supports direct querying by **ISBN**, **SBN** (e.g. Italian ICCU/SBN catalog identifiers), internal **aggregate GUID**, or full collection lists. URLs cleanly incorporate tenant isolation:
+
+| Route | Description |
+| :--- | :--- |
+| `GET /api/catalog/books/isbn/{isbn}` | Retrieve book by ISBN from the Default Tenant |
+| `GET /api/catalog/{tenant}/books/isbn/{isbn}` | Retrieve book by ISBN from the specified Tenant GUID |
+| `GET /api/catalog/books/sbn/{sbn}` | Retrieve book by SBN identifier from the Default Tenant |
+| `GET /api/catalog/{tenant}/books/sbn/{sbn}` | Retrieve book by SBN identifier from the specified Tenant GUID |
+| `GET /api/catalog/books/id/{id}` | Retrieve book by internal aggregate ID from the Default Tenant |
+| `GET /api/catalog/{tenant}/books/id/{id}` | Retrieve book by internal aggregate ID from the specified Tenant GUID |
+| `GET /api/catalog/books` | Retrieve complete catalog from the Default Tenant |
+| `GET /api/catalog/{tenant}/books` | Retrieve complete catalog from the specified Tenant GUID |
+
+#### Format Negotiation
+Clients can negotiate their desired serialization format using either the `?format=` query parameter or standard HTTP `Accept` headers:
+
+- **Query Parameter**: `?format=marcxml`, `?format=mods`, `?format=onix`, `?format=dublincore`, `?format=bibtex`, `?format=schemaorg`, `?format=json`, `?format=csv`.
+- **HTTP Accept Header**:
+  - `application/marcxml+xml` &rarr; MARC21 XML
+  - `application/mods+xml` &rarr; MODS 3.0 XML
+  - `application/xml` &rarr; ONIX 3.0 / Dublin Core XML
+  - `text/plain` &rarr; BibTeX
+  - `application/ld+json` &rarr; Schema.org JSON-LD
+  - `application/json` &rarr; JSON
+  - `text/csv` &rarr; CSV
+
+#### Authentication & Multi-Tenant Security
+- **Public Circuits**: Public tenant catalogs are accessible without authentication, allowing open-access sharing.
+- **Private Circuits**: Catalogs of private tenants return `403 Forbidden` unless accessed with an authenticated session authorized for that tenant.
+- **API Key Protection**: Administrators can configure an API key in `appsettings.json` under `"Catalog": { "ApiKey": "YOUR_KEY" }`. When configured, all external requests to `/api/catalog` must provide the key via the `X-API-Key` HTTP header:
+  ```http
+  GET /api/catalog/books/isbn/9780141439518?format=marcxml HTTP/1.1
+  Host: library.example.com
+  X-API-Key: YOUR_CATALOG_API_KEY
+  ```
 
 ---
 

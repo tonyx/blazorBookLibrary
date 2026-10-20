@@ -42,7 +42,7 @@ Tenants are highly configurable, enabling users to organize their book-lending s
 *   **Target Audience**: Solo collectors organizing their own private physical shelves.
 *   **Privacy Setting**: Closed / Strictly Private.
 *   **Access Control**: Owner-only.
-*   **Goal**: Catalog personal archives. Users can maintain digital metadata, track reading history, and export data dynamically into **CSV** or **JSON** formats to print physical copies or import them into external management software.
+*   **Goal**: Catalog personal archives. Users can maintain digital metadata, track reading history, and export data dynamically into **8 industry standards** (BibTeX, Dublin Core, MARC21/MARCXML, MODS 3.0, ONIX for Books 3.0, Schema.org JSON-LD, JSON, CSV) or query via tenant-isolated REST APIs to import into external management software.
 ````
 
 ---
@@ -161,5 +161,5 @@ Onboarding members to an autonomous circuit is completely seamless and automated
 *   **Absolute Tenant Isolation**: Complete data privacy for custom libraries, families, or private reading groups who do not wish to expose their shared collections.
 *   **Low-Overhead Community SaaS**: Empowers any hobbyist, community organizer, or bookcrossing advocate to immediately act as a digital librarian with zero setup or hosting overhead.
 *   **Demonstration Sandbox Continuity**: The default sandbox (`TenantId.Default`) remains fully available and active, guaranteeing a safe, ready-to-use exploration space for all newly registered users without cluttering private autonomous circuits.
-*   **Data Portability**: Clean pathways to catalogue privately and export files safely as CSV/JSON for legacy printing, inventory tracking, or migration.
+*   **Data Portability & Interoperability**: Clean pathways to catalogue privately and export files safely across 8 bibliographic standards (Dublin Core, MARC21/MARCXML, MODS 3.0, ONIX 3.0, BibTeX, Schema.org, JSON, CSV) or consume via secure headless REST endpoints.
 
