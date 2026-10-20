@@ -155,7 +155,7 @@ public class NotificationDispatcher : INotificationDispatcher
                                     resolvedInAppContent,
                                     false, // isRead
                                     DateTime.UtcNow,
-                                    FSharpOption<string>.Some($"/reservations/{reservationIdString}")
+                                    FSharpOption<string>.Some($"/reservations/{reservationIdString}/manager")
                                 );
 
                                 var createNotifResult = await _notificationService.CreateNotificationAsync(systemContext, notification, cancellationToken);

@@ -1269,5 +1269,54 @@ let tests =
             let! addRes = reservationService.AddReservationAsync(UserContext.Anonymous, guestResNear, ShortLang.New "en")
             Expect.isOk addRes "guest reservation within proximity radius should succeed"
         }
+
+        testCaseTask "manager converts first reservation in queue instantly to loan and second manager attempt fails" <| fun _ -> task {
+            setUp ()
+            let bookService = getBookService()
+            let reservationService = getReservationService()
+            let loanService = getLoanService()
+
+            let book = Book.New TenantId.Default (Title.New "Instant Loan Book") [] [] [] None Category.Other [] (Year.New 2024) (Isbn.NewEmpty()) None
+            let! addBook = bookService.AddBookAsync(adminContext, book)
+            Expect.isOk addBook "add book should succeed"
+
+            let! userId1 = registerUserTask "patron1@example.com" "Password123!"
+            let! userId2 = registerUserTask "patron2@example.com" "Password123!"
+
+            let slot1 = TimeSlot.New (DateTime.UtcNow.AddDays(1)) (DateTime.UtcNow.AddDays(5))
+            let res1 = Reservation.New TenantId.Default book.BookId userId1 slot1 DateTime.UtcNow
+            let! addRes1 = reservationService.AddReservationAsync (adminContext, res1, ShortLang.New "en")
+            Expect.isOk addRes1 "add first reservation should succeed"
+
+            let slot2 = TimeSlot.New (DateTime.UtcNow.AddDays(6)) (DateTime.UtcNow.AddDays(10))
+            let res2 = Reservation.New TenantId.Default book.BookId userId2 slot2 DateTime.UtcNow
+            let! addRes2 = reservationService.AddReservationAsync (adminContext, res2, ShortLang.New "en")
+            Expect.isOk addRes2 "add second reservation should succeed"
+
+            // res1 is first in queue
+            let! isFirst1 = reservationService.IsReservationFirstInQueueAsync(adminContext, res1.ReservationId)
+            Expect.isOk isFirst1 "should be ok"
+            Expect.isTrue isFirst1.OkValue "res1 should be first in queue"
+
+            // res2 is not first in queue
+            let! isFirst2 = reservationService.IsReservationFirstInQueueAsync(adminContext, res2.ReservationId)
+            Expect.isOk isFirst2 "should be ok"
+            Expect.isFalse isFirst2.OkValue "res2 should not be first in queue"
+
+            // Attempting to convert res2 by manager fails because it's not first in queue
+            let! tryConvertRes2 = (loanService :> ILoanService).TransformReservationIntoLoanByManagerAsync(adminContext, res2.ReservationId, DateTime.UtcNow)
+            Expect.isError tryConvertRes2 "converting res2 should fail because it's not first in queue"
+
+            // First manager converts res1 -> succeeds
+            let manager1Context = UserContext.Authenticated(adminId, [ Role.Admin ])
+            let! convertRes1Mgr1 = (loanService :> ILoanService).TransformReservationIntoLoanByManagerAsync(manager1Context, res1.ReservationId, DateTime.UtcNow)
+            Expect.isOk convertRes1Mgr1 "first manager convert should succeed"
+
+            // Second manager attempts to convert res1 -> fails because reservation is already converted / not pending
+            let manager2Context = UserContext.Authenticated(adminId, [ Role.Admin ])
+            let! convertRes1Mgr2 = (loanService :> ILoanService).TransformReservationIntoLoanByManagerAsync(manager2Context, res1.ReservationId, DateTime.UtcNow)
+            Expect.isError convertRes1Mgr2 "second manager convert should fail because already converted into loan"
+        }
     ]
     |> testSequenced
+

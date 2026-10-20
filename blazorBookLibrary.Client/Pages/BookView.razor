@@ -86,6 +86,9 @@
                         <li><hr class="dropdown-divider"></li>
                         <li><button class="dropdown-item py-2" @onclick="DownloadSchemaOrg"><i class="bi bi-diagram-3 me-2 text-info"></i> Schema.org (.jsonld)</button></li>
                         <li><button class="dropdown-item py-2" @onclick="CopySchemaOrg"><i class="bi bi-clipboard me-2 text-secondary"></i> @L["CopyJSONLD"]</button></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><button class="dropdown-item py-2" @onclick="DownloadDublinCore"><i class="bi bi-file-earmark-text me-2 text-primary"></i> Dublin Core (.xml)</button></li>
+                        <li><button class="dropdown-item py-2" @onclick="CopyDublinCore"><i class="bi bi-clipboard me-2 text-secondary"></i> @L["CopyDublinCore"]</button></li>
                     </ul>
                 </div>
             }
@@ -1265,6 +1268,25 @@
         var pubOpt = resolvedPublisher != null ? FSharpOption<string>.Some(resolvedPublisher) : FSharpOption<string>.None;
         var json = FormatSerializers.formatSchemaOrgBook(bookDetails, pubOpt);
         await JSRuntime.InvokeVoidAsync("navigator.clipboard.writeText", json);
+        await ShowStatus(L["CopiedToClipboard"], "alert-success");
+    }
+
+    private async Task DownloadDublinCore()
+    {
+        if (bookDetails == null) return;
+        var pubOpt = resolvedPublisher != null ? FSharpOption<string>.Some(resolvedPublisher) : FSharpOption<string>.None;
+        var xml = FormatSerializers.formatDublinCoreBook(bookDetails, pubOpt);
+        var fileName = $"{FormatSerializers.generateCiteKey(bookDetails)}.xml";
+        await JSRuntime.InvokeVoidAsync("downloadFile", fileName, xml);
+        await ShowStatus(L["ExportSuccessful"], "alert-success");
+    }
+
+    private async Task CopyDublinCore()
+    {
+        if (bookDetails == null) return;
+        var pubOpt = resolvedPublisher != null ? FSharpOption<string>.Some(resolvedPublisher) : FSharpOption<string>.None;
+        var xml = FormatSerializers.formatDublinCoreBook(bookDetails, pubOpt);
+        await JSRuntime.InvokeVoidAsync("navigator.clipboard.writeText", xml);
         await ShowStatus(L["CopiedToClipboard"], "alert-success");
     }
 

@@ -585,6 +585,137 @@ type LoanService
             return result
         }
 
+    member this.TransformReservationIntoLoanByManagerAsync
+        (
+            context: UserContext,
+            reservationId: ReservationId,
+            now: DateTime,
+            ?ct: CancellationToken
+        ) =
+        let ct = defaultArg ct CancellationToken.None
+
+        taskResult {
+            do! checkIsGlobalAdminOrTenantManager context ct
+            let! reservation = reservationViewerAsync (Some ct) reservationId.Value |> TaskResult.map snd
+            do! reservation.IsPending |> Result.ofBool "Reservation is not pending"
+            let! reservationDetails = reservationService.GetReservationDetailsAsync(context, reservationId, ct)
+            let book = reservationDetails.Book
+
+            do! book.NoLoan |> Result.ofBool "Book is already loaned"
+
+            let! (pendingReservations: Reservation list) =
+                StateView.getAllFilteredAggregateStatesAsync<Reservation, ReservationEvent, string>
+                    (fun r -> r.BookId = reservation.BookId && r.TenantId = reservation.TenantId && r.IsPending)
+                    eventStore
+                    (Some ct)
+                |> TaskResult.map (List.ofSeq >> List.map snd)
+
+            let firstInQueue =
+                pendingReservations
+                |> List.sortBy (fun r -> (r.TimeSlot.Start, r.ReservedAt))
+                |> List.tryHead
+
+            do!
+                match firstInQueue with
+                | Some first when first.ReservationId = reservationId -> Ok ()
+                | _ -> Error "Reservation is not the first in the queue"
+
+            let makeReservationLoaned = ReservationCommand.Loan now
+            let! loan = reservationDetails.ToLoan now
+
+            let! (_, tenant) = tenantViewerAsync (ct |> Some) book.TenantId.Value
+            match reservation.Patron with
+            | Guest _ ->
+                do!
+                    (tenant.TenantId = TenantId.Default || tenant.TenantVisibility.IsPublic)
+                    |> Result.ofBool "Guest loans are only allowed for public libraries"
+                do!
+                    book.Availability.AllowsGuest
+                    |> Result.ofBool "This book is not available for guest loans"
+            | RegisteredUser _ -> ()
+
+            let setBookLoaned =
+                BookCommand.SetCurrentLoanFromReservation(reservationId, loan.LoanId, now)
+
+            let! optDpName =
+                match book.DistributionPoint with
+                | None -> taskResult { return (localizer.GetString("Unspecified").Value) }
+
+                | Some dpId ->
+                    taskResult {
+                        let! (_, dp) = distributionPointViewerAsync (ct |> Some) dpId.Value
+                        return dp.Name.Value
+                    }
+
+            let! result =
+                match reservation.Patron with
+                | RegisteredUser patronUserId ->
+                    taskResult {
+                        let makeLoanFromReservation =
+                            UserCommand.LoanFromReservation(loan.LoanId, reservationId)
+                        let! res =
+                            runInitAndThreeAggregateCommandsMdAsync<
+                                Reservation,
+                                ReservationEvent,
+                                Book,
+                                BookEvent,
+                                User,
+                                UserEvent,
+                                string,
+                                Loan
+                             >
+                                reservation.Id
+                                book.Id
+                                patronUserId.Value
+                                eventStore
+                                messageSenders
+                                loan
+                                ""
+                                makeReservationLoaned
+                                setBookLoaned
+                                makeLoanFromReservation
+                                (ct |> Some)
+
+                        let! _ =
+                            notificationDispatcher.DispatchNotificationAsync(
+                                context,
+                                patronUserId,
+                                reservation.TenantId,
+                                Some $"/loans/{loan.Id}",
+                                ct
+                            )
+                            |> Task.map (fun _ -> Ok ())
+                        let! _ = DetailsCache.Instance.RefreshDependentDetailsAsync(patronUserId.Value, Some ct)
+                        return res
+                    }
+                | Guest _ ->
+                    runInitAndTwoAggregateCommandsMdAsync<
+                        Reservation,
+                        ReservationEvent,
+                        Book,
+                        BookEvent,
+                        string,
+                        Loan
+                     >
+                        reservation.Id
+                        book.Id
+                        eventStore
+                        messageSenders
+                        loan
+                        ""
+                        makeReservationLoaned
+                        setBookLoaned
+                        (ct |> Some)
+
+            let key = DetailsCacheKey.OfType typeof<RefreshableTenantDetails> reservation.Id
+
+            let updateDetails =
+                DetailsCache.Instance.UpdateMultipleAggregateIdAssociation [| loan.Id |] key
+
+            let! _ = DetailsCache.Instance.RefreshDependentDetailsAsync(reservation.BookId.Value, Some ct)
+            return result
+        }
+
     member this.RemoveLoanAsync(context: UserContext, loanId: LoanId, ?ct: CancellationToken) =
         let ct = defaultArg ct CancellationToken.None
 
@@ -760,6 +891,12 @@ type LoanService
             =
             let ct = defaultArg ct CancellationToken.None
             this.TransformReservationIntoLoanByPinAsync(context, reservationId, pin, now, ct)
+
+        member this.TransformReservationIntoLoanByManagerAsync
+            (context: UserContext, reservationId: ReservationId, now: DateTime, ?ct: CancellationToken)
+            =
+            let ct = defaultArg ct CancellationToken.None
+            this.TransformReservationIntoLoanByManagerAsync(context, reservationId, now, ct)
 
         member this.RemoveLoanAsync(context: UserContext, loanId: LoanId, ?ct: CancellationToken) =
             let ct = defaultArg ct CancellationToken.None

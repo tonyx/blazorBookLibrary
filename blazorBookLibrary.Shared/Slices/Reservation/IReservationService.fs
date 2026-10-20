@@ -58,3 +58,8 @@ type IReservationService =
     abstract member GetReservationsOfABookAsync:
         context: UserContext * bookId: BookId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken ->
             Task<Result<List<Reservation>, string>>
+
+    abstract member IsReservationFirstInQueueAsync:
+        context: UserContext * reservationId: ReservationId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken ->
+            Task<Result<bool, string>>
+

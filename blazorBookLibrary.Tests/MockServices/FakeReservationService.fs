@@ -50,3 +50,8 @@ type FakeReservationService() =
             printfn "FakeReservationService: GetReservationsOfABookAsync called for book %A" bookId
             Task.FromResult(Ok [])
 
+        member this.IsReservationFirstInQueueAsync(userContext, reservationId, ct) =
+            printfn "FakeReservationService: IsReservationFirstInQueueAsync called for id %A" reservationId
+            Task.FromResult(Ok true)
+
+

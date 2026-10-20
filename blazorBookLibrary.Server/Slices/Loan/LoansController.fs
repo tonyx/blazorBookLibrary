@@ -158,8 +158,40 @@ type LoansController(loanService: ILoanService, reservationService: IReservation
             | Error msg -> return this.BadRequest(msg) :> IActionResult
         }
 
+    [<HttpPost("transform-reservation-by-manager/{reservationId}")>]
+    member this.TransformReservationByManager(reservationId: Guid) =
+        task {
+            let context = UserContextMapper.mapFromClaimsPrincipal this.User
+            let! resDetails = 
+                task {
+                    match! reservationService.GetReservationAsync(context, ReservationId reservationId) with
+                    | Ok r -> return Some r
+                    | _ -> return None
+                }
+            let! result = loanService.TransformReservationIntoLoanByManagerAsync(context, ReservationId reservationId, DateTime.UtcNow)
+            match result with
+            | Ok _ -> 
+                do! hubContext.Clients.Group($"Reservation_{reservationId}").SendCoreAsync("ReservationConfirmedIntoLoan", [| reservationId :> obj |])
+                do! hubContext.Clients.All.SendCoreAsync("ReservationConfirmedIntoLoan", [| reservationId :> obj |])
+                match resDetails with
+                | Some r ->
+                    match r.Patron with
+                    | RegisteredUser patronUserId ->
+                        do! hubContext.Clients.Group($"Tenant_{r.TenantId.Value}").SendCoreAsync("PendingReservationsChanged", [| r.TenantId.Value :> obj; r.BookId.Value :> obj; patronUserId.Value :> obj |])
+                        do! hubContext.Clients.Group($"User_{patronUserId.Value}").SendCoreAsync("PendingReservationsChanged", [| r.TenantId.Value :> obj; r.BookId.Value :> obj; patronUserId.Value :> obj |])
+                    | Guest _ ->
+                        do! hubContext.Clients.Group($"Tenant_{r.TenantId.Value}").SendCoreAsync("PendingReservationsChanged", [| r.TenantId.Value :> obj; r.BookId.Value :> obj; Guid.Empty :> obj |])
+                    do! hubContext.Clients.Group($"Tenant_{r.TenantId.Value}").SendCoreAsync("BookAvailabilityChanged", [| r.TenantId.Value :> obj; r.BookId.Value :> obj |])
+                    do! hubContext.Clients.Group($"Book_{r.BookId.Value}").SendCoreAsync("BookAvailabilityChanged", [| r.TenantId.Value :> obj; r.BookId.Value :> obj |])
+                | None ->
+                    do! hubContext.Clients.All.SendCoreAsync("PendingReservationsChanged", [| Guid.Empty :> obj; Guid.Empty :> obj; Guid.Empty :> obj |])
+                    do! hubContext.Clients.All.SendCoreAsync("BookAvailabilityChanged", [| Guid.Empty :> obj; Guid.Empty :> obj |])
+                return this.Ok() :> IActionResult
+            | Error msg -> return this.BadRequest(msg) :> IActionResult
+        }
 
     [<HttpDelete("{id}")>]
+
     member this.RemoveLoan(id: Guid) =
         task {
             let context = UserContextMapper.mapFromClaimsPrincipal this.User

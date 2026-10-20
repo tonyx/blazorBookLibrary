@@ -54,6 +54,14 @@ type ILoanService =
         [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken ->
             Task<Result<unit, string>>
 
+    abstract member TransformReservationIntoLoanByManagerAsync:
+        context: UserContext *
+        reservationId: ReservationId *
+        date: DateTime *
+        [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken ->
+            Task<Result<unit, string>>
+
+
     abstract member GetHistoryLoansOfUserAsync:
         context: UserContext * userId: UserId * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken ->
             Task<Result<List<Loan>, string>>

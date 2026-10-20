@@ -165,6 +165,7 @@ type ExportFormat =
     | Json
     | BibTex
     | SchemaOrg
+    | DublinCore
 
     member this.Extension =
         match this with
@@ -172,6 +173,7 @@ type ExportFormat =
         | Json -> ".json"
         | BibTex -> ".bib"
         | SchemaOrg -> ".jsonld"
+        | DublinCore -> ".xml"
 
     member this.Name =
         match this with
@@ -179,6 +181,7 @@ type ExportFormat =
         | Json -> "JSON"
         | BibTex -> "BibTeX"
         | SchemaOrg -> "Schema.org (JSON-LD)"
+        | DublinCore -> "Dublin Core (XML)"
 
     member this.ContentType =
         match this with
@@ -186,6 +189,7 @@ type ExportFormat =
         | Json -> "application/json"
         | BibTex -> "application/x-bibtex"
         | SchemaOrg -> "application/ld+json"
+        | DublinCore -> "application/xml"
 
     member this.Code =
         match this with
@@ -193,8 +197,9 @@ type ExportFormat =
         | Json -> "json"
         | BibTex -> "bibtex"
         | SchemaOrg -> "schemaorg"
+        | DublinCore -> "dublincore"
 
-    static member All() = [ Csv; Json; BibTex; SchemaOrg ]
+    static member All() = [ Csv; Json; BibTex; SchemaOrg; DublinCore ]
 
 type ReservationCode =
     | ReservationCode of string

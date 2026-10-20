@@ -106,6 +106,33 @@ let exportTests =
             let authors = matchingBook.GetProperty("author").EnumerateArray() |> Seq.map (fun a -> a.GetProperty("name").GetString()) |> Seq.toList
             Expect.contains authors authorName "Authors list should contain author name"
         }
+
+        testCaseTask "ExportAllBooksAsync as DublinCore exports valid Dublin Core XML" <| fun _ -> task {
+            setUp ()
+            let dataExportService = (getDataExportService () :> IDataExportService)
+            let bookService = (getBookService () :> IBookService)
+            let authorService = (getAuthorService () :> IAuthorService)
+
+            let authorName = "Isaac Asimov"
+            let author = Author.NewWithoutIsni TenantId.Default (Name.New authorName)
+            let! addAuthor = authorService.AddAuthorAsync(adminContext, author)
+            Expect.isOk addAuthor "Add author should succeed"
+
+            let bookTitle = "Foundation"
+            let book = Book.New TenantId.Default (Title.New bookTitle) [author.AuthorId] [] [] None Category.ScienceFiction [] (Year.New 1951) (Isbn.NewEmpty()) None
+            let! addBook = bookService.AddBookAsync(adminContext, book, CancellationToken.None)
+            Expect.isOk addBook "Add book should succeed"
+
+            let! exportResult = dataExportService.ExportAllBooksAsync(adminContext, DublinCore)
+            Expect.isOk exportResult "Dublin Core Export should succeed"
+
+            let xml = exportResult |> Result.get
+            Expect.isTrue (xml.Contains("<records xmlns:dc=\"http://purl.org/dc/elements/1.1/\">")) "XML should declare Dublin Core namespace"
+            Expect.isTrue (xml.Contains(sprintf "<dc:title>%s</dc:title>" bookTitle)) "XML should contain book title"
+            Expect.isTrue (xml.Contains(sprintf "<dc:creator>%s</dc:creator>" authorName)) "XML should contain author name"
+            Expect.isTrue (xml.Contains("<dc:date>1951</dc:date>")) "XML should contain year"
+            Expect.isTrue (xml.Contains("<dc:type>Text</dc:type>")) "XML should contain type Text"
+        }
     ]
 
 [<Tests>]

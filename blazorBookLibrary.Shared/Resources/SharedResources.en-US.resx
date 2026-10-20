@@ -515,6 +515,7 @@
   <data name="CiteOrExport" xml:space="preserve"><value>Cite or Export</value></data>
   <data name="CopyBibTeX" xml:space="preserve"><value>Copy BibTeX</value></data>
   <data name="CopyJSONLD" xml:space="preserve"><value>Copy JSON-LD</value></data>
+  <data name="CopyDublinCore" xml:space="preserve"><value>Copy Dublin Core (XML)</value></data>
   <data name="CopiedToClipboard" xml:space="preserve"><value>Copied to clipboard!</value></data>
   <data name="Publisher" xml:space="preserve"><value>Publisher</value></data>
   <data name="FailedIsbnsCopied" xml:space="preserve"><value>Failed ISBNs copied to clipboard.</value></data>

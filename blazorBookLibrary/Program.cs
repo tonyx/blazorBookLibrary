@@ -35,7 +35,7 @@ builder.Services.AddRazorComponents()
     .AddAuthenticationStateSerialization();
 
 builder.Services.AddLocalization();
-builder.Services.AddControllers()
+builder.Services.AddControllersWithViews()
     .AddJsonOptions(options => {
         var fsharpOptions = BookLibrary.Shared.Commons.jsonOptions;
         options.JsonSerializerOptions.PropertyNamingPolicy = fsharpOptions.PropertyNamingPolicy;

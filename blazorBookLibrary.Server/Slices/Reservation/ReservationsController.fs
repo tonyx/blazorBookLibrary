@@ -158,3 +158,14 @@ type ReservationsController(reservationService: IReservationService, hubContext:
             | Error msg -> return this.BadRequest(msg) :> IActionResult
         }
 
+    [<HttpGet("{id}/is-first-in-queue")>]
+    member this.IsReservationFirstInQueue(id: Guid) =
+        task {
+            let context = UserContextMapper.mapFromClaimsPrincipal this.User
+            let! result = reservationService.IsReservationFirstInQueueAsync(context, ReservationId id)
+            match result with
+            | Ok isFirst -> return this.Ok(isFirst) :> IActionResult
+            | Error msg -> return this.BadRequest(msg) :> IActionResult
+        }
+
+

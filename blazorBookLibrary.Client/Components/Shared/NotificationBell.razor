@@ -5,6 +5,10 @@
 @using Microsoft.FSharp.Collections
 @inject INotificationService NotificationService
 @inject blazorBookLibrary.Client.Services.TenantStateService TenantState
+@inject ITenantService TenantService
+@inject IUserTenantResolverService UserTenantResolverService
+@inject IReservationService ReservationService
+@inject Microsoft.Extensions.Localization.IStringLocalizer<blazorBookLibrary.Shared.Resources.SharedResources> L
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject NavigationManager NavigationManager
 @inject IJSRuntime JSRuntime
@@ -149,6 +153,15 @@
                                     <a href="@rejectUrl" class="btn btn-sm btn-outline-danger py-1 px-3 radius-full text-decoration-none">Reject</a>
                                 </div>
                             }
+                            else if (isManagerOrAdmin && TryGetReservationId(notif, out var resGuid) && firstInQueueReservations.Contains(resGuid))
+                            {
+                                var convertUrl = $"/Notifications/ConvertReservationToLoan?notificationId={notif.NotificationId.Value}&reservationId={resGuid}&returnUrl={Uri.EscapeDataString(currentUrl ?? "/")}";
+                                <div class="notif-actions mt-2 d-flex gap-2">
+                                    <a href="@convertUrl" class="btn btn-sm btn-primary btn-convert-loan py-1 px-3 radius-full text-decoration-none text-white fw-semibold" style="color: #ffffff !important;">
+                                        <i class="bi bi-box-arrow-right me-1 text-white"></i>@L["ConvertToLoan", "Convert to Loan"]
+                                    </a>
+                                </div>
+                            }
                         </div>
                     }
                 </div>
@@ -173,6 +186,27 @@
     private int unreadCount = 0;
     private Commons.UserContext? userContext;
     private bool isAdmin = false;
+    private bool isManagerOrAdmin = false;
+    private HashSet<Guid> firstInQueueReservations = new();
+
+    private bool TryGetReservationId(Notification notif, out Guid reservationId)
+    {
+        reservationId = Guid.Empty;
+        if (FSharpOption<string>.get_IsSome(notif.ActionUrl))
+        {
+            var url = notif.ActionUrl.Value;
+            if (url.StartsWith("/reservations/", StringComparison.OrdinalIgnoreCase))
+            {
+                var parts = url.Substring("/reservations/".Length).Split(new[] { '/', '?' }, StringSplitOptions.RemoveEmptyEntries);
+                if (parts.Length > 0 && Guid.TryParse(parts[0], out var resGuid))
+                {
+                    reservationId = resGuid;
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -183,6 +217,7 @@
             if (userContext != null)
             {
                 isAdmin = userContext.IsInRole(BookLibrary.Shared.Commons.Role.Admin);
+                isManagerOrAdmin = await TenantState.CheckManagementAccessAsync(authState.User, TenantService, UserTenantResolverService);
                 try
                 {
                     var result = await NotificationService.GetUnreadNotificationsForUserAsync(userContext, FSharpOption<CancellationToken>.None);
@@ -190,6 +225,24 @@
                     {
                         notifications = result.ResultValue.ToList();
                         unreadCount = notifications.Count;
+
+                        if (isManagerOrAdmin)
+                        {
+                            foreach (var notif in notifications)
+                            {
+                                if (TryGetReservationId(notif, out var resGuid))
+                                {
+                                    var isFirstResult = await ReservationService.IsReservationFirstInQueueAsync(
+                                        userContext,
+                                        Commons.ReservationId.NewReservationId(resGuid),
+                                        FSharpOption<CancellationToken>.None);
+                                    if (isFirstResult.IsOk && isFirstResult.ResultValue)
+                                    {
+                                        firstInQueueReservations.Add(resGuid);
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
                 catch (Exception)
@@ -446,5 +499,21 @@
 
     .notif-actions {
         margin-left: 28px;
+    }
+
+    .notif-actions .btn-convert-loan,
+    .notif-actions .btn-primary {
+        color: #ffffff !important;
+        background-color: #0b5ed7 !important;
+        border-color: #0a58ca !important;
+        font-weight: 650;
+        box-shadow: 0 2px 4px rgba(11, 94, 215, 0.25);
+    }
+
+    .notif-actions .btn-convert-loan:hover,
+    .notif-actions .btn-primary:hover {
+        color: #ffffff !important;
+        background-color: #0a58ca !important;
+        border-color: #094eb8 !important;
     }
 </style>

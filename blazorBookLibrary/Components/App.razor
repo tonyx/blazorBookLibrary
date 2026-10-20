@@ -260,6 +260,15 @@
                                                 <a href="${rejectUrl}" class="btn btn-sm btn-outline-danger py-1 px-3 radius-full text-decoration-none">Reject</a>
                                             </div>
                                         `;
+                                    } else if (notif.isFirstInQueue && notif.reservationId) {
+                                        const convertUrl = `/Notifications/ConvertReservationToLoan?notificationId=${notif.notificationId}&reservationId=${notif.reservationId}&returnUrl=${encodeURIComponent(window.location.pathname + window.location.search)}`;
+                                        html += `
+                                            <div class="notif-actions mt-2 d-flex gap-2">
+                                                <a href="${convertUrl}" class="btn btn-sm btn-primary btn-convert-loan py-1 px-3 radius-full text-decoration-none text-white fw-semibold" style="color: #ffffff !important;">
+                                                    <i class="bi bi-box-arrow-right me-1 text-white"></i>Convert to Loan
+                                                </a>
+                                            </div>
+                                        `;
                                     }
 
                                     html += `

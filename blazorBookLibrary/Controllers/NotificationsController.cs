@@ -12,12 +12,24 @@ public class NotificationsController : Controller
     private readonly INotificationService _notificationService;
     private readonly ITenantService _tenantService;
     private readonly IUserService _userService;
+    private readonly ILoanService _loanService;
+    private readonly IReservationService _reservationService;
+    private readonly Microsoft.AspNetCore.SignalR.IHubContext<BookLibrary.Hubs.LibraryHub>? _hubContext;
 
-    public NotificationsController(INotificationService notificationService, ITenantService tenantService, IUserService userService)
+    public NotificationsController(
+        INotificationService notificationService,
+        ITenantService tenantService,
+        IUserService userService,
+        ILoanService loanService,
+        IReservationService reservationService,
+        Microsoft.AspNetCore.SignalR.IHubContext<BookLibrary.Hubs.LibraryHub>? hubContext = null)
     {
         _notificationService = notificationService;
         _tenantService = tenantService;
         _userService = userService;
+        _loanService = loanService;
+        _reservationService = reservationService;
+        _hubContext = hubContext;
     }
 
     [HttpGet]
@@ -82,8 +94,7 @@ public class NotificationsController : Controller
             }
             else
             {
-                TempData["ErrorMessage"] = acceptResult.ErrorValue;
-                return LocalRedirect("/tenants");
+                return LocalRedirect($"/tenants?error={Uri.EscapeDataString(acceptResult.ErrorValue)}");
             }
         }
         return LocalRedirect("/tenants");
@@ -177,6 +188,53 @@ public class NotificationsController : Controller
     }
 
     [HttpGet]
+    public async Task<IActionResult> ConvertReservationToLoan(string notificationId, string reservationId, string? returnUrl = null)
+    {
+        if (IsUntrustedCrossSiteRequest())
+        {
+            return Forbid();
+        }
+
+        if (Guid.TryParse(notificationId, out var notifGuid) && 
+            Guid.TryParse(reservationId, out var resGuid) && 
+            User.Identity != null && User.Identity.IsAuthenticated)
+        {
+            var userContext = UserContextMapper.mapFromClaimsPrincipal(User);
+            var notifId = BookLibrary.Domain.NotificationId.NewNotificationId(notifGuid);
+            var resId = Commons.ReservationId.NewReservationId(resGuid);
+
+            var convertResult = await _loanService.TransformReservationIntoLoanByManagerAsync(
+                userContext,
+                resId,
+                DateTime.UtcNow,
+                FSharpOption<CancellationToken>.None);
+
+            await _notificationService.MarkAsReadAsync(userContext, notifId, FSharpOption<CancellationToken>.None);
+
+            string redirectTarget = string.IsNullOrWhiteSpace(returnUrl) ? "/" : $"/{returnUrl.TrimStart('/')}";
+            var separator = redirectTarget.Contains("?") ? "&" : "?";
+
+            if (convertResult.IsOk)
+            {
+                if (_hubContext != null)
+                {
+                    await _hubContext.Clients.Group($"Reservation_{resGuid}").SendCoreAsync("ReservationConfirmedIntoLoan", new object[] { resGuid });
+                    await _hubContext.Clients.All.SendCoreAsync("ReservationConfirmedIntoLoan", new object[] { resGuid });
+                    await _hubContext.Clients.All.SendCoreAsync("PendingReservationsChanged", new object[] { Guid.Empty, Guid.Empty, Guid.Empty });
+                    await _hubContext.Clients.All.SendCoreAsync("BookAvailabilityChanged", new object[] { Guid.Empty, Guid.Empty });
+                }
+                redirectTarget = $"{redirectTarget}{separator}loanSuccess=true";
+            }
+            else
+            {
+                redirectTarget = $"{redirectTarget}{separator}loanError={Uri.EscapeDataString(convertResult.ErrorValue)}";
+            }
+            return LocalRedirect(redirectTarget);
+        }
+        return LocalRedirect(string.IsNullOrWhiteSpace(returnUrl) ? "/" : $"/{returnUrl.TrimStart('/')}");
+    }
+
+    [HttpGet]
     public async Task<IActionResult> GetUnreadNotifications()
     {
         if (User.Identity != null && User.Identity.IsAuthenticated)
@@ -185,17 +243,45 @@ public class NotificationsController : Controller
             var result = await _notificationService.GetUnreadNotificationsForUserAsync(userContext, FSharpOption<CancellationToken>.None);
             if (result.IsOk)
             {
-                var list = result.ResultValue.Select(n => new {
-                    notificationId = n.NotificationId.Value,
-                    title = n.Title,
-                    content = n.Content,
-                    isRead = n.IsRead,
-                    createdAt = n.CreatedAt,
-                    actionUrl = FSharpOption<string>.get_IsSome(n.ActionUrl) ? n.ActionUrl.Value : ""
-                }).ToList();
+                var list = new List<object>();
+                foreach (var n in result.ResultValue)
+                {
+                    var actionUrl = FSharpOption<string>.get_IsSome(n.ActionUrl) ? n.ActionUrl.Value : "";
+                    bool isFirstInQueue = false;
+                    string reservationIdStr = "";
+
+                    if (!string.IsNullOrEmpty(actionUrl) && actionUrl.StartsWith("/reservations/", StringComparison.OrdinalIgnoreCase))
+                    {
+                        var parts = actionUrl.Substring("/reservations/".Length).Split(new[] { '/', '?' }, StringSplitOptions.RemoveEmptyEntries);
+                        if (parts.Length > 0 && Guid.TryParse(parts[0], out var resGuid))
+                        {
+                            reservationIdStr = resGuid.ToString();
+                            var isFirstResult = await _reservationService.IsReservationFirstInQueueAsync(
+                                userContext,
+                                Commons.ReservationId.NewReservationId(resGuid),
+                                FSharpOption<CancellationToken>.None);
+                            if (isFirstResult.IsOk && isFirstResult.ResultValue)
+                            {
+                                isFirstInQueue = true;
+                            }
+                        }
+                    }
+
+                    list.Add(new {
+                        notificationId = n.NotificationId.Value,
+                        title = n.Title,
+                        content = n.Content,
+                        isRead = n.IsRead,
+                        createdAt = n.CreatedAt,
+                        actionUrl = actionUrl,
+                        isFirstInQueue = isFirstInQueue,
+                        reservationId = reservationIdStr
+                    });
+                }
                 return Json(list);
             }
         }
         return Json(new object[0]);
     }
 }
+

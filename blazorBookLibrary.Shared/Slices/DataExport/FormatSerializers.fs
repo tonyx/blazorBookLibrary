@@ -238,3 +238,59 @@ module FormatSerializers =
         let books = items |> List.map (fun (bd, pub) -> formatSchemaOrgBookDto bd pub false)
         let graph = { Context = "https://schema.org"; Graph = books }
         System.Text.Json.JsonSerializer.Serialize(graph, schemaJsonOptions)
+
+    let private escapeXml (str: string) =
+        if String.IsNullOrEmpty str then ""
+        else
+            str.Replace("&", "&amp;")
+               .Replace("<", "&lt;")
+               .Replace(">", "&gt;")
+               .Replace("\"", "&quot;")
+               .Replace("'", "&apos;")
+
+    let private formatDublinCoreElements (bd: BookDetails) (publisher: string option) (indent: string) : string list =
+        let lines = ResizeArray<string>()
+        lines.Add(sprintf "%s<dc:title>%s</dc:title>" indent (escapeXml bd.Book.Title.Value))
+        for a in bd.Authors do
+            lines.Add(sprintf "%s<dc:creator>%s</dc:creator>" indent (escapeXml a.Name.Value))
+        match publisher with
+        | Some p when not (String.IsNullOrWhiteSpace p) ->
+            lines.Add(sprintf "%s<dc:publisher>%s</dc:publisher>" indent (escapeXml p))
+        | _ -> ()
+        if bd.Book.Year.Value > 0 then
+            lines.Add(sprintf "%s<dc:date>%d</dc:date>" indent bd.Book.Year.Value)
+        if not (String.IsNullOrWhiteSpace bd.Book.Isbn.Value) then
+            lines.Add(sprintf "%s<dc:identifier>urn:isbn:%s</dc:identifier>" indent (escapeXml bd.Book.Isbn.Value))
+        match bd.Book.SbnCode with
+        | Some s when not (String.IsNullOrWhiteSpace s.Value) ->
+            lines.Add(sprintf "%s<dc:identifier>urn:sbn:%s</dc:identifier>" indent (escapeXml s.Value))
+        | _ -> ()
+        for l in bd.Book.Languages |> List.map (fun x -> x.TwoLetterISOLanguageName) |> List.distinct do
+            lines.Add(sprintf "%s<dc:language>%s</dc:language>" indent (escapeXml l))
+        let allKeywords =
+            [ bd.Book.MainCategory.ToString() ]
+            @ (bd.Book.AdditionalCategories |> List.map (fun c -> c.ToString()))
+            @ (bd.Book.Tags |> List.map (fun t -> t.TagName))
+            |> List.filter (not << String.IsNullOrWhiteSpace)
+            |> List.distinct
+        for k in allKeywords do
+            lines.Add(sprintf "%s<dc:subject>%s</dc:subject>" indent (escapeXml k))
+        match bd.Book.Description with
+        | Some d when not (String.IsNullOrWhiteSpace d) ->
+            lines.Add(sprintf "%s<dc:description>%s</dc:description>" indent (escapeXml d))
+        | _ -> ()
+        lines.Add(sprintf "%s<dc:type>Text</dc:type>" indent)
+        lines |> Seq.toList
+
+    let formatDublinCoreBook (bd: BookDetails) (publisher: string option) : string =
+        let inner = formatDublinCoreElements bd publisher "  " |> String.concat "\n"
+        sprintf "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<metadata xmlns:dc=\"http://purl.org/dc/elements/1.1/\">\n%s\n</metadata>" inner
+
+    let formatDublinCoreBulk (items: (BookDetails * string option) list) : string =
+        let records =
+            items
+            |> List.map (fun (bd, pub) ->
+                let inner = formatDublinCoreElements bd pub "    " |> String.concat "\n"
+                sprintf "  <metadata>\n%s\n  </metadata>" inner)
+            |> String.concat "\n"
+        sprintf "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<records xmlns:dc=\"http://purl.org/dc/elements/1.1/\">\n%s\n</records>" records

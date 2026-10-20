@@ -62,6 +62,13 @@ public class LoansClientService : ILoanService
         return await ServiceClientHelper.HandleUnitResponse(response);
     }
 
+    public async Task<FSharpResult<Unit, string>> TransformReservationIntoLoanByManagerAsync(Commons.UserContext context, Commons.ReservationId reservationId, DateTime date, FSharpOption<CancellationToken> ct)
+    {
+        var response = await _httpClient.PostAsync($"api/Loans/transform-reservation-by-manager/{reservationId.Value}", null, ServiceClientHelper.GetValue(ct, CancellationToken.None));
+        return await ServiceClientHelper.HandleUnitResponse(response);
+    }
+
+
 
     public async Task<FSharpResult<FSharpList<Loan>, string>> GetHistoryLoansOfUserAsync(Commons.UserContext context, Commons.UserId userId, FSharpOption<CancellationToken> ct)
     {

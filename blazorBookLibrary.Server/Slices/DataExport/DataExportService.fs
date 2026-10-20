@@ -193,6 +193,19 @@ type DataExportService
                             let publisher = bd.Book.Editor |> Option.bind (fun id -> Map.tryFind id editorMap)
                             bd, publisher)
                     return FormatSerializers.formatSchemaOrgGraph itemsWithPublishers
+                | DublinCore ->
+                    let editorIds = bookDetails |> List.choose (fun bd -> bd.Book.Editor) |> List.distinct
+                    let! editors =
+                        editorIds
+                        |> List.traverseTaskResultM (fun edId ->
+                            editorViewerAsync (Some ct) edId.Value |> TaskResult.map snd)
+                    let editorMap = editors |> List.map (fun e -> e.EditorId, e.Name.Value) |> Map.ofList
+                    let itemsWithPublishers =
+                        bookDetails
+                        |> List.map (fun bd ->
+                            let publisher = bd.Book.Editor |> Option.bind (fun id -> Map.tryFind id editorMap)
+                            bd, publisher)
+                    return FormatSerializers.formatDublinCoreBulk itemsWithPublishers
             }
 
         member this.ImportFromIsbns

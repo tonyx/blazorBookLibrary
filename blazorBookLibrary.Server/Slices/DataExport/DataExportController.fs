@@ -24,6 +24,7 @@ type DataExportController(dataExportService: IDataExportService) =
                 | "csv" -> Csv
                 | "bibtex" | "bib" -> BibTex
                 | "schemaorg" | "jsonld" | "json-ld" -> SchemaOrg
+                | "dublincore" | "dc" | "dublin-core" | "xml" -> DublinCore
                 | _ -> Json
             let! result = dataExportService.ExportAllBooksAsync(context, exportFormat)
             match result with

@@ -104,4 +104,10 @@ public class ReservationsClientService : IReservationService
         return result.IsOk ? FSharpResult<FSharpList<Reservation>, string>.NewOk(ListModule.OfSeq(result.ResultValue)) : FSharpResult<FSharpList<Reservation>, string>.NewError(result.ErrorValue);
     }
 
+    public async Task<FSharpResult<bool, string>> IsReservationFirstInQueueAsync(Commons.UserContext context, Commons.ReservationId reservationId, FSharpOption<CancellationToken> ct)
+    {
+        var response = await _httpClient.GetAsync($"api/Reservations/{reservationId.Value}/is-first-in-queue", ServiceClientHelper.GetValue(ct, CancellationToken.None));
+        return await ServiceClientHelper.HandleResponse<bool>(response);
+    }
 }
+

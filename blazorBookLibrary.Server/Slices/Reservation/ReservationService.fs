@@ -576,6 +576,34 @@ type ReservationService
             return reservationDetails
         }
 
+    member this.IsReservationFirstInQueueAsync(context: UserContext, reservationId: ReservationId, ?ct: CancellationToken) =
+        let ct = defaultArg ct CancellationToken.None
+        taskResult {
+            let! reservation = reservationViewerAsync (Some ct) reservationId.Value |> TaskResult.map snd
+            if not reservation.IsPending then
+                return false
+            else
+                let! book = bookViewerAsync (Some ct) reservation.BookId.Value |> TaskResult.map snd
+                if not book.NoLoan then
+                    return false
+                else
+                    let! pendingReservations =
+                        StateView.getAllFilteredAggregateStatesAsync<Reservation, ReservationEvent, string>
+                            (fun r -> r.BookId = reservation.BookId && r.TenantId = reservation.TenantId && r.IsPending)
+                            eventStore
+                            (Some ct)
+                        |> TaskResult.map (List.ofSeq >> List.map snd)
+
+                    let firstInQueue =
+                        pendingReservations
+                        |> List.sortBy (fun r -> (r.TimeSlot.Start, r.ReservedAt))
+                        |> List.tryHead
+
+                    match firstInQueue with
+                    | Some first -> return first.ReservationId = reservationId
+                    | None -> return false
+        }
+
     interface IReservationService with
         member this.AddReservationAsync
             (context: UserContext, reservation: Reservation, shortLang: ShortLang, ?ct: CancellationToken)
@@ -642,3 +670,8 @@ type ReservationService
         member this.GetReservationsOfABookAsync(context: UserContext, bookId: BookId, ?ct: CancellationToken) =
             let ct = defaultArg ct CancellationToken.None
             this.GetReservationsOfABookAsync(context, bookId, ct)
+
+        member this.IsReservationFirstInQueueAsync(context: UserContext, reservationId: ReservationId, ?ct: CancellationToken) =
+            let ct = defaultArg ct CancellationToken.None
+            this.IsReservationFirstInQueueAsync(context, reservationId, ct)
+
