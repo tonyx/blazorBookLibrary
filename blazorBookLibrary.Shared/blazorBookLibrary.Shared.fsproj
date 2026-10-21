@@ -47,7 +47,9 @@
     <Compile Include="Slices/Review/IReviewService.fs" />
     <Compile Include="Slices/Details/IDetailsService.fs" />
     <Compile Include="Slices/DataExport/FormatSerializers.fs" />
+    <Compile Include="Slices/DataExport/FormatParsers.fs" />
     <Compile Include="Slices/DataExport/IDataExportService.fs" />
+    <Compile Include="Slices/DataExport/ICatalogImportService.fs" />
     <Compile Include="Slices/Book/ITextEmbeddingService.fs" />
     <Compile Include="Slices/Book/ILibrarianChatService.fs" />
     <Compile Include="Slices/Admin/IAdminService.fs" />

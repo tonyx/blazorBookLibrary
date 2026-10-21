@@ -383,6 +383,14 @@ let getDataExportService () : IDataExportService =
     )
     :> IDataExportService
 
+let getCatalogImportService () : ICatalogImportService =
+    CatalogImportService(
+        getBookService (),
+        getAuthorService (),
+        getEditorService ()
+    )
+    :> ICatalogImportService
+
 let getTenantService () : ITenantService =
     TenantService(
         getSecretReader (),

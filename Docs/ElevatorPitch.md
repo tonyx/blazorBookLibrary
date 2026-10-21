@@ -46,7 +46,7 @@ For the DIY curators who want full control.
 - **Ideal for**: Tech-savvy librarians and privacy-focused private collections.
 
 ### 🌤 Option B: The "Zenith" (Fully Managed & Hands-Off)
-**Cost: ...**
+**Price: To be determined**
 For the curators who want to focus on their books, not their servers.
 - **Zero Configuration**: We handle the cloud hosting, PostgreSQL event stores, and database maintenance.
 - **API Pass-through**: We cover the costs of metadata discovery APIs and external lookups.

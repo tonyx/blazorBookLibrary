@@ -5,6 +5,7 @@ open System.Threading
 open System.Threading.Tasks
 open System.Collections.Generic
 open Microsoft.AspNetCore.Mvc
+open Microsoft.AspNetCore.RateLimiting
 open Microsoft.Extensions.Configuration
 open BookLibrary.Domain
 open BookLibrary.Services
@@ -24,9 +25,29 @@ type CatalogController
         editorService: IEditorService,
         tenantService: ITenantService,
         configuration: IConfiguration,
-        tenantApiKeyService: ITenantApiKeyService
+        tenantApiKeyService: ITenantApiKeyService,
+        catalogImportService: ICatalogImportService
     ) =
     inherit ControllerBase()
+
+    new
+        (
+            bookService: IBookService,
+            detailsService: IDetailsService,
+            editorService: IEditorService,
+            tenantService: ITenantService,
+            configuration: IConfiguration,
+            tenantApiKeyService: ITenantApiKeyService
+        ) =
+        CatalogController(
+            bookService,
+            detailsService,
+            editorService,
+            tenantService,
+            configuration,
+            tenantApiKeyService,
+            Unchecked.defaultof<ICatalogImportService>
+        )
 
     new
         (
@@ -42,7 +63,8 @@ type CatalogController
             editorService,
             tenantService,
             configuration,
-            Unchecked.defaultof<ITenantApiKeyService>
+            Unchecked.defaultof<ITenantApiKeyService>,
+            Unchecked.defaultof<ICatalogImportService>
         )
 
     member private this.TryResolveTenant(tenantParam: string) : Result<TenantId, string> =
@@ -109,6 +131,31 @@ type CatalogController
             elif accept.Contains("application/ld+json") then SchemaOrg
             elif accept.Contains("application/rdf+xml") || accept.Contains("application/xml") || accept.Contains("text/xml") then DublinCore
             elif accept.Contains("text/csv") then Csv
+            else Json
+
+    member private this.ResolveImportFormat(formatParam: string) : ExportFormat =
+        let param = if isNull formatParam then "" else formatParam.Trim().ToLowerInvariant()
+        match param with
+        | "csv" -> Csv
+        | "bibtex" | "bib" -> BibTex
+        | "schemaorg" | "jsonld" | "json-ld" -> SchemaOrg
+        | "dublincore" | "dc" | "dublin-core" -> DublinCore
+        | "marcxml" | "marc" | "mrcx" -> MarcXml
+        | "mods" -> Mods
+        | "onix" | "onix3" | "onix-3.0" -> Onix
+        | "json" -> Json
+        | _ ->
+            let contentType =
+                match this.Request.ContentType with
+                | null -> ""
+                | ct -> ct.ToLowerInvariant()
+            if contentType.Contains("application/marcxml+xml") then MarcXml
+            elif contentType.Contains("application/mods+xml") then Mods
+            elif contentType.Contains("application/x-bibtex") || contentType.Contains("text/x-bibtex") then BibTex
+            elif contentType.Contains("application/ld+json") then SchemaOrg
+            elif contentType.Contains("application/rdf+xml") || contentType.Contains("application/xml") || contentType.Contains("text/xml") then
+                if contentType.Contains("marc") then MarcXml else DublinCore
+            elif contentType.Contains("text/csv") then Csv
             else Json
 
     member private this.EnsureTenantAccessible(context: UserContext, tenantId: TenantId, isApiKeyAuthenticated: bool, ct: CancellationToken) =
@@ -371,3 +418,71 @@ type CatalogController
     [<HttpGet("{tenant}/books")>]
     member this.GetAllBooksWithTenant(tenant: string, [<FromQuery>] format: string) =
         this.GetAllBooksInternal(tenant, format)
+
+    member private this.ImportBooksInternal
+        (
+            tenantParam: string,
+            formatParam: string,
+            preventDuplicates: Nullable<bool>,
+            createMissingAuthors: Nullable<bool>,
+            createMissingPublishers: Nullable<bool>
+        ) =
+        this.ExecuteQuery(tenantParam, fun (context, ct) ->
+            task {
+                if isNull (box catalogImportService) then
+                    return this.StatusCode(500, {| message = "Catalog import service is not configured" |}) :> IActionResult
+                else
+                    let format = this.ResolveImportFormat(formatParam)
+                    use reader = new System.IO.StreamReader(this.Request.Body, System.Text.Encoding.UTF8)
+                    let! payload = reader.ReadToEndAsync(ct)
+
+                    if String.IsNullOrWhiteSpace payload then
+                        return this.BadRequest({| message = "Payload body is empty" |}) :> IActionResult
+                    else
+                        let maxBatchSize =
+                            if not (isNull configuration) then
+                                match configuration.GetSection("Catalog:MaxBatchSize").Value with
+                                | null -> 250
+                                | v -> match Int32.TryParse v with | true, n -> n | _ -> 250
+                            else 250
+
+                        let options =
+                            {
+                                PreventDuplicates = if preventDuplicates.HasValue then preventDuplicates.Value else true
+                                CreateMissingAuthors = if createMissingAuthors.HasValue then createMissingAuthors.Value else true
+                                CreateMissingPublishers = if createMissingPublishers.HasValue then createMissingPublishers.Value else true
+                                MaxBatchSize = Some maxBatchSize
+                            }
+                        let! importRes = catalogImportService.ImportCatalogAsync(context, payload, format, options, ct)
+                        match importRes with
+                        | Ok summary ->
+                            return this.Ok(summary) :> IActionResult
+                        | Error err ->
+                            return this.BadRequest({| message = err |}) :> IActionResult
+            })
+
+    // Import / Feed books
+    [<HttpPost("books")>]
+    [<RequestSizeLimit(4194304L)>]
+    [<EnableRateLimiting("CatalogIngestionPolicy")>]
+    member this.ImportBooksDefault
+        (
+            [<FromQuery>] format: string,
+            [<FromQuery>] preventDuplicates: Nullable<bool>,
+            [<FromQuery>] createMissingAuthors: Nullable<bool>,
+            [<FromQuery>] createMissingPublishers: Nullable<bool>
+        ) =
+        this.ImportBooksInternal("default", format, preventDuplicates, createMissingAuthors, createMissingPublishers)
+
+    [<HttpPost("{tenant}/books")>]
+    [<RequestSizeLimit(4194304L)>]
+    [<EnableRateLimiting("CatalogIngestionPolicy")>]
+    member this.ImportBooksWithTenant
+        (
+            tenant: string,
+            [<FromQuery>] format: string,
+            [<FromQuery>] preventDuplicates: Nullable<bool>,
+            [<FromQuery>] createMissingAuthors: Nullable<bool>,
+            [<FromQuery>] createMissingPublishers: Nullable<bool>
+        ) =
+        this.ImportBooksInternal(tenant, format, preventDuplicates, createMissingAuthors, createMissingPublishers)

@@ -46,7 +46,7 @@ Per i curatori fai-da-te che vogliono il pieno controllo.
 - **Ideale per**: Bibliotecari esperti di tecnologia e collezioni private attente alla privacy.
 
 ### 🌤 Opzione B: “Zenith” (Completamente gestito e senza intervento)
-**Costo: ...**
+**Prezzo: da concordare**
 Per i curatori che vogliono concentrarsi sui propri libri, non sui propri server.
 - **Configurazione zero**: Ci occupiamo noi dell'hosting cloud, degli archivi eventi PostgreSQL e della manutenzione del database.
 - **Pass-through API**: copriamo i costi delle API di ricerca dei metadati e delle ricerche esterne.

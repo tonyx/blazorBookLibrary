@@ -14,6 +14,7 @@ open BookLibrary.Controllers
 open BookLibrary.Shared.Commons
 open BookLibrary.Shared.Services
 open BookLibrary.Shared.Details
+open BookLibrary.Shared.Formats
 
 let private createController (apiKeyConfig: (string * string) list) =
     let configBuilder = ConfigurationBuilder()
@@ -23,9 +24,19 @@ let private createController (apiKeyConfig: (string * string) list) =
             mem.[k] <- v
         configBuilder.AddInMemoryCollection(mem) |> ignore
     let config = configBuilder.Build() :> IConfiguration
-    let controller = CatalogController(getBookService(), getDetailsService(), getEditorService(), getTenantService(), config, getTenantApiKeyService())
+    let controller = CatalogController(getBookService(), getDetailsService(), getEditorService(), getTenantService(), config, getTenantApiKeyService(), getCatalogImportService())
     let httpContext = DefaultHttpContext()
     controller.ControllerContext <- ControllerContext(HttpContext = httpContext)
+    controller
+
+let private setRequestBody (controller: CatalogController) (content: string) (contentType: string) =
+    let stream = new System.IO.MemoryStream(System.Text.Encoding.UTF8.GetBytes(content))
+    controller.ControllerContext.HttpContext.Request.Body <- stream
+    controller.ControllerContext.HttpContext.Request.ContentType <- contentType
+
+let private createAuthenticatedController () =
+    let controller = createController [ "Catalog:ApiKey", "master-api-key" ]
+    controller.ControllerContext.HttpContext.Request.Headers.["X-API-Key"] <- StringValues("master-api-key")
     controller
 
 [<Tests>]
@@ -370,5 +381,228 @@ let catalogTests =
             controller.ControllerContext.HttpContext.Request.Headers.["X-API-Key"] <- StringValues(partnerKey.Value)
             let! revokedResult = controller.GetBookByIsbnWithTenant(tenant.TenantId.Value.ToString(), "9781234567890", format = "json")
             Expect.isTrue (revokedResult :? UnauthorizedObjectResult) "Should reject revoked partner key"
+        }
+
+        testCaseTask "CatalogController imports JSON books with author and publisher creation" <| fun _ -> task {
+            setUp ()
+            let bookService = getBookService()
+            let authorService = getAuthorService()
+            let editorService = getEditorService()
+
+            let jsonPayload = """
+            [
+              {
+                "Title": "Imported JSON Book 1",
+                "Isbn": "9780345391803",
+                "Year": 1979,
+                "Authors": ["Douglas Adams"],
+                "Publisher": "Pan Books",
+                "MainCategory": "ScienceFiction",
+                "Description": "Don't Panic."
+              },
+              {
+                "Title": "Imported JSON Book 2",
+                "Isbn": "9780345391810",
+                "Year": 1980,
+                "Authors": ["Douglas Adams"],
+                "Publisher": "Pan Books",
+                "MainCategory": "ScienceFiction"
+              }
+            ]
+            """
+            let controller = createAuthenticatedController ()
+            setRequestBody controller jsonPayload "application/json"
+
+            let! actionResult = controller.ImportBooksDefault(format = null, preventDuplicates = Nullable true, createMissingAuthors = Nullable true, createMissingPublishers = Nullable true)
+            Expect.isTrue (actionResult :? OkObjectResult) "Should return OkObjectResult"
+            let okResult = actionResult :?> OkObjectResult
+            let summary = okResult.Value :?> CatalogImportResult
+            Expect.equal summary.TotalProcessed 2 "TotalProcessed should be 2"
+            Expect.equal summary.ImportedCount 2 "ImportedCount should be 2"
+            Expect.equal summary.FailedCount 0 "FailedCount should be 0"
+
+            // Verify books in store
+            let! book1Res = bookService.SearchByIsbnAsync(adminContext, Isbn "9780345391803")
+            Expect.isOk book1Res "Search for book 1 should succeed"
+            Expect.equal (book1Res |> Result.get |> List.length) 1 "Should find book 1"
+
+            // Verify author Douglas Adams was created
+            let! authorRes = authorService.SearchByNameAsync(adminContext, Name.New "Douglas Adams")
+            Expect.isOk authorRes "Search for author should succeed"
+            Expect.isFalse ((authorRes |> Result.get).IsEmpty) "Author should exist"
+        }
+
+        testCaseTask "CatalogController imports BibTeX books with author and publisher creation" <| fun _ -> task {
+            setUp ()
+            let bookService = getBookService()
+            let editorService = getEditorService()
+
+            let bibtexPayload = """
+            @book{gibson1984neuromancer,
+              title = {Neuromancer},
+              author = {William Gibson},
+              year = {1984},
+              publisher = {Ace Books},
+              isbn = {9780441569595},
+              keywords = {ScienceFiction, Cyberpunk},
+            }
+            """
+            let controller = createAuthenticatedController ()
+            setRequestBody controller bibtexPayload "application/x-bibtex"
+
+            let! actionResult = controller.ImportBooksDefault(format = null, preventDuplicates = Nullable true, createMissingAuthors = Nullable true, createMissingPublishers = Nullable true)
+            Expect.isTrue (actionResult :? OkObjectResult) "Should return OkObjectResult"
+            let okResult = actionResult :?> OkObjectResult
+            let summary = okResult.Value :?> CatalogImportResult
+            Expect.equal summary.TotalProcessed 1 "TotalProcessed should be 1"
+            Expect.equal summary.ImportedCount 1 "ImportedCount should be 1"
+
+            // Verify publisher Ace Books was created
+            let! editorsRes = editorService.GetAllAsync(adminContext)
+            Expect.isOk editorsRes "Get editors should succeed"
+            let editors = editorsRes |> Result.get
+            Expect.isTrue (editors |> List.exists (fun e -> e.Name.Value = "Ace Books")) "Publisher Ace Books should exist"
+
+            // Verify book exists
+            let! bookRes = bookService.SearchByIsbnAsync(adminContext, Isbn "9780441569595")
+            Expect.isOk bookRes "Search for Neuromancer should succeed"
+            Expect.equal (bookRes |> Result.get |> List.length) 1 "Should find Neuromancer"
+        }
+
+        testCaseTask "CatalogController imports MARCXML into tenant using partner API key" <| fun _ -> task {
+            setUp ()
+            let tenantService = getTenantService()
+            let tenantApiKeyService = getTenantApiKeyService()
+            let bookService = getBookService()
+
+            let! owner = registerUserTask "marc_importer_owner@test.com" "Password123!"
+            let ownerContext = UserContext.Authenticated(owner, [])
+            let tenant = Tenant.New(owner, TenantName.New "Tenant MARC Import" |> Result.get, "Street M", true)
+            let! _ = tenantService.CreateTenantAsync(ownerContext, tenant)
+
+            let partnerKey = CatalogApiKey.New()
+            let! _ = tenantApiKeyService.AddPartnerKeyAsync(ownerContext, tenant.TenantId, { Key = partnerKey; PartnerId = owner; Label = "MARC Ingest Key"; CreatedAt = DateTime.UtcNow; RevokedAt = None; ExpiresAt = None })
+
+            let marcxmlPayload = """
+            <collection xmlns="http://www.loc.gov/MARC21/slim">
+              <record>
+                <leader>00000nam a2200000 a 4500</leader>
+                <controlfield tag="001">rec-m1</controlfield>
+                <controlfield tag="008">240101s1965    xx                  eng d</controlfield>
+                <datafield tag="020" ind1=" " ind2=" ">
+                  <subfield code="a">9780441172719</subfield>
+                </datafield>
+                <datafield tag="100" ind1="1" ind2=" ">
+                  <subfield code="a">Frank Herbert</subfield>
+                </datafield>
+                <datafield tag="245" ind1="1" ind2="0">
+                  <subfield code="a">Dune</subfield>
+                </datafield>
+                <datafield tag="264" ind1=" " ind2="1">
+                  <subfield code="b">Chilton Books</subfield>
+                  <subfield code="c">1965</subfield>
+                </datafield>
+                <datafield tag="520" ind1=" " ind2=" ">
+                  <subfield code="a">Set on the desert planet Arrakis.</subfield>
+                </datafield>
+                <datafield tag="650" ind1=" " ind2="7">
+                  <subfield code="a">ScienceFiction</subfield>
+                  <subfield code="2">local</subfield>
+                </datafield>
+              </record>
+            </collection>
+            """
+            let controller = createController [ "Catalog:ApiKey", "master-api-key" ]
+            controller.ControllerContext.HttpContext.Request.Headers.["X-API-Key"] <- StringValues(partnerKey.Value)
+            setRequestBody controller marcxmlPayload "application/marcxml+xml"
+
+            let! actionResult = controller.ImportBooksWithTenant(tenant.TenantId.Value.ToString(), format = null, preventDuplicates = Nullable true, createMissingAuthors = Nullable true, createMissingPublishers = Nullable true)
+            Expect.isTrue (actionResult :? OkObjectResult) "Should accept MARCXML with partner key"
+            let okResult = actionResult :?> OkObjectResult
+            let summary = okResult.Value :?> CatalogImportResult
+            Expect.equal summary.ImportedCount 1 "Should have imported 1 book"
+
+            // Verify book exists in that tenant
+            let! tenantBooksRes = bookService.GetAllBooksOfTenantAsync(ownerContext, tenant.TenantId)
+            Expect.isOk tenantBooksRes "GetAllBooksOfTenantAsync should succeed"
+            let tenantBooks = tenantBooksRes |> Result.get
+            Expect.equal tenantBooks.Length 1 "Tenant should have 1 book"
+            Expect.equal tenantBooks.Head.Title.Value "Dune" "Book title should be Dune"
+        }
+
+        testCaseTask "CatalogController import prevents duplicates when enabled" <| fun _ -> task {
+            setUp ()
+            let jsonPayload = """
+            [
+              {
+                "Title": "Duplicate Check Book",
+                "Isbn": "9780061120084",
+                "Year": 1960,
+                "Authors": ["Harper Lee"]
+              }
+            ]
+            """
+            let controller1 = createAuthenticatedController ()
+            setRequestBody controller1 jsonPayload "application/json"
+            let! res1 = controller1.ImportBooksDefault(format = null, preventDuplicates = Nullable true, createMissingAuthors = Nullable true, createMissingPublishers = Nullable true)
+            Expect.isTrue (res1 :? OkObjectResult) "First import should succeed"
+            let summary1 = (res1 :?> OkObjectResult).Value :?> CatalogImportResult
+            Expect.equal summary1.ImportedCount 1 "First import should import 1"
+
+            // Attempt duplicate import
+            let controller2 = createAuthenticatedController ()
+            setRequestBody controller2 jsonPayload "application/json"
+            let! res2 = controller2.ImportBooksDefault(format = null, preventDuplicates = Nullable true, createMissingAuthors = Nullable true, createMissingPublishers = Nullable true)
+            Expect.isTrue (res2 :? OkObjectResult) "Second import request should succeed"
+            let summary2 = (res2 :?> OkObjectResult).Value :?> CatalogImportResult
+            Expect.equal summary2.ImportedCount 0 "Duplicate should not be imported"
+            Expect.equal summary2.SkippedCount 1 "Duplicate should be counted as skipped"
+        }
+
+        testCaseTask "CatalogController tolerant import handles failed items gracefully" <| fun _ -> task {
+            setUp ()
+            let mixedPayload = """
+            [
+              {
+                "Title": "",
+                "Isbn": "9781111111111",
+                "Authors": ["Anonymous"]
+              },
+              {
+                "Title": "Valid Tolerant Book",
+                "Isbn": "9782222222222",
+                "Year": 2024,
+                "Authors": ["Valid Author"]
+              }
+            ]
+            """
+            let controller = createAuthenticatedController ()
+            setRequestBody controller mixedPayload "application/json"
+            let! actionResult = controller.ImportBooksDefault(format = null, preventDuplicates = Nullable true, createMissingAuthors = Nullable true, createMissingPublishers = Nullable true)
+            Expect.isTrue (actionResult :? OkObjectResult) "Tolerant import should return 200 OK with summary"
+            let summary = (actionResult :?> OkObjectResult).Value :?> CatalogImportResult
+            Expect.equal summary.TotalProcessed 2 "TotalProcessed should be 2"
+            Expect.equal summary.FailedCount 1 "1 item should have failed"
+            Expect.equal summary.ImportedCount 1 "1 item should have succeeded"
+        }
+
+        testCaseTask "CatalogController rejects import when batch exceeds maxBatchSize limit" <| fun _ -> task {
+            setUp ()
+            let payload = """
+            [
+              { "Title": "Book 1", "Isbn": "9781111111111", "Authors": ["A1"] },
+              { "Title": "Book 2", "Isbn": "9782222222222", "Authors": ["A2"] }
+            ]
+            """
+            // Controller configured with max batch size of 1
+            let controller = createController [ "Catalog:ApiKey", "master-api-key"; "Catalog:MaxBatchSize", "1" ]
+            controller.ControllerContext.HttpContext.Request.Headers.["X-API-Key"] <- StringValues("master-api-key")
+            setRequestBody controller payload "application/json"
+
+            let! actionResult = controller.ImportBooksDefault(format = null, preventDuplicates = Nullable true, createMissingAuthors = Nullable true, createMissingPublishers = Nullable true)
+            Expect.isTrue (actionResult :? BadRequestObjectResult) "Should reject batch exceeding MaxBatchSize"
+            let badReq = actionResult :?> BadRequestObjectResult
+            let msg = badReq.Value.ToString()
+            Expect.isTrue (msg.Contains("exceeds maximum allowed limit of 1")) "Error message should mention exceeded limit"
         }
     ]

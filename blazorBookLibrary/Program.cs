@@ -153,6 +153,7 @@ builder.Services.Configure<IdentityPasskeyOptions>(options =>
 builder.Services.AddSingleton<IEmailSender<ApplicationUser>, IdentityNoOpEmailSender>();
 builder.Services.AddSingleton<IDetailsService, DetailsService>();
 builder.Services.AddScoped<IDataExportService, DataExportService>();
+builder.Services.AddScoped<ICatalogImportService, CatalogImportService>();
 builder.Services.AddHostedService<MailResenderScheduler>();
 builder.Services.AddHostedService<ExpiredReservationsRemovalScheduler>();
 
@@ -256,6 +257,54 @@ builder.Services.AddRateLimiter(options =>
         {
             PermitLimit = guestPermitLimit,
             Window = TimeSpan.FromMinutes(guestWindowMinutes),
+            SegmentsPerWindow = 2,
+            QueueLimit = 0
+        });
+    });
+
+    var catalogRateLimitPerMinute = builder.Configuration.GetValue<int>("Catalog:RateLimitPerMinute", 30);
+
+    // Rate limiting for Catalog Ingestion API (API-Key or IP based, honoring Cloudflare CF-Connecting-IP)
+    options.AddPolicy("CatalogIngestionPolicy", httpContext =>
+    {
+        // 1. API Key authentication header
+        var apiKey = httpContext.Request.Headers["X-API-Key"].FirstOrDefault();
+        if (!string.IsNullOrEmpty(apiKey))
+        {
+            return RateLimitPartition.GetSlidingWindowLimiter($"cat_key_{apiKey}", _ => new SlidingWindowRateLimiterOptions
+            {
+                PermitLimit = catalogRateLimitPerMinute,
+                Window = TimeSpan.FromMinutes(1),
+                SegmentsPerWindow = 4,
+                QueueLimit = 0
+            });
+        }
+
+        // 2. Authenticated user fallback
+        if (httpContext.User.Identity?.IsAuthenticated == true)
+        {
+            var userId = httpContext.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
+                         ?? httpContext.User.Identity?.Name
+                         ?? "auth_user";
+            return RateLimitPartition.GetSlidingWindowLimiter($"cat_user_{userId}", _ => new SlidingWindowRateLimiterOptions
+            {
+                PermitLimit = catalogRateLimitPerMinute,
+                Window = TimeSpan.FromMinutes(1),
+                SegmentsPerWindow = 4,
+                QueueLimit = 0
+            });
+        }
+
+        // 3. Guest / IP (honoring Cloudflare CF-Connecting-IP header)
+        var clientIp = httpContext.Request.Headers["CF-Connecting-IP"].FirstOrDefault()
+                       ?? httpContext.Request.Headers["X-Forwarded-For"].FirstOrDefault()?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).FirstOrDefault()
+                       ?? httpContext.Connection.RemoteIpAddress?.ToString()
+                       ?? "guest_unknown";
+
+        return RateLimitPartition.GetSlidingWindowLimiter($"cat_guest_{clientIp}", _ => new SlidingWindowRateLimiterOptions
+        {
+            PermitLimit = Math.Max(5, catalogRateLimitPerMinute / 3),
+            Window = TimeSpan.FromMinutes(1),
             SegmentsPerWindow = 2,
             QueueLimit = 0
         });
