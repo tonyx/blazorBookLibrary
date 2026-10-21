@@ -277,13 +277,16 @@ Clients can negotiate their desired serialization format using either the `?form
 
 #### Authentication & Multi-Tenant Security
 - **Public Circuits**: Public tenant catalogs are accessible without authentication, allowing open-access sharing.
-- **Private Circuits**: Catalogs of private tenants return `403 Forbidden` unless accessed with an authenticated session authorized for that tenant.
-- **API Key Protection**: Administrators can configure an API key in `appsettings.json` under `"Catalog": { "ApiKey": "YOUR_KEY" }`. When configured, all external requests to `/api/catalog` must provide the key via the `X-API-Key` HTTP header:
+- **Private Circuits**: Catalogs of private tenants return `403 Forbidden` unless accessed with an authorized user session or an active API key.
+- **Dual-Tier API Key Authentication**: External consumers pass the API key via the `X-API-Key` HTTP header. The endpoint supports two key types:
+  1. **Global Master API Key**: Configured in `appsettings.json` under `"Catalog": { "ApiKey": "YOUR_KEY" }`. Grants access across all tenants (including default and private circuits).
+  2. **Tenant Partner API Keys (`bbl_cat_<uniqueId>`)**: Managed per tenant in the **Tenants** dashboard (`/tenants`). Tenant Owners and Managers can issue keys for themselves or external partner developers/applications (e.g. university harvesters, mobile apps). A partner key authorizes access strictly to that tenant's catalog (even if private), without granting access to other circuits.
   ```http
-  GET /api/catalog/books/isbn/9780141439518?format=marcxml HTTP/1.1
+  GET /api/catalog/{tenantId}/books/isbn/9780141439518?format=marcxml HTTP/1.1
   Host: library.example.com
-  X-API-Key: YOUR_CATALOG_API_KEY
+  X-API-Key: bbl_cat_4a37b38c92f1469e8b28cf9983995f12
   ```
+- **Key Lifecycle & Notifications**: Partner keys support expiration dates and immediate revocation. When a manager's key is revoked, they receive an automated in-app notification and an email notification with full key details. For full architectural details, see [tenantkey.md](file:///Users/antoniolucca/github/blazorBookLibrary/Docs/tenantkey.md).
 
 ---
 

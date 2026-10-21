@@ -4,14 +4,17 @@
 @using BookLibrary.Domain
 @using Microsoft.Extensions.Localization
 @using Microsoft.FSharp.Collections
+@using Microsoft.FSharp.Core
 @using static BookLibrary.Shared.Commons
 @using BookLibrary.Shared
 @using System.ComponentModel.DataAnnotations
 @using Microsoft.AspNetCore.Components.Forms
 @using Microsoft.AspNetCore.SignalR.Client
+@using BookLibrary.Shared.Services
 
 @attribute [Authorize]
 @inject ITenantService TenantService
+@inject ITenantApiKeyService TenantApiKeyService
 @inject IUserService UserService
 @inject IDistributionPointService DistributionPointService
 @inject IStringLocalizer<SharedResources> L
@@ -302,6 +305,10 @@
                                                 @onclick="() => HandleViewDetails(tenant)">
                                                 @L["ViewDetails"] <i class="bi bi-arrow-right ms-1"></i>
                                             </button>
+                                            <button class="btn btn-outline-dark btn-sm rounded-pill px-3"
+                                                @onclick="() => HandleOpenApiKeyModal(tenant)">
+                                                <i class="bi bi-key-fill me-1"></i> @L["ApiKeys", "API Keys"]
+                                            </button>
                                             @if (stats != null && stats.IsDeletable)
                                             {
                                                 <button class="btn btn-outline-danger btn-sm rounded-pill px-4"
@@ -328,6 +335,283 @@
                     </div>
                 </div>
             }
+        </div>
+    }
+
+    @if (activeApiKeyTenant != null)
+    {
+        <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);" role="dialog">
+            <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+                <div class="modal-content card-sanctuary border-0 shadow-lg bg-surface-low">
+                    <div class="modal-header border-bottom pb-3">
+                        <div class="d-flex align-items-center">
+                            <div class="tenant-icon-wrapper bg-primary bg-opacity-10 text-primary rounded-3 p-2 me-3">
+                                <i class="bi bi-key-fill h4 mb-0"></i>
+                            </div>
+                            <div>
+                                <h5 class="modal-title text-serif mb-0">@L["ApiKeysManagement", "API Keys Management"]</h5>
+                                <span class="small text-muted">@activeApiKeyTenant.Name.Value</span>
+                            </div>
+                        </div>
+                        <button type="button" class="btn-close" @onclick="CloseApiKeyModal" aria-label="Close"></button>
+                    </div>
+
+                    <div class="modal-body p-4">
+                        @if (isLoadingApiKeys)
+                        {
+                            <div class="d-flex justify-content-center py-5">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">@L["Loading"]...</span>
+                                </div>
+                            </div>
+                        }
+                        else if (!string.IsNullOrEmpty(apiKeyErrorMessage))
+                        {
+                            <div class="alert alert-danger shadow-sm border-0" role="alert">
+                                <i class="bi bi-exclamation-triangle-fill me-2"></i>@apiKeyErrorMessage
+                            </div>
+                        }
+                        else if (isAdmin)
+                        {
+                            @* GLOBAL ADMIN VIEW: ALL KEYS *@
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h6 class="text-uppercase fw-bold text-muted small mb-0">
+                                    <i class="bi bi-shield-lock-fill text-primary me-1"></i> @L["AllPartnerKeys", "All Library Partner Keys (Global Admin)"]
+                                </h6>
+                                <span class="badge bg-primary bg-opacity-10 text-primary rounded-pill px-3 py-1">@tenantApiKeys.Count keys</span>
+                            </div>
+
+                            @if (!tenantApiKeys.Any())
+                            {
+                                <div class="text-center py-4 border rounded-4 bg-surface-lowest mb-4">
+                                    <i class="bi bi-key text-muted opacity-50 display-6 mb-2"></i>
+                                    <p class="text-muted mb-0 small">@L["NoApiKeysFound", "No partner API keys configured for this library yet."]</p>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="table-responsive mb-4">
+                                    <table class="table table-hover align-middle mb-0">
+                                        <thead class="table-light small text-uppercase">
+                                            <tr>
+                                                <th>@L["Label", "Label"]</th>
+                                                <th>@L["Key", "Key"]</th>
+                                                <th>@L["Partner", "Partner"]</th>
+                                                <th>@L["Expires", "Expires"]</th>
+                                                <th>@L["Status", "Status"]</th>
+                                                <th class="text-end">@L["Actions", "Actions"]</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach (var k in tenantApiKeys)
+                                            {
+                                                var isRevoked = k.RevokedAt != null && FSharpOption<DateTime>.get_IsSome(k.RevokedAt);
+                                                var isExpired = k.ExpiresAt != null && FSharpOption<DateTime>.get_IsSome(k.ExpiresAt) && k.ExpiresAt.Value < DateTime.UtcNow;
+
+                                                <tr>
+                                                    <td>
+                                                        <span class="fw-bold">@k.Label</span>
+                                                        <div class="text-muted small">@k.CreatedAt.ToString("g")</div>
+                                                    </td>
+                                                    <td>
+                                                        <div class="d-flex align-items-center gap-1">
+                                                            <code class="small text-truncate" style="max-width: 140px;">@k.Key.Value</code>
+                                                            <button class="btn btn-link btn-sm text-muted p-0" title="Copy key" @onclick="() => CopyToClipboard(k.Key.Value)">
+                                                                <i class="bi bi-clipboard"></i>
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                    <td>
+                                                        <span class="small font-monospace text-truncate d-inline-block" style="max-width: 100px;" title="@k.PartnerId.Value">
+                                                            @k.PartnerId.Value.ToString().Substring(0, 8)...
+                                                        </span>
+                                                    </td>
+                                                    <td>
+                                                        <span class="small">
+                                                            @(k.ExpiresAt != null && FSharpOption<DateTime>.get_IsSome(k.ExpiresAt) ? k.ExpiresAt.Value.ToString("d") : "Never")
+                                                        </span>
+                                                    </td>
+                                                    <td>
+                                                        @if (isRevoked)
+                                                        {
+                                                            <span class="badge bg-danger rounded-pill">@L["Revoked", "Revoked"]</span>
+                                                        }
+                                                        else if (isExpired)
+                                                        {
+                                                            <span class="badge bg-warning text-dark rounded-pill">@L["Expired", "Expired"]</span>
+                                                        }
+                                                        else
+                                                        {
+                                                            <span class="badge bg-success rounded-pill">@L["Active", "Active"]</span>
+                                                        }
+                                                    </td>
+                                                    <td class="text-end">
+                                                        <div class="btn-group btn-group-sm">
+                                                            @if (!isRevoked)
+                                                            {
+                                                                <button class="btn btn-outline-warning rounded-pill px-2 me-1" title="Revoke key (manager will be notified)" @onclick="() => HandleRevokeApiKey(k)">
+                                                                    <i class="bi bi-slash-circle me-1"></i>@L["Revoke", "Revoke"]
+                                                                </button>
+                                                            }
+                                                            <button class="btn btn-outline-danger rounded-pill px-2" title="Delete key" @onclick="() => HandleDeleteApiKey(k)">
+                                                                <i class="bi bi-trash"></i>
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
+                                </div>
+                            }
+
+                            @* Generate Key Form (Admin) *@
+                            <div class="card border rounded-4 p-3 bg-surface-lowest">
+                                <h6 class="fw-bold small mb-3"><i class="bi bi-plus-circle me-1 text-primary"></i> @L["GeneratePartnerKey", "Generate Partner Key"]</h6>
+
+                                @{
+                                    var managersWithoutKey = GetManagersWithoutKey(activeApiKeyTenant);
+                                }
+                                @if (managersWithoutKey.Any())
+                                {
+                                    <div class="mb-3 p-2 bg-warning-subtle rounded-3">
+                                        <span class="small text-muted fw-bold d-block mb-1">
+                                            <i class="bi bi-exclamation-triangle-fill text-warning me-1"></i>@L["ManagersWithoutKey", "Managers without Partner Key"]:
+                                        </span>
+                                        <div class="d-flex flex-wrap gap-2">
+                                            @foreach (var mgrId in managersWithoutKey)
+                                            {
+                                                var isOwnerId = mgrId == activeApiKeyTenant.OwnerId.Value;
+                                                <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-2 py-0"
+                                                        @onclick='() => { adminPartnerIdInput = mgrId.ToString(); newKeyLabel = isOwnerId ? "Owner Partner Key" : "Manager Partner Key"; }'>
+                                                    <i class="bi bi-person-fill me-1"></i>@(isOwnerId ? L["Owner", "Owner"] : L["Manager", "Manager"]): @mgrId.ToString().Substring(0, 8)...
+                                                </button>
+                                            }
+                                        </div>
+                                    </div>
+                                }
+                                <div class="row g-2 align-items-end">
+                                    <div class="col-md-4">
+                                        <label class="form-label small text-muted">@L["PartnerId", "Partner User ID"]</label>
+                                        <input type="text" @bind="adminPartnerIdInput" class="form-control form-control-sm font-monospace" placeholder="e.g. Guid (leave empty for self)" />
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label small text-muted">@L["Label", "Label"]</label>
+                                        <input type="text" @bind="newKeyLabel" class="form-control form-control-sm" placeholder="e.g. OPAC Integration" />
+                                    </div>
+                                    <div class="col-md-2">
+                                        <label class="form-label small text-muted">@L["Expires", "Expires"]</label>
+                                        <input type="date" @bind="newKeyExpiresAt" class="form-control form-control-sm" />
+                                    </div>
+                                    <div class="col-md-2">
+                                        <button class="btn btn-primary btn-sm w-100 rounded-pill" @onclick="HandleGenerateAdminKey" disabled="@isGeneratingKey">
+                                            @if (isGeneratingKey) { <span class="spinner-border spinner-border-sm me-1"></span> }
+                                            @L["Generate", "Generate"]
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                        else
+                        {
+                            @* MANAGER VIEW: USER'S OWN KEY *@
+                            var myKey = tenantApiKeys.FirstOrDefault(k => currentUserId.HasValue && k.PartnerId.Value == currentUserId.Value);
+
+                            <div class="mb-3">
+                                <h6 class="text-uppercase fw-bold text-muted small mb-3">
+                                    <i class="bi bi-person-badge-fill text-primary me-1"></i> @L["MyPartnerApiKey", "My Partner API Key"]
+                                </h6>
+
+                                @if (myKey != null)
+                                {
+                                    var isRevoked = myKey.RevokedAt != null && FSharpOption<DateTime>.get_IsSome(myKey.RevokedAt);
+                                    var isExpired = myKey.ExpiresAt != null && FSharpOption<DateTime>.get_IsSome(myKey.ExpiresAt) && myKey.ExpiresAt.Value < DateTime.UtcNow;
+
+                                    <div class="p-4 border rounded-4 bg-surface-lowest shadow-sm">
+                                        <div class="d-flex justify-content-between align-items-start mb-3">
+                                            <div>
+                                                <h6 class="fw-bold mb-1">@myKey.Label</h6>
+                                                <div class="small text-muted">
+                                                    @L["Created", "Created"]: @myKey.CreatedAt.ToString("g")
+                                                    @if (myKey.ExpiresAt != null && FSharpOption<DateTime>.get_IsSome(myKey.ExpiresAt))
+                                                    {
+                                                        <span class="ms-2">| @L["Expires", "Expires"]: @myKey.ExpiresAt.Value.ToString("g")</span>
+                                                    }
+                                                </div>
+                                            </div>
+                                            <div>
+                                                @if (isRevoked)
+                                                {
+                                                    <span class="badge bg-danger rounded-pill px-3 py-2"><i class="bi bi-x-circle me-1"></i>@L["Revoked", "Revoked"]</span>
+                                                }
+                                                else if (isExpired)
+                                                {
+                                                    <span class="badge bg-warning text-dark rounded-pill px-3 py-2"><i class="bi bi-clock-history me-1"></i>@L["Expired", "Expired"]</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-success rounded-pill px-3 py-2"><i class="bi bi-check-circle-fill me-1"></i>@L["Active", "Active"]</span>
+                                                }
+                                            </div>
+                                        </div>
+
+                                        <label class="form-label small fw-bold text-muted">@L["ApiKeySecret", "API Key Secret (Header: X-API-Key)"]</label>
+                                        <div class="input-group mb-2">
+                                            <input type="text" class="form-control font-monospace bg-surface-high border-end-0" readonly value="@myKey.Key.Value" />
+                                            <button class="btn btn-outline-primary" type="button" @onclick="() => CopyToClipboard(myKey.Key.Value)">
+                                                <i class="bi bi-clipboard me-1"></i> @L["Copy", "Copy"]
+                                            </button>
+                                        </div>
+
+                                        @if (isRevoked)
+                                        {
+                                            <div class="alert alert-warning border-0 small mt-3 mb-0">
+                                                <i class="bi bi-exclamation-triangle-fill me-1"></i>
+                                                @L["KeyRevokedManagerNotice", "Your key has been revoked by administration. You have received a notification in-app and by email."]
+                                            </div>
+                                        }
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="p-4 border rounded-4 bg-surface-lowest text-center">
+                                        <i class="bi bi-key display-6 text-muted opacity-50 mb-3 d-block"></i>
+                                        <h6 class="fw-bold mb-2">@L["NoKeyAssigned", "No API Key Assigned"]</h6>
+                                        <p class="text-muted small mb-4">
+                                            @L["NoKeyExplanation", "You do not have a partner API key associated to your user for this library. Generate one to interact with the catalogue endpoints."]
+                                        </p>
+
+                                        <div class="row g-3 justify-content-center text-start">
+                                            <div class="col-md-6">
+                                                <label class="form-label small fw-bold text-muted">@L["KeyLabel", "Key Description / Label"]</label>
+                                                <input type="text" @bind="newKeyLabel" class="form-control" placeholder="e.g. My Integration" />
+                                            </div>
+                                            <div class="col-md-4">
+                                                <label class="form-label small fw-bold text-muted">@L["OptionalExpiry", "Optional Expiration Date"]</label>
+                                                <input type="date" @bind="newKeyExpiresAt" class="form-control" />
+                                            </div>
+                                        </div>
+
+                                        <button type="button" class="btn btn-primary rounded-pill px-4 mt-4 shadow-sm" @onclick="HandleGenerateMyKey" disabled="@isGeneratingKey">
+                                            @if (isGeneratingKey)
+                                            {
+                                                <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                                            }
+                                            <i class="bi bi-plus-circle-fill me-2"></i>@L["CreateApiKey", "Create My API Key"]
+                                        </button>
+                                    </div>
+                                }
+                            </div>
+                        }
+                    </div>
+
+                    <div class="modal-footer border-top pt-3">
+                        <button type="button" class="btn btn-outline-secondary rounded-pill px-4" @onclick="CloseApiKeyModal">
+                            @L["Close", "Close"]
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
     }
 </div>
@@ -771,6 +1055,258 @@
             Logger.LogError(ex, "Exception when deleting tenant");
             await JSRuntime.InvokeVoidAsync("showToast", L["ErrorOccurred"].Value, "error");
         }
+    }
+
+    private Tenant? activeApiKeyTenant;
+    private List<PartnerApiKey> tenantApiKeys = new();
+    private bool isLoadingApiKeys = false;
+    private string? apiKeyErrorMessage;
+    private string newKeyLabel = "";
+    private DateTime? newKeyExpiresAt;
+    private bool isGeneratingKey = false;
+    private string adminPartnerIdInput = "";
+
+    private async Task HandleOpenApiKeyModal(Tenant tenant)
+    {
+        activeApiKeyTenant = tenant;
+        newKeyLabel = $"{tenant.Name.Value} Partner Key";
+        newKeyExpiresAt = null;
+        adminPartnerIdInput = currentUserId.HasValue ? currentUserId.Value.ToString() : "";
+        await LoadApiKeysForTenant(tenant);
+    }
+
+    private void CloseApiKeyModal()
+    {
+        activeApiKeyTenant = null;
+        tenantApiKeys.Clear();
+        apiKeyErrorMessage = null;
+    }
+
+    private async Task LoadApiKeysForTenant(Tenant tenant)
+    {
+        isLoadingApiKeys = true;
+        apiKeyErrorMessage = null;
+        try
+        {
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var userContext = TenantState.GetUserContext(authState.User);
+            var result = await TenantApiKeyService.GetPartnerKeysAsync(userContext, tenant.TenantId, default);
+            if (result.IsOk)
+            {
+                tenantApiKeys = result.ResultValue.ToList();
+            }
+            else
+            {
+                apiKeyErrorMessage = result.ErrorValue;
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading API keys for tenant");
+            apiKeyErrorMessage = ex.Message;
+        }
+        finally
+        {
+            isLoadingApiKeys = false;
+        }
+    }
+
+    private async Task HandleGenerateMyKey()
+    {
+        if (activeApiKeyTenant == null || !currentUserId.HasValue) return;
+        isGeneratingKey = true;
+        try
+        {
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var userContext = TenantState.GetUserContext(authState.User);
+            var partnerId = UserId.NewUserId(currentUserId.Value);
+            var label = string.IsNullOrWhiteSpace(newKeyLabel) ? $"{activeApiKeyTenant.Name.Value} Partner Key" : newKeyLabel.Trim();
+            var now = DateTime.UtcNow;
+            var expiresAtOpt = newKeyExpiresAt.HasValue
+                ? FSharpOption<DateTime>.Some(newKeyExpiresAt.Value)
+                : FSharpOption<DateTime>.None;
+
+            var result = await TenantApiKeyService.AddPartnerKeyAsync(
+                userContext,
+                activeApiKeyTenant.TenantId,
+                partnerId,
+                label,
+                now,
+                expiresAtOpt,
+                FSharpOption<CancellationToken>.None);
+
+            if (result.IsOk)
+            {
+                await JSRuntime.InvokeVoidAsync("showToast", L["KeyCreatedSuccess", "API key generated successfully!"].Value, "success");
+                await LoadApiKeysForTenant(activeApiKeyTenant);
+            }
+            else
+            {
+                await JSRuntime.InvokeVoidAsync("showToast", result.ErrorValue, "error");
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error generating API key");
+            await JSRuntime.InvokeVoidAsync("showToast", L["ErrorOccurred"].Value, "error");
+        }
+        finally
+        {
+            isGeneratingKey = false;
+        }
+    }
+
+    private async Task HandleGenerateAdminKey()
+    {
+        if (activeApiKeyTenant == null) return;
+        isGeneratingKey = true;
+        try
+        {
+            Guid targetGuid = currentUserId ?? Guid.Empty;
+            if (!string.IsNullOrWhiteSpace(adminPartnerIdInput))
+            {
+                if (!Guid.TryParse(adminPartnerIdInput.Trim(), out targetGuid))
+                {
+                    await JSRuntime.InvokeVoidAsync("showToast", "Invalid Partner User ID (must be a GUID)", "error");
+                    return;
+                }
+            }
+
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var userContext = TenantState.GetUserContext(authState.User);
+            var partnerId = UserId.NewUserId(targetGuid);
+            var label = string.IsNullOrWhiteSpace(newKeyLabel) ? $"{activeApiKeyTenant.Name.Value} Partner Key" : newKeyLabel.Trim();
+            var now = DateTime.UtcNow;
+            var expiresAtOpt = newKeyExpiresAt.HasValue
+                ? FSharpOption<DateTime>.Some(newKeyExpiresAt.Value)
+                : FSharpOption<DateTime>.None;
+
+            var result = await TenantApiKeyService.AddPartnerKeyAsync(
+                userContext,
+                activeApiKeyTenant.TenantId,
+                partnerId,
+                label,
+                now,
+                expiresAtOpt,
+                FSharpOption<CancellationToken>.None);
+
+            if (result.IsOk)
+            {
+                await JSRuntime.InvokeVoidAsync("showToast", L["KeyCreatedSuccess", "API key generated successfully!"].Value, "success");
+                await LoadApiKeysForTenant(activeApiKeyTenant);
+            }
+            else
+            {
+                await JSRuntime.InvokeVoidAsync("showToast", result.ErrorValue, "error");
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error generating API key");
+            await JSRuntime.InvokeVoidAsync("showToast", L["ErrorOccurred"].Value, "error");
+        }
+        finally
+        {
+            isGeneratingKey = false;
+        }
+    }
+
+    private async Task HandleRevokeApiKey(PartnerApiKey key)
+    {
+        if (activeApiKeyTenant == null) return;
+        var confirmed = await JSRuntime.InvokeAsync<bool>("confirm", $"Are you sure you want to revoke key '{key.Label}'? The partner will be notified in-app and by email.");
+        if (!confirmed) return;
+
+        try
+        {
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var userContext = TenantState.GetUserContext(authState.User);
+            var result = await TenantApiKeyService.RevokeCatalogKeyAsync(
+                userContext,
+                activeApiKeyTenant.TenantId,
+                key.Key,
+                FSharpOption<CancellationToken>.None);
+
+            if (result.IsOk)
+            {
+                await JSRuntime.InvokeVoidAsync("showToast", "API key revoked successfully", "success");
+                await LoadApiKeysForTenant(activeApiKeyTenant);
+            }
+            else
+            {
+                await JSRuntime.InvokeVoidAsync("showToast", result.ErrorValue, "error");
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error revoking API key");
+            await JSRuntime.InvokeVoidAsync("showToast", L["ErrorOccurred"].Value, "error");
+        }
+    }
+
+    private async Task HandleDeleteApiKey(PartnerApiKey key)
+    {
+        if (activeApiKeyTenant == null) return;
+        var confirmed = await JSRuntime.InvokeAsync<bool>("confirm", $"Are you sure you want to permanently delete key '{key.Label}'?");
+        if (!confirmed) return;
+
+        try
+        {
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var userContext = TenantState.GetUserContext(authState.User);
+            var result = await TenantApiKeyService.RemovePartnerKeyAsync(
+                userContext,
+                activeApiKeyTenant.TenantId,
+                key.Key,
+                FSharpOption<CancellationToken>.None);
+
+            if (result.IsOk)
+            {
+                await JSRuntime.InvokeVoidAsync("showToast", "API key deleted successfully", "success");
+                await LoadApiKeysForTenant(activeApiKeyTenant);
+            }
+            else
+            {
+                await JSRuntime.InvokeVoidAsync("showToast", result.ErrorValue, "error");
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error deleting API key");
+            await JSRuntime.InvokeVoidAsync("showToast", L["ErrorOccurred"].Value, "error");
+        }
+    }
+
+    private List<Guid> GetManagersWithoutKey(Tenant? tenant)
+    {
+        var list = new List<Guid>();
+        if (tenant == null) return list;
+
+        if (!tenantApiKeys.Any(k => k.PartnerId.Value == tenant.OwnerId.Value))
+        {
+            list.Add(tenant.OwnerId.Value);
+        }
+
+        if (tenant.Patrons != null)
+        {
+            foreach (var p in tenant.Patrons)
+            {
+                if (p.Item2.IsManager && !tenantApiKeys.Any(k => k.PartnerId.Value == p.Item1.Value))
+                {
+                    if (!list.Contains(p.Item1.Value))
+                    {
+                        list.Add(p.Item1.Value);
+                    }
+                }
+            }
+        }
+        return list;
+    }
+
+    private async Task CopyToClipboard(string text)
+    {
+        await JSRuntime.InvokeVoidAsync("navigator.clipboard.writeText", text);
+        await JSRuntime.InvokeVoidAsync("showToast", L["CopiedToClipboard", "Copied to clipboard!"].Value, "success");
     }
 
     public async ValueTask DisposeAsync()

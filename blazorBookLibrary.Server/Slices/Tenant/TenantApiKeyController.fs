@@ -55,11 +55,22 @@ type TenantApiKeyController(tenantApiKeyService: ITenantApiKeyService) =
             | Error msg -> return this.BadRequest(msg) :> IActionResult
         }
 
-    [<HttpDelete("{tenantId}/{key}")>]
+    [<HttpPost("{tenantId}/{key}/revoke")>]
+    [<HttpDelete("{tenantId}/{key}/revoke")>]
     member this.RevokeCatalogKey(tenantId: Guid, key: string) =
         task {
             let context = UserContextMapper.mapFromRequest this.Request
             let! result = tenantApiKeyService.RevokeCatalogKeyAsync(context, TenantId tenantId, CatalogApiKey key)
+            match result with
+            | Ok () -> return this.Ok() :> IActionResult
+            | Error msg -> return this.BadRequest(msg) :> IActionResult
+        }
+
+    [<HttpDelete("{tenantId}/{key}")>]
+    member this.RemovePartnerKey(tenantId: Guid, key: string) =
+        task {
+            let context = UserContextMapper.mapFromRequest this.Request
+            let! result = tenantApiKeyService.RemovePartnerKeyAsync(context, TenantId tenantId, CatalogApiKey key)
             match result with
             | Ok () -> return this.Ok() :> IActionResult
             | Error msg -> return this.BadRequest(msg) :> IActionResult

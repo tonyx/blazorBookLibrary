@@ -23,11 +23,29 @@ type CatalogController
         detailsService: IDetailsService,
         editorService: IEditorService,
         tenantService: ITenantService,
-        configuration: IConfiguration
+        configuration: IConfiguration,
+        tenantApiKeyService: ITenantApiKeyService
     ) =
     inherit ControllerBase()
 
-    let tryResolveTenant (tenantParam: string) : Result<TenantId, string> =
+    new
+        (
+            bookService: IBookService,
+            detailsService: IDetailsService,
+            editorService: IEditorService,
+            tenantService: ITenantService,
+            configuration: IConfiguration
+        ) =
+        CatalogController(
+            bookService,
+            detailsService,
+            editorService,
+            tenantService,
+            configuration,
+            Unchecked.defaultof<ITenantApiKeyService>
+        )
+
+    member private this.TryResolveTenant(tenantParam: string) : Result<TenantId, string> =
         if String.IsNullOrWhiteSpace tenantParam || String.Equals(tenantParam, "default", StringComparison.OrdinalIgnoreCase) then
             Ok TenantId.Default
         else
@@ -35,16 +53,38 @@ type CatalogController
             | true, g -> Ok (TenantId g)
             | false, _ -> Error $"Invalid tenant identifier '{tenantParam}'"
 
-    member private this.ValidateApiKey() : Result<unit, IActionResult> =
-        let configuredApiKey = configuration.["Catalog:ApiKey"]
-        if not (String.IsNullOrWhiteSpace configuredApiKey) then
-            match this.Request.Headers.TryGetValue("X-API-Key") with
-            | true, keyHeader when String.Equals(keyHeader.ToString(), configuredApiKey, StringComparison.Ordinal) ->
-                Ok ()
-            | _ ->
-                Error (this.Unauthorized({| message = "Invalid or missing X-API-Key header" |}) :> IActionResult)
-        else
-            Ok ()
+    member private this.ValidateRequestApiKey(tenantId: TenantId, ct: CancellationToken) : Task<Result<bool, IActionResult>> =
+        task {
+            let configuredApiKey = configuration.["Catalog:ApiKey"]
+            let hasConfiguredKey = not (String.IsNullOrWhiteSpace configuredApiKey)
+            let headerValOpt =
+                match this.Request.Headers.TryGetValue("X-API-Key") with
+                | true, values when not (String.IsNullOrWhiteSpace(values.ToString())) ->
+                    Some (values.ToString().Trim())
+                | _ -> None
+
+            match headerValOpt with
+            | Some sentKey ->
+                // 1. Check if it matches global configured master key from appsettings.json
+                if hasConfiguredKey && String.Equals(sentKey, configuredApiKey, StringComparison.Ordinal) then
+                    return Ok true
+                // 2. Otherwise, if not default tenant and tenantApiKeyService is available, validate against tenant partner keys
+                elif tenantId <> TenantId.Default && not (isNull (box tenantApiKeyService)) then
+                    let! partnerKeyRes = tenantApiKeyService.ValidateCatalogKeyAsync(tenantId, CatalogApiKey sentKey, ct)
+                    match partnerKeyRes with
+                    | Ok () ->
+                        return Ok true
+                    | Error err ->
+                        return Error (this.Unauthorized({| message = $"Invalid X-API-Key: {err}" |}) :> IActionResult)
+                else
+                    return Error (this.Unauthorized({| message = "Invalid or missing X-API-Key header" |}) :> IActionResult)
+            | None ->
+                // No X-API-Key header provided
+                if hasConfiguredKey then
+                    return Error (this.Unauthorized({| message = "Invalid or missing X-API-Key header" |}) :> IActionResult)
+                else
+                    return Ok false
+        }
 
     member private this.ResolveFormat(formatParam: string) : ExportFormat =
         let param = if isNull formatParam then "" else formatParam.Trim().ToLowerInvariant()
@@ -71,9 +111,9 @@ type CatalogController
             elif accept.Contains("text/csv") then Csv
             else Json
 
-    member private this.EnsureTenantAccessible(context: UserContext, tenantId: TenantId, ct: CancellationToken) =
+    member private this.EnsureTenantAccessible(context: UserContext, tenantId: TenantId, isApiKeyAuthenticated: bool, ct: CancellationToken) =
         taskResult {
-            if tenantId = TenantId.Default then
+            if tenantId = TenantId.Default || isApiKeyAuthenticated then
                 return ()
             else
                 let! tenant = tenantService.GetTenantAsync(context, tenantId, ct)
@@ -196,16 +236,21 @@ type CatalogController
 
     member private this.ExecuteQuery(tenantParam: string, queryAction: UserContext * CancellationToken -> Task<IActionResult>) =
         task {
-            match this.ValidateApiKey() with
-            | Error authResult -> return authResult
-            | Ok () ->
-                match tryResolveTenant tenantParam with
-                | Error err -> return this.BadRequest({| message = err |}) :> IActionResult
-                | Ok tenantId ->
-                    let ct = this.HttpContext.RequestAborted
+            match this.TryResolveTenant tenantParam with
+            | Error err -> return this.BadRequest({| message = err |}) :> IActionResult
+            | Ok tenantId ->
+                let ct = this.HttpContext.RequestAborted
+                let! authCheck = this.ValidateRequestApiKey(tenantId, ct)
+                match authCheck with
+                | Error authResult -> return authResult
+                | Ok isApiKeyAuthenticated ->
                     let rawContext = UserContextMapper.mapFromRequest this.Request
-                    let context = rawContext.WithNewTenant(tenantId)
-                    let! accessCheck = this.EnsureTenantAccessible(context, tenantId, ct)
+                    let context =
+                        if isApiKeyAuthenticated && not rawContext.IsAuthenticated then
+                            UserContext.Authenticated(UserId tenantId.Value, [ Role.Admin ]).WithNewTenant(tenantId)
+                        else
+                            rawContext.WithNewTenant(tenantId)
+                    let! accessCheck = this.EnsureTenantAccessible(context, tenantId, isApiKeyAuthenticated, ct)
                     match accessCheck with
                     | Error msg -> return this.StatusCode(403, {| message = msg |}) :> IActionResult
                     | Ok () -> return! queryAction (context, ct)

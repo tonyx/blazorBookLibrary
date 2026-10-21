@@ -277,13 +277,16 @@ I client possono richiedere il formato di serializzazione desiderato tramite il 
 
 #### Autenticazione e Sicurezza Multi-Tenant
 - **Circuiti Pubblici**: I cataloghi dei tenant pubblici sono consultabili liberamente senza autenticazione, favorendo la condivisione open-access.
-- **Circuiti Privati**: I cataloghi dei tenant privati restituiscono `403 Forbidden` a meno che la richiesta non provenga da una sessione autenticata autorizzata per quel tenant.
-- **Protezione via API Key**: Gli amministratori possono configurare una chiave di accesso API in `appsettings.json` sotto `"Catalog": { "ApiKey": "TUA_CHIAVE" }`. Quando configurata, tutte le richieste esterne verso `/api/catalog` devono includere la chiave nell'header HTTP `X-API-Key`:
+- **Circuiti Privati**: I cataloghi dei tenant privati restituiscono `403 Forbidden` a meno che la richiesta non provenga da una sessione autorizzata o da una chiave API valida.
+- **Autenticazione API Key a Doppio Livello**: I client esterni forniscono la chiave tramite l'header HTTP `X-API-Key`. L'endpoint supporta due categorie di chiavi:
+  1. **Master Key Globale**: Configurata in `appsettings.json` sotto `"Catalog": { "ApiKey": "TUA_CHIAVE" }`. Consente l'accesso trasversale su tutti i tenant (inclusi il circuito demo predefinito e i tenant privati).
+  2. **Chiavi Partner per Tenant (`bbl_cat_<uniqueId>`)**: Gestite per ciascun tenant nel pannello **Tenants** (`/tenants`). I Proprietari e i Manager possono generare chiavi per se stessi o per sviluppatori partner e applicazioni esterne (es. sistemi di ateneo, harvester OPAC, app mobili). Una chiave partner autorizza l'accesso esclusivamente al catalogo del tenant specifico (anche se privato), senza consentire l'accesso ad altri circuiti.
   ```http
-  GET /api/catalog/books/isbn/9780141439518?format=marcxml HTTP/1.1
+  GET /api/catalog/{tenantId}/books/isbn/9780141439518?format=marcxml HTTP/1.1
   Host: library.example.com
-  X-API-Key: TUA_CATALOG_API_KEY
+  X-API-Key: bbl_cat_4a37b38c92f1469e8b28cf9983995f12
   ```
+- **Ciclo di Vita e Notifiche**: Le chiavi partner supportano scadenza e revoca immediata. Alla revoca di una chiave associata a un utente, il sistema invia automaticamente una notifica in-app e un'email di avviso con i dettagli della chiave. Per le specifiche architetturali complete, consultare [tenantkey.md](file:///Users/antoniolucca/github/blazorBookLibrary/Docs/tenantkey.md).
 
 ---
 

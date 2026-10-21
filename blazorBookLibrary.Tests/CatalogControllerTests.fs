@@ -23,7 +23,7 @@ let private createController (apiKeyConfig: (string * string) list) =
             mem.[k] <- v
         configBuilder.AddInMemoryCollection(mem) |> ignore
     let config = configBuilder.Build() :> IConfiguration
-    let controller = CatalogController(getBookService(), getDetailsService(), getEditorService(), getTenantService(), config)
+    let controller = CatalogController(getBookService(), getDetailsService(), getEditorService(), getTenantService(), config, getTenantApiKeyService())
     let httpContext = DefaultHttpContext()
     controller.ControllerContext <- ControllerContext(HttpContext = httpContext)
     controller
@@ -259,4 +259,116 @@ let catalogTests =
 
             let invalidParsed = CatalogApiKey.FromString "bad_prefix_123"
             Expect.isError invalidParsed "FromString on invalid prefix should return Error"
+
+        testCaseTask "CatalogController authenticates partner-based API key for a tenant and grants access even if tenant is private" <| fun _ -> task {
+            setUp ()
+            let bookService = getBookService()
+            let tenantService = getTenantService()
+            let tenantApiKeyService = getTenantApiKeyService()
+
+            // 1. Create a private tenant
+            let! ownerId = registerUserTask "catalog_private_owner@test.com" "Password123!"
+            let ownerContext = UserContext.Authenticated(ownerId, [])
+            let privateTenant = Tenant.New(ownerId, TenantName.New "Private Partner Catalog" |> Result.get, "Private St 1", false)
+            let tenantId = privateTenant.TenantId
+            let! createRes = tenantService.CreateTenantAsync(ownerContext, privateTenant)
+            Expect.isOk createRes "Tenant creation should succeed"
+
+            // 2. Add a book to this private tenant
+            let isbn = "9781112223334"
+            let book = Book.New tenantId (Title.New "Partner Secret Book") [] [] [] None Category.Fiction [] (Year.New 2025) (Isbn isbn) None
+            let tenantContext = adminContext.WithNewTenant(tenantId)
+            let! addBookRes = bookService.AddBookAsync(tenantContext, book, CancellationToken.None)
+            Expect.isOk addBookRes "Adding book to private tenant should succeed"
+
+            // 3. Register partner user and issue a partner key
+            let! partnerUserId = registerUserTask "catalog_partner_dev@test.com" "Password123!"
+            let partnerKey = CatalogApiKey.New()
+            let partnerEntry: PartnerApiKey =
+                { Key = partnerKey
+                  PartnerId = partnerUserId
+                  Label = "External Mobile App"
+                  CreatedAt = DateTime.UtcNow
+                  RevokedAt = None
+                  ExpiresAt = None }
+            let! addKeyRes = tenantApiKeyService.AddPartnerKeyAsync(ownerContext, tenantId, partnerEntry)
+            Expect.isOk addKeyRes "Adding partner key should succeed"
+
+            // 4. Create controller configured with master key in appsettings.json
+            let controller = createController [ "Catalog:ApiKey", "global-master-api-key" ]
+
+            // 4a. Anonymous call without API key fails (401)
+            let! noKeyResult = controller.GetBookByIsbnWithTenant(tenantId.Value.ToString(), isbn, format = "json")
+            Expect.isTrue (noKeyResult :? UnauthorizedObjectResult) "Should reject request with missing API key when configured"
+
+            // 4b. Wrong API key fails (401)
+            controller.ControllerContext.HttpContext.Request.Headers.["X-API-Key"] <- StringValues("invalid_key_xyz")
+            let! wrongKeyResult = controller.GetBookByIsbnWithTenant(tenantId.Value.ToString(), isbn, format = "json")
+            Expect.isTrue (wrongKeyResult :? UnauthorizedObjectResult) "Should reject invalid key"
+
+            // 4c. Partner key authenticates and grants access to the private tenant's book!
+            controller.ControllerContext.HttpContext.Request.Headers.["X-API-Key"] <- StringValues(partnerKey.Value)
+            let! partnerKeyResult = controller.GetBookByIsbnWithTenant(tenantId.Value.ToString(), isbn, format = "json")
+            match partnerKeyResult with
+            | :? ContentResult as contentResult ->
+                Expect.isTrue (contentResult.Content.Contains("Partner Secret Book")) "Should return private tenant book content"
+            | :? ObjectResult as objRes ->
+                failwithf "Expected ContentResult but got ObjectResult status=%A, value=%A" objRes.StatusCode objRes.Value
+            | other ->
+                failwithf "Expected ContentResult but got %s" (other.GetType().FullName)
+
+            // 4d. Master key also works on this tenant
+            controller.ControllerContext.HttpContext.Request.Headers.["X-API-Key"] <- StringValues("global-master-api-key")
+            let! masterKeyResult = controller.GetBookByIsbnWithTenant(tenantId.Value.ToString(), isbn, format = "json")
+            Expect.isTrue (masterKeyResult :? ContentResult) "Global master key should also authenticate"
+        }
+
+        testCaseTask "CatalogController rejects partner key from a different tenant" <| fun _ -> task {
+            setUp ()
+            let tenantService = getTenantService()
+            let tenantApiKeyService = getTenantApiKeyService()
+
+            // Tenant A
+            let! ownerA = registerUserTask "owner_tenant_a@test.com" "Password123!"
+            let ownerAContext = UserContext.Authenticated(ownerA, [])
+            let tenantA = Tenant.New(ownerA, TenantName.New "Tenant A" |> Result.get, "Street A", true)
+            let! _ = tenantService.CreateTenantAsync(ownerAContext, tenantA)
+            let partnerKeyA = CatalogApiKey.New()
+            let! _ = tenantApiKeyService.AddPartnerKeyAsync(ownerAContext, tenantA.TenantId, { Key = partnerKeyA; PartnerId = ownerA; Label = "Key A"; CreatedAt = DateTime.UtcNow; RevokedAt = None; ExpiresAt = None })
+
+            // Tenant B
+            let! ownerB = registerUserTask "owner_tenant_b@test.com" "Password123!"
+            let ownerBContext = UserContext.Authenticated(ownerB, [])
+            let tenantB = Tenant.New(ownerB, TenantName.New "Tenant B" |> Result.get, "Street B", true)
+            let! _ = tenantService.CreateTenantAsync(ownerBContext, tenantB)
+
+            let controller = createController [ "Catalog:ApiKey", "master-api-key" ]
+            // Attempt to access Tenant B with Tenant A's partner key
+            controller.ControllerContext.HttpContext.Request.Headers.["X-API-Key"] <- StringValues(partnerKeyA.Value)
+            let! crossTenantResult = controller.GetBookByIsbnWithTenant(tenantB.TenantId.Value.ToString(), "9781234567890", format = "json")
+            Expect.isTrue (crossTenantResult :? UnauthorizedObjectResult) "Should reject partner key belonging to another tenant"
+        }
+
+        testCaseTask "CatalogController rejects revoked partner key" <| fun _ -> task {
+            setUp ()
+            let tenantService = getTenantService()
+            let tenantApiKeyService = getTenantApiKeyService()
+
+            let! owner = registerUserTask "revoked_key_owner@test.com" "Password123!"
+            let ownerContext = UserContext.Authenticated(owner, [])
+            let tenant = Tenant.New(owner, TenantName.New "Tenant Revocation" |> Result.get, "Street R", true)
+            let! _ = tenantService.CreateTenantAsync(ownerContext, tenant)
+
+            let partnerKey = CatalogApiKey.New()
+            let! _ = tenantApiKeyService.AddPartnerKeyAsync(ownerContext, tenant.TenantId, { Key = partnerKey; PartnerId = owner; Label = "Key To Revoke"; CreatedAt = DateTime.UtcNow; RevokedAt = None; ExpiresAt = None })
+
+            // Revoke key
+            let! revokeRes = tenantApiKeyService.RevokeCatalogKeyAsync(ownerContext, tenant.TenantId, partnerKey)
+            Expect.isOk revokeRes "Revocation should succeed"
+
+            let controller = createController [ "Catalog:ApiKey", "master-api-key" ]
+            controller.ControllerContext.HttpContext.Request.Headers.["X-API-Key"] <- StringValues(partnerKey.Value)
+            let! revokedResult = controller.GetBookByIsbnWithTenant(tenant.TenantId.Value.ToString(), "9781234567890", format = "json")
+            Expect.isTrue (revokedResult :? UnauthorizedObjectResult) "Should reject revoked partner key"
+        }
     ]

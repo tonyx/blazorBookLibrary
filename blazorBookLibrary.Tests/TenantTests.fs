@@ -9,6 +9,31 @@ open BookLibrary.Shared.Commons
 open System.Threading
 open BookLibrary.Details.Details
 open BookLibrary.Shared.Services
+open blazorBookLibrary.Shared.Infrastructure.Services
+open System.Threading.Tasks
+
+type TestMailNotificator() =
+    let sentEmails = System.Collections.Concurrent.ConcurrentBag<string * string * string * string * string>()
+    member _.SentEmails = sentEmails |> Seq.toList
+    interface IMailNotificator with
+        member _.SendEmailAsync(emailFrom, nameFrom, emailRecipient, subject, body) =
+            sentEmails.Add(emailFrom, nameFrom, emailRecipient, subject, body)
+            Task.CompletedTask
+
+type TestNotificationService() =
+    let notifications = System.Collections.Concurrent.ConcurrentBag<Notification>()
+    member _.Notifications = notifications |> Seq.toList
+    interface INotificationService with
+        member _.CreateNotificationAsync(context, notification, ?ct) =
+            notifications.Add(notification)
+            Task.FromResult(Ok ())
+        member _.GetUnreadNotificationsForUserAsync(context, ?ct) =
+            Task.FromResult(Ok [])
+        member _.GetAllNotificationsForUserAsync(context, ?ct) =
+            Task.FromResult(Ok [])
+        member _.MarkAsReadAsync(context, notificationId, ?ct) =
+            Task.FromResult(Ok ())
+
 
 [<Tests>]
 let tests =
@@ -723,5 +748,98 @@ let tests =
                       let! validResult = tenantApiKeyService.ValidateCatalogKeyAsync(tenantId, keys.[0].Key)
                       Expect.isOk validResult "Key validation should succeed"
                   | Error msg -> failwith msg
+              }
+          testCaseTask "a global admin or manager can permanently remove a partner API key using RemovePartnerKeyAsync"
+          <| fun _ ->
+              task {
+                  setUp ()
+                  let tenantService = getTenantService ()
+                  let tenantApiKeyService = getTenantApiKeyService ()
+
+                  let! ownerId = registerUserTask "removekeyowner@test.com" "Password123!"
+                  let ownerContext = UserContext.Authenticated(ownerId, [])
+                  let! partnerId = registerUserTask "removekeypartner@test.com" "Password123!"
+
+                  let tenant =
+                      Tenant.New(ownerId, TenantName.New "API Key Removal Tenant" |> Result.get, "Via Roma 12", true)
+                  let tenantId = tenant.TenantId
+                  let! createResult = tenantService.CreateTenantAsync(ownerContext, tenant)
+                  Expect.isOk createResult "Tenant creation should succeed"
+
+                  let key = CatalogApiKey.New()
+                  let partnerKey: PartnerApiKey =
+                      { Key = key
+                        PartnerId = partnerId
+                        Label = "Temporary Key"
+                        CreatedAt = DateTime.UtcNow
+                        RevokedAt = None
+                        ExpiresAt = None }
+
+                  let! addResult = tenantApiKeyService.AddPartnerKeyAsync(ownerContext, tenantId, partnerKey)
+                  Expect.isOk addResult "Adding key should succeed"
+
+                  // Permanently remove the key
+                  let! removeResult = tenantApiKeyService.RemovePartnerKeyAsync(ownerContext, tenantId, key)
+                  Expect.isOk removeResult "Removing partner key should succeed"
+
+                  // Key must no longer be in the list
+                  let! listResult = tenantApiKeyService.GetPartnerKeysAsync(ownerContext, tenantId)
+                  Expect.isOk listResult "Getting partner keys should succeed"
+                  match listResult with
+                  | Ok keys -> Expect.isTrue (keys |> List.isEmpty) "Partner keys list should be empty after removal"
+                  | Error msg -> failwith msg
+
+                  // Validating the removed key must fail
+                  let! validateResult = tenantApiKeyService.ValidateCatalogKeyAsync(tenantId, key)
+                  Expect.isError validateResult "Validation must fail for removed key"
+              }
+          testCaseTask "revoking a manager's partner API key notifies them via email and in-app notification"
+          <| fun _ ->
+              task {
+                  setUp ()
+                  let mailSpy = TestMailNotificator()
+                  let notifSpy = TestNotificationService()
+                  let tenantService = getTenantService ()
+                  let tenantApiKeyService = getTenantApiKeyServiceWithMocks mailSpy notifSpy
+
+                  let! ownerId = registerUserTask "keymanager_revoke@test.com" "Password123!"
+                  let ownerContext = UserContext.Authenticated(ownerId, [])
+
+                  let tenant =
+                      Tenant.New(ownerId, TenantName.New "Manager Notified Tenant" |> Result.get, "Via Roma 13", true)
+                  let tenantId = tenant.TenantId
+                  let! createResult = tenantService.CreateTenantAsync(ownerContext, tenant)
+                  Expect.isOk createResult "Tenant creation should succeed"
+
+                  // Add partner key for owner (who is also manager/owner of the tenant)
+                  let now = DateTime.UtcNow
+                  let! addResult = tenantApiKeyService.AddPartnerKeyAsync(ownerContext, tenantId, ownerId, "Owner Secret Integration", now)
+                  Expect.isOk addResult "Adding key for manager/owner should succeed"
+
+                  let! listResult = tenantApiKeyService.GetPartnerKeysAsync(ownerContext, tenantId)
+                  let key =
+                      match listResult with
+                      | Ok (k :: _) -> k.Key
+                      | _ -> failwith "Expected at least one key"
+
+                  // Admin revokes the manager's key
+                  let! revokeResult = tenantApiKeyService.RevokeCatalogKeyAsync(adminContext, tenantId, key)
+                  Expect.isOk revokeResult "Revocation by admin should succeed"
+
+                  // Verify in-app notification sent
+                  let notifs = notifSpy.Notifications
+                  Expect.equal notifs.Length 1 "Should receive 1 in-app notification"
+                  Expect.equal notifs.[0].UserId ownerId "Notification recipient must be the manager"
+                  Expect.isTrue (notifs.[0].Title.Contains "API Key Revoked") "Title should mention API Key Revoked"
+                  Expect.equal notifs.[0].ActionUrl (Some "/tenants") "ActionUrl should be /tenants"
+
+                  // Verify email sent
+                  let emails = mailSpy.SentEmails
+                  Expect.equal emails.Length 1 "Should send 1 email"
+                  let (_, _, recipientEmail, subject, body) = emails.[0]
+                  Expect.isTrue (subject.Contains "API Key Revoked") "Email subject should mention API Key Revoked"
+                  Expect.isTrue (body.Contains "Owner Secret Integration") "Email body should mention key label"
+                  Expect.isTrue (body.Contains key.Value) "Email body should contain the revoked key"
               } ]
+
 

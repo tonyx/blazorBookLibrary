@@ -38,6 +38,13 @@ type ITenantApiKeyService =
         [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken ->
             Task<Result<unit, string>>
 
+    abstract member RemovePartnerKeyAsync:
+        context: UserContext *
+        tenantId: TenantId *
+        catalogApiKey: CatalogApiKey *
+        [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken ->
+            Task<Result<unit, string>>
+
     abstract member GetPartnerKeysAsync:
         context: UserContext *
         tenantId: TenantId *

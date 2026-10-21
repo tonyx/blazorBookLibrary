@@ -403,6 +403,16 @@ let getTenantApiKeyService () : ITenantApiKeyService =
     )
     :> ITenantApiKeyService
 
+let getTenantApiKeyServiceWithMocks (mailNotificator: IMailNotificator) (notificationService: INotificationService) : ITenantApiKeyService =
+    TenantApiKeyService(
+        getSecretReader (),
+        config,
+        mailNotificator,
+        notificationService,
+        getDummyLogger<ITenantApiKeyService> ()
+    )
+    :> ITenantApiKeyService
+
 
 let truncateVectorDb () =
     let connStr = config.GetConnectionString "VectorDbConnection"
@@ -541,7 +551,16 @@ let registerUserTask (email: string) (password: string) =
 
         let userId = UserId guid
         let userService = getUserService ()
-        let user = User.New userId
+        let appUserInfo: AppUserInfo =
+            { Id = guid.ToString()
+              UserName = uniqueEmail
+              Email = uniqueEmail
+              CodiceFiscale = ""
+              IsIdentifiedPhysically = false
+              PhoneNumber = ""
+              Nome = ""
+              Cognome = "" }
+        let user = User.NewWithUserInfo(userId, appUserInfo)
         let! addUser = userService.CreateUserAsync(adminContext, user)
 
         if not (addUser |> Result.isOk) then
@@ -577,7 +596,16 @@ let registerUserWithAdminRoleTask (email: string) (password: string) =
 
         let userId = UserId guid
         let userService = getUserService ()
-        let user = User.New userId
+        let appUserInfo: AppUserInfo =
+            { Id = guid.ToString()
+              UserName = uniqueEmail
+              Email = uniqueEmail
+              CodiceFiscale = ""
+              IsIdentifiedPhysically = false
+              PhoneNumber = ""
+              Nome = ""
+              Cognome = "" }
+        let user = User.NewWithUserInfo(userId, appUserInfo)
         let! addUser = userService.CreateUserAsync(adminContext, user)
 
         if not (addUser |> Result.isOk) then

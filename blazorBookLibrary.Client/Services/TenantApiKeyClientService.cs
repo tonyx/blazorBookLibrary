@@ -56,6 +56,17 @@ public class TenantApiKeyClientService : ITenantApiKeyService
         CatalogApiKey catalogApiKey,
         FSharpOption<CancellationToken> ct)
     {
+        var request = ServiceClientHelper.CreateRequest(HttpMethod.Post, $"api/TenantApiKey/{tenantId.Value}/{catalogApiKey.Value}/revoke", context);
+        var response = await _httpClient.SendAsync(request, ServiceClientHelper.GetValue(ct, CancellationToken.None));
+        return await ServiceClientHelper.HandleUnitResponse(response);
+    }
+
+    public async Task<FSharpResult<Unit, string>> RemovePartnerKeyAsync(
+        Commons.UserContext context,
+        Commons.TenantId tenantId,
+        CatalogApiKey catalogApiKey,
+        FSharpOption<CancellationToken> ct)
+    {
         var request = ServiceClientHelper.CreateRequest(HttpMethod.Delete, $"api/TenantApiKey/{tenantId.Value}/{catalogApiKey.Value}", context);
         var response = await _httpClient.SendAsync(request, ServiceClientHelper.GetValue(ct, CancellationToken.None));
         return await ServiceClientHelper.HandleUnitResponse(response);

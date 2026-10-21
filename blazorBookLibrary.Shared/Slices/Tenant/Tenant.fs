@@ -459,16 +459,27 @@ and Tenant =
                     PartnerApiKeys = updatedKeys }
         }
 
-    member this.ValidateCatalogKey (key: CatalogApiKey, ?configuredKey: CatalogApiKey) =
+    member this.TryFindActivePartnerKey (key: CatalogApiKey, ?now: DateTime) : PartnerApiKey option =
+        let currentTime = defaultArg now DateTime.UtcNow
+        this.PartnerApiKeys
+        |> List.tryFind (fun k ->
+            k.Key = key
+            && k.RevokedAt.IsNone
+            && (k.ExpiresAt.IsNone || k.ExpiresAt.Value >= currentTime))
+
+    member this.ValidateCatalogKey (key: CatalogApiKey, ?configuredKey: CatalogApiKey, ?now: DateTime) =
         result {
             match configuredKey with
             | Some ck when ck = key -> return! Ok ()
             | _ ->
-
-            return!
-                this.PartnerApiKeys
-                |> List.exists (fun k -> k.Key = key)
-                |> Result.ofBool $"Catalog key {key} does not exist"
+                match this.TryFindActivePartnerKey(key, ?now = now) with
+                | Some _ -> return! Ok ()
+                | None ->
+                    let keyOpt = this.PartnerApiKeys |> List.tryFind (fun k -> k.Key = key)
+                    match keyOpt with
+                    | None -> return! Error $"Catalog key {key.Value} does not exist"
+                    | Some pk when pk.RevokedAt.IsSome -> return! Error $"Catalog key {key.Value} has been revoked"
+                    | Some _ -> return! Error $"Catalog key {key.Value} has expired"
         }
 
     member this.HasManagementAccess(context: UserContext) =

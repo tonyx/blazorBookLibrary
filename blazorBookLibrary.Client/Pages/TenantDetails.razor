@@ -11,11 +11,14 @@
 @using static BookLibrary.Shared.Details
 @using System.ComponentModel.DataAnnotations
 @using Microsoft.AspNetCore.SignalR.Client
+@using Microsoft.FSharp.Core
+@using Microsoft.FSharp.Collections
 
 @attribute [Authorize]
 @inject IDetailsService DetailsService
 @inject IUserService UserService
 @inject ITenantService TenantService
+@inject ITenantApiKeyService TenantApiKeyService
 @inject ILoanService LoanService
 @inject IReservationService ReservationService
 @inject BookLibrary.Shared.Services.INotificationService NotificationService
@@ -422,6 +425,51 @@
                                 <span class="text-muted small italic"><i class="bi bi-shield-slash me-1"></i>@L["NotPhysicallyIdentified"]</span>
                             }
                         </div>
+                        <div class="border-top pt-3 mt-1">
+                            <div class="d-flex align-items-center justify-content-between mb-1">
+                                <label class="small text-muted text-uppercase fw-bold mb-0">@L["PartnerApiKey", "Partner API Key"]</label>
+                                @{
+                                    var ownerKey = GetPartnerKeyForUser(libraryDetails.Owner.UserId);
+                                }
+                                @if (ownerKey != null)
+                                {
+                                    var isRevoked = ownerKey.RevokedAt != null && FSharpOption<DateTime>.get_IsSome(ownerKey.RevokedAt);
+                                    var isExpired = ownerKey.ExpiresAt != null && FSharpOption<DateTime>.get_IsSome(ownerKey.ExpiresAt) && ownerKey.ExpiresAt.Value < DateTime.UtcNow;
+
+                                    if (isRevoked)
+                                    {
+                                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill px-2 py-1 small">
+                                            <i class="bi bi-x-circle me-1"></i>@L["Revoked", "Revoked"]
+                                        </span>
+                                    }
+                                    else if (isExpired)
+                                    {
+                                        <span class="badge bg-warning-subtle text-warning border border-warning-subtle rounded-pill px-2 py-1 small">
+                                            <i class="bi bi-clock me-1"></i>@L["Expired", "Expired"]
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2 py-1 small" title="@ownerKey.Label">
+                                            <i class="bi bi-key-fill me-1"></i>@L["Active", "Active"]
+                                        </span>
+                                    }
+                                }
+                            </div>
+                            @if (ownerKey == null)
+                            {
+                                <div class="d-flex align-items-center justify-content-between mt-2">
+                                    <span class="text-muted small italic">@L["NoKeyAssigned", "No API Key Assigned"]</span>
+                                    @if (isAdmin || isOwner || isManager)
+                                    {
+                                        <button class="btn btn-outline-primary btn-sm rounded-pill px-3 shadow-sm"
+                                                @onclick="() => OpenAddPartnerKeyModal(libraryDetails.Owner)">
+                                            <i class="bi bi-plus-circle me-1"></i>@L["AddKey", "Add Key"]
+                                        </button>
+                                    }
+                                </div>
+                            }
+                        </div>
                     </div>
                 </div>
             </div>
@@ -463,6 +511,19 @@
                             <i class="bi bi-calendar-event me-2"></i>@L["ReservationsList"] (@libraryDetails.PendingReservations.Count())
                         </button>
                     </li>
+                    @if (isOwner || isManager || isAdmin)
+                    {
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link py-3 px-4 border-0 @(activeTab == "apiKeys" ? "active border-bottom border-primary fw-bold text-primary" : "text-muted")"
+                                    id="apiKeys-tab" type="button" role="tab" @onclick='() => activeTab = "apiKeys"'>
+                                <i class="bi bi-key-fill me-2"></i>@L["ApiKeys", "API Keys"]
+                                @if (libraryDetails.Tenant.PartnerApiKeys.Length > 0)
+                                {
+                                    <span class="badge bg-primary-subtle text-primary ms-2 rounded-pill">@libraryDetails.Tenant.PartnerApiKeys.Length</span>
+                                }
+                            </button>
+                        </li>
+                    }
                 </ul>
 
                 <div class="tab-content" id="detailsTabContent">
@@ -487,6 +548,7 @@
                                                 <th>@L["PatronName"]</th>
                                                 <th>@L["Email"]</th>
                                                 <th>@L["Role"]</th>
+                                                <th>@L["PartnerApiKey", "Partner Key"]</th>
                                                 <th>@L["Verification"]</th>
                                                 <th class="text-end">@L["Actions"]</th>
                                             </tr>
@@ -524,6 +586,55 @@
                                                         }
                                                     </td>
                                                     <td>
+                                                        @if (role.IsManager)
+                                                        {
+                                                            var managerKey = GetPartnerKeyForUser(patron.UserId);
+                                                            if (managerKey != null)
+                                                            {
+                                                                var isRevoked = managerKey.RevokedAt != null && FSharpOption<DateTime>.get_IsSome(managerKey.RevokedAt);
+                                                                var isExpired = managerKey.ExpiresAt != null && FSharpOption<DateTime>.get_IsSome(managerKey.ExpiresAt) && managerKey.ExpiresAt.Value < DateTime.UtcNow;
+
+                                                                if (isRevoked)
+                                                                {
+                                                                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill px-2 py-1 small" title="@L["Revoked", "Revoked"]">
+                                                                        <i class="bi bi-x-circle me-1"></i>@L["Revoked", "Revoked"]
+                                                                    </span>
+                                                                }
+                                                                else if (isExpired)
+                                                                {
+                                                                    <span class="badge bg-warning-subtle text-warning border border-warning-subtle rounded-pill px-2 py-1 small" title="@L["Expired", "Expired"]">
+                                                                        <i class="bi bi-clock-history me-1"></i>@L["Expired", "Expired"]
+                                                                    </span>
+                                                                }
+                                                                else
+                                                                {
+                                                                    <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2 py-1 small" title="@managerKey.Label">
+                                                                        <i class="bi bi-key-fill me-1"></i>@L["Active", "Active"]
+                                                                    </span>
+                                                                }
+                                                            }
+                                                            else
+                                                            {
+                                                                @if (isAdmin || isOwner || isManager)
+                                                                {
+                                                                    <button class="btn btn-outline-primary btn-sm rounded-pill px-2 py-1 shadow-sm"
+                                                                            @onclick="() => OpenAddPartnerKeyModal(patron)"
+                                                                            title="@L["AddPartnerKeyForManager", "Add Partner Key for this manager"]">
+                                                                        <i class="bi bi-plus-circle me-1"></i>@L["AddKey", "Add Key"]
+                                                                    </button>
+                                                                }
+                                                                else
+                                                                {
+                                                                    <span class="text-muted small italic">@L["None", "None"]</span>
+                                                                }
+                                                            }
+                                                        }
+                                                        else
+                                                        {
+                                                            <span class="text-muted small">—</span>
+                                                        }
+                                                    </td>
+                                                    <td>
                                                         @if (patron.AppUserInfo.IsIdentifiedPhysically)
                                                         {
                                                             <span class="text-success small fw-bold" title="@L["PhysicallyIdentified"]">
@@ -557,6 +668,15 @@
                                                             {
                                                                 @if (role.IsManager)
                                                                 {
+                                                                    var mKey = GetPartnerKeyForUser(patron.UserId);
+                                                                    @if (mKey == null && (isAdmin || isOwner || isManager))
+                                                                    {
+                                                                        <button class="btn btn-outline-primary btn-sm rounded-pill px-3 shadow-sm"
+                                                                                @onclick="() => OpenAddPartnerKeyModal(patron)"
+                                                                                title="@L["AddPartnerKeyForManager", "Add Partner Key for this manager"]">
+                                                                            <i class="bi bi-key-fill me-1"></i> @L["AddKey", "Add Key"]
+                                                                        </button>
+                                                                    }
                                                                     <button class="btn btn-outline-warning btn-sm rounded-pill px-3 shadow-sm"
                                                                             @onclick="() => HandleDemotePatron(patron)">
                                                                         <i class="bi bi-arrow-down-circle me-1"></i> @L["Demote", "Demote"]
@@ -1135,6 +1255,173 @@
                             }
                         </div>
                     }
+
+                    @* API Keys Tab Panel *@
+                    @if (activeTab == "apiKeys" && (isOwner || isManager || isAdmin))
+                    {
+                        <div class="card card-sanctuary border-0 shadow-sm p-4 bg-surface-low animate-fade-in">
+                            <div class="d-flex justify-content-between align-items-center border-bottom pb-3 mb-4 flex-wrap gap-2">
+                                <h3 class="h5 text-serif mb-0">
+                                    <i class="bi bi-key-fill me-2 text-primary"></i>@L["PartnerApiKeysManagement", "Partner API Keys"]
+                                </h3>
+                            </div>
+
+                            @* Managers without a key section *@
+                            @{
+                                var managersWithoutKey = GetManagersWithoutPartnerKey();
+                            }
+                            @if (managersWithoutKey.Any())
+                            {
+                                <div class="alert alert-warning border-0 rounded-4 p-3 mb-4 d-flex flex-column gap-2 shadow-sm">
+                                    <div class="d-flex align-items-center gap-2 fw-bold text-dark">
+                                        <i class="bi bi-exclamation-triangle-fill text-warning fs-5"></i>
+                                        <span>@L["ManagersWithoutKeyHeading", "Managers Without a Partner API Key"]</span>
+                                    </div>
+                                    <p class="small text-muted mb-2">
+                                        @L["ManagersWithoutKeyExplanation", "The following library managers do not have an active Partner Key to integrate external systems:"]
+                                    </p>
+                                    <div class="d-flex flex-column gap-2">
+                                        @foreach (var mgr in managersWithoutKey)
+                                        {
+                                            var isLibOwner = mgr.UserId.Value == libraryDetails.Owner.UserId.Value;
+                                            <div class="d-flex justify-content-between align-items-center bg-white bg-opacity-75 p-2 px-3 rounded-pill">
+                                                <div class="d-flex align-items-center gap-2">
+                                                    <i class="bi bi-person-fill text-primary"></i>
+                                                    <span class="fw-semibold small">@mgr.AppUserInfo.Nome @mgr.AppUserInfo.Cognome</span>
+                                                    <span class="text-muted small">(@mgr.AppUserInfo.Email)</span>
+                                                    @if (isLibOwner)
+                                                    {
+                                                        <span class="badge bg-primary-subtle text-primary rounded-pill small">@L["Owner", "Owner"]</span>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span class="badge bg-secondary-subtle text-secondary rounded-pill small">@L["Manager", "Manager"]</span>
+                                                    }
+                                                </div>
+                                                <button class="btn btn-primary btn-sm rounded-pill px-3 shadow-sm"
+                                                        @onclick="() => OpenAddPartnerKeyModal(mgr)">
+                                                    <i class="bi bi-plus-circle me-1"></i> @L["AddPartnerKey", "Add Partner Key"]
+                                                </button>
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="alert alert-success border-0 rounded-4 p-3 mb-4 d-flex align-items-center gap-2 shadow-sm small text-success">
+                                    <i class="bi bi-check-circle-fill fs-5"></i>
+                                    <span>@L["AllManagersHaveKeys", "All library managers currently have an associated Partner Key."]</span>
+                                </div>
+                            }
+
+                            @* List of all existing keys *@
+                            <h4 class="h6 text-uppercase text-muted fw-bold mb-3">@L["ExistingPartnerKeys", "Existing Partner Keys"]</h4>
+                            @if (libraryDetails.Tenant.PartnerApiKeys.Length == 0)
+                            {
+                                <div class="text-center py-4 text-muted italic">
+                                    <i class="bi bi-key display-6 opacity-25 d-block mb-2"></i>
+                                    @L["NoApiKeysFound", "No partner API keys created for this library yet."]
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="table-responsive">
+                                    <table class="table align-middle">
+                                        <thead>
+                                            <tr class="text-uppercase small text-muted">
+                                                <th>@L["Label", "Label"]</th>
+                                                <th>@L["Partner", "Manager / Partner"]</th>
+                                                <th>@L["ApiKey", "Key"]</th>
+                                                <th>@L["Created", "Created"]</th>
+                                                <th>@L["Expires", "Expires"]</th>
+                                                <th>@L["Status", "Status"]</th>
+                                                <th class="text-end">@L["Actions", "Actions"]</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach (var k in libraryDetails.Tenant.PartnerApiKeys)
+                                            {
+                                                var isRevoked = k.RevokedAt != null && FSharpOption<DateTime>.get_IsSome(k.RevokedAt);
+                                                var isExpired = k.ExpiresAt != null && FSharpOption<DateTime>.get_IsSome(k.ExpiresAt) && k.ExpiresAt.Value < DateTime.UtcNow;
+                                                var partnerUser = GetUserForPartnerKey(k.PartnerId);
+
+                                                <tr>
+                                                    <td>
+                                                        <div class="fw-bold">@k.Label</div>
+                                                    </td>
+                                                    <td>
+                                                        @if (partnerUser != null)
+                                                        {
+                                                            <div class="fw-semibold small">@partnerUser.AppUserInfo.Nome @partnerUser.AppUserInfo.Cognome</div>
+                                                            <div class="text-muted small">@partnerUser.AppUserInfo.Email</div>
+                                                        }
+                                                        else
+                                                        {
+                                                            <span class="font-monospace text-muted small">@k.PartnerId.Value</span>
+                                                        }
+                                                    </td>
+                                                    <td>
+                                                        <div class="d-flex align-items-center gap-1 font-monospace small">
+                                                            <span>@(k.Key.Value.Length > 15 ? k.Key.Value.Substring(0, 15) + "..." : k.Key.Value)</span>
+                                                            <button class="btn btn-link btn-sm p-0 text-muted" @onclick="() => CopyKeyToClipboard(k.Key.Value)" title="@L["CopyKey", "Copy API Key"]">
+                                                                <i class="bi bi-clipboard"></i>
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                    <td>
+                                                        <span class="small text-muted">@k.CreatedAt.ToString("d")</span>
+                                                    </td>
+                                                    <td>
+                                                        <span class="small text-muted">
+                                                            @(k.ExpiresAt != null && FSharpOption<DateTime>.get_IsSome(k.ExpiresAt) ? k.ExpiresAt.Value.ToString("d") : L["Never", "Never"])
+                                                        </span>
+                                                    </td>
+                                                    <td>
+                                                        @if (isRevoked)
+                                                        {
+                                                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill px-2 py-1 small">
+                                                                <i class="bi bi-x-circle me-1"></i>@L["Revoked", "Revoked"]
+                                                            </span>
+                                                        }
+                                                        else if (isExpired)
+                                                        {
+                                                            <span class="badge bg-warning-subtle text-warning border border-warning-subtle rounded-pill px-2 py-1 small">
+                                                                <i class="bi bi-clock-history me-1"></i>@L["Expired", "Expired"]
+                                                            </span>
+                                                        }
+                                                        else
+                                                        {
+                                                            <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2 py-1 small">
+                                                                <i class="bi bi-check-circle-fill me-1"></i>@L["Active", "Active"]
+                                                            </span>
+                                                        }
+                                                    </td>
+                                                    <td class="text-end">
+                                                        <div class="d-flex justify-content-end gap-1">
+                                                            @if (!isRevoked)
+                                                            {
+                                                                <button class="btn btn-outline-warning btn-sm rounded-pill px-2 py-1"
+                                                                        @onclick="() => HandleRevokeApiKey(k)"
+                                                                        title="@L["RevokeKey", "Revoke Key (Manager will be notified)"]">
+                                                                    <i class="bi bi-slash-circle me-1"></i>@L["Revoke", "Revoke"]
+                                                                </button>
+                                                            }
+                                                            <button class="btn btn-outline-danger btn-sm rounded-pill px-2 py-1"
+                                                                    @onclick="() => HandleRemoveApiKey(k)"
+                                                                    title="@L["DeleteKey", "Delete Key"]">
+                                                                <i class="bi bi-trash"></i>
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
+                                </div>
+                            }
+                        </div>
+                    }
                 </div>
             </div>
         </div>
@@ -1194,6 +1481,103 @@
             </div>
         </div>
     }
+
+    @if (targetManagerForPartnerKey != null)
+    {
+        <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);" role="dialog">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content card-sanctuary border-0 shadow-lg bg-surface-low">
+                    <div class="modal-header border-bottom-0 p-4 pb-0">
+                        <h5 class="modal-title text-serif h4 text-primary">
+                            <i class="bi bi-key-fill me-2"></i>@L["AddPartnerKeyForManager", "Add Partner Key"]
+                        </h5>
+                        <button type="button" class="btn-close" @onclick="CloseAddPartnerKeyModal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body p-4 pt-2">
+                        <p class="text-muted small mb-3">
+                            @L["AddPartnerKeyExplanation", "Generate a new partner API key for manager"] <strong>@targetManagerForPartnerKey.AppUserInfo.Nome @targetManagerForPartnerKey.AppUserInfo.Cognome</strong> (@targetManagerForPartnerKey.AppUserInfo.Email).
+                        </p>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold small">@L["KeyLabel", "Key Description / Label"]</label>
+                            <input type="text" @bind="newPartnerKeyLabel" class="form-control" placeholder="e.g. Partner API Integration" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold small">@L["OptionalExpiry", "Optional Expiration Date"]</label>
+                            <input type="date" @bind="newPartnerKeyExpiresAt" class="form-control" />
+                        </div>
+
+                        @if (!string.IsNullOrEmpty(addPartnerKeyError))
+                        {
+                            <div class="text-danger small mt-2">
+                                <i class="bi bi-exclamation-circle me-1"></i> @addPartnerKeyError
+                            </div>
+                        }
+                    </div>
+                    <div class="modal-footer border-top-0 p-4 pt-0 gap-2">
+                        <button type="button" class="btn btn-outline-secondary rounded-pill px-4" @onclick="CloseAddPartnerKeyModal">
+                            @L["Cancel"]
+                        </button>
+                        <button type="button" class="btn btn-primary rounded-pill px-4 shadow-sm" @onclick="HandleSubmitAddPartnerKey" disabled="@isAddingPartnerKey">
+                            @if (isAddingPartnerKey)
+                            {
+                                <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                            }
+                            else
+                            {
+                                <i class="bi bi-key-fill me-2"></i>
+                            }
+                            @L["GenerateKey", "Generate Key"]
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    @if (recentlyCreatedKey != null)
+    {
+        <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);" role="dialog">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content card-sanctuary border-0 shadow-lg bg-surface-low">
+                    <div class="modal-header border-bottom-0 p-4 pb-0">
+                        <h5 class="modal-title text-serif h4 text-success">
+                            <i class="bi bi-check-circle-fill me-2"></i>@L["KeyCreatedSuccess", "Partner API Key Generated"]
+                        </h5>
+                        <button type="button" class="btn-close" @onclick="() => recentlyCreatedKey = null" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body p-4 pt-2">
+                        <p class="text-muted small mb-3">
+                            @L["KeyCreatedModalNotice", "The Partner API Key has been generated and activated. You can copy the secret below to use in the X-API-Key request header:"]
+                        </p>
+
+                        <label class="form-label small fw-bold text-muted">@L["ApiKeySecret", "API Key Secret (Header: X-API-Key)"]</label>
+                        <div class="input-group mb-3">
+                            <input type="text" class="form-control font-monospace bg-surface-high border-end-0" readonly value="@recentlyCreatedKey.Key.Value" />
+                            <button class="btn btn-outline-primary" type="button" @onclick="() => CopyKeyToClipboard(recentlyCreatedKey.Key.Value)">
+                                <i class="bi bi-clipboard me-1"></i> @L["Copy", "Copy"]
+                            </button>
+                        </div>
+
+                        <div class="small text-muted">
+                            <div><strong>@L["Label", "Label"]:</strong> @recentlyCreatedKey.Label</div>
+                            <div><strong>@L["Created", "Created"]:</strong> @recentlyCreatedKey.CreatedAt.ToString("g")</div>
+                            @if (recentlyCreatedKey.ExpiresAt != null && FSharpOption<DateTime>.get_IsSome(recentlyCreatedKey.ExpiresAt))
+                            {
+                                <div><strong>@L["Expires", "Expires"]:</strong> @recentlyCreatedKey.ExpiresAt.Value.ToString("g")</div>
+                            }
+                        </div>
+                    </div>
+                    <div class="modal-footer border-top-0 p-4 pt-0">
+                        <button type="button" class="btn btn-primary rounded-pill px-4 shadow-sm" @onclick="() => recentlyCreatedKey = null">
+                            @L["Done", "Done"]
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
 </div>
 
 @code {
@@ -1224,6 +1608,13 @@
     private string newTagNameInput = "";
     private string newTagTypeInput = "Generic";
     private bool isAddingTag = false;
+
+    private User? targetManagerForPartnerKey;
+    private string newPartnerKeyLabel = "";
+    private DateTime? newPartnerKeyExpiresAt;
+    private bool isAddingPartnerKey = false;
+    private string? addPartnerKeyError;
+    private PartnerApiKey? recentlyCreatedKey;
     private async Task HandlePreferenceChange(ChangeEventArgs e)
     {
         if (libraryDetails == null || isUpdatingPreference) return;
@@ -1604,6 +1995,206 @@
         {
             await JSRuntime.InvokeVoidAsync("navigator.clipboard.writeText", libraryDetails.Tenant.CurrentJoinPin.Value);
             await JSRuntime.InvokeVoidAsync("showToast", L["CopiedToClipboard", "PIN copied to clipboard!"].Value, "success");
+        }
+    }
+
+    private async Task CopyToClipboard(string text, string successMessage = "Copied to clipboard!")
+    {
+        if (!string.IsNullOrEmpty(text))
+        {
+            await JSRuntime.InvokeVoidAsync("navigator.clipboard.writeText", text);
+            await JSRuntime.InvokeVoidAsync("showToast", successMessage, "success");
+        }
+    }
+
+    private async Task CopyKeyToClipboard(string keyVal)
+    {
+        await CopyToClipboard(keyVal, L["KeyCopied", "API key copied to clipboard!"].Value);
+    }
+
+    private PartnerApiKey? GetPartnerKeyForUser(UserId userId)
+    {
+        if (libraryDetails?.Tenant?.PartnerApiKeys == null) return null;
+        return libraryDetails.Tenant.PartnerApiKeys.FirstOrDefault(k => k.PartnerId.Value == userId.Value);
+    }
+
+    private bool HasPartnerKey(UserId userId)
+    {
+        return GetPartnerKeyForUser(userId) != null;
+    }
+
+    private List<User> GetManagersWithoutPartnerKey()
+    {
+        var managersWithoutKey = new List<User>();
+        if (libraryDetails == null) return managersWithoutKey;
+
+        // Check owner
+        if (libraryDetails.Owner != null && !HasPartnerKey(libraryDetails.Owner.UserId))
+        {
+            managersWithoutKey.Add(libraryDetails.Owner);
+        }
+
+        // Check patrons with manager role
+        if (libraryDetails.Patrons != null)
+        {
+            foreach (var tuple in libraryDetails.Patrons)
+            {
+                var user = tuple.Item1;
+                var role = tuple.Item2;
+                if (role.IsManager && !HasPartnerKey(user.UserId))
+                {
+                    if (managersWithoutKey.All(u => u.UserId.Value != user.UserId.Value))
+                    {
+                        managersWithoutKey.Add(user);
+                    }
+                }
+            }
+        }
+
+        return managersWithoutKey;
+    }
+
+    private User? GetUserForPartnerKey(UserId userId)
+    {
+        if (libraryDetails == null) return null;
+        if (libraryDetails.Owner != null && libraryDetails.Owner.UserId.Value == userId.Value)
+        {
+            return libraryDetails.Owner;
+        }
+        if (libraryDetails.Patrons != null)
+        {
+            var found = libraryDetails.Patrons.FirstOrDefault(p => p.Item1.UserId.Value == userId.Value);
+            if (found != null) return found.Item1;
+        }
+        return null;
+    }
+
+    private void OpenAddPartnerKeyModal(User manager)
+    {
+        targetManagerForPartnerKey = manager;
+        newPartnerKeyLabel = $"{manager.AppUserInfo.Nome} Partner Key";
+        newPartnerKeyExpiresAt = null;
+        addPartnerKeyError = null;
+    }
+
+    private void CloseAddPartnerKeyModal()
+    {
+        targetManagerForPartnerKey = null;
+        addPartnerKeyError = null;
+        isAddingPartnerKey = false;
+    }
+
+    private async Task HandleSubmitAddPartnerKey()
+    {
+        if (targetManagerForPartnerKey == null || libraryDetails == null) return;
+        isAddingPartnerKey = true;
+        addPartnerKeyError = null;
+
+        try
+        {
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var userContext = TenantState.GetUserContext(authState.User);
+            var tenantId = TenantId.NewTenantId(Id);
+            var label = string.IsNullOrWhiteSpace(newPartnerKeyLabel)
+                ? $"{targetManagerForPartnerKey.AppUserInfo.Nome} Partner Key"
+                : newPartnerKeyLabel.Trim();
+            var now = DateTime.UtcNow;
+            var expiresAtOpt = newPartnerKeyExpiresAt.HasValue
+                ? FSharpOption<DateTime>.Some(newPartnerKeyExpiresAt.Value)
+                : FSharpOption<DateTime>.None;
+
+            var result = await TenantApiKeyService.AddPartnerKeyAsync(
+                userContext,
+                tenantId,
+                targetManagerForPartnerKey.UserId,
+                label,
+                now,
+                expiresAtOpt,
+                FSharpOption<CancellationToken>.None);
+
+            if (result.IsOk)
+            {
+                var targetUserId = targetManagerForPartnerKey.UserId.Value;
+                CloseAddPartnerKeyModal();
+                await JSRuntime.InvokeVoidAsync("showToast", L["KeyCreatedSuccess", "Partner API key generated successfully!"].Value, "success");
+                await LoadTenantDetailsAsync(isSilent: true);
+
+                if (libraryDetails?.Tenant?.PartnerApiKeys != null)
+                {
+                    recentlyCreatedKey = libraryDetails.Tenant.PartnerApiKeys.FirstOrDefault(k => k.PartnerId.Value == targetUserId);
+                }
+            }
+            else
+            {
+                addPartnerKeyError = result.ErrorValue;
+                await JSRuntime.InvokeVoidAsync("showToast", result.ErrorValue, "error");
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error generating Partner API key for manager");
+            addPartnerKeyError = ex.Message;
+            await JSRuntime.InvokeVoidAsync("showToast", L["ErrorOccurred"].Value, "error");
+        }
+        finally
+        {
+            isAddingPartnerKey = false;
+        }
+    }
+
+    private async Task HandleRevokeApiKey(PartnerApiKey key)
+    {
+        if (libraryDetails == null) return;
+        var confirm = await JSRuntime.InvokeAsync<bool>("confirm", L["ConfirmRevokeApiKey", "Are you sure you want to revoke this API key? The manager will be notified."].Value);
+        if (!confirm) return;
+
+        try
+        {
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var userContext = TenantState.GetUserContext(authState.User);
+            var result = await TenantApiKeyService.RevokeCatalogKeyAsync(userContext, libraryDetails.Tenant.TenantId, key.Key, FSharpOption<CancellationToken>.None);
+            if (result.IsOk)
+            {
+                await JSRuntime.InvokeVoidAsync("showToast", L["KeyRevokedSuccess", "API key revoked successfully."].Value, "success");
+                await LoadTenantDetailsAsync(isSilent: true);
+            }
+            else
+            {
+                await JSRuntime.InvokeVoidAsync("showToast", result.ErrorValue, "error");
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error revoking API key");
+            await JSRuntime.InvokeVoidAsync("showToast", L["ErrorOccurred"].Value, "error");
+        }
+    }
+
+    private async Task HandleRemoveApiKey(PartnerApiKey key)
+    {
+        if (libraryDetails == null) return;
+        var confirm = await JSRuntime.InvokeAsync<bool>("confirm", L["ConfirmDeleteApiKey", "Are you sure you want to permanently delete this API key?"].Value);
+        if (!confirm) return;
+
+        try
+        {
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var userContext = TenantState.GetUserContext(authState.User);
+            var result = await TenantApiKeyService.RemovePartnerKeyAsync(userContext, libraryDetails.Tenant.TenantId, key.Key, FSharpOption<CancellationToken>.None);
+            if (result.IsOk)
+            {
+                await JSRuntime.InvokeVoidAsync("showToast", L["KeyDeletedSuccess", "API key removed successfully."].Value, "success");
+                await LoadTenantDetailsAsync(isSilent: true);
+            }
+            else
+            {
+                await JSRuntime.InvokeVoidAsync("showToast", result.ErrorValue, "error");
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error deleting API key");
+            await JSRuntime.InvokeVoidAsync("showToast", L["ErrorOccurred"].Value, "error");
         }
     }
 
@@ -2557,6 +3148,10 @@
             else if (Tab.Equals("patrons", StringComparison.OrdinalIgnoreCase))
             {
                 activeTab = "patrons";
+            }
+            else if (Tab.Equals("apiKeys", StringComparison.OrdinalIgnoreCase) || Tab.Equals("keys", StringComparison.OrdinalIgnoreCase))
+            {
+                activeTab = "apiKeys";
             }
         }
 

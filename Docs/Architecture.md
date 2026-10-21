@@ -82,7 +82,7 @@ graph TB
 ### 5. Security & Infrastructure
 - **Identity & OAuth**: Integrated with Microsoft Identity and Google OAuth for secure authentication.
 - **Bot Protection**: Implements `Recaptcha v3` and a custom `BotScoreService` to mitigate automated abuse.
-- **Catalog API Security**: Employs configurable `X-API-Key` authentication for external catalog consumers (`Catalog:ApiKey`), combined with strict multi-tenant boundary checks (public vs. private circuits).
+- **Catalog API Security**: Employs dual-tier `X-API-Key` authentication for external catalog consumers: a global master key (`Catalog:ApiKey` in `appsettings.json`) and per-tenant event-sourced partner keys (`bbl_cat_<uniqueId>`), combined with strict multi-tenant boundary checks (public vs. private circuits). See [tenantkey.md](file:///Users/antoniolucca/github/blazorBookLibrary/Docs/tenantkey.md) for full architectural details.
 - **Localization**: Full support for `it-IT` and `en-US` via standard .NET localization patterns (`IStringLocalizer`).
 
 ### 6. GDPR & Anonymization (Ghosting Pattern)
