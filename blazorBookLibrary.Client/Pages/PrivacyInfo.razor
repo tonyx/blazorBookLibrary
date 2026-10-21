@@ -265,7 +265,7 @@
                         <h2 class="h5 fw-bold text-serif mb-0">
                             @(IsItalian ? "Autenticazione Terze Parti & Servizi Esterni" : "Third Parties & External Providers")
                         </h2>
-                        <span class="small text-muted">OAuth, Google Books & Wikipedia</span>
+                        <span class="small text-muted">OAuth, Google Books, Wikipedia & AI</span>
                     </div>
                 </div>
                 <div class="text-muted small" style="line-height: 1.7;">
@@ -295,6 +295,17 @@
                             @(IsItalian 
                                 ? "L'utente può aggiungere un collegamento a qualsiasi URL di immagine dichiarando che tale utilizzo non viola alcun diritto d'autore, che l'immagine impiegata è di pubblico dominio oppure che il suo uso ricade nel fair use." 
                                 : "The user can add a link to any URL image declaring that this use does not infringe any copyright, that the image used is public, or that the use is fair.")
+                        </p>
+                    </div>
+                    <div class="p-3 bg-surface-low rounded-3 border mt-3">
+                        <div class="d-flex align-items-center gap-2 mb-1 text-primary fw-bold">
+                            <i class="bi bi-stars"></i>
+                            <span>@(IsItalian ? "A.I. Librarian & Assenza di Archiviazione Permanente:" : "A.I. Librarian & Absence of Permanent Storage:")</span>
+                        </div>
+                        <p class="mb-0">
+                            @(IsItalian 
+                                ? "La funzionalità A.I. Librarian non memorizza alcuna conversazione in alcun supporto di archiviazione permanente o database. Tutti i dialoghi e i messaggi scambiati vengono elaborati in tempo reale, rimangono effimeri per la durata della sessione attiva nel browser e non vengono archiviati in modo persistente." 
+                                : "The A.I. Librarian feature will not store any conversation in any permanent storage or database. All dialogues and messages are processed in real time, remain strictly ephemeral for the duration of the active browser session, and are never permanently persisted or recorded.")
                         </p>
                     </div>
                 </div>

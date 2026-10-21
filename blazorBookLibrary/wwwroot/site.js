@@ -224,6 +224,56 @@ window.dismissCookieBanner = function() {
     }
 };
 
+window.dismissAiLibrarianBanner = function() {
+    // 1. Set client-side cookie with full RFC-compliant parameters
+    try {
+        if (window.blazorCookies && typeof window.blazorCookies.set === 'function') {
+            window.blazorCookies.set('ai_librarian_banner_dismissed', 'true', 365);
+        } else {
+            const date = new Date();
+            date.setTime(date.getTime() + (365 * 24 * 60 * 60 * 1000));
+            const secure = window.location.protocol === 'https:' ? '; Secure' : '';
+            document.cookie = "ai_librarian_banner_dismissed=true; expires=" + date.toUTCString() + "; max-age=" + (365 * 24 * 60 * 60) + "; path=/; SameSite=Lax" + secure;
+        }
+    } catch (e) {}
+
+    // 2. Set LocalStorage fallback
+    try {
+        if (window.localStorage) {
+            localStorage.setItem('ai_librarian_banner_dismissed', 'true');
+        }
+    } catch (e) {}
+
+    // 3. Set SessionStorage fallback
+    try {
+        if (window.sessionStorage) {
+            sessionStorage.setItem('ai_librarian_banner_dismissed', 'true');
+        }
+    } catch (e) {}
+
+    // 4. Ping server-side endpoint
+    try {
+        fetch('/CookieConsent/DismissAiBanner', { method: 'POST', credentials: 'same-origin' }).catch(() => {});
+    } catch (e) {}
+
+    // 5. Hide and remove banner from DOM immediately
+    try {
+        document.documentElement.classList.add('hide-ai-librarian-banner');
+    } catch (e) {}
+
+    const banner = document.getElementById('ai-librarian-banner-container');
+    if (banner) {
+        banner.style.transition = 'opacity 0.25s ease, transform 0.25s ease';
+        banner.style.opacity = '0';
+        banner.style.transform = 'translateY(15px)';
+        setTimeout(() => {
+            if (banner && banner.parentNode) {
+                banner.remove();
+            }
+        }, 250);
+    }
+};
+
 window.librarianSpeech = {
     recognition: null,
     voices: [],

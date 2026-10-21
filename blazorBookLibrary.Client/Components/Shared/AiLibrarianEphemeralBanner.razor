@@ -1,0 +1,113 @@
+@using blazorBookLibrary.Shared.Resources
+@using Microsoft.Extensions.Localization
+@inject BookLibrary.Shared.Services.ICookieService CookieService
+@inject IStringLocalizer<SharedResources> L
+@inject IJSRuntime JSRuntime
+
+@if (!isDismissed)
+{
+    <aside id="ai-librarian-banner-container" class="ai-librarian-banner-container" role="region" aria-label="@L["AiLibrarianBanner_Title"]">
+        <div class="ai-librarian-banner-card">
+            <div class="d-flex align-items-start gap-3">
+                <div class="ai-librarian-icon-wrapper" aria-hidden="true">
+                    <i class="bi bi-stars fs-5"></i>
+                </div>
+                <div class="flex-grow-1">
+                    <div class="d-flex align-items-center justify-content-between mb-1">
+                        <h2 class="ai-librarian-banner-title mb-0">@L["AiLibrarianBanner_Title"]</h2>
+                        <button type="button" 
+                                class="btn-close-banner" 
+                                aria-label="Close" 
+                                onclick="if(window.dismissAiLibrarianBanner){window.dismissAiLibrarianBanner();}else{document.cookie='ai_librarian_banner_dismissed=true; path=/; max-age=31536000';try{localStorage.setItem('ai_librarian_banner_dismissed','true');sessionStorage.setItem('ai_librarian_banner_dismissed','true');}catch(e){}document.documentElement.classList.add('hide-ai-librarian-banner');var b=document.getElementById('ai-librarian-banner-container');if(b)b.remove();fetch('/CookieConsent/DismissAiBanner',{method:'POST'}).catch(function(){});}"
+                                ontouchend="if(window.dismissAiLibrarianBanner){window.dismissAiLibrarianBanner();}">
+                            <i class="bi bi-x-lg"></i>
+                        </button>
+                    </div>
+                    <p class="ai-librarian-banner-text">
+                        @L["AiLibrarianBanner_Message"]
+                    </p>
+                    <div class="d-flex align-items-center gap-3 flex-wrap">
+                        <button type="button" 
+                                id="aiLibrarianBannerDismissBtn"
+                                class="btn btn-ai-librarian-dismiss" 
+                                onclick="if(window.dismissAiLibrarianBanner){window.dismissAiLibrarianBanner();}else{document.cookie='ai_librarian_banner_dismissed=true; path=/; max-age=31536000';try{localStorage.setItem('ai_librarian_banner_dismissed','true');sessionStorage.setItem('ai_librarian_banner_dismissed','true');}catch(e){}document.documentElement.classList.add('hide-ai-librarian-banner');var b=document.getElementById('ai-librarian-banner-container');if(b)b.remove();fetch('/CookieConsent/DismissAiBanner',{method:'POST'}).catch(function(){});}"
+                                ontouchend="if(window.dismissAiLibrarianBanner){window.dismissAiLibrarianBanner();}">
+                            <i class="bi bi-check-lg me-1"></i>@L["AiLibrarianBanner_Acknowledge"]
+                        </button>
+                        <a href="privacy-info#third-party" class="btn-ai-librarian-link">
+                            @L["AiLibrarianBanner_LearnMore"]
+                            <i class="bi bi-box-arrow-up-right small"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </aside>
+}
+
+@code {
+    private bool isDismissed = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var cookie = await CookieService.GetCookieAsync("ai_librarian_banner_dismissed");
+            if (cookie != null && Microsoft.FSharp.Core.FSharpOption<string>.get_IsSome(cookie) && cookie.Value == "true")
+            {
+                isDismissed = true;
+            }
+            else
+            {
+                isDismissed = false;
+            }
+        }
+        catch
+        {
+            isDismissed = false;
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && !isDismissed)
+        {
+            try
+            {
+                var stored = await JSRuntime.InvokeAsync<string?>("eval", 
+                    "(() => { try { return (localStorage.getItem('ai_librarian_banner_dismissed') === 'true' || sessionStorage.getItem('ai_librarian_banner_dismissed') === 'true') ? 'true' : null; } catch(e) { return null; } })()");
+                if (stored == "true")
+                {
+                    isDismissed = true;
+                    StateHasChanged();
+                }
+            }
+            catch
+            {
+                // Fallback if JS interop is inaccessible
+            }
+        }
+    }
+
+    private async Task DismissBanner()
+    {
+        isDismissed = true;
+        try
+        {
+            await CookieService.SetCookieAsync("ai_librarian_banner_dismissed", "true", Microsoft.FSharp.Core.FSharpOption<int>.Some(365));
+        }
+        catch {}
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("eval", 
+                "try { localStorage.setItem('ai_librarian_banner_dismissed', 'true'); sessionStorage.setItem('ai_librarian_banner_dismissed', 'true'); } catch(e) {}");
+        }
+        catch {}
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("eval", 
+                "try { fetch('/CookieConsent/DismissAiBanner', { method: 'POST', credentials: 'same-origin' }).catch(function(){}); } catch(e) {}");
+        }
+        catch {}
+    }
+}

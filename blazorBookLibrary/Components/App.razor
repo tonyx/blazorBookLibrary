@@ -33,6 +33,17 @@
             }
         } catch (e) {}
 
+        try {
+            var hasAiCookie = document.cookie.split(';').some((item) => item.trim().startsWith('ai_librarian_banner_dismissed=true'));
+            var hasAiLocal = false;
+            var hasAiSession = false;
+            try { hasAiLocal = window.localStorage && localStorage.getItem('ai_librarian_banner_dismissed') === 'true'; } catch(e) {}
+            try { hasAiSession = window.sessionStorage && sessionStorage.getItem('ai_librarian_banner_dismissed') === 'true'; } catch(e) {}
+            if (hasAiCookie || hasAiLocal || hasAiSession) {
+                document.documentElement.classList.add('hide-ai-librarian-banner');
+            }
+        } catch (e) {}
+
         window.dismissCookieBanner = function() {
             try {
                 var date = new Date();
@@ -55,6 +66,29 @@
                 }
             }
         };
+
+        window.dismissAiLibrarianBanner = function() {
+            try {
+                var date = new Date();
+                date.setTime(date.getTime() + (365 * 24 * 60 * 60 * 1000));
+                var sec = window.location.protocol === 'https:' ? '; Secure' : '';
+                document.cookie = "ai_librarian_banner_dismissed=true; expires=" + date.toUTCString() + "; max-age=" + (365 * 24 * 60 * 60) + "; path=/; SameSite=Lax" + sec;
+            } catch (e) {}
+
+            try { if (window.localStorage) localStorage.setItem('ai_librarian_banner_dismissed', 'true'); } catch (e) {}
+            try { if (window.sessionStorage) sessionStorage.setItem('ai_librarian_banner_dismissed', 'true'); } catch (e) {}
+            try { fetch('/CookieConsent/DismissAiBanner', { method: 'POST', credentials: 'same-origin' }).catch(function() {}); } catch (e) {}
+
+            try { document.documentElement.classList.add('hide-ai-librarian-banner'); } catch (e) {}
+
+            var banner = document.getElementById('ai-librarian-banner-container');
+            if (banner) {
+                banner.style.display = 'none';
+                if (banner.parentNode) {
+                    banner.parentNode.removeChild(banner);
+                }
+            }
+        };
     </script>
     <style>
         .hide-welcome-msg .welcome-message-dismissible {
@@ -62,6 +96,10 @@
         }
         .hide-cookie-banner .cookie-banner-container,
         .hide-cookie-banner #cookie-banner-container {
+            display: none !important;
+        }
+        .hide-ai-librarian-banner .ai-librarian-banner-container,
+        .hide-ai-librarian-banner #ai-librarian-banner-container {
             display: none !important;
         }
     </style>

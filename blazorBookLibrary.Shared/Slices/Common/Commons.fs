@@ -237,6 +237,57 @@ type PatronInvitationCode =
         match this with
         | PatronInvitationCode v -> v
 
+type CatalogApiKey =
+    | CatalogApiKey of string
+
+    static member Prefix = "bbl_cat_"
+
+    static member New() =
+        CatalogApiKey (sprintf "%s%s" CatalogApiKey.Prefix (Guid.NewGuid().ToString("N")))
+
+    static member New(uniqueId: Guid) =
+        CatalogApiKey (sprintf "%s%s" CatalogApiKey.Prefix (uniqueId.ToString("N")))
+
+    static member FromString(s: string) =
+        if String.IsNullOrWhiteSpace(s) then
+            Error "Catalog API key cannot be empty"
+        else
+            let trimmed = s.Trim()
+            if not (trimmed.StartsWith(CatalogApiKey.Prefix)) then
+                Error $"Catalog API key must start with '{CatalogApiKey.Prefix}'"
+            elif trimmed.Length <= CatalogApiKey.Prefix.Length then
+                Error "Catalog API key must contain a non-empty unique identifier after the prefix"
+            else
+                Ok (CatalogApiKey trimmed)
+
+    static member New(s: string) = CatalogApiKey.FromString s
+
+    static member IsValid(s: string) =
+        if String.IsNullOrWhiteSpace(s) then
+            false
+        else
+            let trimmed = s.Trim()
+            trimmed.StartsWith(CatalogApiKey.Prefix) && trimmed.Length > CatalogApiKey.Prefix.Length
+
+    member this.Value =
+        match this with
+        | CatalogApiKey v -> v
+
+    member this.UniqueId =
+        match this with
+        | CatalogApiKey v when v.StartsWith(CatalogApiKey.Prefix) ->
+            v.Substring(CatalogApiKey.Prefix.Length)
+        | CatalogApiKey v -> v
+
+    member this.TryGuid: Guid option =
+        match Guid.TryParse(this.UniqueId) with
+        | true, g -> Some g
+        | false, _ -> None
+
+    override this.ToString() = this.Value
+
+type CatalogKey = CatalogApiKey
+
 type PaperId =
     | PaperId of Guid
     static member New() = PaperId(Guid.NewGuid()) 

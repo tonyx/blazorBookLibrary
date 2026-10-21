@@ -1264,6 +1264,10 @@
   <data name="CookieBanner_Message" xml:space="preserve"><value>BiblioNet impiega esclusivamente cookie tecnici strettamente necessari al funzionamento, alla sicurezza della sessione e alle preferenze di navigazione. Non utilizziamo cookie di profilazione o tracciamento pubblicitario.</value></data>
   <data name="CookieBanner_Acknowledge" xml:space="preserve"><value>Ho capito</value></data>
   <data name="CookieBanner_LearnMore" xml:space="preserve"><value>Maggiori informazioni</value></data>
+  <data name="AiLibrarianBanner_Title" xml:space="preserve"><value>Informativa sulla Riservatezza della Sessione</value></data>
+  <data name="AiLibrarianBanner_Message" xml:space="preserve"><value>Le conversazioni con l'A.I. Librarian sono strettamente effimere per la presente sessione di navigazione e non vengono memorizzate, registrate o archiviate in alcun database permanente.</value></data>
+  <data name="AiLibrarianBanner_Acknowledge" xml:space="preserve"><value>Ho capito</value></data>
+  <data name="AiLibrarianBanner_LearnMore" xml:space="preserve"><value>Maggiori informazioni</value></data>
   <data name="ReserveAsGuest" xml:space="preserve"><value>Prenota come Ospite</value></data>
   <data name="GuestReservationNotice" xml:space="preserve"><value>Hai già un account? Accedi prima per una migliore gestione delle prenotazioni.</value></data>
   <data name="GuestReservationSuccess" xml:space="preserve"><value>Grazie, {0}! La tua prenotazione è stata inviata. Il gestore della biblioteca è stato informato e preparerà il prestito.</value></data>

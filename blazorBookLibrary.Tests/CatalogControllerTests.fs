@@ -230,4 +230,32 @@ let catalogTests =
             | other ->
                 failwithf "Expected ContentResult but got %s" (other.GetType().FullName)
         }
+
+        testCase "CatalogApiKey.New generates unique keys with bbl_cat_ prefix" <| fun _ ->
+            let key1 = CatalogApiKey.New()
+            let key2 = CatalogApiKey.New()
+
+            Expect.isTrue (key1.Value.StartsWith("bbl_cat_")) "Key1 should start with bbl_cat_"
+            Expect.isTrue (key2.Value.StartsWith("bbl_cat_")) "Key2 should start with bbl_cat_"
+            Expect.notEqual key1.Value key2.Value "Successive New() calls must generate distinct keys"
+            Expect.equal key1.UniqueId.Length 32 "UniqueId should be 32 characters (hex Guid)"
+            Expect.isTrue key1.TryGuid.IsSome "UniqueId should parse to a valid Guid"
+
+        testCase "CatalogApiKey validation and parsing" <| fun _ ->
+            let testGuid = Guid.NewGuid()
+            let keyFromGuid = CatalogApiKey.New(testGuid)
+            Expect.equal keyFromGuid.Value ($"bbl_cat_{testGuid.ToString(\"N\")}") "Should match expected format from Guid"
+            Expect.equal keyFromGuid.TryGuid (Some testGuid) "TryGuid should roundtrip testGuid"
+
+            Expect.isTrue (CatalogApiKey.IsValid keyFromGuid.Value) "Valid key should pass IsValid"
+            Expect.isFalse (CatalogApiKey.IsValid "invalid-key") "Invalid key without prefix should fail IsValid"
+            Expect.isFalse (CatalogApiKey.IsValid "bbl_cat_") "Empty identifier should fail IsValid"
+            Expect.isFalse (CatalogApiKey.IsValid "") "Empty string should fail IsValid"
+
+            let parsed = CatalogApiKey.FromString keyFromGuid.Value
+            Expect.isOk parsed "FromString on valid key should return Ok"
+            Expect.equal (Result.get parsed) keyFromGuid "Parsed key should equal original key"
+
+            let invalidParsed = CatalogApiKey.FromString "bad_prefix_123"
+            Expect.isError invalidParsed "FromString on invalid prefix should return Error"
     ]

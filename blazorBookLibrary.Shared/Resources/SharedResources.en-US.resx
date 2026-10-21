@@ -1264,6 +1264,10 @@
   <data name="CookieBanner_Message" xml:space="preserve"><value>BiblioNet uses exclusively technical cookies strictly necessary for operation, session security, and browsing preferences. We do not use profiling or commercial tracking cookies.</value></data>
   <data name="CookieBanner_Acknowledge" xml:space="preserve"><value>Got it</value></data>
   <data name="CookieBanner_LearnMore" xml:space="preserve"><value>Learn more</value></data>
+  <data name="AiLibrarianBanner_Title" xml:space="preserve"><value>Ephemeral Conversation Notice</value></data>
+  <data name="AiLibrarianBanner_Message" xml:space="preserve"><value>Conversations with the A.I. Librarian are strictly ephemeral for this active browsing session and are not permanently stored, recorded, or archived in any database.</value></data>
+  <data name="AiLibrarianBanner_Acknowledge" xml:space="preserve"><value>Got it</value></data>
+  <data name="AiLibrarianBanner_LearnMore" xml:space="preserve"><value>Learn more</value></data>
   <data name="ReserveAsGuest" xml:space="preserve"><value>Reserve as Guest</value></data>
   <data name="GuestReservationNotice" xml:space="preserve"><value>Already have an account? Log in first for seamless reservation tracking.</value></data>
   <data name="GuestReservationSuccess" xml:space="preserve"><value>Thank you, {0}! Your reservation has been placed. A library manager has been notified and will prepare your loan pickup.</value></data>

@@ -1,0 +1,128 @@
+.ai-librarian-banner-container {
+    position: fixed;
+    bottom: var(--spacing-6, 1.5rem);
+    right: var(--spacing-6, 1.5rem);
+    max-width: 520px;
+    width: calc(100% - 2rem);
+    z-index: 99998;
+    pointer-events: auto;
+    animation: aiBannerSlideIn 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+:not(.hide-cookie-banner) .cookie-banner-container ~ .ai-librarian-banner-container,
+html:not(.hide-cookie-banner) .ai-librarian-banner-container {
+    bottom: calc(var(--spacing-6, 1.5rem) + 160px);
+}
+
+.ai-librarian-banner-card {
+    background-color: var(--surface-container-lowest, #ffffff);
+    border: 1px solid var(--outline-variant, #c1c8c2);
+    border-radius: var(--radius-xl, 0.75rem);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12), 0 2px 6px rgba(0, 0, 0, 0.04);
+    padding: var(--spacing-4, 1rem) var(--spacing-5, 1.25rem);
+}
+
+.ai-librarian-icon-wrapper {
+    width: 44px;
+    height: 44px;
+    background-color: var(--primary-fixed, #c0edd4);
+    color: var(--on-primary-fixed, #002114);
+    border-radius: var(--radius-full, 9999px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.ai-librarian-banner-title {
+    font-family: var(--font-serif);
+    color: var(--primary);
+    font-size: 1.05rem;
+    font-weight: 700;
+    margin-bottom: 0.25rem;
+}
+
+.ai-librarian-banner-text {
+    font-size: 0.875rem;
+    color: var(--on-surface, #191c1d);
+    opacity: 0.85;
+    line-height: 1.5;
+    margin-bottom: 0.75rem;
+}
+
+.btn-ai-librarian-dismiss {
+    background-color: var(--primary, #00160c);
+    color: var(--on-primary, #ffffff);
+    border: none;
+    border-radius: var(--radius-full, 9999px);
+    padding: 0.45rem 1.4rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    touch-action: manipulation;
+    cursor: pointer;
+    transition: opacity 0.2s ease, transform 0.1s ease;
+}
+
+.btn-ai-librarian-dismiss:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
+    color: var(--on-primary, #ffffff);
+}
+
+.btn-ai-librarian-link {
+    color: var(--secondary, #0055c9);
+    font-size: 0.875rem;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-weight: 500;
+}
+
+.btn-ai-librarian-link:hover {
+    text-decoration: underline;
+}
+
+.btn-close-banner {
+    background: transparent;
+    border: none;
+    color: var(--on-surface-variant, #707973);
+    font-size: 0.9rem;
+    padding: 0.2rem 0.4rem;
+    border-radius: 4px;
+    cursor: pointer;
+    line-height: 1;
+    transition: color 0.15s ease, background-color 0.15s ease;
+}
+
+.btn-close-banner:hover {
+    color: var(--on-surface, #191c1d);
+    background-color: var(--surface-container, #eceeed);
+}
+
+@keyframes aiBannerSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@media (max-width: 576px) {
+    .ai-librarian-banner-container {
+        bottom: 1rem;
+        right: 1rem;
+        left: 1rem;
+        width: auto;
+    }
+    html:not(.hide-cookie-banner) .ai-librarian-banner-container {
+        bottom: calc(1rem + 175px);
+    }
+}
