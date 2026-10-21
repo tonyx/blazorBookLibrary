@@ -32,6 +32,9 @@ type TenantEvent =
     | JoinRequestRejected2 of UserId
     | GeoLocSettingsDisabled
     | GeoLocSettingsSet of GeoLocSettings
+    | PartnerKeyAdded of PartnerApiKey
+    | CatalogKeyRevoked of CatalogApiKey * DateTime
+    | PartnerKeyRemoved of PartnerApiKey
 
     interface Event<Tenant> with
         member this.Process(tenant: Tenant) : Result<Tenant, string> =
@@ -62,6 +65,9 @@ type TenantEvent =
             | JoinRequestRejected2 userId -> tenant.RejectJoinRequest2 userId
             | GeoLocSettingsDisabled -> tenant.DisableGeoLocSettings()
             | GeoLocSettingsSet settings -> tenant.SetGeoLocSettings settings
+            | PartnerKeyAdded partnerApiKey -> tenant.AddPartnerKey partnerApiKey
+            | CatalogKeyRevoked(catalogApiKey, now) -> tenant.RevokeCatalogKey(catalogApiKey, now)
+            | PartnerKeyRemoved partnerApiKey -> tenant.RemovePartnerKey partnerApiKey
 
     static member Deserialize(x: string) : Result<TenantEvent, string> =
         try

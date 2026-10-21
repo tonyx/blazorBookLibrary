@@ -396,6 +396,13 @@ let getTenantService () : ITenantService =
     )
     :> ITenantService
 
+let getTenantApiKeyService () : ITenantApiKeyService =
+    TenantApiKeyService(
+        getSecretReader (),
+        config
+    )
+    :> ITenantApiKeyService
+
 
 let truncateVectorDb () =
     let connStr = config.GetConnectionString "VectorDbConnection"

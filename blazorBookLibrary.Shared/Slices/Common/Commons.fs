@@ -288,6 +288,7 @@ type CatalogApiKey =
 
 type CatalogKey = CatalogApiKey
 
+
 type PaperId =
     | PaperId of Guid
     static member New() = PaperId(Guid.NewGuid()) 
@@ -785,6 +786,21 @@ type UserId =
     member this.Value =
         match this with
         | UserId v -> v
+
+type PartnerApiKey =
+    {
+        Key: CatalogApiKey
+        PartnerId: UserId
+        Label: string           // e.g. "Milan University OPAC Integration"
+        CreatedAt: DateTime
+        RevokedAt: Option<DateTime>
+        ExpiresAt: Option<DateTime>
+    }
+    member this.IsActive(now: DateTime) =
+        this.RevokedAt.IsNone && 
+        match this.ExpiresAt with
+        | Some exp -> now < exp
+        | None -> true
 
 type AppUserInfo =
     { Id: string

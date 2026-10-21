@@ -31,6 +31,9 @@ type TenantCommand =
     | RejectJoinRequest2 of UserId
     | DisableGeoLocSettings
     | SetGeoLocSettings of GeoLocSettings
+    | AddPartnerKey of PartnerApiKey
+    | RevokeCatalogKey of CatalogApiKey * DateTime
+    | RemovePartnerKey of PartnerApiKey
 
     interface AggregateCommand<Tenant, TenantEvent> with
         member this.Execute(tenant: Tenant) =
@@ -103,5 +106,14 @@ type TenantCommand =
             | SetGeoLocSettings settings ->
                 tenant.SetGeoLocSettings settings
                 |> Result.map (fun t -> (t, [ TenantEvent.GeoLocSettingsSet settings ]))
+            | AddPartnerKey partnerApiKey ->
+                tenant.AddPartnerKey partnerApiKey
+                |> Result.map (fun t -> (t, [ TenantEvent.PartnerKeyAdded partnerApiKey ]))
+            | RevokeCatalogKey(catalogApiKey, now) ->
+                tenant.RevokeCatalogKey(catalogApiKey, now)
+                |> Result.map (fun t -> (t, [ TenantEvent.CatalogKeyRevoked(catalogApiKey, now) ]))
+            | RemovePartnerKey partnerApiKey ->
+                tenant.RemovePartnerKey partnerApiKey
+                |> Result.map (fun t -> (t, [ TenantEvent.PartnerKeyRemoved partnerApiKey ]))
 
         member this.Undoer = None

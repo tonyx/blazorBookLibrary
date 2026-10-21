@@ -4,6 +4,7 @@ open TestSetup
 open Expecto
 open BookLibrary.Domain
 open BookLibrary.Shared.Details
+open System
 open BookLibrary.Shared.Commons
 open System.Threading
 open BookLibrary.Details.Details
@@ -618,6 +619,109 @@ let tests =
                   match allowedOwnerFarResult with
                   | Ok tenants ->
                       Expect.isTrue (tenants |> List.exists (fun t -> t.TenantId = tenantId)) "Milan library should be in allowed tenants for distant owner"
+                  | Error msg -> failwith msg
+              }
+          testCaseTask "partner API key lifecycle: add, validate, duplicate rejection, list, and revoke"
+          <| fun _ ->
+              task {
+                  setUp ()
+                  let tenantService = getTenantService ()
+                  let tenantApiKeyService = getTenantApiKeyService ()
+
+                  let! ownerId = registerUserTask "keyowner@test.com" "Password123!"
+                  let ownerContext = UserContext.Authenticated(ownerId, [])
+
+                  let! partnerId = registerUserTask "partnerdev@test.com" "Password123!"
+
+                  let tenant =
+                      Tenant.New(ownerId, TenantName.New "API Key Enabled Tenant" |> Result.get, "Via Roma 10", true)
+                  let tenantId = tenant.TenantId
+                  let! createResult = tenantService.CreateTenantAsync(ownerContext, tenant)
+                  Expect.isOk createResult "Tenant creation should succeed"
+
+                  // 1. Add partner key
+                  let key = CatalogApiKey.New()
+                  let partnerKey: PartnerApiKey =
+                      { Key = key
+                        PartnerId = partnerId
+                        Label = "University OPAC"
+                        CreatedAt = DateTime.UtcNow
+                        RevokedAt = None
+                        ExpiresAt = None }
+
+                  let! addResult = tenantApiKeyService.AddPartnerKeyAsync(ownerContext, tenantId, partnerKey)
+                  Expect.isOk addResult "Adding partner key by owner should succeed"
+
+                  // 2. Validate key
+                  let! validResult = tenantApiKeyService.ValidateCatalogKeyAsync(tenantId, key)
+                  Expect.isOk validResult "Key validation should succeed for active key"
+
+                  // 3. Reject duplicate key for same partner user
+                  let key2 = CatalogApiKey.New()
+                  let duplicatePartnerKey: PartnerApiKey =
+                      { Key = key2
+                        PartnerId = partnerId
+                        Label = "Duplicate Attempt"
+                        CreatedAt = DateTime.UtcNow
+                        RevokedAt = None
+                        ExpiresAt = None }
+                  let! duplicateResult = tenantApiKeyService.AddPartnerKeyAsync(ownerContext, tenantId, duplicatePartnerKey)
+                  Expect.isError duplicateResult "Adding duplicate key for same partner should fail"
+
+                  // 4. List keys
+                  let! listResult = tenantApiKeyService.GetPartnerKeysAsync(ownerContext, tenantId)
+                  Expect.isOk listResult "Owner should be able to list partner keys"
+                  match listResult with
+                  | Ok keys ->
+                      Expect.equal keys.Length 1 "Should have 1 partner key"
+                      Expect.equal keys.[0].Key key "Listed key should match added key"
+                      Expect.equal keys.[0].Label "University OPAC" "Label should match"
+                  | Error msg -> failwith msg
+
+                  // 5. Revoke key
+                  let! revokeResult = tenantApiKeyService.RevokeCatalogKeyAsync(ownerContext, tenantId, key)
+                  Expect.isOk revokeResult "Revoking key should succeed"
+
+                  // 6. Verify revocation reflected in list
+                  let! listAfterRevoke = tenantApiKeyService.GetPartnerKeysAsync(ownerContext, tenantId)
+                  Expect.isOk listAfterRevoke "Listing after revoke should succeed"
+                  match listAfterRevoke with
+                  | Ok keys ->
+                      Expect.isTrue keys.[0].RevokedAt.IsSome "RevokedAt should be Some"
+                  | Error msg -> failwith msg
+              }
+          testCaseTask "a tenant owner can add partner key using overloaded AddPartnerKeyAsync"
+          <| fun _ ->
+              task {
+                  setUp ()
+                  let tenantService = getTenantService ()
+                  let tenantApiKeyService = getTenantApiKeyService ()
+
+                  let! ownerId = registerUserTask "keyowner_overload@test.com" "Password123!"
+                  let ownerContext = UserContext.Authenticated(ownerId, [])
+                  let! partnerId = registerUserTask "partnerdev_overload@test.com" "Password123!"
+
+                  let tenant =
+                      Tenant.New(ownerId, TenantName.New "API Key Overload Tenant" |> Result.get, "Via Roma 11", true)
+                  let tenantId = tenant.TenantId
+                  let! createResult = tenantService.CreateTenantAsync(ownerContext, tenant)
+                  Expect.isOk createResult "Tenant creation should succeed"
+
+                  let now = DateTime.UtcNow
+                  let expiresAt = now.AddDays(30.0)
+                  let! addResult = tenantApiKeyService.AddPartnerKeyAsync(ownerContext, tenantId, partnerId, "Library Partner", now, expiresAt = expiresAt)
+                  Expect.isOk addResult "Overloaded AddPartnerKeyAsync should succeed"
+
+                  let! listResult = tenantApiKeyService.GetPartnerKeysAsync(ownerContext, tenantId)
+                  Expect.isOk listResult "Owner should be able to list partner keys"
+                  match listResult with
+                  | Ok keys ->
+                      Expect.equal keys.Length 1 "Should have 1 partner key"
+                      Expect.equal keys.[0].PartnerId partnerId "PartnerId should match"
+                      Expect.equal keys.[0].Label "Library Partner" "Label should match"
+                      Expect.equal keys.[0].ExpiresAt (Some expiresAt) "ExpiresAt should match"
+                      let! validResult = tenantApiKeyService.ValidateCatalogKeyAsync(tenantId, keys.[0].Key)
+                      Expect.isOk validResult "Key validation should succeed"
                   | Error msg -> failwith msg
               } ]
 

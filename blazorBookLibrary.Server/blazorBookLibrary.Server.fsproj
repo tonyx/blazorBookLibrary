@@ -108,6 +108,7 @@
     <Compile Include="Slices/DataExport/DataExportService.fs" />
     <Compile Include="Slices/Admin/AdminService.fs" />
     <Compile Include="Slices/Tenant/TenantService.fs" />
+    <Compile Include="Slices/Tenant/TenantApiKeyService.fs" />
     <Compile Include="Slices/Notification/MailQueue.fs" />
     <Compile Include="Slices/Notification/MailsQueueEvents.fs" />
     <Compile Include="Slices/Notification/MailsQueueCommands.fs" />
@@ -144,6 +145,7 @@
     <Compile Include="Slices/Book/EmbeddingOrchestrationController.fs" />
     <Compile Include="Slices/Book/LibrarianChatController.fs" />
     <Compile Include="Slices/Tenant/TenantController.fs" />
+    <Compile Include="Slices/Tenant/TenantApiKeyController.fs" />
     <Compile Include="Slices/Notification/NotificationsController.fs" />
     <Compile Include="Slices/Notification/InAppMessagesRetrieverController.fs" />
     <Compile Include="Slices/Tenant/CookiesController.fs" />

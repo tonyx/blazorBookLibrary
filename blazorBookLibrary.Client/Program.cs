@@ -41,6 +41,7 @@ public class Program
         builder.Services.AddScoped<IBotScoreService, BotScoreClientService>();
         builder.Services.AddScoped<IVectorDbService, VectorDbClientService>();
         builder.Services.AddScoped<ITenantService, TenantClientService>();
+        builder.Services.AddScoped<ITenantApiKeyService, TenantApiKeyClientService>();
         builder.Services.AddScoped<INotificationService, NotificationClientService>();
         builder.Services.AddScoped<IInAppMessagesRetriever, InAppMessagesRetrieverClientService>();
         builder.Services.AddScoped<ICookieService, ClientCookieService>();

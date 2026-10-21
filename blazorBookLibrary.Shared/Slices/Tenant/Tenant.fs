@@ -11,7 +11,7 @@ type PatronRole =
     | User
     | Suspended of string
 
-type Tenant =
+type Tenant001 =
     { OwnerId: UserId
       TenantId: TenantId
       InvitedPatrons: List<(UserId * PatronInvitationCode)>
@@ -26,6 +26,43 @@ type Tenant =
       CurrentJoinPin: Option<string>
       JoinRequests: List<UserId> 
       GeoLocSettings: GeoLocSettings
+    }
+    with 
+        member this.Upcast(): Tenant =
+            {
+                OwnerId = this.OwnerId
+                TenantId = this.TenantId
+                InvitedPatrons = this.InvitedPatrons
+                Patrons = this.Patrons
+                Name = this.Name
+                Address = this.Address
+                TenantState = this.TenantState
+                ReservationNotificationPreference = this.ReservationNotificationPreference
+                LoanNotificationPreference = this.LoanNotificationPreference
+                TenantVisibility = this.TenantVisibility
+                Tags = this.Tags
+                CurrentJoinPin = this.CurrentJoinPin
+                JoinRequests = this.JoinRequests
+                GeoLocSettings = this.GeoLocSettings
+                PartnerApiKeys = []
+            }
+
+and Tenant =
+    { OwnerId: UserId
+      TenantId: TenantId
+      InvitedPatrons: List<(UserId * PatronInvitationCode)>
+      Patrons: List<UserId * PatronRole>
+      Name: TenantName
+      Address: string
+      TenantState: TenantState
+      ReservationNotificationPreference: NotificationPreference
+      LoanNotificationPreference: NotificationPreference
+      TenantVisibility: TenantVisibility
+      Tags: List<Tag>
+      CurrentJoinPin: Option<string>
+      JoinRequests: List<UserId> 
+      GeoLocSettings: GeoLocSettings
+      PartnerApiKeys: List<PartnerApiKey>
     }
 
     static member New (userId: UserId, tenantName: TenantName, address: string, ?pub: bool): Tenant =
@@ -47,7 +84,8 @@ type Tenant =
           CurrentJoinPin = None
           JoinRequests = [] 
           GeoLocSettings = GeoLocSettings.Disabled
-          }
+          PartnerApiKeys = []
+        }
 
     static member NewDefault (userId: UserId, tenantName: TenantName, address: string) =
         { Tenant.New (userId, tenantName, address, true) with
@@ -197,7 +235,9 @@ type Tenant =
                 { this with
                     Patrons =
                         this.Patrons
-                        |> List.map (fun (u, r) -> if u = user then (u, PatronRole.User) else (u, r)) }
+                        |> List.map (fun (u, r) -> if u = user then (u, PatronRole.User) else (u, r)) 
+                    PartnerApiKeys = this.PartnerApiKeys |> List.filter (fun k -> k.PartnerId <> user) 
+                }
         }
 
     member this.PromotePatron (user: UserId) =
@@ -375,6 +415,62 @@ type Tenant =
     member this.GetUserRole userId =
         this.Patrons |> List.tryFind (fun (u, _) -> u = userId) |> Option.map snd
 
+    member this.AddPartnerKey (partnerApiKey: PartnerApiKey) =
+        result {
+            let userId = partnerApiKey.PartnerId
+            do!
+                this.PartnerApiKeys
+                |> List.exists (fun k -> k.PartnerId = userId)
+                |> not
+                |> Result.ofBool $"Partner key already exists for user {userId.Value}"
+            return
+                { this with
+                    PartnerApiKeys = this.PartnerApiKeys |> List.append [ partnerApiKey ] }
+        }
+
+    member this.RevokeCatalogKey (catalogApiKey: CatalogApiKey, now: DateTime) =
+        result {
+            do!
+                this.PartnerApiKeys
+                |> List.exists (fun k -> k.Key = catalogApiKey)
+                |> Result.ofBool $"Partner key {catalogApiKey} does not exist"
+
+            let updatedKeys =
+                this.PartnerApiKeys
+                |> List.map (fun pk ->
+                    if pk.Key = catalogApiKey then { pk with RevokedAt = Some now } else pk)
+            return
+                { this with
+                    PartnerApiKeys = updatedKeys }
+        }
+
+    member this.RemovePartnerKey (partnerApiKey: PartnerApiKey) =
+        result {
+            do!
+                this.PartnerApiKeys
+                |> List.exists (fun k -> k = partnerApiKey)
+                |> Result.ofBool $"Partner key {partnerApiKey} does not exist"
+
+            let updatedKeys =
+                this.PartnerApiKeys
+                |> List.filter (fun k -> k <> partnerApiKey)
+            return
+                { this with
+                    PartnerApiKeys = updatedKeys }
+        }
+
+    member this.ValidateCatalogKey (key: CatalogApiKey, ?configuredKey: CatalogApiKey) =
+        result {
+            match configuredKey with
+            | Some ck when ck = key -> return! Ok ()
+            | _ ->
+
+            return!
+                this.PartnerApiKeys
+                |> List.exists (fun k -> k.Key = key)
+                |> Result.ofBool $"Catalog key {key} does not exist"
+        }
+
     member this.HasManagementAccess(context: UserContext) =
         match context with
         | UserContext.Anonymous | UserContext.AnonymousTenant _ -> false
@@ -418,7 +514,11 @@ type Tenant =
         try
             (data, jsonOptions) |> JsonSerializer.Deserialize<Tenant> |> Ok
         with ex ->
-            Error $"Error in deserializing {data} - {ex.Message}"
+            try
+                let tenant001 = (data, jsonOptions) |> JsonSerializer.Deserialize<Tenant001>
+                tenant001.Upcast() |> Ok
+            with ex' ->
+                Error $"Error in deserializing {data} - {ex.Message} - {ex'.Message}"
 
 [<AutoOpen>]
 module UserContextTenantExtensions =

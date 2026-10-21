@@ -244,7 +244,8 @@ let catalogTests =
         testCase "CatalogApiKey validation and parsing" <| fun _ ->
             let testGuid = Guid.NewGuid()
             let keyFromGuid = CatalogApiKey.New(testGuid)
-            Expect.equal keyFromGuid.Value ($"bbl_cat_{testGuid.ToString(\"N\")}") "Should match expected format from Guid"
+            let expectedKey = sprintf "bbl_cat_%s" (testGuid.ToString("N"))
+            Expect.equal keyFromGuid.Value expectedKey "Should match expected format from Guid"
             Expect.equal keyFromGuid.TryGuid (Some testGuid) "TryGuid should roundtrip testGuid"
 
             Expect.isTrue (CatalogApiKey.IsValid keyFromGuid.Value) "Valid key should pass IsValid"

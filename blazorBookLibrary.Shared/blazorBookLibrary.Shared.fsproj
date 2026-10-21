@@ -53,6 +53,7 @@
     <Compile Include="Slices/Admin/IAdminService.fs" />
     <Compile Include="Slices/DistributionPoint/IDistributionPointService.fs" />
     <Compile Include="Slices/Tenant/ITenantService.fs" />
+    <Compile Include="Slices/Tenant/ITenantApiKeyService.fs" />
     <Compile Include="Slices/Notification/INotificationService.fs" />
     <Compile Include="Slices/Book/IEmbeddingOrchestrationService.fs" />
 

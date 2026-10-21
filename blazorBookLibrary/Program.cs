@@ -133,6 +133,7 @@ builder.Services.AddSingleton<IDistributionPointService, DistributionPointServic
 
 builder.Services.AddSingleton<IAdminServices, AdminService>();
 builder.Services.AddSingleton<ITenantService, TenantService>();
+builder.Services.AddSingleton<ITenantApiKeyService, TenantApiKeyService>();
 builder.Services.AddSingleton<ITenantCacheWarmupService, TenantCacheWarmupService>();
 builder.Services.AddSingleton<INotificationService, NotificationService>();
 
