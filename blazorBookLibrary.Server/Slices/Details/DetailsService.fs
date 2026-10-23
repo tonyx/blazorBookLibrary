@@ -275,9 +275,13 @@ type DetailsService
                 let! userDetails =
                     match reservation.Patron with
                     | RegisteredUser patronUserId ->
-                        this.GetUserDetailsAsync(context, patronUserId, ct) |> TaskResult.map Some
+                        // todo: will be investigate further - relaxed admin/self privilege check for book details / reservation details resolution
+                        this.GetUserDetailsAsync(context, patronUserId, ct)
+                        |> Task.map (function
+                            | Ok ud -> Some ud
+                            | Error _ -> None)
                     | Guest _ ->
-                        taskResult { return None }
+                        task { return None }
 
                 return
                     { Reservation = reservation

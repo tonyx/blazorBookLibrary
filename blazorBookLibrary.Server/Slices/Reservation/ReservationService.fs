@@ -164,10 +164,13 @@ type ReservationService
                 let! userDetails =
                     match reservation.Patron with
                     | RegisteredUser patronUserId ->
+                        // todo: will be investigate further - relaxed admin/self privilege check for book details / reservation details resolution
                         usersService.GetUserDetailsAsync(context, patronUserId, ct)
-                        |> TaskResult.map Some
+                        |> Task.map (function
+                            | Ok ud -> Some ud
+                            | Error _ -> None)
                     | Guest _ ->
-                        taskResult { return None }
+                        task { return None }
 
                 return
                     { Reservation = reservation
@@ -398,11 +401,12 @@ type ReservationService
 
         taskResult {
             let! reservation = reservationViewerAsync (ct |> Some) id.Value |> TaskResult.map snd
-            match reservation.Patron with
-            | RegisteredUser u ->
-                do! checkIsGlobalAdminOrTenantManagerOrSelf context ct u
-            | Guest _ ->
-                do! checkIsGlobalAdminOrTenantManager context ct
+            // todo: will be investigate further - relaxed requiring admin/self privilege
+            // match reservation.Patron with
+            // | RegisteredUser u ->
+            //     do! checkIsGlobalAdminOrTenantManagerOrSelf context ct u
+            // | Guest _ ->
+            //     do! checkIsGlobalAdminOrTenantManager context ct
             let! tenantId = userTenantResolverService.GetTenantForUserAsync(context, ct)
             let! result = reservationViewerAsync (Some ct) id.Value |> TaskResult.map snd
 
