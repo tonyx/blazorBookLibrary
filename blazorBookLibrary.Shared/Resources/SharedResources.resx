@@ -1307,4 +1307,8 @@
   <data name="CreateInstantLoan" xml:space="preserve"><value>Create Loan</value></data>
   <data name="GuestLoanCreatedSuccess" xml:space="preserve"><value>Guest loan successfully created.</value></data>
   <data name="GuestLoanRequiresCirculatingIncludingGuest" xml:space="preserve"><value>Guest loans require item availability to be 'Circulating (Including Guests)'. Please adjust it in Archival Availability above.</value></data>
+  <data name="BirthDateRequired" xml:space="preserve"><value>Birth date is required to verify your age.</value></data>
+  <data name="BirthDateNotStoredNotice" xml:space="preserve"><value>Your date of birth is used solely to verify you are at least 14 years old and is not stored in our database.</value></data>
+  <data name="UnderageRegistrationError" xml:space="preserve"><value>You must be at least 14 years old to create an account independently. Parental or guardian assistance is required for users under 14.</value></data>
+  <data name="InvalidBirthDate" xml:space="preserve"><value>Please enter a valid date of birth.</value></data>
 </root>

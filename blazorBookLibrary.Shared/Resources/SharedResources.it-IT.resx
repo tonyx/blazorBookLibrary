@@ -1307,4 +1307,8 @@
   <data name="CreateInstantLoan" xml:space="preserve"><value>Crea Prestito</value></data>
   <data name="GuestLoanCreatedSuccess" xml:space="preserve"><value>Prestito per ospite creato con successo.</value></data>
   <data name="GuestLoanRequiresCirculatingIncludingGuest" xml:space="preserve"><value>I prestiti per ospiti richiedono che la disponibilità sia impostata su 'Circolante (Inclusi Ospiti)'. Modificala nelle Disponibilità Archivistica sopra.</value></data>
+  <data name="BirthDateRequired" xml:space="preserve"><value>La data di nascita è richiesta per verificare la tua età.</value></data>
+  <data name="BirthDateNotStoredNotice" xml:space="preserve"><value>La tua data di nascita viene utilizzata unicamente per verificare che tu abbia almeno 14 anni e non viene salvata nel nostro database.</value></data>
+  <data name="UnderageRegistrationError" xml:space="preserve"><value>Devi avere almeno 14 anni per creare un account in autonomia. Per gli utenti di età inferiore ai 14 anni è richiesta l'assistenza di un genitore o tutore.</value></data>
+  <data name="InvalidBirthDate" xml:space="preserve"><value>Inserisci una data di nascita valida.</value></data>
 </root>

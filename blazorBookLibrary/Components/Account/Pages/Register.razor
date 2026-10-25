@@ -55,22 +55,16 @@
                 <label for="Input.ConfirmPassword">@L["ConfirmPassword"]</label>
                 <ValidationMessage For="() => Input.ConfirmPassword" class="text-danger" />
             </div>
-
-            <div class="card bg-light mb-3 border-secondary-subtle">
-                <div class="card-body py-2">
-                    <p class="mb-2 small fw-bold text-secondary text-uppercase"><i class="bi bi-shield-check me-1"></i>@L["HumanVerification"]</p>
-                    <div class="d-flex align-items-center gap-2">
-                        <span class="fs-5 fw-bold text-primary">@Input.Number1 + @Input.Number2 =</span>
-                        <div style="max-width: 100px;">
-                            <InputNumber @bind-Value="Input.HumanAnswer" class="form-control form-control-sm border-primary" placeholder="?" />
-                        </div>
-                    </div>
-                    <ValidationMessage For="() => Input.HumanAnswer" class="text-danger small mt-1" />
-                    <input type="hidden" name="Input.Number1" value="@Input.Number1" />
-                    <input type="hidden" name="Input.Number2" value="@Input.Number2" />
-                    <input type="hidden" name="Input.FormLoadTicks" value="@Input.FormLoadTicks" />
-                </div>
+            <div class="form-floating mb-2">
+                <InputDate @bind-Value="Input.BirthDate" id="Input.BirthDate" class="form-control" max="@MaxAllowedBirthDate" aria-required="true" />
+                <label for="Input.BirthDate">@L["BirthDate"]</label>
+                <ValidationMessage For="() => Input.BirthDate" class="text-danger" />
             </div>
+            <div class="form-text text-muted small mb-3">
+                <i class="bi bi-shield-lock me-1"></i>@L["BirthDateNotStoredNotice"]
+            </div>
+
+            <input type="hidden" name="Input.FormLoadTicks" value="@Input.FormLoadTicks" />
 
             <button type="submit" class="w-100 btn btn-lg btn-primary">@L["Register"]</button>
 
@@ -107,31 +101,49 @@
     [CascadingParameter]
     private HttpContext HttpContext { get; set; } = default!;
 
+    private static string MaxAllowedBirthDate => DateOnly.FromDateTime(DateTime.UtcNow.AddYears(-14)).ToString("yyyy-MM-dd");
+
     protected override void OnInitialized()
     {
         Input ??= new();
         if (HttpMethods.IsGet(HttpContext.Request.Method))
         {
-            Input.Number1 = Random.Shared.Next(1, 10);
-            Input.Number2 = Random.Shared.Next(1, 10);
             Input.FormLoadTicks = DateTime.UtcNow.Ticks;
         }
     }
 
     public async Task RegisterUser(EditContext editContext)
     {
-        if (Input.HumanAnswer != Input.Number1 + Input.Number2)
-        {
-            identityErrors = new List<IdentityError> { new IdentityError { Description = L["IncorrectMathResponse"] } };
-            // Regenerate challenge for the next attempt
-            Input.Number1 = Random.Shared.Next(1, 10);
-            Input.Number2 = Random.Shared.Next(1, 10);
-            return;
-        }
 
         if ((DateTime.UtcNow - new DateTime(Input.FormLoadTicks)).TotalSeconds < 2)
         {
             identityErrors = new List<IdentityError> { new IdentityError { Description = L["FastSubmissionError"] } };
+            return;
+        }
+
+        if (Input.BirthDate is null)
+        {
+            identityErrors = new List<IdentityError> { new IdentityError { Description = L["BirthDateRequired"] } };
+            return;
+        }
+
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var birthDate = Input.BirthDate.Value;
+        if (birthDate > today || birthDate < new DateOnly(1900, 1, 1))
+        {
+            identityErrors = new List<IdentityError> { new IdentityError { Description = L["InvalidBirthDate"] } };
+            return;
+        }
+
+        var age = today.Year - birthDate.Year;
+        if (birthDate > today.AddYears(-age))
+        {
+            age--;
+        }
+
+        if (age < 14)
+        {
+            identityErrors = new List<IdentityError> { new IdentityError { Description = L["UnderageRegistrationError"] } };
             return;
         }
 
@@ -251,12 +263,10 @@
         [Compare("Password", ErrorMessage = "PasswordsDoNotMatch")]
         public string ConfirmPassword { get; set; } = "";
 
-        [Required(ErrorMessage = "HumanVerificationRequired")]
-        [Display(Name = "SolveMathChallenge")]
-        public int? HumanAnswer { get; set; }
+        [Required(ErrorMessage = "BirthDateRequired")]
+        [Display(Name = "BirthDate")]
+        public DateOnly? BirthDate { get; set; }
 
-        public int Number1 { get; set; }
-        public int Number2 { get; set; }
         public long FormLoadTicks { get; set; }
     }
 }
