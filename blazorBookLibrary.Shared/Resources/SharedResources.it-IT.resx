@@ -1228,6 +1228,16 @@
   <data name="EnableGeoLoc" xml:space="preserve"><value>Attiva Geolocalizzazione</value></data>
   <data name="EnableOnMap" xml:space="preserve"><value>Attiva su Mappa</value></data>
   <data name="GeoLocSettingsDescription" xml:space="preserve"><value>Specifica le coordinate della biblioteca e il raggio di prossimità in metri tramite una mappa interattiva.</value></data>
+  <data name="GuestProximity_Label" xml:space="preserve"><value>Prossimità per Prestiti Ospite</value></data>
+  <data name="GuestProximity_Description" xml:space="preserve"><value>Limita le prenotazioni e i prestiti degli ospiti agli utenti fisicamente presenti nei locali della biblioteca.</value></data>
+  <data name="GuestProximity_Active" xml:space="preserve"><value>Restrizione di Prossimità Ospiti Attiva ({0}m)</value></data>
+  <data name="GuestProximity_Inactive" xml:space="preserve"><value>Restrizione di Prossimità Ospiti Disattivata</value></data>
+  <data name="GuestProximity_Radius" xml:space="preserve"><value>Raggio di Prossimità Ospiti (metri)</value></data>
+  <data name="GuestProximity_EnableButton" xml:space="preserve"><value>Attiva Prossimità Ospiti</value></data>
+  <data name="GuestProximity_DisableButton" xml:space="preserve"><value>Disattiva Prossimità Ospiti</value></data>
+  <data name="GuestProximity_SavedSuccess" xml:space="preserve"><value>Restrizione di prossimità per ospiti aggiornata con successo.</value></data>
+  <data name="GuestProximity_DisabledSuccess" xml:space="preserve"><value>Restrizione di prossimità per ospiti disattivata con successo.</value></data>
+  <data name="GuestProximity_MustEnableGeoLoc" xml:space="preserve"><value>Devi prima configurare e attivare le coordinate di geolocalizzazione della biblioteca.</value></data>
   <data name="ConfirmDisableGeoLoc" xml:space="preserve"><value>Sei sicuro di voler disattivare le impostazioni di geolocalizzazione per {0}?</value></data>
   <data name="GeoLocDisabledSuccess" xml:space="preserve"><value>Impostazioni di geolocalizzazione disattivate con successo.</value></data>
   <data name="GeoLoc_AccessDenied" xml:space="preserve"><value>Non sei autorizzato a gestire le impostazioni di geolocalizzazione di questa biblioteca.</value></data>

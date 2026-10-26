@@ -31,6 +31,8 @@ type TenantCommand =
     | RejectJoinRequest2 of UserId
     | DisableGeoLocSettings
     | SetGeoLocSettings of GeoLocSettings
+    | EnableGuestLoanProximity of meters: double
+    | DisableGuestLoanProximity
     | AddPartnerKey of PartnerApiKey
     | RevokeCatalogKey of CatalogApiKey * DateTime
     | RemovePartnerKey of PartnerApiKey
@@ -106,6 +108,12 @@ type TenantCommand =
             | SetGeoLocSettings settings ->
                 tenant.SetGeoLocSettings settings
                 |> Result.map (fun t -> (t, [ TenantEvent.GeoLocSettingsSet settings ]))
+            | EnableGuestLoanProximity meters ->
+                tenant.EnableGuestLoanProximity meters
+                |> Result.map (fun t -> (t, [ TenantEvent.GuestLoanProximityEnabled meters ]))
+            | DisableGuestLoanProximity ->
+                tenant.DisableGuestLoanProximity()
+                |> Result.map (fun t -> (t, [ TenantEvent.GuestLoanProximityDisabled ]))
             | AddPartnerKey partnerApiKey ->
                 tenant.AddPartnerKey partnerApiKey
                 |> Result.map (fun t -> (t, [ TenantEvent.PartnerKeyAdded partnerApiKey ]))

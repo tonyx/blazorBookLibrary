@@ -343,6 +343,32 @@ type TenantController(tenantService: ITenantService, hubContext: Microsoft.AspNe
             | Error msg -> return this.BadRequest(msg) :> IActionResult
         }
 
+    [<HttpPut("{id}/guest-loan-proximity/enable")>]
+    member this.EnableGuestLoanProximity(id: Guid, [<FromBody>] meters: double) =
+        task {
+            let context = UserContextMapper.mapFromRequest this.Request
+            let! result = tenantService.EnableGuestLoanProximityAsync(context, TenantId id, meters)
+
+            match result with
+            | Ok _ -> 
+                do! hubContext.Clients.All.SendCoreAsync("TenantListChanged", [||])
+                return this.Ok() :> IActionResult
+            | Error msg -> return this.BadRequest(msg) :> IActionResult
+        }
+
+    [<HttpPut("{id}/guest-loan-proximity/disable")>]
+    member this.DisableGuestLoanProximity(id: Guid) =
+        task {
+            let context = UserContextMapper.mapFromRequest this.Request
+            let! result = tenantService.DisableGuestLoanProximityAsync(context, TenantId id)
+
+            match result with
+            | Ok _ -> 
+                do! hubContext.Clients.All.SendCoreAsync("TenantListChanged", [||])
+                return this.Ok() :> IActionResult
+            | Error msg -> return this.BadRequest(msg) :> IActionResult
+        }
+
     [<HttpPut("{id}/request-public")>]
     member this.RequestPublic(id: Guid) =
         task {

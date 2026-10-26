@@ -32,6 +32,8 @@ type TenantEvent =
     | JoinRequestRejected2 of UserId
     | GeoLocSettingsDisabled
     | GeoLocSettingsSet of GeoLocSettings
+    | GuestLoanProximityEnabled of meters: double
+    | GuestLoanProximityDisabled
     | PartnerKeyAdded of PartnerApiKey
     | CatalogKeyRevoked of CatalogApiKey * DateTime
     | PartnerKeyRemoved of PartnerApiKey
@@ -65,6 +67,8 @@ type TenantEvent =
             | JoinRequestRejected2 userId -> tenant.RejectJoinRequest2 userId
             | GeoLocSettingsDisabled -> tenant.DisableGeoLocSettings()
             | GeoLocSettingsSet settings -> tenant.SetGeoLocSettings settings
+            | GuestLoanProximityEnabled meters -> tenant.EnableGuestLoanProximity meters
+            | GuestLoanProximityDisabled -> tenant.DisableGuestLoanProximity()
             | PartnerKeyAdded partnerApiKey -> tenant.AddPartnerKey partnerApiKey
             | CatalogKeyRevoked(catalogApiKey, now) -> tenant.RevokeCatalogKey(catalogApiKey, now)
             | PartnerKeyRemoved partnerApiKey -> tenant.RemovePartnerKey partnerApiKey

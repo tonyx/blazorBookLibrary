@@ -20,6 +20,7 @@
 @inject NavigationManager NavigationManager
 @inject IJSRuntime JSRuntime
 @inject IStringLocalizer<SharedResources> L
+@inject ILogger<TenantGeoLoc> Logger
 @rendermode InteractiveAuto
 @implements IDisposable
 
@@ -167,6 +168,53 @@
                 </div>
             </div>
 
+            <!-- Guest Proximity Controls -->
+            <div class="card mb-4 border-0 shadow-sm bg-surface rounded-3">
+                <div class="card-body p-3">
+                    <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+                        <div class="flex-grow-1">
+                            <div class="d-flex align-items-center gap-2 mb-1">
+                                <label class="form-check-label fw-bold small text-uppercase letter-spacing-1 text-primary m-0" for="guest-proximity-active-switch">
+                                    <i class="bi bi-person-walking me-1"></i>@L["GuestProximity_Label"]
+                                </label>
+                                @if (isGuestProximityCurrentlyEnabled)
+                                {
+                                    <span class="badge bg-success-subtle text-success border border-success px-2 py-1 rounded small">
+                                        <i class="bi bi-shield-check me-1"></i>@L["GuestProximity_Active", guestRadiusInMeters]
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary-subtle text-secondary border border-secondary px-2 py-1 rounded small">
+                                        <i class="bi bi-slash-circle me-1"></i>@L["GuestProximity_Inactive"]
+                                    </span>
+                                }
+                            </div>
+                            <small class="text-muted d-block" style="font-size: 0.85rem;">
+                                @L["GuestProximity_Description"]
+                            </small>
+                        </div>
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="form-check form-switch m-0 d-flex align-items-center" title="@(isGuestProximityCurrentlyEnabled ? L["GuestProximity_DisableButton"] : L["GuestProximity_EnableButton"])">
+                                <input class="form-check-input" type="checkbox" role="switch" id="guest-proximity-active-switch"
+                                       checked="@isGuestProximityCurrentlyEnabled"
+                                       @onchange="OnToggleGuestProximity" />
+                            </div>
+                            @if (isGuestProximityCurrentlyEnabled)
+                            {
+                                <div class="input-group input-group-sm" style="max-width: 160px;">
+                                    <span class="input-group-text"><i class="bi bi-pin-map"></i></span>
+                                    <input type="number" min="1" max="5000" step="1" class="form-control font-monospace"
+                                           value="@guestRadiusInMeters"
+                                           @onchange="OnGuestRadiusChanged" />
+                                    <span class="input-group-text">m</span>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
                 <div class="text-muted small">
                     <i class="bi bi-info-circle me-1"></i>@L["GeoLoc_MapInstructions"]
@@ -242,6 +290,9 @@
     private double radiusInMeters = 50.0;
     private bool isGeoLocCurrentlyEnabled = false;
 
+    private bool isGuestProximityCurrentlyEnabled = false;
+    private double guestRadiusInMeters = 50.0;
+
     private bool mapInitialized = false;
     private DotNetObjectReference<TenantGeoLoc>? dotNetHelper;
     private UserContext? userContext;
@@ -305,6 +356,29 @@
                         radiusInMeters = 50.0;
                     }
                 }
+
+                if (libraryDetails.Tenant.GuestProximitySettings != null &&
+                    libraryDetails.Tenant.GuestProximitySettings.IsEnabled)
+                {
+                    isGuestProximityCurrentlyEnabled = true;
+                    if (libraryDetails.Tenant.GuestProximitySettings.OptRadiusInMeters != null &&
+                        FSharpOption<double>.get_IsSome(libraryDetails.Tenant.GuestProximitySettings.OptRadiusInMeters))
+                    {
+                        guestRadiusInMeters = libraryDetails.Tenant.GuestProximitySettings.OptRadiusInMeters.Value;
+                    }
+                    else
+                    {
+                        guestRadiusInMeters = 50.0;
+                    }
+                }
+                else
+                {
+                    isGuestProximityCurrentlyEnabled = false;
+                    if (guestRadiusInMeters <= 0)
+                    {
+                        guestRadiusInMeters = 50.0;
+                    }
+                }
             }
             else
             {
@@ -333,7 +407,8 @@
             mapInitialized = true;
             try
             {
-                await JSRuntime.InvokeVoidAsync("tenantMap.initialize", "tenant-map", dotNetHelper, latitude, longitude, radiusInMeters);
+                var guestRadius = isGuestProximityCurrentlyEnabled ? (double?)guestRadiusInMeters : null;
+                await JSRuntime.InvokeVoidAsync("tenantMap.initialize", "tenant-map", dotNetHelper, latitude, longitude, radiusInMeters, guestRadius);
             }
             catch (Exception ex)
             {
@@ -359,7 +434,8 @@
 
         try
         {
-            await JSRuntime.InvokeVoidAsync("tenantMap.updateMarker", lat, lng, radiusInMeters);
+            var guestRadius = isGuestProximityCurrentlyEnabled ? (double?)guestRadiusInMeters : null;
+            await JSRuntime.InvokeVoidAsync("tenantMap.updateMarker", lat, lng, radiusInMeters, guestRadius);
         }
         catch (Exception ex)
         {
@@ -405,7 +481,8 @@
             latitude = lat;
             if (longitude.HasValue)
             {
-                await JSRuntime.InvokeVoidAsync("tenantMap.updateMarker", latitude.Value, longitude.Value, radiusInMeters);
+                var guestRadius = isGuestProximityCurrentlyEnabled ? (double?)guestRadiusInMeters : null;
+                await JSRuntime.InvokeVoidAsync("tenantMap.updateMarker", latitude.Value, longitude.Value, radiusInMeters, guestRadius);
             }
         }
     }
@@ -417,7 +494,8 @@
             longitude = lng;
             if (latitude.HasValue)
             {
-                await JSRuntime.InvokeVoidAsync("tenantMap.updateMarker", latitude.Value, longitude.Value, radiusInMeters);
+                var guestRadius = isGuestProximityCurrentlyEnabled ? (double?)guestRadiusInMeters : null;
+                await JSRuntime.InvokeVoidAsync("tenantMap.updateMarker", latitude.Value, longitude.Value, radiusInMeters, guestRadius);
             }
         }
     }
@@ -429,6 +507,26 @@
             radiusInMeters = r;
             await JSRuntime.InvokeVoidAsync("tenantMap.updateRadius", radiusInMeters);
         }
+    }
+
+    private async Task OnGuestRadiusChanged(ChangeEventArgs e)
+    {
+        if (double.TryParse(e.Value?.ToString(), System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var r) && r > 0)
+        {
+            guestRadiusInMeters = r;
+            if (isGuestProximityCurrentlyEnabled)
+            {
+                await JSRuntime.InvokeVoidAsync("tenantMap.updateGuestRadius", guestRadiusInMeters);
+            }
+        }
+    }
+
+    private async Task OnToggleGuestProximity(ChangeEventArgs e)
+    {
+        var isChecked = e.Value is bool b && b;
+        isGuestProximityCurrentlyEnabled = isChecked;
+        var guestRadius = isChecked ? (double?)guestRadiusInMeters : null;
+        await JSRuntime.InvokeVoidAsync("tenantMap.updateGuestRadius", guestRadius);
     }
 
     private async Task SaveAndEnableGeoLoc()
@@ -465,6 +563,25 @@
             var result = await TenantService.SetGeoLocSettingsAsync(userContext, tenantId, enabledSettingsResult.ResultValue, default);
             if (result.IsOk)
             {
+                // Save or disable guest loan proximity
+                if (isGuestProximityCurrentlyEnabled)
+                {
+                    var guestRadius = guestRadiusInMeters > 0 ? guestRadiusInMeters : 50.0;
+                    var guestResult = await TenantService.EnableGuestLoanProximityAsync(userContext, tenantId, guestRadius, default);
+                    if (!guestResult.IsOk)
+                    {
+                        Logger.LogWarning("Failed to update guest loan proximity: {Error}", guestResult.ErrorValue);
+                    }
+                }
+                else
+                {
+                    var guestResult = await TenantService.DisableGuestLoanProximityAsync(userContext, tenantId, default);
+                    if (!guestResult.IsOk)
+                    {
+                        Logger.LogWarning("Failed to disable guest loan proximity: {Error}", guestResult.ErrorValue);
+                    }
+                }
+
                 successMessage = L["GeoLoc_SaveSuccess"].Value;
                 await JSRuntime.InvokeVoidAsync("showToast", successMessage, "success");
                 isGeoLocCurrentlyEnabled = true;

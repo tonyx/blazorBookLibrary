@@ -108,6 +108,10 @@
                              <input class="form-check-input ms-0" type="checkbox" id="imagePreviewSwitch" @bind="showImagePreview" style="cursor: pointer;">
                              <label class="form-check-label small fw-bold text-muted" for="imagePreviewSwitch">@L["VisualIdentity"]</label>
                         </div>
+                        <div class="form-check form-switch p-0 m-0 d-flex align-items-center gap-2">
+                             <input class="form-check-input ms-0" type="checkbox" id="availableNowSwitch" @bind="onlyAvailableNow" style="cursor: pointer;">
+                             <label class="form-check-label small fw-bold text-muted" for="availableNowSwitch">@L["ImmediatelyAvailableOnly"]</label>
+                        </div>
                     </div>
                     <div class="d-flex align-items-center gap-3">
                         @if (canManageBooks)
@@ -241,10 +245,12 @@
     private bool _isLoading = false;
     private List<BookSearchResult> foundBooks = new();
     private string titleRefinementFilter = "";
+    private bool onlyAvailableNow = false;
     private IQueryable<BookSearchResult> FilteredBooks => 
         foundBooks.AsQueryable()
             .Where(b => string.IsNullOrEmpty(titleRefinementFilter) || 
-                        b.Book.Title.Value.Contains(titleRefinementFilter, StringComparison.OrdinalIgnoreCase));
+                        b.Book.Title.Value.Contains(titleRefinementFilter, StringComparison.OrdinalIgnoreCase))
+            .Where(b => !onlyAvailableNow || b.Book.ImmediatelyAvailable);
 
     private bool showImagePreview = true;
     private bool searchBooksPerformed = false;

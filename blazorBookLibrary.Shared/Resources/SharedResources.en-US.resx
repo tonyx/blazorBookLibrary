@@ -1228,6 +1228,16 @@
   <data name="EnableGeoLoc" xml:space="preserve"><value>Enable Geolocation</value></data>
   <data name="EnableOnMap" xml:space="preserve"><value>Enable on Map</value></data>
   <data name="GeoLocSettingsDescription" xml:space="preserve"><value>Specify library coordinates and proximity radius in meters using an interactive map.</value></data>
+  <data name="GuestProximity_Label" xml:space="preserve"><value>Guest Loan Proximity</value></data>
+  <data name="GuestProximity_Description" xml:space="preserve"><value>Restrict guest book reservations and loans to walk-in patrons physically within the library premises.</value></data>
+  <data name="GuestProximity_Active" xml:space="preserve"><value>Guest Proximity Restriction Active ({0}m)</value></data>
+  <data name="GuestProximity_Inactive" xml:space="preserve"><value>Guest Proximity Restriction Disabled</value></data>
+  <data name="GuestProximity_Radius" xml:space="preserve"><value>Guest Proximity Radius (meters)</value></data>
+  <data name="GuestProximity_EnableButton" xml:space="preserve"><value>Enable Guest Proximity</value></data>
+  <data name="GuestProximity_DisableButton" xml:space="preserve"><value>Disable Guest Proximity</value></data>
+  <data name="GuestProximity_SavedSuccess" xml:space="preserve"><value>Guest proximity restriction updated successfully.</value></data>
+  <data name="GuestProximity_DisabledSuccess" xml:space="preserve"><value>Guest proximity restriction disabled successfully.</value></data>
+  <data name="GuestProximity_MustEnableGeoLoc" xml:space="preserve"><value>You must configure and enable library geolocation coordinates first before enabling guest loan proximity.</value></data>
   <data name="ConfirmDisableGeoLoc" xml:space="preserve"><value>Are you sure you want to disable geolocation settings for {0}?</value></data>
   <data name="GeoLocDisabledSuccess" xml:space="preserve"><value>Geolocation settings disabled successfully.</value></data>
   <data name="GeoLoc_AccessDenied" xml:space="preserve"><value>You are not authorized to manage geolocation settings for this library.</value></data>

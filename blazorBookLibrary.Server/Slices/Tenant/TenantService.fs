@@ -668,6 +668,40 @@ type TenantService
                     ct
         }
 
+    member this.EnableGuestLoanProximityAsync(context: UserContext, tenantId: TenantId, meters: double, ?ct: CancellationToken) =
+        taskResult {
+            let! (_, tenant) = tenantViewerAsync ct tenantId.Value
+            let ctVal = ct |> Option.defaultValue CancellationToken.None
+            do! Security.checkIsGlobalAdminOrTenantManager tenant context
+            let command = TenantCommand.EnableGuestLoanProximity meters
+
+            return!
+                runAggregateCommandMdAsync<Tenant, TenantEvent, string>
+                    tenantId.Value
+                    eventStore
+                    messageSenders
+                    context.Metadata
+                    command
+                    ct
+        }
+
+    member this.DisableGuestLoanProximityAsync(context: UserContext, tenantId: TenantId, ?ct: CancellationToken) =
+        taskResult {
+            let! (_, tenant) = tenantViewerAsync ct tenantId.Value
+            let ctVal = ct |> Option.defaultValue CancellationToken.None
+            do! Security.checkIsGlobalAdminOrTenantManager tenant context
+            let command = TenantCommand.DisableGuestLoanProximity
+
+            return!
+                runAggregateCommandMdAsync<Tenant, TenantEvent, string>
+                    tenantId.Value
+                    eventStore
+                    messageSenders
+                    context.Metadata
+                    command
+                    ct
+        }
+
     member this.RequestPublicAsync(context: UserContext, tenantId: TenantId, ?ct: CancellationToken) =
         taskResult {
             let! (_, tenant) = tenantViewerAsync ct tenantId.Value
@@ -1093,3 +1127,9 @@ type TenantService
 
         member this.SetGeoLocSettingsAsync(context, tenantId, geoLocSettings, ?ct) =
             this.SetGeoLocSettingsAsync(context, tenantId, geoLocSettings, ?ct = ct)
+
+        member this.EnableGuestLoanProximityAsync(context, tenantId, meters, ?ct) =
+            this.EnableGuestLoanProximityAsync(context, tenantId, meters, ?ct = ct)
+
+        member this.DisableGuestLoanProximityAsync(context, tenantId, ?ct) =
+            this.DisableGuestLoanProximityAsync(context, tenantId, ?ct = ct)

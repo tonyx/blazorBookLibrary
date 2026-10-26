@@ -2,13 +2,14 @@
 let mapInstance = null;
 let markerInstance = null;
 let circleInstance = null;
+let guestCircleInstance = null;
 
 window.tenantMap = {
-    initialize: function (elementId, dotNetHelper, initialLat, initialLng, initialRadius) {
+    initialize: function (elementId, dotNetHelper, initialLat, initialLng, initialRadius, initialGuestRadius) {
         const container = document.getElementById(elementId);
         if (!container) {
             setTimeout(function () {
-                window.tenantMap.initialize(elementId, dotNetHelper, initialLat, initialLng, initialRadius);
+                window.tenantMap.initialize(elementId, dotNetHelper, initialLat, initialLng, initialRadius, initialGuestRadius);
             }, 100);
             return;
         }
@@ -23,6 +24,7 @@ window.tenantMap = {
             mapInstance = null;
             markerInstance = null;
             circleInstance = null;
+            guestCircleInstance = null;
         }
 
         // Ensure default marker icons work reliably with CDN
@@ -53,13 +55,24 @@ window.tenantMap = {
             draggable: true
         }).addTo(mapInstance);
 
-        // Create circle representing the proximity radius area
+        // Create circle representing the discovery radius area
         circleInstance = L.circle([defaultLat, defaultLng], {
             radius: radius,
             color: '#3d619b',
             fillColor: '#3d619b',
-            fillOpacity: 0.2
+            fillOpacity: 0.15
         }).addTo(mapInstance);
+
+        // Create circle representing the guest loan proximity area if enabled
+        if (typeof initialGuestRadius === 'number' && initialGuestRadius > 0) {
+            guestCircleInstance = L.circle([defaultLat, defaultLng], {
+                radius: initialGuestRadius,
+                color: '#198754',
+                fillColor: '#198754',
+                fillOpacity: 0.25,
+                dashArray: '4, 4'
+            }).addTo(mapInstance);
+        }
 
         // Event listener for dragging the marker
         markerInstance.on('dragend', function () {
@@ -67,14 +80,20 @@ window.tenantMap = {
             if (circleInstance) {
                 circleInstance.setLatLng(position);
             }
+            if (guestCircleInstance) {
+                guestCircleInstance.setLatLng(position);
+            }
             dotNetHelper.invokeMethodAsync('UpdateCoordinatesFromMap', position.lat, position.lng);
         });
 
-        // Event listener during drag to keep circle centered
+        // Event listener during drag to keep circles centered
         markerInstance.on('drag', function () {
             const position = markerInstance.getLatLng();
             if (circleInstance) {
                 circleInstance.setLatLng(position);
+            }
+            if (guestCircleInstance) {
+                guestCircleInstance.setLatLng(position);
             }
         });
 
@@ -85,6 +104,9 @@ window.tenantMap = {
             markerInstance.setLatLng([lat, lng]);
             if (circleInstance) {
                 circleInstance.setLatLng([lat, lng]);
+            }
+            if (guestCircleInstance) {
+                guestCircleInstance.setLatLng([lat, lng]);
             }
             dotNetHelper.invokeMethodAsync('UpdateCoordinatesFromMap', lat, lng);
         });
@@ -97,7 +119,7 @@ window.tenantMap = {
         }, 250);
     },
 
-    updateMarker: function (lat, lng, radius) {
+    updateMarker: function (lat, lng, radius, guestRadius) {
         if (markerInstance && mapInstance) {
             markerInstance.setLatLng([lat, lng]);
             if (circleInstance) {
@@ -106,10 +128,39 @@ window.tenantMap = {
                     circleInstance.setRadius(radius);
                 }
             }
+            if (guestCircleInstance) {
+                guestCircleInstance.setLatLng([lat, lng]);
+                if (typeof guestRadius === 'number' && guestRadius > 0) {
+                    guestCircleInstance.setRadius(guestRadius);
+                }
+            }
             if (circleInstance && typeof radius === 'number' && radius > 1000) {
                 mapInstance.fitBounds(circleInstance.getBounds(), { padding: [20, 20] });
             } else {
                 mapInstance.setView([lat, lng], 16);
+            }
+        }
+    },
+
+    updateGuestRadius: function (guestRadius) {
+        if (mapInstance && markerInstance) {
+            const pos = markerInstance.getLatLng();
+            if (typeof guestRadius === 'number' && guestRadius > 0) {
+                if (guestCircleInstance) {
+                    guestCircleInstance.setLatLng(pos);
+                    guestCircleInstance.setRadius(guestRadius);
+                } else {
+                    guestCircleInstance = L.circle(pos, {
+                        radius: guestRadius,
+                        color: '#198754',
+                        fillColor: '#198754',
+                        fillOpacity: 0.25,
+                        dashArray: '4, 4'
+                    }).addTo(mapInstance);
+                }
+            } else if (guestCircleInstance) {
+                mapInstance.removeLayer(guestCircleInstance);
+                guestCircleInstance = null;
             }
         }
     },

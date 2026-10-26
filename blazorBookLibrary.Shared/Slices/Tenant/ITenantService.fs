@@ -171,3 +171,16 @@ type ITenantService =
         geoLocSettings: GeoLocSettings *
         [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken ->
             Task<Result<unit, string>>
+
+    abstract member EnableGuestLoanProximityAsync:
+        context: UserContext *
+        tenantId: TenantId *
+        meters: double *
+        [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken ->
+            Task<Result<unit, string>>
+
+    abstract member DisableGuestLoanProximityAsync:
+        context: UserContext *
+        tenantId: TenantId *
+        [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken ->
+            Task<Result<unit, string>>

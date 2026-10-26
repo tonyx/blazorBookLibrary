@@ -6,37 +6,37 @@ open FsToolkit.ErrorHandling
 open BookLibrary.Shared.Commons
 open System
 
-type Reservation001 =
-    { TenantId: TenantId
-      ReservationId: ReservationId
-      BookId: BookId
-      UserId: UserId
-      TimeSlot: TimeSlot
-      ReservedAt: DateTime
-      ReservationCode: ReservationCode
-      Status: ReservationStatus
-      Sealed: Sealed
-      PickupPinHash: Option<string>
-      PickupPinExpiresAt: Option<DateTime> }
+// type Reservation001 =
+//     { TenantId: TenantId
+//       ReservationId: ReservationId
+//       BookId: BookId
+//       UserId: UserId
+//       TimeSlot: TimeSlot
+//       ReservedAt: DateTime
+//       ReservationCode: ReservationCode
+//       Status: ReservationStatus
+//       Sealed: Sealed
+//       PickupPinHash: Option<string>
+//       PickupPinExpiresAt: Option<DateTime> }
     
-        with
-            member
-                this.Upcast(): Reservation =
-                    {
-                        TenantId = this.TenantId
-                        ReservationId = this.ReservationId
-                        BookId = this.BookId
-                        Patron = RegisteredUser this.UserId
-                        TimeSlot = this.TimeSlot
-                        ReservedAt = this.ReservedAt
-                        ReservationCode = this.ReservationCode
-                        Status = this.Status
-                        Sealed = this.Sealed
-                        PickupPinHash = this.PickupPinHash
-                        PickupPinExpiresAt = this.PickupPinExpiresAt
-                    }
+//         with
+//             member
+//                 this.Upcast(): Reservation =
+//                     {
+//                         TenantId = this.TenantId
+//                         ReservationId = this.ReservationId
+//                         BookId = this.BookId
+//                         Patron = RegisteredUser this.UserId
+//                         TimeSlot = this.TimeSlot
+//                         ReservedAt = this.ReservedAt
+//                         ReservationCode = this.ReservationCode
+//                         Status = this.Status
+//                         Sealed = this.Sealed
+//                         PickupPinHash = this.PickupPinHash
+//                         PickupPinExpiresAt = this.PickupPinExpiresAt
+//                     }
 
-and Reservation =
+type Reservation =
     { TenantId: TenantId
       ReservationId: ReservationId
       BookId: BookId
@@ -157,7 +157,4 @@ and Reservation =
             let reservation = JsonSerializer.Deserialize<Reservation>(data, jsonOptions)
             Ok reservation
         with ex ->
-            try
-                let reservation001 = (data, jsonOptions) |> JsonSerializer.Deserialize<Reservation001>
-                reservation001.Upcast () |> Ok
-            with ex2 -> Error $"Error in deserializing {data} - {ex.Message}, {ex2.Message}"
+            Error $"Error in deserializing {data} - {ex.Message}"

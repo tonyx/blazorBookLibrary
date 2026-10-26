@@ -377,6 +377,66 @@
                                     @L["GeoLocSettingsDescription"]
                                 </small>
                             </div>
+
+                            <div class="border-top pt-3 mt-3 animate-fade-in">
+                                <label class="small text-muted text-uppercase fw-bold d-block mb-2">@L["GuestProximity_Label"]</label>
+                                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
+                                    <div class="d-flex align-items-center flex-wrap gap-2">
+                                        @if (libraryDetails.Tenant.GuestProximitySettings != null && libraryDetails.Tenant.GuestProximitySettings.IsEnabled)
+                                        {
+                                            var guestRadius = libraryDetails.Tenant.GuestProximitySettings.OptRadiusInMeters != null && Microsoft.FSharp.Core.FSharpOption<double>.get_IsSome(libraryDetails.Tenant.GuestProximitySettings.OptRadiusInMeters) ? libraryDetails.Tenant.GuestProximitySettings.OptRadiusInMeters.Value : 50.0;
+                                            <span class="badge bg-success-subtle text-success border border-success px-2 py-1 rounded small">
+                                                <i class="bi bi-shield-check me-1"></i>@L["GeoLocEnabled"]
+                                            </span>
+                                            <span class="text-muted small font-monospace">
+                                                (@(guestRadius)m)
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-secondary-subtle text-secondary border border-secondary px-2 py-1 rounded small">
+                                                <i class="bi bi-slash-circle me-1"></i>@L["GeoLocDisabled"]
+                                            </span>
+                                        }
+                                    </div>
+                                    <div class="d-flex align-items-center gap-2">
+                                        @if (libraryDetails.Tenant.GuestProximitySettings != null && libraryDetails.Tenant.GuestProximitySettings.IsEnabled)
+                                        {
+                                            <div class="form-check form-switch m-0 d-flex align-items-center" title="@L["GuestProximity_DisableButton"]">
+                                                <input class="form-check-input" type="checkbox" role="switch" id="guest-proximity-switch-@Id"
+                                                       checked="checked"
+                                                       disabled="@isUpdatingGuestProximity"
+                                                       @onclick="HandleToggleGuestProximity" />
+                                            </div>
+                                            @if (isUpdatingGuestProximity)
+                                            {
+                                                <span class="spinner-border spinner-border-sm text-primary" role="status"></span>
+                                            }
+                                            <a href="/tenants/@Id/geoloc" class="btn btn-sm btn-outline-primary rounded-pill px-3 py-1" title="@L["ConfigureCoordinates"]">
+                                                <i class="bi bi-sliders me-1"></i>@L["ConfigureCoordinates"]
+                                            </a>
+                                        }
+                                        else
+                                        {
+                                            <div class="form-check form-switch m-0 d-flex align-items-center" title="@L["GuestProximity_EnableButton"]">
+                                                <input class="form-check-input" type="checkbox" role="switch" id="guest-proximity-switch-@Id"
+                                                       disabled="@(isUpdatingGuestProximity || libraryDetails.Tenant.GeoLocSettings == null || !libraryDetails.Tenant.GeoLocSettings.IsEnabled)"
+                                                       @onclick="HandleToggleGuestProximity" />
+                                            </div>
+                                            @if (isUpdatingGuestProximity)
+                                            {
+                                                <span class="spinner-border spinner-border-sm text-primary" role="status"></span>
+                                            }
+                                            <a href="/tenants/@Id/geoloc" class="btn btn-sm btn-outline-success rounded-pill px-3 py-1">
+                                                <i class="bi bi-sliders me-1"></i>@L["ConfigureCoordinates"]
+                                            </a>
+                                        }
+                                    </div>
+                                </div>
+                                <small class="text-muted d-block mt-1" style="font-size: 0.8rem; line-height: 1.2;">
+                                    @L["GuestProximity_Description"]
+                                </small>
+                            </div>
                         }
                     </div>
                 </div>
@@ -1777,6 +1837,79 @@
         else
         {
             NavigationManager.NavigateTo($"/tenants/{Id}/geoloc");
+        }
+    }
+
+    private bool isUpdatingGuestProximity = false;
+
+    private async Task HandleToggleGuestProximity()
+    {
+        if (libraryDetails == null || isUpdatingGuestProximity) return;
+
+        var isGuestProximityEnabled = libraryDetails.Tenant.GuestProximitySettings != null && libraryDetails.Tenant.GuestProximitySettings.IsEnabled;
+        isUpdatingGuestProximity = true;
+        StateHasChanged();
+
+        try
+        {
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var claimsPrincipal = authState.User;
+            if (claimsPrincipal == null) return;
+            var userContext = TenantState.GetUserContext(claimsPrincipal);
+            var tenantId = TenantId.NewTenantId(Id);
+
+            if (isGuestProximityEnabled)
+            {
+                var result = await TenantService.DisableGuestLoanProximityAsync(userContext, tenantId, default);
+                if (result.IsOk)
+                {
+                    await JSRuntime.InvokeVoidAsync("showToast", L["GuestProximity_DisabledSuccess"].Value, "success");
+                    var refreshResult = await DetailsService.GetTenantDetailsAsync(userContext, tenantId, default);
+                    if (refreshResult.IsOk)
+                    {
+                        libraryDetails = refreshResult.ResultValue;
+                    }
+                }
+                else
+                {
+                    await JSRuntime.InvokeVoidAsync("showToast", result.ErrorValue ?? L["ErrorOccurred"].Value, "error");
+                }
+            }
+            else
+            {
+                if (libraryDetails.Tenant.GeoLocSettings == null || !libraryDetails.Tenant.GeoLocSettings.IsEnabled)
+                {
+                    await JSRuntime.InvokeVoidAsync("showToast", L["GuestProximity_MustEnableGeoLoc"].Value, "warning");
+                    NavigationManager.NavigateTo($"/tenants/{Id}/geoloc");
+                    return;
+                }
+
+                // Default guest proximity to 50 meters
+                var result = await TenantService.EnableGuestLoanProximityAsync(userContext, tenantId, 50.0, default);
+                if (result.IsOk)
+                {
+                    await JSRuntime.InvokeVoidAsync("showToast", L["GuestProximity_SavedSuccess"].Value, "success");
+                    var refreshResult = await DetailsService.GetTenantDetailsAsync(userContext, tenantId, default);
+                    if (refreshResult.IsOk)
+                    {
+                        libraryDetails = refreshResult.ResultValue;
+                    }
+                }
+                else
+                {
+                    await JSRuntime.InvokeVoidAsync("showToast", result.ErrorValue ?? L["ErrorOccurred"].Value, "error");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Exception while toggling guest proximity settings");
+            await JSRuntime.InvokeVoidAsync("showToast", L["ErrorOccurred"].Value, "error");
+        }
+        finally
+        {
+            isUpdatingGuestProximity = false;
+            StateHasChanged();
         }
     }
 

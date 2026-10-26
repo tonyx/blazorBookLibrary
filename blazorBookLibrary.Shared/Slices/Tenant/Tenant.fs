@@ -26,9 +26,9 @@ type Tenant001 =
       CurrentJoinPin: Option<string>
       JoinRequests: List<UserId> 
       GeoLocSettings: GeoLocSettings
+      PartnerApiKeys: List<PartnerApiKey>
     }
-    with 
-        member this.Upcast(): Tenant =
+    with member this.Upcast (): Tenant  =
             {
                 OwnerId = this.OwnerId
                 TenantId = this.TenantId
@@ -44,6 +44,7 @@ type Tenant001 =
                 CurrentJoinPin = this.CurrentJoinPin
                 JoinRequests = this.JoinRequests
                 GeoLocSettings = this.GeoLocSettings
+                GuestProximitySettings = GuestProximitySettings.Disabled
                 PartnerApiKeys = []
             }
 
@@ -62,6 +63,7 @@ and Tenant =
       CurrentJoinPin: Option<string>
       JoinRequests: List<UserId> 
       GeoLocSettings: GeoLocSettings
+      GuestProximitySettings: GuestProximitySettings
       PartnerApiKeys: List<PartnerApiKey>
     }
 
@@ -84,6 +86,7 @@ and Tenant =
           CurrentJoinPin = None
           JoinRequests = [] 
           GeoLocSettings = GeoLocSettings.Disabled
+          GuestProximitySettings = GuestProximitySettings.Disabled
           PartnerApiKeys = []
         }
 
@@ -352,6 +355,7 @@ and Tenant =
                     {
                         this with
                             GeoLocSettings = GeoLocSettings.Disabled
+                            GuestProximitySettings = GuestProximitySettings.Disabled
                     }
             }
 
@@ -380,22 +384,51 @@ and Tenant =
         | GeoLocSettings.Enabled tenantCoordinates ->
             tenantCoordinates.DistanceInMeters(userCoordinates) <= tenantCoordinates.RadiusInMeters
 
+    member this.EnableGuestLoanProximity (meters: double) =
+        result {
+            do!
+                this.GeoLocSettings.IsEnabled
+                |> Result.ofBool "Must enable geo-location settings"
+            return 
+                {
+                    this with
+                        GuestProximitySettings = GuestProximitySettings.Enabled meters
+                }
+        }
+
+    member this.DisableGuestLoanProximity () =
+        result 
+            {
+                return
+                    {
+                        this with
+                            GuestProximitySettings = GuestProximitySettings.Disabled
+                    }
+            }
+
+
     /// Validates proximity requirements for guest reservations.
     /// If library geolocation is disabled, no control is done (returns Ok ()).
     /// If library geolocation is enabled, guest coordinates must be provided and within proximity radius.
+    /// Uses GuestProximitySettings radius if enabled; otherwise falls back to GeoLocSettings radius.
     member this.CheckGuestProximity (guestCoordinates: Option<Coordinates>) : Result<unit, string> =
         match this.GeoLocSettings with
         | GeoLocSettings.Disabled -> Ok ()
         | GeoLocSettings.Enabled tenantCoordinates ->
+            let allowedRadius =
+                match this.GuestProximitySettings with
+                | GuestProximitySettings.Enabled r -> r
+                | GuestProximitySettings.Disabled -> tenantCoordinates.RadiusInMeters
+
             match guestCoordinates with
             | None ->
                 Error "Guest reservation requires device location verification when library geolocation is enabled"
             | Some coords ->
                 let distance = tenantCoordinates.DistanceInMeters (coords)
-                if distance <= tenantCoordinates.RadiusInMeters then
+                if distance <= allowedRadius then
                     Ok ()
                 else
-                    Error $"Guest reservation requires proximity to the library (distance: {int (Math.Round distance)}m, allowed: {int tenantCoordinates.RadiusInMeters}m)"
+                    Error $"Guest reservation requires proximity to the library (distance: {int (Math.Round distance)}m, allowed: {int allowedRadius}m)"
 
     member this.SetPrivate() =
         { this with

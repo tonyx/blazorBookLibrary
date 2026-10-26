@@ -1107,8 +1107,17 @@ type GeoLocSettings =
         static member CreateEnabled (latitude: double, longitude: double, ?radiusInMeters: double) =
             Coordinates.Create (latitude, longitude, ?radiusInMeters = radiusInMeters)
             |> Result.map Enabled
-                    
+
 type GeolocSettings = GeoLocSettings
+
+type GuestProximitySettings =
+    | Disabled
+    | Enabled of radiousInMeters: double
+    with
+        member this.OptRadiusInMeters : Option<double> =
+            match this with
+            | Enabled r -> Some r
+            | Disabled -> None
 
 type Availability =
     | Circulating
