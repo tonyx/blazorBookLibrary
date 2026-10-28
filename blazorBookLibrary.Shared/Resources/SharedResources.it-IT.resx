@@ -1330,5 +1330,11 @@
   <data name="MultiTenant_CoordinatesNotConfigured" xml:space="preserve"><value>Coordinate non configurate per questa biblioteca.</value></data>
   <data name="MultiTenant_UserLocationNotSet" xml:space="preserve"><value>Imposta la tua posizione per vedere il tragitto</value></data>
   <data name="MultiTenant_YourLocation" xml:space="preserve"><value>La tua posizione</value></data>
+  <data name="MultiTenant_TagsNotice" xml:space="preserve"><value>I filtri per tag sono specifici per ogni biblioteca e sono disponibili solo selezionando una singola biblioteca.</value></data>
+  <data name="MultiTenant_DistributionPointsNotice" xml:space="preserve"><value>I filtri per punto di distribuzione sono specifici per ogni biblioteca e sono disponibili solo selezionando una singola biblioteca.</value></data>
+  <data name="MultiTenant_AuthorsNotice" xml:space="preserve"><value>I filtri per autore sono specifici per ogni biblioteca e sono disponibili solo selezionando una singola biblioteca.</value></data>
+  <data name="MultiTenant_BulkOperationsDisabledNotice" xml:space="preserve"><value>Le operazioni massive (modifica cumulativa e generazione embedding) sono riservate alla modalità singola biblioteca. Seleziona una sola biblioteca in alto per gestire i libri in blocco.</value></data>
+  <data name="BookBelongsToAnotherTenantNotice" xml:space="preserve"><value>Questo libro appartiene a un'altra biblioteca e non può essere selezionato per operazioni massive.</value></data>
+  <data name="BookBelongsToAnotherTenantNoticeWithName" xml:space="preserve"><value>Questo libro appartiene a {0} e non può essere selezionato per operazioni massive.</value></data>
   <data name="NoTitle" xml:space="preserve"><value>Senza Titolo</value></data>
 </root>

@@ -518,8 +518,15 @@
         {
             await UserLocationService.ClearLocationAsync();
             isLocationSaved = false;
+            latitude = null;
+            longitude = null;
+            previewTenants = null;
             successMessage = L["UserLocation_ClearSuccess"].Value;
-            await LoadPreviewTenantsAsync();
+            try
+            {
+                await JSRuntime.InvokeVoidAsync("tenantMap.clearMarker");
+            }
+            catch { }
         }
         catch (Exception ex)
         {
@@ -528,6 +535,7 @@
         finally
         {
             isSaving = false;
+            StateHasChanged();
         }
     }
 

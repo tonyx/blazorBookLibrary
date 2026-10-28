@@ -21,10 +21,14 @@ public class LibrarianChatClientService : ILibrarianChatService
         LibrarianChatRequest request,
         FSharpOption<CancellationToken> ct)
     {
-        var response = await _httpClient.PostAsJsonAsync(
+        var httpRequest = ServiceClientHelper.CreateRequest(
+            HttpMethod.Post,
             "api/LibrarianChat/chat",
-            request,
-            ServiceClientHelper.JsonOptions,
+            context,
+            request);
+
+        var response = await _httpClient.SendAsync(
+            httpRequest,
             ServiceClientHelper.GetValue(ct, CancellationToken.None));
 
         return await ServiceClientHelper.HandleResponse<LibrarianChatResponse>(response);

@@ -179,6 +179,17 @@ window.tenantMap = {
         }
     },
 
+    clearMarker: function () {
+        if (circleInstance && mapInstance) {
+            mapInstance.removeLayer(circleInstance);
+            circleInstance = null;
+        }
+        if (guestCircleInstance && mapInstance) {
+            mapInstance.removeLayer(guestCircleInstance);
+            guestCircleInstance = null;
+        }
+    },
+
     updateRadius: function (radius) {
         if (circleInstance && typeof radius === 'number' && radius > 0) {
             circleInstance.setRadius(radius);

@@ -22,6 +22,7 @@ namespace blazorBookLibrary.Client.Services
         Task<Commons.Coordinates?> GetCoordinatesAsync();
         Task SetLocationAsync(double latitude, double longitude, double radiusInMeters, string? label = null);
         Task ClearLocationAsync();
+        Task<UserLocation?> ForceRefreshAsync();
         event Action? OnLocationChanged;
     }
 
@@ -44,6 +45,12 @@ namespace blazorBookLibrary.Client.Services
             _cookieService = cookieService;
         }
 
+        public async Task<UserLocation?> ForceRefreshAsync()
+        {
+            _isInitialized = false;
+            return await GetLocationAsync();
+        }
+
         public async Task<UserLocation?> GetLocationAsync()
         {
             if (_isInitialized)
@@ -51,19 +58,24 @@ namespace blazorBookLibrary.Client.Services
                 return _cachedLocation;
             }
 
+            bool jsSuccess = false;
+            string? json = null;
             try
             {
-                // 1. Try reading from LocalStorage
-                string? json = null;
-                try
-                {
-                    json = await _jsRuntime.InvokeAsync<string?>("localStorage.getItem", LocalStorageKey);
-                }
-                catch
-                {
-                    // JS not available during prerendering or restricted
-                }
+                json = await _jsRuntime.InvokeAsync<string?>("localStorage.getItem", LocalStorageKey);
+                jsSuccess = true;
+            }
+            catch (InvalidOperationException)
+            {
+                // Prerendering: JS interop not ready yet
+            }
+            catch (Exception)
+            {
+                jsSuccess = true;
+            }
 
+            if (jsSuccess)
+            {
                 if (!string.IsNullOrWhiteSpace(json))
                 {
                     var location = ParseLocationJson(json);
@@ -75,35 +87,55 @@ namespace blazorBookLibrary.Client.Services
                     }
                 }
 
-                // 2. Fall back to reading from Cookie (cookie mirroring)
-                var cookieOpt = await _cookieService.GetCookieAsync(CookieName);
-                if (cookieOpt != null && FSharpOption<string>.get_IsSome(cookieOpt) && !string.IsNullOrWhiteSpace(cookieOpt.Value))
+                // If localStorage is empty, check cookie (fallback for SSR-set cookies or when JS interop first becomes ready)
+                try
                 {
-                    var cookieVal = Uri.UnescapeDataString(cookieOpt.Value);
-                    var location = ParseLocationJson(cookieVal);
-                    if (location != null)
+                    var cookieOpt = await _cookieService.GetCookieAsync(CookieName);
+                    if (cookieOpt != null && FSharpOption<string>.get_IsSome(cookieOpt) && !string.IsNullOrWhiteSpace(cookieOpt.Value))
                     {
-                        _cachedLocation = location;
-                        _isInitialized = true;
-
-                        // Mirror back to LocalStorage if possible
-                        try
+                        var cookieVal = Uri.UnescapeDataString(cookieOpt.Value);
+                        var location = ParseLocationJson(cookieVal);
+                        if (location != null)
                         {
-                            await _jsRuntime.InvokeVoidAsync("localStorage.setItem", LocalStorageKey, cookieVal);
+                            _cachedLocation = location;
+                            _isInitialized = true;
+                            // Mirror to localStorage
+                            try
+                            {
+                                await _jsRuntime.InvokeVoidAsync("localStorage.setItem", LocalStorageKey, cookieVal);
+                            }
+                            catch { }
+                            return _cachedLocation;
                         }
-                        catch { }
-
-                        return _cachedLocation;
                     }
                 }
-            }
-            catch (Exception)
-            {
-                // Silently handle errors
-            }
+                catch { }
 
-            _isInitialized = true;
-            return _cachedLocation;
+                // LocalStorage was queried and is empty (or cleared)
+                _cachedLocation = null;
+                _isInitialized = true;
+                return null;
+            }
+            else
+            {
+                // Prerendering: JS Interop is not ready. Read cookie for initial render without caching permanently.
+                try
+                {
+                    var cookieOpt = await _cookieService.GetCookieAsync(CookieName);
+                    if (cookieOpt != null && FSharpOption<string>.get_IsSome(cookieOpt) && !string.IsNullOrWhiteSpace(cookieOpt.Value))
+                    {
+                        var cookieVal = Uri.UnescapeDataString(cookieOpt.Value);
+                        var location = ParseLocationJson(cookieVal);
+                        if (location != null)
+                        {
+                            return location;
+                        }
+                    }
+                }
+                catch { }
+
+                return null;
+            }
         }
 
         public async Task<Commons.Coordinates?> GetCoordinatesAsync()
@@ -128,17 +160,20 @@ namespace blazorBookLibrary.Client.Services
             _isInitialized = true;
 
             var json = JsonSerializer.Serialize(loc);
+            var escapedJson = Uri.EscapeDataString(json);
 
             try
             {
-                await _jsRuntime.InvokeVoidAsync("localStorage.setItem", LocalStorageKey, json);
+                await _jsRuntime.InvokeVoidAsync("eval",
+                    $"try {{ localStorage.setItem('{LocalStorageKey}', {JsonSerializer.Serialize(json)}); }} catch(e){{}} " +
+                    $"(function() {{ var sec = window.location.protocol === 'https:' ? '; Secure' : ''; document.cookie = '{CookieName}={escapedJson}; max-age={30 * 86400}; path=/; SameSite=Lax' + sec; }})()");
             }
             catch { }
 
             try
             {
                 // Mirror to cookie with 30-day lifespan
-                await _cookieService.SetCookieAsync(CookieName, Uri.EscapeDataString(json), FSharpOption<int>.Some(30));
+                await _cookieService.SetCookieAsync(CookieName, escapedJson, FSharpOption<int>.Some(30));
             }
             catch { }
 
@@ -152,7 +187,10 @@ namespace blazorBookLibrary.Client.Services
 
             try
             {
-                await _jsRuntime.InvokeVoidAsync("localStorage.removeItem", LocalStorageKey);
+                await _jsRuntime.InvokeVoidAsync("eval",
+                    $"try {{ localStorage.removeItem('{LocalStorageKey}'); }} catch(e){{}} " +
+                    $"document.cookie = '{CookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; max-age=0; path=/; SameSite=Lax;'; " +
+                    $"document.cookie = '{CookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; max-age=0; path=/; SameSite=Lax; Secure;';");
             }
             catch { }
 

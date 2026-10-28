@@ -217,23 +217,17 @@ type UserTenantResolverService(
                     allTenants
                     |> List.filter (fun t ->
                         userHasAccessToTenant context t &&
-                        (isWithinRadius t || (includeActive && t.TenantId = activeTenantId))
+                        (t.TenantId = TenantId.Default || isWithinRadius t || (includeActive && t.TenantId = activeTenantId))
                     )
                 return filtered
 
             | TenantScope.AllAccessibleTenants optCoords ->
                 match optCoords with
                 | None ->
-                    if not context.IsAuthenticated then
-                        let filtered =
-                            allTenants
-                            |> List.filter (fun t -> t.TenantId = activeTenantId && userHasAccessToTenant context t)
-                        return filtered
-                    else
-                        let filtered =
-                            allTenants
-                            |> List.filter (fun t -> userHasAccessToTenant context t)
-                        return filtered
+                    let filtered =
+                        allTenants
+                        |> List.filter (fun t -> userHasAccessToTenant context t)
+                    return filtered
                 | Some coords ->
                     let isGuest = not context.IsAuthenticated
                     let effectiveRadius =
@@ -251,7 +245,7 @@ type UserTenantResolverService(
                     let filtered =
                         allTenants
                         |> List.filter (fun t ->
-                            userHasAccessToTenant context t && isWithinRadius t
+                            userHasAccessToTenant context t && (t.TenantId = TenantId.Default || isWithinRadius t)
                         )
                     return filtered
         }

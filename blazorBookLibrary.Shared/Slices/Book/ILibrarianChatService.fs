@@ -23,6 +23,7 @@ type LibrarianChatRequest =
         IncludeGeneralKnowledge: bool
         ScopeBookIds: Option<List<BookId>>
         ForceNewSearch: bool
+        TargetTenantIds: Option<List<TenantId>>
     }
 
 [<CLIMutable>]

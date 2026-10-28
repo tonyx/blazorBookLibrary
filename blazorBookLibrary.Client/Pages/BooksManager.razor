@@ -140,20 +140,30 @@ else
                             
                             @if (selectedBookIds.Count > 0)
                             {
-                                <button class="btn btn-primary btn-sm rounded-pill px-4 ms-3 animate-slide-in" @onclick="EnableBulkEdit">
-                                    <i class="bi bi-pencil-square me-2"></i> @L["BulkEdit"] (@selectedBookIds.Count)
-                                </button>
-                                <button class="btn btn-outline-primary btn-sm rounded-pill px-4 ms-2 animate-slide-in" @onclick="GenerateBulkEmbeddings" disabled="@isGeneratingBulkEmbedding">
-                                    @if (isGeneratingBulkEmbedding)
-                                    {
-                                        <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                                        <span>@L["Loading"]...</span>
-                                    }
-                                    else
-                                    {
-                                        <i class="bi bi-cpu me-2"></i><span>@L["GenerateEmbedding"] (@selectedBookIds.Count)</span>
-                                    }
-                                </button>
+                                @if (IsMultiTenantActive)
+                                {
+                                    <div class="d-inline-flex align-items-center gap-2 alert alert-warning py-1 px-3 mb-0 rounded-pill ms-3 small border-0 animate-slide-in">
+                                        <i class="bi bi-shield-exclamation text-warning"></i>
+                                        <span>@L["MultiTenant_BulkOperationsDisabledNotice"]</span>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <button class="btn btn-primary btn-sm rounded-pill px-4 ms-3 animate-slide-in" @onclick="EnableBulkEdit">
+                                        <i class="bi bi-pencil-square me-2"></i> @L["BulkEdit"] (@selectedBookIds.Count)
+                                    </button>
+                                    <button class="btn btn-outline-primary btn-sm rounded-pill px-4 ms-2 animate-slide-in" @onclick="GenerateBulkEmbeddings" disabled="@isGeneratingBulkEmbedding">
+                                        @if (isGeneratingBulkEmbedding)
+                                        {
+                                            <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                                            <span>@L["Loading"]...</span>
+                                        }
+                                        else
+                                        {
+                                            <i class="bi bi-cpu me-2"></i><span>@L["GenerateEmbedding"] (@selectedBookIds.Count)</span>
+                                        }
+                                    </button>
+                                }
                             }
                         </div>
                     </div>
@@ -165,14 +175,17 @@ else
                                     <div class="form-check d-inline-block">
                                         <input type="checkbox" class="form-check-input" 
                                                checked="@AllBooksSelected" 
+                                               disabled="@(!SelectableFilteredBooks.Any())"
                                                @onchange="ToggleSelectAll" />
                                     </div>
                                 </HeaderTemplate>
                                 <ChildContent>
-                                    <div class="form-check d-inline-block">
+                                    <div class="form-check d-inline-block" title="@GetBookSelectionTooltip(context)">
                                         <input type="checkbox" class="form-check-input" 
                                                checked="@selectedBookIds.Contains(context.Book.BookId)" 
-                                               @onchange="@(e => ToggleBookSelection(context.Book.BookId, e.Value))" />
+                                               disabled="@(!IsBookSelectable(context))"
+                                               title="@GetBookSelectionTooltip(context)"
+                                               @onchange="@(e => ToggleBookSelection(context, e.Value))" />
                                     </div>
                                 </ChildContent>
                             </TemplateColumn>
@@ -209,6 +222,12 @@ else
                                         {
                                             <span class="badge bg-light text-muted border font-monospace small" title="@L["SbnIdentifier"]">
                                                 SBN: @context.Book.SbnCode.Value.Value
+                                            </span>
+                                        }
+                                        @if (FSharpOption<TenantSearchInfo>.get_IsSome(context.TenantInfo))
+                                        {
+                                            <span class="badge bg-secondary-subtle text-secondary rounded-pill small border" title="@context.TenantInfo.Value.Address">
+                                                <i class="bi bi-building me-1"></i>@context.TenantInfo.Value.TenantName
                                             </span>
                                         }
                                     </div>
@@ -361,12 +380,12 @@ else
         }
     </div>
 
-    @if (showBulkEdit && selectedBookIds.Count > 0)
+    @if (!IsMultiTenantActive && showBulkEdit && selectedBookIds.Count > 0)
     {
         <div class="mb-5 animate-fade-in">
             <div class="card-sanctuary p-4 bg-surface-low border-primary-subtle border">
                 <BulkEditComponent BookIds="@selectedBookIds.ToList()" 
-                                   UserContext="@_cachedUserContext"
+                                   UserContext="@GetEffectiveUserContext()"
                                    ManagedDistributionPoints="@managedDistributionPoints"
                                    OnCancel="() => showBulkEdit = false" 
                                    OnSuccess="HandleBulkEditSuccess" />
@@ -1183,42 +1202,105 @@ else
         return _cachedUserContext;
     }
 
-    private void ToggleBookSelection(BookId bookId, object? checkedValue)
+    private TenantId? GetActiveSingleTenant()
     {
+        if (_selectedTenants.Count == 1)
+        {
+            return _selectedTenants.First();
+        }
+        if (_selectedTenants.Count == 0 && _currentTenant != null && !_currentTenant.Equals(TenantId.Default))
+        {
+            return _currentTenant;
+        }
+        return null;
+    }
+
+    private bool IsBookSelectable(BookSearchResult result)
+    {
+        if (IsMultiTenantActive) return false;
+        var activeTenant = GetActiveSingleTenant();
+        if (activeTenant == null) return false;
+
+        if (FSharpOption<TenantSearchInfo>.get_IsSome(result.TenantInfo))
+        {
+            return result.TenantInfo.Value.TenantId.Equals(activeTenant);
+        }
+
+        return _currentTenant != null && _currentTenant.Equals(activeTenant);
+    }
+
+    private string? GetBookSelectionTooltip(BookSearchResult result)
+    {
+        if (IsMultiTenantActive)
+        {
+            return L["MultiTenant_BulkOperationsDisabledNotice"].Value;
+        }
+
+        if (!IsBookSelectable(result))
+        {
+            if (FSharpOption<TenantSearchInfo>.get_IsSome(result.TenantInfo) && !string.IsNullOrWhiteSpace(result.TenantInfo.Value.TenantName))
+            {
+                return string.Format(L["BookBelongsToAnotherTenantNoticeWithName"].Value, result.TenantInfo.Value.TenantName);
+            }
+            return L["BookBelongsToAnotherTenantNotice"].Value;
+        }
+
+        return null;
+    }
+
+    private IEnumerable<BookSearchResult> SelectableFilteredBooks =>
+        FilteredBooks.Where(b => IsBookSelectable(b));
+
+    private void ToggleBookSelection(BookSearchResult result, object? checkedValue)
+    {
+        if (!IsBookSelectable(result)) return;
+
         bool isChecked = checkedValue is bool b && b;
         if (isChecked)
         {
-            selectedBookIds.Add(bookId);
+            selectedBookIds.Add(result.Book.BookId);
         }
         else
         {
-            selectedBookIds.Remove(bookId);
+            selectedBookIds.Remove(result.Book.BookId);
         }
     }
 
-    private bool AllBooksSelected => FilteredBooks.Any() && FilteredBooks.All(b => selectedBookIds.Contains(b.Book.BookId));
+    private bool AllBooksSelected => SelectableFilteredBooks.Any() && SelectableFilteredBooks.All(b => selectedBookIds.Contains(b.Book.BookId));
 
     private void ToggleSelectAll(ChangeEventArgs e)
     {
         bool isChecked = e.Value is bool b && b;
         if (isChecked)
         {
-            foreach (var bookResult in FilteredBooks)
+            foreach (var bookResult in SelectableFilteredBooks)
             {
                 selectedBookIds.Add(bookResult.Book.BookId);
             }
         }
         else
         {
-            foreach (var bookResult in FilteredBooks)
+            foreach (var bookResult in SelectableFilteredBooks)
             {
                 selectedBookIds.Remove(bookResult.Book.BookId);
             }
         }
     }
 
+    private UserContext? GetEffectiveUserContext()
+    {
+        if (_cachedUserContext == null) return null;
+        var activeTenant = GetActiveSingleTenant();
+        if (activeTenant != null && !activeTenant.Equals(TenantId.Default))
+        {
+            return _cachedUserContext.WithNewTenant(activeTenant);
+        }
+        return _cachedUserContext;
+    }
+
     private void EnableBulkEdit()
     {
+        if (IsMultiTenantActive || selectedBookIds.Count == 0) return;
         showBulkEdit = true;
     }
 
@@ -1233,16 +1315,17 @@ else
 
     private async Task GenerateBulkEmbeddings()
     {
-        if (selectedBookIds.Count == 0 || isGeneratingBulkEmbedding) return;
+        if (IsMultiTenantActive || selectedBookIds.Count == 0 || isGeneratingBulkEmbedding) return;
 
         isGeneratingBulkEmbedding = true;
         try
         {
             await ShowStatus(L["GeneratingBulkEmbeddingsInfo"]?.Value ?? "Generating embeddings... This process is rate-limited and may take time. You will receive an in-app notification when finished.", "info");
             var context = await GetUserContextAsync();
-            if (_currentTenant != null && !_currentTenant.Equals(TenantId.Default))
+            var activeTenant = GetActiveSingleTenant();
+            if (activeTenant != null && !activeTenant.Equals(TenantId.Default))
             {
-                context = context.WithNewTenant(_currentTenant);
+                context = context.WithNewTenant(activeTenant);
             }
             var bookIdsList = ListModule.OfSeq(selectedBookIds);
             var result = await EmbeddingOrchestrationService.CreateEmbeddingsForBooksIfMissingAsync(
@@ -1478,6 +1561,8 @@ else
     private void HandleSearchResultsFound(List<BookSearchResult> results)
     {
         foundBooks = results;
+        selectedBookIds.Clear();
+        showBulkEdit = false;
     }
 
     private async Task ShowSearchError(string error)
@@ -1604,9 +1689,16 @@ else
         });
     }
 
+    private IReadOnlyCollection<TenantId> _selectedTenants = Array.Empty<TenantId>();
+    private bool IsMultiTenantActive => _selectedTenants.Count > 1;
+
     private async Task HandleSelectedTenantsChanged(IReadOnlyCollection<TenantId> tenants)
     {
+        _selectedTenants = tenants;
+        selectedBookIds.Clear();
+        showBulkEdit = false;
         await SyncTenantSubscriptionsAsync(tenants.Select(t => t.Value).ToHashSet());
+        StateHasChanged();
     }
 
     private async Task SyncTenantSubscriptionsAsync(HashSet<Guid> newTenantIds)

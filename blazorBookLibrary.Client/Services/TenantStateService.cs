@@ -43,7 +43,7 @@ namespace blazorBookLibrary.Client.Services
         public Commons.UserContext GetUserContext(ClaimsPrincipal principal)
         {
             var context = ConverterUtils.fromClaimsPrincipal(principal);
-            if (context.IsAuthenticated && _currentTenant != null)
+            if (_currentTenant != null && !_currentTenant.TenantId.Equals(Commons.TenantId.Default))
             {
                 return context.WithNewTenant(_currentTenant.TenantId);
             }

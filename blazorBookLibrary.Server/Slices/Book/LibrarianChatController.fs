@@ -16,7 +16,7 @@ type LibrarianChatController(librarianChatService: ILibrarianChatService) =
     [<HttpPost("chat")>]
     member this.Chat([<FromBody>] request: LibrarianChatRequest) =
         task {
-            let context = UserContextMapper.mapFromClaimsPrincipal this.User
+            let context = UserContextMapper.mapFromRequest this.Request
             let! result = librarianChatService.ChatAsync(context, request)
             match result with
             | Ok response -> return this.Ok(response) :> IActionResult

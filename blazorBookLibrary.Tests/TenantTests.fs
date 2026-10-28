@@ -887,6 +887,14 @@ let tests =
                   let anonExplicitTenants = anonExplicitRes |> Result.get
                   Expect.isTrue (anonExplicitTenants |> List.exists (fun t -> t.TenantId = pubTenantId)) "Public tenant returned on explicit request"
                   Expect.isFalse (anonExplicitTenants |> List.exists (fun t -> t.TenantId = privTenantId)) "Private tenant MUST NOT be returned on explicit request by anonymous user"
+
+                  // 5. Anonymous user performs AllAccessibleTenants None search
+                  let! anonAllRes = resolverService.ResolveSearchTenantsAsync(UserContext.Anonymous, TenantScope.AllAccessibleTenants None)
+                  Expect.isOk anonAllRes "AllAccessibleTenants search should succeed for anonymous user"
+                  let anonAllTenants = anonAllRes |> Result.get
+                  Expect.isTrue (anonAllTenants |> List.exists (fun t -> t.TenantId = pubTenantId)) "Public tenant must be accessible to anonymous user"
+                  Expect.isTrue (anonAllTenants |> List.exists (fun t -> t.TenantId = TenantId.Default)) "Default tenant must be accessible to anonymous user"
+                  Expect.isFalse (anonAllTenants |> List.exists (fun t -> t.TenantId = privTenantId)) "Private tenant MUST NOT be accessible to anonymous user"
               }
           testCaseTask "ResolveSearchTenants: non-patron authenticated user cannot see private library until granted patron access"
           <| fun _ ->

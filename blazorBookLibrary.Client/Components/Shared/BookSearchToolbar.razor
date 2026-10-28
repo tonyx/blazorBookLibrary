@@ -28,7 +28,7 @@
     <div class="px-3 px-md-5 pt-3 pt-md-4 pb-4">
         
         <EditForm Model="@this" OnValidSubmit="HandleBookSearch" FormName="SearchBookComponentForm">
-            @if (availableTenants.Count > 1)
+            @if (userCoordinates != null && availableTenants.Count > 1)
             {
                 <!-- Multi-tenant Proximity Selection Pills -->
                 <div class="surrounding-libraries-selector mb-3 p-3 bg-surface-low rounded-xl border" style="border-color: var(--outline-variant) !important;">
@@ -355,38 +355,51 @@
                         <div class="mt-4">
                             <div class="d-flex justify-content-between align-items-center mb-2">
                                 <label class="form-label small text-muted text-uppercase fw-bold mb-0">@L["FilterByTags"]</label>
-                                <div class="form-check form-check-inline mb-0">
-                                    <input class="form-check-input" type="checkbox" id="includePapersInTags" @bind="includePapersInTagsSearch" />
-                                    <label class="form-check-label x-small text-muted" for="includePapersInTags">
-                                        <i class="bi bi-file-earmark-text me-1"></i>@L["IncludePapers"]
-                                    </label>
-                                </div>
-                            </div>
-                            <div class="d-flex gap-2">
-                                <select class="form-select bg-surface-lowest border-0 rounded-lg shadow-sm py-2" @bind="selectedTagNameForFilter">
-                                    <option value="">@L["SelectTagPlaceholder"]</option>
-                                    @foreach (var tag in allBookTags)
-                                    {
-                                        if (!searchTagsCriteria.Contains(tag))
-                                        {
-                                            <option value="@tag.TagName">@tag.TagName</option>
-                                        }
-                                    }
-                                </select>
-                                <button type="button" class="btn-sanctuary-outline bg-surface-lowest px-3" @onclick="AddTagToSearchCriteria" disabled="@(string.IsNullOrEmpty(selectedTagNameForFilter))">
-                                    <i class="bi bi-plus-lg"></i>
-                                </button>
-                            </div>
-                            
-                            <div class="mt-3 d-flex flex-wrap gap-2">
-                                @foreach (var tag in searchTagsCriteria)
+                                @if (!IsMultiTenantMode)
                                 {
-                                    <span class="badge-sanctuary badge-neutral">
-                                        @tag.TagName
-                                        <i class="bi bi-x-circle-fill ms-2" style="cursor: pointer" @onclick="() => RemoveTagFromSearchCriteria(tag)"></i>
-                                    </span>
+                                    <div class="form-check form-check-inline mb-0">
+                                        <input class="form-check-input" type="checkbox" id="includePapersInTags" @bind="includePapersInTagsSearch" />
+                                        <label class="form-check-label x-small text-muted" for="includePapersInTags">
+                                            <i class="bi bi-file-earmark-text me-1"></i>@L["IncludePapers"]
+                                        </label>
+                                    </div>
                                 }
                             </div>
+                            @if (IsMultiTenantMode)
+                            {
+                                <div class="p-3 bg-surface-lowest rounded-lg border text-muted small d-flex align-items-center gap-2">
+                                    <i class="bi bi-info-circle text-primary flex-shrink-0"></i>
+                                    <span>@L["MultiTenant_TagsNotice"]</span>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="d-flex gap-2">
+                                    <select class="form-select bg-surface-lowest border-0 rounded-lg shadow-sm py-2" @bind="selectedTagNameForFilter">
+                                        <option value="">@L["SelectTagPlaceholder"]</option>
+                                        @foreach (var tag in allBookTags)
+                                        {
+                                            if (!searchTagsCriteria.Contains(tag))
+                                            {
+                                                <option value="@tag.TagName">@tag.TagName</option>
+                                            }
+                                        }
+                                    </select>
+                                    <button type="button" class="btn-sanctuary-outline bg-surface-lowest px-3" @onclick="AddTagToSearchCriteria" disabled="@(string.IsNullOrEmpty(selectedTagNameForFilter))">
+                                        <i class="bi bi-plus-lg"></i>
+                                    </button>
+                                </div>
+                                
+                                <div class="mt-3 d-flex flex-wrap gap-2">
+                                    @foreach (var tag in searchTagsCriteria)
+                                    {
+                                        <span class="badge-sanctuary badge-neutral">
+                                            @tag.TagName
+                                            <i class="bi bi-x-circle-fill ms-2" style="cursor: pointer" @onclick="() => RemoveTagFromSearchCriteria(tag)"></i>
+                                        </span>
+                                    }
+                                </div>
+                            }
                         </div>
                     </div>
 
@@ -394,53 +407,66 @@
                     <div class="col-lg-4">
                         <div class="d-flex justify-content-between align-items-center mb-3 mb-md-4 pb-2 border-bottom" style="border-color: var(--outline-variant) !important;">
                             <h6 class="serif mb-0">@L["Authorship"]</h6>
-                            <div class="form-check form-check-inline mb-0">
-                                <input class="form-check-input" type="checkbox" id="includePapersInAuthors" @bind="includePapersInAuthorsSearch" />
-                                <label class="form-check-label x-small text-muted" for="includePapersInAuthors">
-                                    <i class="bi bi-file-earmark-text me-1"></i>@L["IncludePapers"]
-                                </label>
-                            </div>
-                        </div>
-                        
-                        <div class="position-relative">
-                            <label class="form-label small text-muted text-uppercase fw-bold mb-2">@L["SearchAuthorNamePlaceholder"]</label>
-                            <div class="input-group bg-surface-lowest rounded-lg shadow-sm overflow-hidden">
-                                <input type="text" 
-                                       class="form-control border-0 py-2 py-md-3" 
-                                       value="@authorSearchNameFilter"
-                                       @oninput="HandleAuthorSearchInput"
-                                       @onfocus='() => { if(foundAuthorsForFilter.Any()) showAuthorSearchResults = true; }' />
-                                <button type="button" class="btn btn-link text-primary border-0 p-2 p-md-3" @onclick="AddAuthorToSearchCriteria" disabled="@(selectedAuthorFromResults == null)">
-                                    <i class="bi bi-person-plus-fill fs-4"></i>
-                                </button>
-                            </div>
-                            
-                            @if (showAuthorSearchResults)
+                            @if (!IsMultiTenantMode)
                             {
-                                <div class="list-group position-absolute w-100 shadow mt-1 glass border-0" style="z-index: 1100; max-height: 250px; overflow-y: auto; border-radius: var(--radius-lg);">
-                                    @foreach (var author in foundAuthorsForFilter)
-                                    {
-                                        <button type="button" class="list-group-item list-group-item-action bg-transparent border-0 py-2" @onclick="() => SelectAuthorFromResults(author)">
-                                            @author.Name.Value
-                                        </button>
-                                    }
+                                <div class="form-check form-check-inline mb-0">
+                                    <input class="form-check-input" type="checkbox" id="includePapersInAuthors" @bind="includePapersInAuthorsSearch" />
+                                    <label class="form-check-label x-small text-muted" for="includePapersInAuthors">
+                                        <i class="bi bi-file-earmark-text me-1"></i>@L["IncludePapers"]
+                                    </label>
                                 </div>
                             }
                         </div>
+                        
+                        @if (IsMultiTenantMode)
+                        {
+                            <div class="p-3 bg-surface-lowest rounded-lg border text-muted small d-flex align-items-center gap-2">
+                                <i class="bi bi-info-circle text-primary flex-shrink-0"></i>
+                                <span>@L["MultiTenant_AuthorsNotice"]</span>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="position-relative">
+                                <label class="form-label small text-muted text-uppercase fw-bold mb-2">@L["SearchAuthorNamePlaceholder"]</label>
+                                <div class="input-group bg-surface-lowest rounded-lg shadow-sm overflow-hidden">
+                                    <input type="text" 
+                                           class="form-control border-0 py-2 py-md-3" 
+                                           value="@authorSearchNameFilter"
+                                           @oninput="HandleAuthorSearchInput"
+                                           @onfocus='() => { if(foundAuthorsForFilter.Any()) showAuthorSearchResults = true; }' />
+                                    <button type="button" class="btn btn-link text-primary border-0 p-2 p-md-3" @onclick="AddAuthorToSearchCriteria" disabled="@(selectedAuthorFromResults == null)">
+                                        <i class="bi bi-person-plus-fill fs-4"></i>
+                                    </button>
+                                </div>
+                                
+                                @if (showAuthorSearchResults)
+                                {
+                                    <div class="list-group position-absolute w-100 shadow mt-1 glass border-0" style="z-index: 1100; max-height: 250px; overflow-y: auto; border-radius: var(--radius-lg);">
+                                        @foreach (var author in foundAuthorsForFilter)
+                                        {
+                                            <button type="button" class="list-group-item list-group-item-action bg-transparent border-0 py-2" @onclick="() => SelectAuthorFromResults(author)">
+                                                @author.Name.Value
+                                            </button>
+                                        }
+                                    </div>
+                                }
+                            </div>
 
-                        <div class="mt-4 d-flex flex-wrap gap-2">
-                            @if (!searchAuthorsCriteria.Any())
-                            {
-                                <p class="text-muted small fst-italic">@L["NoAuthorsSelected"]</p>
-                            }
-                            @foreach (var author in searchAuthorsCriteria)
-                            {
-                                <span class="badge-sanctuary badge-neutral">
-                                    @author.Name.Value
-                                    <i class="bi bi-x-circle-fill ms-2" style="cursor: pointer" @onclick="() => RemoveAuthorFromSearchCriteria(author)"></i>
-                                </span>
-                            }
-                        </div>
+                            <div class="mt-4 d-flex flex-wrap gap-2">
+                                @if (!searchAuthorsCriteria.Any())
+                                {
+                                    <p class="text-muted small fst-italic">@L["NoAuthorsSelected"]</p>
+                                }
+                                @foreach (var author in searchAuthorsCriteria)
+                                {
+                                    <span class="badge-sanctuary badge-neutral">
+                                        @author.Name.Value
+                                        <i class="bi bi-x-circle-fill ms-2" style="cursor: pointer" @onclick="() => RemoveAuthorFromSearchCriteria(author)"></i>
+                                    </span>
+                                }
+                            </div>
+                        }
                     </div>
 
                     <!-- Column 3: Year & Availability -->
@@ -480,31 +506,41 @@
 
                         <div class="mt-4">
                             <label class="form-label small text-muted text-uppercase fw-bold mb-2">@L["FilterByDistributionPoint"]</label>
-                            <div class="d-flex gap-2">
-                                <select class="form-select bg-surface-lowest border-0 rounded-lg shadow-sm py-2" @bind="selectedDistributionPointIdForFilter">
-                                    <option value="">@L["SelectDistributionPoint"]</option>
-                                    @foreach (var dp in allDistributionPoints)
-                                    {
-                                        if (!searchDistributionPointsCriteria.Any(x => x.DistributionPointId == dp.DistributionPointId))
+                            @if (IsMultiTenantMode)
+                            {
+                                <div class="p-3 bg-surface-lowest rounded-lg border text-muted small d-flex align-items-center gap-2">
+                                    <i class="bi bi-info-circle text-primary flex-shrink-0"></i>
+                                    <span>@L["MultiTenant_DistributionPointsNotice"]</span>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="d-flex gap-2">
+                                    <select class="form-select bg-surface-lowest border-0 rounded-lg shadow-sm py-2" @bind="selectedDistributionPointIdForFilter">
+                                        <option value="">@L["SelectDistributionPoint"]</option>
+                                        @foreach (var dp in allDistributionPoints)
                                         {
-                                            <option value="@dp.DistributionPointId.Value.ToString()">@dp.Name.Value</option>
+                                            if (!searchDistributionPointsCriteria.Any(x => x.DistributionPointId == dp.DistributionPointId))
+                                            {
+                                                <option value="@dp.DistributionPointId.Value.ToString()">@dp.Name.Value</option>
+                                            }
                                         }
+                                    </select>
+                                    <button type="button" class="btn-sanctuary-outline bg-surface-lowest px-3" @onclick="AddDistributionPointToSearchCriteria" disabled="@(string.IsNullOrEmpty(selectedDistributionPointIdForFilter))">
+                                        <i class="bi bi-plus-lg"></i>
+                                    </button>
+                                </div>
+                                
+                                <div class="mt-3 d-flex flex-wrap gap-2">
+                                    @foreach (var dp in searchDistributionPointsCriteria)
+                                    {
+                                        <span class="badge-sanctuary badge-neutral">
+                                            @dp.Name.Value
+                                            <i class="bi bi-x-circle-fill ms-2" style="cursor: pointer" @onclick="() => RemoveDistributionPointFromSearchCriteria(dp)"></i>
+                                        </span>
                                     }
-                                </select>
-                                <button type="button" class="btn-sanctuary-outline bg-surface-lowest px-3" @onclick="AddDistributionPointToSearchCriteria" disabled="@(string.IsNullOrEmpty(selectedDistributionPointIdForFilter))">
-                                    <i class="bi bi-plus-lg"></i>
-                                </button>
-                            </div>
-                            
-                            <div class="mt-3 d-flex flex-wrap gap-2">
-                                @foreach (var dp in searchDistributionPointsCriteria)
-                                {
-                                    <span class="badge-sanctuary badge-neutral">
-                                        @dp.Name.Value
-                                        <i class="bi bi-x-circle-fill ms-2" style="cursor: pointer" @onclick="() => RemoveDistributionPointFromSearchCriteria(dp)"></i>
-                                    </span>
-                                }
-                            </div>
+                                </div>
+                            }
                         </div>
                     </div>
                 </div>
@@ -524,6 +560,7 @@
     [Parameter] public EventCallback<IReadOnlyCollection<TenantId>> OnSelectedTenantsChanged { get; set; }
 
     public IReadOnlyCollection<TenantId> SelectedTenantIds => selectedTenantIds;
+    public bool IsMultiTenantMode => userCoordinates != null && selectedTenantIds.Count > 1;
 
     private string searchMode = "Simple";
 
@@ -535,11 +572,11 @@
             if (!string.IsNullOrWhiteSpace(searchBookIsbn)) count++;
             if (sbnSearchMode == "hasSbn" || sbnSearchMode == "missingSbn" || !string.IsNullOrWhiteSpace(searchBookSbnCode)) count++;
             if (searchCategoriesCriteria != null && searchCategoriesCriteria.Any()) count++;
-            if (searchTagsCriteria != null && searchTagsCriteria.Any()) count++;
-            if (searchAuthorsCriteria != null && searchAuthorsCriteria.Any()) count++;
+            if (!IsMultiTenantMode && searchTagsCriteria != null && searchTagsCriteria.Any()) count++;
+            if (!IsMultiTenantMode && searchAuthorsCriteria != null && searchAuthorsCriteria.Any()) count++;
             if (searchBookYear.HasValue) count++;
             if (!string.IsNullOrEmpty(searchBookAvailability) && searchBookAvailability != "All") count++;
-            if (searchDistributionPointsCriteria != null && searchDistributionPointsCriteria.Any()) count++;
+            if (!IsMultiTenantMode && searchDistributionPointsCriteria != null && searchDistributionPointsCriteria.Any()) count++;
             return count;
         }
     }
@@ -592,6 +629,7 @@
 
     private List<Tenant> availableTenants = new();
     private HashSet<TenantId> selectedTenantIds = new();
+    private HashSet<TenantId> _previousAvailableTenantIds = new();
     private Coordinates? userCoordinates = null;
     private bool isLoadingTenants = false;
 
@@ -599,9 +637,13 @@
     {
         var authState = await AuthStateProvider.GetAuthenticationStateAsync();
         var context = blazorBookLibrary.Shared.ConverterUtils.fromClaimsPrincipal(authState.User);
-        if (context.IsAuthenticated)
+        if (_currentTenant != null && !_currentTenant.Equals(TenantId.Default))
         {
             _userContext = context.WithNewTenant(_currentTenant);
+        }
+        else if (TenantState.CurrentTenant != null)
+        {
+            _userContext = context.WithNewTenant(TenantState.CurrentTenant.TenantId);
         }
         else
         {
@@ -667,16 +709,34 @@
         {
             userCoordinates = await UserLocationService.GetCoordinatesAsync();
             var userContext = await GetUserContextAsync();
-            TenantScope scope;
-            if (userCoordinates != null)
+
+            if (userCoordinates == null)
             {
-                scope = TenantScope.NewProximityTenants(userCoordinates, true);
-            }
-            else
-            {
-                scope = TenantScope.ActiveTenantOnly;
+                // In worldwide mode (no coordinates specified), radius-based multitenant search is unavailable
+                _currentTenant = await ResolveCurrentTenantAsync();
+                if (TenantState.CurrentTenant != null)
+                {
+                    availableTenants = new List<Tenant> { TenantState.CurrentTenant };
+                }
+                else
+                {
+                    var tenantResult = await TenantService.GetTenantAsync(userContext, _currentTenant, FSharpOption<CancellationToken>.None);
+                    if (tenantResult.IsOk)
+                    {
+                        availableTenants = new List<Tenant> { tenantResult.ResultValue };
+                    }
+                    else
+                    {
+                        availableTenants = new();
+                    }
+                }
+                selectedTenantIds = new HashSet<TenantId>(availableTenants.Select(t => t.TenantId));
+                _previousAvailableTenantIds = new HashSet<TenantId>(selectedTenantIds);
+                await OnSelectedTenantsChanged.InvokeAsync(selectedTenantIds);
+                return;
             }
 
+            var scope = TenantScope.NewProximityTenants(userCoordinates, true);
             var result = await UserTenantResolverService.ResolveSearchTenantsAsync(userContext, scope, FSharpOption<CancellationToken>.None);
             if (result.IsOk && result.ResultValue.Any())
             {
@@ -684,7 +744,12 @@
             }
             else
             {
-                if (TenantState.CurrentTenant != null)
+                var proxResult = await TenantService.GetAllowedTenantsByProximityAsync(userContext, userCoordinates, FSharpOption<CancellationToken>.None);
+                if (proxResult.IsOk && proxResult.ResultValue.Any())
+                {
+                    availableTenants = proxResult.ResultValue.ToList();
+                }
+                else if (TenantState.CurrentTenant != null)
                 {
                     availableTenants = new List<Tenant> { TenantState.CurrentTenant };
                 }
@@ -703,14 +768,24 @@
             }
 
             // By default, select all available tenants (or keep existing selections that are still valid)
-            if (!selectedTenantIds.Any() || !availableTenants.Any(t => selectedTenantIds.Contains(t.TenantId)))
+            var currentAvailableIds = new HashSet<TenantId>(availableTenants.Select(t => t.TenantId));
+            var wasFullySelected = selectedTenantIds.Count == 0 || selectedTenantIds.SetEquals(_previousAvailableTenantIds);
+
+            if (wasFullySelected || !selectedTenantIds.Any(t => currentAvailableIds.Contains(t)))
             {
-                selectedTenantIds = new HashSet<TenantId>(availableTenants.Select(t => t.TenantId));
+                selectedTenantIds = new HashSet<TenantId>(currentAvailableIds);
             }
             else
             {
-                var validIds = new HashSet<TenantId>(availableTenants.Select(t => t.TenantId));
-                selectedTenantIds.RemoveWhere(id => !validIds.Contains(id));
+                selectedTenantIds.RemoveWhere(id => !currentAvailableIds.Contains(id));
+            }
+            _previousAvailableTenantIds = currentAvailableIds;
+
+            if (IsMultiTenantMode)
+            {
+                searchTagsCriteria.Clear();
+                searchAuthorsCriteria.Clear();
+                searchDistributionPointsCriteria.Clear();
             }
 
             await OnSelectedTenantsChanged.InvokeAsync(selectedTenantIds);
@@ -728,6 +803,12 @@
     private async Task SelectAllTenants()
     {
         selectedTenantIds = new HashSet<TenantId>(availableTenants.Select(t => t.TenantId));
+        if (IsMultiTenantMode)
+        {
+            searchTagsCriteria.Clear();
+            searchAuthorsCriteria.Clear();
+            searchDistributionPointsCriteria.Clear();
+        }
         await OnSelectedTenantsChanged.InvokeAsync(selectedTenantIds);
     }
 
@@ -746,6 +827,12 @@
         else
         {
             selectedTenantIds.Add(tenantId);
+        }
+        if (IsMultiTenantMode)
+        {
+            searchTagsCriteria.Clear();
+            searchAuthorsCriteria.Clear();
+            searchDistributionPointsCriteria.Clear();
         }
         await OnSelectedTenantsChanged.InvokeAsync(selectedTenantIds);
     }
@@ -944,7 +1031,7 @@
                     criteriaList.Add(SearchCriteria.searchByTitleWithPapers(searchBookTitle, includePapersInTitleSearch));
                 }
 
-                if (searchAuthorsCriteria.Any())
+                if (!IsMultiTenantMode && searchAuthorsCriteria.Any())
                 {
                     var authorIds = searchAuthorsCriteria.Select(a => a.AuthorId);
                     criteriaList.Add(SearchCriteria.searchByAuthorsWithPapers(authorIds, includePapersInAuthorsSearch));
@@ -961,12 +1048,12 @@
                 criteriaList.Add(SearchCriteria.searchByAvailability(searchBookAvailability));
             }
 
-            if (searchTagsCriteria.Any())
+            if (!IsMultiTenantMode && searchTagsCriteria.Any())
             {
                 criteriaList.Add(SearchCriteria.searchByTagsWithPapers(searchTagsCriteria, includePapersInTagsSearch));
             }
 
-            if (searchDistributionPointsCriteria.Any())
+            if (!IsMultiTenantMode && searchDistributionPointsCriteria.Any())
             {
                 var dpIds = searchDistributionPointsCriteria.Select(dp => dp.DistributionPointId);
                 criteriaList.Add(SearchCriteria.searchByDistributionPoints(dpIds));
@@ -1109,7 +1196,7 @@
 
     private async Task HandleBookSearch()
     {
-        if (availableTenants.Count > 1 && !selectedTenantIds.Any())
+        if (userCoordinates != null && availableTenants.Count > 1 && !selectedTenantIds.Any())
         {
             await OnError.InvokeAsync(L["MultiTenant_SelectAtLeastOne"]);
             return;
@@ -1331,7 +1418,7 @@
                 var authorIds = ListModule.OfSeq(searchAuthorsCriteria.Select(a => a.AuthorId));
                 var categories = ListModule.OfSeq(searchCategoriesCriteria);
                 var yearSearch = GetYearSearch();
-                bool hasAuthors = searchAuthorsCriteria.Any();
+                bool hasAuthors = !IsMultiTenantMode && searchAuthorsCriteria.Any();
                 
                 if (hasAuthors)
                 {
@@ -1372,7 +1459,7 @@
                     }
                 }
             }
-            else if (searchAuthorsCriteria.Any())
+            else if (!IsMultiTenantMode && searchAuthorsCriteria.Any())
             {
                 var authorIds = ListModule.OfSeq(searchAuthorsCriteria.Select(a => a.AuthorId));
                 if (hasTitle && hasEffectiveYear)

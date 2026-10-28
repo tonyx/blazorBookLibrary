@@ -1330,5 +1330,11 @@
   <data name="MultiTenant_CoordinatesNotConfigured" xml:space="preserve"><value>Coordinates not configured for this library.</value></data>
   <data name="MultiTenant_UserLocationNotSet" xml:space="preserve"><value>Set your location to see route</value></data>
   <data name="MultiTenant_YourLocation" xml:space="preserve"><value>Your location</value></data>
+  <data name="MultiTenant_TagsNotice" xml:space="preserve"><value>Tag filters are specific to individual libraries and are only available when a single library is selected.</value></data>
+  <data name="MultiTenant_DistributionPointsNotice" xml:space="preserve"><value>Distribution point filters are specific to individual libraries and are only available when a single library is selected.</value></data>
+  <data name="MultiTenant_AuthorsNotice" xml:space="preserve"><value>Author filters are specific to individual libraries and are only available when a single library is selected.</value></data>
+  <data name="MultiTenant_BulkOperationsDisabledNotice" xml:space="preserve"><value>Bulk operations (batch edit and embedding generation) are restricted to single-library mode. Please select a single library above to manage books in bulk.</value></data>
+  <data name="BookBelongsToAnotherTenantNotice" xml:space="preserve"><value>This book belongs to another library and cannot be selected for bulk operations.</value></data>
+  <data name="BookBelongsToAnotherTenantNoticeWithName" xml:space="preserve"><value>This book belongs to {0} and cannot be selected for bulk operations.</value></data>
   <data name="NoTitle" xml:space="preserve"><value>No Title</value></data>
 </root>
