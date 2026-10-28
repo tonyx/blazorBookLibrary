@@ -90,9 +90,17 @@ module Details =
           Authors: List<Author>
           Review: Review }
 
+    type TenantReference =
+        { TenantId: TenantId
+          Name: TenantName }
+        with
+            member this.Id = this.TenantId
+            member this.TenantName = this.Name
+
     type BookDetails =
         { Authors: List<Author>
           Book: Book
+          Tenant: Option<TenantReference>
           DistributionPoint: Option<DistributionPoint>
           CurrentLoan: Option<LoanDetails>
           ReservationsDetails: List<ReservationDetails>

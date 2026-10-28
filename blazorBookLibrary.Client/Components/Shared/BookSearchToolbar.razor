@@ -21,12 +21,93 @@
 @inject IUserService UserService
 @inject blazorBookLibrary.Client.Services.TenantStateService TenantState
 @inject IUserTenantResolverService UserTenantResolverService
+@inject blazorBookLibrary.Client.Services.IUserLocationService UserLocationService
 @implements IDisposable
 
 <div class="card-sanctuary bg-surface-lowest floating mb-3 p-0 overflow-hidden">
     <div class="px-3 px-md-5 pt-3 pt-md-4 pb-4">
         
         <EditForm Model="@this" OnValidSubmit="HandleBookSearch" FormName="SearchBookComponentForm">
+            @if (availableTenants.Count > 1)
+            {
+                <!-- Multi-tenant Proximity Selection Pills -->
+                <div class="surrounding-libraries-selector mb-3 p-3 bg-surface-low rounded-xl border" style="border-color: var(--outline-variant) !important;">
+                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="bi bi-geo-alt-fill text-primary"></i>
+                            <span class="small fw-bold text-uppercase text-muted letter-spacing-1" style="font-size: 0.78rem;">
+                                @L["MultiTenant_LibrariesInRadius"] (@selectedTenantIds.Count / @availableTenants.Count)
+                            </span>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <button type="button" class="btn btn-sm btn-link text-primary p-0 text-decoration-none fw-semibold" style="font-size: 0.8rem;" @onclick="SelectAllTenants">
+                                <i class="bi bi-check-all me-1"></i>@L["MultiTenant_SelectAll"]
+                            </button>
+                            <span class="text-muted" style="font-size: 0.8rem;">|</span>
+                            <button type="button" class="btn btn-sm btn-link text-muted p-0 text-decoration-none" style="font-size: 0.8rem;" @onclick="DeselectAllTenants">
+                                <i class="bi bi-dash-circle me-1"></i>@L["MultiTenant_DeselectAll"]
+                            </button>
+                        </div>
+                    </div>
+                    <div class="d-flex flex-wrap gap-2">
+                        @foreach (var tenant in availableTenants)
+                        {
+                            var tid = tenant.TenantId;
+                            var pillId = $"tenant-pill-{tid.Value}";
+                            var isChecked = selectedTenantIds.Contains(tid);
+                            var distance = GetTenantDistance(tenant);
+                            <div id="@pillId"
+                                 class="form-check form-check-inline tenant-pill-check m-0 px-3 py-1 rounded-pill @(isChecked ? "bg-primary-subtle text-primary border-primary fw-semibold" : "bg-surface-lowest text-muted border")" 
+                                 style="cursor: pointer; border: 1px solid var(--outline-variant); transition: all 0.2s ease;"
+                                 tabindex="0"
+                                 @onclick="() => ToggleTenant(tid)"
+                                 @onmouseenter="() => HandleTenantMouseEnter(tenant, pillId)"
+                                 @onmouseleave="HandleTenantMouseLeave"
+                                 @onfocus="() => HandleTenantMouseEnter(tenant, pillId)"
+                                 @onblur="HandleTenantMouseLeave">
+                                <input class="form-check-input ms-0 me-2" type="checkbox" id="@($"tenant-check-{tid.Value}")" 
+                                       checked="@isChecked" 
+                                       @onclick:stopPropagation="true"
+                                       @onchange="() => ToggleTenant(tid)" />
+                                <label class="form-check-label small user-select-none mb-0" for="@($"tenant-check-{tid.Value}")" style="cursor: pointer;" @onclick:stopPropagation="true">
+                                    @tenant.Name.Value
+                                    @if (distance.HasValue)
+                                    {
+                                        <span class="badge bg-secondary-subtle text-secondary rounded-pill ms-1" style="font-size: 0.72rem;">@FormatDistance(distance.Value)</span>
+                                    }
+                                </label>
+                            </div>
+                        }
+                    </div>
+                    @{
+                        var hCoords = hoveredTenant != null && hoveredTenant.GeoLocSettings.OptCoordinates != null && FSharpOption<Coordinates>.get_IsSome(hoveredTenant.GeoLocSettings.OptCoordinates)
+                            ? hoveredTenant.GeoLocSettings.OptCoordinates.Value
+                            : null;
+                        var hDist = hoveredTenant != null ? GetTenantDistance(hoveredTenant) : null;
+                    }
+                    <TenantGeoPopover 
+                        PopoverId="toolbar-tenant-geo-popover"
+                        MapContainerId="toolbar-tenant-hover-mini-map"
+                        IsVisible="@(isPopoverVisible && hoveredTenant != null)"
+                        TenantName="@(hoveredTenant?.Name?.Value ?? "")"
+                        Address="@(hoveredTenant?.Address ?? "")"
+                        DistanceMeters="@hDist"
+                        TenantLatitude="@(hCoords != null ? hCoords.Latitude : (double?)null)"
+                        TenantLongitude="@(hCoords != null ? hCoords.Longitude : (double?)null)"
+                        UserLatitude="@(userCoordinates != null ? userCoordinates.Latitude : (double?)null)"
+                        UserLongitude="@(userCoordinates != null ? userCoordinates.Longitude : (double?)null)"
+                        TriggerElementId="@hoveredTriggerId"
+                        OnHoverStateChanged="OnPopoverHoverChanged" />
+                    @if (!selectedTenantIds.Any())
+                    {
+                        <div class="text-danger small mt-2 d-flex align-items-center gap-1" style="font-size: 0.8rem;">
+                            <i class="bi bi-exclamation-triangle"></i>
+                            <span>@L["MultiTenant_SelectAtLeastOne"]</span>
+                        </div>
+                    }
+                </div>
+            }
+
             @if (searchMode == "Simple" || searchMode == "Advanced")
             {
                 <!-- The Entryway: Main Title Search with Autocomplete -->
@@ -440,6 +521,9 @@
     [Parameter] public EventCallback<string> OnError { get; set; }
     [Parameter] public EventCallback<bool> OnSearchStarted { get; set; }
     [Parameter] public string? InitialDistributionPointId { get; set; }
+    [Parameter] public EventCallback<IReadOnlyCollection<TenantId>> OnSelectedTenantsChanged { get; set; }
+
+    public IReadOnlyCollection<TenantId> SelectedTenantIds => selectedTenantIds;
 
     private string searchMode = "Simple";
 
@@ -506,6 +590,11 @@
     private UserContext? _userContext;
     private TenantId _currentTenant = TenantId.Default;
 
+    private List<Tenant> availableTenants = new();
+    private HashSet<TenantId> selectedTenantIds = new();
+    private Coordinates? userCoordinates = null;
+    private bool isLoadingTenants = false;
+
     private async Task<UserContext> GetUserContextAsync()
     {
         var authState = await AuthStateProvider.GetAuthenticationStateAsync();
@@ -571,11 +660,230 @@
         }
     }
 
+    private async Task LoadSurroundingTenantsAsync()
+    {
+        isLoadingTenants = true;
+        try
+        {
+            userCoordinates = await UserLocationService.GetCoordinatesAsync();
+            var userContext = await GetUserContextAsync();
+            TenantScope scope;
+            if (userCoordinates != null)
+            {
+                scope = TenantScope.NewProximityTenants(userCoordinates, true);
+            }
+            else
+            {
+                scope = TenantScope.ActiveTenantOnly;
+            }
+
+            var result = await UserTenantResolverService.ResolveSearchTenantsAsync(userContext, scope, FSharpOption<CancellationToken>.None);
+            if (result.IsOk && result.ResultValue.Any())
+            {
+                availableTenants = result.ResultValue.ToList();
+            }
+            else
+            {
+                if (TenantState.CurrentTenant != null)
+                {
+                    availableTenants = new List<Tenant> { TenantState.CurrentTenant };
+                }
+                else
+                {
+                    var tenantResult = await TenantService.GetTenantAsync(userContext, _currentTenant, FSharpOption<CancellationToken>.None);
+                    if (tenantResult.IsOk)
+                    {
+                        availableTenants = new List<Tenant> { tenantResult.ResultValue };
+                    }
+                    else
+                    {
+                        availableTenants = new();
+                    }
+                }
+            }
+
+            // By default, select all available tenants (or keep existing selections that are still valid)
+            if (!selectedTenantIds.Any() || !availableTenants.Any(t => selectedTenantIds.Contains(t.TenantId)))
+            {
+                selectedTenantIds = new HashSet<TenantId>(availableTenants.Select(t => t.TenantId));
+            }
+            else
+            {
+                var validIds = new HashSet<TenantId>(availableTenants.Select(t => t.TenantId));
+                selectedTenantIds.RemoveWhere(id => !validIds.Contains(id));
+            }
+
+            await OnSelectedTenantsChanged.InvokeAsync(selectedTenantIds);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Failed to load surrounding tenants");
+        }
+        finally
+        {
+            isLoadingTenants = false;
+        }
+    }
+
+    private async Task SelectAllTenants()
+    {
+        selectedTenantIds = new HashSet<TenantId>(availableTenants.Select(t => t.TenantId));
+        await OnSelectedTenantsChanged.InvokeAsync(selectedTenantIds);
+    }
+
+    private async Task DeselectAllTenants()
+    {
+        selectedTenantIds.Clear();
+        await OnSelectedTenantsChanged.InvokeAsync(selectedTenantIds);
+    }
+
+    private async Task ToggleTenant(TenantId tenantId)
+    {
+        if (selectedTenantIds.Contains(tenantId))
+        {
+            selectedTenantIds.Remove(tenantId);
+        }
+        else
+        {
+            selectedTenantIds.Add(tenantId);
+        }
+        await OnSelectedTenantsChanged.InvokeAsync(selectedTenantIds);
+    }
+
+    private double? GetTenantDistance(Tenant tenant)
+    {
+        if (userCoordinates != null && tenant.GeoLocSettings.OptCoordinates != null && FSharpOption<Coordinates>.get_IsSome(tenant.GeoLocSettings.OptCoordinates))
+        {
+            return userCoordinates.DistanceInMeters(tenant.GeoLocSettings.OptCoordinates.Value);
+        }
+        return null;
+    }
+
+    private string FormatDistance(double meters)
+    {
+        if (meters < 1000.0)
+        {
+            return $"~{Math.Round(meters, 0)} m";
+        }
+        return $"~{Math.Round(meters / 1000.0, 1)} km";
+    }
+
+    private TenantSearchInfo BuildTenantSearchInfo(Tenant tenant, Coordinates? userCoords, UserContext context)
+    {
+        double? dist = null;
+        double? lat = null;
+        double? lon = null;
+        if (tenant.GeoLocSettings.OptCoordinates != null && FSharpOption<Coordinates>.get_IsSome(tenant.GeoLocSettings.OptCoordinates))
+        {
+            var coords = tenant.GeoLocSettings.OptCoordinates.Value;
+            lat = coords.Latitude;
+            lon = coords.Longitude;
+            if (userCoords != null)
+            {
+                dist = userCoords.DistanceInMeters(coords);
+            }
+        }
+
+        var isPatron = false;
+        if (context.IsAuthenticated && context.UserId != null && FSharpOption<UserId>.get_IsSome(context.UserId))
+        {
+            var userId = context.UserId.Value;
+            isPatron = tenant.OwnerId == userId || tenant.Patrons.Any(p => p.Item1 == userId);
+        }
+
+        var requiresMembership = !tenant.TenantVisibility.IsPublic;
+        var canBorrow = isPatron || tenant.TenantVisibility.IsPublic;
+        var canReserve = isPatron || tenant.TenantVisibility.IsPublic;
+
+        var addrStr = tenant.Address ?? "";
+
+        return new TenantSearchInfo(
+            tenantId: tenant.TenantId,
+            tenantName: tenant.Name.Value,
+            address: addrStr,
+            distanceInMeters: dist.HasValue ? FSharpOption<double>.Some(dist.Value) : FSharpOption<double>.None,
+            latitude: lat.HasValue ? FSharpOption<double>.Some(lat.Value) : FSharpOption<double>.None,
+            longitude: lon.HasValue ? FSharpOption<double>.Some(lon.Value) : FSharpOption<double>.None,
+            isUserPatron: isPatron,
+            canBorrowNow: canBorrow,
+            canReserveHold: canReserve,
+            requiresMembership: requiresMembership
+        );
+    }
+
+    private System.Threading.CancellationTokenSource? hoverCts;
+    private bool isPopoverVisible = false;
+    private bool isMouseOverPopover = false;
+    private Tenant? hoveredTenant = null;
+    private string? hoveredTriggerId = null;
+
+    private void HandleTenantMouseEnter(Tenant tenant, string triggerId)
+    {
+        hoverCts?.Cancel();
+        hoverCts?.Dispose();
+        hoverCts = new System.Threading.CancellationTokenSource();
+        var token = hoverCts.Token;
+
+        Task.Delay(200, token).ContinueWith(t =>
+        {
+            if (!t.IsCanceled)
+            {
+                InvokeAsync(() =>
+                {
+                    hoveredTenant = tenant;
+                    hoveredTriggerId = triggerId;
+                    isPopoverVisible = true;
+                    StateHasChanged();
+                });
+            }
+        });
+    }
+
+    private void HandleTenantMouseLeave()
+    {
+        hoverCts?.Cancel();
+        hoverCts?.Dispose();
+        hoverCts = new System.Threading.CancellationTokenSource();
+        var token = hoverCts.Token;
+
+        Task.Delay(180, token).ContinueWith(t =>
+        {
+            if (!t.IsCanceled && !isMouseOverPopover)
+            {
+                InvokeAsync(() =>
+                {
+                    isPopoverVisible = false;
+                    hoveredTenant = null;
+                    StateHasChanged();
+                });
+            }
+        });
+    }
+
+    private void OnPopoverHoverChanged(bool isOver)
+    {
+        isMouseOverPopover = isOver;
+        if (!isOver)
+        {
+            HandleTenantMouseLeave();
+        }
+    }
+
     private void OnTenantChanged()
     {
         _ = InvokeAsync(async () =>
         {
             await LoadTenantDataAsync();
+            await LoadSurroundingTenantsAsync();
+            StateHasChanged();
+        });
+    }
+
+    private void OnLocationChanged()
+    {
+        _ = InvokeAsync(async () =>
+        {
+            await LoadSurroundingTenantsAsync();
             StateHasChanged();
         });
     }
@@ -583,7 +891,9 @@
     protected override async Task OnInitializedAsync()
     {
         TenantState.OnChange += OnTenantChanged;
+        UserLocationService.OnLocationChanged += OnLocationChanged;
         await LoadTenantDataAsync();
+        await LoadSurroundingTenantsAsync();
 
         if (!isInitialSearchTriggered && !string.IsNullOrEmpty(InitialDistributionPointId) && allDistributionPoints.Any())
         {
@@ -799,12 +1109,39 @@
 
     private async Task HandleBookSearch()
     {
+        if (availableTenants.Count > 1 && !selectedTenantIds.Any())
+        {
+            await OnError.InvokeAsync(L["MultiTenant_SelectAtLeastOne"]);
+            return;
+        }
+
         await OnSearchStarted.InvokeAsync(true);
         _isLoading = true;
 
         try
         {
             _currentTenant = await ResolveCurrentTenantAsync();
+            var targetTenants = availableTenants.Where(t => selectedTenantIds.Contains(t.TenantId)).ToList();
+            if (!targetTenants.Any())
+            {
+                if (TenantState.CurrentTenant != null)
+                {
+                    targetTenants = new List<Tenant> { TenantState.CurrentTenant };
+                }
+                else
+                {
+                    var userCtx = await GetUserContextAsync();
+                    var tRes = await TenantService.GetTenantAsync(userCtx, _currentTenant, FSharpOption<CancellationToken>.None);
+                    if (tRes.IsOk)
+                    {
+                        targetTenants = new List<Tenant> { tRes.ResultValue };
+                    }
+                }
+            }
+
+            var baseContext = await GetUserContextAsync();
+            var userCoords = await UserLocationService.GetCoordinatesAsync();
+
             if (searchMode == "AI")
             {
                 if (string.IsNullOrWhiteSpace(semanticSearchText))
@@ -813,78 +1150,106 @@
                     return;
                 }
 
-                var context = await GetUserContextAsync();
-                var embeddingResult = await TextEmbeddingService.GetEmbeddingAsync(context, semanticSearchText);
+                var embeddingResult = await TextEmbeddingService.GetEmbeddingAsync(baseContext, semanticSearchText);
                 if (!embeddingResult.IsOk)
                 {
                     await OnError.InvokeAsync($"{L["SemanticAnalysisFailed"]}: {embeddingResult.ErrorValue}");
                     return;
                 }
 
-                IEnumerable<(BookId, double)> targetResults;
-                var vectorResult = await VectorDbService.SearchSimilarEmbeddingsWithScoreAsync(
-                    embeddingResult.ResultValue, 
-                    _currentTenant,
-                    semanticSearchLimit);
-                
-                if (!vectorResult.IsOk)
+                var aiSearchTasks = targetTenants.Select(async tenant =>
                 {
-                    await OnError.InvokeAsync($"{L["VectorSearchFailed"]}: {vectorResult.ErrorValue}");
-                    return;
-                }
-                targetResults = vectorResult.ResultValue.Select(r => (r.Item2, r.Item3));
-
-                var targetResultsList = targetResults
-                    .GroupBy(r => r.Item1)
-                    .Select(g => (BookId: g.Key, Score: g.Max(x => x.Item2)))
-                    .OrderByDescending(x => x.Score)
-                    .ToList();
-
-                var bookIdList = targetResultsList.Select(r => r.BookId).Distinct().ToList();
-                if (!bookIdList.Any())
-                {
-                    await OnSearchResultsFound.InvokeAsync(new List<BookSearchResult>());
-                    return;
-                }
-
-                var userContext = await GetUserContextAsync();
-                var booksResult = await BookService.GetBooksAsync(userContext, ListModule.OfSeq(bookIdList));
-                if (booksResult.IsOk)
-                {
-                    var booksDict = booksResult.ResultValue
-                        .GroupBy(b => b.BookId)
-                        .ToDictionary(g => g.Key, g => g.First());
-                    var sortedResults = new List<BookSearchResult>();
+                    var tenantContext = baseContext.WithNewTenant(tenant.TenantId);
+                    var vectorResult = await VectorDbService.SearchSimilarEmbeddingsWithScoreAsync(
+                        embeddingResult.ResultValue, 
+                        tenant.TenantId,
+                        semanticSearchLimit);
                     
-                    for (int i = 0; i < targetResultsList.Count; i++)
+                    var tenantAiResults = new List<BookSearchResult>();
+                    if (vectorResult.IsOk && vectorResult.ResultValue.Any())
                     {
-                        var r = targetResultsList[i];
-                        if (booksDict.TryGetValue(r.BookId, out var book))
+                        var targetResultsList = vectorResult.ResultValue
+                            .Select(r => (BookId: r.Item2, Score: r.Item3))
+                            .GroupBy(r => r.BookId)
+                            .Select(g => (BookId: g.Key, Score: g.Max(x => x.Score)))
+                            .OrderByDescending(x => x.Score)
+                            .ToList();
+
+                        var bookIdList = targetResultsList.Select(r => r.BookId).Distinct().ToList();
+                        var booksResult = await BookService.GetBooksAsync(tenantContext, ListModule.OfSeq(bookIdList));
+                        if (booksResult.IsOk)
                         {
-                            sortedResults.Add(new BookSearchResult(book, FSharpOption<double>.Some(r.Score), FSharpOption<string>.None));
+                            var booksDict = booksResult.ResultValue
+                                .GroupBy(b => b.BookId)
+                                .ToDictionary(g => g.Key, g => g.First());
+
+                            var tInfo = BuildTenantSearchInfo(tenant, userCoords, tenantContext);
+                            foreach (var r in targetResultsList)
+                            {
+                                if (booksDict.TryGetValue(r.BookId, out var book))
+                                {
+                                    tenantAiResults.Add(new BookSearchResult(
+                                        book, 
+                                        FSharpOption<double>.Some(r.Score), 
+                                        FSharpOption<string>.None, 
+                                        FSharpOption<TenantSearchInfo>.Some(tInfo)
+                                    ));
+                                }
+                            }
                         }
                     }
-                    await OnSearchResultsFound.InvokeAsync(sortedResults);
-                }
-                else
-                {
-                    Logger.LogError($"{L["ErrorRetrievingBooks"]}: {booksResult.ErrorValue}");
-                    await OnError.InvokeAsync($"{L["ErrorSearchingBooks"]}");
-                }
+                    return tenantAiResults;
+                });
+
+                var perTenantAiResults = await Task.WhenAll(aiSearchTasks);
+                var allAiResults = perTenantAiResults.SelectMany(r => r).ToList();
+
+                var sortedAi = allAiResults.OrderByDescending(r => r.Score != null && FSharpOption<double>.get_IsSome(r.Score) ? r.Score.Value : 0.0).ToList();
+                await OnSearchResultsFound.InvokeAsync(sortedAi);
             }
             else
             {
-                var result = await ExecuteStandardSearch();
-                if (result.IsOk)
+                var standardSearchTasks = targetTenants.Select(async tenant =>
                 {
-                    var results = result.ResultValue
-                        .Select(b => new BookSearchResult(b, FSharpOption<double>.None, FSharpOption<string>.None))
-                        .ToList();
-                    await OnSearchResultsFound.InvokeAsync(results);
+                    var tenantContext = baseContext.WithNewTenant(tenant.TenantId);
+                    var result = await ExecuteStandardSearch(tenantContext);
+                    return (Tenant: tenant, TenantContext: tenantContext, Result: result);
+                });
+
+                var taskResults = await Task.WhenAll(standardSearchTasks);
+                var allStandardResults = new List<BookSearchResult>();
+                var errors = new List<string>();
+
+                foreach (var item in taskResults)
+                {
+                    if (item.Result.IsOk)
+                    {
+                        var tInfo = BuildTenantSearchInfo(item.Tenant, userCoords, item.TenantContext);
+                        foreach (var book in item.Result.ResultValue)
+                        {
+                            allStandardResults.Add(new BookSearchResult(
+                                book, 
+                                FSharpOption<double>.None, 
+                                FSharpOption<string>.None, 
+                                FSharpOption<TenantSearchInfo>.Some(tInfo)
+                            ));
+                        }
+                    }
+                    else
+                    {
+                        Logger.LogWarning($"Search error for tenant {item.Tenant.Name.Value}: {item.Result.ErrorValue}");
+                        errors.Add($"{item.Tenant.Name.Value}: {item.Result.ErrorValue}");
+                    }
+                }
+
+                if (!allStandardResults.Any() && errors.Any() && errors.Count == targetTenants.Count)
+                {
+                    await OnError.InvokeAsync(L["ErrorSearchingBooks", string.Join("; ", errors)]);
                 }
                 else
                 {
-                    await OnError.InvokeAsync(L["ErrorSearchingBooks", result.ErrorValue]);
+                    var sorted = allStandardResults.OrderBy(b => b.Book.Title.Value).ToList();
+                    await OnSearchResultsFound.InvokeAsync(sorted);
                 }
             }
         }
@@ -898,14 +1263,12 @@
         }
     }
 
-    private async Task<FSharpResult<FSharpList<Book>, string>> ExecuteStandardSearch()
+    private async Task<FSharpResult<FSharpList<Book>, string>> ExecuteStandardSearch(UserContext userContext)
     {
         bool hasTitle = !string.IsNullOrWhiteSpace(searchBookTitle);
         bool hasIsbn = !string.IsNullOrWhiteSpace(searchBookIsbn);
         bool hasYear = searchBookYear.HasValue;
         bool hasBetweenYear = yearSearchMode == "between" && searchBookYear.HasValue && searchBookYearTo.HasValue;
-
-        var userContext = await GetUserContextAsync();
 
         YearSearch GetYearSearch() {
             var year = searchBookYear ?? 0;
@@ -1089,19 +1452,52 @@
             await Task.Delay(250, token);
 
             var userContext = await GetUserContextAsync();
-            var result = await BookService.AutocompleteAsync(userContext, searchBookTitle.Trim(), FSharpOption<int>.Some(8), FSharpOption<CancellationToken>.Some(token));
+            var targetTenants = availableTenants.Where(t => selectedTenantIds.Contains(t.TenantId)).ToList();
+            if (!targetTenants.Any()) targetTenants = availableTenants;
 
-            if (!token.IsCancellationRequested)
+            if (!targetTenants.Any())
             {
-                if (result.IsOk)
+                var result = await BookService.AutocompleteAsync(userContext, searchBookTitle.Trim(), FSharpOption<int>.Some(8), FSharpOption<CancellationToken>.Some(token));
+                if (!token.IsCancellationRequested)
                 {
-                    autocompleteSuggestions = result.ResultValue.ToList();
-                    showAutocompleteDropdown = autocompleteSuggestions.Any();
+                    if (result.IsOk)
+                    {
+                        autocompleteSuggestions = result.ResultValue.ToList();
+                        showAutocompleteDropdown = autocompleteSuggestions.Any();
+                    }
+                    else
+                    {
+                        autocompleteSuggestions.Clear();
+                        showAutocompleteDropdown = false;
+                    }
                 }
-                else
+            }
+            else
+            {
+                var autocompleteTasks = targetTenants.Select(async t =>
                 {
-                    autocompleteSuggestions.Clear();
-                    showAutocompleteDropdown = false;
+                    var tenantContext = userContext.WithNewTenant(t.TenantId);
+                    return await BookService.AutocompleteAsync(tenantContext, searchBookTitle.Trim(), FSharpOption<int>.Some(6), FSharpOption<CancellationToken>.Some(token));
+                });
+
+                var results = await Task.WhenAll(autocompleteTasks);
+                var allSuggestions = new List<AutocompleteSuggestion>();
+                foreach (var result in results)
+                {
+                    if (result.IsOk)
+                    {
+                        allSuggestions.AddRange(result.ResultValue);
+                    }
+                }
+
+                if (!token.IsCancellationRequested)
+                {
+                    autocompleteSuggestions = allSuggestions
+                        .GroupBy(s => s.BookId)
+                        .Select(g => g.First())
+                        .Take(8)
+                        .ToList();
+                    showAutocompleteDropdown = autocompleteSuggestions.Any();
                 }
             }
         }
@@ -1180,7 +1576,10 @@
     public void Dispose()
     {
         TenantState.OnChange -= OnTenantChanged;
+        UserLocationService.OnLocationChanged -= OnLocationChanged;
         CancelAutocompleteToken();
+        hoverCts?.Cancel();
+        hoverCts?.Dispose();
     }
 
     public Task PerformSearch() => HandleBookSearch();

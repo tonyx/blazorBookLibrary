@@ -18,7 +18,7 @@ type ReviewsController(reviewService: IReviewService, hubContext: Microsoft.AspN
     [<HttpGet("{id}")>]
     member this.GetReview(id: Guid) =
         task {
-            let context = UserContextMapper.mapFromClaimsPrincipal this.User
+            let context = UserContextMapper.mapFromRequest this.Request
             let! result = reviewService.GetReviewAsync(context, ReviewId id)
             match result with
             | Ok review -> return this.Ok(review) :> IActionResult
@@ -28,7 +28,7 @@ type ReviewsController(reviewService: IReviewService, hubContext: Microsoft.AspN
     [<HttpGet>]
     member this.GetAllReviews() =
         task {
-            let context = UserContextMapper.mapFromClaimsPrincipal this.User
+            let context = UserContextMapper.mapFromRequest this.Request
             let! result = reviewService.GetAllReviewsAsync(context)
             match result with
             | Ok reviews -> return this.Ok(reviews) :> IActionResult
@@ -38,7 +38,7 @@ type ReviewsController(reviewService: IReviewService, hubContext: Microsoft.AspN
     [<HttpGet("pending")>]
     member this.GetPendingReviews() =
         task {
-            let context = UserContextMapper.mapFromClaimsPrincipal this.User
+            let context = UserContextMapper.mapFromRequest this.Request
             let! result = reviewService.GetPendingReviewsAsync(context)
             match result with
             | Ok reviews -> return this.Ok(reviews) :> IActionResult
@@ -48,7 +48,7 @@ type ReviewsController(reviewService: IReviewService, hubContext: Microsoft.AspN
     [<HttpPost>]
     member this.AddReview(review: Review) =
         task {
-            let context = UserContextMapper.mapFromClaimsPrincipal this.User
+            let context = UserContextMapper.mapFromRequest this.Request
             let! result = reviewService.AddReviewAsync(context, review)
             match result with
             | Ok _ -> 
@@ -60,7 +60,7 @@ type ReviewsController(reviewService: IReviewService, hubContext: Microsoft.AspN
     [<HttpPost("{id}/approve")>]
     member this.ApproveReview(id: Guid) =
         task {
-            let context = UserContextMapper.mapFromClaimsPrincipal this.User
+            let context = UserContextMapper.mapFromRequest this.Request
             let! result = reviewService.ApproveAsync(context, ReviewId id)
             match result with
             | Ok _ -> 
@@ -72,7 +72,7 @@ type ReviewsController(reviewService: IReviewService, hubContext: Microsoft.AspN
     [<HttpPost("{id}/reject")>]
     member this.RejectReview(id: Guid) =
         task {
-            let context = UserContextMapper.mapFromClaimsPrincipal this.User
+            let context = UserContextMapper.mapFromRequest this.Request
             let! result = reviewService.RejectAsync(context, ReviewId id)
             match result with
             | Ok _ -> 
@@ -84,7 +84,7 @@ type ReviewsController(reviewService: IReviewService, hubContext: Microsoft.AspN
     [<HttpPost("{id}/edit")>]
     member this.EditReview(id: Guid, [<FromBody>] editedComment: string) =
         task {
-            let context = UserContextMapper.mapFromClaimsPrincipal this.User
+            let context = UserContextMapper.mapFromRequest this.Request
             let! result = reviewService.EditReviewAsync(context, ReviewId id, editedComment)
             match result with
             | Ok _ -> 
@@ -96,7 +96,7 @@ type ReviewsController(reviewService: IReviewService, hubContext: Microsoft.AspN
     [<HttpPost("{id}/show")>]
     member this.ShowReview(id: Guid) =
         task {
-            let context = UserContextMapper.mapFromClaimsPrincipal this.User
+            let context = UserContextMapper.mapFromRequest this.Request
             let! result = reviewService.ShowAsync(context, ReviewId id)
             match result with
             | Ok _ -> 
@@ -108,7 +108,7 @@ type ReviewsController(reviewService: IReviewService, hubContext: Microsoft.AspN
     [<HttpPost("{id}/hide")>]
     member this.HideReview(id: Guid) =
         task {
-            let context = UserContextMapper.mapFromClaimsPrincipal this.User
+            let context = UserContextMapper.mapFromRequest this.Request
             let! result = reviewService.HideAsync(context, ReviewId id)
             match result with
             | Ok _ -> 
@@ -120,7 +120,7 @@ type ReviewsController(reviewService: IReviewService, hubContext: Microsoft.AspN
     [<HttpGet("book/{bookId}")>]
     member this.GetReviewsOfBook(bookId: Guid) =
         task {
-            let context = UserContextMapper.mapFromClaimsPrincipal this.User
+            let context = UserContextMapper.mapFromRequest this.Request
             let! result = reviewService.GetReviewsOfBookAsync(context, BookId bookId)
             match result with
             | Ok reviews -> return this.Ok(reviews) :> IActionResult
@@ -130,7 +130,7 @@ type ReviewsController(reviewService: IReviewService, hubContext: Microsoft.AspN
     [<HttpGet("book/{bookId}/visible")>]
     member this.GetVisibleReviewsOfBook(bookId: Guid) =
         task {
-            let context = UserContextMapper.mapFromClaimsPrincipal this.User
+            let context = UserContextMapper.mapFromRequest this.Request
             let! result = reviewService.GetApprovedVisibleReviewsOfBookAsync(context, BookId bookId)
             match result with
             | Ok reviews -> return this.Ok(reviews) :> IActionResult
@@ -140,7 +140,7 @@ type ReviewsController(reviewService: IReviewService, hubContext: Microsoft.AspN
     [<HttpGet("user/{userId}")>]
     member this.GetReviewsOfUser(userId: Guid) =
         task {
-            let context = UserContextMapper.mapFromClaimsPrincipal this.User
+            let context = UserContextMapper.mapFromRequest this.Request
             let! result = reviewService.GetReviewsOfUserAsync(context, UserId userId)
             match result with
             | Ok reviews -> return this.Ok(reviews) :> IActionResult

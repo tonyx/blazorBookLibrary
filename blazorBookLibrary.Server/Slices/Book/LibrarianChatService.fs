@@ -133,6 +133,7 @@ type LibrarianChatService
                                                 Book = booksDict.[bId]
                                                 Score = if bestScorePerBook.ContainsKey(bId) then Some bestScorePerBook.[bId] else None
                                                 Explanation = None
+                                                TenantInfo = None
                                             }
                                         else
                                             None
@@ -150,6 +151,7 @@ type LibrarianChatService
                                         Book = b
                                         Score = None
                                         Explanation = None
+                                        TenantInfo = None
                                     }
                                 )
                             return results, dict []

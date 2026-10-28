@@ -1,0 +1,217 @@
+@using System.Globalization
+@using BookLibrary.Domain
+@using BookLibrary.Shared
+@inject IJSRuntime JSRuntime
+@inject IStringLocalizer<SharedResources> L
+@implements IAsyncDisposable
+
+<div @ref="popoverElement" 
+     id="@PopoverId" 
+     class="card shadow-lg border-0 rounded-4 overflow-hidden @(IsVisible ? "d-block" : "d-none")"
+     style="position: fixed; z-index: 2050; width: 320px; background-color: var(--surface-container-lowest, #ffffff); border: 1px solid var(--outline-variant, #e2e8f0) !important; transition: opacity 0.2s ease-in-out;"
+     @onmouseenter="HandleMouseEnter"
+     @onmouseleave="HandleMouseLeave"
+     role="tooltip"
+     aria-hidden="@(IsVisible ? "false" : "true")">
+    
+    <!-- Header -->
+    <div class="px-3 pt-3 pb-2 border-bottom d-flex justify-content-between align-items-start gap-2 bg-surface-low">
+        <div class="overflow-hidden">
+            <div class="fw-bold text-dark d-flex align-items-center gap-2 mb-1">
+                <span class="badge bg-danger rounded-circle p-1 d-inline-flex align-items-center justify-content-center" style="width: 20px; height: 20px;">
+                    <i class="bi bi-buildings-fill text-white" style="font-size: 0.65rem;"></i>
+                </span>
+                <span class="text-truncate fw-semibold" style="font-size: 0.95rem;" title="@TenantName">
+                    @TenantName
+                </span>
+            </div>
+            @if (!string.IsNullOrWhiteSpace(Address))
+            {
+                <div class="text-muted small text-truncate" style="font-size: 0.76rem;" title="@Address">
+                    <i class="bi bi-geo-alt me-1 text-secondary"></i>@Address
+                </div>
+            }
+        </div>
+        @if (DistanceMeters.HasValue)
+        {
+            <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill flex-shrink-0" style="font-size: 0.74rem;">
+                @FormatDistance(DistanceMeters.Value)
+            </span>
+        }
+    </div>
+
+    <!-- Mini-Map Canvas (Clickable to open extended view) -->
+    <a href="@GetDirectionsUrl()" target="_blank" rel="noopener noreferrer" 
+       class="position-relative d-block text-decoration-none" 
+       style="height: 175px; width: 100%; background-color: #f1f5f9; cursor: pointer;"
+       title="@(HasValidTenantCoordinates ? L["MultiTenant_Directions"] : "")"
+       @onclick:stopPropagation="true">
+        <div id="@MapContainerId" style="height: 100%; width: 100%;"></div>
+
+        @if (!HasValidTenantCoordinates)
+        {
+            <div class="position-absolute top-0 start-0 w-100 h-100 d-flex flex-column align-items-center justify-content-center bg-light bg-opacity-95 p-3 text-center">
+                <i class="bi bi-geo-alt-slash text-muted mb-2" style="font-size: 1.8rem;"></i>
+                <div class="small text-muted fw-medium" style="font-size: 0.8rem;">
+                    @L["MultiTenant_CoordinatesNotConfigured"]
+                </div>
+            </div>
+        }
+        else if (HasValidTenantCoordinates && !HasValidUserCoordinates)
+        {
+            <div class="position-absolute bottom-0 start-0 end-0 px-2 py-1 bg-dark bg-opacity-75 text-white small text-center" style="font-size: 0.72rem; z-index: 1000;">
+                <i class="bi bi-info-circle me-1"></i>@L["MultiTenant_UserLocationNotSet"]
+            </div>
+        }
+        else
+        {
+            <div class="position-absolute top-0 end-0 m-2 px-2 py-0 bg-white bg-opacity-90 rounded-pill shadow-xs text-muted small d-flex align-items-center gap-1" style="font-size: 0.68rem; z-index: 1000;">
+                <i class="bi bi-box-arrow-up-right" style="font-size: 0.65rem;"></i>
+                <span>Google Maps</span>
+            </div>
+        }
+    </a>
+
+    <!-- Footer Bar -->
+    <div class="px-3 py-2 bg-surface-low border-top d-flex justify-content-between align-items-center" style="font-size: 0.76rem;">
+        <div class="d-flex align-items-center text-muted">
+            @if (HasValidTenantCoordinates && HasValidUserCoordinates && DistanceMeters.HasValue)
+            {
+                <span class="text-primary fw-semibold d-flex align-items-center gap-1">
+                    <i class="bi bi-arrows-collapse"></i>
+                    <span>@L["MultiTenant_DirectProximity"]</span>
+                </span>
+            }
+            else if (HasValidTenantCoordinates)
+            {
+                <span class="text-secondary d-flex align-items-center gap-1">
+                    <i class="bi bi-pin-map-fill text-danger"></i>
+                    <span>@TenantName</span>
+                </span>
+            }
+        </div>
+
+        @if (HasValidTenantCoordinates)
+        {
+            <a href="@GetDirectionsUrl()" target="_blank" rel="noopener noreferrer" 
+               @onclick:stopPropagation="true"
+               class="btn btn-sm btn-outline-primary py-0 px-2 d-inline-flex align-items-center gap-1 text-decoration-none fw-medium" 
+               style="font-size: 0.75rem;">
+                <span>@L["MultiTenant_Directions"]</span>
+                <i class="bi bi-box-arrow-up-right" style="font-size: 0.65rem;"></i>
+            </a>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter] public string PopoverId { get; set; } = "tenant-geo-popover";
+    [Parameter] public string MapContainerId { get; set; } = "tenant-hover-mini-map";
+    [Parameter] public bool IsVisible { get; set; }
+    [Parameter] public string TenantName { get; set; } = "";
+    [Parameter] public string Address { get; set; } = "";
+    [Parameter] public double? DistanceMeters { get; set; }
+    [Parameter] public double? TenantLatitude { get; set; }
+    [Parameter] public double? TenantLongitude { get; set; }
+    [Parameter] public double? UserLatitude { get; set; }
+    [Parameter] public double? UserLongitude { get; set; }
+    [Parameter] public string? TriggerElementId { get; set; }
+    [Parameter] public EventCallback<bool> OnHoverStateChanged { get; set; }
+
+    private ElementReference popoverElement;
+
+    private bool HasValidTenantCoordinates => 
+        TenantLatitude.HasValue && TenantLongitude.HasValue &&
+        !double.IsNaN(TenantLatitude.Value) && !double.IsNaN(TenantLongitude.Value);
+
+    private bool HasValidUserCoordinates => 
+        UserLatitude.HasValue && UserLongitude.HasValue &&
+        !double.IsNaN(UserLatitude.Value) && !double.IsNaN(UserLongitude.Value);
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (IsVisible && !string.IsNullOrEmpty(TriggerElementId))
+        {
+            try
+            {
+                await JSRuntime.InvokeVoidAsync("tenantMap.positionHoverPopover", TriggerElementId, PopoverId);
+                if (TenantLatitude.HasValue && TenantLongitude.HasValue)
+                {
+                    var tLat = TenantLatitude.Value;
+                    var tLng = TenantLongitude.Value;
+                    var uLat = (UserLatitude.HasValue && !double.IsNaN(UserLatitude.Value)) ? (object)UserLatitude.Value : null;
+                    var uLng = (UserLongitude.HasValue && !double.IsNaN(UserLongitude.Value)) ? (object)UserLongitude.Value : null;
+
+                    await JSRuntime.InvokeVoidAsync(
+                        "tenantMap.showHoverMiniMap",
+                        MapContainerId,
+                        uLat,
+                        uLng,
+                        tLat,
+                        tLng,
+                        TenantName,
+                        L["MultiTenant_YourLocation"].Value,
+                        TenantName
+                    );
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[TenantGeoPopover] JS render error: {ex.Message}");
+            }
+        }
+    }
+
+    private async Task HandleMouseEnter()
+    {
+        if (OnHoverStateChanged.HasDelegate)
+        {
+            await OnHoverStateChanged.InvokeAsync(true);
+        }
+    }
+
+    private async Task HandleMouseLeave()
+    {
+        if (OnHoverStateChanged.HasDelegate)
+        {
+            await OnHoverStateChanged.InvokeAsync(false);
+        }
+    }
+
+    private string FormatDistance(double meters)
+    {
+        if (meters < 1000.0)
+        {
+            return $"~{Math.Round(meters, 0)} m";
+        }
+        return $"~{Math.Round(meters / 1000.0, 1)} km";
+    }
+
+    private string GetDirectionsUrl()
+    {
+        if (!TenantLatitude.HasValue || !TenantLongitude.HasValue) return "#";
+        var tLat = TenantLatitude.Value.ToString(CultureInfo.InvariantCulture);
+        var tLng = TenantLongitude.Value.ToString(CultureInfo.InvariantCulture);
+
+        if (UserLatitude.HasValue && UserLongitude.HasValue)
+        {
+            var uLat = UserLatitude.Value.ToString(CultureInfo.InvariantCulture);
+            var uLng = UserLongitude.Value.ToString(CultureInfo.InvariantCulture);
+            return $"https://www.google.com/maps/dir/?api=1&origin={uLat},{uLng}&destination={tLat},{tLng}";
+        }
+
+        return $"https://www.google.com/maps/search/?api=1&query={tLat},{tLng}";
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("tenantMap.destroyHoverMiniMap", MapContainerId);
+        }
+        catch
+        {
+            // Ignore during page teardown
+        }
+    }
+}

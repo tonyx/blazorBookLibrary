@@ -20,7 +20,7 @@ type DetailsController(detailsService: IDetailsService) =
     [<HttpGet("book/{id}")>]
     member this.GetBookDetails([<FromRoute>] id: Guid) =
         task {
-            let context = UserContextMapper.mapFromClaimsPrincipal this.User
+            let context = UserContextMapper.mapFromRequest this.Request
             let! result = detailsService.GetBookDetailsAsync(context, BookId id)
             match result with
             | Ok details -> return this.Ok(details) :> IActionResult
@@ -30,7 +30,7 @@ type DetailsController(detailsService: IDetailsService) =
     [<HttpGet("loan/{id}")>]
     member this.GetLoanDetails([<FromRoute>] id: Guid) =
         task {
-            let context = UserContextMapper.mapFromClaimsPrincipal this.User
+            let context = UserContextMapper.mapFromRequest this.Request
             let! result = detailsService.GetLoanDetailsAsync(context, LoanId id)
             match result with
             | Ok details -> return this.Ok(details) :> IActionResult
@@ -40,7 +40,7 @@ type DetailsController(detailsService: IDetailsService) =
     [<HttpGet("loans")>]
     member this.GetAllLoansDetails() =
         task {
-            let context = UserContextMapper.mapFromClaimsPrincipal this.User
+            let context = UserContextMapper.mapFromRequest this.Request
             let! result = detailsService.GetAllLoansDetailsAsync(context)
             match result with
             | Ok details -> return this.Ok(details) :> IActionResult
@@ -50,7 +50,7 @@ type DetailsController(detailsService: IDetailsService) =
     [<HttpGet("reservation/{id}")>]
     member this.GetReservationDetails([<FromRoute>] id: Guid) =
         task {
-            let context = UserContextMapper.mapFromClaimsPrincipal this.User
+            let context = UserContextMapper.mapFromRequest this.Request
             let! result = detailsService.GetReservationDetailsAsync(context, ReservationId id)
             match result with
             | Ok details -> return this.Ok(details) :> IActionResult
@@ -60,7 +60,7 @@ type DetailsController(detailsService: IDetailsService) =
     [<HttpGet("reservations/pending")>]
     member this.GetAllPendingReservationsDetails() =
         task {
-            let context = UserContextMapper.mapFromClaimsPrincipal this.User
+            let context = UserContextMapper.mapFromRequest this.Request
             let! result = detailsService.GetAllPendingReservationsDetailsAsync(context)
             match result with
             | Ok details -> return this.Ok(details) :> IActionResult
@@ -70,7 +70,7 @@ type DetailsController(detailsService: IDetailsService) =
     [<HttpGet("user/{id}")>]
     member this.GetUserDetails([<FromRoute>] id: Guid) =
         task {
-            let context = UserContextMapper.mapFromClaimsPrincipal this.User
+            let context = UserContextMapper.mapFromRequest this.Request
             let! result = detailsService.GetUserDetailsAsync(context, UserId id)
             match result with
             | Ok details -> return this.Ok(details) :> IActionResult
@@ -80,7 +80,7 @@ type DetailsController(detailsService: IDetailsService) =
     [<HttpGet("author/{id}")>]
     member this.GetAuthorDetails([<FromRoute>] id: Guid) =
         task {
-            let context = UserContextMapper.mapFromClaimsPrincipal this.User
+            let context = UserContextMapper.mapFromRequest this.Request
             let! result = detailsService.GetAuthorDetailsAsync(context, AuthorId id)
             match result with
             | Ok details -> return this.Ok(details) :> IActionResult
@@ -90,7 +90,7 @@ type DetailsController(detailsService: IDetailsService) =
     [<HttpPost("authors")>]
     member this.GetAuthorsDetails([<FromBody>] ids: List<Guid>) =
         task {
-            let context = UserContextMapper.mapFromClaimsPrincipal this.User
+            let context = UserContextMapper.mapFromRequest this.Request
             let authorIds = ids |> Seq.map AuthorId |> List.ofSeq
             let! result = detailsService.GetAuthorsDetailsAsync(context, authorIds)
             match result with
@@ -101,7 +101,7 @@ type DetailsController(detailsService: IDetailsService) =
     [<HttpGet("review/{id}")>]
     member this.GetReviewDetails([<FromRoute>] id: Guid) =
         task {
-            let context = UserContextMapper.mapFromClaimsPrincipal this.User
+            let context = UserContextMapper.mapFromRequest this.Request
             let! result = detailsService.GetReviewDetailsAsync(context, ReviewId id)
             match result with
             | Ok details -> return this.Ok(details) :> IActionResult
@@ -111,7 +111,7 @@ type DetailsController(detailsService: IDetailsService) =
     [<HttpGet("reviews")>]
     member this.GetAllReviewsDetails() =
         task {
-            let context = UserContextMapper.mapFromClaimsPrincipal this.User
+            let context = UserContextMapper.mapFromRequest this.Request
             let! result = detailsService.GetAllReviewsDetailsAsync(context)
             match result with
             | Ok details -> return this.Ok(details) :> IActionResult
@@ -121,7 +121,7 @@ type DetailsController(detailsService: IDetailsService) =
     [<HttpGet("reviews/book/{bookId}")>]
     member this.GetApprovedVisibleReviewsOfBook([<FromRoute>] bookId: Guid) =
         task {
-            let context = UserContextMapper.mapFromClaimsPrincipal this.User
+            let context = UserContextMapper.mapFromRequest this.Request
             let! result = detailsService.GetApprovedVisibleReviewsOfBookAsync(context, BookId bookId)
             match result with
             | Ok details -> return this.Ok(details) :> IActionResult
@@ -131,7 +131,7 @@ type DetailsController(detailsService: IDetailsService) =
     [<HttpGet("tenant/{id}")>]
     member this.GetTenantDetails([<FromRoute>] id: Guid) =
         task {
-            let context = UserContextMapper.mapFromClaimsPrincipal this.User
+            let context = UserContextMapper.mapFromRequest this.Request
             let! result = detailsService.GetTenantDetailsAsync(context, TenantId id)
             match result with
             | Ok details -> return this.Ok(details) :> IActionResult

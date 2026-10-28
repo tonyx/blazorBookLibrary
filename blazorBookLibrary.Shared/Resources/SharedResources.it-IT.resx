@@ -1321,4 +1321,13 @@
   <data name="BirthDateNotStoredNotice" xml:space="preserve"><value>La tua data di nascita viene utilizzata unicamente per verificare che tu abbia almeno 14 anni e non viene salvata nel nostro database.</value></data>
   <data name="UnderageRegistrationError" xml:space="preserve"><value>Devi avere almeno 14 anni per creare un account in autonomia. Per gli utenti di età inferiore ai 14 anni è richiesta l'assistenza di un genitore o tutore.</value></data>
   <data name="InvalidBirthDate" xml:space="preserve"><value>Inserisci una data di nascita valida.</value></data>
+  <data name="MultiTenant_LibrariesInRadius" xml:space="preserve"><value>Biblioteche nel raggio di ricerca</value></data>
+  <data name="MultiTenant_SelectAll" xml:space="preserve"><value>Seleziona tutte</value></data>
+  <data name="MultiTenant_DeselectAll" xml:space="preserve"><value>Deseleziona tutte</value></data>
+  <data name="MultiTenant_SelectAtLeastOne" xml:space="preserve"><value>Seleziona almeno una biblioteca per effettuare la ricerca.</value></data>
+  <data name="MultiTenant_DirectProximity" xml:space="preserve"><value>Distanza in linea d'aria</value></data>
+  <data name="MultiTenant_Directions" xml:space="preserve"><value>Indicazioni</value></data>
+  <data name="MultiTenant_CoordinatesNotConfigured" xml:space="preserve"><value>Coordinate non configurate per questa biblioteca.</value></data>
+  <data name="MultiTenant_UserLocationNotSet" xml:space="preserve"><value>Imposta la tua posizione per vedere il tragitto</value></data>
+  <data name="MultiTenant_YourLocation" xml:space="preserve"><value>La tua posizione</value></data>
 </root>

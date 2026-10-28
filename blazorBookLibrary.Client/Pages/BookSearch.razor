@@ -94,7 +94,7 @@
 
     @* Search Toolbar *@
     <div class="card-sanctuary mb-4 p-4 border-0 shadow-none bg-surface-low rounded-pill-sm">
-        <BookSearchToolbar @ref="searchToolbar" InitialDistributionPointId="@DpId" OnSearchResultsFound="HandleSearchResultsFound" OnError="ShowSearchError" OnSearchStarted="HandleSearchStarted" />
+        <BookSearchToolbar @ref="searchToolbar" InitialDistributionPointId="@DpId" OnSearchResultsFound="HandleSearchResultsFound" OnError="ShowSearchError" OnSearchStarted="HandleSearchStarted" OnSelectedTenantsChanged="HandleSelectedTenantsChanged" />
     </div>
 
     @if (searchBooksPerformed)
@@ -198,6 +198,36 @@
                             <span class="badge-sanctuary badge-neutral">@context.Book.MainCategory.Value()</span>
                         </TemplateColumn>
 
+                        <TemplateColumn Title="@L["Library"]" SortBy="@_sortTenant" Class="col-tenant small px-3">
+                            @if (context.TenantInfo != null && FSharpOption<TenantSearchInfo>.get_IsSome(context.TenantInfo))
+                            {
+                                var tInfo = context.TenantInfo.Value;
+                                var cellId = $"result-tenant-{context.Book.BookId.Value}";
+                                <div id="@cellId" class="d-flex flex-column" style="cursor: pointer;"
+                                     tabindex="0"
+                                     @onmouseenter="() => HandleResultTenantMouseEnter(tInfo, cellId)"
+                                     @onmouseleave="HandleResultTenantMouseLeave"
+                                     @onfocus="() => HandleResultTenantMouseEnter(tInfo, cellId)"
+                                     @onblur="HandleResultTenantMouseLeave">
+                                    <span class="fw-semibold text-dark">
+                                        <i class="bi bi-buildings me-1 text-primary"></i>@tInfo.TenantName
+                                    </span>
+                                    @if (FSharpOption<double>.get_IsSome(tInfo.DistanceInMeters))
+                                    {
+                                        <span class="text-muted" style="font-size: 0.75rem;">
+                                            <i class="bi bi-signpost me-1"></i>~@(Math.Round(tInfo.DistanceInMeters.Value / 1000.0, 1)) km
+                                        </span>
+                                    }
+                                </div>
+                            }
+                            else
+                            {
+                                <span class="text-muted small">
+                                    <i class="bi bi-buildings me-1 opacity-50"></i>@(TenantState.CurrentTenant?.Name.Value ?? "—")
+                                </span>
+                            }
+                        </TemplateColumn>
+
                         <TemplateColumn Title="@L["ArchivalStatus"]" SortBy=@_sortAvailability Align="Align.End" Class="col-available pe-5">
                             @if (context.Book.AvailabilityStatus == BookLibrary.Shared.Commons.AvailabilityStatus.Available)
                             {
@@ -222,6 +252,31 @@
                         </TemplateColumn>
 
                     </QuickGrid>
+
+                    @{
+                        var hLat = hoveredResultTenant != null && hoveredResultTenant.Latitude != null && FSharpOption<double>.get_IsSome(hoveredResultTenant.Latitude)
+                            ? hoveredResultTenant.Latitude.Value
+                            : (double?)null;
+                        var hLon = hoveredResultTenant != null && hoveredResultTenant.Longitude != null && FSharpOption<double>.get_IsSome(hoveredResultTenant.Longitude)
+                            ? hoveredResultTenant.Longitude.Value
+                            : (double?)null;
+                        var hDist = hoveredResultTenant != null && hoveredResultTenant.DistanceInMeters != null && FSharpOption<double>.get_IsSome(hoveredResultTenant.DistanceInMeters)
+                            ? hoveredResultTenant.DistanceInMeters.Value
+                            : (double?)null;
+                    }
+                    <TenantGeoPopover 
+                        PopoverId="results-tenant-geo-popover"
+                        MapContainerId="results-tenant-hover-mini-map"
+                        IsVisible="@(isResultPopoverVisible && hoveredResultTenant != null)"
+                        TenantName="@(hoveredResultTenant?.TenantName ?? "")"
+                        Address="@(hoveredResultTenant?.Address ?? "")"
+                        DistanceMeters="@hDist"
+                        TenantLatitude="@hLat"
+                        TenantLongitude="@hLon"
+                        UserLatitude="@(userLocation != null ? userLocation.Latitude : (double?)null)"
+                        UserLongitude="@(userLocation != null ? userLocation.Longitude : (double?)null)"
+                        TriggerElementId="@hoveredResultTriggerId"
+                        OnHoverStateChanged="OnResultPopoverHoverChanged" />
                 </div>
                 
                 <div class="px-5 py-3 bg-surface-container border-top d-flex justify-content-between align-items-center">
@@ -259,6 +314,10 @@
     private GridSort<BookSearchResult> _sortAvailability = GridSort<BookSearchResult>.ByAscending(b => b.Book.ImmediatelyAvailable);    
     private GridSort<BookSearchResult> _sortTaxonomy = GridSort<BookSearchResult>.ByAscending(b => b.Book.MainCategory.Value());
     private GridSort<BookSearchResult> _sortScore = GridSort<BookSearchResult>.ByDescending(b => FSharpOption<double>.get_IsSome(b.Score) ? b.Score.Value : 0f);
+    private GridSort<BookSearchResult> _sortTenant = GridSort<BookSearchResult>.ByAscending(b => 
+        b.TenantInfo != null && FSharpOption<TenantSearchInfo>.get_IsSome(b.TenantInfo) 
+            ? b.TenantInfo.Value.TenantName 
+            : "");
     private bool enableAIExplanations = false;
     private bool canManageBooks = false;
 
@@ -424,7 +483,7 @@
             var explanationResult = await TextEmbeddingService.GetMatchExplanationAsync(context, query, bookText);
             if (explanationResult.IsOk)
             {
-                var newRes = new BookSearchResult(res.Book, res.Score, FSharpOption<string>.Some(explanationResult.ResultValue));
+                var newRes = new BookSearchResult(res.Book, res.Score, FSharpOption<string>.Some(explanationResult.ResultValue), res.TenantInfo);
                 var index = foundBooks.IndexOf(res);
                 if (index != -1)
                 {
@@ -491,6 +550,43 @@
 
     private HubConnection? hubConnection;
     private blazorBookLibrary.Client.Services.UserLocation? userLocation;
+    private HashSet<Guid> subscribedTenantIds = new();
+
+    private async Task HandleSelectedTenantsChanged(IReadOnlyCollection<TenantId> tenants)
+    {
+        await SyncTenantSubscriptionsAsync(tenants.Select(t => t.Value).ToHashSet());
+    }
+
+    private async Task SyncTenantSubscriptionsAsync(HashSet<Guid> newTenantIds)
+    {
+        if (hubConnection == null || hubConnection.State != HubConnectionState.Connected)
+        {
+            subscribedTenantIds = newTenantIds;
+            return;
+        }
+
+        try
+        {
+            var toLeave = subscribedTenantIds.Except(newTenantIds).ToList();
+            var toJoin = newTenantIds.Except(subscribedTenantIds).ToList();
+
+            foreach (var tid in toLeave)
+            {
+                await hubConnection.SendAsync("LeaveTenantGroup", tid);
+                subscribedTenantIds.Remove(tid);
+            }
+
+            foreach (var tid in toJoin)
+            {
+                await hubConnection.SendAsync("JoinTenantGroup", tid);
+                subscribedTenantIds.Add(tid);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Error syncing SignalR tenant groups in BookSearch");
+        }
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -516,10 +612,38 @@
                 }
             };
 
+            hubConnection.On<Guid, Guid>("BookAvailabilityChanged", async (tenantId, bookId) =>
+            {
+                refreshSearchHandler();
+            });
             hubConnection.On("BookAvailabilityChanged", refreshSearchHandler);
             hubConnection.On("BookCatalogChanged", refreshSearchHandler);
 
+            hubConnection.Reconnected += async (connectionId) =>
+            {
+                foreach (var tid in subscribedTenantIds)
+                {
+                    try
+                    {
+                        await hubConnection.SendAsync("JoinTenantGroup", tid);
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.LogWarning(ex, $"Failed to rejoin tenant group {tid} on reconnect");
+                    }
+                }
+            };
+
             await hubConnection.StartAsync();
+
+            if (searchToolbar != null && searchToolbar.SelectedTenantIds.Any())
+            {
+                await SyncTenantSubscriptionsAsync(searchToolbar.SelectedTenantIds.Select(t => t.Value).ToHashSet());
+            }
+            else if (TenantState.CurrentTenant != null)
+            {
+                await SyncTenantSubscriptionsAsync(new HashSet<Guid> { TenantState.CurrentTenant.TenantId.Value });
+            }
         }
         catch (Exception ex)
         {
@@ -536,13 +660,87 @@
         });
     }
 
+    private System.Threading.CancellationTokenSource? resultHoverCts;
+    private bool isResultPopoverVisible = false;
+    private bool isMouseOverResultPopover = false;
+    private TenantSearchInfo? hoveredResultTenant = null;
+    private string? hoveredResultTriggerId = null;
+
+    private void HandleResultTenantMouseEnter(TenantSearchInfo tenantInfo, string triggerId)
+    {
+        resultHoverCts?.Cancel();
+        resultHoverCts?.Dispose();
+        resultHoverCts = new System.Threading.CancellationTokenSource();
+        var token = resultHoverCts.Token;
+
+        Task.Delay(200, token).ContinueWith(t =>
+        {
+            if (!t.IsCanceled)
+            {
+                InvokeAsync(() =>
+                {
+                    hoveredResultTenant = tenantInfo;
+                    hoveredResultTriggerId = triggerId;
+                    isResultPopoverVisible = true;
+                    StateHasChanged();
+                });
+            }
+        });
+    }
+
+    private void HandleResultTenantMouseLeave()
+    {
+        resultHoverCts?.Cancel();
+        resultHoverCts?.Dispose();
+        resultHoverCts = new System.Threading.CancellationTokenSource();
+        var token = resultHoverCts.Token;
+
+        Task.Delay(180, token).ContinueWith(t =>
+        {
+            if (!t.IsCanceled && !isMouseOverResultPopover)
+            {
+                InvokeAsync(() =>
+                {
+                    isResultPopoverVisible = false;
+                    hoveredResultTenant = null;
+                    StateHasChanged();
+                });
+            }
+        });
+    }
+
+    private void OnResultPopoverHoverChanged(bool isOver)
+    {
+        isMouseOverResultPopover = isOver;
+        if (!isOver)
+        {
+            HandleResultTenantMouseLeave();
+        }
+    }
+
     public async ValueTask DisposeAsync()
     {
         TenantState.OnChange -= OnTenantChanged;
         AuthenticationStateProvider.AuthenticationStateChanged -= OnAuthStateChanged;
         UserLocationService.OnLocationChanged -= OnLocationChangedHandler;
+        resultHoverCts?.Cancel();
+        resultHoverCts?.Dispose();
         if (hubConnection is not null)
         {
+            try
+            {
+                if (hubConnection.State == HubConnectionState.Connected)
+                {
+                    foreach (var tid in subscribedTenantIds)
+                    {
+                        await hubConnection.SendAsync("LeaveTenantGroup", tid);
+                    }
+                }
+            }
+            catch
+            {
+                // Ignore during teardown
+            }
             await hubConnection.DisposeAsync();
         }
     }

@@ -1321,4 +1321,13 @@
   <data name="BirthDateNotStoredNotice" xml:space="preserve"><value>Your date of birth is used solely to verify you are at least 14 years old and is not stored in our database.</value></data>
   <data name="UnderageRegistrationError" xml:space="preserve"><value>You must be at least 14 years old to create an account independently. Parental or guardian assistance is required for users under 14.</value></data>
   <data name="InvalidBirthDate" xml:space="preserve"><value>Please enter a valid date of birth.</value></data>
+  <data name="MultiTenant_LibrariesInRadius" xml:space="preserve"><value>Libraries in search radius</value></data>
+  <data name="MultiTenant_SelectAll" xml:space="preserve"><value>Select All</value></data>
+  <data name="MultiTenant_DeselectAll" xml:space="preserve"><value>Deselect All</value></data>
+  <data name="MultiTenant_SelectAtLeastOne" xml:space="preserve"><value>Please select at least one library to search.</value></data>
+  <data name="MultiTenant_DirectProximity" xml:space="preserve"><value>Direct distance</value></data>
+  <data name="MultiTenant_Directions" xml:space="preserve"><value>Directions</value></data>
+  <data name="MultiTenant_CoordinatesNotConfigured" xml:space="preserve"><value>Coordinates not configured for this library.</value></data>
+  <data name="MultiTenant_UserLocationNotSet" xml:space="preserve"><value>Set your location to see route</value></data>
+  <data name="MultiTenant_YourLocation" xml:space="preserve"><value>Your location</value></data>
 </root>

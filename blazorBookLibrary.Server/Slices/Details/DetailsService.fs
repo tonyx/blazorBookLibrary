@@ -55,6 +55,25 @@ type DetailsService
             return! Security.checkIsGlobalAdminOrTenantManager tenant context
         }
 
+    let isTenantAccessible (context: UserContext) (targetTenantId: TenantId) (activeTenantId: TenantId) (ct: CancellationToken) =
+        task {
+            let! tenantRes = tenantViewerAsync (Some ct) targetTenantId.Value
+            match tenantRes with
+            | Ok (_, tenant) ->
+                if tenant.TenantId = TenantId.Default || tenant.TenantVisibility.IsPublic then
+                    return true
+                elif not context.IsAuthenticated then
+                    return false
+                else
+                    let userId = context.UserId.Value
+                    return context.IsInRole Role.Admin
+                           || tenant.OwnerId = userId
+                           || (tenant.Patrons |> List.exists (fun (p, _) -> p = userId))
+                           || (tenant.InvitedPatrons |> List.exists (fun (p, _) -> p = userId))
+            | Error _ ->
+                return targetTenantId = TenantId.Default
+        }
+
     member this.GetReviewsOfUserAsync(context: UserContext, userId: UserId, ?ct: CancellationToken) =
         let ct = ct |> Option.defaultValue CancellationToken.None
 
@@ -264,19 +283,21 @@ type DetailsService
         fun (ct: Option<CancellationToken>) ->
             taskResult {
                 let ct = ct |> Option.defaultValue CancellationToken.None
-                let! tenantId = userTenantResolverService.GetTenantForUserAsync(context, ct)
+                let! activeTenantId = userTenantResolverService.GetTenantForUserAsync(context, ct)
                 let! reservation = reservationViewerAsync (ct |> Some) id.Value |> TaskResult.map snd
 
+                let! isAccessible = isTenantAccessible context reservation.TenantId activeTenantId ct
                 do!
-                    reservation.TenantId = tenantId
-                    |> Result.ofBool $"Reservation '{id}' doesn't belong to this tenant '{tenantId}'"
+                    isAccessible
+                    |> Result.ofBool $"Access denied to reservation '{id}' belonging to tenant '{reservation.TenantId}'"
 
                 let! book = bookViewerAsync (ct |> Some) reservation.BookId.Value |> TaskResult.map snd
+                let resContext = context.WithNewTenant(reservation.TenantId)
                 let! userDetails =
                     match reservation.Patron with
                     | RegisteredUser patronUserId ->
                         // todo: will be investigate further - relaxed admin/self privilege check for book details / reservation details resolution
-                        this.GetUserDetailsAsync(context, patronUserId, ct)
+                        this.GetUserDetailsAsync(resContext, patronUserId, ct)
                         |> Task.map (function
                             | Ok ud -> Some ud
                             | Error _ -> None)
@@ -340,16 +361,17 @@ type DetailsService
                     fun (ct: Option<CancellationToken>) ->
                         taskResult {
                             let ct = ct |> Option.defaultValue CancellationToken.None
-                            let! tenantId = userTenantResolverService.GetTenantForUserAsync(context, ct)
+                            let! activeTenantId = userTenantResolverService.GetTenantForUserAsync(context, ct)
                             let! author = authorViewerAsync (Some ct) id.Value |> TaskResult.map snd
 
+                            let! isAccessible = isTenantAccessible context author.TenantId activeTenantId ct
                             do!
-                                author.TenantId = tenantId
-                                |> Result.ofBool $"Author '{id}' doesn't belong to this tenant '{tenantId}'"
+                                isAccessible
+                                |> Result.ofBool $"Access denied to author '{id}' belonging to tenant '{author.TenantId}'"
 
                             let! booksWithId =
                                 StateView.getAllFilteredAggregateStatesAsync<Book, BookEvent, string>
-                                    (fun book -> book.TenantId = tenantId && (book.Authors |> List.contains id))
+                                    (fun book -> book.TenantId = author.TenantId && (book.Authors |> List.contains id))
                                     eventStore
                                     (Some ct)
 
@@ -400,18 +422,24 @@ type DetailsService
                     fun (ct: Option<CancellationToken>) ->
                         taskResult {
                             let ct = ct |> Option.defaultValue CancellationToken.None
-                            let! tenantId = userTenantResolverService.GetTenantForUserAsync(context, ct)
+                            let! activeTenantId = userTenantResolverService.GetTenantForUserAsync(context, ct)
                             let! book = bookViewerAsync (ct |> Some) bookId.Value |> TaskResult.map snd
 
+                            let! isAccessible = isTenantAccessible context book.TenantId activeTenantId ct
                             do!
-                                book.TenantId = tenantId
-                                |> Result.ofBool $"Book '{bookId}' doesn't belong to this tenant '{tenantId}'"
+                                isAccessible
+                                |> Result.ofBool $"Access denied to book '{bookId}' belonging to tenant '{book.TenantId}'"
+
+                            let! (_, tenant) = tenantViewerAsync (Some ct) book.TenantId.Value
+                            let tenantRef = Some { TenantReference.TenantId = tenant.TenantId; Name = tenant.Name }
+
+                            let bookContext = context.WithNewTenant(book.TenantId)
 
                             let! currentLoan =
                                 match book.CurrentLoan with
                                 | Some loanId ->
                                     taskResult {
-                                        let! loan = this.GetLoanDetailsAsync(context, loanId, ct)
+                                        let! loan = this.GetLoanDetailsAsync(bookContext, loanId, ct)
                                         return loan |> Some
                                     }
                                 | None -> taskResult { return None }
@@ -421,19 +449,19 @@ type DetailsService
                                 |> List.traverseTaskResultM (fun authorId ->
                                     authorViewerAsync (Some ct) authorId.Value |> TaskResult.map snd)
 
-                            let! reservations = reservationService.GetReservationsOfABookAsync(context, bookId, ct)
+                            let! reservations = reservationService.GetReservationsOfABookAsync(bookContext, bookId, ct)
 
                             let! futureReservations =
                                 reservations
                                 |> List.traverseTaskResultM (fun reservation ->
                                     reservationService.GetReservationDetailsAsync(
-                                        context,
+                                        bookContext,
                                         reservation.ReservationId,
                                         ct
                                     )
                                     )
 
-                            let! approvedVisibleReviews = this.GetApprovedVisibleReviewsOfBookAsync(context, bookId, ct)
+                            let! approvedVisibleReviews = this.GetApprovedVisibleReviewsOfBookAsync(bookContext, bookId, ct)
 
                             let! distributionPoint =
                                 match book.DistributionPoint with
@@ -450,6 +478,7 @@ type DetailsService
                             return
                                 { Authors = authors
                                   Book = book
+                                  Tenant = tenantRef
                                   CurrentLoan = currentLoan
                                   DistributionPoint = distributionPoint
                                   ReservationsDetails = futureReservations
@@ -470,6 +499,10 @@ type DetailsService
                                 [])
                         @ (if bookDetails.DistributionPoint.IsSome then
                                 [ bookDetails.DistributionPoint.Value.DistributionPointId.Value ]
+                            else
+                                [])
+                        @ (if bookDetails.Tenant.IsSome then
+                                [ bookDetails.Tenant.Value.TenantId.Value ]
                             else
                                 [])
                         @ (bookDetails.ReservationsDetails |>>  _.Reservation.ReservationId.Value)

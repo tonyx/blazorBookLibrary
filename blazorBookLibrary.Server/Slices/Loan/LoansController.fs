@@ -20,7 +20,7 @@ type LoansController(loanService: ILoanService, reservationService: IReservation
     [<HttpGet>]
     member this.GetLoans() =
         task {
-            let context = UserContextMapper.mapFromClaimsPrincipal this.User
+            let context = UserContextMapper.mapFromRequest this.Request
             let! result = loanService.GetLoansAsync(context)
             match result with
             | Ok loans -> return this.Ok(loans) :> IActionResult
@@ -30,7 +30,7 @@ type LoansController(loanService: ILoanService, reservationService: IReservation
     [<HttpGet("unarchived")>]
     member this.GetUnarchivedLoans() =
         task {
-            let context = UserContextMapper.mapFromClaimsPrincipal this.User
+            let context = UserContextMapper.mapFromRequest this.Request
             let! result = loanService.GetUnarchivedLoansAsync(context)
             match result with
             | Ok loans -> return this.Ok(loans) :> IActionResult
@@ -40,7 +40,7 @@ type LoansController(loanService: ILoanService, reservationService: IReservation
     [<HttpGet("history/{userId}")>]
     member this.GetHistory(userId: Guid) =
         task {
-            let context = UserContextMapper.mapFromClaimsPrincipal this.User
+            let context = UserContextMapper.mapFromRequest this.Request
             let! result = loanService.GetHistoryLoansOfUserAsync(context, UserId userId)
             match result with
             | Ok loans -> return this.Ok(loans) :> IActionResult
@@ -50,7 +50,8 @@ type LoansController(loanService: ILoanService, reservationService: IReservation
     [<HttpPost>]
     member this.AddLoan(loan: Loan) =
         task {
-            let context = UserContextMapper.mapFromClaimsPrincipal this.User
+            let baseContext = UserContextMapper.mapFromRequest this.Request
+            let context = baseContext.WithNewTenant(loan.TenantId)
             let! result = loanService.AddLoanAsync(context, loan)
             match result with
             | Ok _ -> 
@@ -63,7 +64,7 @@ type LoansController(loanService: ILoanService, reservationService: IReservation
     [<HttpGet("{id}")>]
     member this.GetLoan(id: Guid) =
         task {
-            let context = UserContextMapper.mapFromClaimsPrincipal this.User
+            let context = UserContextMapper.mapFromRequest this.Request
             let! result = loanService.GetLoanAsync(context, LoanId id)
             match result with
             | Ok loan -> return this.Ok(loan) :> IActionResult
@@ -73,7 +74,7 @@ type LoansController(loanService: ILoanService, reservationService: IReservation
     [<HttpPost("release/{id}")>]
     member this.ReleaseLoan(id: Guid) =
         task {
-            let context = UserContextMapper.mapFromClaimsPrincipal this.User
+            let context = UserContextMapper.mapFromRequest this.Request
             let! loanDetails = 
                 task {
                     match! loanService.GetLoanAsync(context, LoanId id) with
@@ -96,7 +97,7 @@ type LoansController(loanService: ILoanService, reservationService: IReservation
     [<HttpPost("transform-reservation/{reservationId}")>]
     member this.TransformReservation(reservationId: Guid, [<FromBody>] reservationCode: string) =
         task {
-            let context = UserContextMapper.mapFromClaimsPrincipal this.User
+            let context = UserContextMapper.mapFromRequest this.Request
             let! resDetails = 
                 task {
                     match! reservationService.GetReservationAsync(context, ReservationId reservationId) with
@@ -129,7 +130,7 @@ type LoansController(loanService: ILoanService, reservationService: IReservation
     [<HttpPost("transform-reservation-by-pin/{reservationId}")>]
     member this.TransformReservationByPin(reservationId: Guid, [<FromBody>] pin: string) =
         task {
-            let context = UserContextMapper.mapFromClaimsPrincipal this.User
+            let context = UserContextMapper.mapFromRequest this.Request
             let! resDetails = 
                 task {
                     match! reservationService.GetReservationDetailsAsync(context, ReservationId reservationId) with
@@ -161,7 +162,7 @@ type LoansController(loanService: ILoanService, reservationService: IReservation
     [<HttpPost("transform-reservation-by-manager/{reservationId}")>]
     member this.TransformReservationByManager(reservationId: Guid) =
         task {
-            let context = UserContextMapper.mapFromClaimsPrincipal this.User
+            let context = UserContextMapper.mapFromRequest this.Request
             let! resDetails = 
                 task {
                     match! reservationService.GetReservationAsync(context, ReservationId reservationId) with
@@ -194,7 +195,7 @@ type LoansController(loanService: ILoanService, reservationService: IReservation
 
     member this.RemoveLoan(id: Guid) =
         task {
-            let context = UserContextMapper.mapFromClaimsPrincipal this.User
+            let context = UserContextMapper.mapFromRequest this.Request
             let! loanDetails = 
                 task {
                     match! loanService.GetLoanAsync(context, LoanId id) with
@@ -217,7 +218,7 @@ type LoansController(loanService: ILoanService, reservationService: IReservation
     [<HttpPost("archive/{id}")>]
     member this.ArchiveLoan(id: Guid) =
         task {
-            let context = UserContextMapper.mapFromClaimsPrincipal this.User
+            let context = UserContextMapper.mapFromRequest this.Request
             let! loanDetails = 
                 task {
                     match! loanService.GetLoanAsync(context, LoanId id) with
@@ -239,7 +240,7 @@ type LoansController(loanService: ILoanService, reservationService: IReservation
     [<HttpGet("tenant/{tenantId}/user/{userId}")>]
     member this.GetLoansOfUserInTenant(tenantId: Guid, userId: Guid) =
         task {
-            let context = UserContextMapper.mapFromClaimsPrincipal this.User
+            let context = UserContextMapper.mapFromRequest this.Request
             let! result = loanService.GetLoansOfUserInATenantAsync(context, TenantId tenantId, UserId userId)
             match result with
             | Ok loans -> return this.Ok(loans) :> IActionResult

@@ -4,6 +4,20 @@ let markerInstance = null;
 let circleInstance = null;
 let guestCircleInstance = null;
 
+const hoverMapInstances = {};
+
+if (typeof window !== 'undefined') {
+    window.addEventListener('focus', function () {
+        for (const key in hoverMapInstances) {
+            if (hoverMapInstances[key] && hoverMapInstances[key].map) {
+                try {
+                    hoverMapInstances[key].map.invalidateSize();
+                } catch (e) { }
+            }
+        }
+    });
+}
+
 window.tenantMap = {
     initialize: function (elementId, dotNetHelper, initialLat, initialLng, initialRadius, initialGuestRadius) {
         const container = document.getElementById(elementId);
@@ -256,6 +270,165 @@ window.tenantMap = {
                 { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
             );
         });
+    },
+
+    showHoverMiniMap: function (containerId, userLat, userLng, tenantLat, tenantLng, tenantName, userLabel, tenantLabel) {
+        const container = document.getElementById(containerId);
+        if (!container) {
+            return;
+        }
+
+        let item = hoverMapInstances[containerId];
+
+        // If instance exists but container in DOM is different, detached, or corrupted, clean it up
+        if (item && item.map) {
+            const mapContainer = item.map.getContainer ? item.map.getContainer() : null;
+            if (!mapContainer || mapContainer !== container || !document.body.contains(mapContainer)) {
+                try {
+                    item.map.remove();
+                } catch (e) {
+                    console.warn("Error removing detached hover map instance:", e);
+                }
+                delete hoverMapInstances[containerId];
+                item = null;
+            }
+        }
+
+        if (!item || !item.map) {
+            if (container._leaflet_id) {
+                delete container._leaflet_id;
+                container.innerHTML = '';
+            }
+
+            const map = L.map(containerId, {
+                zoomControl: false,
+                attributionControl: false,
+                scrollWheelZoom: false,
+                dragging: false,
+                touchZoom: false,
+                doubleClickZoom: false,
+                boxZoom: false
+            });
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19
+            }).addTo(map);
+
+            item = {
+                map: map,
+                userMarker: null,
+                tenantMarker: null,
+                polyline: null
+            };
+            hoverMapInstances[containerId] = item;
+        }
+
+        if (item.userMarker) {
+            item.map.removeLayer(item.userMarker);
+            item.userMarker = null;
+        }
+        if (item.tenantMarker) {
+            item.map.removeLayer(item.tenantMarker);
+            item.tenantMarker = null;
+        }
+        if (item.polyline) {
+            item.map.removeLayer(item.polyline);
+            item.polyline = null;
+        }
+
+        const hasTenant = typeof tenantLat === 'number' && typeof tenantLng === 'number' && !isNaN(tenantLat) && !isNaN(tenantLng);
+        const hasUser = typeof userLat === 'number' && typeof userLng === 'number' && !isNaN(userLat) && !isNaN(userLng);
+
+        if (!hasTenant) {
+            return;
+        }
+
+        const tenantIcon = L.divIcon({
+            className: 'tenant-map-marker-pin',
+            html: '<div style="background-color: #dc3545; color: white; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(0,0,0,0.3); border: 2px solid white;"><i class="bi bi-buildings-fill" style="font-size: 13px;"></i></div>',
+            iconSize: [28, 28],
+            iconAnchor: [14, 14]
+        });
+
+        item.tenantMarker = L.marker([tenantLat, tenantLng], { icon: tenantIcon })
+            .bindTooltip(tenantName || tenantLabel || "Library", { permanent: false, direction: 'top', offset: [0, -14] })
+            .addTo(item.map);
+
+        if (hasUser) {
+            const userIcon = L.divIcon({
+                className: 'user-map-marker-pin',
+                html: '<div style="background-color: #0d6efd; color: white; width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(0,0,0,0.3); border: 2px solid white;"><i class="bi bi-person-fill" style="font-size: 14px;"></i></div>',
+                iconSize: [26, 26],
+                iconAnchor: [13, 13]
+            });
+
+            item.userMarker = L.marker([userLat, userLng], { icon: userIcon })
+                .bindTooltip(userLabel || "Your Location", { permanent: false, direction: 'top', offset: [0, -14] })
+                .addTo(item.map);
+
+            item.polyline = L.polyline([
+                [userLat, userLng],
+                [tenantLat, tenantLng]
+            ], {
+                color: '#0d6efd',
+                weight: 3,
+                dashArray: '6, 8',
+                opacity: 0.8
+            }).addTo(item.map);
+
+            const bounds = L.latLngBounds([
+                [userLat, userLng],
+                [tenantLat, tenantLng]
+            ]);
+            item.map.fitBounds(bounds, { padding: [35, 35], maxZoom: 15 });
+        } else {
+            item.map.setView([tenantLat, tenantLng], 15);
+        }
+
+        setTimeout(function () {
+            if (item && item.map) {
+                item.map.invalidateSize();
+            }
+        }, 60);
+        setTimeout(function () {
+            if (item && item.map) {
+                item.map.invalidateSize();
+            }
+        }, 220);
+    },
+
+    destroyHoverMiniMap: function (containerId) {
+        if (containerId && hoverMapInstances[containerId]) {
+            try {
+                hoverMapInstances[containerId].map.remove();
+            } catch (e) {
+                console.warn("Error destroying hover map instance:", e);
+            }
+            delete hoverMapInstances[containerId];
+        }
+    },
+
+    positionHoverPopover: function (trigger, popover) {
+        const triggerEl = (typeof trigger === 'string') ? document.getElementById(trigger) : trigger;
+        const popoverEl = (typeof popover === 'string') ? document.getElementById(popover) : popover;
+        if (!triggerEl || !popoverEl) return;
+        const rect = triggerEl.getBoundingClientRect();
+        const popoverWidth = 320;
+        const popoverHeight = 310;
+
+        let top = rect.bottom + 8;
+        let left = rect.left;
+
+        if (left + popoverWidth > window.innerWidth - 12) {
+            left = Math.max(12, window.innerWidth - popoverWidth - 12);
+        }
+
+        if (top + popoverHeight > window.innerHeight - 12) {
+            top = Math.max(12, rect.top - popoverHeight - 8);
+        }
+
+        popoverEl.style.top = top + 'px';
+        popoverEl.style.left = left + 'px';
     }
 };
 

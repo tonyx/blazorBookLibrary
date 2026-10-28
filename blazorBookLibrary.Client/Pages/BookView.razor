@@ -20,7 +20,6 @@
 @inject IDetailsService DetailsService
 @inject IReviewService ReviewService
 @inject IEditorService EditorService
-@inject IUserTenantResolverService UserTenantResolverService
 @inject NavigationManager NavManager
 @inject IJSRuntime JSRuntime
 @using Microsoft.Extensions.Localization
@@ -507,6 +506,17 @@
                                         <span class="badge-sanctuary badge-neutral mt-1">@bookDetails.Book.MainCategory.Value()</span>
                                     </dd>
 
+                                    @if (FSharpOption<Details.TenantReference>.get_IsSome(bookDetails.Tenant))
+                                    {
+                                        <dt>@L["Library"]</dt>
+                                        <dd>
+                                            <span class="badge-sanctuary badge-neutral mt-1">
+                                                <i class="bi bi-buildings me-1"></i>
+                                                @bookDetails.Tenant.Value.Name.Value
+                                            </span>
+                                        </dd>
+                                    }
+
                                     @if (FSharpOption<DistributionPoint>.get_IsSome(bookDetails.DistributionPoint))
                                     {
                                         <dt>@L["DistributionPoint"]</dt>
@@ -759,7 +769,7 @@
         try
         {
             var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-            var context = TenantState.GetUserContext(authState.User);
+            var context = TenantState.GetUserContext(authState.User).WithNewTenant(userReservation.TenantId);
             var result = await ReservationService.GeneratePickupPinAsync(context, userReservation.ReservationId, FSharpOption<CancellationToken>.None);
             if (result.IsOk)
             {
@@ -883,18 +893,10 @@
             int loanDuration = Configuration.GetValue<int>("BooksLibrary:TimeSlotLoanDurationInDays", 25);
             var now = DateTime.UtcNow;
             var nextSlot = bookDetails.GetNextAvailableTimeSlot(loanDuration, now);
-            var context = ConverterUtils.fromClaimsPrincipal(authState.User);
-
-            var tryTenant = await UserTenantResolverService.GetTenantForUserAsync(context);
-            if (tryTenant.IsError) 
-            {
-                Logger.LogError(tryTenant.ErrorValue);
-                await ShowStatus("an error occurred", "error");
-                return;
-            }
-            var tenantId = tryTenant.ResultValue;
+            var bookTenantId = bookDetails.Book.TenantId;
+            var context = ConverterUtils.fromClaimsPrincipal(authState.User).WithNewTenant(bookTenantId);
             
-            var reservation = Reservation.New(tenantId, bookDetails.Book.BookId, sharpinoUserId, nextSlot, now);
+            var reservation = Reservation.New(bookTenantId, bookDetails.Book.BookId, sharpinoUserId, nextSlot, now);
             
             var result = await ReservationService.AddReservationAsync(context, reservation, ShortLang.New(CultureInfo.CurrentCulture.Name.Substring(0,2)), FSharpOption<System.Threading.CancellationToken>.None);
             
@@ -952,8 +954,8 @@
             StateHasChanged();
 
             var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-            var context = TenantState.GetUserContext(authState.User);
             var tenantId = bookDetails.Book.TenantId;
+            var context = TenantState.GetUserContext(authState.User).WithNewTenant(tenantId);
 
             int loanDuration = Configuration.GetValue<int>("BooksLibrary:TimeSlotLoanDurationInDays", 25);
             var now = DateTime.UtcNow;
@@ -1180,6 +1182,7 @@
                 if (result.IsOk)
                 {
                     bookDetails = result.ResultValue;
+                    var bookContext = context.WithNewTenant(bookDetails.Book.TenantId);
                     shuffledReviews = bookDetails.ApprovedVisibleReviewsInRandomOrder().ToList();
                     foreach (var author in bookDetails.Authors)
                     {
@@ -1187,12 +1190,12 @@
                     }
                     if (bookDetails.Book.Papers.Any())
                     {
-                        await EnsurePaperAuthorsResolved(bookDetails.Book.Papers);
+                        await EnsurePaperAuthorsResolved(bookDetails.Book.Papers, bookContext);
                     }
 
                     try
                     {
-                        var tenantResult = await TenantService.GetTenantAsync(context, bookDetails.Book.TenantId, FSharpOption<CancellationToken>.None);
+                        var tenantResult = await TenantService.GetTenantAsync(bookContext, bookDetails.Book.TenantId, FSharpOption<CancellationToken>.None);
                         if (tenantResult.IsOk)
                         {
                             libraryTenant = tenantResult.ResultValue;
@@ -1207,7 +1210,7 @@
                     {
                         try
                         {
-                            var edResult = await EditorService.GetEditorAsync(context, bookDetails.Book.Editor.Value, FSharpOption<CancellationToken>.None);
+                            var edResult = await EditorService.GetEditorAsync(bookContext, bookDetails.Book.Editor.Value, FSharpOption<CancellationToken>.None);
                             if (edResult.IsOk)
                             {
                                 resolvedPublisher = edResult.ResultValue.Name.Value;
@@ -1363,7 +1366,8 @@
             var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
             var user = authState.User;
             isAuthenticated = user.Identity?.IsAuthenticated == true;
-            var context = TenantState.GetUserContext(user);
+            var baseContext = TenantState.GetUserContext(user);
+            var context = (bookDetails != null) ? baseContext.WithNewTenant(bookDetails.Book.TenantId) : baseContext;
             
             if (isAuthenticated)
             {
@@ -1530,12 +1534,12 @@
         isPapersDrillDownOpen = !isPapersDrillDownOpen;
     }
 
-    private async Task EnsurePaperAuthorsResolved(IEnumerable<Paper> papers)
+    private async Task EnsurePaperAuthorsResolved(IEnumerable<Paper> papers, Commons.UserContext? specificContext = null)
     {
         try
         {
             var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-            var context = TenantState.GetUserContext(authState.User);
+            var context = specificContext ?? (bookDetails != null ? TenantState.GetUserContext(authState.User).WithNewTenant(bookDetails.Book.TenantId) : TenantState.GetUserContext(authState.User));
             var missingAuthorIds = papers
                 .SelectMany(p => p.Authors)
                 .Where(a => !_resolvedPaperAuthors.ContainsKey(a.Value))

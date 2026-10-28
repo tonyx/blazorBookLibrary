@@ -679,7 +679,7 @@ type BooksController(bookService: IBookService, hubContext: Microsoft.AspNetCore
     [<HttpPost("search/title-authors-year-categories")>]
     member this.SearchByTitleAndAuthorsAndYearAndCategories([<FromBody>] request: SearchTitleAuthorsYearCategoriesRequest) =
         task {
-            let context = UserContextMapper.mapFromClaimsPrincipal this.User
+            let context = UserContextMapper.mapFromRequest this.Request
             let fsAuthors = request.Authors |> List.ofSeq |> List.map AuthorId
             let fsCategories = request.Categories |> List.ofSeq |> List.map Category.New
             let! result = bookService.SearchByTitleAndAuthorsAndYearAndCategoriesAsync(context, Title.New request.Title, fsAuthors, request.Year, fsCategories)

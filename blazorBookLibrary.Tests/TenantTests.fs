@@ -840,6 +840,185 @@ let tests =
                   Expect.isTrue (subject.Contains "API Key Revoked") "Email subject should mention API Key Revoked"
                   Expect.isTrue (body.Contains "Owner Secret Integration") "Email body should mention key label"
                   Expect.isTrue (body.Contains key.Value) "Email body should contain the revoked key"
+              }
+          testCaseTask "ResolveSearchTenants: anonymous user never receives private libraries even if nearby"
+          <| fun _ ->
+              task {
+                  setUp ()
+                  let tenantService = getTenantService ()
+                  let resolverService = getUserTenantResolverService ()
+
+                  let! ownerId = registerUserTask "priv_owner@test.com" "Password123!"
+                  let ownerContext = UserContext.Authenticated(ownerId, [])
+
+                  // 1. Create a private library in Milan
+                  let privTenant =
+                      Tenant.New(ownerId, TenantName.New "Secret Milan Archives" |> Result.get, "Via Privata 1", false)
+                  let privTenantId = privTenant.TenantId
+                  let! createPrivRes = tenantService.CreateTenantAsync(ownerContext, privTenant)
+                  Expect.isOk createPrivRes "Private tenant creation should succeed"
+
+                  let milanCoords = Coordinates.New(45.4642, 9.1900, 5000.0)
+                  let geoLoc = GeoLocSettings.CreateEnabled(45.4642, 9.1900) |> Result.get
+                  let! setGeoRes = tenantService.SetGeoLocSettingsAsync(ownerContext, privTenantId, geoLoc)
+                  Expect.isOk setGeoRes "Setting geoloc for private tenant should succeed"
+
+                  // 2. Create a public library nearby in Milan
+                  let pubTenant =
+                      Tenant.New(ownerId, TenantName.New "Public Milan Library" |> Result.get, "Via Pubblica 2", true)
+                  let pubTenantId = pubTenant.TenantId
+                  let! createPubRes = tenantService.CreateTenantAsync(ownerContext, pubTenant)
+                  Expect.isOk createPubRes "Public tenant creation should succeed"
+                  let! approveRes = tenantService.SetPublicAsync(adminContext, pubTenantId)
+                  Expect.isOk approveRes "Admin approval should succeed"
+                  let! setPubGeoRes = tenantService.SetGeoLocSettingsAsync(ownerContext, pubTenantId, geoLoc)
+                  Expect.isOk setPubGeoRes "Setting geoloc for public tenant should succeed"
+
+                  // 3. Anonymous user performs Proximity search right on top of both libraries
+                  let! anonProximityRes = resolverService.ResolveSearchTenantsAsync(UserContext.Anonymous, TenantScope.ProximityTenants (milanCoords, false))
+                  Expect.isOk anonProximityRes "ResolveSearchTenants should succeed"
+                  let anonTenants = anonProximityRes |> Result.get
+                  Expect.isTrue (anonTenants |> List.exists (fun t -> t.TenantId = pubTenantId)) "Public tenant must be returned to anonymous user"
+                  Expect.isFalse (anonTenants |> List.exists (fun t -> t.TenantId = privTenantId)) "Private tenant MUST NOT be returned to anonymous user even within radius"
+
+                  // 4. Anonymous user explicitly requests the private tenant ID
+                  let! anonExplicitRes = resolverService.ResolveSearchTenantsAsync(UserContext.Anonymous, TenantScope.ExplicitTenants [ privTenantId; pubTenantId ])
+                  Expect.isOk anonExplicitRes "ResolveSearchTenants should succeed"
+                  let anonExplicitTenants = anonExplicitRes |> Result.get
+                  Expect.isTrue (anonExplicitTenants |> List.exists (fun t -> t.TenantId = pubTenantId)) "Public tenant returned on explicit request"
+                  Expect.isFalse (anonExplicitTenants |> List.exists (fun t -> t.TenantId = privTenantId)) "Private tenant MUST NOT be returned on explicit request by anonymous user"
+              }
+          testCaseTask "ResolveSearchTenants: non-patron authenticated user cannot see private library until granted patron access"
+          <| fun _ ->
+              task {
+                  setUp ()
+                  let tenantService = getTenantService ()
+                  let resolverService = getUserTenantResolverService ()
+
+                  let! ownerId = registerUserTask "vault_owner@test.com" "Password123!"
+                  let ownerContext = UserContext.Authenticated(ownerId, [])
+
+                  let privTenant =
+                      Tenant.New(ownerId, TenantName.New "Vault of Books" |> Result.get, "Via Nascosta 7", false)
+                  let privTenantId = privTenant.TenantId
+                  let! createPrivRes = tenantService.CreateTenantAsync(ownerContext, privTenant)
+                  Expect.isOk createPrivRes "Private tenant creation should succeed"
+
+                  let milanCoords = Coordinates.New(45.4642, 9.1900, 5000.0)
+                  let geoLoc = GeoLocSettings.CreateEnabled(45.4642, 9.1900) |> Result.get
+                  let! setGeoRes = tenantService.SetGeoLocSettingsAsync(ownerContext, privTenantId, geoLoc)
+                  Expect.isOk setGeoRes "Setting geoloc should succeed"
+
+                  let! outsiderId = registerUserTask "outsider@test.com" "Password123!"
+                  let outsiderContext = UserContext.Authenticated(outsiderId, [])
+
+                  // Outsider tries proximity search
+                  let! outsiderProxRes = resolverService.ResolveSearchTenantsAsync(outsiderContext, TenantScope.ProximityTenants (milanCoords, false))
+                  Expect.isOk outsiderProxRes "Proximity search should succeed"
+                  let outsiderTenants = outsiderProxRes |> Result.get
+                  Expect.isFalse (outsiderTenants |> List.exists (fun t -> t.TenantId = privTenantId)) "Non-patron outsider must not see private library"
+
+                  // Outsider tries explicit ID request
+                  let! outsiderExpRes = resolverService.ResolveSearchTenantsAsync(outsiderContext, TenantScope.ExplicitTenants [ privTenantId ])
+                  Expect.isOk outsiderExpRes "Explicit search should succeed"
+                  let outsiderExpTenants = outsiderExpRes |> Result.get
+                  Expect.isFalse (outsiderExpTenants |> List.exists (fun t -> t.TenantId = privTenantId)) "Non-patron outsider must not see private library via explicit ID"
+
+                  // Owner invites outsider and adds as patron
+                  let! addPatronRes = tenantService.AddPatronAsync(ownerContext, privTenantId, outsiderId, PatronRole.User)
+                  Expect.isOk addPatronRes "Adding patron should succeed"
+
+                  // Now outsider performs explicit search -> now visible
+                  let! patronExpRes = resolverService.ResolveSearchTenantsAsync(outsiderContext, TenantScope.ExplicitTenants [ privTenantId ])
+                  Expect.isOk patronExpRes "Explicit search should succeed"
+                  let patronExpTenants = patronExpRes |> Result.get
+                  Expect.isTrue (patronExpTenants |> List.exists (fun t -> t.TenantId = privTenantId)) "Patron must now be able to resolve private library"
+
+                  // Global Admin can always see it
+                  let! adminExpRes = resolverService.ResolveSearchTenantsAsync(adminContext, TenantScope.ExplicitTenants [ privTenantId ])
+                  Expect.isOk adminExpRes "Admin explicit search should succeed"
+                  let adminExpTenants = adminExpRes |> Result.get
+                  Expect.isTrue (adminExpTenants |> List.exists (fun t -> t.TenantId = privTenantId)) "Admin must always be able to resolve private library"
+              }
+          testCaseTask "ResolveSearchTenants: guest proximity radius is clamped to 50km"
+          <| fun _ ->
+              task {
+                  setUp ()
+                  let tenantService = getTenantService ()
+                  let resolverService = getUserTenantResolverService ()
+
+                  let! ownerId = registerUserTask "clamping_owner@test.com" "Password123!"
+                  let ownerContext = UserContext.Authenticated(ownerId, [])
+
+                  // Library in Bologna (approx 200km from Milan)
+                  let bolognaTenant =
+                      Tenant.New(ownerId, TenantName.New "Bologna Public Library" |> Result.get, "Piazza Maggiore 1", true)
+                  let bolognaTenantId = bolognaTenant.TenantId
+                  let! createBolRes = tenantService.CreateTenantAsync(ownerContext, bolognaTenant)
+                  Expect.isOk createBolRes "Bologna creation should succeed"
+                  let! approveBolRes = tenantService.SetPublicAsync(adminContext, bolognaTenantId)
+                  Expect.isOk approveBolRes "Bologna approval should succeed"
+
+                  let bolognaGeo = GeoLocSettings.CreateEnabled(44.4949, 11.3426) |> Result.get
+                  let! setBolGeo = tenantService.SetGeoLocSettingsAsync(ownerContext, bolognaTenantId, bolognaGeo)
+                  Expect.isOk setBolGeo "Setting Bologna geoloc should succeed"
+
+                  // Guest in Milan asks for a 500km radius (should be clamped to 50km)
+                  let milanHugeCoords = Coordinates.New(45.4642, 9.1900, 500_000.0)
+                  let! guestRes = resolverService.ResolveSearchTenantsAsync(UserContext.Anonymous, TenantScope.ProximityTenants (milanHugeCoords, false))
+                  Expect.isOk guestRes "Guest proximity search should succeed"
+                  let guestTenants = guestRes |> Result.get
+                  Expect.isFalse (guestTenants |> List.exists (fun t -> t.TenantId = bolognaTenantId)) "Bologna library (200km away) must NOT be returned because guest radius is clamped to 50km"
+              }
+          testCaseTask "DetailsService: direct ID probe of private library book denies access to unauthorized users"
+          <| fun _ ->
+              task {
+                  setUp ()
+                  let tenantService = getTenantService ()
+                  let bookService = getBookService ()
+                  let detailsService = getDetailsService ()
+
+                  let! ownerId = registerUserTask "probe_owner@test.com" "Password123!"
+                  let ownerContext = UserContext.Authenticated(ownerId, [])
+
+                  // Private tenant
+                  let privTenant =
+                      Tenant.New(ownerId, TenantName.New "Classified Archives" |> Result.get, "Area 51", false)
+                  let privTenantId = privTenant.TenantId
+                  let! createPrivRes = tenantService.CreateTenantAsync(ownerContext, privTenant)
+                  Expect.isOk createPrivRes "Private tenant creation should succeed"
+
+                  // Add book to private tenant
+                  let book = Book.New privTenantId (Title.New "Top Secret Manuscript") [] [] [] None Category.Other [] (Year.New 2024) (Isbn.NewEmpty()) None
+                  let bookId = book.BookId
+                  let! addBookRes = bookService.AddBookAsync(ownerContext.WithNewTenant(privTenantId), book)
+                  Expect.isOk addBookRes "Adding book to private tenant should succeed"
+
+                  // 1. Anonymous user attempts direct ID probe
+                  let! anonDetailsRes = detailsService.GetBookDetailsAsync(UserContext.Anonymous, bookId)
+                  Expect.isError anonDetailsRes "Anonymous user must be denied access to private library book"
+                  match anonDetailsRes with
+                  | Error msg -> Expect.isTrue (msg.Contains "Access denied") "Error should specify access denied"
+                  | Ok _ -> failwith "Expected access denied for anonymous user"
+
+                  // 2. Non-patron authenticated user attempts direct ID probe
+                  let! outsiderId = registerUserTask "probe_outsider@test.com" "Password123!"
+                  let outsiderContext = UserContext.Authenticated(outsiderId, [])
+                  let! outsiderDetailsRes = detailsService.GetBookDetailsAsync(outsiderContext, bookId)
+                  Expect.isError outsiderDetailsRes "Non-patron authenticated user must be denied access to private library book"
+                  match outsiderDetailsRes with
+                  | Error msg -> Expect.isTrue (msg.Contains "Access denied") "Error should specify access denied"
+                  | Ok _ -> failwith "Expected access denied for non-patron user"
+
+                  // 3. Owner can view book details
+                  let! ownerDetailsRes = detailsService.GetBookDetailsAsync(ownerContext, bookId)
+                  Expect.isOk ownerDetailsRes "Owner must be able to view book details"
+
+                  // 4. Patron can view book details
+                  let! addPatronRes = tenantService.AddPatronAsync(ownerContext, privTenantId, outsiderId, PatronRole.User)
+                  Expect.isOk addPatronRes "Adding patron should succeed"
+                  let! patronDetailsRes = detailsService.GetBookDetailsAsync(outsiderContext, bookId)
+                  Expect.isOk patronDetailsRes "Patron must be able to view book details"
               } ]
 
 

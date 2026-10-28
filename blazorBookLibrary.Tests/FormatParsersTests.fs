@@ -35,6 +35,7 @@ let private makeSampleBookDetails () =
     let bd: BookDetails =
         { Book = book
           Authors = [ author1; author2 ]
+          Tenant = None
           DistributionPoint = None
           CurrentLoan = None
           ReservationsDetails = []

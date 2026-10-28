@@ -24,3 +24,13 @@ type UserTenantResolverController(resolverService: IUserTenantResolverService) =
             | Error msg -> return this.BadRequest(msg) :> IActionResult
         }
 
+    [<HttpPost("search-tenants")>]
+    member this.ResolveSearchTenants([<FromBody>] scope: TenantScope) =
+        task {
+            let context = UserContextMapper.mapFromRequest this.Request
+            let! result = resolverService.ResolveSearchTenantsAsync(context, scope)
+            match result with
+            | Ok tenants -> return this.Ok(tenants) :> IActionResult
+            | Error msg -> return this.BadRequest(msg) :> IActionResult
+        }
+

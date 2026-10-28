@@ -21,61 +21,70 @@ public class ReservationsClientService : IReservationService
 
     public async Task<FSharpResult<Unit, string>> AddReservationAsync(Commons.UserContext context, Reservation reservation, Commons.ShortLang shortLang, FSharpOption<CancellationToken> ct)
     {
-        var response = await _httpClient.PostAsJsonAsync($"api/Reservations?lang={shortLang.Value}", reservation, ServiceClientHelper.JsonOptions, ServiceClientHelper.GetValue(ct, CancellationToken.None));
+        var request = ServiceClientHelper.CreateRequest(HttpMethod.Post, $"api/Reservations?lang={shortLang.Value}", context, reservation);
+        var response = await _httpClient.SendAsync(request, ServiceClientHelper.GetValue(ct, CancellationToken.None));
         return await ServiceClientHelper.HandleUnitResponse(response);
     }
 
     public async Task<FSharpResult<Reservation, string>> GetReservationAsync(Commons.UserContext context, Commons.ReservationId id, FSharpOption<CancellationToken> ct)
     {
-        var response = await _httpClient.GetAsync($"api/Reservations/{id.Value}", ServiceClientHelper.GetValue(ct, CancellationToken.None));
+        var request = ServiceClientHelper.CreateRequest(HttpMethod.Get, $"api/Reservations/{id.Value}", context);
+        var response = await _httpClient.SendAsync(request, ServiceClientHelper.GetValue(ct, CancellationToken.None));
         return await ServiceClientHelper.HandleResponse<Reservation>(response);
     }
 
     public async Task<FSharpResult<Unit, string>> RemoveReservationAsync(Commons.UserContext context, Commons.ReservationId reservationId, FSharpOption<CancellationToken> ct)
     {
-        var response = await _httpClient.DeleteAsync($"api/Reservations/{reservationId.Value}", ServiceClientHelper.GetValue(ct, CancellationToken.None));
+        var request = ServiceClientHelper.CreateRequest(HttpMethod.Delete, $"api/Reservations/{reservationId.Value}", context);
+        var response = await _httpClient.SendAsync(request, ServiceClientHelper.GetValue(ct, CancellationToken.None));
         return await ServiceClientHelper.HandleUnitResponse(response);
     }
+
     public async Task<FSharpResult<Unit, string>> CancelReservationAsync(Commons.UserContext context, Commons.ReservationId reservationId, Commons.CancellationReason reason,
         FSharpOption<CancellationToken> ct = null)
     {
-        var response = await _httpClient.PostAsJsonAsync($"api/Reservations/{reservationId.Value}/cancel", reason, ServiceClientHelper.JsonOptions, ServiceClientHelper.GetValue(ct, CancellationToken.None));
+        var request = ServiceClientHelper.CreateRequest(HttpMethod.Post, $"api/Reservations/{reservationId.Value}/cancel", context, reason);
+        var response = await _httpClient.SendAsync(request, ServiceClientHelper.GetValue(ct, CancellationToken.None));
         return await ServiceClientHelper.HandleUnitResponse(response);
     }
 
     public async Task<FSharpResult<FSharpList<Reservation>, string>> GetReservationsAsync(Commons.UserContext context, FSharpList<Commons.ReservationId> ids, FSharpOption<CancellationToken> ct)
     {
-        var response = await _httpClient.PostAsJsonAsync("api/Reservations/get-multiple", ids.Select(i => i.Value).ToList(), ServiceClientHelper.JsonOptions, ServiceClientHelper.GetValue(ct, CancellationToken.None));
+        var request = ServiceClientHelper.CreateRequest(HttpMethod.Post, "api/Reservations/get-multiple", context, ids.Select(i => i.Value).ToList());
+        var response = await _httpClient.SendAsync(request, ServiceClientHelper.GetValue(ct, CancellationToken.None));
         var result = await ServiceClientHelper.HandleResponse<List<Reservation>>(response);
         return result.IsOk ? FSharpResult<FSharpList<Reservation>, string>.NewOk(ListModule.OfSeq(result.ResultValue)) : FSharpResult<FSharpList<Reservation>, string>.NewError(result.ErrorValue);
     }
 
     public async Task<FSharpResult<BookLibrary.Shared.Details.ReservationDetails, string>> GetReservationDetailsAsync(Commons.UserContext context, Commons.ReservationId id, FSharpOption<CancellationToken> ct)
     {
-        var response = await _httpClient.GetAsync($"api/Reservations/{id.Value}/details", ServiceClientHelper.GetValue(ct, CancellationToken.None));
+        var request = ServiceClientHelper.CreateRequest(HttpMethod.Get, $"api/Reservations/{id.Value}/details", context);
+        var response = await _httpClient.SendAsync(request, ServiceClientHelper.GetValue(ct, CancellationToken.None));
         return await ServiceClientHelper.HandleResponse<BookLibrary.Shared.Details.ReservationDetails>(response);
     }
 
     public async Task<FSharpResult<FSharpList<BookLibrary.Shared.Details.ReservationDetails>, string>> GetAllPendingReservationsDetailsAsync(Commons.UserContext context, FSharpOption<CancellationToken> ct)
     {
-        var response = await _httpClient.GetAsync("api/Reservations/pending/details", ServiceClientHelper.GetValue(ct, CancellationToken.None));
+        var request = ServiceClientHelper.CreateRequest(HttpMethod.Get, "api/Reservations/pending/details", context);
+        var response = await _httpClient.SendAsync(request, ServiceClientHelper.GetValue(ct, CancellationToken.None));
         var result = await ServiceClientHelper.HandleResponse<List<BookLibrary.Shared.Details.ReservationDetails>>(response);
         return result.IsOk ? FSharpResult<FSharpList<BookLibrary.Shared.Details.ReservationDetails>, string>.NewOk(ListModule.OfSeq(result.ResultValue)) : FSharpResult<FSharpList<BookLibrary.Shared.Details.ReservationDetails>, string>.NewError(result.ErrorValue);
     }
 
     public async Task<FSharpResult<FSharpList<BookLibrary.Shared.Details.ReservationDetails>, string>> GetMyPendingReservationsAsync(Commons.UserContext context, FSharpOption<CancellationToken> ct)
     {
-        var response = await _httpClient.GetAsync("api/Reservations/my-pending", ServiceClientHelper.GetValue(ct, CancellationToken.None));
+        var request = ServiceClientHelper.CreateRequest(HttpMethod.Get, "api/Reservations/my-pending", context);
+        var response = await _httpClient.SendAsync(request, ServiceClientHelper.GetValue(ct, CancellationToken.None));
         var result = await ServiceClientHelper.HandleResponse<List<BookLibrary.Shared.Details.ReservationDetails>>(response);
         return result.IsOk ? FSharpResult<FSharpList<BookLibrary.Shared.Details.ReservationDetails>, string>.NewOk(ListModule.OfSeq(result.ResultValue)) : FSharpResult<FSharpList<BookLibrary.Shared.Details.ReservationDetails>, string>.NewError(result.ErrorValue);
     }
 
     public async Task<FSharpResult<Unit, string>> RemoveExpiredReservationsAsync(Commons.UserContext context, FSharpOption<CancellationToken> ct)
     {
-        var response = await _httpClient.PostAsync("api/Reservations/expired/remove", null, ServiceClientHelper.GetValue(ct, CancellationToken.None));
+        var request = ServiceClientHelper.CreateRequest(HttpMethod.Post, "api/Reservations/expired/remove", context);
+        var response = await _httpClient.SendAsync(request, ServiceClientHelper.GetValue(ct, CancellationToken.None));
         return await ServiceClientHelper.HandleUnitResponse(response);
     }
-
 
     public class GeneratedPinResponse
     {
@@ -88,7 +97,8 @@ public class ReservationsClientService : IReservationService
 
     public async Task<FSharpResult<Tuple<string, DateTime>, string>> GeneratePickupPinAsync(Commons.UserContext context, Commons.ReservationId id, FSharpOption<CancellationToken> ct)
     {
-        var response = await _httpClient.PostAsync($"api/Reservations/{id.Value}/generate-pin", null, ServiceClientHelper.GetValue(ct, CancellationToken.None));
+        var request = ServiceClientHelper.CreateRequest(HttpMethod.Post, $"api/Reservations/{id.Value}/generate-pin", context);
+        var response = await _httpClient.SendAsync(request, ServiceClientHelper.GetValue(ct, CancellationToken.None));
         var result = await ServiceClientHelper.HandleResponse<GeneratedPinResponse>(response);
         if (result.IsOk)
         {
@@ -99,15 +109,16 @@ public class ReservationsClientService : IReservationService
 
     public async Task<FSharpResult<FSharpList<Reservation>, string>> GetReservationsOfABookAsync(Commons.UserContext context, Commons.BookId bookId, FSharpOption<CancellationToken> ct)
     {
-        var response = await _httpClient.GetAsync($"api/Reservations/book/{bookId.Value}", ServiceClientHelper.GetValue(ct, CancellationToken.None));
+        var request = ServiceClientHelper.CreateRequest(HttpMethod.Get, $"api/Reservations/book/{bookId.Value}", context);
+        var response = await _httpClient.SendAsync(request, ServiceClientHelper.GetValue(ct, CancellationToken.None));
         var result = await ServiceClientHelper.HandleResponse<List<Reservation>>(response);
         return result.IsOk ? FSharpResult<FSharpList<Reservation>, string>.NewOk(ListModule.OfSeq(result.ResultValue)) : FSharpResult<FSharpList<Reservation>, string>.NewError(result.ErrorValue);
     }
 
     public async Task<FSharpResult<bool, string>> IsReservationFirstInQueueAsync(Commons.UserContext context, Commons.ReservationId reservationId, FSharpOption<CancellationToken> ct)
     {
-        var response = await _httpClient.GetAsync($"api/Reservations/{reservationId.Value}/is-first-in-queue", ServiceClientHelper.GetValue(ct, CancellationToken.None));
+        var request = ServiceClientHelper.CreateRequest(HttpMethod.Get, $"api/Reservations/{reservationId.Value}/is-first-in-queue", context);
+        var response = await _httpClient.SendAsync(request, ServiceClientHelper.GetValue(ct, CancellationToken.None));
         return await ServiceClientHelper.HandleResponse<bool>(response);
     }
 }
-

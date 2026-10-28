@@ -18,7 +18,7 @@ type ReservationsController(reservationService: IReservationService, hubContext:
     [<HttpGet("{id}")>]
     member this.GetReservation(id: Guid) =
         task {
-            let context = UserContextMapper.mapFromClaimsPrincipal this.User
+            let context = UserContextMapper.mapFromRequest this.Request
             let! result = reservationService.GetReservationAsync(context, ReservationId id)
             match result with
             | Ok reservation -> return this.Ok(reservation) :> IActionResult
@@ -28,7 +28,7 @@ type ReservationsController(reservationService: IReservationService, hubContext:
     [<HttpGet("{id}/details")>]
     member this.GetReservationDetails(id: Guid) =
         task {
-            let context = UserContextMapper.mapFromClaimsPrincipal this.User
+            let context = UserContextMapper.mapFromRequest this.Request
             let! result = reservationService.GetReservationDetailsAsync(context, ReservationId id)
             match result with
             | Ok details -> return this.Ok(details) :> IActionResult
@@ -39,7 +39,8 @@ type ReservationsController(reservationService: IReservationService, hubContext:
     [<Microsoft.AspNetCore.Authorization.AllowAnonymous>]
     member this.AddReservation(reservation: Reservation, [<FromQuery>] lang: string) =
         task {
-            let context = UserContextMapper.mapFromClaimsPrincipal this.User
+            let baseContext = UserContextMapper.mapFromRequest this.Request
+            let context = baseContext.WithNewTenant(reservation.TenantId)
             let shortLang = if String.IsNullOrWhiteSpace(lang) then ShortLang.New "en" else ShortLang.New lang
             let! result = reservationService.AddReservationAsync(context, reservation, shortLang)
             match result with
@@ -59,7 +60,7 @@ type ReservationsController(reservationService: IReservationService, hubContext:
     [<HttpDelete("{id}")>]
     member this.RemoveReservation(id: Guid) =
         task {
-            let context = UserContextMapper.mapFromClaimsPrincipal this.User
+            let context = UserContextMapper.mapFromRequest this.Request
             let! resDetails = 
                 task {
                     match! reservationService.GetReservationAsync(context, ReservationId id) with
@@ -89,7 +90,7 @@ type ReservationsController(reservationService: IReservationService, hubContext:
     [<HttpPost("{id}/cancel")>]
     member this.CancelReservation(id: Guid, [<FromBody>] reason: CancellationReason) =
         task {
-            let context = UserContextMapper.mapFromClaimsPrincipal this.User
+            let context = UserContextMapper.mapFromRequest this.Request
             let! resDetails = 
                 task {
                     match! reservationService.GetReservationAsync(context, ReservationId id) with
@@ -119,7 +120,7 @@ type ReservationsController(reservationService: IReservationService, hubContext:
     [<HttpGet("pending/details")>]
     member this.GetAllPendingReservationsDetails() =
         task {
-            let context = UserContextMapper.mapFromClaimsPrincipal this.User
+            let context = UserContextMapper.mapFromRequest this.Request
             let! result = reservationService.GetAllPendingReservationsDetailsAsync(context)
             match result with
             | Ok details -> return this.Ok(details) :> IActionResult
@@ -129,7 +130,7 @@ type ReservationsController(reservationService: IReservationService, hubContext:
     [<HttpGet("my-pending")>]
     member this.GetMyPendingReservations() =
         task {
-            let context = UserContextMapper.mapFromClaimsPrincipal this.User
+            let context = UserContextMapper.mapFromRequest this.Request
             let! result = reservationService.GetMyPendingReservationsAsync(context)
             match result with
             | Ok details -> return this.Ok(details) :> IActionResult
@@ -139,7 +140,7 @@ type ReservationsController(reservationService: IReservationService, hubContext:
     [<HttpPost("{id}/generate-pin")>]
     member this.GeneratePickupPin(id: Guid) =
         task {
-            let context = UserContextMapper.mapFromClaimsPrincipal this.User
+            let context = UserContextMapper.mapFromRequest this.Request
             let! result = reservationService.GeneratePickupPinAsync(context, ReservationId id)
             match result with
             | Ok (pin, expiresAt) -> 
@@ -151,7 +152,7 @@ type ReservationsController(reservationService: IReservationService, hubContext:
     [<HttpGet("book/{bookId}")>]
     member this.GetReservationsOfABook(bookId: Guid) =
         task {
-            let context = UserContextMapper.mapFromClaimsPrincipal this.User
+            let context = UserContextMapper.mapFromRequest this.Request
             let! result = reservationService.GetReservationsOfABookAsync(context, BookId bookId)
             match result with
             | Ok reservations -> return this.Ok(reservations) :> IActionResult
@@ -161,7 +162,7 @@ type ReservationsController(reservationService: IReservationService, hubContext:
     [<HttpGet("{id}/is-first-in-queue")>]
     member this.IsReservationFirstInQueue(id: Guid) =
         task {
-            let context = UserContextMapper.mapFromClaimsPrincipal this.User
+            let context = UserContextMapper.mapFromRequest this.Request
             let! result = reservationService.IsReservationFirstInQueueAsync(context, ReservationId id)
             match result with
             | Ok isFirst -> return this.Ok(isFirst) :> IActionResult

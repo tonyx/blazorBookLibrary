@@ -1119,6 +1119,15 @@ type GuestProximitySettings =
             | Enabled r -> Some r
             | Disabled -> None
 
+[<Literal>]
+let MaxGuestProximityRadiusMeters = 50000.0
+
+type TenantScope =
+    | ActiveTenantOnly
+    | ExplicitTenants of List<TenantId>
+    | ProximityTenants of Coordinates: Coordinates * IncludeActive: bool
+    | AllAccessibleTenants of UserCoordinates: Option<Coordinates>
+
 type Availability =
     | Circulating
     | CirculatingIncludingGuest

@@ -74,160 +74,183 @@ public class BookClientService : IBookService
     }
     public async Task<FSharpResult<FSharpList<Book>, string>> SearchByTitleAndIsbnAsync(Commons.UserContext context, Commons.Title title, Commons.Isbn isbn, FSharpOption<BookSearchCriteria> criteria, FSharpOption<CancellationToken> ct)
     {
-        var response = await _httpClient.GetAsync($"api/Books/search/title-isbn?title={Uri.EscapeDataString(title.Value)}&isbn={Uri.EscapeDataString(isbn.Value)}", ServiceClientHelper.GetValue(ct, CancellationToken.None));
+        var request = ServiceClientHelper.CreateRequest(HttpMethod.Get, $"api/Books/search/title-isbn?title={Uri.EscapeDataString(title.Value)}&isbn={Uri.EscapeDataString(isbn.Value)}", context);
+        var response = await _httpClient.SendAsync(request, ServiceClientHelper.GetValue(ct, CancellationToken.None));
         var result = await ServiceClientHelper.HandleResponse<List<Book>>(response);
         return result.IsOk ? FSharpResult<FSharpList<Book>, string>.NewOk(ApplyCriteria(ListModule.OfSeq(result.ResultValue), criteria)) : FSharpResult<FSharpList<Book>, string>.NewError(result.ErrorValue);
     }
 
     public async Task<FSharpResult<FSharpList<Book>, string>> SearchByYearAsync(Commons.UserContext context, Commons.YearSearch year, FSharpOption<BookSearchCriteria> criteria, FSharpOption<CancellationToken> ct)
     {
-        var response = await _httpClient.PostAsJsonAsync("api/Books/search/year", year, ServiceClientHelper.JsonOptions, ServiceClientHelper.GetValue(ct, CancellationToken.None));
+        var request = ServiceClientHelper.CreateRequest(HttpMethod.Post, "api/Books/search/year", context, year);
+        var response = await _httpClient.SendAsync(request, ServiceClientHelper.GetValue(ct, CancellationToken.None));
         var result = await ServiceClientHelper.HandleResponse<List<Book>>(response);
         return result.IsOk ? FSharpResult<FSharpList<Book>, string>.NewOk(ApplyCriteria(ListModule.OfSeq(result.ResultValue), criteria)) : FSharpResult<FSharpList<Book>, string>.NewError(result.ErrorValue);
     }
 
     public async Task<FSharpResult<FSharpList<Book>, string>> SearchByTitleAndYearAsync(Commons.UserContext context, Commons.Title title, Commons.YearSearch year, FSharpOption<BookSearchCriteria> criteria, FSharpOption<CancellationToken> ct)
     {
-        var request = new { Title = title.Value, Year = year };
-        var response = await _httpClient.PostAsJsonAsync("api/Books/search/title-year", request, ServiceClientHelper.JsonOptions, ServiceClientHelper.GetValue(ct, CancellationToken.None));
+        var requestBody = new { Title = title.Value, Year = year };
+        var request = ServiceClientHelper.CreateRequest(HttpMethod.Post, "api/Books/search/title-year", context, requestBody);
+        var response = await _httpClient.SendAsync(request, ServiceClientHelper.GetValue(ct, CancellationToken.None));
         var result = await ServiceClientHelper.HandleResponse<List<Book>>(response);
         return result.IsOk ? FSharpResult<FSharpList<Book>, string>.NewOk(ApplyCriteria(ListModule.OfSeq(result.ResultValue), criteria)) : FSharpResult<FSharpList<Book>, string>.NewError(result.ErrorValue);
     }
 
     public async Task<FSharpResult<FSharpList<Book>, string>> SearchByIsbnAndYearAsync(Commons.UserContext context, Commons.Isbn isbn, Commons.YearSearch year, FSharpOption<BookSearchCriteria> criteria, FSharpOption<CancellationToken> ct)
     {
-        var request = new { Isbn = isbn.Value, Year = year };
-        var response = await _httpClient.PostAsJsonAsync("api/Books/search/isbn-year", request, ServiceClientHelper.JsonOptions, ServiceClientHelper.GetValue(ct, CancellationToken.None));
+        var requestBody = new { Isbn = isbn.Value, Year = year };
+        var request = ServiceClientHelper.CreateRequest(HttpMethod.Post, "api/Books/search/isbn-year", context, requestBody);
+        var response = await _httpClient.SendAsync(request, ServiceClientHelper.GetValue(ct, CancellationToken.None));
         var result = await ServiceClientHelper.HandleResponse<List<Book>>(response);
         return result.IsOk ? FSharpResult<FSharpList<Book>, string>.NewOk(ApplyCriteria(ListModule.OfSeq(result.ResultValue), criteria)) : FSharpResult<FSharpList<Book>, string>.NewError(result.ErrorValue);
     }
 
     public async Task<FSharpResult<FSharpList<Book>, string>> SearchByTitleAndIsbnAndYearAsync(Commons.UserContext context, Commons.Title title, Commons.Isbn isbn, Commons.YearSearch year, FSharpOption<BookSearchCriteria> criteria, FSharpOption<CancellationToken> ct)
     {
-        var request = new { Title = title.Value, Isbn = isbn.Value, Year = year };
-        var response = await _httpClient.PostAsJsonAsync("api/Books/search/title-isbn-year", request, ServiceClientHelper.JsonOptions, ServiceClientHelper.GetValue(ct, CancellationToken.None));
+        var requestBody = new { Title = title.Value, Isbn = isbn.Value, Year = year };
+        var request = ServiceClientHelper.CreateRequest(HttpMethod.Post, "api/Books/search/title-isbn-year", context, requestBody);
+        var response = await _httpClient.SendAsync(request, ServiceClientHelper.GetValue(ct, CancellationToken.None));
         var result = await ServiceClientHelper.HandleResponse<List<Book>>(response);
         return result.IsOk ? FSharpResult<FSharpList<Book>, string>.NewOk(ApplyCriteria(ListModule.OfSeq(result.ResultValue), criteria)) : FSharpResult<FSharpList<Book>, string>.NewError(result.ErrorValue);
     }
 
     public async Task<FSharpResult<FSharpList<Book>, string>> SearchByCategoriesAsync(Commons.UserContext context, FSharpList<Commons.Category> categories, FSharpOption<BookSearchCriteria> criteria, FSharpOption<CancellationToken> ct)
     {
-        var response = await _httpClient.PostAsJsonAsync("api/Books/search/categories", Enumerable.Select(categories, c => c.ToString()).ToList(), ServiceClientHelper.JsonOptions, ServiceClientHelper.GetValue(ct, CancellationToken.None));
+        var requestBody = Enumerable.Select(categories, c => c.ToString()).ToList();
+        var request = ServiceClientHelper.CreateRequest(HttpMethod.Post, "api/Books/search/categories", context, requestBody);
+        var response = await _httpClient.SendAsync(request, ServiceClientHelper.GetValue(ct, CancellationToken.None));
         var result = await ServiceClientHelper.HandleResponse<List<Book>>(response);
         return result.IsOk ? FSharpResult<FSharpList<Book>, string>.NewOk(ApplyCriteria(ListModule.OfSeq(result.ResultValue), criteria)) : FSharpResult<FSharpList<Book>, string>.NewError(result.ErrorValue);
     }
 
     public async Task<FSharpResult<FSharpList<Book>, string>> SearchByIsbnOrTitleAsync(Commons.UserContext context, Commons.Isbn isbn, Commons.Title title, FSharpOption<BookSearchCriteria> criteria, FSharpOption<CancellationToken> ct)
     {
-        var response = await _httpClient.GetAsync($"api/Books/search/isbn-or-title?isbn={Uri.EscapeDataString(isbn.Value)}&title={Uri.EscapeDataString(title.Value)}", ServiceClientHelper.GetValue(ct, CancellationToken.None));
+        var request = ServiceClientHelper.CreateRequest(HttpMethod.Get, $"api/Books/search/isbn-or-title?isbn={Uri.EscapeDataString(isbn.Value)}&title={Uri.EscapeDataString(title.Value)}", context);
+        var response = await _httpClient.SendAsync(request, ServiceClientHelper.GetValue(ct, CancellationToken.None));
         var result = await ServiceClientHelper.HandleResponse<List<Book>>(response);
         return result.IsOk ? FSharpResult<FSharpList<Book>, string>.NewOk(ApplyCriteria(ListModule.OfSeq(result.ResultValue), criteria)) : FSharpResult<FSharpList<Book>, string>.NewError(result.ErrorValue);
     }
 
     public async Task<FSharpResult<FSharpList<Book>, string>> SearchByTitleAndCategoriesAsync(Commons.UserContext context, Commons.Title title, FSharpList<Commons.Category> categories, FSharpOption<BookSearchCriteria> criteria, FSharpOption<CancellationToken> ct)
     {
-        var request = new { Title = title.Value, Categories = Enumerable.Select(categories, c => c.ToString()).ToList() };
-        var response = await _httpClient.PostAsJsonAsync("api/Books/search/title-categories", request, ServiceClientHelper.JsonOptions, ServiceClientHelper.GetValue(ct, CancellationToken.None));
+        var requestBody = new { Title = title.Value, Categories = Enumerable.Select(categories, c => c.ToString()).ToList() };
+        var request = ServiceClientHelper.CreateRequest(HttpMethod.Post, "api/Books/search/title-categories", context, requestBody);
+        var response = await _httpClient.SendAsync(request, ServiceClientHelper.GetValue(ct, CancellationToken.None));
         var result = await ServiceClientHelper.HandleResponse<List<Book>>(response);
         return result.IsOk ? FSharpResult<FSharpList<Book>, string>.NewOk(ApplyCriteria(ListModule.OfSeq(result.ResultValue), criteria)) : FSharpResult<FSharpList<Book>, string>.NewError(result.ErrorValue);
     }
 
     public async Task<FSharpResult<FSharpList<Book>, string>> SearchByYearAndCategoriesAsync(Commons.UserContext context, Commons.YearSearch year, FSharpList<Commons.Category> categories, FSharpOption<BookSearchCriteria> criteria, FSharpOption<CancellationToken> ct)
     {
-        var request = new { Year = year, Categories = Enumerable.Select(categories, c => c.ToString()).ToList() };
-        var response = await _httpClient.PostAsJsonAsync("api/Books/search/year-categories", request, ServiceClientHelper.JsonOptions, ServiceClientHelper.GetValue(ct, CancellationToken.None));
+        var requestBody = new { Year = year, Categories = Enumerable.Select(categories, c => c.ToString()).ToList() };
+        var request = ServiceClientHelper.CreateRequest(HttpMethod.Post, "api/Books/search/year-categories", context, requestBody);
+        var response = await _httpClient.SendAsync(request, ServiceClientHelper.GetValue(ct, CancellationToken.None));
         var result = await ServiceClientHelper.HandleResponse<List<Book>>(response);
         return result.IsOk ? FSharpResult<FSharpList<Book>, string>.NewOk(ApplyCriteria(ListModule.OfSeq(result.ResultValue), criteria)) : FSharpResult<FSharpList<Book>, string>.NewError(result.ErrorValue);
     }
 
     public async Task<FSharpResult<FSharpList<Book>, string>> SearchByTitleAndYearAndCategoriesAsync(Commons.UserContext context, Commons.Title title, Commons.YearSearch year, FSharpList<Commons.Category> categories, FSharpOption<BookSearchCriteria> criteria, FSharpOption<CancellationToken> ct)
     {
-        var request = new { Title = title.Value, Year = year, Categories = Enumerable.Select(categories, c => c.ToString()).ToList() };
-        var response = await _httpClient.PostAsJsonAsync("api/Books/search/title-year-categories", request, ServiceClientHelper.JsonOptions, ServiceClientHelper.GetValue(ct, CancellationToken.None));
+        var requestBody = new { Title = title.Value, Year = year, Categories = Enumerable.Select(categories, c => c.ToString()).ToList() };
+        var request = ServiceClientHelper.CreateRequest(HttpMethod.Post, "api/Books/search/title-year-categories", context, requestBody);
+        var response = await _httpClient.SendAsync(request, ServiceClientHelper.GetValue(ct, CancellationToken.None));
         var result = await ServiceClientHelper.HandleResponse<List<Book>>(response);
         return result.IsOk ? FSharpResult<FSharpList<Book>, string>.NewOk(ApplyCriteria(ListModule.OfSeq(result.ResultValue), criteria)) : FSharpResult<FSharpList<Book>, string>.NewError(result.ErrorValue);
     }
 
     public async Task<FSharpResult<FSharpList<Book>, string>> SearchByAuthorAsync(Commons.UserContext context, Commons.AuthorId authorId, FSharpOption<BookSearchCriteria> criteria, FSharpOption<CancellationToken> ct)
     {
-        var response = await _httpClient.GetAsync($"api/Books/search/author/{authorId.Value}", ServiceClientHelper.GetValue(ct, CancellationToken.None));
+        var request = ServiceClientHelper.CreateRequest(HttpMethod.Get, $"api/Books/search/author/{authorId.Value}", context);
+        var response = await _httpClient.SendAsync(request, ServiceClientHelper.GetValue(ct, CancellationToken.None));
         var result = await ServiceClientHelper.HandleResponse<List<Book>>(response);
         return result.IsOk ? FSharpResult<FSharpList<Book>, string>.NewOk(ApplyCriteria(ListModule.OfSeq(result.ResultValue), criteria)) : FSharpResult<FSharpList<Book>, string>.NewError(result.ErrorValue);
     }
 
     public async Task<FSharpResult<FSharpList<Book>, string>> SearchByAuthorsAsync(Commons.UserContext context, FSharpList<Commons.AuthorId> authors, FSharpOption<BookSearchCriteria> criteria, FSharpOption<CancellationToken> ct)
     {
-        var response = await _httpClient.PostAsJsonAsync("api/Books/search/authors", Enumerable.Select(authors, a => a.Value).ToList(), ServiceClientHelper.JsonOptions, ServiceClientHelper.GetValue(ct, CancellationToken.None));
+        var requestBody = Enumerable.Select(authors, a => a.Value).ToList();
+        var request = ServiceClientHelper.CreateRequest(HttpMethod.Post, "api/Books/search/authors", context, requestBody);
+        var response = await _httpClient.SendAsync(request, ServiceClientHelper.GetValue(ct, CancellationToken.None));
         var result = await ServiceClientHelper.HandleResponse<List<Book>>(response);
         return result.IsOk ? FSharpResult<FSharpList<Book>, string>.NewOk(ApplyCriteria(ListModule.OfSeq(result.ResultValue), criteria)) : FSharpResult<FSharpList<Book>, string>.NewError(result.ErrorValue);
     }
 
     public async Task<FSharpResult<FSharpList<Book>, string>> SearchByTitleAndAuthorsAsync(Commons.UserContext context, Commons.Title title, FSharpList<Commons.AuthorId> authors, FSharpOption<BookSearchCriteria> criteria, FSharpOption<CancellationToken> ct)
     {
-        var request = new { Title = title.Value, Authors = Enumerable.Select(authors, a => a.Value).ToList() };
-        var response = await _httpClient.PostAsJsonAsync("api/Books/search/title-authors", request, ServiceClientHelper.JsonOptions, ServiceClientHelper.GetValue(ct, CancellationToken.None));
+        var requestBody = new { Title = title.Value, Authors = Enumerable.Select(authors, a => a.Value).ToList() };
+        var request = ServiceClientHelper.CreateRequest(HttpMethod.Post, "api/Books/search/title-authors", context, requestBody);
+        var response = await _httpClient.SendAsync(request, ServiceClientHelper.GetValue(ct, CancellationToken.None));
         var result = await ServiceClientHelper.HandleResponse<List<Book>>(response);
         return result.IsOk ? FSharpResult<FSharpList<Book>, string>.NewOk(ApplyCriteria(ListModule.OfSeq(result.ResultValue), criteria)) : FSharpResult<FSharpList<Book>, string>.NewError(result.ErrorValue);
     }
 
     public async Task<FSharpResult<FSharpList<Book>, string>> SearchByAuthorsAndYearAsync(Commons.UserContext context, FSharpList<Commons.AuthorId> authors, Commons.YearSearch year, FSharpOption<BookSearchCriteria> criteria, FSharpOption<CancellationToken> ct)
     {
-        var request = new { Authors = Enumerable.Select(authors, a => a.Value).ToList(), Year = year };
-        var response = await _httpClient.PostAsJsonAsync("api/Books/search/authors-year", request, ServiceClientHelper.JsonOptions, ServiceClientHelper.GetValue(ct, CancellationToken.None));
+        var requestBody = new { Authors = Enumerable.Select(authors, a => a.Value).ToList(), Year = year };
+        var request = ServiceClientHelper.CreateRequest(HttpMethod.Post, "api/Books/search/authors-year", context, requestBody);
+        var response = await _httpClient.SendAsync(request, ServiceClientHelper.GetValue(ct, CancellationToken.None));
         var result = await ServiceClientHelper.HandleResponse<List<Book>>(response);
         return result.IsOk ? FSharpResult<FSharpList<Book>, string>.NewOk(ApplyCriteria(ListModule.OfSeq(result.ResultValue), criteria)) : FSharpResult<FSharpList<Book>, string>.NewError(result.ErrorValue);
     }
 
     public async Task<FSharpResult<FSharpList<Book>, string>> SearchByTitleAndAuthorsAndYearAsync(Commons.UserContext context, Commons.Title title, FSharpList<Commons.AuthorId> authors, Commons.YearSearch year, FSharpOption<BookSearchCriteria> criteria, FSharpOption<CancellationToken> ct)
     {
-        var request = new { Title = title.Value, Authors = Enumerable.Select(authors, a => a.Value).ToList(), Year = year };
-        var response = await _httpClient.PostAsJsonAsync("api/Books/search/title-authors-year", request, ServiceClientHelper.JsonOptions, ServiceClientHelper.GetValue(ct, CancellationToken.None));
+        var requestBody = new { Title = title.Value, Authors = Enumerable.Select(authors, a => a.Value).ToList(), Year = year };
+        var request = ServiceClientHelper.CreateRequest(HttpMethod.Post, "api/Books/search/title-authors-year", context, requestBody);
+        var response = await _httpClient.SendAsync(request, ServiceClientHelper.GetValue(ct, CancellationToken.None));
         var result = await ServiceClientHelper.HandleResponse<List<Book>>(response);
         return result.IsOk ? FSharpResult<FSharpList<Book>, string>.NewOk(ApplyCriteria(ListModule.OfSeq(result.ResultValue), criteria)) : FSharpResult<FSharpList<Book>, string>.NewError(result.ErrorValue);
     }
 
     public async Task<FSharpResult<FSharpList<Book>, string>> SearchByAuthorsAndCategoriesAsync(Commons.UserContext context, FSharpList<Commons.AuthorId> authors, FSharpList<Commons.Category> categories, FSharpOption<BookSearchCriteria> criteria, FSharpOption<CancellationToken> ct)
     {
-        var request = new { Authors = Enumerable.Select(authors, a => a.Value).ToList(), Categories = Enumerable.Select(categories, c => c.ToString()).ToList() };
-        var response = await _httpClient.PostAsJsonAsync("api/Books/search/authors-categories", request, ServiceClientHelper.JsonOptions, ServiceClientHelper.GetValue(ct, CancellationToken.None));
+        var requestBody = new { Authors = Enumerable.Select(authors, a => a.Value).ToList(), Categories = Enumerable.Select(categories, c => c.ToString()).ToList() };
+        var request = ServiceClientHelper.CreateRequest(HttpMethod.Post, "api/Books/search/authors-categories", context, requestBody);
+        var response = await _httpClient.SendAsync(request, ServiceClientHelper.GetValue(ct, CancellationToken.None));
         var result = await ServiceClientHelper.HandleResponse<List<Book>>(response);
         return result.IsOk ? FSharpResult<FSharpList<Book>, string>.NewOk(ApplyCriteria(ListModule.OfSeq(result.ResultValue), criteria)) : FSharpResult<FSharpList<Book>, string>.NewError(result.ErrorValue);
     }
 
     public async Task<FSharpResult<FSharpList<Book>, string>> SearchByTitleAndAuthorsAndCategoriesAsync(Commons.UserContext context, Commons.Title title, FSharpList<Commons.AuthorId> authors, FSharpList<Commons.Category> categories, FSharpOption<BookSearchCriteria> criteria, FSharpOption<CancellationToken> ct)
     {
-        var request = new { Title = title.Value, Authors = Enumerable.Select(authors, a => a.Value).ToList(), Categories = Enumerable.Select(categories, c => c.ToString()).ToList() };
-        var response = await _httpClient.PostAsJsonAsync("api/Books/search/title-authors-categories", request, ServiceClientHelper.JsonOptions, ServiceClientHelper.GetValue(ct, CancellationToken.None));
+        var requestBody = new { Title = title.Value, Authors = Enumerable.Select(authors, a => a.Value).ToList(), Categories = Enumerable.Select(categories, c => c.ToString()).ToList() };
+        var request = ServiceClientHelper.CreateRequest(HttpMethod.Post, "api/Books/search/title-authors-categories", context, requestBody);
+        var response = await _httpClient.SendAsync(request, ServiceClientHelper.GetValue(ct, CancellationToken.None));
         var result = await ServiceClientHelper.HandleResponse<List<Book>>(response);
         return result.IsOk ? FSharpResult<FSharpList<Book>, string>.NewOk(ApplyCriteria(ListModule.OfSeq(result.ResultValue), criteria)) : FSharpResult<FSharpList<Book>, string>.NewError(result.ErrorValue);
     }
 
     public async Task<FSharpResult<FSharpList<Book>, string>> SearchByAuthorsAndYearAndCategoriesAsync(Commons.UserContext context, FSharpList<Commons.AuthorId> authors, Commons.YearSearch year, FSharpList<Commons.Category> categories, FSharpOption<BookSearchCriteria> criteria, FSharpOption<CancellationToken> ct)
     {
-        var request = new { Authors = Enumerable.Select(authors, a => a.Value).ToList(), Year = year, Categories = Enumerable.Select(categories, c => c.ToString()).ToList() };
-        var response = await _httpClient.PostAsJsonAsync("api/Books/search/authors-year-categories", request, ServiceClientHelper.JsonOptions, ServiceClientHelper.GetValue(ct, CancellationToken.None));
+        var requestBody = new { Authors = Enumerable.Select(authors, a => a.Value).ToList(), Year = year, Categories = Enumerable.Select(categories, c => c.ToString()).ToList() };
+        var request = ServiceClientHelper.CreateRequest(HttpMethod.Post, "api/Books/search/authors-year-categories", context, requestBody);
+        var response = await _httpClient.SendAsync(request, ServiceClientHelper.GetValue(ct, CancellationToken.None));
         var result = await ServiceClientHelper.HandleResponse<List<Book>>(response);
         return result.IsOk ? FSharpResult<FSharpList<Book>, string>.NewOk(ApplyCriteria(ListModule.OfSeq(result.ResultValue), criteria)) : FSharpResult<FSharpList<Book>, string>.NewError(result.ErrorValue);
     }
 
     public async Task<FSharpResult<FSharpList<Book>, string>> SearchByTitleAndAuthorsAndYearAndCategoriesAsync(Commons.UserContext context, Commons.Title title, FSharpList<Commons.AuthorId> authors, Commons.YearSearch year, FSharpList<Commons.Category> categories, FSharpOption<BookSearchCriteria> criteria, FSharpOption<CancellationToken> ct)
     {
-        var request = new { Title = title.Value, Authors = Enumerable.Select(authors, a => a.Value).ToList(), Year = year, Categories = Enumerable.Select(categories, c => c.ToString()).ToList() };
-        var response = await _httpClient.PostAsJsonAsync("api/Books/search/title-authors-year-categories", request, ServiceClientHelper.JsonOptions, ServiceClientHelper.GetValue(ct, CancellationToken.None));
+        var requestBody = new { Title = title.Value, Authors = Enumerable.Select(authors, a => a.Value).ToList(), Year = year, Categories = Enumerable.Select(categories, c => c.ToString()).ToList() };
+        var request = ServiceClientHelper.CreateRequest(HttpMethod.Post, "api/Books/search/title-authors-year-categories", context, requestBody);
+        var response = await _httpClient.SendAsync(request, ServiceClientHelper.GetValue(ct, CancellationToken.None));
         var result = await ServiceClientHelper.HandleResponse<List<Book>>(response);
         return result.IsOk ? FSharpResult<FSharpList<Book>, string>.NewOk(ApplyCriteria(ListModule.OfSeq(result.ResultValue), criteria)) : FSharpResult<FSharpList<Book>, string>.NewError(result.ErrorValue);
     }
 
     public async Task<FSharpResult<FSharpList<Book>, string>> SearchByTitleAsync(Commons.UserContext context, Commons.Title title, FSharpOption<BookSearchCriteria> criteria, FSharpOption<CancellationToken> ct)
     {
-        var response = await _httpClient.GetAsync($"api/Books/search/title/{Uri.EscapeDataString(title.Value)}", ServiceClientHelper.GetValue(ct, CancellationToken.None));
+        var request = ServiceClientHelper.CreateRequest(HttpMethod.Get, $"api/Books/search/title/{Uri.EscapeDataString(title.Value)}", context);
+        var response = await _httpClient.SendAsync(request, ServiceClientHelper.GetValue(ct, CancellationToken.None));
         var result = await ServiceClientHelper.HandleResponse<List<Book>>(response);
         return result.IsOk ? FSharpResult<FSharpList<Book>, string>.NewOk(ApplyCriteria(ListModule.OfSeq(result.ResultValue), criteria)) : FSharpResult<FSharpList<Book>, string>.NewError(result.ErrorValue);
     }
 
     public async Task<FSharpResult<FSharpList<Book>, string>> SearchByIsbnAsync(Commons.UserContext context, Commons.Isbn isbn, FSharpOption<BookSearchCriteria> criteria, FSharpOption<CancellationToken> ct)
     {
-        var response = await _httpClient.GetAsync($"api/Books/search/isbn/{Uri.EscapeDataString(isbn.Value)}", ServiceClientHelper.GetValue(ct, CancellationToken.None));
+        var request = ServiceClientHelper.CreateRequest(HttpMethod.Get, $"api/Books/search/isbn/{Uri.EscapeDataString(isbn.Value)}", context);
+        var response = await _httpClient.SendAsync(request, ServiceClientHelper.GetValue(ct, CancellationToken.None));
         var result = await ServiceClientHelper.HandleResponse<List<Book>>(response);
         return result.IsOk ? FSharpResult<FSharpList<Book>, string>.NewOk(ApplyCriteria(ListModule.OfSeq(result.ResultValue), criteria)) : FSharpResult<FSharpList<Book>, string>.NewError(result.ErrorValue);
     }
@@ -373,7 +396,8 @@ public class BookClientService : IBookService
 
     public async Task<FSharpResult<bool, string>> LoanedByUserAtLeastOnceAsync(Commons.UserContext context, Commons.BookId bookId, Commons.UserId userId, FSharpOption<CancellationToken> ct)
     {
-        var response = await _httpClient.GetAsync($"api/Books/{bookId.Value}/loaned-at-least-once/{userId.Value}", ServiceClientHelper.GetValue(ct, CancellationToken.None));
+        var request = ServiceClientHelper.CreateRequest(HttpMethod.Get, $"api/Books/{bookId.Value}/loaned-at-least-once/{userId.Value}", context);
+        var response = await _httpClient.SendAsync(request, ServiceClientHelper.GetValue(ct, CancellationToken.None));
         return await ServiceClientHelper.HandleResponse<bool>(response);
     }
 

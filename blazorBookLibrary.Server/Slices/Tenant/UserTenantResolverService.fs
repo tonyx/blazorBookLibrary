@@ -47,6 +47,18 @@ type UserTenantResolverService(
                 | Error _ -> return Ok false
         }
 
+    let userHasAccessToTenant (context: UserContext) (tenant: Tenant) =
+        if tenant.TenantId = TenantId.Default || tenant.TenantVisibility.IsPublic then
+            true
+        elif not context.IsAuthenticated then
+            false
+        else
+            let userId = context.UserId.Value
+            context.IsInRole Role.Admin
+            || tenant.OwnerId = userId
+            || (tenant.Patrons |> List.exists (fun (p, _) -> p = userId))
+            || (tenant.InvitedPatrons |> List.exists (fun (p, _) -> p = userId))
+
     new (eventStore: IEventStore<string>, messageSenders: MessageSenders, userViewerAsync: AggregateViewerAsync2<User>) =
         UserTenantResolverService(eventStore, messageSenders, userViewerAsync, null)
 
@@ -159,10 +171,99 @@ type UserTenantResolverService(
                     | _ -> return TenantId.Default
         }
 
+    member this.ResolveSearchTenants (context: UserContext, scope: TenantScope, ?ct: CancellationToken) =
+        taskResult {
+            let ctValue = defaultArg ct CancellationToken.None
+            let! activeTenantId = this.GetTenantForUser (context, ctValue)
+            
+            let! allTenantsWithId = 
+                StateView.getAllFilteredAggregateStatesAsync<Tenant, TenantEvent, string> 
+                    (fun _ -> true) eventStore (Some ctValue)
+            let allTenants = allTenantsWithId |> List.map snd
+
+            match scope with
+            | TenantScope.ActiveTenantOnly ->
+                let activeTenant = allTenants |> List.tryFind (fun t -> t.TenantId = activeTenantId)
+                match activeTenant with
+                | Some t when userHasAccessToTenant context t ->
+                    return [ t ]
+                | _ ->
+                    return []
+
+            | TenantScope.ExplicitTenants requestedIds ->
+                let requestedSet = Set.ofList requestedIds
+                let filtered =
+                    allTenants
+                    |> List.filter (fun t ->
+                        requestedSet.Contains t.TenantId && userHasAccessToTenant context t
+                    )
+                return filtered
+
+            | TenantScope.ProximityTenants (coords, includeActive) ->
+                let isGuest = not context.IsAuthenticated
+                let effectiveRadius =
+                    if isGuest then
+                        Math.Min(coords.RadiusInMeters, MaxGuestProximityRadiusMeters)
+                    else
+                        coords.RadiusInMeters
+                let effectiveCoords = { coords with RadiusInMeters = effectiveRadius }
+
+                let isWithinRadius (t: Tenant) =
+                    match t.GeoLocSettings.OptCoordinates with
+                    | Some tCoords -> effectiveCoords.IsWithin(tCoords)
+                    | None -> false
+
+                let filtered =
+                    allTenants
+                    |> List.filter (fun t ->
+                        userHasAccessToTenant context t &&
+                        (isWithinRadius t || (includeActive && t.TenantId = activeTenantId))
+                    )
+                return filtered
+
+            | TenantScope.AllAccessibleTenants optCoords ->
+                match optCoords with
+                | None ->
+                    if not context.IsAuthenticated then
+                        let filtered =
+                            allTenants
+                            |> List.filter (fun t -> t.TenantId = activeTenantId && userHasAccessToTenant context t)
+                        return filtered
+                    else
+                        let filtered =
+                            allTenants
+                            |> List.filter (fun t -> userHasAccessToTenant context t)
+                        return filtered
+                | Some coords ->
+                    let isGuest = not context.IsAuthenticated
+                    let effectiveRadius =
+                        if isGuest then
+                            Math.Min(coords.RadiusInMeters, MaxGuestProximityRadiusMeters)
+                        else
+                            coords.RadiusInMeters
+                    let effectiveCoords = { coords with RadiusInMeters = effectiveRadius }
+
+                    let isWithinRadius (t: Tenant) =
+                        match t.GeoLocSettings.OptCoordinates with
+                        | Some tCoords -> effectiveCoords.IsWithin(tCoords)
+                        | None -> false
+
+                    let filtered =
+                        allTenants
+                        |> List.filter (fun t ->
+                            userHasAccessToTenant context t && isWithinRadius t
+                        )
+                    return filtered
+        }
+
     interface IUserTenantResolverService with 
         member this.GetTenantForUserAsync (context: UserContext, ?ct: CancellationToken) =
             let ct = defaultArg ct CancellationToken.None
             this.GetTenantForUser (context, ct)
+
+        member this.ResolveSearchTenantsAsync (context: UserContext, scope: TenantScope, ?ct: CancellationToken) =
+            let ct = defaultArg ct CancellationToken.None
+            this.ResolveSearchTenants (context, scope, ct)
 
 
         

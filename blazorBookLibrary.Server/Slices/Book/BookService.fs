@@ -62,10 +62,12 @@ type BookService
                     return true
                 elif not context.IsAuthenticated then
                     return false
-                elif targetTenantId = activeTenantId then
-                    return true
                 else
-                    return context.IsInRole Role.Admin || tenant.OwnerId = context.UserId.Value || (tenant.Patrons |> List.exists (fun (p, _) -> p = context.UserId.Value))
+                    let userId = context.UserId.Value
+                    return context.IsInRole Role.Admin
+                           || tenant.OwnerId = userId
+                           || (tenant.Patrons |> List.exists (fun (p, _) -> p = userId))
+                           || (tenant.InvitedPatrons |> List.exists (fun (p, _) -> p = userId))
             | Error _ ->
                 return targetTenantId = TenantId.Default
         }
