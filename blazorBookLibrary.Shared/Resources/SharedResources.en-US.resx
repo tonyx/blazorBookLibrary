@@ -1330,4 +1330,5 @@
   <data name="MultiTenant_CoordinatesNotConfigured" xml:space="preserve"><value>Coordinates not configured for this library.</value></data>
   <data name="MultiTenant_UserLocationNotSet" xml:space="preserve"><value>Set your location to see route</value></data>
   <data name="MultiTenant_YourLocation" xml:space="preserve"><value>Your location</value></data>
+  <data name="NoTitle" xml:space="preserve"><value>No Title</value></data>
 </root>

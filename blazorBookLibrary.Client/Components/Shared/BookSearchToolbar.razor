@@ -1197,6 +1197,14 @@
                                 }
                             }
                         }
+                        else
+                        {
+                            Logger.LogWarning($"Books fetch error for tenant {tenant.Name.Value}: {booksResult.ErrorValue}");
+                        }
+                    }
+                    else if (!vectorResult.IsOk)
+                    {
+                        Logger.LogWarning($"Vector search error for tenant {tenant.Name.Value}: {vectorResult.ErrorValue}");
                     }
                     return tenantAiResults;
                 });

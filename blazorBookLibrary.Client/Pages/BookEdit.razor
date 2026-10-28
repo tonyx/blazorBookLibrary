@@ -198,7 +198,7 @@ else
                         @if (FSharpOption<Uri>.get_IsSome(_bookDetails.Book.ImageUrl))
                         {
                             <img src="@_bookDetails.Book.ImageUrl.Value.ToString()" 
-                                 alt="@_bookDetails.Book.Title.Value Cover" 
+                                 alt="@(!string.IsNullOrWhiteSpace(_bookDetails.Book.Title?.Value) ? _bookDetails.Book.Title.Value : L["NoTitle"].Value) Cover" 
                                  class="w-100 h-100" 
                                  style="object-fit: cover;" />
                         }
@@ -316,10 +316,19 @@ else
                             else
                             {
                                 <div class="d-flex align-items-center gap-3">
-                                    <h2 class="serif mb-0" style="color: var(--primary); font-weight: 800;">@_bookDetails.Book.Title.Value</h2>
+                                    <h2 class="serif mb-0" style="color: var(--primary); font-weight: 800;">
+                                        @if (!string.IsNullOrWhiteSpace(_bookDetails.Book.Title?.Value))
+                                        {
+                                            @_bookDetails.Book.Title.Value
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted fst-italic fw-normal">(@L["NoTitle"])</span>
+                                        }
+                                    </h2>
                                     @if (_bookDetails.Book.Editable)
                                     {
-                                        <button class="btn btn-link p-0 text-muted" @onclick="StartEdit"><i class="bi bi-pencil-square"></i></button>
+                                        <button class="btn btn-link p-0 text-muted" @onclick="StartEdit" title="@L["Edit"]"><i class="bi bi-pencil-square"></i></button>
                                     }
                                 </div>
                             }

@@ -131,11 +131,11 @@
                         {
                             <TemplateColumn Title="@L["VisualRef"]" Class="col-preview ps-5">
                                 <a href="/book-view/@context.Book.Id" class="d-inline-block text-decoration-none transition-hover shadow-sm rounded overflow-hidden" 
-                                   title="@L["BookDetails"]: @context.Book.Title.Value">
+                                   title="@L["BookDetails"]: @(!string.IsNullOrWhiteSpace(context.Book.Title?.Value) ? context.Book.Title.Value : L["NoTitle"].Value)">
                                     <div class="bg-surface-low rounded p-1" style="width: 48px; height: 68px; display: flex; align-items: center; justify-content: center;">
                                         @if (context.Book.ImageUrl != null && FSharpOption<Uri>.get_IsSome(context.Book.ImageUrl))
                                         {
-                                            <img src="@context.Book.ImageUrl.Value.ToString()" style="max-width: 100%; max-height: 100%; object-fit: contain;" alt="@context.Book.Title.Value" />
+                                            <img src="@context.Book.ImageUrl.Value.ToString()" style="max-width: 100%; max-height: 100%; object-fit: contain;" alt="@(!string.IsNullOrWhiteSpace(context.Book.Title?.Value) ? context.Book.Title.Value : L["NoTitle"].Value)" />
                                         }
                                         else
                                         {
@@ -159,7 +159,16 @@
                             </ColumnOptions>
                              <ChildContent>
                                 <a href="/book-view/@context.Book.Id" class="text-decoration-none text-reset transition-hover py-2 d-block">
-                                    <div class="fw-bold mb-1">@context.Book.Title.Value</div>
+                                    <div class="fw-bold mb-1">
+                                        @if (!string.IsNullOrWhiteSpace(context.Book.Title?.Value))
+                                        {
+                                            @context.Book.Title.Value
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted fst-italic fw-normal">(@L["NoTitle"])</span>
+                                        }
+                                    </div>
                                     @if (FSharpOption<string>.get_IsSome(context.Explanation))
                                     {
                                         <div class="small text-primary italic mt-1 fw-normal animate-fade-in" style="font-size: 0.75rem;">
@@ -304,13 +313,13 @@
     private IQueryable<BookSearchResult> FilteredBooks => 
         foundBooks.AsQueryable()
             .Where(b => string.IsNullOrEmpty(titleRefinementFilter) || 
-                        b.Book.Title.Value.Contains(titleRefinementFilter, StringComparison.OrdinalIgnoreCase))
+                        (b.Book.Title != null && !string.IsNullOrEmpty(b.Book.Title.Value) && b.Book.Title.Value.Contains(titleRefinementFilter, StringComparison.OrdinalIgnoreCase)))
             .Where(b => !onlyAvailableNow || b.Book.ImmediatelyAvailable);
 
     private bool showImagePreview = true;
     private bool searchBooksPerformed = false;
     private PaginationState _bookPagination = new() { ItemsPerPage = 12 };
-    private GridSort<BookSearchResult> _sortTitle = GridSort<BookSearchResult>.ByAscending(b => b.Book.Title.Value);
+    private GridSort<BookSearchResult> _sortTitle = GridSort<BookSearchResult>.ByAscending(b => b.Book.Title != null && b.Book.Title.Value != null ? b.Book.Title.Value : "");
     private GridSort<BookSearchResult> _sortAvailability = GridSort<BookSearchResult>.ByAscending(b => b.Book.ImmediatelyAvailable);    
     private GridSort<BookSearchResult> _sortTaxonomy = GridSort<BookSearchResult>.ByAscending(b => b.Book.MainCategory.Value());
     private GridSort<BookSearchResult> _sortScore = GridSort<BookSearchResult>.ByDescending(b => FSharpOption<double>.get_IsSome(b.Score) ? b.Score.Value : 0f);
@@ -480,6 +489,10 @@
             var desc = FSharpOption<string>.get_IsSome(res.Book.Description) ? res.Book.Description.Value : "";
             var bookText = $"{res.Book.Title.Value}. {desc}";
             var context = await GetUserContextAsync();
+            if (res.TenantInfo != null && FSharpOption<TenantSearchInfo>.get_IsSome(res.TenantInfo))
+            {
+                context = context.WithNewTenant(res.TenantInfo.Value.TenantId);
+            }
             var explanationResult = await TextEmbeddingService.GetMatchExplanationAsync(context, query, bookText);
             if (explanationResult.IsOk)
             {

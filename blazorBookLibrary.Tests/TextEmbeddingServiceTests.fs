@@ -176,6 +176,86 @@ let tests =
                 let containsB = items |> List.exists (fun (item, bid) -> item.Vector = embeddings.[1].Vector && bid = bookIdB)
                 Expect.isTrue (containsA && containsB) "both physics statements (A and B) should be found with their correct book ids"
         }
+        testCaseTask "semantic discovery cross tenant search by considering selected tenants" <| fun _ -> task {
+            let textEmbeddingService = getTextEmbeddingService()
+            let vectorDbService = getVectorDbService()
+            
+            let tenantA = TenantId.New()
+            let tenantB = TenantId.New()
+            let tenantUnselected = TenantId.New()
+            
+            let textA = "Quantum computing and quantum algorithms with qubits."
+            let textB = "Quantum entanglement and Bell inequalities in modern physics."
+            let textUnselected = "Quantum cryptography and quantum key distribution protocols."
+            let textQuery = "Quantum physics and quantum information principles."
+
+            let! results = 
+                [| textA; textB; textUnselected; textQuery |]
+                |> Array.map (fun t -> textEmbeddingService.GetEmbeddingAsync(adminContext, t))
+                |> Array.toList
+                |> Task.WhenAll
+
+            let (embeddings: EmbeddingData array) = 
+                results 
+                |> Array.map (function Ok (e: EmbeddingData) -> e | Error e -> failwithf "embedding failed: %s" e)
+
+            let idA = EmbeddingDataId.New()
+            let idB = EmbeddingDataId.New()
+            let idUnselected = EmbeddingDataId.New()
+            let bookIdA = BookId.New()
+            let bookIdB = BookId.New()
+            let bookIdUnselected = BookId.New()
+
+            // Store embeddings in different tenants
+            let! storeA = vectorDbService.StoreEmbeddingAsync(idA, tenantA, bookIdA, embeddings.[0])
+            Expect.isOk storeA "store in tenantA should succeed"
+            let! storeB = vectorDbService.StoreEmbeddingAsync(idB, tenantB, bookIdB, embeddings.[1])
+            Expect.isOk storeB "store in tenantB should succeed"
+            let! storeUnselected = vectorDbService.StoreEmbeddingAsync(idUnselected, tenantUnselected, bookIdUnselected, embeddings.[2])
+            Expect.isOk storeUnselected "store in tenantUnselected should succeed"
+
+            // Cross-tenant search considering only selected tenants: [tenantA; tenantB]
+            let selectedTenants = [ tenantA; tenantB ]
+            let searchLimit = 5
+
+            let tasks = 
+                selectedTenants
+                |> List.map (fun tId -> task {
+                    let! res = vectorDbService.SearchSimilarEmbeddingsWithScoreAsync(embeddings.[3], tId, searchLimit)
+                    return match res with
+                           | Ok items -> items |> Seq.map (fun (_, bId, score) -> (tId, bId, score)) |> Seq.toList
+                           | Error err -> failwithf "vector search failed for tenant %A: %s" tId err
+                })
+
+            let! perTenantResults = Task.WhenAll tasks
+            let aggregatedResults = 
+                perTenantResults 
+                |> Seq.concat 
+                |> Seq.sortByDescending (fun (_, _, score) -> score) 
+                |> Seq.toList
+
+            // 1. Both selected tenants should have results
+            Expect.equal aggregatedResults.Length 2 "should aggregate 2 results across the selected tenants"
+
+            let foundTenantA = aggregatedResults |> List.tryFind (fun (tId, bId, _) -> tId = tenantA && bId = bookIdA)
+            let foundTenantB = aggregatedResults |> List.tryFind (fun (tId, bId, _) -> tId = tenantB && bId = bookIdB)
+            Expect.isSome foundTenantA "tenant A book should be found"
+            Expect.isSome foundTenantB "tenant B book should be found"
+
+            // 2. Unselected tenant should NOT be present
+            let foundUnselected = aggregatedResults |> List.tryFind (fun (tId, bId, _) -> tId = tenantUnselected || bId = bookIdUnselected)
+            Expect.isNone foundUnselected "unselected tenant book should NOT be in the results"
+
+            // 3. Scores should be sorted descending
+            let scores = aggregatedResults |> List.map (fun (_, _, score) -> score)
+            Expect.isTrue (scores.[0] >= scores.[1]) "results should be ordered by score descending"
+
+            // Cleanup embeddings
+            let! _ = vectorDbService.RemoveEmbeddingAsync idA
+            let! _ = vectorDbService.RemoveEmbeddingAsync idB
+            let! _ = vectorDbService.RemoveEmbeddingAsync idUnselected
+            ()
+        }
         testCaseTask "get embedding - Cancelled" <| fun _ -> task {
             let (textEmbeddingService: ITextEmbeddingService) = getTextEmbeddingService()
             let text = "This task will be cancelled."
