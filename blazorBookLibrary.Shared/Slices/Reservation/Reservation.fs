@@ -6,36 +6,6 @@ open FsToolkit.ErrorHandling
 open BookLibrary.Shared.Commons
 open System
 
-// type Reservation001 =
-//     { TenantId: TenantId
-//       ReservationId: ReservationId
-//       BookId: BookId
-//       UserId: UserId
-//       TimeSlot: TimeSlot
-//       ReservedAt: DateTime
-//       ReservationCode: ReservationCode
-//       Status: ReservationStatus
-//       Sealed: Sealed
-//       PickupPinHash: Option<string>
-//       PickupPinExpiresAt: Option<DateTime> }
-    
-//         with
-//             member
-//                 this.Upcast(): Reservation =
-//                     {
-//                         TenantId = this.TenantId
-//                         ReservationId = this.ReservationId
-//                         BookId = this.BookId
-//                         Patron = RegisteredUser this.UserId
-//                         TimeSlot = this.TimeSlot
-//                         ReservedAt = this.ReservedAt
-//                         ReservationCode = this.ReservationCode
-//                         Status = this.Status
-//                         Sealed = this.Sealed
-//                         PickupPinHash = this.PickupPinHash
-//                         PickupPinExpiresAt = this.PickupPinExpiresAt
-//                     }
-
 type Reservation =
     { TenantId: TenantId
       ReservationId: ReservationId

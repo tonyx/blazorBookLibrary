@@ -11,44 +11,7 @@ type PatronRole =
     | User
     | Suspended of string
 
-type Tenant001 =
-    { OwnerId: UserId
-      TenantId: TenantId
-      InvitedPatrons: List<(UserId * PatronInvitationCode)>
-      Patrons: List<UserId * PatronRole>
-      Name: TenantName
-      Address: string
-      TenantState: TenantState
-      ReservationNotificationPreference: NotificationPreference
-      LoanNotificationPreference: NotificationPreference
-      TenantVisibility: TenantVisibility
-      Tags: List<Tag>
-      CurrentJoinPin: Option<string>
-      JoinRequests: List<UserId> 
-      GeoLocSettings: GeoLocSettings
-      PartnerApiKeys: List<PartnerApiKey>
-    }
-    with member this.Upcast (): Tenant  =
-            {
-                OwnerId = this.OwnerId
-                TenantId = this.TenantId
-                InvitedPatrons = this.InvitedPatrons
-                Patrons = this.Patrons
-                Name = this.Name
-                Address = this.Address
-                TenantState = this.TenantState
-                ReservationNotificationPreference = this.ReservationNotificationPreference
-                LoanNotificationPreference = this.LoanNotificationPreference
-                TenantVisibility = this.TenantVisibility
-                Tags = this.Tags
-                CurrentJoinPin = this.CurrentJoinPin
-                JoinRequests = this.JoinRequests
-                GeoLocSettings = this.GeoLocSettings
-                GuestProximitySettings = GuestProximitySettings.Disabled
-                PartnerApiKeys = []
-            }
-
-and Tenant =
+type Tenant =
     { OwnerId: UserId
       TenantId: TenantId
       InvitedPatrons: List<(UserId * PatronInvitationCode)>
@@ -558,11 +521,7 @@ and Tenant =
         try
             (data, jsonOptions) |> JsonSerializer.Deserialize<Tenant> |> Ok
         with ex ->
-            try
-                let tenant001 = (data, jsonOptions) |> JsonSerializer.Deserialize<Tenant001>
-                tenant001.Upcast() |> Ok
-            with ex' ->
-                Error $"Error in deserializing {data} - {ex.Message} - {ex'.Message}"
+            Error $"Error in deserializing {data} - {ex.Message}"
 
 [<AutoOpen>]
 module UserContextTenantExtensions =
