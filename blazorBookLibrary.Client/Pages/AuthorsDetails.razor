@@ -413,7 +413,12 @@ else
     private async Task<UserContext> GetContext()
     {
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-        return Shared.ConverterUtils.fromClaimsPrincipal(authState.User);
+        var baseCtx = Shared.ConverterUtils.fromClaimsPrincipal(authState.User);
+        if (_authorDetails != null)
+        {
+            return baseCtx.WithNewTenant(_authorDetails.Author.TenantId);
+        }
+        return baseCtx;
     }
 
     private bool _isLoading = true;
@@ -980,12 +985,20 @@ else
             var claimsPrincipal = authState.User;
             if (claimsPrincipal != null && claimsPrincipal.Identity?.IsAuthenticated == true)
             {
-                var hasAccess = await TenantState.CheckManagementAccessAsync(claimsPrincipal, TenantService, UserTenantResolverService);
+                await LoadAuthorDetails();
 
-                if (hasAccess)
+                if (_authorDetails != null)
                 {
-                    isAuthorized = true;
-                    await LoadAuthorDetails();
+                    var baseContext = Shared.ConverterUtils.fromClaimsPrincipal(claimsPrincipal);
+                    var authorTenantResult = await TenantService.GetTenantAsync(baseContext, _authorDetails.Author.TenantId, FSharpOption<CancellationToken>.None);
+                    var hasAccess = authorTenantResult.IsOk
+                        ? await TenantState.CheckManagementAccessAsync(claimsPrincipal, TenantService, UserTenantResolverService, authorTenantResult.ResultValue)
+                        : await TenantState.CheckManagementAccessAsync(claimsPrincipal, TenantService, UserTenantResolverService);
+
+                    if (hasAccess)
+                    {
+                        isAuthorized = true;
+                    }
                 }
             }
         }

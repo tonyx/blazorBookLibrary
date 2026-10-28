@@ -46,6 +46,7 @@ type BookService
             let! tenant = tenantViewerAsync (ct |> Some) tenantId.Value |> TaskResult.map snd
             return! Security.checkIsGlobalAdminOrTenantManager tenant context
         }
+    let checkCanManageTenant = Security.checkCanManageTenant tenantViewerAsync
     let checkIsGlobalAdminOrTenantManagerOrPublicTenant (context: UserContext) (ct: CancellationToken)= 
         taskResult {
             let! tenantId = userTenantResolverService.GetTenantForUserAsync(context, ct)
@@ -99,11 +100,9 @@ type BookService
     member this.AddBookAsync (context: UserContext, book: Book, ?ct: CancellationToken) =
         taskResult
             {
-                let! tenantId = userTenantResolverService.GetTenantForUserAsync(context)
                 let ct = defaultArg ct CancellationToken.None
 
-                do!
-                    checkIsGlobalAdminOrTenantManager context ct
+                do! checkCanManageTenant context book.TenantId ct
 
                 let! authors: List<Author> = 
                     book.Authors
@@ -111,7 +110,7 @@ type BookService
                         (fun authorId -> authorViewerAsync (Some ct) authorId.Value  |> TaskResult.map snd )
 
                 do! 
-                    (authors |> List.forall (fun author -> tenantId = author.TenantId))
+                    (authors |> List.forall (fun author -> book.TenantId = author.TenantId))
                     |> Result.ofBool "Author tenant id not matching"
 
                 let! result =
@@ -133,14 +132,10 @@ type BookService
     member this.AddBooksAsync (context: UserContext, books: List<Book>, ?ct: CancellationToken) = 
         taskResult
             {
-                let! tenantId = userTenantResolverService.GetTenantForUserAsync(context)
                 let ct = defaultArg ct CancellationToken.None
 
-                do! 
-                    (books |> List.forall (fun book -> tenantId = book.TenantId))
-                    |> Result.ofBool "Book tenant id not matching"
-                do!
-                    checkIsGlobalAdminOrTenantManager context ct
+                for book in books do
+                    do! checkCanManageTenant context book.TenantId ct
 
                 let! result =
                     books
@@ -151,17 +146,11 @@ type BookService
     member this.RemoveBookAsync (context: UserContext, bookId: BookId, ?ct: CancellationToken) = 
         taskResult
             {
-                let! tenantId = userTenantResolverService.GetTenantForUserAsync(context)
                 let ct = defaultArg ct CancellationToken.None
                 let! (v, book) = 
                     bookViewerAsync (Some ct) bookId.Value 
 
-                do! 
-                    tenantId = book.TenantId
-                    |> Result.ofBool "Book tenant id not matching"
-
-                do!
-                    checkIsGlobalAdminOrTenantManager context ct
+                do! checkCanManageTenant context book.TenantId ct
 
                 // 3-Phase removal for consistency
                 // Phase 1: Remove all embeddings for this book from Vector database (book abstract and papers)
@@ -188,24 +177,18 @@ type BookService
     member this.AddAuthorToBookAsync (context: UserContext, authorId: AuthorId, bookId: BookId, dateTime: System.DateTime, ?ct: CancellationToken) = 
         taskResult
             {
-                let! tenantId = userTenantResolverService.GetTenantForUserAsync(context)
                 let ct = defaultArg ct CancellationToken.None
                 let! book = 
                     bookViewerAsync (Some ct) bookId.Value |> TaskResult.map snd
 
-                do! 
-                    tenantId = book.TenantId
-                    |> Result.ofBool "Book tenant id not matching"
-
-                do!
-                    checkIsGlobalAdminOrTenantManager context ct
+                do! checkCanManageTenant context book.TenantId ct
 
                 let! author =
                     authorViewerAsync (Some ct) authorId.Value |> TaskResult.map snd
 
                 do! 
-                    tenantId = author.TenantId
-                    |> Result.ofBool "Author tenant id not matching"
+                    (author.TenantId = book.TenantId)
+                    |> Result.ofBool "Author and book tenant id not matching"
 
                 let bookAddAuthorCommand = 
                     BookCommand.AddAuthor (authorId, dateTime)
@@ -228,16 +211,10 @@ type BookService
     member this.UpdateTitleAsync (context: UserContext, title: Title, bookId: BookId, ?ct: CancellationToken) = 
         taskResult
             {
-                let! tenantId = userTenantResolverService.GetTenantForUserAsync(context)
                 let ct = defaultArg ct CancellationToken.None
                 let! book = 
                     bookViewerAsync (Some ct) bookId.Value |> TaskResult.map snd
-                do! 
-                    tenantId = book.TenantId
-                    |> Result.ofBool "Book tenant id not matching"
-
-                do!
-                    checkIsGlobalAdminOrTenantManager context ct
+                do! checkCanManageTenant context book.TenantId ct
 
                 let dateTime = System.DateTime.UtcNow
                 let bookUpdateTitleCommand = 
@@ -256,17 +233,11 @@ type BookService
     member this.UpdateDescriptionAsync (context: UserContext, description: string, bookId: BookId, ?ct: CancellationToken) = 
         taskResult
             {
-                let! tenantId = userTenantResolverService.GetTenantForUserAsync(context)
                 let ct = defaultArg ct CancellationToken.None
                 let! book = 
                     bookViewerAsync (Some ct) bookId.Value |> TaskResult.map snd
 
-                do! 
-                    tenantId = book.TenantId
-                    |> Result.ofBool "Book tenant id not matching"
-
-                do!
-                    checkIsGlobalAdminOrTenantManager context ct
+                do! checkCanManageTenant context book.TenantId ct
                     
                 let dateTime = System.DateTime.UtcNow
                 let bookUpdateDescriptionCommand = 
@@ -285,17 +256,11 @@ type BookService
     member this.RemoveDescriptionAsync (context: UserContext, bookId: BookId, ?ct: CancellationToken) = 
         taskResult
             {
-                let! tenantId = userTenantResolverService.GetTenantForUserAsync(context)
                 let ct = defaultArg ct CancellationToken.None
                 let! book = 
                     bookViewerAsync (Some ct) bookId.Value |> TaskResult.map snd
 
-                do! 
-                    tenantId = book.TenantId
-                    |> Result.ofBool "Book tenant id not matching"
-
-                do!
-                    checkIsGlobalAdminOrTenantManager context ct
+                do! checkCanManageTenant context book.TenantId ct
 
                 let dateTime = System.DateTime.UtcNow
                 let bookRemoveDescriptionCommand = 
@@ -314,7 +279,6 @@ type BookService
     member this.EmbedDescriptionAsync (context: UserContext, bookId: BookId, embeddingId: EmbeddingDataId, ?ct: CancellationToken) = 
         taskResult
             {
-                let! tenantId = userTenantResolverService.GetTenantForUserAsync(context)
                 let ct = defaultArg ct CancellationToken.None
                 let! book = 
                     bookViewerAsync (Some ct) bookId.Value |> TaskResult.map snd
@@ -322,12 +286,7 @@ type BookService
                 let bookEmbedDescriptionCommand = 
                     BookCommand.EmbedDescription (embeddingId, dateTime)
                 
-                do! 
-                    tenantId = book.TenantId
-                    |> Result.ofBool "Book tenant id not matching"
-
-                do!
-                    checkIsGlobalAdminOrTenantManager context ct
+                do! checkCanManageTenant context book.TenantId ct
                 
                 let! result = 
                     runAggregateCommandMdAsync<Book, BookEvent, string>
@@ -343,16 +302,11 @@ type BookService
     member this.RemoveEmbeddingAsync (context: UserContext, bookId: BookId, ?ct: CancellationToken) = 
         taskResult
             {
-                let! tenantId = userTenantResolverService.GetTenantForUserAsync(context)
                 let ct = defaultArg ct CancellationToken.None
 
                 let! book = 
                     bookViewerAsync (Some ct) bookId.Value |> TaskResult.map snd
-                do! 
-                    tenantId = book.TenantId
-                    |> Result.ofBool "Book tenant id not matching"
-                do!
-                    checkIsGlobalAdminOrTenantManager context ct
+                do! checkCanManageTenant context book.TenantId ct
 
                 let dateTime = System.DateTime.UtcNow
                 let bookRemoveEmbeddingCommand = 
@@ -371,17 +325,13 @@ type BookService
     member this.ForceBulkRemoveEmbeddingsAsync (context: UserContext, bookIds: List<BookId>, ?ct: CancellationToken) = 
         taskResult
             {
-                let! tenantId = userTenantResolverService.GetTenantForUserAsync(context)
                 let ct = defaultArg ct CancellationToken.None
                 let! books = 
                     bookIds
                     |> List.traverseTaskResultM (fun bookId -> bookViewerAsync (Some ct) bookId.Value |> TaskResult.map snd)
 
-                do! 
-                    books |> List.forall (fun book -> tenantId = book.TenantId)
-                    |> Result.ofBool "Book tenant id not matching"
-                do!
-                    checkIsGlobalAdminOrTenantManager context ct
+                for book in books do
+                    do! checkCanManageTenant context book.TenantId ct
 
                 //todo: this will fail if one of them fails. Consider later being more "forcing" on the failures (logging more and keep going)
                 let! _ =
@@ -403,7 +353,6 @@ type BookService
     member this.UpdateIsbnAsync (context: UserContext, isbn: Isbn, bookId: BookId, ?ct: CancellationToken) = 
         taskResult
             {
-                let! tenantId = userTenantResolverService.GetTenantForUserAsync(context)
                 let ct = defaultArg ct CancellationToken.None
                 let! book = 
                     bookViewerAsync (Some ct) bookId.Value |> TaskResult.map snd
@@ -411,11 +360,7 @@ type BookService
                 let bookUpdateIsbnCommand = 
                     BookCommand.UpdateIsbn (isbn, dateTime)
 
-                do! 
-                    tenantId = book.TenantId
-                    |> Result.ofBool "Book tenant id not matching"
-                do!
-                    checkIsGlobalAdminOrTenantManager context ct
+                do! checkCanManageTenant context book.TenantId ct
                 
                 let! result = 
                     runAggregateCommandMdAsync<Book, BookEvent, string>
@@ -431,7 +376,6 @@ type BookService
     member this.UnsetSbnCodeAsync (context: UserContext, bookId: BookId, ?ct: CancellationToken) = 
         taskResult
             {
-                let! tenantId = userTenantResolverService.GetTenantForUserAsync(context)
                 let ct = defaultArg ct CancellationToken.None
                 let! book = 
                     bookViewerAsync (Some ct) bookId.Value |> TaskResult.map snd
@@ -439,11 +383,7 @@ type BookService
                 let bookUnsetSbnCodeCommand = 
                     BookCommand.UnsetSbnCode 
 
-                do! 
-                    tenantId = book.TenantId
-                    |> Result.ofBool "Book tenant id not matching"
-                do!
-                    checkIsGlobalAdminOrTenantManager context ct
+                do! checkCanManageTenant context book.TenantId ct
                 
                 let! result = 
                     runAggregateCommandMdAsync<Book, BookEvent, string>
@@ -459,18 +399,12 @@ type BookService
         member this.RemoveImageUrlAsync (context: UserContext, bookId: BookId, ?ct: CancellationToken) = 
         taskResult
             {
-                let! tenantId = userTenantResolverService.GetTenantForUserAsync(context)
                 let ct = defaultArg ct CancellationToken.None
 
                 let! book = 
                     bookViewerAsync (Some ct) bookId.Value |> TaskResult.map snd
 
-                do! 
-                    tenantId = book.TenantId
-                    |> Result.ofBool "Book tenant id not matching"
-
-                do!
-                    checkIsGlobalAdminOrTenantManager context ct
+                do! checkCanManageTenant context book.TenantId ct
                 
                 let dateTime = System.DateTime.UtcNow
                 let bookRemoveImageUrlCommand = 
@@ -490,18 +424,13 @@ type BookService
     member this.UpdateIsbnCodeAsync (context: UserContext, bookId: BookId, sbnCode: SbnCode, ?ct: CancellationToken) = 
         taskResult
             {
-                let! tenantId = userTenantResolverService.GetTenantForUserAsync(context)
                 let ct = defaultArg ct CancellationToken.None
                 let! book = 
                     bookViewerAsync (Some ct) bookId.Value |> TaskResult.map snd
                 let dateTime = System.DateTime.UtcNow
                 let bookUpdateSbnCodeCommand = 
                     BookCommand.UpdateSbnCode sbnCode
-                do! 
-                    tenantId = book.TenantId
-                    |> Result.ofBool "Book tenant id not matching"
-                do!
-                    checkIsGlobalAdminOrTenantManager context ct
+                do! checkCanManageTenant context book.TenantId ct
                 let! result = 
                     runAggregateCommandMdAsync<Book, BookEvent, string>
                         book.Id
@@ -522,17 +451,12 @@ type BookService
     member this.SetImageUrlAsync (context: UserContext, bookId: BookId, imageUrl: Uri, ?ct: CancellationToken) = 
         taskResult
             {
-                let! tenantId = userTenantResolverService.GetTenantForUserAsync(context)
                 let ct = defaultArg ct CancellationToken.None
 
                 let! book = 
                     bookViewerAsync (Some ct) bookId.Value |> TaskResult.map snd
 
-                do! 
-                    tenantId = book.TenantId
-                    |> Result.ofBool "Book tenant id not matching"
-                do!
-                    checkIsGlobalAdminOrTenantManager context ct
+                do! checkCanManageTenant context book.TenantId ct
                 
                 let dateTime = System.DateTime.UtcNow
                 let bookSetImageUrlCommand = 
@@ -551,18 +475,12 @@ type BookService
     member this.SetAvailabilityAsync (context: UserContext, availability: Availability, bookId: BookId, ?ct: CancellationToken) = 
         taskResult
             {
-                let! tenantId = userTenantResolverService.GetTenantForUserAsync(context)
                 let ct = defaultArg ct CancellationToken.None
 
                 let! book = 
                     bookViewerAsync (Some ct) bookId.Value |> TaskResult.map snd
 
-                do! 
-                    tenantId = book.TenantId
-                    |> Result.ofBool "Book tenant id not matching"
-
-                do!
-                    checkIsGlobalAdminOrTenantManager context ct
+                do! checkCanManageTenant context book.TenantId ct
                 
                 let dateTime = System.DateTime.UtcNow
                 let command = 
@@ -582,16 +500,12 @@ type BookService
 
         taskResult
             {
-                let! tenantId = userTenantResolverService.GetTenantForUserAsync(context)
                 let! books = 
                     bookIds
                     |> List.traverseTaskResultM (fun bookId -> bookViewerAsync (Some ct) bookId.Value |> TaskResult.map snd)
-                do! 
-                    (books |> List.forall (fun book -> tenantId = book.TenantId))
-                    |> Result.ofBool "Book tenant id not matching"
-
-                do!
-                    checkIsGlobalAdminOrTenantManager context ct
+                
+                for book in books do
+                    do! checkCanManageTenant context book.TenantId ct
 
                 let dateTime = System.DateTime.UtcNow
 
@@ -612,18 +526,16 @@ type BookService
     member this.RemoveAuthorFromBookAsync (context: UserContext, authorId: AuthorId, bookId: BookId, dateTime: System.DateTime, ?ct: CancellationToken) = 
         taskResult
             {
-                let! tenantId = userTenantResolverService.GetTenantForUserAsync(context)
                 let ct = defaultArg ct CancellationToken.None
                 let! book = 
                     bookViewerAsync (Some ct) bookId.Value |> TaskResult.map snd
                 let! author = 
                     authorViewerAsync (Some ct) authorId.Value |> TaskResult.map snd
 
+                do! checkCanManageTenant context book.TenantId ct
                 do! 
-                    tenantId = book.TenantId
-                    |> Result.ofBool "Book tenant id not matching"
-                do!
-                    checkIsGlobalAdminOrTenantManager context ct
+                    (author.TenantId = book.TenantId)
+                    |> Result.ofBool "Author and book tenant id not matching"
                 
                 let bookRemoveAuthorCommand = 
                     BookCommand.RemoveAuthor (authorId, dateTime)
@@ -968,15 +880,9 @@ type BookService
     member this.ChangeMainCategoryAsync(context: UserContext, category: Category, bookId: BookId, ?ct: CancellationToken) = 
         taskResult
             {
-                let! tenantId = userTenantResolverService.GetTenantForUserAsync(context)
                 let ct = defaultArg ct CancellationToken.None
                 let! book = bookViewerAsync (ct |> Some) bookId.Value |> TaskResult.map snd
-                do!
-                    book.TenantId = tenantId
-                    |> Result.ofBool "Book not found in tenant"
-
-                do!
-                    checkIsGlobalAdminOrTenantManager context ct
+                do! checkCanManageTenant context book.TenantId ct
 
                 let command = BookCommand.ChangeMainCategory (category, System.DateTime.Now)
                 return!
@@ -992,15 +898,9 @@ type BookService
     member this.AddAdditionalCategoryAsync(context: UserContext, category: Category, bookId: BookId, ?ct: CancellationToken) = 
         taskResult
             {
-                let! tenantId = userTenantResolverService.GetTenantForUserAsync(context)
                 let ct = defaultArg ct CancellationToken.None
                 let! book = bookViewerAsync (ct |> Some) bookId.Value |> TaskResult.map snd
-                do!
-                    book.TenantId = tenantId
-                    |> Result.ofBool "Book not found in tenant"
-
-                do!
-                    checkIsGlobalAdminOrTenantManager context ct
+                do! checkCanManageTenant context book.TenantId ct
 
                 let command = BookCommand.AddAdditionalCategory (category, System.DateTime.Now)
                 return!
@@ -1016,16 +916,11 @@ type BookService
     member this.RemoveAdditionalCategoryAsync(context: UserContext, category: Category, bookId: BookId, ?ct: CancellationToken) = 
         taskResult
             {
-                let! tenantId = userTenantResolverService.GetTenantForUserAsync(context)
                 let ct = defaultArg ct CancellationToken.None
 
                 let! book = bookViewerAsync (ct |> Some) bookId.Value |> TaskResult.map snd
 
-                do!
-                    book.TenantId = tenantId
-                    |> Result.ofBool "Book not found in tenant"
-                do!
-                    checkIsGlobalAdminOrTenantManager context ct
+                do! checkCanManageTenant context book.TenantId ct
 
                 let command = BookCommand.RemoveAdditionalCategory (category, System.DateTime.Now)
                 return!
@@ -1040,14 +935,9 @@ type BookService
     member this.AddTagToBookAsync(context: UserContext, tag: Tag, bookId: BookId, ?ct: CancellationToken) = 
         taskResult
             {
-                let! tenantId = userTenantResolverService.GetTenantForUserAsync(context)
                 let ct = defaultArg ct CancellationToken.None
                 let! book = bookViewerAsync (ct |> Some) bookId.Value |> TaskResult.map snd
-                do!
-                    book.TenantId = tenantId
-                    |> Result.ofBool "Book not found in tenant"
-                do!
-                    checkIsGlobalAdminOrTenantManager context ct
+                do! checkCanManageTenant context book.TenantId ct
                 let command = BookCommand.AddTag (tag, System.DateTime.Now)
                 return!
                     runAggregateCommandMdAsync<Book, BookEvent, string>
@@ -1061,14 +951,9 @@ type BookService
     member this.RemoveTagFromBookAsync(context: UserContext, tag: Tag, bookId: BookId, ?ct: CancellationToken) = 
         taskResult
             {
-                let! tenantId = userTenantResolverService.GetTenantForUserAsync(context)
                 let ct = defaultArg ct CancellationToken.None
                 let! book = bookViewerAsync (ct |> Some) bookId.Value |> TaskResult.map snd
-                do!
-                    book.TenantId = tenantId
-                    |> Result.ofBool "Book not found in tenant"
-                do!
-                    checkIsGlobalAdminOrTenantManager context ct
+                do! checkCanManageTenant context book.TenantId ct
                 let command = BookCommand.RemoveTag (tag, System.DateTime.Now)
                 return!
                     runAggregateCommandMdAsync<Book, BookEvent, string>
@@ -1082,14 +967,9 @@ type BookService
     member this.SealAsync(context: UserContext, bookId: BookId, ?ct: CancellationToken) = 
         taskResult
             {
-                let! tenantId = userTenantResolverService.GetTenantForUserAsync(context)
                 let ct = defaultArg ct CancellationToken.None
                 let! book = bookViewerAsync (ct |> Some) bookId.Value |> TaskResult.map snd
-                do!
-                    book.TenantId = tenantId
-                    |> Result.ofBool "Book not found in tenant"
-                do!
-                    checkIsGlobalAdminOrTenantManager context ct
+                do! checkCanManageTenant context book.TenantId ct
 
                 let command = BookCommand.Seal (System.DateTime.UtcNow)
                 return!
@@ -1104,14 +984,9 @@ type BookService
     member this.UnsealAsync(context: UserContext, bookId: BookId, ?ct: CancellationToken) = 
         taskResult
             {
-                let! tenantId = userTenantResolverService.GetTenantForUserAsync(context)
                 let ct = defaultArg ct CancellationToken.None
                 let! book = bookViewerAsync (ct |> Some) bookId.Value |> TaskResult.map snd
-                do!
-                    book.TenantId = tenantId
-                    |> Result.ofBool "Book not found in tenant"
-                do!
-                    checkIsGlobalAdminOrTenantManager context ct
+                do! checkCanManageTenant context book.TenantId ct
                 let command = BookCommand.Unseal (System.DateTime.UtcNow)
                 return!
                     runAggregateCommandMdAsync<Book, BookEvent, string>
@@ -1126,20 +1001,15 @@ type BookService
     member this.SetDistributionPointAsync(context: UserContext, distributionPointId: DistributionPointId, bookId: BookId, userId: UserId, ?ct: CancellationToken) = 
         taskResult
             {
-                let! tenantId = userTenantResolverService.GetTenantForUserAsync(context)
                 let ct = defaultArg ct CancellationToken.None
 
                 let! book = bookViewerAsync (ct |> Some) bookId.Value |> TaskResult.map snd
                 let! distributionPoint = distributionPointViewerAsync (ct |> Some) distributionPointId.Value |> TaskResult.map snd
 
+                do! checkCanManageTenant context book.TenantId ct
                 do!
-                    book.TenantId = tenantId
-                    |> Result.ofBool "Book not found in tenant"
-                do!
-                    distributionPoint.TenantId = tenantId
+                    (distributionPoint.TenantId = book.TenantId)
                     |> Result.ofBool "Distribution point not found in tenant"
-                do!
-                    checkIsGlobalAdminOrTenantManager context ct
 
                 let command = BookCommand.SetDistributionPoint(distributionPointId, userId, DateTime.UtcNow)
                 return!
@@ -1155,18 +1025,13 @@ type BookService
     member this.UnSetDistributionPointAsync(context: UserContext, distributionPointId: DistributionPointId, bookId: BookId, userId: UserId, ?ct: CancellationToken) = 
         taskResult
             {
-                let! tenantId = userTenantResolverService.GetTenantForUserAsync(context)
                 let ct = defaultArg ct CancellationToken.None
                 let! book = bookViewerAsync (ct |> Some) bookId.Value |> TaskResult.map snd
                 let! distributionPoint = distributionPointViewerAsync (ct |> Some) distributionPointId.Value |> TaskResult.map snd
+                do! checkCanManageTenant context book.TenantId ct
                 do!
-                    book.TenantId = tenantId
-                    |> Result.ofBool "Book not found in tenant"
-                do!
-                    distributionPoint.TenantId = tenantId
+                    (distributionPoint.TenantId = book.TenantId)
                     |> Result.ofBool "Distribution point not found in tenant"
-                do!
-                    checkIsGlobalAdminOrTenantManager context ct
 
                 let command = BookCommand.UnsetDistributionPoint(userId, DateTime.UtcNow)
                 return!
@@ -1182,8 +1047,10 @@ type BookService
     member this.UnsetAllBookRelatedToDPAsync (context: UserContext, distributionPointId: DistributionPointId, userId: UserId, ?ct: CancellationToken) =
         taskResult
             {
-                let! tenantId = userTenantResolverService.GetTenantForUserAsync(context)
                 let ct = defaultArg ct CancellationToken.None
+                let! dp = distributionPointViewerAsync (ct |> Some) distributionPointId.Value |> TaskResult.map snd
+                do! checkCanManageTenant context dp.TenantId ct
+
                 let! books = 
                     StateView.getAllFilteredAggregateStatesAsync<Book, BookEvent, string> 
                         (fun book -> book.DistributionPoint = Some distributionPointId)
@@ -1191,12 +1058,8 @@ type BookService
                         (ct |> Some)
                             
                 let books = books |>> snd
-                do!
-                    (books |> List.forall (fun book -> book.TenantId = tenantId))
-                    |> Result.ofBool "Book not found in tenant"
-
-                do!
-                    checkIsGlobalAdminOrTenantManager context ct
+                for book in books do
+                    do! checkCanManageTenant context book.TenantId ct
 
                 let booksIds = books |>> _.Id
                 let unsetCommand: List<AggregateCommand<Book, BookEvent>> = 
@@ -1218,7 +1081,13 @@ type BookService
         let ct = defaultArg ct CancellationToken.None
         taskResult
             {
-                let! tenantId = userTenantResolverService.GetTenantForUserAsync(context)
+                let! dp1 = distributionPointViewerAsync (ct |> Some) fromPoint.Value |> TaskResult.map snd
+                let! dp2 = distributionPointViewerAsync (ct |> Some) toPoint.Value |> TaskResult.map snd
+                do!
+                    (dp1.TenantId = dp2.TenantId)
+                    |> Result.ofBool "Distribution point not found in tenant"
+                do! checkCanManageTenant context dp1.TenantId ct
+
                 let! books = 
                     StateView.getAllFilteredAggregateStatesAsync<Book, BookEvent, string>
                         (fun book -> book.DistributionPoint = Some fromPoint)
@@ -1226,19 +1095,10 @@ type BookService
                         (Some ct)
                 let books = books |>> snd
                 do!
-                    (books |> List.forall (fun book -> book.TenantId = tenantId))
+                    (books |> List.forall (fun book -> book.TenantId = dp1.TenantId))
                     |> Result.ofBool "Book not found in tenant"        
 
-                do!
-                    checkIsGlobalAdminOrTenantManager context ct
-
                 let bookIds = books |>> _.Id
-
-                let! dp1 = distributionPointViewerAsync (ct |> Some) fromPoint.Value |> TaskResult.map snd
-                let! dp2 = distributionPointViewerAsync (ct |> Some) toPoint.Value |> TaskResult.map snd
-                do!
-                    (dp1.TenantId = tenantId && dp2.TenantId = tenantId)
-                    |> Result.ofBool "Distribution point not found in tenant"
 
                 if bookIds.Length = 0 then
                     return ()
@@ -1488,10 +1348,9 @@ type BookService
         taskResult
             {
                 let ct = defaultArg ct CancellationToken.None
-                do!
-                    checkIsGlobalAdminOrTenantManagerOrPublicTenant context ct
                 let! book = 
                     bookViewerAsync (ct |> Some) bookId.Value |> TaskResult.map snd
+                do! checkCanManageTenant context book.TenantId ct
                 let addPaper = BookCommand.AddPaper paper
                 let! result =
                     runAggregateCommandMdAsync<Book, BookEvent, string>
@@ -1507,10 +1366,9 @@ type BookService
         taskResult
             {
                 let ct = defaultArg ct CancellationToken.None
-                do!
-                    checkIsGlobalAdminOrTenantManagerOrPublicTenant context ct
                 let! book = 
                     bookViewerAsync (ct |> Some) bookId.Value |> TaskResult.map snd
+                do! checkCanManageTenant context book.TenantId ct
                 let addPapersCommand = BookCommand.AddPapers papers
                 let! result =
                     runAggregateCommandMdAsync<Book, BookEvent, string>
@@ -1526,10 +1384,9 @@ type BookService
         taskResult
             {
                 let ct = defaultArg ct CancellationToken.None
-                do!
-                    checkIsGlobalAdminOrTenantManagerOrPublicTenant context ct
                 let! book = 
                     bookViewerAsync (ct |> Some) bookId.Value |> TaskResult.map snd
+                do! checkCanManageTenant context book.TenantId ct
                 
                 // If the paper has an embedding, remove it and re-link sibling intra-book embeddings
                 let paperOpt = book.Papers |> List.tryFind (fun p -> p.PaperId = paperId)
@@ -1556,10 +1413,9 @@ type BookService
         taskResult
             {
                 let ct = defaultArg ct CancellationToken.None
-                do!
-                    checkIsGlobalAdminOrTenantManagerOrPublicTenant context ct
                 let! book = 
                     bookViewerAsync (ct |> Some) bookId.Value |> TaskResult.map snd
+                do! checkCanManageTenant context book.TenantId ct
                 let dateTime = System.DateTime.UtcNow
                 let cmd = BookCommand.SetPaperDescriptionAndEmbedding (paperId, description, embeddingId, dateTime)
                 let! result =

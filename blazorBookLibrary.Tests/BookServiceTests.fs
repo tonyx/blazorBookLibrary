@@ -1346,6 +1346,65 @@ let tests =
             let! mgrRemoveBookEmbedding = bookService.RemoveEmbeddingAsync(managerTenantCtx, book.BookId, CancellationToken.None)
             Expect.isOk mgrRemoveBookEmbedding "Manager should be allowed to remove book embedding"
         }
+
+        testCaseTask "owner of multiple libraries can update a book in Tenant B while active context is in Tenant A" <| fun _ -> task {
+            setUp ()
+            let tenantService = getTenantService ()
+            let bookService = getBookService ()
+            let userService = getUserService ()
+
+            let! ownerId = registerUserTask "multi_owner@test.com" "Password123!"
+            let! otherMgrId = registerUserTask "other_mgr@test.com" "Password123!"
+
+            let ownerCtx = UserContext.Authenticated(ownerId, [Role.User])
+            let otherMgrCtx = UserContext.Authenticated(otherMgrId, [Role.User])
+
+            let tenantA = Tenant.New(ownerId, TenantName.New "Library Alpha" |> Result.get, "100 Alpha St")
+            let tenantB = Tenant.New(ownerId, TenantName.New "Library Beta" |> Result.get, "200 Beta St")
+
+            let! createTenantARes = tenantService.CreateTenantAsync(ownerCtx, tenantA)
+            Expect.isOk createTenantARes "Create tenant A should succeed"
+
+            let! createTenantBRes = tenantService.CreateTenantAsync(ownerCtx, tenantB)
+            Expect.isOk createTenantBRes "Create tenant B should succeed"
+
+            // Add otherMgr as manager of Tenant A ONLY
+            let! addOtherMgr = tenantService.AddPatronAsync(ownerCtx, tenantA.TenantId, otherMgrId, PatronRole.Manager)
+            Expect.isOk addOtherMgr "Add otherMgr to tenant A should succeed"
+
+            // Add a book in Tenant B
+            let bookInB = Book.New tenantB.TenantId (Title.New "Original Title in Beta") [] [] [] None Category.Other [] (Year.New 2024) (Isbn.NewEmpty()) None
+            let! addBookRes = bookService.AddBookAsync(ownerCtx, bookInB)
+            Expect.isOk addBookRes "Add book in tenant B should succeed"
+
+            // Owner's active context is set to Tenant A
+            let ownerCtxInTenantA = ownerCtx.WithNewTenant(tenantA.TenantId)
+            let! switchRes = userService.SetCurrentTenantAsync(ownerCtxInTenantA, ownerId, tenantA.TenantId)
+            Expect.isOk switchRes "Set current tenant to tenant A should succeed"
+
+            // Owner updates book in Tenant B while current tenant context is Tenant A -> should succeed!
+            let! updateTitleRes = bookService.UpdateTitleAsync(ownerCtxInTenantA, Title.New "Updated Title in Beta", bookInB.BookId)
+            Expect.isOk updateTitleRes "Owner should be able to update title of book in Tenant B while in Tenant A context"
+
+            let! updatedBookRes = bookService.GetBookAsync(ownerCtxInTenantA, bookInB.BookId)
+            Expect.isOk updatedBookRes "Get book should succeed"
+            let updatedBook = updatedBookRes |> Result.get
+            Expect.equal updatedBook.Title.Value "Updated Title in Beta" "Book title should be updated"
+
+            // Owner sets availability of book in Tenant B while in Tenant A context -> should succeed!
+            let! setAvailRes = bookService.SetAvailabilityAsync(ownerCtxInTenantA, Availability.ReferenceOnly, bookInB.BookId)
+            Expect.isOk setAvailRes "Owner should be able to set availability of book in Tenant B while in Tenant A context"
+
+            // Other manager (manager of Tenant A only) tries to update book in Tenant B -> must fail!
+            let otherMgrCtxInTenantA = otherMgrCtx.WithNewTenant(tenantA.TenantId)
+            let! unauthorizedUpdate = bookService.UpdateTitleAsync(otherMgrCtxInTenantA, Title.New "Hacked Title", bookInB.BookId)
+            Expect.isError unauthorizedUpdate "Manager of Tenant A only should NOT be allowed to update book in Tenant B"
+
+            // Verify title was not changed by unauthorized user
+            let! bookCheckRes = bookService.GetBookAsync(ownerCtxInTenantA, bookInB.BookId)
+            let bookCheck = bookCheckRes |> Result.get
+            Expect.equal bookCheck.Title.Value "Updated Title in Beta" "Book title should remain unchanged"
+        }
     ]
 
     |> testSequenced

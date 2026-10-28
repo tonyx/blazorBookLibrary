@@ -1943,9 +1943,14 @@ else
     private UserContext? _cachedContext;
     private async Task<UserContext> GetContext()
     {
-        if (_cachedContext != null) return _cachedContext;
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-        _cachedContext = Shared.ConverterUtils.fromClaimsPrincipal(authState.User);
+        var baseCtx = Shared.ConverterUtils.fromClaimsPrincipal(authState.User);
+        if (_bookDetails != null)
+        {
+            return baseCtx.WithNewTenant(_bookDetails.Book.TenantId);
+        }
+        if (_cachedContext != null) return _cachedContext;
+        _cachedContext = baseCtx;
         return _cachedContext;
     }
 
@@ -3382,45 +3387,38 @@ else
             var claimsPrincipal = authState.User;
             if (claimsPrincipal != null && claimsPrincipal.Identity?.IsAuthenticated == true)
             {
-                var hasAccess = await TenantState.CheckManagementAccessAsync(claimsPrincipal, TenantService, UserTenantResolverService);
+                enableAIExplanations = Configuration.GetValue<bool>("BooksLibrary:EnableAIExtendedExplanations");
+                await LoadBookDetails();
 
-                if (hasAccess)
+                if (_bookDetails != null)
                 {
-                    _isAuthorized = true;
+                    var baseContext = Shared.ConverterUtils.fromClaimsPrincipal(claimsPrincipal);
+                    var bookTenantResult = await TenantService.GetTenantAsync(baseContext, _bookDetails.Book.TenantId, FSharpOption<CancellationToken>.None);
+                    var hasAccess = bookTenantResult.IsOk
+                        ? await TenantState.CheckManagementAccessAsync(claimsPrincipal, TenantService, UserTenantResolverService, bookTenantResult.ResultValue)
+                        : await TenantState.CheckManagementAccessAsync(claimsPrincipal, TenantService, UserTenantResolverService);
 
-                    enableAIExplanations = Configuration.GetValue<bool>("BooksLibrary:EnableAIExtendedExplanations");
-                    await LoadBookDetails();
-                    
-                    var user = authState.User;
-                    if (user.Identity?.IsAuthenticated ?? false)
+                    if (hasAccess)
                     {
-                        var userIdClaim = user.FindFirst(c => c.Type == System.Security.Claims.ClaimTypes.NameIdentifier) ?? user.FindFirst("sub");
+                        _isAuthorized = true;
+                        _currentTenant = _bookDetails.Book.TenantId;
+                        _cachedContext = baseContext.WithNewTenant(_currentTenant);
+
+                        var userIdClaim = claimsPrincipal.FindFirst(c => c.Type == System.Security.Claims.ClaimTypes.NameIdentifier) ?? claimsPrincipal.FindFirst("sub");
                         if (userIdClaim != null && Guid.TryParse(userIdClaim.Value, out var guid))
                         {
                             currentUserId = UserId.NewUserId(guid);
-                            var context = await GetContext();
-                            
-                            var userResult = await UserService.GetUserAsync(context, currentUserId);
-                            if (userResult.IsOk)
-                            {
-                                _currentTenant = userResult.ResultValue.CurrentTenant;
-                                _cachedContext = context.WithNewTenant(_currentTenant);
-                                context = _cachedContext;
-                            }
-
-                            var dpResult = await UserService.GetDistributionPointsManagedByUserAsync(context, currentUserId, FSharpOption<CancellationToken>.None);
+                            var dpResult = await UserService.GetDistributionPointsManagedByUserAsync(_cachedContext, currentUserId, FSharpOption<CancellationToken>.None);
                             if (dpResult.IsOk)
                             {
                                 managedDistributionPoints = dpResult.ResultValue.ToList();
                             }
                         }
-                    }
 
-                    var contextForTags = await GetContext();
-                    var tenantResultForTags = await TenantService.GetTenantAsync(contextForTags, _currentTenant, FSharpOption<CancellationToken>.None);
-                    if (tenantResultForTags.IsOk)
-                    {
-                        allAvailableTags = tenantResultForTags.ResultValue.Tags.Where(t => t.IsBookTag).ToList();
+                        if (bookTenantResult.IsOk)
+                        {
+                            allAvailableTags = bookTenantResult.ResultValue.Tags.Where(t => t.IsBookTag).ToList();
+                        }
                     }
                 }
             }

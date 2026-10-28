@@ -41,6 +41,8 @@ type AuthorService
             return! Security.checkIsGlobalAdminOrTenantManager tenant context
         }
 
+    let checkCanManageTenant = Security.checkCanManageTenant tenantViewerAsync
+
     let checkIsGlobalAdminOrTenantManagerOrPublicTenant (context: UserContext) (ct: CancellationToken) =
         taskResult {
             let! tenantId = userTenantResolverService.GetTenantForUserAsync(context, ct)
@@ -59,9 +61,7 @@ type AuthorService
         let ct = defaultArg ct CancellationToken.None
 
         taskResult {
-            let! tenantId = userTenantResolverService.GetTenantForUserAsync(context, ct)
-            do! tenantId = author.TenantId |> Result.ofBool "Tenant ids not matching"
-            do! checkIsGlobalAdminOrTenantManager context ct
+            do! checkCanManageTenant context author.TenantId ct
 
             return! runInitAsync<Author, AuthorEvent, string> eventStore messageSenders author (Some ct)
         }
@@ -70,13 +70,8 @@ type AuthorService
         let ct = defaultArg ct CancellationToken.None
 
         taskResult {
-            let! tenantId = userTenantResolverService.GetTenantForUserAsync(context, ct)
-            do! checkIsGlobalAdminOrTenantManager context ct
-
-            do!
-                authors
-                |> Seq.forall (fun a -> tenantId = a.TenantId)
-                |> Result.ofBool "Tenant ids not matching"
+            for a in authors do
+                do! checkCanManageTenant context a.TenantId ct
 
             return!
                 runMultipleInitAsync<Author, AuthorEvent, string>
@@ -163,10 +158,8 @@ type AuthorService
         let ct = defaultArg ct CancellationToken.None
 
         taskResult {
-            let! tenantId = userTenantResolverService.GetTenantForUserAsync(context, ct)
             let! author = this.GetAuthorAsync(context, authorId, ct)
-            do! tenantId = author.TenantId |> Result.ofBool "Tenant ids not matching"
-            do! checkIsGlobalAdminOrTenantManager context ct
+            do! checkCanManageTenant context author.TenantId ct
 
             let reamecommand = AuthorCommand.Rename(newName, DateTime.UtcNow)
 
@@ -186,10 +179,8 @@ type AuthorService
         let ct = defaultArg ct CancellationToken.None
 
         taskResult {
-            let! tenantId = userTenantResolverService.GetTenantForUserAsync(context, ct)
             let! author = this.GetAuthorAsync(context, authorId, ct)
-            do! tenantId = author.TenantId |> Result.ofBool "Tenant ids not matching"
-            do! checkIsGlobalAdminOrTenantManager context ct
+            do! checkCanManageTenant context author.TenantId ct
             let updateIsniCommand = AuthorCommand.UpdateIsni(isni, DateTime.UtcNow)
 
             let result =
@@ -208,10 +199,8 @@ type AuthorService
         let ct = defaultArg ct CancellationToken.None
 
         taskResult {
-            let! tenantId = userTenantResolverService.GetTenantForUserAsync(context, ct)
             let! author = this.GetAuthorAsync(context, authorId, ct)
-            do! tenantId = author.TenantId |> Result.ofBool "Tenant ids not matching"
-            do! checkIsGlobalAdminOrTenantManager context ct
+            do! checkCanManageTenant context author.TenantId ct
             let updateBioCommand = AuthorCommand.UpdateBio(bio, DateTime.UtcNow)
 
             let result =
@@ -232,10 +221,8 @@ type AuthorService
         let ct = defaultArg ct CancellationToken.None
 
         taskResult {
-            let! tenantId = userTenantResolverService.GetTenantForUserAsync(context, ct)
             let! author = this.GetAuthorAsync(context, authorId, ct)
-            do! tenantId = author.TenantId |> Result.ofBool "Tenant ids not matching"
-            do! checkIsGlobalAdminOrTenantManager context ct
+            do! checkCanManageTenant context author.TenantId ct
 
             let updateWikipediaUriCommand =
                 AuthorCommand.UpdateWikipediaUri(wikipediaUri, DateTime.UtcNow)
@@ -256,10 +243,8 @@ type AuthorService
         let ct = defaultArg ct CancellationToken.None
 
         taskResult {
-            let! tenantId = userTenantResolverService.GetTenantForUserAsync(context, ct)
             let! author = this.GetAuthorAsync(context, authorId, ct)
-            do! tenantId = author.TenantId |> Result.ofBool "Tenant ids not matching"
-            do! checkIsGlobalAdminOrTenantManager context ct
+            do! checkCanManageTenant context author.TenantId ct
 
             let removeWikipediaUriCommand =
                 AuthorCommand.RemoveWikipediaUri(DateTime.UtcNow)
@@ -280,10 +265,8 @@ type AuthorService
         let ct = defaultArg ct CancellationToken.None
 
         taskResult {
-            let! tenantId = userTenantResolverService.GetTenantForUserAsync(context, ct)
             let! author = this.GetAuthorAsync(context, authorId, ct)
-            do! tenantId = author.TenantId |> Result.ofBool "Tenant ids not matching"
-            do! checkIsGlobalAdminOrTenantManager context ct
+            do! checkCanManageTenant context author.TenantId ct
             let updateImageUrlCommand = AuthorCommand.UpdateImageUrl(imageUrl, DateTime.UtcNow)
 
             let result =
@@ -302,10 +285,8 @@ type AuthorService
         let ct = defaultArg ct CancellationToken.None
 
         taskResult {
-            let! tenantId = userTenantResolverService.GetTenantForUserAsync(context, ct)
             let! author = this.GetAuthorAsync(context, authorId, ct)
-            do! tenantId = author.TenantId |> Result.ofBool "Tenant ids not matching"
-            do! checkIsGlobalAdminOrTenantManager context ct
+            do! checkCanManageTenant context author.TenantId ct
             let removeImageUrlCommand = AuthorCommand.RemoveImageUrl(DateTime.UtcNow)
 
             let result =
@@ -324,10 +305,8 @@ type AuthorService
         let ct = defaultArg ct CancellationToken.None
 
         taskResult {
-            let! tenantId = userTenantResolverService.GetTenantForUserAsync(context, ct)
             let! author = this.GetAuthorAsync(context, authorId, ct)
-            do! tenantId = author.TenantId |> Result.ofBool "Tenant ids not matching"
-            do! checkIsGlobalAdminOrTenantManager context ct
+            do! checkCanManageTenant context author.TenantId ct
             let sealCommand = AuthorCommand.Seal(DateTime.UtcNow)
 
             let result =
@@ -346,10 +325,8 @@ type AuthorService
         let ct = defaultArg ct CancellationToken.None
 
         taskResult {
-            let! tenantId = userTenantResolverService.GetTenantForUserAsync(context, ct)
             let! author = this.GetAuthorAsync(context, authorId, ct)
-            do! tenantId = author.TenantId |> Result.ofBool "Tenant ids not matching"
-            do! checkIsGlobalAdminOrTenantManager context ct
+            do! checkCanManageTenant context author.TenantId ct
             let unsealCommand = AuthorCommand.Unseal(DateTime.UtcNow)
 
             let result =
@@ -368,11 +345,9 @@ type AuthorService
         let ct = defaultArg ct CancellationToken.None
 
         taskResult {
-            let! tenantId = userTenantResolverService.GetTenantForUserAsync(context, ct)
             let! author = this.GetAuthorAsync(context, authorId, ct)
+            do! checkCanManageTenant context author.TenantId ct
             let! authorsBooks = this.GetAuthorBooksAsync(context, authorId, ct)
-            do! tenantId = author.TenantId |> Result.ofBool "Tenant ids not matching"
-            do! checkIsGlobalAdminOrTenantManager context ct
             let! books = this.GetAuthorBooksAsync(context, authorId, ct)
             do! books.IsEmpty |> Result.ofBool "Cannot remove an author that has books"
 

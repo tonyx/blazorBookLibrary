@@ -61,17 +61,15 @@ type EmbeddingOrchestrationService(
         taskResult
             {
                 let ct = defaultArg ct CancellationToken.None
-                let! tenantId = userTenantResolverService.GetTenantForUserAsync(context, ct)
-                let! (_, tenant) = tenantViewerAsync (Some ct) tenantId.Value
                 let! book = bookService.GetBookAsync(context, bookId, ct)
+                do! Security.checkCanManageTenant tenantViewerAsync context book.TenantId ct
+
                 let! description =
                     book.Description |> Result.ofOption "Book has no description"
-
-                do! Security.checkIsGlobalAdminOrTenantManager tenant context
                     
                 let! embedding = textEmbeddingService.GetEmbeddingAsync(context, description, ct)
                 let embeddingId = EmbeddingDataId.New()
-                let! storeResult = vectorDbService.StoreEmbeddingAsync (embeddingId, tenantId, bookId, embedding, ct)
+                let! storeResult = vectorDbService.StoreEmbeddingAsync (embeddingId, book.TenantId, bookId, embedding, ct)
                 let! updateBook = bookService.EmbedDescriptionAsync(context, bookId, embeddingId, ct)
                 return ()
             }
@@ -136,11 +134,9 @@ type EmbeddingOrchestrationService(
     member this.CreateEmbeddingForPaper (context: UserContext, bookId: BookId, paperId: PaperId, text: string, ?storeDescription: bool, ?ct: CancellationToken) =
         taskResult {
             let ct = defaultArg ct CancellationToken.None
-            let! tenantId = userTenantResolverService.GetTenantForUserAsync(context, ct)
-            let! (_, tenant) = tenantViewerAsync (Some ct) tenantId.Value
-            do! Security.checkIsGlobalAdminOrTenantManager tenant context
-
             let! book = bookService.GetBookAsync(context, bookId, ct)
+            do! Security.checkCanManageTenant tenantViewerAsync context book.TenantId ct
+
             let! paper =
                 book.Papers
                 |> List.tryFind (fun (p: Paper) -> p.PaperId = paperId)
@@ -156,7 +152,7 @@ type EmbeddingOrchestrationService(
 
             let! embedding = textEmbeddingService.GetEmbeddingAsync(context, text, ct)
             let embeddingId = EmbeddingDataId.New()
-            let! _ = vectorDbService.StorePaperEmbeddingAsync(embeddingId, tenantId, bookId, paperId, embedding, ct)
+            let! _ = vectorDbService.StorePaperEmbeddingAsync(embeddingId, book.TenantId, bookId, paperId, embedding, ct)
 
             let descToStore =
                 if defaultArg storeDescription true then
@@ -165,23 +161,20 @@ type EmbeddingOrchestrationService(
                     paper.Description
 
             let! _ = bookService.SetPaperDescriptionAndEmbeddingAsync(context, bookId, paperId, descToStore, Some embeddingId, ct)
-            let! _ = vectorDbService.LinkIntraBookEmbeddingsAsync(tenantId, bookId, ct)
+            let! _ = vectorDbService.LinkIntraBookEmbeddingsAsync(book.TenantId, bookId, ct)
             return ()
         }
 
     member this.RemoveEmbeddingForPaper (context: UserContext, bookId: BookId, paperId: PaperId, ?ct: CancellationToken) =
         taskResult {
             let ct = defaultArg ct CancellationToken.None
-            let! tenantId = userTenantResolverService.GetTenantForUserAsync(context, ct)
-            let! (_, tenant) = tenantViewerAsync (Some ct) tenantId.Value
-            do! Security.checkIsGlobalAdminOrTenantManager tenant context
-
             let! book = bookService.GetBookAsync(context, bookId, ct)
+            do! Security.checkCanManageTenant tenantViewerAsync context book.TenantId ct
+
             let! paper =
                 book.Papers
                 |> List.tryFind (fun (p: Paper) -> p.PaperId = paperId)
                 |> Result.ofOption "Paper not found"
-
 
             match paper.OptionalEmbedding with
             | Some embId ->
@@ -189,7 +182,7 @@ type EmbeddingOrchestrationService(
                     vectorDbService.RemoveEmbeddingAsync(embId, ct)
                     |> Task.map (function Ok () -> Ok () | Error _ -> Ok ())
                 let! _ = bookService.SetPaperDescriptionAndEmbeddingAsync(context, bookId, paperId, paper.Description, None, ct)
-                let! _ = vectorDbService.LinkIntraBookEmbeddingsAsync(tenantId, bookId, ct)
+                let! _ = vectorDbService.LinkIntraBookEmbeddingsAsync(book.TenantId, bookId, ct)
                 return ()
             | None ->
                 return ()

@@ -26,6 +26,16 @@ module Security =
         | UserContext.Authenticated(userId, _) when userId = targetUserId -> Ok()
         | _ -> checkIsGlobalAdminOrTenantManager tenant context
 
+    let checkCanManageTenant
+        (tenantViewerAsync: AggregateViewerAsync2<Tenant>)
+        (context: UserContext)
+        (targetTenantId: TenantId)
+        (ct: CancellationToken) =
+        taskResult {
+            let! (_, tenant) = tenantViewerAsync (Some ct) targetTenantId.Value
+            return! checkIsGlobalAdminOrTenantManager tenant context
+        }
+
     let getCurrentTenant (userViewerAsync: AggregateViewerAsync2<User>) (context: UserContext) (ct: CancellationToken) =
         task {
             match context with
