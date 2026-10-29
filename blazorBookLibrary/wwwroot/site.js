@@ -693,3 +693,70 @@ if (typeof window !== 'undefined') {
     };
 }
 
+window.biblioStorage = {
+    getItem: function (key) {
+        try {
+            if (typeof window !== 'undefined' && window.localStorage) {
+                return window.localStorage.getItem(key);
+            }
+        } catch (e) { }
+        return null;
+    },
+    setItem: function (key, value) {
+        try {
+            if (typeof window !== 'undefined' && window.localStorage) {
+                window.localStorage.setItem(key, value);
+            }
+        } catch (e) {
+            console.warn("Storage setItem error (e.g. Incognito restriction):", e);
+        }
+    },
+    removeItem: function (key) {
+        try {
+            if (typeof window !== 'undefined' && window.localStorage) {
+                window.localStorage.removeItem(key);
+            }
+        } catch (e) { }
+    }
+};
+
+window.biblioCookies = {
+    get: function (name) {
+        try {
+            var prefix = name + "=";
+            var ca = document.cookie.split(';');
+            for (var i = 0; i < ca.length; i++) {
+                var c = ca[i].trim();
+                if (c.indexOf(prefix) === 0) {
+                    return decodeURIComponent(c.substring(prefix.length, c.length));
+                }
+            }
+        } catch (e) { }
+        return null;
+    },
+    set: function (name, value, days) {
+        try {
+            var expires = "";
+            var maxAge = "";
+            if (typeof days === 'number' && days > 0) {
+                var d = new Date();
+                d.setTime(d.getTime() + (days * 24 * 60 * 60 * 1000));
+                expires = "; expires=" + d.toUTCString();
+                maxAge = "; max-age=" + (days * 86400);
+            }
+            var sec = window.location.protocol === 'https:' ? '; Secure' : '';
+            var cookieStr = name + "=" + encodeURIComponent(value) + expires + maxAge + "; path=/; SameSite=Lax" + sec;
+            document.cookie = cookieStr;
+        } catch (e) {
+            console.warn("Cookie set error:", e);
+        }
+    },
+    delete: function (name) {
+        try {
+            var sec = window.location.protocol === 'https:' ? '; Secure' : '';
+            document.cookie = name + "=; expires=Thu, 01 Jan 1970 00:00:00 UTC; max-age=0; path=/; SameSite=Lax" + sec;
+            document.cookie = name + "=; expires=Thu, 01 Jan 1970 00:00:00 UTC; max-age=0; path=/; SameSite=Lax";
+        } catch (e) { }
+    }
+};
+

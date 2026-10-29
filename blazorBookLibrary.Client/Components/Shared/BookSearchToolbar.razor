@@ -999,6 +999,19 @@
         }
     }
 
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && userCoordinates == null)
+        {
+            var coords = await UserLocationService.GetCoordinatesAsync();
+            if (coords != null)
+            {
+                await LoadSurroundingTenantsAsync();
+                StateHasChanged();
+            }
+        }
+    }
+
     private bool AreOtherFiltersActive => 
         !string.IsNullOrWhiteSpace(searchBookTitle) || 
         !string.IsNullOrWhiteSpace(searchBookIsbn) || 

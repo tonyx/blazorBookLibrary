@@ -53,28 +53,46 @@ namespace blazorBookLibrary.Client.Services
 
         public async Task<UserLocation?> GetLocationAsync()
         {
-            if (_isInitialized)
+            if (_cachedLocation != null)
             {
                 return _cachedLocation;
             }
 
-            bool jsSuccess = false;
+            if (_isInitialized)
+            {
+                return null;
+            }
+
+            bool jsAvailable = false;
             string? json = null;
+
+            // 1. Try reading from browser storage via biblioStorage or direct localStorage
             try
             {
-                json = await _jsRuntime.InvokeAsync<string?>("localStorage.getItem", LocalStorageKey);
-                jsSuccess = true;
+                try
+                {
+                    json = await _jsRuntime.InvokeAsync<string?>("biblioStorage.getItem", LocalStorageKey);
+                    jsAvailable = true;
+                }
+                catch (JSException)
+                {
+                    // Fallback to direct localStorage if biblioStorage helper isn't loaded yet
+                    json = await _jsRuntime.InvokeAsync<string?>("localStorage.getItem", LocalStorageKey);
+                    jsAvailable = true;
+                }
             }
             catch (InvalidOperationException)
             {
                 // Prerendering: JS interop not ready yet
+                jsAvailable = false;
             }
             catch (Exception)
             {
-                jsSuccess = true;
+                // Edge / Incognito restricted storage
+                jsAvailable = true;
             }
 
-            if (jsSuccess)
+            if (jsAvailable)
             {
                 if (!string.IsNullOrWhiteSpace(json))
                 {
@@ -87,7 +105,30 @@ namespace blazorBookLibrary.Client.Services
                     }
                 }
 
-                // If localStorage is empty, check cookie (fallback for SSR-set cookies or when JS interop first becomes ready)
+                // 2. Check document.cookie via JS helper (works even when localStorage is blocked in InPrivate)
+                try
+                {
+                    var cookieVal = await _jsRuntime.InvokeAsync<string?>("biblioCookies.get", CookieName);
+                    if (!string.IsNullOrWhiteSpace(cookieVal))
+                    {
+                        var location = ParseLocationJson(cookieVal);
+                        if (location != null)
+                        {
+                            _cachedLocation = location;
+                            _isInitialized = true;
+                            // Mirror to localStorage if possible
+                            try
+                            {
+                                await _jsRuntime.InvokeVoidAsync("biblioStorage.setItem", LocalStorageKey, cookieVal);
+                            }
+                            catch { }
+                            return _cachedLocation;
+                        }
+                    }
+                }
+                catch { }
+
+                // 3. Fall back to ICookieService
                 try
                 {
                     var cookieOpt = await _cookieService.GetCookieAsync(CookieName);
@@ -99,26 +140,20 @@ namespace blazorBookLibrary.Client.Services
                         {
                             _cachedLocation = location;
                             _isInitialized = true;
-                            // Mirror to localStorage
-                            try
-                            {
-                                await _jsRuntime.InvokeVoidAsync("localStorage.setItem", LocalStorageKey, cookieVal);
-                            }
-                            catch { }
                             return _cachedLocation;
                         }
                     }
                 }
                 catch { }
 
-                // LocalStorage was queried and is empty (or cleared)
+                // Browser queried and no location found
                 _cachedLocation = null;
                 _isInitialized = true;
                 return null;
             }
             else
             {
-                // Prerendering: JS Interop is not ready. Read cookie for initial render without caching permanently.
+                // Prerendering: JS Interop is not ready. Read cookie from HTTP headers without permanently locking _isInitialized.
                 try
                 {
                     var cookieOpt = await _cookieService.GetCookieAsync(CookieName);
@@ -162,17 +197,30 @@ namespace blazorBookLibrary.Client.Services
             var json = JsonSerializer.Serialize(loc);
             var escapedJson = Uri.EscapeDataString(json);
 
+            // 1. Write to LocalStorage (via helper or direct)
             try
             {
-                await _jsRuntime.InvokeVoidAsync("eval",
-                    $"try {{ localStorage.setItem('{LocalStorageKey}', {JsonSerializer.Serialize(json)}); }} catch(e){{}} " +
-                    $"(function() {{ var sec = window.location.protocol === 'https:' ? '; Secure' : ''; document.cookie = '{CookieName}={escapedJson}; max-age={30 * 86400}; path=/; SameSite=Lax' + sec; }})()");
+                await _jsRuntime.InvokeVoidAsync("biblioStorage.setItem", LocalStorageKey, json);
+            }
+            catch
+            {
+                try
+                {
+                    await _jsRuntime.InvokeVoidAsync("localStorage.setItem", LocalStorageKey, json);
+                }
+                catch { }
+            }
+
+            // 2. Write to Cookie via JS (reliable in Blazor Server & WebAssembly)
+            try
+            {
+                await _jsRuntime.InvokeVoidAsync("biblioCookies.set", CookieName, json, 30);
             }
             catch { }
 
+            // 3. Also notify ICookieService
             try
             {
-                // Mirror to cookie with 30-day lifespan
                 await _cookieService.SetCookieAsync(CookieName, escapedJson, FSharpOption<int>.Some(30));
             }
             catch { }
@@ -185,15 +233,28 @@ namespace blazorBookLibrary.Client.Services
             _cachedLocation = null;
             _isInitialized = true;
 
+            // 1. Clear LocalStorage via helper or direct
             try
             {
-                await _jsRuntime.InvokeVoidAsync("eval",
-                    $"try {{ localStorage.removeItem('{LocalStorageKey}'); }} catch(e){{}} " +
-                    $"document.cookie = '{CookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; max-age=0; path=/; SameSite=Lax;'; " +
-                    $"document.cookie = '{CookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; max-age=0; path=/; SameSite=Lax; Secure;';");
+                await _jsRuntime.InvokeVoidAsync("biblioStorage.removeItem", LocalStorageKey);
+            }
+            catch
+            {
+                try
+                {
+                    await _jsRuntime.InvokeVoidAsync("localStorage.removeItem", LocalStorageKey);
+                }
+                catch { }
+            }
+
+            // 2. Clear Cookie via JS
+            try
+            {
+                await _jsRuntime.InvokeVoidAsync("biblioCookies.delete", CookieName);
             }
             catch { }
 
+            // 3. Clear Cookie via ICookieService
             try
             {
                 await _cookieService.DeleteCookieAsync(CookieName);
@@ -205,17 +266,48 @@ namespace blazorBookLibrary.Client.Services
 
         private static UserLocation? ParseLocationJson(string json)
         {
+            if (string.IsNullOrWhiteSpace(json)) return null;
+
+            // Handle URL-encoded cookies if passed raw
+            var candidate = json;
+            if (candidate.StartsWith("%7B", StringComparison.OrdinalIgnoreCase))
+            {
+                candidate = Uri.UnescapeDataString(candidate);
+            }
+
             try
             {
-                return JsonSerializer.Deserialize<UserLocation>(json, new JsonSerializerOptions
+                var loc = JsonSerializer.Deserialize<UserLocation>(candidate, new JsonSerializerOptions
                 {
                     PropertyNameCaseInsensitive = true
                 });
+                if (loc != null && (loc.Latitude != 0 || loc.Longitude != 0))
+                {
+                    return loc;
+                }
             }
             catch
             {
-                return null;
+                // Handle accidental double-encoded JSON string literal fallback
+                try
+                {
+                    var inner = JsonSerializer.Deserialize<string>(candidate);
+                    if (!string.IsNullOrWhiteSpace(inner))
+                    {
+                        var loc = JsonSerializer.Deserialize<UserLocation>(inner, new JsonSerializerOptions
+                        {
+                            PropertyNameCaseInsensitive = true
+                        });
+                        if (loc != null && (loc.Latitude != 0 || loc.Longitude != 0))
+                        {
+                            return loc;
+                        }
+                    }
+                }
+                catch { }
             }
+
+            return null;
         }
     }
 }

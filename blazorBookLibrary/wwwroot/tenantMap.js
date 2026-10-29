@@ -206,7 +206,12 @@ window.tenantMap = {
     },
 
     getUserLocation: function (dotNetHelper) {
-        if (navigator.geolocation) {
+        if (!navigator.geolocation) {
+            dotNetHelper.invokeMethodAsync('OnLocationError', "Geolocation is not supported by this browser.");
+            return;
+        }
+
+        const tryPosition = function (highAccuracy, onFallback) {
             navigator.geolocation.getCurrentPosition(
                 function (position) {
                     const lat = position.coords.latitude;
@@ -214,25 +219,34 @@ window.tenantMap = {
                     dotNetHelper.invokeMethodAsync('OnLocationSuccess', lat, lng);
                 },
                 function (error) {
-                    let errMsg = "Unable to retrieve your location.";
-                    switch (error.code) {
-                        case error.PERMISSION_DENIED:
-                            errMsg = "User denied the request for Geolocation.";
-                            break;
-                        case error.POSITION_UNAVAILABLE:
-                            errMsg = "Location information is unavailable.";
-                            break;
-                        case error.TIMEOUT:
-                            errMsg = "The request to get user location timed out.";
-                            break;
+                    if (onFallback && (error.code === error.TIMEOUT || error.code === error.POSITION_UNAVAILABLE)) {
+                        onFallback();
+                    } else {
+                        let errMsg = "Unable to retrieve your location.";
+                        switch (error.code) {
+                            case error.PERMISSION_DENIED:
+                                errMsg = "User denied the request for Geolocation.";
+                                break;
+                            case error.POSITION_UNAVAILABLE:
+                                errMsg = "Location information is unavailable.";
+                                break;
+                            case error.TIMEOUT:
+                                errMsg = "The request to get user location timed out.";
+                                break;
+                        }
+                        dotNetHelper.invokeMethodAsync('OnLocationError', errMsg);
                     }
-                    dotNetHelper.invokeMethodAsync('OnLocationError', errMsg);
                 },
-                { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+                highAccuracy
+                    ? { enableHighAccuracy: true, timeout: 6000, maximumAge: 60000 }
+                    : { enableHighAccuracy: false, timeout: 12000, maximumAge: 300000 }
             );
-        } else {
-            dotNetHelper.invokeMethodAsync('OnLocationError', "Geolocation is not supported by this browser.");
-        }
+        };
+
+        // Try high accuracy first, and fallback to low accuracy if desktop/Edge lacks GPS or times out
+        tryPosition(true, function () {
+            tryPosition(false, null);
+        });
     },
 
     getDeviceCoordinates: function () {
@@ -245,41 +259,54 @@ window.tenantMap = {
                 });
                 return;
             }
-            navigator.geolocation.getCurrentPosition(
-                function (position) {
-                    resolve({
-                        success: true,
-                        latitude: position.coords.latitude,
-                        longitude: position.coords.longitude,
-                        accuracy: position.coords.accuracy,
-                        errorCode: 0,
-                        errorMessage: null
-                    });
-                },
-                function (error) {
-                    let errMsg = "Unable to retrieve your location.";
-                    switch (error.code) {
-                        case error.PERMISSION_DENIED:
-                            errMsg = "User denied the request for Geolocation.";
-                            break;
-                        case error.POSITION_UNAVAILABLE:
-                            errMsg = "Location information is unavailable.";
-                            break;
-                        case error.TIMEOUT:
-                            errMsg = "The request to get user location timed out.";
-                            break;
-                    }
-                    resolve({
-                        success: false,
-                        latitude: 0,
-                        longitude: 0,
-                        accuracy: 0,
-                        errorCode: error.code,
-                        errorMessage: errMsg
-                    });
-                },
-                { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-            );
+
+            const tryGet = function (highAccuracy, onFallback) {
+                navigator.geolocation.getCurrentPosition(
+                    function (position) {
+                        resolve({
+                            success: true,
+                            latitude: position.coords.latitude,
+                            longitude: position.coords.longitude,
+                            accuracy: position.coords.accuracy,
+                            errorCode: 0,
+                            errorMessage: null
+                        });
+                    },
+                    function (error) {
+                        if (onFallback && (error.code === error.TIMEOUT || error.code === error.POSITION_UNAVAILABLE)) {
+                            onFallback();
+                        } else {
+                            let errMsg = "Unable to retrieve your location.";
+                            switch (error.code) {
+                                case error.PERMISSION_DENIED:
+                                    errMsg = "User denied the request for Geolocation.";
+                                    break;
+                                case error.POSITION_UNAVAILABLE:
+                                    errMsg = "Location information is unavailable.";
+                                    break;
+                                case error.TIMEOUT:
+                                    errMsg = "The request to get user location timed out.";
+                                    break;
+                            }
+                            resolve({
+                                success: false,
+                                latitude: 0,
+                                longitude: 0,
+                                accuracy: 0,
+                                errorCode: error.code,
+                                errorMessage: errMsg
+                            });
+                        }
+                    },
+                    highAccuracy
+                        ? { enableHighAccuracy: true, timeout: 6000, maximumAge: 60000 }
+                        : { enableHighAccuracy: false, timeout: 12000, maximumAge: 300000 }
+                );
+            };
+
+            tryGet(true, function () {
+                tryGet(false, null);
+            });
         });
     },
 

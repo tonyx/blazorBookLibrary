@@ -305,6 +305,19 @@
         if (firstRender)
         {
             dotNetHelper = DotNetObjectReference.Create(this);
+            if (!isLocationSaved)
+            {
+                var savedLoc = await UserLocationService.GetLocationAsync();
+                if (savedLoc != null)
+                {
+                    latitude = savedLoc.Latitude;
+                    longitude = savedLoc.Longitude;
+                    radiusInMeters = savedLoc.RadiusInMeters > 0 ? savedLoc.RadiusInMeters : DefaultRadiusInMeters;
+                    isLocationSaved = true;
+                    await LoadPreviewTenantsAsync();
+                    StateHasChanged();
+                }
+            }
         }
 
         if (!mapInitialized && dotNetHelper != null && latitude.HasValue && longitude.HasValue)

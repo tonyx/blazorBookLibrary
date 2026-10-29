@@ -137,6 +137,18 @@
         await LoadTenantsForDropdownAsync();
     }
 
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && !isProximityFilteringActive)
+        {
+            var coords = await UserLocationService.GetCoordinatesAsync();
+            if (coords != null)
+            {
+                await LoadTenantsForDropdownAsync();
+            }
+        }
+    }
+
     private async Task<bool> CheckUrlForTenantSwitchAsync(string url)
     {
         try

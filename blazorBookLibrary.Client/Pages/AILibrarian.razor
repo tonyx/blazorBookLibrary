@@ -681,6 +681,16 @@
             {
                 // Fallback in case JS environment doesn't allow immediate invoke
             }
+
+            if (userCoordinates == null)
+            {
+                var coords = await UserLocationService.GetCoordinatesAsync();
+                if (coords != null)
+                {
+                    await LoadSurroundingTenantsAsync();
+                    StateHasChanged();
+                }
+            }
         }
     }
 
