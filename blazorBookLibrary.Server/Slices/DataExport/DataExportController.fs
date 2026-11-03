@@ -48,3 +48,46 @@ type DataExportController(dataExportService: IDataExportService) =
             | Ok summary -> return this.Ok(summary) :> IActionResult
             | Error msg -> return this.BadRequest(msg) :> IActionResult
         }
+
+    [<HttpPost("import/format")>]
+    member this.ImportFromFormat
+        (
+            [<FromQuery>] format: string,
+            [<FromQuery>] preventDuplicates: bool,
+            [<FromQuery>] generateUnknownAuthors: bool,
+            [<FromQuery>] generateEmbeddings: bool,
+            [<FromQuery>] generateMissingDescriptions: bool,
+            [<FromQuery>] createMissingPublishers: bool,
+            [<FromQuery>] enrichMissingMetadataViaIsbn: bool
+        ) =
+        task {
+            let context = UserContextMapper.mapFromClaimsPrincipal this.User
+            let exportFormat = 
+                match (if isNull format then "" else format.ToLower()) with
+                | "csv" -> Csv
+                | "bibtex" | "bib" -> BibTex
+                | "schemaorg" | "jsonld" | "json-ld" -> SchemaOrg
+                | "dublincore" | "dc" | "dublin-core" -> DublinCore
+                | "marcxml" | "marc" | "mrcx" -> MarcXml
+                | "mods" -> Mods
+                | "onix" | "onix3" | "onix-3.0" -> Onix
+                | _ -> Json
+            use reader = new System.IO.StreamReader(this.Request.Body, System.Text.Encoding.UTF8)
+            let! payload = reader.ReadToEndAsync()
+            let! result =
+                dataExportService.ImportFromFormatAsync(
+                    context,
+                    payload,
+                    exportFormat,
+                    preventDuplicates,
+                    generateUnknownAuthors,
+                    generateEmbeddings,
+                    generateMissingDescriptions,
+                    createMissingPublishers,
+                    enrichMissingMetadataViaIsbn,
+                    null,
+                    System.Threading.CancellationToken.None)
+            match result with
+            | Ok summary -> return this.Ok(summary) :> IActionResult
+            | Error msg -> return this.BadRequest(msg) :> IActionResult
+        }

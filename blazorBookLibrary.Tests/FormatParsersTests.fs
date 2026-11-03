@@ -239,10 +239,153 @@ let formatParsersTests =
             Expect.equal parsed.SbnCode (Some "CFI0001234") "SBN code should roundtrip"
             Expect.equal parsed.Description bd.Book.Description "Description should roundtrip"
 
-        testCase "Unified dispatcher routes to correct parser" <| fun _ ->
-            let jsonPayload = """[ { "Title": "Unified Book", "Authors": ["Jane Doe"] } ]"""
-            let result = FormatParsers.parse ExportFormat.Json jsonPayload
-            Expect.isOk result "Dispatcher for JSON should succeed"
+        testCase "CSV parser handles header and rows" <| fun _ ->
+            let csv = """Id,Title,Isbn,Year,Availability,MainCategory
+11111111-1111-1111-1111-111111111111,"Nightfall",9780553293357,1990,Circulating,ScienceFiction
+22222222-2222-2222-2222-222222222222,"Foundation",9780553293358,1951,Circulating,ScienceFiction"""
+            let result = FormatParsers.parseCsv csv
+            Expect.isOk result "CSV parse should succeed"
             let items = result |> Result.get
-            Expect.equal items.Head.Title "Unified Book" "Title should match"
+            Expect.equal items.Length 2 "Should parse 2 CSV rows"
+            Expect.equal items.Head.Title "Nightfall" "First title should match"
+            Expect.equal items.Head.Isbn (Some "9780553293357") "First ISBN should match"
+            Expect.equal items.Head.Year (Some 1990) "First year should match"
+            Expect.equal items.[1].Title "Foundation" "Second title should match"
+
+        testCase "Schema.org parser roundtrip with FormatSerializers" <| fun _ ->
+            let bd, editor = makeSampleBookDetails ()
+            let publisher = Some editor.Name.Value
+            let jsonLd = FormatSerializers.formatSchemaOrgBook bd publisher
+
+            let parseResult = FormatParsers.parseSchemaOrg jsonLd
+            Expect.isOk parseResult "Schema.org parse should succeed"
+            let items = parseResult |> Result.get
+            Expect.equal items.Length 1 "Should parse 1 item"
+            let parsed = items.Head
+            Expect.equal parsed.Title bd.Book.Title.Value "Title should roundtrip"
+            Expect.equal parsed.Isbn (Some bd.Book.Isbn.Value) "ISBN should roundtrip"
+            Expect.equal parsed.Year (Some bd.Book.Year.Value) "Year should roundtrip"
+            Expect.equal parsed.Publisher publisher "Publisher should roundtrip"
+            Expect.equal parsed.Authors [ "Isaac Asimov"; "Robert Silverberg" ] "Authors should roundtrip"
+            Expect.equal parsed.Description bd.Book.Description "Description should roundtrip"
+
+        testCase "Schema.org graph roundtrip" <| fun _ ->
+            let bd, editor = makeSampleBookDetails ()
+            let publisher = Some editor.Name.Value
+            let graphJson = FormatSerializers.formatSchemaOrgGraph [ (bd, publisher) ]
+
+            let parseResult = FormatParsers.parseSchemaOrg graphJson
+            Expect.isOk parseResult "Schema.org graph parse should succeed"
+            let items = parseResult |> Result.get
+            Expect.equal items.Length 1 "Should parse 1 item from graph"
+            Expect.equal items.Head.Title bd.Book.Title.Value "Title should match"
+
+        testCase "Dublin Core parser roundtrip with FormatSerializers" <| fun _ ->
+            let bd, editor = makeSampleBookDetails ()
+            let publisher = Some editor.Name.Value
+            let dcXml = FormatSerializers.formatDublinCoreBook bd publisher
+
+            let parseResult = FormatParsers.parseDublinCore dcXml
+            Expect.isOk parseResult "Dublin Core parse should succeed"
+            let items = parseResult |> Result.get
+            Expect.equal items.Length 1 "Should parse 1 item"
+            let parsed = items.Head
+            Expect.equal parsed.Title bd.Book.Title.Value "Title should roundtrip"
+            Expect.equal parsed.Isbn (Some bd.Book.Isbn.Value) "ISBN should roundtrip"
+            Expect.equal parsed.SbnCode (Some "CFI0001234") "SBN should roundtrip"
+            Expect.equal parsed.Year (Some bd.Book.Year.Value) "Year should roundtrip"
+            Expect.equal parsed.Publisher publisher "Publisher should roundtrip"
+            Expect.equal parsed.Authors [ "Isaac Asimov"; "Robert Silverberg" ] "Authors should roundtrip"
+            Expect.equal parsed.Description bd.Book.Description "Description should roundtrip"
+
+        testCase "Dublin Core bulk roundtrip" <| fun _ ->
+            let bd, editor = makeSampleBookDetails ()
+            let publisher = Some editor.Name.Value
+            let bulkXml = FormatSerializers.formatDublinCoreBulk [ (bd, publisher) ]
+
+            let parseResult = FormatParsers.parseDublinCore bulkXml
+            Expect.isOk parseResult "Dublin Core bulk parse should succeed"
+            let items = parseResult |> Result.get
+            Expect.equal items.Length 1 "Should parse 1 item"
+            Expect.equal items.Head.Title bd.Book.Title.Value "Title should roundtrip"
+
+        testCase "MODS parser roundtrip with FormatSerializers" <| fun _ ->
+            let bd, editor = makeSampleBookDetails ()
+            let publisher = Some editor.Name.Value
+            let modsXml = FormatSerializers.formatModsBook bd publisher
+
+            let parseResult = FormatParsers.parseMods modsXml
+            Expect.isOk parseResult "MODS parse should succeed"
+            let items = parseResult |> Result.get
+            Expect.equal items.Length 1 "Should parse 1 item"
+            let parsed = items.Head
+            Expect.equal parsed.Title bd.Book.Title.Value "Title should roundtrip"
+            Expect.equal parsed.Isbn (Some bd.Book.Isbn.Value) "ISBN should roundtrip"
+            Expect.equal parsed.SbnCode (Some "CFI0001234") "SBN should roundtrip"
+            Expect.equal parsed.Year (Some bd.Book.Year.Value) "Year should roundtrip"
+            Expect.equal parsed.Publisher publisher "Publisher should roundtrip"
+            Expect.equal parsed.Authors [ "Isaac Asimov"; "Robert Silverberg" ] "Authors should roundtrip"
+            Expect.equal parsed.Description bd.Book.Description "Description should roundtrip"
+
+        testCase "MODS bulk roundtrip" <| fun _ ->
+            let bd, editor = makeSampleBookDetails ()
+            let publisher = Some editor.Name.Value
+            let bulkMods = FormatSerializers.formatModsBulk [ (bd, publisher) ]
+
+            let parseResult = FormatParsers.parseMods bulkMods
+            Expect.isOk parseResult "MODS bulk parse should succeed"
+            let items = parseResult |> Result.get
+            Expect.equal items.Length 1 "Should parse 1 item from bulk"
+            Expect.equal items.Head.Title bd.Book.Title.Value "Title should roundtrip"
+
+        testCase "ONIX parser roundtrip with FormatSerializers" <| fun _ ->
+            let bd, editor = makeSampleBookDetails ()
+            let publisher = Some editor.Name.Value
+            let onixXml = FormatSerializers.formatOnixBook bd publisher
+
+            let parseResult = FormatParsers.parseOnix onixXml
+            Expect.isOk parseResult "ONIX parse should succeed"
+            let items = parseResult |> Result.get
+            Expect.equal items.Length 1 "Should parse 1 item"
+            let parsed = items.Head
+            Expect.equal parsed.Title bd.Book.Title.Value "Title should roundtrip"
+            Expect.equal parsed.Isbn (Some bd.Book.Isbn.Value) "ISBN should roundtrip"
+            Expect.equal parsed.SbnCode (Some "CFI0001234") "SBN should roundtrip"
+            Expect.equal parsed.Year (Some bd.Book.Year.Value) "Year should roundtrip"
+            Expect.equal parsed.Publisher publisher "Publisher should roundtrip"
+            Expect.equal parsed.Authors [ "Isaac Asimov"; "Robert Silverberg" ] "Authors should roundtrip"
+            Expect.equal parsed.Description bd.Book.Description "Description should roundtrip"
+
+        testCase "ONIX bulk roundtrip" <| fun _ ->
+            let bd, editor = makeSampleBookDetails ()
+            let publisher = Some editor.Name.Value
+            let bulkOnix = FormatSerializers.formatOnixBulk [ (bd, publisher) ]
+
+            let parseResult = FormatParsers.parseOnix bulkOnix
+            Expect.isOk parseResult "ONIX bulk parse should succeed"
+            let items = parseResult |> Result.get
+            Expect.equal items.Length 1 "Should parse 1 item from bulk"
+            Expect.equal items.Head.Title bd.Book.Title.Value "Title should roundtrip"
+
+        testCase "Unified dispatcher routes to all 8 formats" <| fun _ ->
+            let bd, editor = makeSampleBookDetails ()
+            let publisher = Some editor.Name.Value
+
+            let formats = [
+                ExportFormat.Json, FormatSerializers.formatSchemaOrgBook bd publisher // valid json
+                ExportFormat.Csv, sprintf "Title,Isbn,Year\n\"%s\",%s,%d" bd.Book.Title.Value bd.Book.Isbn.Value bd.Book.Year.Value
+                ExportFormat.BibTex, FormatSerializers.formatBibTexBook bd publisher
+                ExportFormat.SchemaOrg, FormatSerializers.formatSchemaOrgBook bd publisher
+                ExportFormat.DublinCore, FormatSerializers.formatDublinCoreBook bd publisher
+                ExportFormat.MarcXml, FormatSerializers.formatMarcXmlBook bd publisher
+                ExportFormat.Mods, FormatSerializers.formatModsBook bd publisher
+                ExportFormat.Onix, FormatSerializers.formatOnixBook bd publisher
+            ]
+
+            for (fmt, payload) in formats do
+                let res = FormatParsers.parse fmt payload
+                Expect.isOk res (sprintf "Dispatcher for %s should succeed" fmt.Name)
+                let items = res |> Result.get
+                Expect.isGreaterThan items.Length 0 (sprintf "Should parse at least 1 item for %s" fmt.Name)
+                Expect.equal items.Head.Title bd.Book.Title.Value (sprintf "Title should match for %s" fmt.Name)
     ]

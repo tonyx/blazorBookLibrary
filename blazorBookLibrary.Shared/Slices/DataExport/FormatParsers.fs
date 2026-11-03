@@ -43,19 +43,28 @@ type CatalogImportStatus =
     | Imported of bookId: Guid * title: string
     | SkippedDuplicate of isbn: string * title: string
     | Failed of title: string option * error: string
+    | CatalogImportInterrupted of title: string option
 
 type CatalogImportOptions =
     {
         PreventDuplicates: bool
         CreateMissingAuthors: bool
+        EnrichAuthorsWithIsniAndPhoto: bool
         CreateMissingPublishers: bool
+        GenerateMissingDescriptions: bool
+        GenerateEmbeddings: bool
+        EnrichMissingMetadataViaIsbn: bool
         MaxBatchSize: int option
     }
     static member Default =
         {
             PreventDuplicates = true
             CreateMissingAuthors = true
+            EnrichAuthorsWithIsniAndPhoto = true
             CreateMissingPublishers = true
+            GenerateMissingDescriptions = false
+            GenerateEmbeddings = false
+            EnrichMissingMetadataViaIsbn = false
             MaxBatchSize = Some 250
         }
 
@@ -65,6 +74,7 @@ type CatalogImportResult =
         ImportedCount: int
         SkippedCount: int
         FailedCount: int
+        InterruptedCount: int
         Items: CatalogImportStatus list
     }
     static member Empty =
@@ -73,6 +83,7 @@ type CatalogImportResult =
             ImportedCount = 0
             SkippedCount = 0
             FailedCount = 0
+            InterruptedCount = 0
             Items = []
         }
 
@@ -652,12 +663,590 @@ module FormatParsers =
                 Error $"Invalid MARCXML XML payload: {ex.Message}"
 
     // ==========================================
+    // CSV Parser
+    // ==========================================
+
+    let private parseCsvLine (line: string) : string list =
+        let fields = ResizeArray<string>()
+        let sb = StringBuilder()
+        let mutable inQuotes = false
+        let mutable i = 0
+        let len = line.Length
+        while i < len do
+            let c = line.[i]
+            if c = '"' then
+                if inQuotes && i + 1 < len && line.[i + 1] = '"' then
+                    sb.Append('"') |> ignore
+                    i <- i + 1
+                else
+                    inQuotes <- not inQuotes
+            elif c = ',' && not inQuotes then
+                fields.Add(sb.ToString().Trim())
+                sb.Clear() |> ignore
+            else
+                sb.Append(c) |> ignore
+            i <- i + 1
+        fields.Add(sb.ToString().Trim())
+        fields |> Seq.toList
+
+    let parseCsv (payload: string) : Result<CatalogImportDraft list, string> =
+        if String.IsNullOrWhiteSpace payload then
+            Error "Empty CSV payload"
+        else
+            try
+                let lines =
+                    payload.Split([| "\r\n"; "\n"; "\r" |], StringSplitOptions.RemoveEmptyEntries)
+                    |> Array.map (fun s -> s.Trim())
+                    |> Array.filter (fun s -> not (String.IsNullOrWhiteSpace s) && not (s.StartsWith("#")))
+                    |> Array.toList
+
+                if lines.IsEmpty then
+                    Error "CSV payload contains no data lines"
+                else
+                    let headerLine = lines.Head
+                    let headerCols = parseCsvLine headerLine |> List.map (fun s -> s.ToLowerInvariant())
+
+                    let hasHeader =
+                        headerCols |> List.exists (fun col -> col = "title" || col = "isbn" || col = "id")
+
+                    let (headers, dataLines) =
+                        if hasHeader then
+                            (headerCols, lines.Tail)
+                        else
+                            ([ "id"; "title"; "isbn"; "year"; "availability"; "maincategory" ], lines)
+
+                    let titleIdx = headers |> List.tryFindIndex (fun h -> h = "title")
+                    let isbnIdx = headers |> List.tryFindIndex (fun h -> h = "isbn")
+                    let yearIdx = headers |> List.tryFindIndex (fun h -> h = "year")
+                    let categoryIdx = headers |> List.tryFindIndex (fun h -> h = "maincategory" || h = "category" || h = "categories")
+                    let authorsIdx = headers |> List.tryFindIndex (fun h -> h = "author" || h = "authors")
+                    let publisherIdx = headers |> List.tryFindIndex (fun h -> h = "publisher" || h = "editor")
+                    let descIdx = headers |> List.tryFindIndex (fun h -> h = "description")
+
+                    let getField (cols: string list) (idxOpt: int option) =
+                        match idxOpt with
+                        | Some idx when idx < cols.Length && not (String.IsNullOrWhiteSpace cols.[idx]) ->
+                            Some (cols.[idx].Trim('"', ' '))
+                        | _ -> None
+
+                    let drafts = ResizeArray<CatalogImportDraft>()
+                    for line in dataLines do
+                        let cols = parseCsvLine line
+                        if cols.Length > 0 then
+                            let titleOpt = getField cols titleIdx
+                            let isbnOpt = getField cols isbnIdx
+                            let yearOpt = getField cols yearIdx |> Option.bind extract4DigitYear
+                            let publisherOpt = getField cols publisherIdx
+                            let descOpt = getField cols descIdx
+                            let authors =
+                                match getField cols authorsIdx with
+                                | Some a ->
+                                    a.Split([| ';'; '|' |], StringSplitOptions.RemoveEmptyEntries)
+                                    |> Array.map normalizeAuthorName
+                                    |> Array.filter (not << String.IsNullOrWhiteSpace)
+                                    |> Array.toList
+                                | None -> []
+                            let categories =
+                                match getField cols categoryIdx with
+                                | Some c when not (String.IsNullOrWhiteSpace c) -> [ c ]
+                                | _ -> []
+
+                            if titleOpt.IsSome || isbnOpt.IsSome then
+                                let resolvedTitle =
+                                    match titleOpt with
+                                    | Some t when not (String.IsNullOrWhiteSpace t) -> t
+                                    | _ -> isbnOpt |> Option.defaultValue "Untitled"
+
+                                drafts.Add({
+                                    Title = resolvedTitle
+                                    Authors = authors
+                                    Publisher = publisherOpt
+                                    Year = yearOpt
+                                    Isbn = isbnOpt
+                                    SbnCode = None
+                                    Categories = categories
+                                    Tags = categories
+                                    Description = descOpt
+                                    ImageUrl = None
+                                    Language = None
+                                    RawFormat = Csv
+                                })
+
+                    if drafts.Count = 0 then
+                        Error "No valid records found in CSV payload"
+                    else
+                        Ok (drafts |> Seq.toList)
+            with ex ->
+                Error $"Invalid CSV payload: {ex.Message}"
+
+    // ==========================================
+    // Schema.org (JSON-LD) Parser
+    // ==========================================
+
+    let parseSchemaOrg (payload: string) : Result<CatalogImportDraft list, string> =
+        if String.IsNullOrWhiteSpace payload then
+            Error "Empty Schema.org payload"
+        else
+            try
+                use doc = JsonDocument.Parse(payload)
+                let root = doc.RootElement
+                let elementsToParse =
+                    match root.ValueKind with
+                    | JsonValueKind.Object ->
+                        match root.TryGetProperty("@graph") with
+                        | true, graphElem when graphElem.ValueKind = JsonValueKind.Array ->
+                            graphElem.EnumerateArray() |> Seq.toList
+                        | _ -> [ root ]
+                    | JsonValueKind.Array ->
+                        root.EnumerateArray() |> Seq.toList
+                    | other -> []
+
+                if elementsToParse.IsEmpty then
+                    Error "No JSON elements found in Schema.org payload"
+                else
+                    let results =
+                        elementsToParse
+                        |> List.map (fun elem ->
+                            match parseSingleJsonElement elem with
+                            | Ok draft -> Ok { draft with RawFormat = SchemaOrg }
+                            | Error err -> Error err)
+                    let errors = results |> List.choose (function Error e -> Some e | _ -> None)
+                    let items = results |> List.choose (function Ok item -> Some item | _ -> None)
+                    if items.IsEmpty && not errors.IsEmpty then
+                        Error (String.concat "; " errors)
+                    else
+                        Ok items
+            with ex ->
+                Error $"Invalid Schema.org payload: {ex.Message}"
+
+    // ==========================================
+    // Dublin Core (XML) Parser
+    // ==========================================
+
+    let private parseSingleDublinCoreRecord (recordEl: XElement) : Result<CatalogImportDraft, string> =
+        try
+            let findValues (names: string list) =
+                recordEl.Descendants()
+                |> Seq.filter (fun el ->
+                    let local = el.Name.LocalName.ToLowerInvariant()
+                    names |> List.exists (fun n -> local = n))
+                |> Seq.map (fun el -> el.Value.Trim())
+                |> Seq.filter (not << String.IsNullOrWhiteSpace)
+                |> Seq.toList
+
+            let title =
+                match findValues [ "title" ] with
+                | t :: _ -> t
+                | [] -> ""
+
+            let authors =
+                findValues [ "creator"; "contributor" ]
+                |> List.map normalizeAuthorName
+                |> List.filter (not << String.IsNullOrWhiteSpace)
+                |> List.distinct
+
+            let publisher =
+                match findValues [ "publisher" ] with
+                | p :: _ -> Some p
+                | [] -> None
+
+            let year =
+                findValues [ "date" ]
+                |> List.tryPick extract4DigitYear
+
+            let mutable isbnOpt = None
+            let mutable sbnOpt = None
+            let identifiers = findValues [ "identifier" ]
+            for idVal in identifiers do
+                let lower = idVal.ToLowerInvariant()
+                if lower.StartsWith("urn:isbn:") then
+                    isbnOpt <- Some (idVal.Substring("urn:isbn:".Length).Trim())
+                elif lower.StartsWith("urn:sbn:") then
+                    sbnOpt <- Some (idVal.Substring("urn:sbn:".Length).Trim())
+                elif Regex.IsMatch(idVal, @"^(97[89][0-9]{10}|[0-9]{9}[0-9Xx])$") then
+                    if isbnOpt.IsNone then isbnOpt <- Some idVal
+
+            let language =
+                match findValues [ "language" ] with
+                | l :: _ -> Some l
+                | [] -> None
+
+            let subjects = findValues [ "subject" ]
+            let description =
+                match findValues [ "description" ] with
+                | d :: _ -> Some d
+                | [] -> None
+
+            if String.IsNullOrWhiteSpace title && isbnOpt.IsNone then
+                Error "Dublin Core record has neither title nor ISBN"
+            else
+                Ok {
+                    Title = if String.IsNullOrWhiteSpace title then (isbnOpt |> Option.defaultValue "Untitled") else title
+                    Authors = authors
+                    Publisher = publisher
+                    Year = year
+                    Isbn = isbnOpt
+                    SbnCode = sbnOpt
+                    Categories = subjects
+                    Tags = subjects
+                    Description = description
+                    ImageUrl = None
+                    Language = language
+                    RawFormat = DublinCore
+                }
+        with ex ->
+            Error $"Error parsing Dublin Core record: {ex.Message}"
+
+    let parseDublinCore (payload: string) : Result<CatalogImportDraft list, string> =
+        if String.IsNullOrWhiteSpace payload then
+            Error "Empty Dublin Core payload"
+        else
+            try
+                let doc = XDocument.Parse(payload)
+                let records =
+                    let metaElements =
+                        doc.Descendants()
+                        |> Seq.filter (fun el ->
+                            let name = el.Name.LocalName.ToLowerInvariant()
+                            name = "metadata" || name = "record")
+                        |> Seq.toList
+                    if not metaElements.IsEmpty then metaElements
+                    else
+                        // If root is itself the metadata element or contains dc:title directly
+                        [ doc.Root ]
+
+                if records.IsEmpty then
+                    Error "No Dublin Core records found in payload"
+                else
+                    let results = records |> List.map parseSingleDublinCoreRecord
+                    let errors = results |> List.choose (function Error e -> Some e | _ -> None)
+                    let items = results |> List.choose (function Ok item -> Some item | _ -> None)
+                    if items.IsEmpty && not errors.IsEmpty then
+                        Error (String.concat "; " errors)
+                    else
+                        Ok items
+            with ex ->
+                Error $"Invalid Dublin Core XML payload: {ex.Message}"
+
+    // ==========================================
+    // MODS (XML) Parser
+    // ==========================================
+
+    let private parseSingleModsRecord (modsEl: XElement) : Result<CatalogImportDraft, string> =
+        try
+            let title =
+                modsEl.Descendants()
+                |> Seq.filter (fun el -> el.Name.LocalName.ToLowerInvariant() = "titleinfo")
+                |> Seq.collect (fun ti ->
+                    ti.Descendants()
+                    |> Seq.filter (fun el -> el.Name.LocalName.ToLowerInvariant() = "title")
+                    |> Seq.map (fun el -> el.Value.Trim()))
+                |> Seq.tryHead
+                |> Option.defaultValue ""
+
+            let authors =
+                modsEl.Descendants()
+                |> Seq.filter (fun el -> el.Name.LocalName.ToLowerInvariant() = "name")
+                |> Seq.collect (fun n ->
+                    n.Descendants()
+                    |> Seq.filter (fun el -> el.Name.LocalName.ToLowerInvariant() = "namepart")
+                    |> Seq.map (fun el -> normalizeAuthorName el.Value))
+                |> Seq.filter (not << String.IsNullOrWhiteSpace)
+                |> Seq.distinct
+                |> Seq.toList
+
+            let publisher =
+                modsEl.Descendants()
+                |> Seq.filter (fun el -> el.Name.LocalName.ToLowerInvariant() = "origininfo")
+                |> Seq.collect (fun oi ->
+                    oi.Descendants()
+                    |> Seq.filter (fun el -> el.Name.LocalName.ToLowerInvariant() = "publisher")
+                    |> Seq.map (fun el -> el.Value.Trim()))
+                |> Seq.tryHead
+
+            let year =
+                modsEl.Descendants()
+                |> Seq.filter (fun el -> el.Name.LocalName.ToLowerInvariant() = "origininfo")
+                |> Seq.collect (fun oi ->
+                    oi.Descendants()
+                    |> Seq.filter (fun el ->
+                        let name = el.Name.LocalName.ToLowerInvariant()
+                        name = "dateissued" || name = "copyrightdate")
+                    |> Seq.choose (fun el -> extract4DigitYear el.Value))
+                |> Seq.tryHead
+
+            let mutable isbnOpt = None
+            let mutable sbnOpt = None
+            for idEl in modsEl.Descendants() |> Seq.filter (fun el -> el.Name.LocalName.ToLowerInvariant() = "identifier") do
+                let typeAttr =
+                    idEl.Attributes()
+                    |> Seq.tryFind (fun a -> a.Name.LocalName.ToLowerInvariant() = "type")
+                    |> Option.map (fun a -> a.Value.Trim().ToLowerInvariant())
+                    |> Option.defaultValue ""
+                let valStr = idEl.Value.Trim()
+                if typeAttr = "isbn" || Regex.IsMatch(valStr, @"^(97[89][0-9]{10}|[0-9]{9}[0-9Xx])$") then
+                    if isbnOpt.IsNone then isbnOpt <- Some valStr
+                elif typeAttr = "sbn" then
+                    sbnOpt <- Some valStr
+
+            let description =
+                modsEl.Descendants()
+                |> Seq.filter (fun el ->
+                    let name = el.Name.LocalName.ToLowerInvariant()
+                    name = "abstract" || name = "tableofcontents" || name = "note")
+                |> Seq.map (fun el -> el.Value.Trim())
+                |> Seq.filter (not << String.IsNullOrWhiteSpace)
+                |> Seq.tryHead
+
+            let language =
+                modsEl.Descendants()
+                |> Seq.filter (fun el -> el.Name.LocalName.ToLowerInvariant() = "language")
+                |> Seq.collect (fun langEl ->
+                    langEl.Descendants()
+                    |> Seq.filter (fun el -> el.Name.LocalName.ToLowerInvariant() = "languageterm")
+                    |> Seq.map (fun el -> el.Value.Trim()))
+                |> Seq.tryHead
+
+            let subjects =
+                modsEl.Descendants()
+                |> Seq.filter (fun el -> el.Name.LocalName.ToLowerInvariant() = "subject")
+                |> Seq.collect (fun s ->
+                    s.Descendants()
+                    |> Seq.filter (fun el -> el.Name.LocalName.ToLowerInvariant() = "topic")
+                    |> Seq.map (fun el -> el.Value.Trim()))
+                |> Seq.filter (not << String.IsNullOrWhiteSpace)
+                |> Seq.distinct
+                |> Seq.toList
+
+            if String.IsNullOrWhiteSpace title && isbnOpt.IsNone then
+                Error "MODS record has neither title nor ISBN"
+            else
+                Ok {
+                    Title = if String.IsNullOrWhiteSpace title then (isbnOpt |> Option.defaultValue "Untitled") else title
+                    Authors = authors
+                    Publisher = publisher
+                    Year = year
+                    Isbn = isbnOpt
+                    SbnCode = sbnOpt
+                    Categories = subjects
+                    Tags = subjects
+                    Description = description
+                    ImageUrl = None
+                    Language = language
+                    RawFormat = Mods
+                }
+        with ex ->
+            Error $"Error parsing MODS record: {ex.Message}"
+
+    let parseMods (payload: string) : Result<CatalogImportDraft list, string> =
+        if String.IsNullOrWhiteSpace payload then
+            Error "Empty MODS payload"
+        else
+            try
+                let doc = XDocument.Parse(payload)
+                let records =
+                    let elements =
+                        doc.Descendants()
+                        |> Seq.filter (fun el -> el.Name.LocalName.ToLowerInvariant() = "mods")
+                        |> Seq.toList
+                    if not elements.IsEmpty then elements
+                    elif doc.Root.Name.LocalName.ToLowerInvariant() = "mods" then [ doc.Root ]
+                    else []
+
+                if records.IsEmpty then
+                    Error "No <mods> elements found in MODS payload"
+                else
+                    let results = records |> List.map parseSingleModsRecord
+                    let errors = results |> List.choose (function Error e -> Some e | _ -> None)
+                    let items = results |> List.choose (function Ok item -> Some item | _ -> None)
+                    if items.IsEmpty && not errors.IsEmpty then
+                        Error (String.concat "; " errors)
+                    else
+                        Ok items
+            with ex ->
+                Error $"Invalid MODS XML payload: {ex.Message}"
+
+    // ==========================================
+    // ONIX (3.0 XML) Parser
+    // ==========================================
+
+    let private parseSingleOnixProduct (productEl: XElement) : Result<CatalogImportDraft, string> =
+        try
+            let title =
+                productEl.Descendants()
+                |> Seq.filter (fun el -> el.Name.LocalName.ToLowerInvariant() = "titledetail")
+                |> Seq.collect (fun td ->
+                    td.Descendants()
+                    |> Seq.filter (fun el -> el.Name.LocalName.ToLowerInvariant() = "titletext")
+                    |> Seq.map (fun el -> el.Value.Trim()))
+                |> Seq.tryHead
+                |> Option.defaultValue ""
+
+            let authors =
+                productEl.Descendants()
+                |> Seq.filter (fun el -> el.Name.LocalName.ToLowerInvariant() = "contributor")
+                |> Seq.choose (fun c ->
+                    let personName =
+                        c.Descendants()
+                        |> Seq.filter (fun el -> el.Name.LocalName.ToLowerInvariant() = "personname")
+                        |> Seq.map (fun el -> el.Value.Trim())
+                        |> Seq.tryHead
+
+                    match personName with
+                    | Some pn when not (String.IsNullOrWhiteSpace pn) ->
+                        Some (normalizeAuthorName pn)
+                    | _ ->
+                        let keyNames =
+                            c.Descendants()
+                            |> Seq.filter (fun el -> el.Name.LocalName.ToLowerInvariant() = "keynames")
+                            |> Seq.map (fun el -> el.Value.Trim())
+                            |> Seq.tryHead
+                        let namesBeforeKey =
+                            c.Descendants()
+                            |> Seq.filter (fun el -> el.Name.LocalName.ToLowerInvariant() = "namesbeforekey")
+                            |> Seq.map (fun el -> el.Value.Trim())
+                            |> Seq.tryHead
+                        match namesBeforeKey, keyNames with
+                        | Some first, Some last -> Some (normalizeAuthorName $"{first} {last}")
+                        | None, Some last -> Some (normalizeAuthorName last)
+                        | Some first, None -> Some (normalizeAuthorName first)
+                        | None, None -> None)
+                |> Seq.filter (not << String.IsNullOrWhiteSpace)
+                |> Seq.distinct
+                |> Seq.toList
+
+            let mutable isbnOpt = None
+            let mutable sbnOpt = None
+            for pidEl in productEl.Descendants() |> Seq.filter (fun el -> el.Name.LocalName.ToLowerInvariant() = "productidentifier") do
+                let typeVal =
+                    pidEl.Descendants()
+                    |> Seq.filter (fun el -> el.Name.LocalName.ToLowerInvariant() = "productidtype")
+                    |> Seq.map (fun el -> el.Value.Trim())
+                    |> Seq.tryHead
+                    |> Option.defaultValue ""
+                let typeName =
+                    pidEl.Descendants()
+                    |> Seq.filter (fun el -> el.Name.LocalName.ToLowerInvariant() = "idtypename")
+                    |> Seq.map (fun el -> el.Value.Trim().ToLowerInvariant())
+                    |> Seq.tryHead
+                    |> Option.defaultValue ""
+                let idVal =
+                    pidEl.Descendants()
+                    |> Seq.filter (fun el -> el.Name.LocalName.ToLowerInvariant() = "idvalue")
+                    |> Seq.map (fun el -> el.Value.Trim())
+                    |> Seq.tryHead
+                    |> Option.defaultValue ""
+
+                if not (String.IsNullOrWhiteSpace idVal) then
+                    // 15 = ISBN-13, 02 = ISBN-10
+                    if typeVal = "15" || typeVal = "02" || Regex.IsMatch(idVal, @"^(97[89][0-9]{10}|[0-9]{9}[0-9Xx])$") then
+                        if isbnOpt.IsNone then isbnOpt <- Some idVal
+                    elif typeName = "sbn" then
+                        sbnOpt <- Some idVal
+
+            let publisher =
+                productEl.Descendants()
+                |> Seq.filter (fun el -> el.Name.LocalName.ToLowerInvariant() = "publisher")
+                |> Seq.collect (fun pubEl ->
+                    pubEl.Descendants()
+                    |> Seq.filter (fun el -> el.Name.LocalName.ToLowerInvariant() = "publishername")
+                    |> Seq.map (fun el -> el.Value.Trim()))
+                |> Seq.tryHead
+
+            let year =
+                productEl.Descendants()
+                |> Seq.filter (fun el -> el.Name.LocalName.ToLowerInvariant() = "publishingdate")
+                |> Seq.collect (fun pd ->
+                    pd.Descendants()
+                    |> Seq.filter (fun el -> el.Name.LocalName.ToLowerInvariant() = "date")
+                    |> Seq.choose (fun el -> extract4DigitYear el.Value))
+                |> Seq.tryHead
+
+            let description =
+                productEl.Descendants()
+                |> Seq.filter (fun el -> el.Name.LocalName.ToLowerInvariant() = "textcontent")
+                |> Seq.collect (fun tc ->
+                    tc.Descendants()
+                    |> Seq.filter (fun el -> el.Name.LocalName.ToLowerInvariant() = "text")
+                    |> Seq.map (fun el -> el.Value.Trim()))
+                |> Seq.filter (not << String.IsNullOrWhiteSpace)
+                |> Seq.tryHead
+
+            let language =
+                productEl.Descendants()
+                |> Seq.filter (fun el -> el.Name.LocalName.ToLowerInvariant() = "language")
+                |> Seq.collect (fun l ->
+                    l.Descendants()
+                    |> Seq.filter (fun el -> el.Name.LocalName.ToLowerInvariant() = "languagecode")
+                    |> Seq.map (fun el -> el.Value.Trim()))
+                |> Seq.tryHead
+
+            let subjects =
+                productEl.Descendants()
+                |> Seq.filter (fun el -> el.Name.LocalName.ToLowerInvariant() = "subject")
+                |> Seq.collect (fun s ->
+                    s.Descendants()
+                    |> Seq.filter (fun el -> el.Name.LocalName.ToLowerInvariant() = "subjectheadingtext")
+                    |> Seq.map (fun el -> el.Value.Trim()))
+                |> Seq.filter (not << String.IsNullOrWhiteSpace)
+                |> Seq.distinct
+                |> Seq.toList
+
+            if String.IsNullOrWhiteSpace title && isbnOpt.IsNone then
+                Error "ONIX product has neither title nor ISBN"
+            else
+                Ok {
+                    Title = if String.IsNullOrWhiteSpace title then (isbnOpt |> Option.defaultValue "Untitled") else title
+                    Authors = authors
+                    Publisher = publisher
+                    Year = year
+                    Isbn = isbnOpt
+                    SbnCode = sbnOpt
+                    Categories = subjects
+                    Tags = subjects
+                    Description = description
+                    ImageUrl = None
+                    Language = language
+                    RawFormat = Onix
+                }
+        with ex ->
+            Error $"Error parsing ONIX product: {ex.Message}"
+
+    let parseOnix (payload: string) : Result<CatalogImportDraft list, string> =
+        if String.IsNullOrWhiteSpace payload then
+            Error "Empty ONIX payload"
+        else
+            try
+                let doc = XDocument.Parse(payload)
+                let records =
+                    doc.Descendants()
+                    |> Seq.filter (fun el -> el.Name.LocalName.ToLowerInvariant() = "product")
+                    |> Seq.toList
+
+                if records.IsEmpty then
+                    Error "No <Product> elements found in ONIX payload"
+                else
+                    let results = records |> List.map parseSingleOnixProduct
+                    let errors = results |> List.choose (function Error e -> Some e | _ -> None)
+                    let items = results |> List.choose (function Ok item -> Some item | _ -> None)
+                    if items.IsEmpty && not errors.IsEmpty then
+                        Error (String.concat "; " errors)
+                    else
+                        Ok items
+            with ex ->
+                Error $"Invalid ONIX XML payload: {ex.Message}"
+
+    // ==========================================
     // Unified Dispatcher
     // ==========================================
 
     let parse (format: ExportFormat) (payload: string) : Result<CatalogImportDraft list, string> =
         match format with
         | Json -> parseJson payload
+        | Csv -> parseCsv payload
         | BibTex -> parseBibTex payload
+        | SchemaOrg -> parseSchemaOrg payload
+        | DublinCore -> parseDublinCore payload
         | MarcXml -> parseMarcXml payload
-        | other -> Error $"Format '{other.Name}' is not yet supported for catalog import"
+        | Mods -> parseMods payload
+        | Onix -> parseOnix payload

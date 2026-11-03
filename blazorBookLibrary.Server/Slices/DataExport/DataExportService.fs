@@ -48,8 +48,94 @@ type DataExportService
         authorsSearchService: IAuthorsSearchService,
         textEmbeddingService: ITextEmbeddingService,
         vectorDbService: IVectorDbService,
-        [<Optional; DefaultParameterValue(null)>] ?notificationService: INotificationService
+        catalogImportService: ICatalogImportService,
+        notificationService: INotificationService
     ) =
+
+    new
+        (
+            eventStore: IEventStore<string>,
+            messageSenders: MessageSenders,
+            bookViewerAsync: AggregateViewerAsync2<Book>,
+            authorViewerAsync: AggregateViewerAsync2<Author>,
+            editorViewerAsync: AggregateViewerAsync2<Editor>,
+            reservationViewerAsync: AggregateViewerAsync2<Reservation>,
+            loanViewerAsync: AggregateViewerAsync2<Loan>,
+            userViewerAsync: AggregateViewerAsync2<User>,
+            tenantViewerAsync: AggregateViewerAsync2<Tenant>,
+            userTenantResolverService: IUserTenantResolverService,
+            bookService: IBookService,
+            authorService: IAuthorService,
+            detailsService: IDetailsService,
+            googleBooksService: IBooksMetadataSearchService,
+            authorsSearchService: IAuthorsSearchService,
+            textEmbeddingService: ITextEmbeddingService,
+            vectorDbService: IVectorDbService,
+            catalogImportService: ICatalogImportService
+        ) =
+        DataExportService(
+            eventStore,
+            messageSenders,
+            bookViewerAsync,
+            authorViewerAsync,
+            editorViewerAsync,
+            reservationViewerAsync,
+            loanViewerAsync,
+            userViewerAsync,
+            tenantViewerAsync,
+            userTenantResolverService,
+            bookService,
+            authorService,
+            detailsService,
+            googleBooksService,
+            authorsSearchService,
+            textEmbeddingService,
+            vectorDbService,
+            catalogImportService,
+            null
+        )
+
+    new
+        (
+            eventStore: IEventStore<string>,
+            messageSenders: MessageSenders,
+            bookViewerAsync: AggregateViewerAsync2<Book>,
+            authorViewerAsync: AggregateViewerAsync2<Author>,
+            editorViewerAsync: AggregateViewerAsync2<Editor>,
+            reservationViewerAsync: AggregateViewerAsync2<Reservation>,
+            loanViewerAsync: AggregateViewerAsync2<Loan>,
+            userViewerAsync: AggregateViewerAsync2<User>,
+            tenantViewerAsync: AggregateViewerAsync2<Tenant>,
+            userTenantResolverService: IUserTenantResolverService,
+            bookService: IBookService,
+            authorService: IAuthorService,
+            detailsService: IDetailsService,
+            googleBooksService: IBooksMetadataSearchService,
+            authorsSearchService: IAuthorsSearchService,
+            textEmbeddingService: ITextEmbeddingService,
+            vectorDbService: IVectorDbService
+        ) =
+        DataExportService(
+            eventStore,
+            messageSenders,
+            bookViewerAsync,
+            authorViewerAsync,
+            editorViewerAsync,
+            reservationViewerAsync,
+            loanViewerAsync,
+            userViewerAsync,
+            tenantViewerAsync,
+            userTenantResolverService,
+            bookService,
+            authorService,
+            detailsService,
+            googleBooksService,
+            authorsSearchService,
+            textEmbeddingService,
+            vectorDbService,
+            null,
+            null
+        )
 
     [<ActivatorUtilitiesConstructor>]
     new
@@ -63,7 +149,8 @@ type DataExportService
             authorsSearchService: IAuthorsSearchService,
             textEmbeddingService: ITextEmbeddingService,
             vectorDbService: IVectorDbService,
-            [<Optional; DefaultParameterValue(null)>] ?notificationService: INotificationService
+            catalogImportService: ICatalogImportService,
+            notificationService: INotificationService
         ) =
         let connectionString = secretsReader.GetBookLibraryConnectionString()
         let eventStore = PgStorage.PgEventStore connectionString
@@ -111,7 +198,8 @@ type DataExportService
             authorsSearchService,
             textEmbeddingService,
             vectorDbService,
-            ?notificationService = notificationService
+            catalogImportService,
+            notificationService
         )
 
     interface IDataExportService with
@@ -638,8 +726,8 @@ type DataExportService
                           InterruptedCount = interruptedCount }
 
                     let notifServiceOpt =
-                        notificationService
-                        |> Option.bind (fun s -> if System.Object.ReferenceEquals(s, null) then None else Some s)
+                        if isNull (box notificationService) then None
+                        else Some notificationService
 
                     match notifServiceOpt, context.UserId with
                     | Some notifService, Some userId ->
@@ -662,4 +750,36 @@ type DataExportService
                     | _ -> ()
 
                     return Ok summary
+            }
+
+        member this.ImportFromFormatAsync
+            (
+                context: UserContext,
+                payload: string,
+                format: ExportFormat,
+                preventDuplicates: bool,
+                generateUnknownAuthors: bool,
+                generateEmbeddings: bool,
+                generateMissingDescriptions: bool,
+                createMissingPublishers: bool,
+                enrichMissingMetadataViaIsbn: bool,
+                progress: IProgress<ImportProgress>,
+                ct: CancellationToken
+            ) =
+            task {
+                let options: CatalogImportOptions =
+                    {
+                        PreventDuplicates = preventDuplicates
+                        CreateMissingAuthors = generateUnknownAuthors
+                        EnrichAuthorsWithIsniAndPhoto = generateUnknownAuthors
+                        CreateMissingPublishers = createMissingPublishers
+                        GenerateMissingDescriptions = generateMissingDescriptions
+                        GenerateEmbeddings = generateEmbeddings
+                        EnrichMissingMetadataViaIsbn = enrichMissingMetadataViaIsbn
+                        MaxBatchSize = Some 500
+                    }
+                if not (isNull (box catalogImportService)) then
+                    return! catalogImportService.ImportCatalogAsync(context, payload, format, options, progress = progress, ct = ct)
+                else
+                    return Error "Catalog import service is not configured or available."
             }

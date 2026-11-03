@@ -4,6 +4,7 @@ using Microsoft.FSharp.Core;
 using BookLibrary.Shared.Services;
 using BookLibrary.Domain;
 using BookLibrary.Shared;
+using BookLibrary.Shared.Formats;
 using System.Runtime.InteropServices;
 using Microsoft.FSharp.Collections;
 
@@ -40,6 +41,25 @@ public class DataExportClientService : IDataExportService
         var url = $"api/DataExport/import/isbns?preventDuplicates={preventDuplicates}&generateUnknownAuthors={generateUnknownAuthors}&generateEmbeddings={generateEmbeddings}&generateMissingDescriptions={generateMissingDescriptions}";
         var response = await _httpClient.PostAsJsonAsync(url, isbnStrings, ServiceClientHelper.JsonOptions, ct);
         return await ServiceClientHelper.HandleResponse<ImportSummary>(response);
+    }
 
+    public async Task<FSharpResult<CatalogImportResult, string>> ImportFromFormatAsync(
+        Commons.UserContext context,
+        string payload,
+        Commons.ExportFormat format,
+        bool preventDuplicates,
+        bool generateUnknownAuthors,
+        bool generateEmbeddings,
+        bool generateMissingDescriptions,
+        bool createMissingPublishers,
+        bool enrichMissingMetadataViaIsbn,
+        IProgress<ImportProgress> progress,
+        CancellationToken ct)
+    {
+        var formatStr = format.Code;
+        var url = $"api/DataExport/import/format?format={formatStr}&preventDuplicates={preventDuplicates}&generateUnknownAuthors={generateUnknownAuthors}&generateEmbeddings={generateEmbeddings}&generateMissingDescriptions={generateMissingDescriptions}&createMissingPublishers={createMissingPublishers}&enrichMissingMetadataViaIsbn={enrichMissingMetadataViaIsbn}";
+        var content = new StringContent(payload, System.Text.Encoding.UTF8, format.ContentType);
+        var response = await _httpClient.PostAsync(url, content, ct);
+        return await ServiceClientHelper.HandleResponse<CatalogImportResult>(response);
     }
 }

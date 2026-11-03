@@ -6,6 +6,7 @@ open System.Runtime.InteropServices
 open System.Threading
 open System.Threading.Tasks
 open BookLibrary.Shared.Commons
+open BookLibrary.Shared.Formats
 
 type ImportProgress = 
     {
@@ -33,5 +34,6 @@ type ImportSummary = {
 }
 
 type IDataExportService =
-    abstract member ExportAllBooksAsync: context: UserContext * exportFormat: ExportFormat * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<string, string>>
-    abstract member ImportFromIsbns: context: UserContext * isdns: List<Isbn> * preventDuplicates:bool * generateUnknownAuthors: bool * [<Optional; DefaultParameterValue(false)>]generateEmbeddings: bool * [<Optional; DefaultParameterValue(false)>]generateMissingDescriptions: bool * [<Optional; DefaultParameterValue(null)>] progress: IProgress<ImportProgress> * [<Optional; DefaultParameterValue(null)>] ct: CancellationToken -> Task<Result<ImportSummary, string>>
+    abstract member ExportAllBooksAsync: context: UserContext * exportFormat: ExportFormat * [<Optional; DefaultParameterValue(null: obj)>] ?ct: CancellationToken -> Task<Result<string, string>>
+    abstract member ImportFromIsbns: context: UserContext * isdns: List<Isbn> * preventDuplicates:bool * generateUnknownAuthors: bool * [<Optional; DefaultParameterValue(false)>]generateEmbeddings: bool * [<Optional; DefaultParameterValue(false)>]generateMissingDescriptions: bool * [<Optional; DefaultParameterValue(null: obj)>] progress: IProgress<ImportProgress> * [<Optional; DefaultParameterValue(null: obj)>] ct: CancellationToken -> Task<Result<ImportSummary, string>>
+    abstract member ImportFromFormatAsync: context: UserContext * payload: string * format: ExportFormat * preventDuplicates: bool * generateUnknownAuthors: bool * [<Optional; DefaultParameterValue(false)>] generateEmbeddings: bool * [<Optional; DefaultParameterValue(false)>] generateMissingDescriptions: bool * [<Optional; DefaultParameterValue(true)>] createMissingPublishers: bool * [<Optional; DefaultParameterValue(false)>] enrichMissingMetadataViaIsbn: bool * [<Optional; DefaultParameterValue(null: obj)>] progress: IProgress<ImportProgress> * [<Optional; DefaultParameterValue(null: obj)>] ct: CancellationToken -> Task<Result<CatalogImportResult, string>>

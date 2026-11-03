@@ -361,6 +361,14 @@ let getAuthorsSearchService () =
     httpClient.DefaultRequestHeaders.Add("User-Agent", "BlazorBookLibraryTest/1.0")
     AuthorsSearchService(httpClient, tenantViewerAsync, getUserTenantResolverService ()) :> IAuthorsSearchService
 
+let getCatalogImportService () : ICatalogImportService =
+    CatalogImportService(
+        getBookService (),
+        getAuthorService (),
+        getEditorService ()
+    )
+    :> ICatalogImportService
+
 let getDataExportService () : IDataExportService =
     DataExportService(
         pgEventStore,
@@ -379,17 +387,10 @@ let getDataExportService () : IDataExportService =
         getGoogleBooksService (),
         getAuthorsSearchService (),
         getTextEmbeddingService (),
-        getVectorDbService ()
+        getVectorDbService (),
+        getCatalogImportService ()
     )
     :> IDataExportService
-
-let getCatalogImportService () : ICatalogImportService =
-    CatalogImportService(
-        getBookService (),
-        getAuthorService (),
-        getEditorService ()
-    )
-    :> ICatalogImportService
 
 let getTenantService () : ITenantService =
     TenantService(

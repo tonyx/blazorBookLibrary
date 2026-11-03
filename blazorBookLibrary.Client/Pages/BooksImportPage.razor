@@ -3,6 +3,7 @@
 @using Microsoft.FSharp.Core
 @using System.Threading
 @using static BookLibrary.Shared.Commons
+@using BookLibrary.Shared.Formats
 @using blazorBookLibrary.Shared
 @rendermode InteractiveServer
 @attribute [Authorize]
@@ -28,7 +29,7 @@
         <div class="d-flex justify-content-between align-items-center">
             <div>
                 <h1 class="display-4 text-serif mb-2">@L["Import"] @L["BooksManager"]</h1>
-                <p class="text-muted lead mb-0">Import bulk catalog entries robustly using a list of ISBNs.</p>
+                <p class="text-muted lead mb-0">Import bulk catalog entries using standard formats (JSON, CSV, BibTeX, Dublin Core, MARCXML, MODS, ONIX) or ISBN manifests with assisted discovery.</p>
             </div>
             <div>
                 <a href="/books-manager" class="btn btn-outline-sanctuary rounded-pill px-4">
@@ -51,16 +52,38 @@
         @if (currentStep == ImportStep.Configure)
         {
             @* Step 1: Configure & Upload *@
-            <div class="col-lg-8 animate-slide-up">
+            <div class="col-lg-10 animate-slide-up">
                 <div class="card-sanctuary p-5 shadow border-0 rounded-4 bg-white">
                     <div class="border-bottom pb-4 mb-4">
                         <h2 class="h3 text-serif mb-2 text-primary"><i class="bi bi-gear-fill me-2"></i> @L["ImportSettings"]</h2>
-                        <p class="text-muted mb-0">Configure options and drop your text or CSV file containing one ISBN per line.</p>
+                        <p class="text-muted mb-0">Configure assisted automated discovery options and upload your file in any supported catalog format.</p>
+                    </div>
+
+                    @* Format Selection *@
+                    <div class="mb-4 p-3 bg-surface-low rounded-3 border">
+                        <label for="importFormatSelect" class="form-label small fw-bold text-muted text-uppercase mb-2">
+                            <i class="bi bi-file-earmark-code me-1 text-primary"></i> Source Format
+                        </label>
+                        <select id="importFormatSelect" class="form-select rounded-pill" @bind="selectedFormat">
+                            <option value="auto">Auto-detect from file extension</option>
+                            <option value="isbn">Plain ISBN Manifest (.txt / .csv)</option>
+                            <option value="json">JSON (.json)</option>
+                            <option value="csv">CSV Catalog (.csv)</option>
+                            <option value="bibtex">BibTeX (.bib)</option>
+                            <option value="schemaorg">Schema.org JSON-LD (.jsonld)</option>
+                            <option value="dublincore">Dublin Core XML (.xml)</option>
+                            <option value="marcxml">MARCXML (.xml / .marcxml)</option>
+                            <option value="mods">MODS XML (.mods.xml / .xml)</option>
+                            <option value="onix">ONIX 3.0 XML (.onix.xml / .xml)</option>
+                        </select>
+                        <div class="form-text small opacity-75 mt-1">
+                            Leave on auto-detect to parse according to the file extension or pick an explicit format.
+                        </div>
                     </div>
 
                     <div class="row g-4">
                         <div class="col-md-6">
-                            <div class="form-check form-switch p-3 bg-surface-low rounded-3 border">
+                            <div class="form-check form-switch p-3 bg-surface-low rounded-3 border h-100">
                                 <input class="form-check-input ms-0 me-2" type="checkbox" id="allowDuplicatesSwitch" @bind="importAllowDuplicates">
                                 <label class="form-check-label small fw-bold text-muted text-uppercase" for="allowDuplicatesSwitch">@L["AllowDuplicates"]</label>
                                 <div class="form-text mt-1 small opacity-75">@L["AllowDuplicatesHelp"]</div>
@@ -68,15 +91,31 @@
                         </div>
 
                         <div class="col-md-6">
-                            <div class="form-check form-switch p-3 bg-surface-low rounded-3 border">
+                            <div class="form-check form-switch p-3 bg-surface-low rounded-3 border h-100">
                                 <input class="form-check-input ms-0 me-2" type="checkbox" id="generateAuthorsSwitch" @bind="importGenerateAuthors">
                                 <label class="form-check-label small fw-bold text-muted text-uppercase" for="generateAuthorsSwitch">@L["GenerateUnknownAuthors"]</label>
-                                <div class="form-text mt-1 small opacity-75">@L["GenerateAuthorsHelp"]</div>
+                                <div class="form-text mt-1 small opacity-75">Auto-create missing authors and enrich them with ISNI identifiers and author pictures when available.</div>
                             </div>
                         </div>
 
                         <div class="col-md-6">
-                            <div class="form-check form-switch p-3 bg-surface-low rounded-3 border">
+                            <div class="form-check form-switch p-3 bg-surface-low rounded-3 border h-100">
+                                <input class="form-check-input ms-0 me-2" type="checkbox" id="createPublishersSwitch" @bind="importCreatePublishers">
+                                <label class="form-check-label small fw-bold text-muted text-uppercase" for="createPublishersSwitch">Create Missing Publishers</label>
+                                <div class="form-text mt-1 small opacity-75">Automatically register publisher / editor entities found in the imported manifest.</div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <div class="form-check form-switch p-3 bg-surface-low rounded-3 border h-100">
+                                <input class="form-check-input ms-0 me-2" type="checkbox" id="enrichViaIsbnSwitch" @bind="importEnrichViaIsbn">
+                                <label class="form-check-label small fw-bold text-muted text-uppercase" for="enrichViaIsbnSwitch">Enrich Missing Metadata via ISBN</label>
+                                <div class="form-text mt-1 small opacity-75">Fetch missing cover art, categories, or descriptions via Google Books if an ISBN is present.</div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <div class="form-check form-switch p-3 bg-surface-low rounded-3 border h-100">
                                 <input class="form-check-input ms-0 me-2" type="checkbox" id="generateDescriptionsSwitch" @bind="importGenerateMissingDescriptions">
                                 <label class="form-check-label small fw-bold text-muted text-uppercase" for="generateDescriptionsSwitch">@L["GenerateMissingDescriptions"]</label>
                                 <div class="form-text mt-1 small opacity-75">@L["GenerateDescriptionsHelp"]</div>
@@ -84,7 +123,7 @@
                         </div>
 
                         <div class="col-md-6">
-                            <div class="form-check form-switch p-3 bg-surface-low rounded-3 border">
+                            <div class="form-check form-switch p-3 bg-surface-low rounded-3 border h-100">
                                 <input class="form-check-input ms-0 me-2" type="checkbox" id="generateEmbeddingsSwitch" @bind="importGenerateEmbeddings">
                                 <label class="form-check-label small fw-bold text-muted text-uppercase" for="generateEmbeddingsSwitch">@L["GenerateEmbeddings"]</label>
                                 <div class="form-text mt-1 small opacity-75">@L["GenerateEmbeddingsHelp"]</div>
@@ -98,11 +137,11 @@
                             </div>
                         </div>
 
-                        <div class="col-12 mt-5">
+                        <div class="col-12 mt-4">
                             <div class="file-upload-zone p-5 text-center rounded-4 border-2 border-dashed bg-surface-low transition-hover">
                                 <i class="bi bi-file-earmark-arrow-up display-3 text-primary mb-3 d-block opacity-75"></i>
-                                <h4 class="text-serif mb-2">Select Archival Manifest</h4>
-                                <p class="text-muted small mb-4">Accepts list of ISBNs in plain text (.txt) or comma-separated (.csv)</p>
+                                <h4 class="text-serif mb-2">Select Catalog File or Manifest</h4>
+                                <p class="text-muted small mb-4">Accepts JSON, CSV, BibTeX, Schema.org, Dublin Core, MARCXML, MODS, ONIX 3.0, or plain ISBN manifests (.txt, .csv)</p>
                                 <label for="importFileInput" class="btn btn-sanctuary px-5 py-3 rounded-pill shadow-sm">
                                     <i class="bi bi-folder2-open me-2"></i> Browse Files
                                 </label>
@@ -122,7 +161,7 @@
                             <span class="visually-hidden">Loading...</span>
                         </div>
                         <h2 class="h3 text-serif text-primary mb-2">Archival Verification In Progress</h2>
-                        <p class="text-muted lead">The system is validating and parsing ISBN records using active endpoints.</p>
+                        <p class="text-muted lead">The system is validating and parsing catalog records using active endpoints.</p>
                     </div>
 
                     @if (currentProgress != null)
@@ -185,39 +224,39 @@
                         <p class="text-muted lead">Validation completed. The catalog ledger has been updated.</p>
                     </div>
 
-                    @if (lastImportSummary != null)
+                    @if (unifiedSummary != null)
                     {
                         <div class="row g-3 mb-5 text-center">
                             <div class="col-6 col-md">
                                 <div class="p-4 bg-success-subtle rounded-3 border border-success-subtle h-100 d-flex flex-column justify-content-center shadow-sm">
-                                    <div class="h2 mb-1 text-success fw-bold">@lastImportSummary.SuccessCount</div>
+                                    <div class="h2 mb-1 text-success fw-bold">@unifiedSummary.SuccessCount</div>
                                     <div class="small text-success-emphasis text-uppercase fw-bold letter-spacing-1">@L["Success"]</div>
                                 </div>
                             </div>
                             <div class="col-6 col-md">
                                 <div class="p-4 bg-danger-subtle rounded-3 border border-danger-subtle h-100 d-flex flex-column justify-content-center shadow-sm">
-                                    <div class="h2 mb-1 text-danger fw-bold">@lastImportSummary.FailureCount</div>
+                                    <div class="h2 mb-1 text-danger fw-bold">@unifiedSummary.FailureCount</div>
                                     <div class="small text-danger-emphasis text-uppercase fw-bold letter-spacing-1">@L["Failures"]</div>
                                 </div>
                             </div>
                             <div class="col-6 col-md">
                                 <div class="p-4 bg-warning-subtle rounded-3 border border-warning-subtle h-100 d-flex flex-column justify-content-center shadow-sm">
-                                    <div class="h2 mb-1 text-warning-emphasis fw-bold">@lastImportSummary.DuplicateCount</div>
+                                    <div class="h2 mb-1 text-warning-emphasis fw-bold">@unifiedSummary.DuplicateCount</div>
                                     <div class="small text-warning-emphasis text-uppercase fw-bold letter-spacing-1">@L["Duplicates"]</div>
                                 </div>
                             </div>
-                            @if (lastImportSummary.InterruptedCount > 0)
+                            @if (unifiedSummary.InterruptedCount > 0)
                             {
                                 <div class="col-6 col-md">
                                     <div class="p-4 bg-secondary-subtle rounded-3 border border-secondary-subtle h-100 d-flex flex-column justify-content-center shadow-sm">
-                                        <div class="h2 mb-1 text-secondary fw-bold">@lastImportSummary.InterruptedCount</div>
+                                        <div class="h2 mb-1 text-secondary fw-bold">@unifiedSummary.InterruptedCount</div>
                                         <div class="small text-secondary-emphasis text-uppercase fw-bold letter-spacing-1">@L["Interrupted"]</div>
                                     </div>
                                 </div>
                             }
                             <div class="col">
                                 <div class="p-4 bg-primary-subtle rounded-3 border border-primary-subtle h-100 d-flex flex-column justify-content-center shadow-sm">
-                                    <div class="h2 mb-1 text-primary fw-bold">@lastImportSummary.TotalProcessed</div>
+                                    <div class="h2 mb-1 text-primary fw-bold">@unifiedSummary.TotalProcessed</div>
                                     <div class="small text-primary-emphasis text-uppercase fw-bold letter-spacing-1">@L["Total"]</div>
                                 </div>
                             </div>
@@ -225,8 +264,8 @@
 
                         <div class="d-flex justify-content-between align-items-center mb-3">
                             <h3 class="h5 text-serif mb-0"><i class="bi bi-list-columns-reverse text-primary me-2"></i> Audit Ledger Details</h3>
-                            <button type="button" class="btn btn-outline-primary rounded-pill px-4 py-2 small shadow-sm" @onclick="CopyFailedIsbns">
-                                <i class="bi bi-clipboard me-2"></i> @L["CopyFailedIsbns"]
+                            <button type="button" class="btn btn-outline-primary rounded-pill px-4 py-2 small shadow-sm" @onclick="CopyFailedItems">
+                                <i class="bi bi-clipboard me-2"></i> Copy Failed Items
                             </button>
                         </div>
 
@@ -234,20 +273,20 @@
                             <table class="table table-editorial align-middle mb-0">
                                 <thead class="bg-surface-low sticky-top">
                                     <tr>
-                                        <th class="small text-uppercase fw-bold p-3">ISBN</th>
+                                        <th class="small text-uppercase fw-bold p-3">Identifier / ISBN</th>
                                         <th class="small text-uppercase fw-bold p-3">@L["Title"]</th>
                                         <th class="small text-uppercase fw-bold p-3">@L["Status"]</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @foreach (var detail in lastImportSummary.Details)
+                                    @foreach (var detail in unifiedSummary.Items)
                                     {
                                         <tr>
-                                            <td class="p-3 font-monospace small">@detail.Isbn.Value</td>
+                                            <td class="p-3 font-monospace small">@detail.Identifier</td>
                                             <td class="p-3">
-                                                @if (FSharpOption<string>.get_IsSome(detail.Title))
+                                                @if (!string.IsNullOrEmpty(detail.Title))
                                                 {
-                                                    <span class="text-serif fw-bold">@detail.Title.Value</span>
+                                                    <span class="text-serif fw-bold">@detail.Title</span>
                                                 }
                                                 else
                                                 {
@@ -255,28 +294,28 @@
                                                 }
                                             </td>
                                             <td class="p-3">
-                                                @if (detail.Status.IsSuccess)
+                                                @if (detail.StatusType == "success")
                                                 {
                                                     <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 py-2">
-                                                        <i class="bi bi-check-circle-fill me-1"></i> @L["Success"]
+                                                        <i class="bi bi-check-circle-fill me-1"></i> @detail.StatusText
                                                     </span>
                                                 }
-                                                else if (detail.Status.IsDuplicate)
+                                                else if (detail.StatusType == "duplicate")
                                                 {
                                                     <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle rounded-pill px-3 py-2">
-                                                        <i class="bi bi-intersect me-1"></i> @L["Duplicate"]
+                                                        <i class="bi bi-intersect me-1"></i> @detail.StatusText
                                                     </span>
                                                 }
-                                                else if (detail.Status.IsInterrupted)
+                                                else if (detail.StatusType == "interrupted")
                                                 {
                                                     <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle rounded-pill px-3 py-2">
-                                                        <i class="bi bi-stop-circle-fill me-1"></i> @L["Interrupted"]
+                                                        <i class="bi bi-stop-circle-fill me-1"></i> @detail.StatusText
                                                     </span>
                                                 }
-                                                else if (detail.Status is ImportStatus.Failure f)
+                                                else
                                                 {
-                                                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill px-3 py-2" title="@f.reason">
-                                                        <i class="bi bi-exclamation-triangle-fill me-1"></i> @L["Failure"]
+                                                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill px-3 py-2" title="@detail.ErrorReason">
+                                                        <i class="bi bi-exclamation-triangle-fill me-1"></i> @detail.StatusText
                                                     </span>
                                                 }
                                             </td>
@@ -301,7 +340,7 @@
     </div>
 </div>
 
-<InputFile id="importFileInput" OnChange="HandleImportFile" style="display:none" accept=".txt,.csv" />
+<InputFile id="importFileInput" OnChange="HandleImportFile" style="display:none" accept=".txt,.csv,.json,.bib,.jsonld,.xml,.marcxml,.mods" />
 
 <style>
     .card-sanctuary {
@@ -366,18 +405,40 @@
         Summary
     }
 
+    private class UnifiedImportItem
+    {
+        public string Identifier { get; set; } = "";
+        public string Title { get; set; } = "";
+        public string StatusText { get; set; } = "";
+        public string StatusType { get; set; } = "success";
+        public string ErrorReason { get; set; } = "";
+    }
+
+    private class UnifiedImportSummary
+    {
+        public int TotalProcessed { get; set; }
+        public int SuccessCount { get; set; }
+        public int DuplicateCount { get; set; }
+        public int FailureCount { get; set; }
+        public int InterruptedCount { get; set; }
+        public List<UnifiedImportItem> Items { get; set; } = new();
+    }
+
     private ImportStep currentStep = ImportStep.Configure;
     private string statusMessage = "";
     private string statusClass = "";
 
+    private string selectedFormat = "auto";
     private bool importAllowDuplicates = false;
     private bool importGenerateAuthors = true;
+    private bool importCreatePublishers = true;
     private bool importGenerateEmbeddings = false;
     private bool importGenerateMissingDescriptions = false;
+    private bool importEnrichViaIsbn = false;
 
     private CancellationTokenSource? importCts;
     private ImportProgress? currentProgress;
-    private ImportSummary? lastImportSummary;
+    private UnifiedImportSummary? unifiedSummary;
 
     [CascadingParameter]
     private Task<AuthenticationState> authenticationStateTask { get; set; } = default!;
@@ -411,7 +472,7 @@
     private void RestartImport()
     {
         currentStep = ImportStep.Configure;
-        lastImportSummary = null;
+        unifiedSummary = null;
         currentProgress = null;
         statusMessage = "";
         StateHasChanged();
@@ -427,6 +488,54 @@
         StateHasChanged();
     }
 
+    private (bool isIsbnList, ExportFormat? format) DetectFormat(string fileName, string content)
+    {
+        if (selectedFormat == "isbn") return (true, null);
+        if (selectedFormat == "json") return (false, ExportFormat.Json);
+        if (selectedFormat == "csv") return (false, ExportFormat.Csv);
+        if (selectedFormat == "bibtex") return (false, ExportFormat.BibTex);
+        if (selectedFormat == "schemaorg") return (false, ExportFormat.SchemaOrg);
+        if (selectedFormat == "dublincore") return (false, ExportFormat.DublinCore);
+        if (selectedFormat == "marcxml") return (false, ExportFormat.MarcXml);
+        if (selectedFormat == "mods") return (false, ExportFormat.Mods);
+        if (selectedFormat == "onix") return (false, ExportFormat.Onix);
+
+        var ext = System.IO.Path.GetExtension(fileName).ToLowerInvariant();
+        var lowerContent = content.TrimStart().ToLowerInvariant();
+
+        if (ext == ".bib") return (false, ExportFormat.BibTex);
+        if (ext == ".jsonld") return (false, ExportFormat.SchemaOrg);
+        if (ext == ".marcxml") return (false, ExportFormat.MarcXml);
+
+        if (ext == ".json")
+        {
+            if (content.Contains("@context") || content.Contains("@graph") || content.Contains("schema.org"))
+                return (false, ExportFormat.SchemaOrg);
+            return (false, ExportFormat.Json);
+        }
+
+        if (ext == ".xml")
+        {
+            if (lowerContent.Contains("<onixmessage") || lowerContent.Contains("<product>"))
+                return (false, ExportFormat.Onix);
+            if (lowerContent.Contains("<mods") || lowerContent.Contains("<modscollection"))
+                return (false, ExportFormat.Mods);
+            if (lowerContent.Contains("<record") || lowerContent.Contains("<leader>"))
+                return (false, ExportFormat.MarcXml);
+            return (false, ExportFormat.DublinCore);
+        }
+
+        if (ext == ".csv")
+        {
+            var firstLine = content.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries).FirstOrDefault()?.ToLowerInvariant() ?? "";
+            if (firstLine.Contains("title") || firstLine.Contains("availability") || firstLine.Contains("author") || firstLine.Contains("category"))
+                return (false, ExportFormat.Csv);
+            return (true, null);
+        }
+
+        return (true, null);
+    }
+
     private async Task HandleImportFile(InputFileChangeEventArgs e)
     {
         if (currentStep == ImportStep.Processing) return;
@@ -440,18 +549,12 @@
         
         try
         {
-            // Set a reasonable limit for bulk ISBN files (e.g., 512KB)
-            using var stream = file.OpenReadStream(maxAllowedSize: 512 * 1024);
+            // Allow up to 4MB for bulk catalogs
+            using var stream = file.OpenReadStream(maxAllowedSize: 4 * 1024 * 1024);
             using var reader = new System.IO.StreamReader(stream);
             var content = await reader.ReadToEndAsync();
-            
-            var isbns = ConverterUtils.parseIsbns(content);
-            if (isbns.Length == 0)
-            {
-                await ShowStatus("No valid ISBNs found in file.", "warning");
-                currentStep = ImportStep.Configure;
-                return;
-            }
+
+            var (isIsbnList, detectedFormat) = DetectFormat(file.Name, content);
 
             var progress = new Progress<ImportProgress>(p => 
             {
@@ -465,44 +568,169 @@
                 await ShowStatus(L["ImportEmbeddingsStartingNotice"]?.Value ?? "Import started. Generating vector embeddings is rate-limited and not immediate; if limits are reached, book imports will continue and you will be notified upon completion.", "info");
             }
             var context = await GetUserContextAsync();
-            var result = await DataExportService.ImportFromIsbns(
-                context, 
-                isbns, 
-                !importAllowDuplicates, 
-                importGenerateAuthors, 
-                importGenerateEmbeddings, 
-                importGenerateMissingDescriptions, 
-                progress, 
-                importCts.Token);
-            
-            if (result.IsOk)
+
+            if (isIsbnList)
             {
-                lastImportSummary = result.ResultValue;
-                var successCount = lastImportSummary.SuccessCount;
-                var failureCount = lastImportSummary.FailureCount;
-                
-                if (importCts.IsCancellationRequested)
+                var isbns = ConverterUtils.parseIsbns(content);
+                if (isbns.Length == 0)
                 {
-                    await ShowStatus(string.Format(L["ImportInterruptedSummary"], successCount, failureCount), "info");
+                    await ShowStatus("No valid ISBNs found in file.", "warning");
+                    currentStep = ImportStep.Configure;
+                    return;
+                }
+
+                var result = await DataExportService.ImportFromIsbns(
+                    context, 
+                    isbns, 
+                    !importAllowDuplicates, 
+                    importGenerateAuthors, 
+                    importGenerateEmbeddings, 
+                    importGenerateMissingDescriptions, 
+                    progress, 
+                    importCts.Token);
+                
+                if (result.IsOk)
+                {
+                    var raw = result.ResultValue;
+                    unifiedSummary = new UnifiedImportSummary
+                    {
+                        TotalProcessed = raw.TotalProcessed,
+                        SuccessCount = raw.SuccessCount,
+                        DuplicateCount = raw.DuplicateCount,
+                        FailureCount = raw.FailureCount,
+                        InterruptedCount = raw.InterruptedCount,
+                        Items = raw.Details.Select(d => new UnifiedImportItem
+                        {
+                            Identifier = d.Isbn.Value,
+                            Title = FSharpOption<string>.get_IsSome(d.Title) ? d.Title.Value : "",
+                            StatusType = d.Status.IsSuccess ? "success" :
+                                         d.Status.IsDuplicate ? "duplicate" :
+                                         d.Status.IsInterrupted ? "interrupted" : "failed",
+                            StatusText = d.Status.IsSuccess ? (L["Success"]?.Value ?? "Success") :
+                                         d.Status.IsDuplicate ? (L["Duplicate"]?.Value ?? "Duplicate") :
+                                         d.Status.IsInterrupted ? (L["Interrupted"]?.Value ?? "Interrupted") : (L["Failure"]?.Value ?? "Failure"),
+                            ErrorReason = d.Status is ImportStatus.Failure f ? f.reason : ""
+                        }).ToList()
+                    };
+
+                    if (importCts.IsCancellationRequested)
+                    {
+                        await ShowStatus(string.Format(L["ImportInterruptedSummary"], unifiedSummary.SuccessCount, unifiedSummary.FailureCount), "info");
+                    }
+                    else
+                    {
+                        await ShowStatus(string.Format(L["ImportSummary"], unifiedSummary.SuccessCount, unifiedSummary.FailureCount), "success");
+                    }
+                    currentStep = ImportStep.Summary;
                 }
                 else
                 {
-                    await ShowStatus(string.Format(L["ImportSummary"], successCount, failureCount), "success");
+                    if (importCts.IsCancellationRequested)
+                    {
+                        await ShowStatus(L["ImportCancelled"], "info");
+                    }
+                    else
+                    {
+                        await ShowStatus(string.Format(L["ImportFailed"], result.ErrorValue), "error");
+                    }
+                    currentStep = ImportStep.Configure;
                 }
-                
-                currentStep = ImportStep.Summary;
             }
             else
             {
-                if (importCts.IsCancellationRequested)
+                var format = detectedFormat ?? ExportFormat.Json;
+                var result = await DataExportService.ImportFromFormatAsync(
+                    context,
+                    content,
+                    format,
+                    !importAllowDuplicates,
+                    importGenerateAuthors,
+                    importGenerateEmbeddings,
+                    importGenerateMissingDescriptions,
+                    importCreatePublishers,
+                    importEnrichViaIsbn,
+                    progress,
+                    importCts.Token);
+
+                if (result.IsOk)
                 {
-                     await ShowStatus(L["ImportCancelled"], "info");
+                    var raw = result.ResultValue;
+                    unifiedSummary = new UnifiedImportSummary
+                    {
+                        TotalProcessed = raw.TotalProcessed,
+                        SuccessCount = raw.ImportedCount,
+                        DuplicateCount = raw.SkippedCount,
+                        FailureCount = raw.FailedCount,
+                        InterruptedCount = raw.InterruptedCount,
+                        Items = raw.Items.Select(item =>
+                        {
+                            if (item.IsImported)
+                            {
+                                var imp = (CatalogImportStatus.Imported)item;
+                                return new UnifiedImportItem
+                                {
+                                    Identifier = imp.bookId.ToString().Substring(0, 8),
+                                    Title = imp.title,
+                                    StatusType = "success",
+                                    StatusText = L["Success"]?.Value ?? "Imported"
+                                };
+                            }
+                            if (item.IsSkippedDuplicate)
+                            {
+                                var dup = (CatalogImportStatus.SkippedDuplicate)item;
+                                return new UnifiedImportItem
+                                {
+                                    Identifier = dup.isbn,
+                                    Title = dup.title,
+                                    StatusType = "duplicate",
+                                    StatusText = L["Duplicate"]?.Value ?? "Duplicate"
+                                };
+                            }
+                            if (item.IsCatalogImportInterrupted)
+                            {
+                                var inter = (CatalogImportStatus.CatalogImportInterrupted)item;
+                                return new UnifiedImportItem
+                                {
+                                    Identifier = "-",
+                                    Title = FSharpOption<string>.get_IsSome(inter.title) ? inter.title.Value : "Interrupted",
+                                    StatusType = "interrupted",
+                                    StatusText = L["Interrupted"]?.Value ?? "Interrupted"
+                                };
+                            }
+                            var fail = (CatalogImportStatus.Failed)item;
+                            return new UnifiedImportItem
+                            {
+                                Identifier = "-",
+                                Title = FSharpOption<string>.get_IsSome(fail.title) ? fail.title.Value : "Failed record",
+                                StatusType = "failed",
+                                StatusText = L["Failure"]?.Value ?? "Failure",
+                                ErrorReason = fail.error
+                            };
+                        }).ToList()
+                    };
+
+                    if (importCts.IsCancellationRequested)
+                    {
+                        await ShowStatus(string.Format(L["ImportInterruptedSummary"], unifiedSummary.SuccessCount, unifiedSummary.FailureCount), "info");
+                    }
+                    else
+                    {
+                        await ShowStatus(string.Format(L["ImportSummary"], unifiedSummary.SuccessCount, unifiedSummary.FailureCount), "success");
+                    }
+                    currentStep = ImportStep.Summary;
                 }
                 else
                 {
-                    await ShowStatus(string.Format(L["ImportFailed"], result.ErrorValue), "error");
+                    if (importCts.IsCancellationRequested)
+                    {
+                        await ShowStatus(L["ImportCancelled"], "info");
+                    }
+                    else
+                    {
+                        await ShowStatus(string.Format(L["ImportFailed"], result.ErrorValue), "error");
+                    }
+                    currentStep = ImportStep.Configure;
                 }
-                currentStep = ImportStep.Configure;
             }
         }
         catch (Exception ex)
@@ -518,24 +746,24 @@
         }
     }
 
-    private async Task CopyFailedIsbns()
+    private async Task CopyFailedItems()
     {
-        if (lastImportSummary == null) return;
+        if (unifiedSummary == null) return;
         
-        var failedIsbns = lastImportSummary.Details
-            .Where(d => d.Status.IsFailure)
-            .Select(d => d.Isbn.Value)
+        var failed = unifiedSummary.Items
+            .Where(d => d.StatusType == "failed")
+            .Select(d => string.IsNullOrEmpty(d.Identifier) || d.Identifier == "-" ? d.Title : $"{d.Identifier} ({d.Title})")
             .ToList();
         
-        if (failedIsbns.Any())
+        if (failed.Any())
         {
-            var text = string.Join(Environment.NewLine, failedIsbns);
+            var text = string.Join(Environment.NewLine, failed);
             await JSRuntime.InvokeVoidAsync("navigator.clipboard.writeText", text);
             await ShowStatus(L["FailedIsbnsCopied"], "success");
         }
         else
         {
-            await ShowStatus(L["NoFailedIsbnsToCopy"], "info");
+            await ShowStatus("No failed items to copy.", "info");
         }
     }
 }

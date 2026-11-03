@@ -15,6 +15,7 @@ open BookLibrary.Shared.Details
 open BookLibrary.Shared.Formats
 open BookLibrary.Shared.Services
 open FsToolkit.ErrorHandling
+open System.Runtime.InteropServices
 
 [<ApiController>]
 [<Route("api/catalog")>]
@@ -425,7 +426,11 @@ type CatalogController
             formatParam: string,
             preventDuplicates: Nullable<bool>,
             createMissingAuthors: Nullable<bool>,
-            createMissingPublishers: Nullable<bool>
+            createMissingPublishers: Nullable<bool>,
+            enrichAuthorsWithIsniAndPhoto: Nullable<bool>,
+            generateMissingDescriptions: Nullable<bool>,
+            generateEmbeddings: Nullable<bool>,
+            enrichMissingMetadataViaIsbn: Nullable<bool>
         ) =
         this.ExecuteQuery(tenantParam, fun (context, ct) ->
             task {
@@ -450,10 +455,14 @@ type CatalogController
                             {
                                 PreventDuplicates = if preventDuplicates.HasValue then preventDuplicates.Value else true
                                 CreateMissingAuthors = if createMissingAuthors.HasValue then createMissingAuthors.Value else true
+                                EnrichAuthorsWithIsniAndPhoto = if enrichAuthorsWithIsniAndPhoto.HasValue then enrichAuthorsWithIsniAndPhoto.Value else true
                                 CreateMissingPublishers = if createMissingPublishers.HasValue then createMissingPublishers.Value else true
+                                GenerateMissingDescriptions = if generateMissingDescriptions.HasValue then generateMissingDescriptions.Value else false
+                                GenerateEmbeddings = if generateEmbeddings.HasValue then generateEmbeddings.Value else false
+                                EnrichMissingMetadataViaIsbn = if enrichMissingMetadataViaIsbn.HasValue then enrichMissingMetadataViaIsbn.Value else false
                                 MaxBatchSize = Some maxBatchSize
                             }
-                        let! importRes = catalogImportService.ImportCatalogAsync(context, payload, format, options, ct)
+                        let! importRes = catalogImportService.ImportCatalogAsync(context, payload, format, options, ct = ct)
                         match importRes with
                         | Ok summary ->
                             return this.Ok(summary) :> IActionResult
@@ -470,9 +479,22 @@ type CatalogController
             [<FromQuery>] format: string,
             [<FromQuery>] preventDuplicates: Nullable<bool>,
             [<FromQuery>] createMissingAuthors: Nullable<bool>,
-            [<FromQuery>] createMissingPublishers: Nullable<bool>
+            [<FromQuery>] createMissingPublishers: Nullable<bool>,
+            [<FromQuery>] ?enrichAuthorsWithIsniAndPhoto: Nullable<bool>,
+            [<FromQuery>] ?generateMissingDescriptions: Nullable<bool>,
+            [<FromQuery>] ?generateEmbeddings: Nullable<bool>,
+            [<FromQuery>] ?enrichMissingMetadataViaIsbn: Nullable<bool>
         ) =
-        this.ImportBooksInternal("default", format, preventDuplicates, createMissingAuthors, createMissingPublishers)
+        this.ImportBooksInternal(
+            "default",
+            format,
+            preventDuplicates,
+            createMissingAuthors,
+            createMissingPublishers,
+            defaultArg enrichAuthorsWithIsniAndPhoto (Nullable()),
+            defaultArg generateMissingDescriptions (Nullable()),
+            defaultArg generateEmbeddings (Nullable()),
+            defaultArg enrichMissingMetadataViaIsbn (Nullable()))
 
     [<HttpPost("{tenant}/books")>]
     [<RequestSizeLimit(4194304L)>]
@@ -483,6 +505,19 @@ type CatalogController
             [<FromQuery>] format: string,
             [<FromQuery>] preventDuplicates: Nullable<bool>,
             [<FromQuery>] createMissingAuthors: Nullable<bool>,
-            [<FromQuery>] createMissingPublishers: Nullable<bool>
+            [<FromQuery>] createMissingPublishers: Nullable<bool>,
+            [<FromQuery>] ?enrichAuthorsWithIsniAndPhoto: Nullable<bool>,
+            [<FromQuery>] ?generateMissingDescriptions: Nullable<bool>,
+            [<FromQuery>] ?generateEmbeddings: Nullable<bool>,
+            [<FromQuery>] ?enrichMissingMetadataViaIsbn: Nullable<bool>
         ) =
-        this.ImportBooksInternal(tenant, format, preventDuplicates, createMissingAuthors, createMissingPublishers)
+        this.ImportBooksInternal(
+            tenant,
+            format,
+            preventDuplicates,
+            createMissingAuthors,
+            createMissingPublishers,
+            defaultArg enrichAuthorsWithIsniAndPhoto (Nullable()),
+            defaultArg generateMissingDescriptions (Nullable()),
+            defaultArg generateEmbeddings (Nullable()),
+            defaultArg enrichMissingMetadataViaIsbn (Nullable()))

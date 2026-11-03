@@ -105,8 +105,8 @@
     <Compile Include="Slices/Details/DetailsService.fs" />
     <Compile Include="Slices/DistributionPoint/DistributionPointService.fs" />
     <Compile Include="Slices/Book/TextEmbeddingService.fs" />
-    <Compile Include="Slices/DataExport/DataExportService.fs" />
     <Compile Include="Slices/DataExport/CatalogImportService.fs" />
+    <Compile Include="Slices/DataExport/DataExportService.fs" />
     <Compile Include="Slices/Admin/AdminService.fs" />
     <Compile Include="Slices/Tenant/TenantService.fs" />
     <Compile Include="Slices/Tenant/TenantApiKeyService.fs" />
