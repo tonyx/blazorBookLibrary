@@ -50,7 +50,7 @@ Compact architectural specification and canonical code skeletons for building fe
 | **Cached Model**| `Server/Slices/Details/Details.fs` | `Refreshable<Agg>Details` | Record with `Refresher: Option<CancellationToken> -> TaskResult<...>` implementing `RefreshableAsync` |
 | **Service Contract** | `Shared/Slices/<Feature>/I<Agg>Service.fs`| `I<Agg>Service` | Interface taking `context: UserContext`, `?ct: CancellationToken`, returning `TaskResult<'T, string>` |
 | **Service Impl** | `Server/Slices/<Feature>/<Agg>Service.fs` | `<Agg>Service` | Class consuming `IEventStore<string>`, `MessageSenders`, `AggregateViewerAsync2<TAgg>`, `IUserTenantResolverService` |
-| **Migration** | `Server/db/migrations/` | `YYYYMMDDHHMMSS_create_<agg>.sql` | Tables: `events_{Version}{StorageName}`, `snapshots_{Version}{StorageName}`, `aggregate_events_...` |
+| **Migration** | `Server/db/migrations/` | `YYYYMMDDHHMMSS_create_<agg>.sql` | Tables, sequences, indexes, and PL/pgSQL functions for event/snapshot append and optimistic locking |
 
 ---
 
@@ -278,24 +278,263 @@ type RefreshableItemDetails =
         member this.RefreshAsync ct = this.RefreshAsync ct
 ```
 
-### 4.8 SQL Migration (`Server/db/migrations/TIMESTAMP_create_<name>.sql`)
+### 4.8 SQL Migration for Aggregates (`Server/db/migrations/TIMESTAMP_create_<name>.sql`)
+
+Sharpino event store requires an exact table schema, identity sequences, indexes, and **mandatory PL/pgSQL functions** for event appending and optimistic locking. Direct `INSERT` statements are never used by Sharpino; the runtime calls these stored procedures directly.
+
+> [!IMPORTANT]
+> The stream naming follows `{Version}{StorageName}` (e.g. `Version = "_01"` and `StorageName = "_item"` yields `_01_item`). Format is `text` (or `jsonb` if configured). All names unquoted in PostgreSQL resolve to lowercase.
+
 ```sql
--- Pattern: {Version}{StorageName} -> 01_item
-CREATE TABLE IF NOT EXISTS events_01_item (
-    id UUID PRIMARY KEY,
-    aggregate_id UUID NOT NULL,
-    event TEXT NOT NULL,
-    timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW()
+-- migrate:up
+
+-- 1. Events Table
+CREATE TABLE public.events_01_item (
+    id integer NOT NULL,
+    aggregate_id uuid NOT NULL,
+    event text NOT NULL,
+    published boolean NOT NULL DEFAULT false,
+    distance_from_latest_snapshot integer,
+    "timestamp" timestamp without time zone NOT NULL,
+    md text
 );
-CREATE TABLE IF NOT EXISTS snapshots_01_item (
-    aggregate_id UUID PRIMARY KEY,
-    snapshot TEXT NOT NULL,
-    version INT NOT NULL,
-    timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW()
+
+ALTER TABLE public.events_01_item ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.events_01_item_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
 );
-CREATE TABLE IF NOT EXISTS aggregate_events_01_item (
-    aggregate_id UUID NOT NULL,
-    event_id UUID NOT NULL REFERENCES events_01_item(id) ON DELETE CASCADE,
-    PRIMARY KEY (aggregate_id, event_id)
+
+-- 2. Snapshots Table
+CREATE SEQUENCE public.snapshots_01_item_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+CREATE TABLE public.snapshots_01_item (
+    id integer DEFAULT nextval('public.snapshots_01_item_id_seq'::regclass) NOT NULL,
+    snapshot text NOT NULL,
+    event_id integer,
+    aggregate_id uuid NOT NULL,
+    "timestamp" timestamp without time zone NOT NULL,
+    is_deleted boolean NOT NULL DEFAULT false
 );
+
+-- 3. Aggregate Events Junction Table
+CREATE SEQUENCE public.aggregate_events_01_item_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+CREATE TABLE public.aggregate_events_01_item (
+    id integer DEFAULT nextval('public.aggregate_events_01_item_id_seq') NOT NULL,
+    aggregate_id uuid NOT NULL,
+    event_id integer UNIQUE
+);
+
+-- 4. Constraints & Foreign Keys
+ALTER TABLE ONLY public.events_01_item
+    ADD CONSTRAINT events_01_item_pkey PRIMARY KEY (id);
+
+ALTER TABLE ONLY public.snapshots_01_item
+    ADD CONSTRAINT snapshots_01_item_pkey PRIMARY KEY (id);
+
+ALTER TABLE ONLY public.snapshots_01_item
+    ADD CONSTRAINT event_01_item_fk FOREIGN KEY (event_id) REFERENCES public.events_01_item (id) MATCH FULL ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.aggregate_events_01_item
+    ADD CONSTRAINT aggregate_events_01_item_pkey PRIMARY KEY (id);
+
+ALTER TABLE ONLY public.aggregate_events_01_item
+    ADD CONSTRAINT aggregate_events_01_item_fk FOREIGN KEY (event_id) REFERENCES public.events_01_item (id) MATCH FULL ON DELETE CASCADE;
+
+-- 5. Indexes
+CREATE INDEX ix_01_events_item_id ON public.events_01_item(aggregate_id);
+CREATE INDEX ix_01_aggregate_events_item_id ON public.aggregate_events_01_item(aggregate_id);
+CREATE INDEX ix_01_snapshot_item_id ON public.snapshots_01_item(aggregate_id);
+CREATE INDEX ix_01_snapshot_item_aggregate_id_and_id ON public.snapshots_01_item(aggregate_id, id DESC);
+CREATE INDEX ix_01_snapshot_item_event_id ON public.snapshots_01_item(event_id);
+CREATE INDEX ix_01_events_item_timestamp ON public.events_01_item("timestamp");
+CREATE INDEX ix_01_snapshots_item_timestamp ON public.snapshots_01_item("timestamp");
+
+-- 6. Mandatory PL/pgSQL Functions Required by Sharpino Runtime
+
+CREATE OR REPLACE FUNCTION insert_01_item_event_and_return_id(
+    IN event_in text,
+    IN aggregate_id uuid
+)
+RETURNS int
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    inserted_id integer;
+BEGIN
+    INSERT INTO events_01_item(event, aggregate_id, timestamp)
+    VALUES(event_in, aggregate_id, now()) RETURNING id INTO inserted_id;
+    RETURN inserted_id;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION insert_md_01_item_event_and_return_id(
+    IN event_in text,
+    IN aggregate_id uuid,
+    IN distance_from_latest_snapshot int,
+    IN md text
+)
+RETURNS int
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    inserted_id integer;
+BEGIN
+    INSERT INTO events_01_item(event, aggregate_id, distance_from_latest_snapshot, timestamp, md)
+    VALUES(event_in, aggregate_id, distance_from_latest_snapshot, now(), md) RETURNING id INTO inserted_id;
+    RETURN inserted_id;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION insert_01_item_aggregate_event_and_return_id(
+    IN event_in text,
+    IN aggregate_id uuid 
+)
+RETURNS int
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    inserted_id integer;
+    event_id integer;
+BEGIN
+    event_id := insert_01_item_event_and_return_id(event_in, aggregate_id);
+    INSERT INTO aggregate_events_01_item(aggregate_id, event_id)
+    VALUES(aggregate_id, event_id) RETURNING id INTO inserted_id;
+    RETURN event_id;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION insert_md_01_item_aggregate_event_and_return_id(
+    IN event_in text,
+    IN aggregate_id uuid,
+    IN distance_from_latest_snapshot int,
+    IN md text   
+)
+RETURNS int
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    inserted_id integer;
+    event_id integer;
+BEGIN
+    event_id := insert_md_01_item_event_and_return_id(event_in, aggregate_id, distance_from_latest_snapshot, md);
+    INSERT INTO aggregate_events_01_item(aggregate_id, event_id)
+    VALUES(aggregate_id, event_id) RETURNING id INTO inserted_id;
+    RETURN event_id;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION insert_md_01_item_aggregate_event_and_return_id_opt_lock(
+    IN event_in text,
+    IN aggregate_id uuid,
+    IN distance_from_latest_snapshot int,
+    IN md text,   
+    IN last_event_id int
+)
+RETURNS int
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    inserted_id integer;
+    event_id integer;
+    found_last_event_id integer;
+BEGIN
+    SELECT id INTO found_last_event_id 
+    FROM events_01_item 
+    WHERE events_01_item.aggregate_id = insert_md_01_item_aggregate_event_and_return_id_opt_lock.aggregate_id 
+    ORDER BY id DESC LIMIT 1;
+
+    IF last_event_id = 0 THEN
+        IF found_last_event_id IS NOT NULL THEN
+            RAISE EXCEPTION 'Optimistic locking check failed: expected no previous events, but found event %', found_last_event_id;
+        END IF;
+    ELSIF last_event_id > 0 THEN
+        IF found_last_event_id IS NULL OR found_last_event_id <> last_event_id THEN
+            RAISE EXCEPTION 'Optimistic locking check failed: expected last event id %, but found %', last_event_id, found_last_event_id;
+        END IF;
+    END IF;
+
+    event_id := insert_md_01_item_event_and_return_id(event_in, aggregate_id, distance_from_latest_snapshot, md);
+    INSERT INTO aggregate_events_01_item(aggregate_id, event_id)
+    VALUES(aggregate_id, event_id) RETURNING id INTO inserted_id;
+    RETURN event_id;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION insert_md_01_item_aggregate_event_and_return_id_opt_lock2(
+    IN event_in text,
+    IN aggregate_id uuid,
+    IN distance_from_latest_snapshot int,
+    IN md text,   
+    IN last_event_id int,
+    IN extra_stream_names text[],
+    IN extra_event_ids int[],
+    IN extra_aggregate_ids uuid[]
+)
+RETURNS int
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    inserted_id integer;
+    event_id integer;
+BEGIN
+    -- Perform the main optimistic locking check (with advisory lock serialization)
+    PERFORM check_last_event_id_opt_lock('events_01_item', aggregate_id, last_event_id);
+
+    -- Perform the checks for extra cross-aggregate constraints
+    IF extra_stream_names IS NOT NULL THEN
+        FOR i IN 1..cardinality(extra_stream_names) LOOP
+            PERFORM check_last_event_id_opt_lock(extra_stream_names[i], extra_aggregate_ids[i], extra_event_ids[i]);
+        END LOOP;
+    END IF;
+
+    event_id := insert_md_01_item_event_and_return_id(event_in, aggregate_id, distance_from_latest_snapshot, md);
+    INSERT INTO aggregate_events_01_item(aggregate_id, event_id)
+    VALUES(aggregate_id, event_id) RETURNING id INTO inserted_id;
+    RETURN event_id;
+END;
+$$;
+
+-- 7. User Grants (if applicable)
+GRANT ALL ON TABLE public.aggregate_events_01_item TO safe;
+GRANT ALL ON SEQUENCE public.aggregate_events_01_item_id_seq TO safe;
+GRANT ALL ON TABLE public.events_01_item TO safe;
+GRANT ALL ON SEQUENCE public.events_01_item_id_seq TO safe;
+GRANT ALL ON TABLE public.snapshots_01_item TO safe;
+GRANT ALL ON SEQUENCE public.snapshots_01_item_id_seq TO safe;
+
+-- migrate:down
+```
+
+---
+
+### 4.9 Context Streams vs. Template Automation
+
+#### Context Stream (Singleton / Linear Stream)
+When an entity is not keyed per aggregate instance (e.g. system configurations, global singletons), Sharpino uses a **Context Stream**:
+- **No `aggregate_events` junction table** and **no `aggregate_id` column**.
+- Table: `events{Version}{ContextStorageName}` (`id`, `event`, `published`, `timestamp`, `md`).
+- Table: `snapshots{Version}{ContextStorageName}` (`id`, `snapshot`, `event_id`, `timestamp`).
+- Functions: `insert{Version}{ContextStorageName}_event_and_return_id` and `insert_md{Version}{ContextStorageName}_event_and_return_id`.
+
+#### Generation from Templates
+Rather than handwriting migration SQL, use the canonical template generator from `realsharpino/Sharpino/SqlTemplates/`:
+```bash
+# cat AggregateTemplate.sql | sed -e "s/{Version}/$1/g" | sed -e "s/{AggregateStorageName}/$2/g" | sed -e "s/{Format}/$3/g"
+# Example invocation:
+./generateAggregateByTemplate.sh "_01" "_item" "text" > Server/db/migrations/$(date +%Y%m%d%H%M%S)_create_item.sql
 ```
