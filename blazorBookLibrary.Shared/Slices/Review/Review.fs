@@ -42,7 +42,7 @@ type Review =
             }
 
         member this.Edit (comment: string) = 
-            { this with Comment = comment; Edited = true } |> Ok
+            { this with Comment = comment; Edited = true; ApprovalStatus = ApprovalStatus.Pending } |> Ok
 
         member this.Hide () = 
             { this with Hidden = true } |> Ok

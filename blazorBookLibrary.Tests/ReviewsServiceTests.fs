@@ -413,14 +413,24 @@ let tests =
             Expect.isOk getReviewAfterUpdate "should be ok"
             let reviewAfterUpdate = getReviewAfterUpdate.OkValue
             Expect.equal reviewAfterUpdate.Comment newContent "should have the same content as the review"
+            Expect.equal reviewAfterUpdate.ApprovalStatus ApprovalStatus.Pending "approval status should be reset to pending after edit"
 
             let! bookDetailAfterUpdate = detailsService.GetBookDetailsAsync (adminContext, book.BookId)
             Expect.isOk bookDetailAfterUpdate "should be ok"
 
             let bookDetailAfterUpdate = bookDetailAfterUpdate.OkValue
-            Expect.equal bookDetailAfterUpdate.ApprovedVisibleReviews.Length 1 "should have 1 review"
+            Expect.equal bookDetailAfterUpdate.ApprovedVisibleReviews.Length 0 "should have 0 approved reviews while pending re-approval"
 
-            let reviewContentAfterUpdate = bookDetailAfterUpdate.ApprovedVisibleReviews.[0].Review.Comment
+            let! reApproveReview = reviewService.ApproveAsync (adminContext, review.ReviewId)
+            Expect.isOk reApproveReview "should be ok"
+
+            let! bookDetailAfterReApprove = detailsService.GetBookDetailsAsync (adminContext, book.BookId)
+            Expect.isOk bookDetailAfterReApprove "should be ok"
+
+            let bookDetailAfterReApprove = bookDetailAfterReApprove.OkValue
+            Expect.equal bookDetailAfterReApprove.ApprovedVisibleReviews.Length 1 "should have 1 review after re-approval"
+
+            let reviewContentAfterUpdate = bookDetailAfterReApprove.ApprovedVisibleReviews.[0].Review.Comment
             Expect.equal reviewContentAfterUpdate newContent "should have the same content as the review"
         }
     ]

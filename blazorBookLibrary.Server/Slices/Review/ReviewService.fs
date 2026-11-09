@@ -246,6 +246,14 @@ type ReviewService
                     (CommentCommand.Edit(editedComment, now))
                     (Some ct)
 
+            let bookKey =
+                DetailsCacheKey.OfType typeof<RefreshableBookDetails> (review.BookId.Value)
+
+            DetailsCache.Instance.UpdateMultipleAggregateIdAssociation [| commentId.Value |] bookKey
+
+            let reviewKey = DetailsCacheKey.OfType typeof<RefreshableReviewDetails> (commentId.Value)
+            DetailsCache.Instance.UpdateMultipleAggregateIdAssociation [| commentId.Value |] reviewKey
+
             return result
         }
 
@@ -271,6 +279,11 @@ type ReviewService
                     context.Metadata
                     (CommentCommand.Approve now)
                     (Some ct)
+
+            let bookKey =
+                DetailsCacheKey.OfType typeof<RefreshableBookDetails> (review.BookId.Value)
+
+            DetailsCache.Instance.UpdateMultipleAggregateIdAssociation [| commentId.Value |] bookKey
 
             return result
         }
