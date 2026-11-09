@@ -7,6 +7,7 @@ open BookLibrary.Shared.Commons
 open System.Text.Json
 
 type UserEvent =
+    | NoOp
     | ReservationAdded of ReservationId
     | ReservationRemoved of ReservationId
     | LoanAdded of LoanId
@@ -25,6 +26,8 @@ type UserEvent =
     interface Event<User> with
         member this.Process (user: User) : Result<User, string> =
             match this with
+            | NoOp ->
+                Ok user
             | ReservationAdded _
             | ReservationRemoved _
             | LoanAdded _

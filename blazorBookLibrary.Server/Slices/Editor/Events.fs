@@ -7,12 +7,15 @@ open BookLibrary.Shared.Commons
 open System.Text.Json
 
 type EditorEvent =
+    | NoOp
     | NameUpdated of Name * DateTime
     | EditorSealed of DateTime
     | EditorUnsealed of DateTime
     interface Event<Editor> with
         member this.Process (editor: Editor) =
             match this with
+            | NoOp ->
+                Ok editor
             | NameUpdated (name, dateTime) ->
                 editor.UpdateName name dateTime
             | EditorSealed dateTime ->

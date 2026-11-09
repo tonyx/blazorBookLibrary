@@ -58,4 +58,16 @@ public class AdminClientService : IAdminServices
         var response = await _httpClient.PostAsJsonAsync($"api/Admin/distribution-points/{id.Value}/rename", newName.Value, ServiceClientHelper.JsonOptions, ServiceClientHelper.GetValue(ct, CancellationToken.None));
         return await ServiceClientHelper.HandleUnitResponse(response);
     }
+
+    public async Task<FSharpResult<string, string>> RecoverAggregateStreamAsync(Commons.UserContext context, string aggregateType, Guid aggregateId, FSharpOption<CancellationToken> ct)
+    {
+        var response = await _httpClient.PostAsync($"api/Admin/recover/aggregate/{aggregateType}/{aggregateId}", null, ServiceClientHelper.GetValue(ct, CancellationToken.None));
+        return await ServiceClientHelper.HandleResponse<string>(response);
+    }
+
+    public async Task<FSharpResult<string, string>> RecoverAllAggregatesAsync(Commons.UserContext context, string aggregateType, FSharpOption<CancellationToken> ct)
+    {
+        var response = await _httpClient.PostAsync($"api/Admin/recover/all/{aggregateType}", null, ServiceClientHelper.GetValue(ct, CancellationToken.None));
+        return await ServiceClientHelper.HandleResponse<string>(response);
+    }
 }

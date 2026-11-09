@@ -138,6 +138,14 @@ builder.Services.AddSingleton<ITenantCacheWarmupService, TenantCacheWarmupServic
 builder.Services.AddSingleton<INotificationService, NotificationService>();
 
 builder.Services.AddTransient<CleanUpService>();
+builder.Services.AddSingleton<AutoRecoveryAnomalyHandler>(sp =>
+{
+    var secretsReader = sp.GetRequiredService<BookLibrary.Utils.SecretsReader>();
+    var connStr = secretsReader.GetBookLibraryConnectionString();
+    var eventStore = new Sharpino.PgStorage.PgEventStore(connStr);
+    var logger = sp.GetRequiredService<ILogger<AutoRecoveryAnomalyHandler>>();
+    return new AutoRecoveryAnomalyHandler(eventStore, logger);
+});
 builder.Services.AddHttpClient();
 
 builder.Services.AddScoped<RandomAuthorGeneratorService>();
@@ -465,6 +473,10 @@ using (var scope = app.Services.CreateScope())
 
     // Invoke CleanUpService to force snapshots on startup if configured
     // CleanUpService cleanUpService = scope.ServiceProvider.GetRequiredService<BookLibrary.CleanServices.CleanUpServices.CleanUpService>();
+
+    // Register AutoRecoveryAnomalyHandler in Sharpino to heal evolve failures on-the-fly
+    var autoRecoveryHandler = scope.ServiceProvider.GetRequiredService<AutoRecoveryAnomalyHandler>();
+    Sharpino.Core.setAnomalyHandler(autoRecoveryHandler);
 
     var cleanUpService = scope.ServiceProvider.GetRequiredService<CleanUpService>();
     FSharpResult<Unit, string> cleanupResult = await cleanUpService.ReSnapshotOnStartup();

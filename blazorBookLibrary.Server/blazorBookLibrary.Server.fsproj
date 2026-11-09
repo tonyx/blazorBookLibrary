@@ -107,12 +107,13 @@
     <Compile Include="Slices/Book/TextEmbeddingService.fs" />
     <Compile Include="Slices/DataExport/CatalogImportService.fs" />
     <Compile Include="Slices/DataExport/DataExportService.fs" />
-    <Compile Include="Slices/Admin/AdminService.fs" />
-    <Compile Include="Slices/Tenant/TenantService.fs" />
-    <Compile Include="Slices/Tenant/TenantApiKeyService.fs" />
     <Compile Include="Slices/Notification/MailQueue.fs" />
     <Compile Include="Slices/Notification/MailsQueueEvents.fs" />
     <Compile Include="Slices/Notification/MailsQueueCommands.fs" />
+    <Compile Include="Slices/Admin/AdminService.fs" />
+    <Compile Include="Slices/Tenant/TenantService.fs" />
+    <Compile Include="Slices/Tenant/TenantApiKeyService.fs" />
+    <Compile Include="Slices/Common/AutoRecoveryAnomalyHandler.fs" />
     <Compile Include="Slices/Notification/IMailResenderService.fs" />
     <Compile Include="Slices/Notification/MailResenderService.fs" />
     <Compile Include="Slices/Notification/MailResenderScheduler.fs" />
@@ -163,7 +164,7 @@
 
     <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.0.14" />
 
-    <PackageReference Include="Sharpino" Version="6.2.7" />
+    <PackageReference Include="Sharpino" Version="7.0.1" />
 
   </ItemGroup>
 

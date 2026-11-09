@@ -6,6 +6,7 @@ open BookLibrary.Shared.Commons
 open System.Text.Json
 
 type TenantEvent =
+    | NoOp
     | Deactivated
     | Activated
     | ScheduledForDeletion of DateTime
@@ -41,6 +42,7 @@ type TenantEvent =
     interface Event<Tenant> with
         member this.Process(tenant: Tenant) : Result<Tenant, string> =
             match this with
+            | NoOp -> Ok tenant
             | Deactivated -> tenant.Deactivate
             | Activated -> tenant.Activate
             | ScheduledForDeletion date -> tenant.ScheduleForDeletion date

@@ -7,11 +7,14 @@ open BookLibrary.Shared.Commons
 open System.Text.Json
 
 type LoanEvent =
+    | NoOp
     | LoanReturned of DateTime
     | LoanArchived of DateTime
     interface Event<Loan> with
         member this.Process (loan: Loan) =
             match this with
+            | NoOp ->
+                Ok loan
             | LoanReturned dateTime ->
                 loan.Return dateTime
             | LoanArchived dateTime ->

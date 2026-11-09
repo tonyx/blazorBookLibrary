@@ -9,12 +9,15 @@ open BookLibrary.Shared.Commons
 open System
 
 type MailQueueEvent =
+    | NoOp
     | MailQueueItemAdded of MailQueueItem
     | MailQueueItemRemoved of MailQueueItemId
     | MailQueueItemRetryCountIncremented of MailQueueItemId
     interface Event<MailQueue> with
         member this.Process (state: MailQueue): Result<MailQueue, string> = 
             match this with
+            | NoOp ->
+                Ok state
             | MailQueueItemAdded item -> 
                 state.Add(item) 
             | MailQueueItemRemoved item ->

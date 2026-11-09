@@ -16,4 +16,7 @@ type IAdminServices =
     abstract member RenameDistributionPointAsync: context:UserContext * distributionPointId:DistributionPointId * name:NonEmptyName * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<unit, string>>
     abstract member PurgeDuplicatedVectorsAsync: context:UserContext * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<unit, string>>
 
+    abstract member RecoverAggregateStreamAsync: context:UserContext * aggregateType:string * aggregateId:System.Guid * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<string, string>>
+    abstract member RecoverAllAggregatesAsync: context:UserContext * aggregateType:string * [<Optional; DefaultParameterValue(null)>] ?ct: CancellationToken -> Task<Result<string, string>>
+
     

@@ -6,6 +6,7 @@ open BookLibrary.Shared.Commons
 open System.Text.Json
 
 type AuthorEvent =
+    | NoOp
     | Renamed of Name * DateTime
     | IsniUpdated of Isni * DateTime
     | BookAdded of BookId
@@ -21,6 +22,7 @@ type AuthorEvent =
     interface Event<Author> with
         member this.Process(author: Author) : Result<Author, string> =
             match this with
+            | NoOp -> Ok author
             | Renamed(name, dateTime) -> author.Rename name dateTime
             | IsniUpdated(isni, dateTime) -> author.UpdateIsni isni dateTime
             | BioUpdated(bio, dateTime) -> author.UpdateBio bio dateTime

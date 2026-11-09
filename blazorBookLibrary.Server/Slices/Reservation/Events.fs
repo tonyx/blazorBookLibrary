@@ -6,6 +6,7 @@ open BookLibrary.Shared.Commons
 open System.Text.Json
 
 type ReservationEvent =
+    | NoOp
     | Canceled of CancellationReason
     // following is deprecated
     | CanceledByUser of Cancellation * DateTime * UserId
@@ -19,6 +20,7 @@ type ReservationEvent =
     interface Event<Reservation> with
         member this.Process(reservation: Reservation) =
             match this with
+            | NoOp -> Ok reservation
             | Canceled reason -> reservation.Cancel reason
             | CanceledByUser(cancellation, dateTime, userId) -> reservation.CancelByUser cancellation dateTime userId
             | CanceledByLibrarian(cancellation, dateTime) -> reservation.CancelByLibrarian cancellation dateTime

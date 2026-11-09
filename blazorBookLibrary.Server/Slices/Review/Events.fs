@@ -8,6 +8,7 @@ open System.Text.Json
 open System.Globalization
 
 type ReviewEvent = 
+    | NoOp
     | Edited of string * DateTime
     | Hidden of DateTime
     | Shown of DateTime
@@ -17,6 +18,8 @@ type ReviewEvent =
     interface Event<BookLibrary.Domain.Review> with
         member this.Process (comment: BookLibrary.Domain.Review) = 
             match this with
+            | NoOp ->
+                Ok comment
             | Edited (commentValue, _) -> 
                 comment.Edit commentValue
             | Hidden _ -> 

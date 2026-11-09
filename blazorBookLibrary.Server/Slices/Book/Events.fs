@@ -8,6 +8,7 @@ open System.Text.Json
 open System.Globalization
 
 type BookEvent =
+    | NoOp
     | TitleUpdated of Title * DateTime
     | DescriptionUpdated of string * DateTime
     | DescriptionRemoved of DateTime
@@ -61,6 +62,7 @@ type BookEvent =
     interface Event<BookLibrary.Domain.Book> with
         member this.Process (book: Book) : Result<Book, string> =
             match this with
+            | NoOp -> Ok book
             | TitleUpdated (title, dateTime) ->
                 book.UpdateTitle title dateTime
             | DescriptionUpdated (description, dateTime) ->

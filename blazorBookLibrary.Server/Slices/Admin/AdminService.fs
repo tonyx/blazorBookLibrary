@@ -24,6 +24,8 @@ open BookLibrary.Details.Details
 open Microsoft.Extensions.Configuration
 open BookLibrary.Shared
 open BookLibrary.Utils
+open Sharpino.Sanitizer
+open BookLibrary.MessagesScheduler
 
 type AdminService
     (
@@ -266,6 +268,83 @@ type AdminService
             return ()
         }
 
+    member this.RecoverAggregateStreamAsync(context: UserContext, aggregateType: string, aggregateId: Guid, ?ct: CancellationToken) =
+        taskResult {
+            let ct = defaultArg ct CancellationToken.None
+            do! checkIsGlobalAdminOrTenantManager context ct
+
+            let normalizedType = aggregateType.Trim().ToLowerInvariant()
+            let reportResult =
+                match normalizedType with
+                | "book" ->
+                    sanitizeAggregateStream<Book, BookEvent, string> eventStore aggregateId BookEvent.NoOp None
+                | "author" ->
+                    sanitizeAggregateStream<Author, AuthorEvent, string> eventStore aggregateId AuthorEvent.NoOp None
+                | "editor" ->
+                    sanitizeAggregateStream<Editor, EditorEvent, string> eventStore aggregateId EditorEvent.NoOp None
+                | "distributionpoint" ->
+                    sanitizeAggregateStream<DistributionPoint, DistributionPointEvent, string> eventStore aggregateId DistributionPointEvent.NoOp None
+                | "loan" ->
+                    sanitizeAggregateStream<Loan, LoanEvent, string> eventStore aggregateId LoanEvent.NoOp None
+                | "reservation" ->
+                    sanitizeAggregateStream<Reservation, ReservationEvent, string> eventStore aggregateId ReservationEvent.NoOp None
+                | "review" ->
+                    sanitizeAggregateStream<Review, ReviewEvent, string> eventStore aggregateId ReviewEvent.NoOp None
+                | "user" ->
+                    sanitizeAggregateStream<User, UserEvent, string> eventStore aggregateId UserEvent.NoOp None
+                | "tenant" ->
+                    sanitizeAggregateStream<Tenant, TenantEvent, string> eventStore aggregateId TenantEvent.NoOp None
+                | "mailqueue" ->
+                    sanitizeAggregateStream<MailQueue, MailQueueEvent, string> eventStore aggregateId MailQueueEvent.NoOp None
+                | _ ->
+                    Error $"Unsupported aggregate type '{aggregateType}'"
+
+            let! report = reportResult
+            let summary =
+                if report.IsClean then
+                    $"Aggregate {aggregateType} {aggregateId} stream was clean. No patches needed."
+                else
+                    let actionsCount = report.Actions.Length
+                    $"Aggregate {aggregateType} {aggregateId} healed successfully with {actionsCount} NoOp patch(es)."
+            return summary
+        }
+
+    member this.RecoverAllAggregatesAsync(context: UserContext, aggregateType: string, ?ct: CancellationToken) =
+        taskResult {
+            let ct = defaultArg ct CancellationToken.None
+            do! checkIsGlobalAdminOrTenantManager context ct
+
+            let normalizedType = aggregateType.Trim().ToLowerInvariant()
+            let reportsResult =
+                match normalizedType with
+                | "book" ->
+                    sanitizeAllAggregates<Book, BookEvent, string> eventStore BookEvent.NoOp None
+                | "author" ->
+                    sanitizeAllAggregates<Author, AuthorEvent, string> eventStore AuthorEvent.NoOp None
+                | "editor" ->
+                    sanitizeAllAggregates<Editor, EditorEvent, string> eventStore EditorEvent.NoOp None
+                | "distributionpoint" ->
+                    sanitizeAllAggregates<DistributionPoint, DistributionPointEvent, string> eventStore DistributionPointEvent.NoOp None
+                | "loan" ->
+                    sanitizeAllAggregates<Loan, LoanEvent, string> eventStore LoanEvent.NoOp None
+                | "reservation" ->
+                    sanitizeAllAggregates<Reservation, ReservationEvent, string> eventStore ReservationEvent.NoOp None
+                | "review" ->
+                    sanitizeAllAggregates<Review, ReviewEvent, string> eventStore ReviewEvent.NoOp None
+                | "user" ->
+                    sanitizeAllAggregates<User, UserEvent, string> eventStore UserEvent.NoOp None
+                | "tenant" ->
+                    sanitizeAllAggregates<Tenant, TenantEvent, string> eventStore TenantEvent.NoOp None
+                | "mailqueue" ->
+                    sanitizeAllAggregates<MailQueue, MailQueueEvent, string> eventStore MailQueueEvent.NoOp None
+                | _ ->
+                    Error $"Unsupported aggregate type '{aggregateType}'"
+
+            let! reports = reportsResult
+            let healedCount = reports |> List.filter (fun r -> not r.IsClean) |> List.length
+            return $"Processed {reports.Length} {aggregateType} aggregates; healed {healedCount} streams."
+        }
+
     interface IAdminServices with
         member this.PurgeVectorsReferringDroppedBooksAsync(context, ?ct) =
             this.PurgeVectorsReferringDroppedBooksAsync(context, ?ct = ct)
@@ -287,3 +366,9 @@ type AdminService
 
         member this.PurgeDuplicatedVectorsAsync(context, ?ct) =
             this.PurgeDuplicatedVectorsAsync(context, ?ct = ct)
+
+        member this.RecoverAggregateStreamAsync(context, aggregateType, aggregateId, ?ct) =
+            this.RecoverAggregateStreamAsync(context, aggregateType, aggregateId, ?ct = ct)
+
+        member this.RecoverAllAggregatesAsync(context, aggregateType, ?ct) =
+            this.RecoverAllAggregatesAsync(context, aggregateType, ?ct = ct)

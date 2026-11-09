@@ -7,6 +7,7 @@ open BookLibrary.Shared.Commons
 open System.Text.Json
 
 type DistributionPointEvent =
+    | NoOp
     | Renamed of NonEmptyName
     | InfoUpdated of Info
     | ReferenceUserAdded of UserId
@@ -14,6 +15,8 @@ type DistributionPointEvent =
     interface Event<DistributionPoint> with
         member this.Process (distributionPoint: DistributionPoint) : Result<DistributionPoint, string> =
             match this with
+            | NoOp ->
+                Ok distributionPoint
             | Renamed name ->
                 distributionPoint.Rename name
             | InfoUpdated info ->

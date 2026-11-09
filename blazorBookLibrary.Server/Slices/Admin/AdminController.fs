@@ -77,3 +77,23 @@ type AdminController(adminService: IAdminServices) =
                 | Error msg -> return this.BadRequest(msg) :> IActionResult
             | Error msg -> return this.BadRequest(msg) :> IActionResult
         }
+
+    [<HttpPost("recover/aggregate/{aggregateType}/{aggregateId}")>]
+    member this.RecoverAggregateStream(aggregateType: string, aggregateId: Guid) =
+        task {
+            let context = UserContextMapper.mapFromClaimsPrincipal this.User
+            let! result = adminService.RecoverAggregateStreamAsync(context, aggregateType, aggregateId)
+            match result with
+            | Ok msg -> return this.Ok(msg) :> IActionResult
+            | Error msg -> return this.BadRequest(msg) :> IActionResult
+        }
+
+    [<HttpPost("recover/all/{aggregateType}")>]
+    member this.RecoverAllAggregates(aggregateType: string) =
+        task {
+            let context = UserContextMapper.mapFromClaimsPrincipal this.User
+            let! result = adminService.RecoverAllAggregatesAsync(context, aggregateType)
+            match result with
+            | Ok msg -> return this.Ok(msg) :> IActionResult
+            | Error msg -> return this.BadRequest(msg) :> IActionResult
+        }

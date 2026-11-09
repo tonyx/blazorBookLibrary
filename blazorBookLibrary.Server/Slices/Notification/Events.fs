@@ -6,10 +6,13 @@ open BookLibrary.Shared.Commons
 open System.Text.Json
 
 type NotificationEvent =
+    | NoOp
     | ReadMarked
     interface Event<Notification> with
         member this.Process (notification: Notification) : Result<Notification, string> =
             match this with
+            | NoOp ->
+                Ok notification
             | ReadMarked ->
                 notification.MarkAsRead ()
 
